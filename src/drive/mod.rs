@@ -8,7 +8,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use serde::{Deserialize, Serialize};
 
 use std::sync::Arc;
@@ -169,61 +169,82 @@ pub struct RestoreResponse {
 }
 
 #[allow(unused)]
+#[derive(Debug, Serialize)]
+pub struct BucketInfo {
+    pub name: String,
+    pub is_gbai: bool,
+}
+
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/files/list", get(list_files))
-        .route("/files/read", post(read_file))
-        .route("/files/write", post(write_file))
-        .route("/files/save", post(write_file))
-        .route("/files/getContents", post(read_file))
-        .route("/files/delete", post(delete_file))
-        .route("/files/upload", post(upload_file_to_drive))
-        .route("/files/download", post(download_file))
-        .route("/files/copy", post(copy_file))
-        .route("/files/move", post(move_file))
-        .route("/files/createFolder", post(create_folder))
-        .route("/files/create-folder", post(create_folder))
-        .route("/files/dirFolder", post(list_folder_contents))
-        .route("/files/search", get(search_files))
-        .route("/files/recent", get(recent_files))
-        .route("/files/favorite", get(list_favorites))
-        .route("/files/shareFolder", post(share_folder))
-        .route("/files/shared", get(list_shared))
-        .route("/files/permissions", get(get_permissions))
-        .route("/files/quota", get(get_quota))
-        .route("/files/sync/status", get(sync_status))
-        .route("/files/sync/start", post(start_sync))
-        .route("/files/sync/stop", post(stop_sync))
-        .route("/files/versions", get(list_versions))
-        .route("/files/restore", post(restore_version))
-        .route("/docs/merge", post(document_processing::merge_documents))
-        .route("/docs/convert", post(document_processing::convert_document))
-        .route("/docs/fill", post(document_processing::fill_document))
-        .route("/docs/export", post(document_processing::export_document))
-        .route("/docs/import", post(document_processing::import_document))
+        .route("/api/files/buckets", get(list_buckets))
+        .route("/api/files/list", get(list_files))
+        .route("/api/files/read", post(read_file))
+        .route("/api/files/write", post(write_file))
+        .route("/api/files/save", post(write_file))
+        .route("/api/files/getContents", post(read_file))
+        .route("/api/files/delete", post(delete_file))
+        .route("/api/files/upload", post(upload_file_to_drive))
+        .route("/api/files/download", post(download_file))
+        .route("/api/files/copy", post(copy_file))
+        .route("/api/files/move", post(move_file))
+        .route("/api/files/createFolder", post(create_folder))
+        .route("/api/files/create-folder", post(create_folder))
+        .route("/api/files/dirFolder", post(list_folder_contents))
+        .route("/api/files/search", get(search_files))
+        .route("/api/files/recent", get(recent_files))
+        .route("/api/files/favorite", get(list_favorites))
+        .route("/api/files/shareFolder", post(share_folder))
+        .route("/api/files/shared", get(list_shared))
+        .route("/api/files/permissions", get(get_permissions))
+        .route("/api/files/quota", get(get_quota))
+        .route("/api/files/sync/status", get(sync_status))
+        .route("/api/files/sync/start", post(start_sync))
+        .route("/api/files/sync/stop", post(stop_sync))
+        .route("/api/files/versions", get(list_versions))
+        .route("/api/files/restore", post(restore_version))
+        .route("/api/docs/merge", post(document_processing::merge_documents))
+        .route("/api/docs/convert", post(document_processing::convert_document))
+        .route("/api/docs/fill", post(document_processing::fill_document))
+        .route("/api/docs/export", post(document_processing::export_document))
+        .route("/api/docs/import", post(document_processing::import_document))
+}
+
+pub async fn list_buckets(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Vec<BucketInfo>>, (StatusCode, Json<serde_json::Value>)> {
+    let s3_client = state.drive.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({"error": "S3 service not available"})),
+        )
+    })?;
+
+    let result = s3_client.list_buckets().send().await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": format!("Failed to list buckets: {}", e)})),
+        )
+    })?;
+
+    let buckets: Vec<BucketInfo> = result
+        .buckets()
+        .iter()
+        .filter_map(|b| {
+            b.name().map(|name| BucketInfo {
+                name: name.to_string(),
+                is_gbai: name.to_lowercase().ends_with(".gbai"),
+            })
+        })
+        .collect();
+
+    Ok(Json(buckets))
 }
 
 pub async fn list_files(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListQuery>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
-    #[cfg(feature = "console")]
-    let result = {
-        let mut tree = FileTree::new(state.clone());
-        if let Some(bucket) = &params.bucket {
-            if let Some(path) = &params.path {
-                tree.enter_folder(bucket.clone(), path.clone()).await.ok();
-            } else {
-                tree.enter_bucket(bucket.clone()).await.ok();
-            }
-        } else {
-            tree.load_root().await.ok();
-        }
-
-        Ok::<Vec<FileItem>, (StatusCode, Json<serde_json::Value>)>(vec![])
-    };
-
-    #[cfg(not(feature = "console"))]
     let result: Result<Vec<FileItem>, (StatusCode, Json<serde_json::Value>)> = {
         let s3_client = state.drive.as_ref().ok_or_else(|| {
             (
@@ -402,31 +423,115 @@ pub async fn write_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<WriteRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    tracing::debug!(
+        "write_file called: bucket={}, path={}, content_len={}",
+        req.bucket,
+        req.path,
+        req.content.len()
+    );
+
     let s3_client = state.drive.as_ref().ok_or_else(|| {
+        tracing::error!("S3 client not available for write_file");
         (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(serde_json::json!({ "error": "S3 service not available" })),
         )
     })?;
 
+    // Try to decode as base64, otherwise use content directly
+    // Base64 content from file uploads won't have whitespace/newlines at start
+    // and will only contain valid base64 characters
+    let is_base64 = is_likely_base64(&req.content);
+    tracing::debug!("Content detected as base64: {}", is_base64);
+
+    let body_bytes: Vec<u8> = if is_base64 {
+        match BASE64.decode(&req.content) {
+            Ok(decoded) => {
+                tracing::debug!("Base64 decoded successfully, size: {} bytes", decoded.len());
+                decoded
+            }
+            Err(e) => {
+                tracing::warn!("Base64 decode failed ({}), using raw content", e);
+                req.content.clone().into_bytes()
+            }
+        }
+    } else {
+        req.content.into_bytes()
+    };
+
+    let sanitized_path = req.path
+        .replace("//", "/")
+        .trim_start_matches('/')
+        .to_string();
+
+    tracing::debug!("Writing {} bytes to {}/{}", body_bytes.len(), req.bucket, sanitized_path);
+
     s3_client
         .put_object()
         .bucket(&req.bucket)
-        .key(&req.path)
-        .body(req.content.into_bytes().into())
+        .key(&sanitized_path)
+        .body(body_bytes.into())
         .send()
         .await
         .map_err(|e| {
+            tracing::error!("S3 put_object failed: {:?}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({ "error": format!("Failed to write file: {}", e) })),
             )
         })?;
 
+    tracing::info!("File written successfully: {}/{}", req.bucket, sanitized_path);
     Ok(Json(SuccessResponse {
         success: true,
         message: Some("File written successfully".to_string()),
     }))
+}
+
+/// Check if a string is likely base64 encoded content (from file upload)
+/// Base64 from DataURL will be pure base64 without newlines at start
+fn is_likely_base64(s: &str) -> bool {
+    // Empty or very short strings are not base64 uploads
+    if s.len() < 20 {
+        return false;
+    }
+
+    // If it starts with common text patterns, it's not base64
+    let trimmed = s.trim_start();
+    if trimmed.starts_with('#')      // Markdown, shell scripts
+        || trimmed.starts_with("//")  // Comments
+        || trimmed.starts_with("/*")  // C-style comments
+        || trimmed.starts_with('{')   // JSON
+        || trimmed.starts_with('[')   // JSON array
+        || trimmed.starts_with('<')   // XML/HTML
+        || trimmed.starts_with("<!")  // HTML doctype
+        || trimmed.starts_with("function") // JavaScript
+        || trimmed.starts_with("const ")   // JavaScript
+        || trimmed.starts_with("let ")     // JavaScript
+        || trimmed.starts_with("var ")     // JavaScript
+        || trimmed.starts_with("import ")  // Various languages
+        || trimmed.starts_with("from ")    // Python
+        || trimmed.starts_with("def ")     // Python
+        || trimmed.starts_with("class ")   // Various languages
+        || trimmed.starts_with("pub ")     // Rust
+        || trimmed.starts_with("use ")     // Rust
+        || trimmed.starts_with("mod ")     // Rust
+    {
+        return false;
+    }
+
+    // Check if string contains only valid base64 characters
+    // and try to decode it
+    let base64_chars = s.chars().all(|c| {
+        c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='
+    });
+
+    if !base64_chars {
+        return false;
+    }
+
+    // Final check: try to decode and see if it works
+    BASE64.decode(s).is_ok()
 }
 
 pub async fn delete_file(

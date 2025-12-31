@@ -5,7 +5,7 @@ use crate::basic::keywords::table_definition::{
 use crate::core::config::ConfigManager;
 use crate::core::shared::get_content_type;
 use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use crate::core::shared::state::{AgentActivity, AppState};
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
@@ -143,18 +143,90 @@ struct LlmFile {
 
 pub struct AppGenerator {
     state: Arc<AppState>,
+    task_id: Option<String>,
+    generation_start: Option<std::time::Instant>,
+    files_written: Vec<String>,
+    tables_synced: Vec<String>,
+    bytes_generated: u64,
 }
 
 impl AppGenerator {
     pub fn new(state: Arc<AppState>) -> Self {
-        Self { state }
+        Self {
+            state,
+            task_id: None,
+            generation_start: None,
+            files_written: Vec::new(),
+            tables_synced: Vec::new(),
+            bytes_generated: 0,
+        }
+    }
+
+    pub fn with_task_id(state: Arc<AppState>, task_id: impl Into<String>) -> Self {
+        Self {
+            state,
+            task_id: Some(task_id.into()),
+            generation_start: None,
+            files_written: Vec::new(),
+            tables_synced: Vec::new(),
+            bytes_generated: 0,
+        }
+    }
+
+    fn emit_activity(&self, step: &str, message: &str, current: u8, total: u8, activity: AgentActivity) {
+        if let Some(ref task_id) = self.task_id {
+            self.state.emit_activity(task_id, step, message, current, total, activity);
+        }
+    }
+
+    fn calculate_speed(&self, items_done: u32) -> (f32, Option<u32>) {
+        if let Some(start) = self.generation_start {
+            let elapsed = start.elapsed().as_secs_f32();
+            if elapsed > 0.0 {
+                let speed = (items_done as f32 / elapsed) * 60.0;
+                return (speed, None);
+            }
+        }
+        (0.0, None)
+    }
+
+    fn build_activity(&self, phase: &str, items_done: u32, items_total: Option<u32>, current_item: Option<&str>) -> AgentActivity {
+        let (speed, eta) = self.calculate_speed(items_done);
+        let mut activity = AgentActivity::new(phase)
+            .with_progress(items_done, items_total)
+            .with_bytes(self.bytes_generated);
+
+        if speed > 0.0 {
+            activity = activity.with_speed(speed, eta);
+        }
+
+        if !self.files_written.is_empty() {
+            activity = activity.with_files(self.files_written.clone());
+        }
+
+        if !self.tables_synced.is_empty() {
+            activity = activity.with_tables(self.tables_synced.clone());
+        }
+
+        if let Some(item) = current_item {
+            activity = activity.with_current_item(item);
+        }
+
+        activity
     }
 
     pub async fn generate_app(
-        &self,
+        &mut self,
         intent: &str,
         session: &UserSession,
     ) -> Result<GeneratedApp, Box<dyn std::error::Error + Send + Sync>> {
+        const TOTAL_STEPS: u8 = 8;
+
+        self.generation_start = Some(std::time::Instant::now());
+        self.files_written.clear();
+        self.tables_synced.clear();
+        self.bytes_generated = 0;
+
         info!(
             "Generating app from intent: {}",
             &intent[..intent.len().min(100)]
@@ -168,23 +240,82 @@ impl AppGenerator {
             ),
         );
 
+        if let Some(ref task_id) = self.task_id {
+            self.state.emit_task_started(task_id, &format!("Generating app: {}", &intent[..intent.len().min(50)]), TOTAL_STEPS);
+        }
+
+        let activity = self.build_activity("analyzing", 0, Some(TOTAL_STEPS as u32), Some("Sending request to LLM"));
+        self.emit_activity(
+            "llm_request",
+            "Analyzing request with AI...",
+            1,
+            TOTAL_STEPS,
+            activity
+        );
+
+        info!("[APP_GENERATOR] Calling generate_complete_app_with_llm for intent: {}", &intent[..intent.len().min(50)]);
+        let llm_start = std::time::Instant::now();
+
         let llm_app = match self.generate_complete_app_with_llm(intent, session.bot_id).await {
             Ok(app) => {
+                let llm_elapsed = llm_start.elapsed();
+                info!("[APP_GENERATOR] LLM generation completed in {:?}: app={}, files={}, tables={}",
+                      llm_elapsed, app.name, app.files.len(), app.tables.len());
                 log_generator_info(
                     &app.name,
                     "LLM successfully generated app structure and files",
                 );
+
+                let total_bytes: u64 = app.files.iter().map(|f| f.content.len() as u64).sum();
+                self.bytes_generated = total_bytes;
+
+                let activity = self.build_activity(
+                    "parsing",
+                    1,
+                    Some(TOTAL_STEPS as u32),
+                    Some(&format!("Generated {} with {} files", app.name, app.files.len()))
+                );
+                self.emit_activity(
+                    "llm_response",
+                    &format!("AI generated {} structure", app.name),
+                    2,
+                    TOTAL_STEPS,
+                    activity
+                );
                 app
             }
             Err(e) => {
+                let llm_elapsed = llm_start.elapsed();
+                error!("[APP_GENERATOR] LLM generation failed after {:?}: {}", llm_elapsed, e);
                 log_generator_error("unknown", "LLM app generation failed", &e.to_string());
+                if let Some(ref task_id) = self.task_id {
+                    self.state.emit_task_error(task_id, "llm_request", &e.to_string());
+                }
                 return Err(e);
             }
         };
 
+        let activity = self.build_activity("parsing", 2, Some(TOTAL_STEPS as u32), Some(&format!("Processing {} structure", llm_app.name)));
+        self.emit_activity("parse_structure", &format!("Parsing {} structure...", llm_app.name), 3, TOTAL_STEPS, activity);
+
         let tables = Self::convert_llm_tables(&llm_app.tables);
 
         if !tables.is_empty() {
+            let table_names: Vec<String> = tables.iter().map(|t| t.name.clone()).collect();
+            let activity = self.build_activity(
+                "database",
+                3,
+                Some(TOTAL_STEPS as u32),
+                Some(&format!("Creating tables: {}", table_names.join(", ")))
+            );
+            self.emit_activity(
+                "create_tables",
+                &format!("Creating {} database tables...", tables.len()),
+                4,
+                TOTAL_STEPS,
+                activity
+            );
+
             let tables_bas_content = Self::generate_table_definitions(&tables)?;
             if let Err(e) = self.append_to_tables_bas(session.bot_id, &tables_bas_content) {
                 log_generator_error(
@@ -203,6 +334,20 @@ impl AppGenerator {
                             result.tables_created, result.fields_added
                         ),
                     );
+                    self.tables_synced = table_names;
+                    let activity = self.build_activity(
+                        "database",
+                        4,
+                        Some(TOTAL_STEPS as u32),
+                        Some(&format!("{} tables, {} fields created", result.tables_created, result.fields_added))
+                    );
+                    self.emit_activity(
+                        "tables_synced",
+                        "Database tables created",
+                        4,
+                        TOTAL_STEPS,
+                        activity
+                    );
                 }
                 Err(e) => {
                     log_generator_error(&llm_app.name, "Failed to sync tables", &e.to_string());
@@ -214,9 +359,37 @@ impl AppGenerator {
         let bucket_name = format!("{}.gbai", bot_name.to_lowercase());
         let drive_app_path = format!(".gbdrive/apps/{}", llm_app.name);
 
+        let total_files = llm_app.files.len();
+        let activity = self.build_activity("writing", 0, Some(total_files as u32), Some("Preparing files"));
+        self.emit_activity(
+            "write_files",
+            &format!("Writing {} app files...", total_files),
+            5,
+            TOTAL_STEPS,
+            activity
+        );
+
         let mut pages = Vec::new();
-        for file in &llm_app.files {
+        for (idx, file) in llm_app.files.iter().enumerate() {
             let drive_path = format!("{}/{}", drive_app_path, file.filename);
+
+            self.files_written.push(file.filename.clone());
+            self.bytes_generated += file.content.len() as u64;
+
+            let activity = self.build_activity(
+                "writing",
+                (idx + 1) as u32,
+                Some(total_files as u32),
+                Some(&file.filename)
+            );
+            self.emit_activity(
+                "write_file",
+                &format!("Writing {}", file.filename),
+                5,
+                TOTAL_STEPS,
+                activity
+            );
+
             if let Err(e) = self
                 .write_to_drive(&bucket_name, &drive_path, &file.content)
                 .await
@@ -236,7 +409,12 @@ impl AppGenerator {
             });
         }
 
+        self.files_written.push("designer.js".to_string());
+        let activity = self.build_activity("configuring", total_files as u32, Some(total_files as u32), Some("designer.js"));
+        self.emit_activity("write_designer", "Creating designer configuration...", 6, TOTAL_STEPS, activity);
+
         let designer_js = Self::generate_designer_js(&llm_app.name);
+        self.bytes_generated += designer_js.len() as u64;
         self.write_to_drive(
             &bucket_name,
             &format!("{}/designer.js", drive_app_path),
@@ -246,8 +424,24 @@ impl AppGenerator {
 
         let mut tools = Vec::new();
         if let Some(llm_tools) = &llm_app.tools {
-            for tool in llm_tools {
+            let tools_count = llm_tools.len();
+            let activity = self.build_activity("tools", 0, Some(tools_count as u32), Some("Creating BASIC tools"));
+            self.emit_activity(
+                "write_tools",
+                &format!("Creating {} tools...", tools_count),
+                7,
+                TOTAL_STEPS,
+                activity
+            );
+
+            for (idx, tool) in llm_tools.iter().enumerate() {
                 let tool_path = format!(".gbdialog/tools/{}", tool.filename);
+                self.files_written.push(format!("tools/{}", tool.filename));
+                self.bytes_generated += tool.content.len() as u64;
+
+                let activity = self.build_activity("tools", (idx + 1) as u32, Some(tools_count as u32), Some(&tool.filename));
+                self.emit_activity("write_tool", &format!("Writing tool {}", tool.filename), 7, TOTAL_STEPS, activity);
+
                 if let Err(e) = self
                     .write_to_drive(&bucket_name, &tool_path, &tool.content)
                     .await
@@ -268,8 +462,24 @@ impl AppGenerator {
 
         let mut schedulers = Vec::new();
         if let Some(llm_schedulers) = &llm_app.schedulers {
-            for scheduler in llm_schedulers {
+            let sched_count = llm_schedulers.len();
+            let activity = self.build_activity("schedulers", 0, Some(sched_count as u32), Some("Creating schedulers"));
+            self.emit_activity(
+                "write_schedulers",
+                &format!("Creating {} schedulers...", sched_count),
+                7,
+                TOTAL_STEPS,
+                activity
+            );
+
+            for (idx, scheduler) in llm_schedulers.iter().enumerate() {
                 let scheduler_path = format!(".gbdialog/schedulers/{}", scheduler.filename);
+                self.files_written.push(format!("schedulers/{}", scheduler.filename));
+                self.bytes_generated += scheduler.content.len() as u64;
+
+                let activity = self.build_activity("schedulers", (idx + 1) as u32, Some(sched_count as u32), Some(&scheduler.filename));
+                self.emit_activity("write_scheduler", &format!("Writing scheduler {}", scheduler.filename), 7, TOTAL_STEPS, activity);
+
                 if let Err(e) = self
                     .write_to_drive(&bucket_name, &scheduler_path, &scheduler.content)
                     .await
@@ -288,16 +498,22 @@ impl AppGenerator {
             }
         }
 
+        let activity = self.build_activity("syncing", TOTAL_STEPS as u32 - 1, Some(TOTAL_STEPS as u32), Some("Deploying to site"));
+        self.emit_activity("sync_site", "Syncing app to site...", 8, TOTAL_STEPS, activity);
+
         self.sync_app_to_site_root(&bucket_name, &llm_app.name, session.bot_id)
             .await?;
+
+        let elapsed = self.generation_start.map(|s| s.elapsed().as_secs()).unwrap_or(0);
 
         log_generator_info(
             &llm_app.name,
             &format!(
-                "App generated: {} files, {} tables, {} tools",
+                "App generated: {} files, {} tables, {} tools in {}s",
                 pages.len(),
                 tables.len(),
-                tools.len()
+                tools.len(),
+                elapsed
             ),
         );
 
@@ -305,6 +521,24 @@ impl AppGenerator {
             "App '{}' generated in s3://{}/{}",
             llm_app.name, bucket_name, drive_app_path
         );
+
+        if let Some(ref task_id) = self.task_id {
+            let final_activity = AgentActivity::new("completed")
+                .with_progress(TOTAL_STEPS as u32, Some(TOTAL_STEPS as u32))
+                .with_bytes(self.bytes_generated)
+                .with_files(self.files_written.clone())
+                .with_tables(self.tables_synced.clone());
+
+            let event = crate::core::shared::state::TaskProgressEvent::new(task_id, "complete", &format!(
+                "App '{}' created: {} files, {} tables, {} bytes in {}s",
+                llm_app.name, pages.len(), tables.len(), self.bytes_generated, elapsed
+            ))
+            .with_progress(TOTAL_STEPS, TOTAL_STEPS)
+            .with_activity(final_activity)
+            .completed();
+
+            self.state.broadcast_task_progress(event);
+        }
 
         Ok(GeneratedApp {
             id: Uuid::new_v4().to_string(),
@@ -436,8 +670,14 @@ guid, string, text, integer, decimal, boolean, date, datetime, json
 === USER REQUEST ===
 "{intent}"
 
-=== YOUR TASK ===
-Generate a complete application based on the user's request.
+=== YOLO MODE - JUST BUILD IT ===
+DO NOT ask questions. DO NOT request clarification. Just CREATE the app NOW.
+
+If user says "calculator" → build a full-featured calculator with basic ops, scientific functions, history
+If user says "CRM" → build customer management with contacts, companies, deals, notes
+If user says "inventory" → build stock tracking with products, categories, movements
+If user says "booking" → build appointment scheduler with calendar, slots, confirmations
+If user says ANYTHING → interpret creatively and BUILD SOMETHING AWESOME
 
 Respond with a single JSON object:
 {{
@@ -469,15 +709,16 @@ Respond with a single JSON object:
     ]
 }}
 
-IMPORTANT:
-- For simple utilities (calculator, timer, converter): tables can be empty [], focus on files
+CRITICAL RULES:
+- For utilities (calculator, timer, converter, BMI, mortgage): tables = [], focus on interactive HTML/JS
 - For data apps (CRM, inventory): design proper tables and CRUD pages
-- Generate ALL files completely - no shortcuts
+- Generate ALL files completely - no placeholders, no "...", no shortcuts
 - CSS must be comprehensive with variables, responsive design, dark mode
 - Every HTML page needs proper structure with all required scripts
 - Replace APP_NAME_HERE with actual app name in data-app-name attribute
+- BE CREATIVE - add extra features the user didn't ask for but would love
 
-Respond with valid JSON only."#
+Respond with valid JSON only. NO QUESTIONS. JUST BUILD."#
         );
 
         let response = self.call_llm(&prompt, bot_id).await?;
@@ -557,7 +798,6 @@ Respond with valid JSON only."#
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         #[cfg(feature = "llm")]
         {
-            // Get model and key from bot configuration
             let config_manager = ConfigManager::new(self.state.conn.clone());
             let model = config_manager
                 .get_config(&bot_id, "llm-model", None)
@@ -579,15 +819,24 @@ Respond with valid JSON only."#
                 "max_tokens": 16000
             });
 
+            let prompt_len = prompt.len();
+            info!("[APP_GENERATOR] Starting LLM call: model={}, prompt_len={} chars", model, prompt_len);
+            let start = std::time::Instant::now();
+
             match self
                 .state
                 .llm_provider
                 .generate(prompt, &llm_config, &model, &key)
                 .await
             {
-                Ok(response) => return Ok(response),
+                Ok(response) => {
+                    let elapsed = start.elapsed();
+                    info!("[APP_GENERATOR] LLM call succeeded: response_len={} chars, elapsed={:?}", response.len(), elapsed);
+                    return Ok(response);
+                }
                 Err(e) => {
-                    warn!("LLM call failed: {}", e);
+                    let elapsed = start.elapsed();
+                    error!("[APP_GENERATOR] LLM call failed after {:?}: {}", elapsed, e);
                     return Err(e);
                 }
             }

@@ -170,28 +170,19 @@ impl IntentClassifier {
         intent: &str,
         session: &UserSession,
     ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
+        self.classify_and_process_with_task_id(intent, session, None).await
+    }
+
+    /// Classify and then process the intent through the appropriate handler with task tracking
+    pub async fn classify_and_process_with_task_id(
+        &self,
+        intent: &str,
+        session: &UserSession,
+        task_id: Option<String>,
+    ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
         let classification = self.classify(intent, session).await?;
 
-        // If clarification is needed, return early
-        if classification.requires_clarification {
-            return Ok(IntentResult {
-                success: false,
-                intent_type: classification.intent_type,
-                message: classification
-                    .clarification_question
-                    .unwrap_or_else(|| "Could you please provide more details?".to_string()),
-                created_resources: Vec::new(),
-                app_url: None,
-                task_id: None,
-                schedule_id: None,
-                tool_triggers: Vec::new(),
-                next_steps: vec!["Provide more information".to_string()],
-                error: None,
-            });
-        }
-
-        // Route to appropriate handler
-        self.process_classified_intent(&classification, session)
+        self.process_classified_intent_with_task_id(&classification, session, task_id)
             .await
     }
 
@@ -201,6 +192,16 @@ impl IntentClassifier {
         classification: &ClassifiedIntent,
         session: &UserSession,
     ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
+        self.process_classified_intent_with_task_id(classification, session, None).await
+    }
+
+    /// Process a classified intent through the appropriate handler with task tracking
+    pub async fn process_classified_intent_with_task_id(
+        &self,
+        classification: &ClassifiedIntent,
+        session: &UserSession,
+        task_id: Option<String>,
+    ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
         info!(
             "Processing {} intent: {}",
             classification.intent_type,
@@ -208,7 +209,7 @@ impl IntentClassifier {
         );
 
         match classification.intent_type {
-            IntentType::AppCreate => self.handle_app_create(classification, session).await,
+            IntentType::AppCreate => self.handle_app_create(classification, session, task_id).await,
             IntentType::Todo => self.handle_todo(classification, session),
             IntentType::Monitor => self.handle_monitor(classification, session),
             IntentType::Action => self.handle_action(classification, session).await,
@@ -231,8 +232,9 @@ impl IntentClassifier {
 USER REQUEST: "{intent}"
 
 INTENT TYPES:
-- APP_CREATE: Create a full application (CRM, inventory, booking system, etc.)
-  Keywords: "create app", "build system", "make application", "CRM", "management system"
+- APP_CREATE: Create a full application, utility, calculator, tool, system, etc.
+  Keywords: "create", "build", "make", "calculator", "app", "system", "CRM", "tool"
+  IMPORTANT: If user wants to CREATE anything (app, calculator, converter, timer, etc), classify as APP_CREATE
 
 - TODO: Simple task or reminder
   Keywords: "call", "remind me", "don't forget", "tomorrow", "later"
@@ -252,6 +254,9 @@ INTENT TYPES:
 - TOOL: Create a voice/chat command
   Keywords: "when I say", "create command", "shortcut for", "trigger"
 
+YOLO MODE: NEVER ask for clarification. Always make a decision and proceed.
+For APP_CREATE: Just build whatever makes sense. A "calculator" = basic calculator app. A "CRM" = customer management app. Be creative and decisive.
+
 Respond with JSON only:
 {{
     "intent_type": "APP_CREATE|TODO|MONITOR|ACTION|SCHEDULE|GOAL|TOOL|UNKNOWN",
@@ -269,13 +274,17 @@ Respond with JSON only:
     "suggested_name": "short name for the resource",
     "requires_clarification": false,
     "clarification_question": null,
-    "alternatives": [
-        {{"type": "OTHER_TYPE", "confidence": 0.3, "reason": "could also be..."}}
-    ]
+    "alternatives": []
 }}"#
         );
 
+        info!("[INTENT_CLASSIFIER] Starting LLM call for classification, prompt_len={} chars", prompt.len());
+        let start = std::time::Instant::now();
+
         let response = self.call_llm(&prompt, bot_id).await?;
+        let elapsed = start.elapsed();
+        info!("[INTENT_CLASSIFIER] LLM classification completed in {:?}, response_len={} chars", elapsed, response.len());
+        trace!("LLM classification response: {}", &response[..response.len().min(500)]);
         Self::parse_classification_response(&response, intent)
     }
 
@@ -321,8 +330,19 @@ Respond with JSON only:
             reason: String,
         }
 
+        // Clean response - remove markdown code blocks if present
+        let cleaned = response
+            .trim()
+            .trim_start_matches("```json")
+            .trim_start_matches("```JSON")
+            .trim_start_matches("```")
+            .trim_end_matches("```")
+            .trim();
+
+        trace!("Cleaned classification response: {}", &cleaned[..cleaned.len().min(300)]);
+
         // Try to parse, fall back to heuristic classification
-        let parsed: Result<LlmResponse, _> = serde_json::from_str(response);
+        let parsed: Result<LlmResponse, _> = serde_json::from_str(cleaned);
 
         match parsed {
             Ok(resp) => {
@@ -380,6 +400,7 @@ Respond with JSON only:
             }
             Err(e) => {
                 warn!("Failed to parse LLM response, using heuristic: {e}");
+                trace!("Raw response that failed to parse: {}", &response[..response.len().min(200)]);
                 Self::classify_heuristic(original_intent)
             }
         }
@@ -397,6 +418,31 @@ Respond with JSON only:
             || lower.contains("management system")
             || lower.contains("inventory")
             || lower.contains("booking")
+            || lower.contains("calculator")
+            || lower.contains("website")
+            || lower.contains("webpage")
+            || lower.contains("web page")
+            || lower.contains("landing page")
+            || lower.contains("dashboard")
+            || lower.contains("form")
+            || lower.contains("todo list")
+            || lower.contains("todo app")
+            || lower.contains("chat")
+            || lower.contains("blog")
+            || lower.contains("portfolio")
+            || lower.contains("store")
+            || lower.contains("shop")
+            || lower.contains("e-commerce")
+            || lower.contains("ecommerce")
+            || (lower.contains("create") && lower.contains("html"))
+            || (lower.contains("make") && lower.contains("html"))
+            || (lower.contains("build") && lower.contains("html"))
+            || (lower.contains("create a") && (lower.contains("simple") || lower.contains("basic")))
+            || (lower.contains("make a") && (lower.contains("simple") || lower.contains("basic")))
+            || (lower.contains("build a") && (lower.contains("simple") || lower.contains("basic")))
+            || lower.contains("criar")
+            || lower.contains("fazer")
+            || lower.contains("construir")
         {
             (IntentType::AppCreate, 0.75)
         } else if lower.contains("remind")
@@ -461,10 +507,15 @@ Respond with JSON only:
         &self,
         classification: &ClassifiedIntent,
         session: &UserSession,
+        task_id: Option<String>,
     ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
         info!("Handling APP_CREATE intent");
 
-        let app_generator = AppGenerator::new(self.state.clone());
+        let mut app_generator = if let Some(tid) = task_id {
+            AppGenerator::with_task_id(self.state.clone(), tid)
+        } else {
+            AppGenerator::new(self.state.clone())
+        };
 
         match app_generator
             .generate_app(&classification.original_text, session)

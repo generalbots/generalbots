@@ -33,6 +33,18 @@ pub use intent_compiler::{CompiledIntent, IntentCompiler};
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};
 
 use crate::core::urls::ApiUrls;
+use crate::shared::state::AppState;
+use axum::{
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        Path, Query, State,
+    },
+    response::IntoResponse,
+};
+use futures::{SinkExt, StreamExt};
+use log::{debug, error, info, warn};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared::state::AppState>> {
     use axum::routing::{get, post};
@@ -102,6 +114,141 @@ pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared:
         .route("/api/app-logs/stats", get(handle_log_stats))
         .route("/api/app-logs/clear/{app_name}", post(handle_clear_logs))
         .route("/api/app-logs/logger.js", get(handle_logger_js))
+        .route("/ws/task-progress", get(task_progress_websocket_handler))
+        .route("/ws/task-progress/{task_id}", get(task_progress_by_id_websocket_handler))
+}
+
+pub async fn task_progress_websocket_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let task_filter = params.get("task_id").cloned();
+
+    info!(
+        "Task progress WebSocket connection request, filter: {:?}",
+        task_filter
+    );
+
+    ws.on_upgrade(move |socket| handle_task_progress_websocket(socket, state, task_filter))
+}
+
+pub async fn task_progress_by_id_websocket_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<String>,
+) -> impl IntoResponse {
+    info!(
+        "Task progress WebSocket connection for task: {}",
+        task_id
+    );
+
+    ws.on_upgrade(move |socket| handle_task_progress_websocket(socket, state, Some(task_id)))
+}
+
+async fn handle_task_progress_websocket(
+    socket: WebSocket,
+    state: Arc<AppState>,
+    task_filter: Option<String>,
+) {
+    let (mut sender, mut receiver) = socket.split();
+
+    info!("Task progress WebSocket connected, filter: {:?}", task_filter);
+
+    let welcome = serde_json::json!({
+        "type": "connected",
+        "message": "Connected to task progress stream",
+        "filter": task_filter,
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    });
+
+    if let Ok(welcome_str) = serde_json::to_string(&welcome) {
+        if sender.send(Message::Text(welcome_str)).await.is_err() {
+            error!("Failed to send welcome message to task progress WebSocket");
+            return;
+        }
+    }
+
+    let mut broadcast_rx = if let Some(broadcast_tx) = state.task_progress_broadcast.as_ref() {
+        broadcast_tx.subscribe()
+    } else {
+        warn!("No task progress broadcast channel available");
+        return;
+    };
+
+    let task_filter_clone = task_filter.clone();
+    let send_task = tokio::spawn(async move {
+        loop {
+            match broadcast_rx.recv().await {
+                Ok(event) => {
+                    let should_send = task_filter_clone.is_none()
+                        || task_filter_clone.as_ref() == Some(&event.task_id);
+
+                    if should_send {
+                        if let Ok(json_str) = serde_json::to_string(&event) {
+                            debug!(
+                                "Sending task progress to WebSocket: {} - {}",
+                                event.task_id, event.step
+                            );
+                            if sender.send(Message::Text(json_str)).await.is_err() {
+                                error!("Failed to send task progress to WebSocket");
+                                break;
+                            }
+                        }
+                    }
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                    warn!("Task progress WebSocket lagged by {} messages", n);
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                    info!("Task progress broadcast channel closed");
+                    break;
+                }
+            }
+        }
+    });
+
+    let recv_task = tokio::spawn(async move {
+        while let Some(msg) = receiver.next().await {
+            match msg {
+                Ok(Message::Text(text)) => {
+                    debug!("Received text from task progress WebSocket: {}", text);
+                    if text == "ping" {
+                        debug!("Received ping from task progress client");
+                    }
+                }
+                Ok(Message::Ping(data)) => {
+                    debug!("Received ping from task progress WebSocket");
+                    drop(data);
+                }
+                Ok(Message::Pong(_)) => {
+                    debug!("Received pong from task progress WebSocket");
+                }
+                Ok(Message::Close(_)) => {
+                    info!("Task progress WebSocket client disconnected");
+                    break;
+                }
+                Ok(Message::Binary(_)) => {
+                    debug!("Received binary from task progress WebSocket (ignored)");
+                }
+                Err(e) => {
+                    error!("Task progress WebSocket error: {}", e);
+                    break;
+                }
+            }
+        }
+    });
+
+    tokio::select! {
+        _ = send_task => {
+            info!("Task progress send task completed");
+        }
+        _ = recv_task => {
+            info!("Task progress receive task completed");
+        }
+    }
+
+    info!("Task progress WebSocket connection closed, filter: {:?}", task_filter);
 }
 
 async fn handle_client_logs(

@@ -42,6 +42,192 @@ pub struct AttendantNotification {
     pub priority: i32,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AgentActivity {
+    pub phase: String,
+    pub items_processed: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub items_total: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speed_per_min: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub eta_seconds: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_item: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bytes_processed: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tokens_used: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files_created: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tables_created: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub log_lines: Option<Vec<String>>,
+}
+
+impl AgentActivity {
+    pub fn new(phase: impl Into<String>) -> Self {
+        Self {
+            phase: phase.into(),
+            items_processed: 0,
+            items_total: None,
+            speed_per_min: None,
+            eta_seconds: None,
+            current_item: None,
+            bytes_processed: None,
+            tokens_used: None,
+            files_created: None,
+            tables_created: None,
+            log_lines: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_progress(mut self, processed: u32, total: Option<u32>) -> Self {
+        self.items_processed = processed;
+        self.items_total = total;
+        self
+    }
+
+    #[must_use]
+    pub fn with_speed(mut self, speed: f32, eta_seconds: Option<u32>) -> Self {
+        self.speed_per_min = Some(speed);
+        self.eta_seconds = eta_seconds;
+        self
+    }
+
+    #[must_use]
+    pub fn with_current_item(mut self, item: impl Into<String>) -> Self {
+        self.current_item = Some(item.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_bytes(mut self, bytes: u64) -> Self {
+        self.bytes_processed = Some(bytes);
+        self
+    }
+
+    #[must_use]
+    pub fn with_tokens(mut self, tokens: u32) -> Self {
+        self.tokens_used = Some(tokens);
+        self
+    }
+
+    #[must_use]
+    pub fn with_files(mut self, files: Vec<String>) -> Self {
+        self.files_created = Some(files);
+        self
+    }
+
+    #[must_use]
+    pub fn with_tables(mut self, tables: Vec<String>) -> Self {
+        self.tables_created = Some(tables);
+        self
+    }
+
+    #[must_use]
+    pub fn with_log_lines(mut self, lines: Vec<String>) -> Self {
+        self.log_lines = Some(lines);
+        self
+    }
+
+    #[must_use]
+    pub fn add_log_line(mut self, line: impl Into<String>) -> Self {
+        let lines = self.log_lines.get_or_insert_with(Vec::new);
+        lines.push(line.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TaskProgressEvent {
+    #[serde(rename = "type")]
+    pub event_type: String,
+    pub task_id: String,
+    pub step: String,
+    pub message: String,
+    pub progress: u8,
+    pub total_steps: u8,
+    pub current_step: u8,
+    pub timestamp: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub activity: Option<AgentActivity>,
+}
+
+impl TaskProgressEvent {
+    pub fn new(task_id: impl Into<String>, step: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            event_type: "task_progress".to_string(),
+            task_id: task_id.into(),
+            step: step.into(),
+            message: message.into(),
+            progress: 0,
+            total_steps: 0,
+            current_step: 0,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            details: None,
+            error: None,
+            activity: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_progress(mut self, current: u8, total: u8) -> Self {
+        self.current_step = current;
+        self.total_steps = total;
+        self.progress = if total > 0 { (current * 100) / total } else { 0 };
+        self
+    }
+
+    #[must_use]
+    pub fn with_details(mut self, details: impl Into<String>) -> Self {
+        self.details = Some(details.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_activity(mut self, activity: AgentActivity) -> Self {
+        self.activity = Some(activity);
+        self
+    }
+
+    #[must_use]
+    pub fn with_error(mut self, error: impl Into<String>) -> Self {
+        self.event_type = "task_error".to_string();
+        self.error = Some(error.into());
+        self
+    }
+
+    #[must_use]
+    pub fn completed(mut self) -> Self {
+        self.event_type = "task_completed".to_string();
+        self.progress = 100;
+        self
+    }
+
+    pub fn started(task_id: impl Into<String>, message: impl Into<String>, total_steps: u8) -> Self {
+        Self {
+            event_type: "task_started".to_string(),
+            task_id: task_id.into(),
+            step: "init".to_string(),
+            message: message.into(),
+            progress: 0,
+            total_steps,
+            current_step: 0,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            details: None,
+            error: None,
+            activity: None,
+        }
+    }
+}
+
 #[derive(Clone, Default)]
 pub struct Extensions {
     map: Arc<RwLock<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>>,
@@ -129,6 +315,7 @@ pub struct AppState {
     pub task_engine: Arc<TaskEngine>,
     pub extensions: Extensions,
     pub attendant_broadcast: Option<broadcast::Sender<AttendantNotification>>,
+    pub task_progress_broadcast: Option<broadcast::Sender<TaskProgressEvent>>,
 }
 
 impl Clone for AppState {
@@ -158,6 +345,7 @@ impl Clone for AppState {
             task_engine: Arc::clone(&self.task_engine),
             extensions: self.extensions.clone(),
             attendant_broadcast: self.attendant_broadcast.clone(),
+            task_progress_broadcast: self.task_progress_broadcast.clone(),
         }
     }
 }
@@ -198,7 +386,92 @@ impl std::fmt::Debug for AppState {
             .field("task_engine", &"Arc<TaskEngine>")
             .field("extensions", &self.extensions)
             .field("attendant_broadcast", &self.attendant_broadcast.is_some())
+            .field("task_progress_broadcast", &self.task_progress_broadcast.is_some())
             .finish()
+    }
+}
+
+impl AppState {
+    pub fn broadcast_task_progress(&self, event: TaskProgressEvent) {
+        log::info!(
+            "[TASK_PROGRESS] Broadcasting: task_id={}, step={}, message={}",
+            event.task_id,
+            event.step,
+            event.message
+        );
+        if let Some(tx) = &self.task_progress_broadcast {
+            let receiver_count = tx.receiver_count();
+            log::info!("[TASK_PROGRESS] Broadcast channel has {} receivers", receiver_count);
+            match tx.send(event) {
+                Ok(_) => {
+                    log::info!("[TASK_PROGRESS] Event sent successfully");
+                }
+                Err(e) => {
+                    log::warn!("[TASK_PROGRESS] No listeners for task progress: {e}");
+                }
+            }
+        } else {
+            log::warn!("[TASK_PROGRESS] No broadcast channel configured!");
+        }
+    }
+
+    pub fn emit_progress(
+        &self,
+        task_id: &str,
+        step: &str,
+        message: &str,
+        current: u8,
+        total: u8,
+    ) {
+        let event = TaskProgressEvent::new(task_id, step, message)
+            .with_progress(current, total);
+        self.broadcast_task_progress(event);
+    }
+
+    pub fn emit_progress_with_details(
+        &self,
+        task_id: &str,
+        step: &str,
+        message: &str,
+        current: u8,
+        total: u8,
+        details: &str,
+    ) {
+        let event = TaskProgressEvent::new(task_id, step, message)
+            .with_progress(current, total)
+            .with_details(details);
+        self.broadcast_task_progress(event);
+    }
+
+    pub fn emit_activity(
+        &self,
+        task_id: &str,
+        step: &str,
+        message: &str,
+        current: u8,
+        total: u8,
+        activity: AgentActivity,
+    ) {
+        let event = TaskProgressEvent::new(task_id, step, message)
+            .with_progress(current, total)
+            .with_activity(activity);
+        self.broadcast_task_progress(event);
+    }
+
+    pub fn emit_task_started(&self, task_id: &str, message: &str, total_steps: u8) {
+        let event = TaskProgressEvent::started(task_id, message, total_steps);
+        self.broadcast_task_progress(event);
+    }
+
+    pub fn emit_task_completed(&self, task_id: &str, message: &str) {
+        let event = TaskProgressEvent::new(task_id, "complete", message).completed();
+        self.broadcast_task_progress(event);
+    }
+
+    pub fn emit_task_error(&self, task_id: &str, step: &str, error: &str) {
+        let event = TaskProgressEvent::new(task_id, step, "Task failed")
+            .with_error(error);
+        self.broadcast_task_progress(event);
     }
 }
 
@@ -212,6 +485,7 @@ impl Default for AppState {
         let pool = Pool::builder()
             .max_size(1)
             .test_on_check_out(false)
+            .connection_timeout(std::time::Duration::from_secs(5))
             .build(manager)
             .expect("Failed to create test database pool");
 
@@ -219,6 +493,7 @@ impl Default for AppState {
         let session_manager = SessionManager::new(conn, None);
 
         let (attendant_tx, _) = broadcast::channel(100);
+        let (task_progress_tx, _) = broadcast::channel(100);
 
         Self {
             #[cfg(feature = "drive")]
@@ -245,6 +520,7 @@ impl Default for AppState {
             task_engine: Arc::new(TaskEngine::new(pool)),
             extensions: Extensions::new(),
             attendant_broadcast: Some(attendant_tx),
+            task_progress_broadcast: Some(task_progress_tx),
         }
     }
 }

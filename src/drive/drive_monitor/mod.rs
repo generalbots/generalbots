@@ -1,16 +1,22 @@
 use crate::basic::compiler::BasicCompiler;
 use crate::config::ConfigManager;
+use crate::core::kb::embedding_generator::is_embedding_server_ready;
 use crate::core::kb::KnowledgeBaseManager;
+use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::shared::message_types::MessageType;
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
-use log::{debug, error, info};
+use log::{debug, error, info, trace, warn};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
-use tokio::time::{interval, Duration};
+use tokio::time::Duration;
+
+const KB_INDEXING_TIMEOUT_SECS: u64 = 60;
+const MAX_BACKOFF_SECS: u64 = 300;
+const INITIAL_BACKOFF_SECS: u64 = 30;
 #[derive(Debug, Clone)]
 pub struct FileState {
     pub etag: String,
@@ -24,6 +30,7 @@ pub struct DriveMonitor {
     kb_manager: Arc<KnowledgeBaseManager>,
     work_root: PathBuf,
     is_processing: Arc<AtomicBool>,
+    consecutive_failures: Arc<AtomicU32>,
 }
 impl DriveMonitor {
     pub fn new(state: Arc<AppState>, bucket_name: String, bot_id: uuid::Uuid) -> Self {
@@ -38,29 +45,105 @@ impl DriveMonitor {
             kb_manager,
             work_root,
             is_processing: Arc::new(AtomicBool::new(false)),
+            consecutive_failures: Arc::new(AtomicU32::new(0)),
         }
     }
 
+    async fn check_drive_health(&self) -> bool {
+        let Some(client) = &self.state.drive else {
+            return false;
+        };
+
+        match tokio::time::timeout(
+            Duration::from_secs(5),
+            client.head_bucket().bucket(&self.bucket_name).send(),
+        )
+        .await
+        {
+            Ok(Ok(_)) => true,
+            Ok(Err(e)) => {
+                debug!("[DRIVE_MONITOR] Health check failed: {}", e);
+                false
+            }
+            Err(_) => {
+                debug!("[DRIVE_MONITOR] Health check timed out");
+                false
+            }
+        }
+    }
+
+    fn calculate_backoff(&self) -> Duration {
+        let failures = self.consecutive_failures.load(Ordering::Relaxed);
+        if failures == 0 {
+            return Duration::from_secs(INITIAL_BACKOFF_SECS);
+        }
+        let backoff_secs = INITIAL_BACKOFF_SECS * (1u64 << failures.min(4));
+        Duration::from_secs(backoff_secs.min(MAX_BACKOFF_SECS))
+    }
+
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Starting DriveMonitor for bot {}", self.bot_id);
+        trace!("[PROFILE] start_monitoring ENTER");
+        let start_mem = MemoryStats::current();
+        trace!("[DRIVE_MONITOR] Starting DriveMonitor for bot {}, RSS={}",
+              self.bot_id, MemoryStats::format_bytes(start_mem.rss_bytes));
+
+        if !self.check_drive_health().await {
+            warn!("[DRIVE_MONITOR] S3/MinIO not available for bucket {}, will retry with backoff",
+                  self.bucket_name);
+        }
 
         self.is_processing
             .store(true, std::sync::atomic::Ordering::SeqCst);
 
-        self.check_for_changes().await?;
+        trace!("[PROFILE] start_monitoring: calling check_for_changes...");
+        info!("[DRIVE_MONITOR] Calling initial check_for_changes...");
+
+        match self.check_for_changes().await {
+            Ok(_) => {
+                self.consecutive_failures.store(0, Ordering::Relaxed);
+            }
+            Err(e) => {
+                warn!("[DRIVE_MONITOR] Initial check failed (will retry): {}", e);
+                self.consecutive_failures.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+        trace!("[PROFILE] start_monitoring: check_for_changes returned");
+
+        let after_initial = MemoryStats::current();
+        trace!("[DRIVE_MONITOR] After initial check, RSS={} (delta={})",
+              MemoryStats::format_bytes(after_initial.rss_bytes),
+              MemoryStats::format_bytes(after_initial.rss_bytes.saturating_sub(start_mem.rss_bytes)));
 
         let self_clone = Arc::new(self.clone());
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(30));
-
             while self_clone
                 .is_processing
                 .load(std::sync::atomic::Ordering::SeqCst)
             {
-                interval.tick().await;
+                let backoff = self_clone.calculate_backoff();
+                tokio::time::sleep(backoff).await;
 
-                if let Err(e) = self_clone.check_for_changes().await {
-                    error!("Error during sync for bot {}: {}", self_clone.bot_id, e);
+                if !self_clone.check_drive_health().await {
+                    let failures = self_clone.consecutive_failures.fetch_add(1, Ordering::Relaxed) + 1;
+                    if failures % 10 == 1 {
+                        warn!("[DRIVE_MONITOR] S3/MinIO unavailable for bucket {} (failures: {}), backing off to {:?}",
+                              self_clone.bucket_name, failures, self_clone.calculate_backoff());
+                    }
+                    continue;
+                }
+
+                match self_clone.check_for_changes().await {
+                    Ok(_) => {
+                        let prev_failures = self_clone.consecutive_failures.swap(0, Ordering::Relaxed);
+                        if prev_failures > 0 {
+                            info!("[DRIVE_MONITOR] S3/MinIO recovered for bucket {} after {} failures",
+                                  self_clone.bucket_name, prev_failures);
+                        }
+                    }
+                    Err(e) => {
+                        self_clone.consecutive_failures.fetch_add(1, Ordering::Relaxed);
+                        error!("Error during sync for bot {}: {}", self_clone.bot_id, e);
+                    }
                 }
             }
         });
@@ -76,6 +159,7 @@ impl DriveMonitor {
             .store(false, std::sync::atomic::Ordering::SeqCst);
 
         self.file_states.write().await.clear();
+        self.consecutive_failures.store(0, Ordering::Relaxed);
 
         info!("DriveMonitor stopped for bot {}", self.bot_id);
         Ok(())
@@ -86,9 +170,9 @@ impl DriveMonitor {
                 "Drive Monitor service started for bucket: {}",
                 self.bucket_name
             );
-            let mut tick = interval(Duration::from_secs(90));
             loop {
-                tick.tick().await;
+                let backoff = self.calculate_backoff();
+                tokio::time::sleep(backoff).await;
 
                 if self.is_processing.load(Ordering::Acquire) {
                     log::warn!(
@@ -97,10 +181,29 @@ impl DriveMonitor {
                     continue;
                 }
 
+                if !self.check_drive_health().await {
+                    let failures = self.consecutive_failures.fetch_add(1, Ordering::Relaxed) + 1;
+                    if failures % 10 == 1 {
+                        warn!("[DRIVE_MONITOR] S3/MinIO unavailable for bucket {} (failures: {}), backing off to {:?}",
+                              self.bucket_name, failures, self.calculate_backoff());
+                    }
+                    continue;
+                }
+
                 self.is_processing.store(true, Ordering::Release);
 
-                if let Err(e) = self.check_for_changes().await {
-                    log::error!("Error checking for drive changes: {}", e);
+                match self.check_for_changes().await {
+                    Ok(_) => {
+                        let prev_failures = self.consecutive_failures.swap(0, Ordering::Relaxed);
+                        if prev_failures > 0 {
+                            info!("[DRIVE_MONITOR] S3/MinIO recovered for bucket {} after {} failures",
+                                  self.bucket_name, prev_failures);
+                        }
+                    }
+                    Err(e) => {
+                        self.consecutive_failures.fetch_add(1, Ordering::Relaxed);
+                        log::error!("Error checking for drive changes: {}", e);
+                    }
                 }
 
                 self.is_processing.store(false, Ordering::Release);
@@ -108,12 +211,52 @@ impl DriveMonitor {
         })
     }
     async fn check_for_changes(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        trace!("[PROFILE] check_for_changes ENTER");
+        let start_mem = MemoryStats::current();
+        trace!("[DRIVE_MONITOR] check_for_changes START, RSS={}",
+              MemoryStats::format_bytes(start_mem.rss_bytes));
+
         let Some(client) = &self.state.drive else {
+            trace!("[PROFILE] check_for_changes: no drive client, returning");
             return Ok(());
         };
+
+        trace!("[PROFILE] check_for_changes: calling check_gbdialog_changes...");
+        trace!("[DRIVE_MONITOR] Checking gbdialog...");
         self.check_gbdialog_changes(client).await?;
+        trace!("[PROFILE] check_for_changes: check_gbdialog_changes done");
+        let after_dialog = MemoryStats::current();
+        trace!("[DRIVE_MONITOR] After gbdialog, RSS={} (delta={})",
+              MemoryStats::format_bytes(after_dialog.rss_bytes),
+              MemoryStats::format_bytes(after_dialog.rss_bytes.saturating_sub(start_mem.rss_bytes)));
+
+        trace!("[PROFILE] check_for_changes: calling check_gbot...");
+        trace!("[DRIVE_MONITOR] Checking gbot...");
         self.check_gbot(client).await?;
+        trace!("[PROFILE] check_for_changes: check_gbot done");
+        let after_gbot = MemoryStats::current();
+        trace!("[DRIVE_MONITOR] After gbot, RSS={} (delta={})",
+              MemoryStats::format_bytes(after_gbot.rss_bytes),
+              MemoryStats::format_bytes(after_gbot.rss_bytes.saturating_sub(after_dialog.rss_bytes)));
+
+        trace!("[PROFILE] check_for_changes: calling check_gbkb_changes...");
+        trace!("[DRIVE_MONITOR] Checking gbkb...");
         self.check_gbkb_changes(client).await?;
+        trace!("[PROFILE] check_for_changes: check_gbkb_changes done");
+        let after_gbkb = MemoryStats::current();
+        trace!("[DRIVE_MONITOR] After gbkb, RSS={} (delta={})",
+              MemoryStats::format_bytes(after_gbkb.rss_bytes),
+              MemoryStats::format_bytes(after_gbkb.rss_bytes.saturating_sub(after_gbot.rss_bytes)));
+
+        log_jemalloc_stats();
+
+        let total_delta = after_gbkb.rss_bytes.saturating_sub(start_mem.rss_bytes);
+        if total_delta > 50 * 1024 * 1024 {
+            warn!("[DRIVE_MONITOR] check_for_changes grew by {} - potential leak!",
+                  MemoryStats::format_bytes(total_delta));
+        }
+
+        trace!("[PROFILE] check_for_changes EXIT");
         Ok(())
     }
     async fn check_gbdialog_changes(
@@ -188,6 +331,7 @@ impl DriveMonitor {
         Ok(())
     }
     async fn check_gbot(&self, client: &Client) -> Result<(), Box<dyn Error + Send + Sync>> {
+        trace!("[PROFILE] check_gbot ENTER");
         let config_manager = ConfigManager::new(self.state.conn.clone());
         debug!("check_gbot: Checking bucket {} for config.csv changes", self.bucket_name);
         let mut continuation_token = None;
@@ -333,6 +477,7 @@ impl DriveMonitor {
             }
             continuation_token = list_objects.next_continuation_token;
         }
+        trace!("[PROFILE] check_gbot EXIT");
         Ok(())
     }
     async fn broadcast_theme_change(
@@ -467,6 +612,7 @@ impl DriveMonitor {
         &self,
         client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        trace!("[PROFILE] check_gbkb_changes ENTER");
         let bot_name = self
             .bucket_name
             .strip_suffix(".gbai")
@@ -507,6 +653,12 @@ impl DriveMonitor {
                 let path = obj.key().unwrap_or_default().to_string();
 
                 if path.ends_with('/') {
+                    continue;
+                }
+
+                let size = obj.size().unwrap_or(0);
+                if size == 0 {
+                    trace!("Skipping 0-byte file in .gbkb: {}", path);
                     continue;
                 }
 
@@ -561,9 +713,6 @@ impl DriveMonitor {
                 }
 
                 let path_parts: Vec<&str> = path.split('/').collect();
-                // path_parts: [0] = "bot.gbkb", [1] = folder or file, [2+] = nested files
-                // Skip files directly in .gbkb root (path_parts.len() == 2 means root file)
-                // Only process files inside subfolders (path_parts.len() >= 3)
                 if path_parts.len() >= 3 {
                     let kb_name = path_parts[1];
                     let kb_folder_path = self
@@ -572,30 +721,59 @@ impl DriveMonitor {
                         .join(&gbkb_prefix)
                         .join(kb_name);
 
-                    info!(
-                        "Triggering KB indexing for folder: {} (PDF text extraction enabled)",
-                        kb_folder_path.display()
-                    );
-                    match self
-                        .kb_manager
-                        .handle_gbkb_change(bot_name, &kb_folder_path)
-                        .await
-                    {
-                        Ok(_) => {
-                            debug!(
-                                "Successfully processed KB change for {}/{}",
-                                bot_name, kb_name
-                            );
-                        }
-                        Err(e) => {
-                            log::error!(
-                                "Failed to process .gbkb change for {}/{}: {}",
-                                bot_name,
-                                kb_name,
-                                e
-                            );
-                        }
+                    let kb_indexing_disabled = std::env::var("DISABLE_KB_INDEXING")
+                        .map(|v| v == "true" || v == "1")
+                        .unwrap_or(false);
+
+                    if kb_indexing_disabled {
+                        debug!("KB indexing disabled via DISABLE_KB_INDEXING, skipping {}", kb_folder_path.display());
+                        continue;
                     }
+
+                    if !is_embedding_server_ready() {
+                        info!("[DRIVE_MONITOR] Embedding server not ready, deferring KB indexing for {}", kb_folder_path.display());
+                        continue;
+                    }
+
+                    let kb_manager = Arc::clone(&self.kb_manager);
+                    let bot_name_owned = bot_name.to_string();
+                    let kb_name_owned = kb_name.to_string();
+                    let kb_folder_owned = kb_folder_path.clone();
+
+                    tokio::spawn(async move {
+                        info!(
+                            "Triggering KB indexing for folder: {} (PDF text extraction enabled)",
+                            kb_folder_owned.display()
+                        );
+
+                        match tokio::time::timeout(
+                            Duration::from_secs(KB_INDEXING_TIMEOUT_SECS),
+                            kb_manager.handle_gbkb_change(&bot_name_owned, &kb_folder_owned)
+                        ).await {
+                            Ok(Ok(_)) => {
+                                debug!(
+                                    "Successfully processed KB change for {}/{}",
+                                    bot_name_owned, kb_name_owned
+                                );
+                            }
+                            Ok(Err(e)) => {
+                                log::error!(
+                                    "Failed to process .gbkb change for {}/{}: {}",
+                                    bot_name_owned,
+                                    kb_name_owned,
+                                    e
+                                );
+                            }
+                            Err(_) => {
+                                log::error!(
+                                    "KB indexing timed out after {}s for {}/{}",
+                                    KB_INDEXING_TIMEOUT_SECS,
+                                    bot_name_owned,
+                                    kb_name_owned
+                                );
+                            }
+                        }
+                    });
                 }
             }
         }
@@ -640,6 +818,7 @@ impl DriveMonitor {
             }
         }
 
+        trace!("[PROFILE] check_gbkb_changes EXIT");
         Ok(())
     }
 

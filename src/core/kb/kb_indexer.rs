@@ -1,15 +1,16 @@
 use anyhow::Result;
-use log::{debug, info, warn};
+use log::{debug, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 use crate::config::ConfigManager;
+use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::shared::utils::{create_tls_client, DbPool};
 
 use super::document_processor::{DocumentProcessor, TextChunk};
-use super::embedding_generator::{Embedding, EmbeddingConfig, KbEmbeddingGenerator};
+use super::embedding_generator::{is_embedding_server_ready, Embedding, EmbeddingConfig, KbEmbeddingGenerator};
 
 #[derive(Debug, Clone)]
 pub struct QdrantConfig {
@@ -94,7 +95,6 @@ impl KbIndexer {
         let document_processor = DocumentProcessor::default();
         let embedding_generator = KbEmbeddingGenerator::new(embedding_config);
 
-        // Use shared TLS client with local CA certificate
         let http_client = create_tls_client(Some(qdrant_config.timeout_secs));
 
         Self {
@@ -105,7 +105,6 @@ impl KbIndexer {
         }
     }
 
-    /// Check if Qdrant vector database is available
     pub async fn check_qdrant_health(&self) -> Result<bool> {
         let health_url = format!("{}/healthz", self.qdrant_config.url);
 
@@ -121,9 +120,24 @@ impl KbIndexer {
         kb_name: &str,
         kb_path: &Path,
     ) -> Result<IndexingResult> {
-        info!("Indexing KB folder: {} for bot {}", kb_name, bot_name);
+        let start_mem = MemoryStats::current();
+        info!("Indexing KB folder: {} for bot {} [START RSS={}]",
+              kb_name, bot_name, MemoryStats::format_bytes(start_mem.rss_bytes));
+        log_jemalloc_stats();
 
-        // Check if Qdrant is available before proceeding
+        if !is_embedding_server_ready() {
+            info!("[KB_INDEXER] Embedding server not ready yet, waiting up to 60s...");
+            if !self.embedding_generator.wait_for_server(60).await {
+                warn!(
+                    "Embedding server is not available. KB indexing skipped. \
+                    Wait for the embedding server to start before indexing."
+                );
+                return Err(anyhow::anyhow!(
+                    "Embedding server not available. KB indexing deferred until embedding service is ready."
+                ));
+            }
+        }
+
         if !self.check_qdrant_health().await.unwrap_or(false) {
             warn!(
                 "Qdrant vector database is not available at {}. KB indexing skipped. \
@@ -140,26 +154,47 @@ impl KbIndexer {
 
         self.ensure_collection_exists(&collection_name).await?;
 
+        let before_docs = MemoryStats::current();
+        trace!("[KB_INDEXER] Before process_kb_folder RSS={}",
+              MemoryStats::format_bytes(before_docs.rss_bytes));
+
         let documents = self.document_processor.process_kb_folder(kb_path).await?;
+
+        let after_docs = MemoryStats::current();
+        trace!("[KB_INDEXER] After process_kb_folder: {} documents, RSS={} (delta={})",
+              documents.len(),
+              MemoryStats::format_bytes(after_docs.rss_bytes),
+              MemoryStats::format_bytes(after_docs.rss_bytes.saturating_sub(before_docs.rss_bytes)));
 
         let mut total_chunks = 0;
         let mut indexed_documents = 0;
 
         for (doc_path, chunks) in documents {
             if chunks.is_empty() {
+                debug!("[KB_INDEXER] Skipping document with no chunks: {}", doc_path);
                 continue;
             }
 
-            info!(
-                "Processing document: {} ({} chunks)",
+            let before_embed = MemoryStats::current();
+            trace!(
+                "[KB_INDEXER] Processing document: {} ({} chunks) RSS={}",
                 doc_path,
-                chunks.len()
+                chunks.len(),
+                MemoryStats::format_bytes(before_embed.rss_bytes)
             );
 
+            trace!("[KB_INDEXER] Calling generate_embeddings for {} chunks...", chunks.len());
             let embeddings = self
                 .embedding_generator
                 .generate_embeddings(&chunks)
                 .await?;
+
+            let after_embed = MemoryStats::current();
+            trace!("[KB_INDEXER] After generate_embeddings: {} embeddings, RSS={} (delta={})",
+                  embeddings.len(),
+                  MemoryStats::format_bytes(after_embed.rss_bytes),
+                  MemoryStats::format_bytes(after_embed.rss_bytes.saturating_sub(before_embed.rss_bytes)));
+            log_jemalloc_stats();
 
             let points = Self::create_qdrant_points(&doc_path, embeddings)?;
 
@@ -170,6 +205,13 @@ impl KbIndexer {
         }
 
         self.update_collection_metadata(&collection_name, bot_name, kb_name, total_chunks)?;
+
+        let end_mem = MemoryStats::current();
+        trace!("[KB_INDEXER] Indexing complete: {} docs, {} chunks, RSS={} (total delta={})",
+              indexed_documents, total_chunks,
+              MemoryStats::format_bytes(end_mem.rss_bytes),
+              MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes)));
+        log_jemalloc_stats();
 
         Ok(IndexingResult {
             collection_name,

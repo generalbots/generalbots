@@ -90,8 +90,12 @@ impl SecretsManager {
         let mut settings_builder = VaultClientSettingsBuilder::default();
         settings_builder.address(&addr).token(&token);
 
+        // Only warn about TLS verification for HTTPS connections
+        let is_https = addr.starts_with("https://");
         if skip_verify {
-            warn!("TLS verification disabled - NOT RECOMMENDED FOR PRODUCTION");
+            if is_https {
+                warn!("TLS verification disabled - NOT RECOMMENDED FOR PRODUCTION");
+            }
             settings_builder.verify(false);
         } else {
             settings_builder.verify(true);

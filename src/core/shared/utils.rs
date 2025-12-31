@@ -2,6 +2,8 @@ use crate::config::DriveConfig;
 use crate::core::secrets::SecretsManager;
 use anyhow::{Context, Result};
 use aws_config::BehaviorVersion;
+use aws_config::retry::RetryConfig;
+use aws_config::timeout::TimeoutConfig;
 use aws_sdk_s3::{config::Builder as S3ConfigBuilder, Client as S3Client};
 use diesel::Connection;
 use diesel::{
@@ -101,11 +103,24 @@ pub async fn create_s3_operator(
         (config.access_key.clone(), config.secret_key.clone())
     };
 
+    // Set CA cert for self-signed TLS (dev stack)
     if std::path::Path::new(CA_CERT_PATH).exists() {
         std::env::set_var("AWS_CA_BUNDLE", CA_CERT_PATH);
         std::env::set_var("SSL_CERT_FILE", CA_CERT_PATH);
         debug!("Set AWS_CA_BUNDLE and SSL_CERT_FILE to {} for S3 client", CA_CERT_PATH);
     }
+
+    // Configure timeouts to prevent memory leaks on connection failures
+    let timeout_config = TimeoutConfig::builder()
+        .connect_timeout(Duration::from_secs(5))
+        .read_timeout(Duration::from_secs(30))
+        .operation_timeout(Duration::from_secs(30))
+        .operation_attempt_timeout(Duration::from_secs(15))
+        .build();
+
+    // Limit retries to prevent 100% CPU on connection failures
+    let retry_config = RetryConfig::standard()
+        .with_max_attempts(2);
 
     let base_config = aws_config::defaults(BehaviorVersion::latest())
         .endpoint_url(endpoint)
@@ -113,6 +128,8 @@ pub async fn create_s3_operator(
         .credentials_provider(aws_sdk_s3::config::Credentials::new(
             access_key, secret_key, None, None, "static",
         ))
+        .timeout_config(timeout_config)
+        .retry_config(retry_config)
         .load()
         .await;
     let s3_config = S3ConfigBuilder::from(&base_config)
@@ -261,6 +278,11 @@ pub fn create_conn() -> Result<DbPool, anyhow::Error> {
     let database_url = get_database_url_sync()?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder()
+        .max_size(10)
+        .min_idle(Some(1))
+        .connection_timeout(std::time::Duration::from_secs(5))
+        .idle_timeout(Some(std::time::Duration::from_secs(300)))
+        .max_lifetime(Some(std::time::Duration::from_secs(1800)))
         .build(manager)
         .map_err(|e| anyhow::anyhow!("Failed to create database pool: {}", e))
 }
@@ -269,6 +291,11 @@ pub async fn create_conn_async() -> Result<DbPool, anyhow::Error> {
     let database_url = get_database_url().await?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder()
+        .max_size(10)
+        .min_idle(Some(1))
+        .connection_timeout(std::time::Duration::from_secs(5))
+        .idle_timeout(Some(std::time::Duration::from_secs(300)))
+        .max_lifetime(Some(std::time::Duration::from_secs(1800)))
         .build(manager)
         .map_err(|e| anyhow::anyhow!("Failed to create database pool: {}", e))
 }

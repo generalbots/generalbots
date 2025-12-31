@@ -1,24 +1,37 @@
 use anyhow::{Context, Result};
-use log::{debug, info, warn};
+use log::{info, trace, warn};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Semaphore;
 
+use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use super::document_processor::TextChunk;
+
+static EMBEDDING_SERVER_READY: AtomicBool = AtomicBool::new(false);
+
+pub fn is_embedding_server_ready() -> bool {
+    EMBEDDING_SERVER_READY.load(Ordering::SeqCst)
+}
+
+pub fn set_embedding_server_ready(ready: bool) {
+    EMBEDDING_SERVER_READY.store(ready, Ordering::SeqCst);
+    if ready {
+        info!("[EMBEDDING] Embedding server marked as ready");
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct EmbeddingConfig {
     pub embedding_url: String,
-
     pub embedding_model: String,
-
     pub dimensions: usize,
-
     pub batch_size: usize,
-
     pub timeout_seconds: u64,
+    pub max_concurrent_requests: usize,
+    pub connect_timeout_seconds: u64,
 }
 
 impl Default for EmbeddingConfig {
@@ -27,8 +40,10 @@ impl Default for EmbeddingConfig {
             embedding_url: "http://localhost:8082".to_string(),
             embedding_model: "bge-small-en-v1.5".to_string(),
             dimensions: 384,
-            batch_size: 32,
-            timeout_seconds: 30,
+            batch_size: 16,
+            timeout_seconds: 60,
+            max_concurrent_requests: 2,
+            connect_timeout_seconds: 10,
         }
     }
 }
@@ -36,17 +51,17 @@ impl Default for EmbeddingConfig {
 impl EmbeddingConfig {
     pub fn from_env() -> Self {
         let embedding_url = "http://localhost:8082".to_string();
-
         let embedding_model = "bge-small-en-v1.5".to_string();
-
         let dimensions = Self::detect_dimensions(&embedding_model);
 
         Self {
             embedding_url,
             embedding_model,
             dimensions,
-            batch_size: 32,
-            timeout_seconds: 30,
+            batch_size: 16,
+            timeout_seconds: 60,
+            max_concurrent_requests: 2,
+            connect_timeout_seconds: 10,
         }
     }
 
@@ -79,12 +94,17 @@ struct EmbeddingResponse {
 #[derive(Debug, Deserialize)]
 struct EmbeddingData {
     embedding: Vec<f32>,
-    _index: usize,
+    #[serde(default)]
+    #[allow(dead_code)]
+    index: usize,
 }
 
 #[derive(Debug, Deserialize)]
 struct EmbeddingUsage {
-    _prompt_tokens: usize,
+    #[serde(default)]
+    #[allow(dead_code)]
+    prompt_tokens: usize,
+    #[serde(default)]
     total_tokens: usize,
 }
 
@@ -115,20 +135,84 @@ impl std::fmt::Debug for KbEmbeddingGenerator {
 impl KbEmbeddingGenerator {
     pub fn new(config: EmbeddingConfig) -> Self {
         let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(config.timeout_seconds))
+            .timeout(Duration::from_secs(config.timeout_seconds))
+            .connect_timeout(Duration::from_secs(config.connect_timeout_seconds))
+            .pool_max_idle_per_host(2)
+            .pool_idle_timeout(Duration::from_secs(30))
+            .tcp_keepalive(Duration::from_secs(60))
+            .tcp_nodelay(true)
             .build()
             .unwrap_or_else(|e| {
-                log::warn!("Failed to create HTTP client with timeout: {}, using default", e);
+                warn!("Failed to create HTTP client with timeout: {}, using default", e);
                 Client::new()
             });
 
-        let semaphore = Arc::new(Semaphore::new(4));
+        let semaphore = Arc::new(Semaphore::new(config.max_concurrent_requests));
 
         Self {
             config,
             client,
             semaphore,
         }
+    }
+
+    pub async fn check_health(&self) -> bool {
+        let health_url = format!("{}/health", self.config.embedding_url);
+
+        match tokio::time::timeout(
+            Duration::from_secs(5),
+            self.client.get(&health_url).send()
+        ).await {
+            Ok(Ok(response)) => {
+                let is_healthy = response.status().is_success();
+                if is_healthy {
+                    set_embedding_server_ready(true);
+                }
+                is_healthy
+            }
+            Ok(Err(e)) => {
+                let alt_url = &self.config.embedding_url;
+                match tokio::time::timeout(
+                    Duration::from_secs(5),
+                    self.client.get(alt_url).send()
+                ).await {
+                    Ok(Ok(response)) => {
+                        let is_healthy = response.status().is_success();
+                        if is_healthy {
+                            set_embedding_server_ready(true);
+                        }
+                        is_healthy
+                    }
+                    _ => {
+                        warn!("[EMBEDDING] Health check failed: {}", e);
+                        false
+                    }
+                }
+            }
+            Err(_) => {
+                warn!("[EMBEDDING] Health check timed out");
+                false
+            }
+        }
+    }
+
+    pub async fn wait_for_server(&self, max_wait_secs: u64) -> bool {
+        let start = std::time::Instant::now();
+        let max_wait = Duration::from_secs(max_wait_secs);
+
+        info!("[EMBEDDING] Waiting for embedding server at {} (max {}s)...",
+              self.config.embedding_url, max_wait_secs);
+
+        while start.elapsed() < max_wait {
+            if self.check_health().await {
+                info!("[EMBEDDING] Embedding server is ready after {:?}", start.elapsed());
+                return true;
+            }
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        }
+
+        warn!("[EMBEDDING] Embedding server not available after {}s", max_wait_secs);
+        false
     }
 
     pub async fn generate_embeddings(
@@ -139,35 +223,105 @@ impl KbEmbeddingGenerator {
             return Ok(Vec::new());
         }
 
-        info!("Generating embeddings for {} chunks", chunks.len());
+        if !is_embedding_server_ready() {
+            info!("[EMBEDDING] Server not marked ready, checking health...");
+            if !self.wait_for_server(30).await {
+                return Err(anyhow::anyhow!(
+                    "Embedding server not available at {}. Skipping embedding generation.",
+                    self.config.embedding_url
+                ));
+            }
+        }
 
-        let mut results = Vec::new();
+        let start_mem = MemoryStats::current();
+        trace!("[EMBEDDING] Generating embeddings for {} chunks, RSS={}",
+              chunks.len(), MemoryStats::format_bytes(start_mem.rss_bytes));
 
-        for batch in chunks.chunks(self.config.batch_size) {
-            let batch_embeddings = self.generate_batch_embeddings(batch).await?;
+        let mut results = Vec::with_capacity(chunks.len());
+        let total_batches = (chunks.len() + self.config.batch_size - 1) / self.config.batch_size;
+
+        for (batch_num, batch) in chunks.chunks(self.config.batch_size).enumerate() {
+            let batch_start = MemoryStats::current();
+            trace!("[EMBEDDING] Processing batch {}/{} ({} items), RSS={}",
+                  batch_num + 1,
+                  total_batches,
+                  batch.len(),
+                  MemoryStats::format_bytes(batch_start.rss_bytes));
+
+            let batch_embeddings = match tokio::time::timeout(
+                Duration::from_secs(self.config.timeout_seconds),
+                self.generate_batch_embeddings(batch)
+            ).await {
+                Ok(Ok(embeddings)) => embeddings,
+                Ok(Err(e)) => {
+                    warn!("[EMBEDDING] Batch {} failed: {}", batch_num + 1, e);
+                    break;
+                }
+                Err(_) => {
+                    warn!("[EMBEDDING] Batch {} timed out after {}s",
+                          batch_num + 1, self.config.timeout_seconds);
+                    break;
+                }
+            };
+
+            let batch_end = MemoryStats::current();
+            let delta = batch_end.rss_bytes.saturating_sub(batch_start.rss_bytes);
+            trace!("[EMBEDDING] Batch {} complete: {} embeddings, RSS={} (delta={})",
+                  batch_num + 1,
+                  batch_embeddings.len(),
+                  MemoryStats::format_bytes(batch_end.rss_bytes),
+                  MemoryStats::format_bytes(delta));
+
+            if delta > 100 * 1024 * 1024 {
+                warn!("[EMBEDDING] Excessive memory growth detected ({}), stopping early",
+                      MemoryStats::format_bytes(delta));
+                for (chunk, embedding) in batch.iter().zip(batch_embeddings.iter()) {
+                    results.push((chunk.clone(), embedding.clone()));
+                }
+                break;
+            }
 
             for (chunk, embedding) in batch.iter().zip(batch_embeddings.iter()) {
                 results.push((chunk.clone(), embedding.clone()));
             }
+
+            if batch_num + 1 < total_batches {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
         }
 
-        info!("Generated {} embeddings", results.len());
+        let end_mem = MemoryStats::current();
+        trace!("[EMBEDDING] Generated {} embeddings, RSS={} (total delta={})",
+              results.len(),
+              MemoryStats::format_bytes(end_mem.rss_bytes),
+              MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes)));
+        log_jemalloc_stats();
 
         Ok(results)
     }
 
     async fn generate_batch_embeddings(&self, chunks: &[TextChunk]) -> Result<Vec<Embedding>> {
-        let _permit = self.semaphore.acquire().await?;
+        let _permit = self.semaphore.acquire().await
+            .map_err(|e| anyhow::anyhow!("Failed to acquire semaphore: {}", e))?;
 
         let texts: Vec<String> = chunks.iter().map(|c| c.content.clone()).collect();
+        let total_chars: usize = texts.iter().map(|t| t.len()).sum();
 
-        debug!("Generating embeddings for batch of {} texts", texts.len());
+        info!("[EMBEDDING] generate_batch_embeddings: {} texts, {} total chars",
+              texts.len(), total_chars);
 
-        match self.generate_local_embeddings(&texts).await {
-            Ok(embeddings) => Ok(embeddings),
+        let truncated_texts: Vec<String> = texts.into_iter()
+            .map(|t| if t.len() > 8192 { t[..8192].to_string() } else { t })
+            .collect();
+
+        match self.generate_local_embeddings(&truncated_texts).await {
+            Ok(embeddings) => {
+                info!("[EMBEDDING] Local embeddings succeeded: {} vectors", embeddings.len());
+                Ok(embeddings)
+            }
             Err(e) => {
-                warn!("Local embedding service failed: {}, trying OpenAI API", e);
-                self.generate_openai_embeddings(&texts)
+                warn!("[EMBEDDING] Local embedding service failed: {}", e);
+                Err(e)
             }
         }
     }
@@ -178,6 +332,12 @@ impl KbEmbeddingGenerator {
             model: self.config.embedding_model.clone(),
         };
 
+        let request_size = serde_json::to_string(&request)
+            .map(|s| s.len())
+            .unwrap_or(0);
+        info!("[EMBEDDING] Sending request to {} (size: {} bytes)",
+              self.config.embedding_url, request_size);
+
         let response = self
             .client
             .post(format!("{}/embeddings", self.config.embedding_url))
@@ -186,9 +346,10 @@ impl KbEmbeddingGenerator {
             .await
             .context("Failed to send request to embedding service")?;
 
-        if !response.status().is_success() {
-            let status = response.status();
-            let error_text = response.text().await.unwrap_or_default();
+        let status = response.status();
+        if !status.is_success() {
+            let error_bytes = response.bytes().await.unwrap_or_default();
+            let error_text = String::from_utf8_lossy(&error_bytes[..error_bytes.len().min(1024)]);
             return Err(anyhow::anyhow!(
                 "Embedding service error {}: {}",
                 status,
@@ -196,12 +357,24 @@ impl KbEmbeddingGenerator {
             ));
         }
 
-        let embedding_response: EmbeddingResponse = response
-            .json()
-            .await
+        let response_bytes = response.bytes().await
+            .context("Failed to read embedding response bytes")?;
+
+        info!("[EMBEDDING] Received response: {} bytes", response_bytes.len());
+
+        if response_bytes.len() > 50 * 1024 * 1024 {
+            return Err(anyhow::anyhow!(
+                "Embedding response too large: {} bytes (max 50MB)",
+                response_bytes.len()
+            ));
+        }
+
+        let embedding_response: EmbeddingResponse = serde_json::from_slice(&response_bytes)
             .context("Failed to parse embedding response")?;
 
-        let mut embeddings = Vec::new();
+        drop(response_bytes);
+
+        let mut embeddings = Vec::with_capacity(embedding_response.data.len());
         for data in embedding_response.data {
             embeddings.push(Embedding {
                 vector: data.embedding,
@@ -214,14 +387,14 @@ impl KbEmbeddingGenerator {
         Ok(embeddings)
     }
 
-    fn generate_openai_embeddings(&self, _texts: &[String]) -> Result<Vec<Embedding>> {
-        let _ = self; // Suppress unused self warning
-        Err(anyhow::anyhow!(
-            "OpenAI embeddings not configured - use local embedding service"
-        ))
-    }
-
     pub async fn generate_single_embedding(&self, text: &str) -> Result<Embedding> {
+        if !is_embedding_server_ready() && !self.check_health().await {
+            return Err(anyhow::anyhow!(
+                "Embedding server not available at {}",
+                self.config.embedding_url
+            ));
+        }
+
         let embeddings = self
             .generate_batch_embeddings(&[TextChunk {
                 content: text.to_string(),
@@ -271,6 +444,11 @@ impl EmbeddingGenerator {
     pub async fn generate_text_embedding(&self, text: &str) -> Result<Vec<f32>> {
         let embedding = self.kb_generator.generate_single_embedding(text).await?;
         Ok(embedding.vector)
+    }
+
+    /// Check if the embedding server is healthy
+    pub async fn check_health(&self) -> bool {
+        self.kb_generator.check_health().await
     }
 }
 
