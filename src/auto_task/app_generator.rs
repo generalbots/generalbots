@@ -13,6 +13,7 @@ use diesel::sql_query;
 use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tokio::sync::mpsc;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -105,41 +106,49 @@ pub struct SyncResult {
     pub migrations_applied: usize,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+/// Streaming format parsed app structure
+#[derive(Debug, Clone, Default)]
 struct LlmGeneratedApp {
     name: String,
     description: String,
-    #[serde(default)]
-    _domain: String,
+    domain: String,
     tables: Vec<LlmTable>,
     files: Vec<LlmFile>,
-    tools: Option<Vec<LlmFile>>,
-    schedulers: Option<Vec<LlmFile>>,
+    tools: Vec<LlmFile>,
+    schedulers: Vec<LlmFile>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default)]
 struct LlmTable {
     name: String,
     fields: Vec<LlmField>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default)]
 struct LlmField {
     name: String,
-    #[serde(rename = "type")]
     field_type: String,
-    nullable: Option<bool>,
+    nullable: bool,
     reference: Option<String>,
     default: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default)]
 struct LlmFile {
     filename: String,
     content: String,
-    #[serde(rename = "type", default)]
-    _file_type: Option<String>,
 }
+
+/// Streaming delimiter constants
+const DELIM_APP_START: &str = "<<<APP_START>>>";
+const DELIM_APP_END: &str = "<<<APP_END>>>";
+const DELIM_TABLES_START: &str = "<<<TABLES_START>>>";
+const DELIM_TABLES_END: &str = "<<<TABLES_END>>>";
+const DELIM_TABLE_PREFIX: &str = "<<<TABLE:";
+const DELIM_FILE_PREFIX: &str = "<<<FILE:";
+const DELIM_TOOL_PREFIX: &str = "<<<TOOL:";
+const DELIM_SCHEDULER_PREFIX: &str = "<<<SCHEDULER:";
+const DELIM_END: &str = ">>>";
 
 pub struct AppGenerator {
     state: Arc<AppState>,
@@ -253,13 +262,13 @@ impl AppGenerator {
             activity
         );
 
-        info!("[APP_GENERATOR] Calling generate_complete_app_with_llm for intent: {}", &intent[..intent.len().min(50)]);
+        trace!("APP_GENERATOR Calling LLM for intent: {}", &intent[..intent.len().min(50)]);
         let llm_start = std::time::Instant::now();
 
         let llm_app = match self.generate_complete_app_with_llm(intent, session.bot_id).await {
             Ok(app) => {
                 let llm_elapsed = llm_start.elapsed();
-                info!("[APP_GENERATOR] LLM generation completed in {:?}: app={}, files={}, tables={}",
+                info!("APP_GENERATOR LLM completed in {:?}: app={}, files={}, tables={}",
                       llm_elapsed, app.name, app.files.len(), app.tables.len());
                 log_generator_info(
                     &app.name,
@@ -286,7 +295,7 @@ impl AppGenerator {
             }
             Err(e) => {
                 let llm_elapsed = llm_start.elapsed();
-                error!("[APP_GENERATOR] LLM generation failed after {:?}: {}", llm_elapsed, e);
+                error!("APP_GENERATOR LLM failed after {:?}: {}", llm_elapsed, e);
                 log_generator_error("unknown", "LLM app generation failed", &e.to_string());
                 if let Some(ref task_id) = self.task_id {
                     self.state.emit_task_error(task_id, "llm_request", &e.to_string());
@@ -356,8 +365,12 @@ impl AppGenerator {
         }
 
         let bot_name = self.get_bot_name(session.bot_id)?;
-        let bucket_name = format!("{}.gbai", bot_name.to_lowercase());
-        let drive_app_path = format!(".gbdrive/apps/{}", llm_app.name);
+        // Sanitize bucket name - replace spaces and invalid characters
+        let sanitized_name = bot_name.to_lowercase().replace(' ', "-").replace('_', "-");
+        let bucket_name = format!("{}.gbai", sanitized_name);
+        let drive_app_path = format!("{}.gbapp/{}", sanitized_name, llm_app.name);
+
+        info!("Writing app files to bucket: {}, path: {}", bucket_name, drive_app_path);
 
         let total_files = llm_app.files.len();
         let activity = self.build_activity("writing", 0, Some(total_files as u32), Some("Preparing files"));
@@ -390,6 +403,7 @@ impl AppGenerator {
                 activity
             );
 
+            // Write to MinIO - drive monitor will sync to SITES_ROOT
             if let Err(e) = self
                 .write_to_drive(&bucket_name, &drive_path, &file.content)
                 .await
@@ -415,6 +429,8 @@ impl AppGenerator {
 
         let designer_js = Self::generate_designer_js(&llm_app.name);
         self.bytes_generated += designer_js.len() as u64;
+
+        // Write designer.js to MinIO
         self.write_to_drive(
             &bucket_name,
             &format!("{}/designer.js", drive_app_path),
@@ -423,8 +439,8 @@ impl AppGenerator {
         .await?;
 
         let mut tools = Vec::new();
-        if let Some(llm_tools) = &llm_app.tools {
-            let tools_count = llm_tools.len();
+        if !llm_app.tools.is_empty() {
+            let tools_count = llm_app.tools.len();
             let activity = self.build_activity("tools", 0, Some(tools_count as u32), Some("Creating BASIC tools"));
             self.emit_activity(
                 "write_tools",
@@ -434,7 +450,7 @@ impl AppGenerator {
                 activity
             );
 
-            for (idx, tool) in llm_tools.iter().enumerate() {
+            for (idx, tool) in llm_app.tools.iter().enumerate() {
                 let tool_path = format!(".gbdialog/tools/{}", tool.filename);
                 self.files_written.push(format!("tools/{}", tool.filename));
                 self.bytes_generated += tool.content.len() as u64;
@@ -461,8 +477,8 @@ impl AppGenerator {
         }
 
         let mut schedulers = Vec::new();
-        if let Some(llm_schedulers) = &llm_app.schedulers {
-            let sched_count = llm_schedulers.len();
+        if !llm_app.schedulers.is_empty() {
+            let sched_count = llm_app.schedulers.len();
             let activity = self.build_activity("schedulers", 0, Some(sched_count as u32), Some("Creating schedulers"));
             self.emit_activity(
                 "write_schedulers",
@@ -472,7 +488,7 @@ impl AppGenerator {
                 activity
             );
 
-            for (idx, scheduler) in llm_schedulers.iter().enumerate() {
+            for (idx, scheduler) in llm_app.schedulers.iter().enumerate() {
                 let scheduler_path = format!(".gbdialog/schedulers/{}", scheduler.filename);
                 self.files_written.push(format!("schedulers/{}", scheduler.filename));
                 self.bytes_generated += scheduler.content.len() as u64;
@@ -498,11 +514,8 @@ impl AppGenerator {
             }
         }
 
-        let activity = self.build_activity("syncing", TOTAL_STEPS as u32 - 1, Some(TOTAL_STEPS as u32), Some("Deploying to site"));
-        self.emit_activity("sync_site", "Syncing app to site...", 8, TOTAL_STEPS, activity);
-
-        self.sync_app_to_site_root(&bucket_name, &llm_app.name, session.bot_id)
-            .await?;
+        let activity = self.build_activity("complete", TOTAL_STEPS as u32, Some(TOTAL_STEPS as u32), Some("App ready"));
+        self.emit_activity("complete", "App written to drive, ready to serve from MinIO", 8, TOTAL_STEPS, activity);
 
         let elapsed = self.generation_start.map(|s| s.elapsed().as_secs()).unwrap_or(0);
 
@@ -679,55 +692,279 @@ If user says "inventory" → build stock tracking with products, categories, mov
 If user says "booking" → build appointment scheduler with calendar, slots, confirmations
 If user says ANYTHING → interpret creatively and BUILD SOMETHING AWESOME
 
-Respond with a single JSON object:
-{{
-    "name": "app-name-lowercase-dashes",
-    "description": "What this app does",
-    "domain": "healthcare|sales|inventory|booking|utility|etc",
-    "tables": [
-        {{
-            "name": "table_name",
-            "fields": [
-                {{"name": "id", "type": "guid", "nullable": false}},
-                {{"name": "created_at", "type": "datetime", "nullable": false, "default": "now()"}},
-                {{"name": "updated_at", "type": "datetime", "nullable": false, "default": "now()"}},
-                {{"name": "field_name", "type": "string", "nullable": true, "reference": null}}
-            ]
-        }}
-    ],
-    "files": [
-        {{"filename": "index.html", "content": "<!DOCTYPE html>...complete HTML..."}},
-        {{"filename": "styles.css", "content": ":root {{...}} body {{...}} ...complete CSS..."}},
-        {{"filename": "table_name.html", "content": "<!DOCTYPE html>...list page..."}},
-        {{"filename": "table_name_form.html", "content": "<!DOCTYPE html>...form page..."}}
-    ],
-    "tools": [
-        {{"filename": "app_helper.bas", "content": "HEAR \"help\"\n    TALK \"I can help with...\"\nEND HEAR"}}
-    ],
-    "schedulers": [
-        {{"filename": "daily_report.bas", "content": "SET SCHEDULE \"0 9 * * *\"\n    ...\nEND SCHEDULE"}}
-    ]
-}}
+=== OUTPUT FORMAT (STREAMING DELIMITERS) ===
 
-CRITICAL RULES:
-- For utilities (calculator, timer, converter, BMI, mortgage): tables = [], focus on interactive HTML/JS
+Use this EXACT format with delimiters (NOT JSON) so content can stream safely:
+
+<<<APP_START>>>
+name: app-name-lowercase-dashes
+description: What this app does
+domain: healthcare|sales|inventory|booking|utility|etc
+<<<TABLES_START>>>
+<<<TABLE:table_name>>>
+id:guid:false
+created_at:datetime:false:now()
+updated_at:datetime:false:now()
+field_name:string:true
+foreign_key:guid:false:ref:other_table
+<<<TABLE:another_table>>>
+id:guid:false
+name:string:true
+<<<TABLES_END>>>
+<<<FILE:index.html>>>
+<!DOCTYPE html>
+<html lang="en">
+... complete HTML content here ...
+</html>
+<<<FILE:styles.css>>>
+:root {{ --primary: #3b82f6; }}
+body {{ margin: 0; font-family: system-ui; }}
+... complete CSS content here ...
+<<<FILE:table_name.html>>>
+<!DOCTYPE html>
+... complete list page ...
+<<<FILE:table_name_form.html>>>
+<!DOCTYPE html>
+... complete form page ...
+<<<TOOL:app_helper.bas>>>
+HEAR "help"
+    TALK "I can help with..."
+END HEAR
+<<<SCHEDULER:daily_report.bas>>>
+SET SCHEDULE "0 9 * * *"
+    data = GET FROM "table"
+    SEND MAIL TO "admin@example.com" WITH SUBJECT "Daily Report" BODY data
+END SCHEDULE
+<<<APP_END>>>
+
+=== TABLE FIELD FORMAT ===
+Each field on its own line: name:type:nullable[:default][:ref:table]
+- Types: guid, string, text, integer, decimal, boolean, date, datetime, json
+- nullable: true or false
+- default: optional, e.g., now(), 0, ''
+- ref:table: optional foreign key reference
+
+=== CRITICAL RULES ===
+- For utilities (calculator, timer, converter): TABLES_START/END with nothing between, focus on HTML/JS
 - For data apps (CRM, inventory): design proper tables and CRUD pages
 - Generate ALL files completely - no placeholders, no "...", no shortcuts
 - CSS must be comprehensive with variables, responsive design, dark mode
 - Every HTML page needs proper structure with all required scripts
 - Replace APP_NAME_HERE with actual app name in data-app-name attribute
 - BE CREATIVE - add extra features the user didn't ask for but would love
+- Use the EXACT delimiter format above - this allows streaming progress!
 
-Respond with valid JSON only. NO QUESTIONS. JUST BUILD."#
+NO QUESTIONS. JUST BUILD."#
         );
 
         let response = self.call_llm(&prompt, bot_id).await?;
-        Self::parse_llm_app_response(&response)
+        Self::parse_streaming_response(&response)
     }
 
-    fn parse_llm_app_response(
+    /// Parse streaming delimiter format response
+    fn parse_streaming_response(
         response: &str,
     ) -> Result<LlmGeneratedApp, Box<dyn std::error::Error + Send + Sync>> {
+        let mut app = LlmGeneratedApp::default();
+
+        // Find APP_START and APP_END
+        let start_idx = response.find(DELIM_APP_START);
+        let end_idx = response.find(DELIM_APP_END);
+
+        let content = match (start_idx, end_idx) {
+            (Some(s), Some(e)) => &response[s + DELIM_APP_START.len()..e],
+            (Some(s), None) => {
+                warn!("No APP_END found, using rest of response");
+                &response[s + DELIM_APP_START.len()..]
+            }
+            _ => {
+                // Fallback: try to parse as JSON for backwards compatibility
+                return Self::parse_json_fallback(response);
+            }
+        };
+
+        let lines: Vec<&str> = content.lines().collect();
+        let mut current_section = "header";
+        let mut current_table: Option<LlmTable> = None;
+        let mut current_file: Option<(String, String, String)> = None; // (type, filename, content)
+
+        for raw_line in lines.iter() {
+            let line = raw_line.trim();
+
+            // Parse header fields
+            if current_section == "header" {
+                if line.starts_with("name:") {
+                    app.name = line[5..].trim().to_string();
+                    continue;
+                }
+                if line.starts_with("description:") {
+                    app.description = line[12..].trim().to_string();
+                    continue;
+                }
+                if line.starts_with("domain:") {
+                    app.domain = line[7..].trim().to_string();
+                    continue;
+                }
+            }
+
+            // Section transitions
+            if line == DELIM_TABLES_START {
+                current_section = "tables";
+                continue;
+            }
+            if line == DELIM_TABLES_END {
+                // Save any pending table
+                if let Some(table) = current_table.take() {
+                    if !table.name.is_empty() {
+                        app.tables.push(table);
+                    }
+                }
+                current_section = "files";
+                continue;
+            }
+
+            // Table definitions
+            if line.starts_with(DELIM_TABLE_PREFIX) && line.ends_with(DELIM_END) {
+                // Save previous table
+                if let Some(table) = current_table.take() {
+                    if !table.name.is_empty() {
+                        app.tables.push(table);
+                    }
+                }
+                let table_name = &line[DELIM_TABLE_PREFIX.len()..line.len() - DELIM_END.len()];
+                current_table = Some(LlmTable {
+                    name: table_name.to_string(),
+                    fields: Vec::new(),
+                });
+                continue;
+            }
+
+            // Table field (when in tables section with active table)
+            if current_section == "tables" && current_table.is_some() && !line.is_empty() && !line.starts_with("<<<") {
+                if let Some(ref mut table) = current_table {
+                    if let Some(field) = Self::parse_field_line(line) {
+                        table.fields.push(field);
+                    }
+                }
+                continue;
+            }
+
+            // File definitions
+            if line.starts_with(DELIM_FILE_PREFIX) && line.ends_with(DELIM_END) {
+                // Save previous file
+                if let Some((file_type, filename, content)) = current_file.take() {
+                    Self::save_parsed_file(&mut app, &file_type, filename, content);
+                }
+                let filename = &line[DELIM_FILE_PREFIX.len()..line.len() - DELIM_END.len()];
+                current_file = Some(("file".to_string(), filename.to_string(), String::new()));
+                continue;
+            }
+
+            // Tool definitions
+            if line.starts_with(DELIM_TOOL_PREFIX) && line.ends_with(DELIM_END) {
+                if let Some((file_type, filename, content)) = current_file.take() {
+                    Self::save_parsed_file(&mut app, &file_type, filename, content);
+                }
+                let filename = &line[DELIM_TOOL_PREFIX.len()..line.len() - DELIM_END.len()];
+                current_file = Some(("tool".to_string(), filename.to_string(), String::new()));
+                continue;
+            }
+
+            // Scheduler definitions
+            if line.starts_with(DELIM_SCHEDULER_PREFIX) && line.ends_with(DELIM_END) {
+                if let Some((file_type, filename, content)) = current_file.take() {
+                    Self::save_parsed_file(&mut app, &file_type, filename, content);
+                }
+                let filename = &line[DELIM_SCHEDULER_PREFIX.len()..line.len() - DELIM_END.len()];
+                current_file = Some(("scheduler".to_string(), filename.to_string(), String::new()));
+                continue;
+            }
+
+            // Accumulate file content (use original line to preserve indentation)
+            if let Some((_, _, ref mut file_content)) = current_file {
+                if !file_content.is_empty() {
+                    file_content.push('\n');
+                }
+                file_content.push_str(raw_line);
+            }
+        }
+
+        // Save any remaining file
+        if let Some((file_type, filename, content)) = current_file.take() {
+            Self::save_parsed_file(&mut app, &file_type, filename, content);
+        }
+
+        // Validate
+        if app.name.is_empty() {
+            return Err("No app name found in response".into());
+        }
+        if app.files.is_empty() {
+            return Err("No files generated".into());
+        }
+
+        info!(
+            "Parsed streaming response: name={}, tables={}, files={}, tools={}, schedulers={}",
+            app.name,
+            app.tables.len(),
+            app.files.len(),
+            app.tools.len(),
+            app.schedulers.len()
+        );
+
+        Ok(app)
+    }
+
+    /// Parse a table field line in format: name:type:nullable[:default][:ref:table]
+    fn parse_field_line(line: &str) -> Option<LlmField> {
+        let parts: Vec<&str> = line.split(':').collect();
+        if parts.len() < 3 {
+            return None;
+        }
+
+        let mut field = LlmField {
+            name: parts[0].trim().to_string(),
+            field_type: parts[1].trim().to_string(),
+            nullable: parts[2].trim() == "true",
+            reference: None,
+            default: None,
+        };
+
+        // Parse optional parts
+        let mut i = 3;
+        while i < parts.len() {
+            if parts[i].trim() == "ref" && i + 1 < parts.len() {
+                field.reference = Some(parts[i + 1].trim().to_string());
+                i += 2;
+            } else {
+                // It's a default value
+                field.default = Some(parts[i].trim().to_string());
+                i += 1;
+            }
+        }
+
+        Some(field)
+    }
+
+    /// Save a parsed file to the appropriate collection
+    fn save_parsed_file(app: &mut LlmGeneratedApp, file_type: &str, filename: String, content: String) {
+        let file = LlmFile {
+            filename,
+            content: content.trim().to_string(),
+        };
+
+        match file_type {
+            "tool" => app.tools.push(file),
+            "scheduler" => app.schedulers.push(file),
+            _ => app.files.push(file),
+        }
+    }
+
+    /// Fallback to JSON parsing for backwards compatibility
+    fn parse_json_fallback(
+        response: &str,
+    ) -> Result<LlmGeneratedApp, Box<dyn std::error::Error + Send + Sync>> {
+        warn!("Falling back to JSON parsing");
+
         let cleaned = response
             .trim()
             .trim_start_matches("```json")
@@ -735,8 +972,93 @@ Respond with valid JSON only. NO QUESTIONS. JUST BUILD."#
             .trim_end_matches("```")
             .trim();
 
-        match serde_json::from_str::<LlmGeneratedApp>(cleaned) {
-            Ok(app) => {
+        #[derive(Debug, Deserialize)]
+        struct JsonApp {
+            name: String,
+            description: String,
+            #[serde(default)]
+            domain: String,
+            #[serde(default)]
+            tables: Vec<JsonTable>,
+            #[serde(default)]
+            files: Vec<JsonFile>,
+            #[serde(default)]
+            tools: Option<Vec<JsonFile>>,
+            #[serde(default)]
+            schedulers: Option<Vec<JsonFile>>,
+        }
+
+        #[derive(Debug, Deserialize)]
+        struct JsonTable {
+            name: String,
+            fields: Vec<JsonField>,
+        }
+
+        #[derive(Debug, Deserialize)]
+        struct JsonField {
+            name: String,
+            #[serde(rename = "type")]
+            field_type: String,
+            #[serde(default)]
+            nullable: Option<bool>,
+            #[serde(default)]
+            reference: Option<String>,
+            #[serde(default, deserialize_with = "deserialize_default_value")]
+            default: Option<String>,
+        }
+
+        #[derive(Debug, Deserialize)]
+        struct JsonFile {
+            filename: String,
+            content: String,
+        }
+
+        /// Deserialize default value that can be string, bool, number, or null
+        fn deserialize_default_value<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            let value: Option<serde_json::Value> = Option::deserialize(deserializer)?;
+            match value {
+                None => Ok(None),
+                Some(serde_json::Value::Null) => Ok(None),
+                Some(serde_json::Value::String(s)) => Ok(Some(s)),
+                Some(serde_json::Value::Bool(b)) => Ok(Some(b.to_string())),
+                Some(serde_json::Value::Number(n)) => Ok(Some(n.to_string())),
+                Some(v) => Ok(Some(v.to_string())),
+            }
+        }
+
+        match serde_json::from_str::<JsonApp>(cleaned) {
+            Ok(json_app) => {
+                let app = LlmGeneratedApp {
+                    name: json_app.name,
+                    description: json_app.description,
+                    domain: json_app.domain,
+                    tables: json_app.tables.into_iter().map(|t| LlmTable {
+                        name: t.name,
+                        fields: t.fields.into_iter().map(|f| LlmField {
+                            name: f.name,
+                            field_type: f.field_type,
+                            nullable: f.nullable.unwrap_or(true),
+                            reference: f.reference,
+                            default: f.default,
+                        }).collect(),
+                    }).collect(),
+                    files: json_app.files.into_iter().map(|f| LlmFile {
+                        filename: f.filename,
+                        content: f.content,
+                    }).collect(),
+                    tools: json_app.tools.unwrap_or_default().into_iter().map(|f| LlmFile {
+                        filename: f.filename,
+                        content: f.content,
+                    }).collect(),
+                    schedulers: json_app.schedulers.unwrap_or_default().into_iter().map(|f| LlmFile {
+                        filename: f.filename,
+                        content: f.content,
+                    }).collect(),
+                };
+
                 if app.files.is_empty() {
                     return Err("LLM generated no files".into());
                 }
@@ -762,7 +1084,7 @@ Respond with valid JSON only. NO QUESTIONS. JUST BUILD."#
                         name: f.name.clone(),
                         field_type: f.field_type.clone(),
                         is_key: f.name == "id",
-                        is_nullable: f.nullable.unwrap_or(true),
+                        is_nullable: f.nullable,
                         reference_table: f.reference.clone(),
                         default_value: f.default.clone(),
                         field_order: i as i32,
@@ -820,23 +1142,101 @@ Respond with valid JSON only. NO QUESTIONS. JUST BUILD."#
             });
 
             let prompt_len = prompt.len();
-            info!("[APP_GENERATOR] Starting LLM call: model={}, prompt_len={} chars", model, prompt_len);
+            trace!("APP_GENERATOR Starting LLM streaming: model={}, prompt_len={}", model, prompt_len);
             let start = std::time::Instant::now();
 
+            // Use streaming to provide real-time feedback
+            let (tx, mut rx) = mpsc::channel::<String>(100);
+            let state = self.state.clone();
+            let task_id = self.task_id.clone();
+
+            // Spawn a task to receive stream chunks and broadcast them
+            let stream_task = tokio::spawn(async move {
+                let mut full_response = String::new();
+                let mut chunk_buffer = String::new();
+                let mut last_emit = std::time::Instant::now();
+                let mut chunk_count = 0u32;
+                let stream_start = std::time::Instant::now();
+
+                trace!("APP_GENERATOR Stream receiver started");
+
+                while let Some(chunk) = rx.recv().await {
+                    chunk_count += 1;
+                    full_response.push_str(&chunk);
+                    chunk_buffer.push_str(&chunk);
+
+                    // Log progress periodically
+                    if chunk_count == 1 || chunk_count % 500 == 0 {
+                        trace!("APP_GENERATOR Stream progress: {} chunks, {} chars, {:?}",
+                              chunk_count, full_response.len(), stream_start.elapsed());
+                    }
+
+                    // Emit chunks every 100ms or when buffer has enough content
+                    if last_emit.elapsed().as_millis() > 100 || chunk_buffer.len() > 50 {
+                        if let Some(ref tid) = task_id {
+                            state.emit_llm_stream(tid, &chunk_buffer);
+                        }
+                        chunk_buffer.clear();
+                        last_emit = std::time::Instant::now();
+                    }
+                }
+
+                trace!("APP_GENERATOR Stream finished: {} chunks, {} chars in {:?}",
+                      chunk_count, full_response.len(), stream_start.elapsed());
+
+                // Emit any remaining buffer
+                if !chunk_buffer.is_empty() {
+                    trace!("APP_GENERATOR Emitting final buffer: {} chars", chunk_buffer.len());
+                    if let Some(ref tid) = task_id {
+                        state.emit_llm_stream(tid, &chunk_buffer);
+                    }
+                }
+
+                // Log response preview
+                if full_response.len() > 0 {
+                    let preview = if full_response.len() > 200 {
+                        format!("{}...", &full_response[..200])
+                    } else {
+                        full_response.clone()
+                    };
+                    trace!("APP_GENERATOR Response preview: {}", preview.replace('\n', "\\n"));
+                }
+
+                full_response
+            });
+
+            // Start the streaming LLM call
+            trace!("APP_GENERATOR Starting generate_stream...");
             match self
                 .state
                 .llm_provider
-                .generate(prompt, &llm_config, &model, &key)
+                .generate_stream(prompt, &llm_config, tx, &model, &key)
                 .await
             {
-                Ok(response) => {
-                    let elapsed = start.elapsed();
-                    info!("[APP_GENERATOR] LLM call succeeded: response_len={} chars, elapsed={:?}", response.len(), elapsed);
-                    return Ok(response);
+                Ok(()) => {
+                    trace!("APP_GENERATOR generate_stream completed, waiting for stream_task");
+                    // Wait for the stream task to complete and get the full response
+                    match stream_task.await {
+                        Ok(response) => {
+                            let elapsed = start.elapsed();
+                            trace!("APP_GENERATOR LLM streaming succeeded: {} chars in {:?}", response.len(), elapsed);
+                            if response.is_empty() {
+                                error!("APP_GENERATOR Empty response from LLM");
+                            }
+                            return Ok(response);
+                        }
+                        Err(e) => {
+                            let elapsed = start.elapsed();
+                            error!("APP_GENERATOR LLM stream task failed after {:?}: {}", elapsed, e);
+                            return Err(format!("Stream task failed: {}", e).into());
+                        }
+                    }
                 }
                 Err(e) => {
                     let elapsed = start.elapsed();
-                    error!("[APP_GENERATOR] LLM call failed after {:?}: {}", elapsed, e);
+                    error!("APP_GENERATOR LLM streaming failed after {:?}: {}", elapsed, e);
+                    // Abort the stream task
+                    stream_task.abort();
                     return Err(e);
                 }
             }
@@ -947,26 +1347,100 @@ Respond with valid JSON only. NO QUESTIONS. JUST BUILD."#
             .ok_or_else(|| format!("Bot not found: {}", bot_id).into())
     }
 
+    /// Ensure the bucket exists, creating it if necessary
+    async fn ensure_bucket_exists(
+        &self,
+        bucket: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        if let Some(ref s3) = self.state.drive {
+            // Check if bucket exists
+            match s3.head_bucket().bucket(bucket).send().await {
+                Ok(_) => {
+                    trace!("Bucket {} already exists", bucket);
+                    return Ok(());
+                }
+                Err(_) => {
+                    // Bucket doesn't exist, try to create it
+                    info!("Bucket {} does not exist, creating...", bucket);
+                    match s3.create_bucket().bucket(bucket).send().await {
+                        Ok(_) => {
+                            info!("Created bucket: {}", bucket);
+                            return Ok(());
+                        }
+                        Err(e) => {
+                            // Check if error is "bucket already exists" (race condition)
+                            let err_str = format!("{:?}", e);
+                            if err_str.contains("BucketAlreadyExists") || err_str.contains("BucketAlreadyOwnedByYou") {
+                                trace!("Bucket {} already exists (race condition)", bucket);
+                                return Ok(());
+                            }
+                            error!("Failed to create bucket {}: {}", bucket, e);
+                            return Err(Box::new(e));
+                        }
+                    }
+                }
+            }
+        } else {
+            // No S3 client, we'll use DB fallback - no bucket needed
+            trace!("No S3 client, using DB fallback for storage");
+            Ok(())
+        }
+    }
+
     async fn write_to_drive(
         &self,
         bucket: &str,
         path: &str,
         content: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        if let Some(ref s3) = self.state.s3_client {
+        info!("write_to_drive: bucket={}, path={}, content_len={}", bucket, path, content.len());
+
+        if let Some(ref s3) = self.state.drive {
             let body = ByteStream::from(content.as_bytes().to_vec());
             let content_type = get_content_type(path);
 
-            s3.put_object()
+            info!("S3 client available, attempting put_object to s3://{}/{}", bucket, path);
+
+            match s3.put_object()
                 .bucket(bucket)
                 .key(path)
                 .body(body)
                 .content_type(content_type)
                 .send()
-                .await?;
+                .await
+            {
+                Ok(_) => {
+                    info!("Successfully wrote to S3: s3://{}/{}", bucket, path);
+                }
+                Err(e) => {
+                    // Log detailed error info
+                    error!("S3 put_object failed: bucket={}, path={}, error={:?}", bucket, path, e);
+                    error!("S3 error details: {}", e);
 
-            trace!("Wrote to S3: s3://{}/{}", bucket, path);
+                    // If bucket doesn't exist, try to create it and retry
+                    let err_str = format!("{:?}", e);
+                    if err_str.contains("NoSuchBucket") || err_str.contains("NotFound") {
+                        warn!("Bucket {} not found, attempting to create...", bucket);
+                        self.ensure_bucket_exists(bucket).await?;
+
+                        // Retry the write
+                        let body = ByteStream::from(content.as_bytes().to_vec());
+                        s3.put_object()
+                            .bucket(bucket)
+                            .key(path)
+                            .body(body)
+                            .content_type(get_content_type(path))
+                            .send()
+                            .await?;
+                        info!("Wrote to S3 after creating bucket: s3://{}/{}", bucket, path);
+                    } else {
+                        error!("S3 write failed (not a bucket issue): {}", err_str);
+                        return Err(Box::new(e));
+                    }
+                }
+            }
         } else {
+            warn!("No S3/drive client available, using DB fallback for {}/{}", bucket, path);
             self.write_to_db_fallback(bucket, path, content)?;
         }
 
@@ -1034,49 +1508,6 @@ Respond with valid JSON only. NO QUESTIONS. JUST BUILD."#
         })
     }
 
-    async fn sync_app_to_site_root(
-        &self,
-        bucket: &str,
-        app_name: &str,
-        bot_id: Uuid,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let source_path = format!(".gbdrive/apps/{}", app_name);
-        let site_path = Self::get_site_path(bot_id);
-
-        if let Some(ref s3) = self.state.s3_client {
-            let list_result = s3
-                .list_objects_v2()
-                .bucket(bucket)
-                .prefix(&source_path)
-                .send()
-                .await?;
-
-            if let Some(contents) = list_result.contents {
-                for object in contents {
-                    if let Some(key) = object.key {
-                        let relative_path =
-                            key.trim_start_matches(&source_path).trim_start_matches('/');
-                        let dest_key = format!("{}/{}/{}", site_path, app_name, relative_path);
-
-                        s3.copy_object()
-                            .bucket(bucket)
-                            .copy_source(format!("{}/{}", bucket, key))
-                            .key(&dest_key)
-                            .send()
-                            .await?;
-
-                        trace!("Synced {} to {}", key, dest_key);
-                    }
-                }
-            }
-        }
-
-        let _ = self.store_app_metadata(bot_id, app_name, &format!("{}/{}", site_path, app_name));
-
-        info!("App synced to site root: {}/{}", site_path, app_name);
-        Ok(())
-    }
-
     fn store_app_metadata(
         &self,
         bot_id: Uuid,
@@ -1102,9 +1533,7 @@ Respond with valid JSON only. NO QUESTIONS. JUST BUILD."#
         Ok(())
     }
 
-    fn get_site_path(_bot_id: Uuid) -> String {
-        ".gbdrive/site".to_string()
-    }
+
 
     fn generate_designer_js(app_name: &str) -> String {
         format!(
