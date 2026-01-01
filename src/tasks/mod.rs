@@ -1,5 +1,6 @@
 pub mod scheduler;
 
+use crate::auto_task::TaskManifest;
 use crate::core::urls::ApiUrls;
 use axum::{
     extract::{Path, Query, State},
@@ -352,8 +353,16 @@ pub async fn handle_task_delete(
 pub async fn handle_task_get(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
+    headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
     log::info!("[TASK_GET] *** Handler called for task: {} ***", id);
+
+    // Check if client wants JSON (for polling) vs HTML (for HTMX)
+    let wants_json = headers
+        .get(axum::http::header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.contains("application/json"))
+        .unwrap_or(false);
 
     let conn = state.conn.clone();
     let task_id = id.clone();
@@ -430,7 +439,31 @@ pub async fn handle_task_get(
 
     match result {
         Ok(Some(task)) => {
-            log::info!("[TASK_GET] Returning task: {} - {}", task.id, task.title);
+            log::info!("[TASK_GET] Returning task: {} - {} (wants_json={})", task.id, task.title, wants_json);
+
+            // Return JSON for API polling clients
+            if wants_json {
+                return (
+                    StatusCode::OK,
+                    [(axum::http::header::CONTENT_TYPE, "application/json")],
+                    serde_json::json!({
+                        "id": task.id.to_string(),
+                        "title": task.title,
+                        "status": task.status,
+                        "priority": task.priority,
+                        "intent": task.intent,
+                        "error": task.error,
+                        "progress": (task.progress * 100.0) as u8,
+                        "current_step": task.current_step,
+                        "total_steps": task.total_steps,
+                        "created_at": task.created_at.to_rfc3339(),
+                        "started_at": task.started_at.map(|t| t.to_rfc3339()),
+                        "completed_at": task.completed_at.map(|t| t.to_rfc3339())
+                    }).to_string()
+                ).into_response();
+            }
+
+            // Return HTML for HTMX
             let status_class = match task.status.as_str() {
                 "completed" | "done" => "completed",
                 "running" | "pending" => "running",
@@ -438,7 +471,6 @@ pub async fn handle_task_get(
                 _ => "pending"
             };
             let progress_percent = (task.progress * 100.0) as u8;
-            let created = task.created_at.format("%Y-%m-%d %H:%M").to_string();
 
             // Calculate runtime
             let runtime = if let Some(started) = task.started_at {
@@ -464,9 +496,6 @@ pub async fn handle_task_get(
                 </div>"#, e
             )).unwrap_or_default();
 
-            let current_step = task.current_step;
-            let total_steps = if task.total_steps > 0 { task.total_steps } else { 1 };
-
             let status_label = match task.status.as_str() {
                 "completed" | "done" => "Completed",
                 "running" => "Running",
@@ -477,116 +506,109 @@ pub async fn handle_task_get(
                 _ => &task.status
             };
 
-            // Build progress log HTML from step_results
-            let progress_log_html = build_progress_log_html(&task.step_results, current_step, total_steps);
-
             // Build terminal output from recent activity
             let terminal_html = build_terminal_html(&task.step_results, &task.status);
 
+            let task_url = format!("/tasks/{}", task_id);
+
+
+            // Extract app_url from step_results if task is completed
+            let app_url = if task.status == "completed" || task.status == "done" {
+                extract_app_url_from_results(&task.step_results, &task.title)
+            } else {
+                None
+            };
+
+            let app_button_html = app_url.map(|url| format!(
+                r#"<a href="{}" target="_blank" class="btn-action-rich btn-open-app" rel="noopener noreferrer">
+                    <span class="btn-icon">🚀</span> Open App
+                </a>"#,
+                url
+            )).unwrap_or_default();
+
+            let cancel_button_html = match task.status.as_str() {
+                "completed" | "done" | "failed" | "error" => String::new(),
+                _ => format!(
+                    r#"<button class="btn-action-rich btn-cancel" onclick="cancelTask('{task_id}')">
+                            <span class="btn-icon">✗</span> Cancel
+                        </button>"#
+                ),
+            };
+
+            let (status_html, progress_log_html) = build_taskmd_html(&state, &task_id, &task.title, &runtime);
+
             let html = format!(r#"
                 <div class="task-detail-rich" data-task-id="{task_id}">
-                    <!-- Header with title and status badge -->
-                    <div class="detail-header-rich">
-                        <h2 class="detail-title-rich">{title}</h2>
-                        <span class="status-badge-rich status-{status_class}">{status_label}</span>
+                    <!-- Header -->
+                    <div class="taskmd-header">
+                        <div class="taskmd-url">
+                            <span class="url-icon">🔗</span>
+                            <span class="url-path">{task_url}</span>
+                        </div>
+                        <h1 class="taskmd-title">{title}</h1>
+                        <span class="taskmd-status-badge status-{status_class}">{status_label}</span>
                     </div>
 
-                    <!-- Status Section -->
-                    <div class="detail-section-box status-section">
-                        <div class="section-label">STATUS</div>
-                        <div class="status-content">
-                            <div class="status-main">
-                                <span class="status-dot status-{status_class}"></span>
-                                <span class="status-text">{title}</span>
-                            </div>
-                            <div class="status-meta">
-                                <span class="meta-runtime">Runtime: {runtime}</span>
-                                <span class="meta-estimated">Step {current_step}/{total_steps}</span>
-                            </div>
-                        </div>
-                        {error_html}
-                        <div class="status-details">
-                            <div class="status-row">
-                                <span class="status-indicator {status_indicator}"></span>
-                                <span class="status-step-name">{status_label} (Step {current_step}/{total_steps})</span>
-                                <span class="status-step-note">{priority} priority</span>
-                            </div>
+                    {error_html}
+
+                    <!-- STATUS Section -->
+                    <div class="taskmd-section">
+                        <div class="taskmd-section-header">STATUS</div>
+                        <div class="taskmd-status-content">
+                            {status_html}
                         </div>
                     </div>
 
-                    <!-- Progress Bar -->
-                    <div class="detail-progress-rich">
-                        <div class="progress-bar-rich">
-                            <div class="progress-fill-rich" style="width: {progress_percent}%"></div>
-                        </div>
-                        <div class="progress-info-rich">
-                            <span class="progress-label-rich">Progress: {progress_percent}%</span>
-                        </div>
-                    </div>
-
-                    <!-- Progress Log Section -->
-                    <div class="detail-section-box progress-log-section">
-                        <div class="section-label">PROGRESS LOG</div>
-                        <div class="progress-log-content" id="progress-log-{task_id}">
+                    <!-- PROGRESS LOG Section -->
+                    <div class="taskmd-section">
+                        <div class="taskmd-section-header">PROGRESS LOG</div>
+                        <div class="taskmd-progress-content" id="progress-log-{task_id}">
                             {progress_log_html}
                         </div>
                     </div>
 
-                    <!-- Terminal Section -->
-                    <div class="detail-section-box terminal-section-rich">
-                        <div class="section-header-rich">
-                            <div class="section-label">
-                                <span class="terminal-dot-rich {terminal_active}"></span>
-                                TERMINAL (LIVE AGENT ACTIVITY)
+                    <!-- TERMINAL Section -->
+                    <div class="taskmd-section taskmd-terminal">
+                        <div class="taskmd-terminal-header">
+                            <div class="taskmd-terminal-title">
+                                <span class="terminal-dot {terminal_active}"></span>
+                                <span>TERMINAL (LIVE AGENT ACTIVITY)</span>
                             </div>
-                            <div class="terminal-stats-rich">
-                                <span>Step: <strong>{current_step}</strong> of <strong>{total_steps}</strong></span>
+                            <div class="taskmd-terminal-stats">
+                                <span>Processed: <strong id="terminal-processed-{task_id}">{processed_count}</strong> items</span>
+                                <span class="stat-sep">|</span>
+                                <span>Speed: <strong>{processing_speed}</strong></span>
+                                <span class="stat-sep">|</span>
+                                <span>ETA: <strong id="terminal-eta-{task_id}">{eta_display}</strong></span>
                             </div>
                         </div>
-                        <div class="terminal-output-rich" id="terminal-output-{task_id}">
+                        <div class="taskmd-terminal-output" id="terminal-output-{task_id}">
                             {terminal_html}
                         </div>
-                        <div class="terminal-footer-rich">
-                            <span class="terminal-eta">Started: <strong>{created}</strong></span>
-                        </div>
-                    </div>
-
-                    <!-- Intent Section -->
-                    <div class="detail-section-box intent-section">
-                        <div class="section-label">INTENT</div>
-                        <p class="intent-text-rich">{intent_text}</p>
                     </div>
 
                     <!-- Actions -->
-                    <div class="detail-actions-rich">
-                        <button class="btn-action-rich btn-pause" onclick="pauseTask('{task_id}')">
-                            <span class="btn-icon">⏸</span> Pause
-                        </button>
-                        <button class="btn-action-rich btn-cancel" onclick="cancelTask('{task_id}')">
-                            <span class="btn-icon">✗</span> Cancel
-                        </button>
-                        <button class="btn-action-rich btn-detailed" onclick="showDetailedView('{task_id}')">
-                            Detailed View
-                        </button>
+                    <div class="taskmd-actions">
+                        {app_button_html}
+                        {cancel_button_html}
                     </div>
                 </div>
             "#,
                 task_id = task_id,
+                task_url = task_url,
                 title = task.title,
                 status_class = status_class,
                 status_label = status_label,
-                runtime = runtime,
-                current_step = current_step,
-                total_steps = total_steps,
                 error_html = error_html,
-                status_indicator = if task.status == "running" { "active" } else { "" },
-                priority = task.priority,
-                progress_percent = progress_percent,
+                status_html = status_html,
                 progress_log_html = progress_log_html,
                 terminal_active = if task.status == "running" { "active" } else { "" },
                 terminal_html = terminal_html,
-                created = created,
-                intent_text = intent_text,
+                app_button_html = app_button_html,
+                cancel_button_html = cancel_button_html,
+                processed_count = get_manifest_processed_count(&state, &task_id),
+                processing_speed = get_manifest_speed(&state, &task_id),
+                eta_display = get_manifest_eta(&state, &task_id),
             );
             (StatusCode::OK, axum::response::Html(html)).into_response()
         }
@@ -601,165 +623,385 @@ pub async fn handle_task_get(
     }
 }
 
-/// Build HTML for the progress log section from step_results JSON
-fn build_progress_log_html(step_results: &Option<serde_json::Value>, current_step: i32, total_steps: i32) -> String {
-    let mut html = String::new();
-
+fn extract_app_url_from_results(step_results: &Option<serde_json::Value>, title: &str) -> Option<String> {
     if let Some(serde_json::Value::Array(steps)) = step_results {
-        if steps.is_empty() {
-            // No steps yet - show current status
-            html.push_str(&format!(r#"
-                <div class="log-group">
-                    <div class="log-group-header">
-                        <span class="log-group-name">Task Execution</span>
-                        <span class="log-step-badge">Step {}/{}</span>
-                        <span class="log-status-badge running">In Progress</span>
-                    </div>
-                    <div class="log-group-items">
-                        <div class="log-item">
-                            <span class="log-dot running"></span>
-                            <span class="log-item-name">Waiting for execution steps...</span>
-                        </div>
-                    </div>
-                </div>
-            "#, current_step, total_steps));
-        } else {
-            // Group steps and show real data
-            for (idx, step) in steps.iter().enumerate() {
-                let step_name = step.get("step_name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("Step");
-                let step_status = step.get("status")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("pending");
-                let step_order = step.get("step_order")
-                    .and_then(|v| v.as_i64())
-                    .unwrap_or((idx + 1) as i64);
-                let duration_ms = step.get("duration_ms")
-                    .and_then(|v| v.as_i64());
-
-                let status_class = match step_status {
-                    "completed" | "Completed" => "completed",
-                    "running" | "Running" => "running",
-                    "failed" | "Failed" => "failed",
-                    _ => "pending"
-                };
-
-                let duration_str = duration_ms.map(|ms| {
-                    if ms > 60000 {
-                        format!("{}m {}s", ms / 60000, (ms % 60000) / 1000)
-                    } else if ms > 1000 {
-                        format!("{}s", ms / 1000)
-                    } else {
-                        format!("{}ms", ms)
-                    }
-                }).unwrap_or_else(|| "--".to_string());
-
-                html.push_str(&format!(r#"
-                    <div class="log-item">
-                        <span class="log-dot {status_class}"></span>
-                        <span class="log-item-name">{step_name}</span>
-                        <span class="log-item-badge">Step {step_order}/{total_steps}</span>
-                        <span class="log-item-status">{step_status}</span>
-                        <span class="log-duration">Duration: {duration_str}</span>
-                    </div>
-                "#,
-                    status_class = status_class,
-                    step_name = step_name,
-                    step_order = step_order,
-                    total_steps = total_steps,
-                    step_status = step_status,
-                    duration_str = duration_str,
-                ));
-
-                // Show logs if present
-                if let Some(serde_json::Value::Array(logs)) = step.get("logs") {
-                    for log_entry in logs.iter().take(3) {
-                        let msg = log_entry.get("message")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("");
-                        if !msg.is_empty() {
-                            html.push_str(&format!(r#"
-                                <div class="log-subitem">
-                                    <span class="log-subdot {status_class}"></span>
-                                    <span class="log-subitem-name">{msg}</span>
-                                </div>
-                            "#, status_class = status_class, msg = msg));
+        for step in steps.iter() {
+            if let Some(logs) = step.get("logs").and_then(|v| v.as_array()) {
+                for log in logs.iter() {
+                    if let Some(msg) = log.get("message").and_then(|v| v.as_str()) {
+                        if msg.contains("/apps/") {
+                            if let Some(start) = msg.find("/apps/") {
+                                let rest = &msg[start..];
+                                let end = rest.find(|c: char| c.is_whitespace() || c == '"' || c == '\'').unwrap_or(rest.len());
+                                let url = rest[..end].to_string();
+                                // Add trailing slash if not present
+                                if url.ends_with('/') {
+                                    return Some(url);
+                                } else {
+                                    return Some(format!("{}/", url));
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    let app_name = title
+        .to_lowercase()
+        .replace(' ', "-")
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '-')
+        .collect::<String>();
+
+    if !app_name.is_empty() {
+        Some(format!("/apps/{}/", app_name))
     } else {
-        // No step results - show placeholder based on current progress
+        None
+    }
+}
+
+// Helper functions to get real manifest stats
+fn get_manifest_processed_count(state: &Arc<AppState>, task_id: &str) -> String {
+    if let Ok(manifests) = state.task_manifests.read() {
+        if let Some(manifest) = manifests.get(task_id) {
+            return manifest.processing_stats.data_points_processed.to_string();
+        }
+    }
+    "0".to_string()
+}
+
+fn get_manifest_speed(state: &Arc<AppState>, task_id: &str) -> String {
+    if let Ok(manifests) = state.task_manifests.read() {
+        if let Some(manifest) = manifests.get(task_id) {
+            let speed = manifest.processing_stats.sources_per_min;
+            if speed > 0.0 {
+                return format!("{:.1}/min", speed);
+            }
+        }
+    }
+    "calculating...".to_string()
+}
+
+fn get_manifest_eta(state: &Arc<AppState>, task_id: &str) -> String {
+    if let Ok(manifests) = state.task_manifests.read() {
+        if let Some(manifest) = manifests.get(task_id) {
+            let eta_secs = manifest.processing_stats.estimated_remaining_seconds;
+            if eta_secs > 0 {
+                if eta_secs >= 60 {
+                    return format!("~{} min", eta_secs / 60);
+                } else {
+                    return format!("~{} sec", eta_secs);
+                }
+            } else if manifest.status == crate::auto_task::ManifestStatus::Completed {
+                return "Done".to_string();
+            }
+        }
+    }
+    "calculating...".to_string()
+}
+
+fn build_taskmd_html(state: &Arc<AppState>, task_id: &str, title: &str, runtime: &str) -> (String, String) {
+    log::info!("[TASKMD_HTML] Building TASK.md view for task_id: {}", task_id);
+
+    if let Ok(manifests) = state.task_manifests.read() {
+        if let Some(manifest) = manifests.get(task_id) {
+            log::info!("[TASKMD_HTML] Found manifest for task: {} with {} sections", manifest.app_name, manifest.sections.len());
+            let status_html = build_status_section_html(manifest, title, runtime);
+            let progress_html = build_progress_log_html(manifest);
+            return (status_html, progress_html);
+        }
+    }
+
+    let default_status = format!(r#"
+        <div class="status-row">
+            <span class="status-title">{}</span>
+            <span class="status-time">Runtime: {}</span>
+        </div>
+    "#, title, runtime);
+
+    (default_status, r#"<div class="progress-empty">No steps executed yet</div>"#.to_string())
+}
+
+fn build_status_section_html(manifest: &TaskManifest, title: &str, runtime: &str) -> String {
+    let mut html = String::new();
+
+    let current_action = manifest.current_status.current_action.as_deref().unwrap_or("Processing...");
+    let estimated = format!("{}s", manifest.estimated_seconds);
+
+    html.push_str(&format!(r#"
+        <div class="status-row status-main">
+            <span class="status-title">{}</span>
+            <span class="status-time">Runtime: {}</span>
+        </div>
+        <div class="status-row status-current">
+            <span class="status-dot active"></span>
+            <span class="status-text">{}</span>
+            <span class="status-time">Estimated: {}</span>
+        </div>
+    "#, title, runtime, current_action, estimated));
+
+    if let Some(ref dp) = manifest.current_status.decision_point {
         html.push_str(&format!(r#"
-            <div class="log-group">
-                <div class="log-group-header">
-                    <span class="log-group-name">Task Progress</span>
-                    <span class="log-step-badge">Step {}/{}</span>
-                    <span class="log-status-badge pending">Pending</span>
-                </div>
-                <div class="log-group-items">
-                    <div class="log-item">
-                        <span class="log-dot pending"></span>
-                        <span class="log-item-name">No execution steps recorded yet</span>
-                    </div>
-                </div>
+            <div class="status-row status-decision">
+                <span class="status-dot pending"></span>
+                <span class="status-text">Decision Point Coming (Step {}/{})</span>
+                <span class="status-badge">{}</span>
             </div>
-        "#, current_step, total_steps));
+        "#, dp.step_current, dp.step_total, dp.message));
     }
 
     html
 }
 
-/// Build HTML for terminal output from step results
+fn build_progress_log_html(manifest: &TaskManifest) -> String {
+    let mut html = String::new();
+    html.push_str(r#"<div class="taskmd-tree">"#);
+
+    let total_steps = manifest.total_steps;
+
+    for section in &manifest.sections {
+        let section_class = match section.status {
+            crate::auto_task::SectionStatus::Completed => "completed",
+            crate::auto_task::SectionStatus::Running => "running",
+            crate::auto_task::SectionStatus::Failed => "failed",
+            crate::auto_task::SectionStatus::Skipped => "skipped",
+            _ => "pending",
+        };
+
+        let status_text = match section.status {
+            crate::auto_task::SectionStatus::Completed => "Completed",
+            crate::auto_task::SectionStatus::Running => "Running",
+            crate::auto_task::SectionStatus::Failed => "Failed",
+            crate::auto_task::SectionStatus::Skipped => "Skipped",
+            _ => "Pending",
+        };
+
+        // Use global step count (e.g., "Step 24/60")
+        let global_current = section.global_step_start + section.current_step;
+
+        // TASK.md style checkbox
+        let section_checkbox = match section.status {
+            crate::auto_task::SectionStatus::Completed => "[x]",
+            crate::auto_task::SectionStatus::Running => "[>]",
+            crate::auto_task::SectionStatus::Skipped => "[-]",
+            _ => "[ ]",
+        };
+
+        html.push_str(&format!(r#"
+            <div class="tree-section {}" data-section-id="{}">
+                <div class="tree-row tree-level-0" onclick="this.parentElement.classList.toggle('expanded')">
+                    <span class="tree-checkbox">{}</span>
+                    <span class="tree-name">{}</span>
+                    <span class="tree-step-badge">Step {}/{}</span>
+                    <span class="tree-status {}">{}</span>
+                </div>
+                <div class="tree-children">
+        "#, section_class, section.id, section_checkbox, section.name, global_current, total_steps, section_class, status_text));
+
+        for child in &section.children {
+            let child_class = match child.status {
+                crate::auto_task::SectionStatus::Completed => "completed",
+                crate::auto_task::SectionStatus::Running => "running",
+                crate::auto_task::SectionStatus::Failed => "failed",
+                crate::auto_task::SectionStatus::Skipped => "skipped",
+                _ => "pending",
+            };
+
+            let child_status = match child.status {
+                crate::auto_task::SectionStatus::Completed => "Completed",
+                crate::auto_task::SectionStatus::Running => "Running",
+                crate::auto_task::SectionStatus::Failed => "Failed",
+                crate::auto_task::SectionStatus::Skipped => "Skipped",
+                _ => "Pending",
+            };
+
+            // TASK.md style checkbox for child
+            let child_checkbox = match child.status {
+                crate::auto_task::SectionStatus::Completed => "[x]",
+                crate::auto_task::SectionStatus::Running => "[>]",
+                crate::auto_task::SectionStatus::Skipped => "[-]",
+                _ => "[ ]",
+            };
+
+            html.push_str(&format!(r#"
+                <div class="tree-child {}" onclick="this.classList.toggle('expanded')">
+                    <div class="tree-row tree-level-1">
+                        <span class="tree-indent"></span>
+                        <span class="tree-checkbox">{}</span>
+                        <span class="tree-name">{}</span>
+                        <span class="tree-step-badge">Step {}/{}</span>
+                        <span class="tree-status {}">{}</span>
+                    </div>
+                    <div class="tree-items">
+            "#, child_class, child_checkbox, child.name, child.current_step, child.total_steps, child_class, child_status));
+
+            // Render item groups first (grouped fields like "email, password_hash, email_verified")
+            for group in &child.item_groups {
+                let (group_class, group_checkbox) = match group.status {
+                    crate::auto_task::ItemStatus::Completed => ("completed", "[x]"),
+                    crate::auto_task::ItemStatus::Running => ("running", "[>]"),
+                    _ => ("pending", "[ ]"),
+                };
+                let check_mark = if group.status == crate::auto_task::ItemStatus::Completed { "✓" } else { "" };
+
+                let group_duration = group.duration_seconds
+                    .map(|s| if s >= 60 { format!("Duration: {} min", s / 60) } else { format!("Duration: {} sec", s) })
+                    .unwrap_or_default();
+
+                let group_name = group.display_name();
+
+                html.push_str(&format!(r#"
+                    <div class="tree-item {}">
+                        <span class="tree-item-checkbox">{}</span>
+                        <span class="tree-item-name">{}</span>
+                        <span class="tree-item-duration">{}</span>
+                        <span class="tree-item-check {}">{}</span>
+                    </div>
+                "#, group_class, group_checkbox, group_name, group_duration, group_class, check_mark));
+            }
+
+            // Then individual items
+            for item in &child.items {
+                let (item_class, item_checkbox) = match item.status {
+                    crate::auto_task::ItemStatus::Completed => ("completed", "[x]"),
+                    crate::auto_task::ItemStatus::Running => ("running", "[>]"),
+                    _ => ("pending", "[ ]"),
+                };
+                let check_mark = if item.status == crate::auto_task::ItemStatus::Completed { "✓" } else { "" };
+
+                let item_duration = item.duration_seconds
+                    .map(|s| if s >= 60 { format!("Duration: {} min", s / 60) } else { format!("Duration: {} sec", s) })
+                    .unwrap_or_default();
+
+                html.push_str(&format!(r#"
+                    <div class="tree-item {}">
+                        <span class="tree-item-checkbox">{}</span>
+                        <span class="tree-item-name">{}</span>
+                        <span class="tree-item-duration">{}</span>
+                        <span class="tree-item-check {}">{}</span>
+                    </div>
+                "#, item_class, item_checkbox, item.name, item_duration, item_class, check_mark));
+            }
+
+            html.push_str("</div></div>");
+        }
+
+        // Render section-level item groups
+        for group in &section.item_groups {
+            let (group_class, group_checkbox) = match group.status {
+                crate::auto_task::ItemStatus::Completed => ("completed", "[x]"),
+                crate::auto_task::ItemStatus::Running => ("running", "[>]"),
+                _ => ("pending", "[ ]"),
+            };
+            let check_mark = if group.status == crate::auto_task::ItemStatus::Completed { "✓" } else { "" };
+
+            let group_duration = group.duration_seconds
+                .map(|s| if s >= 60 { format!("Duration: {} min", s / 60) } else { format!("Duration: {} sec", s) })
+                .unwrap_or_default();
+
+            let group_name = group.display_name();
+
+            html.push_str(&format!(r#"
+                <div class="tree-item {}">
+                    <span class="tree-item-checkbox">{}</span>
+                    <span class="tree-item-name">{}</span>
+                    <span class="tree-item-duration">{}</span>
+                    <span class="tree-item-check {}">{}</span>
+                </div>
+            "#, group_class, group_checkbox, group_name, group_duration, group_class, check_mark));
+        }
+
+        // Render section-level items
+        for item in &section.items {
+            let (item_class, item_checkbox) = match item.status {
+                crate::auto_task::ItemStatus::Completed => ("completed", "[x]"),
+                crate::auto_task::ItemStatus::Running => ("running", "[>]"),
+                _ => ("pending", "[ ]"),
+            };
+            let check_mark = if item.status == crate::auto_task::ItemStatus::Completed { "✓" } else { "" };
+
+            let item_duration = item.duration_seconds
+                .map(|s| if s >= 60 { format!("Duration: {} min", s / 60) } else { format!("Duration: {} sec", s) })
+                .unwrap_or_default();
+
+            html.push_str(&format!(r#"
+                <div class="tree-item {}">
+                    <span class="tree-item-checkbox">{}</span>
+                    <span class="tree-item-name">{}</span>
+                    <span class="tree-item-duration">{}</span>
+                    <span class="tree-item-check {}">{}</span>
+                </div>
+            "#, item_class, item_checkbox, item.name, item_duration, item_class, check_mark));
+        }
+
+        html.push_str("</div></div>");
+    }
+
+    html.push_str("</div>");
+
+    if manifest.sections.is_empty() {
+        return r#"<div class="progress-empty">No steps executed yet</div>"#.to_string();
+    }
+
+    html
+}
+
+
+
+/// Build HTML for the progress log section from step_results JSON
 fn build_terminal_html(step_results: &Option<serde_json::Value>, status: &str) -> String {
     let mut html = String::new();
-    let mut lines: Vec<String> = Vec::new();
+    let mut output_lines: Vec<(String, bool)> = Vec::new();
 
     if let Some(serde_json::Value::Array(steps)) = step_results {
         for step in steps.iter() {
-            // Add step name as a line
-            if let Some(step_name) = step.get("step_name").and_then(|v| v.as_str()) {
-                let step_status = step.get("status").and_then(|v| v.as_str()).unwrap_or("");
-                let prefix = match step_status {
-                    "completed" | "Completed" => "✓",
-                    "running" | "Running" => "►",
-                    "failed" | "Failed" => "✗",
-                    _ => "○"
-                };
-                lines.push(format!("{} {}", prefix, step_name));
-            }
+            let step_status = step.get("status").and_then(|v| v.as_str()).unwrap_or("");
+            let is_current = step_status == "running" || step_status == "Running";
 
-            // Add log messages
             if let Some(serde_json::Value::Array(logs)) = step.get("logs") {
                 for log_entry in logs.iter() {
                     if let Some(msg) = log_entry.get("message").and_then(|v| v.as_str()) {
-                        lines.push(format!("  {}", msg));
+                        if !msg.trim().is_empty() {
+                            output_lines.push((msg.to_string(), is_current));
+                        }
+                    }
+                    if let Some(code) = log_entry.get("code").and_then(|v| v.as_str()) {
+                        if !code.trim().is_empty() {
+                            for line in code.lines().take(20) {
+                                output_lines.push((format!("  {}", line), is_current));
+                            }
+                        }
+                    }
+                    if let Some(output) = log_entry.get("output").and_then(|v| v.as_str()) {
+                        if !output.trim().is_empty() {
+                            for line in output.lines().take(10) {
+                                output_lines.push((format!("→ {}", line), is_current));
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    if lines.is_empty() {
-        // Show default message based on status
-        let default_msg = match status {
-            "running" => "Task is running...",
+    if output_lines.is_empty() {
+        let msg = match status {
+            "running" => "Agent working...",
             "pending" => "Waiting to start...",
-            "completed" | "done" => "Task completed successfully",
-            "failed" | "error" => "Task failed - check error details",
-            "paused" => "Task is paused",
+            "completed" | "done" => "✓ Task completed",
+            "failed" | "error" => "✗ Task failed",
+            "paused" => "Task paused",
             _ => "Initializing..."
         };
-        html.push_str(&format!(r#"<div class="terminal-line current">{}</div>"#, default_msg));
+        html.push_str(&format!(r#"<div class="terminal-line">{}</div>"#, msg));
     } else {
-        // Show last 10 lines, with the last one marked as current
-        let start = if lines.len() > 10 { lines.len() - 10 } else { 0 };
-        for (idx, line) in lines[start..].iter().enumerate() {
-            let is_last = idx == lines[start..].len() - 1;
-            let class = if is_last && status == "running" { "terminal-line current" } else { "terminal-line" };
-            html.push_str(&format!(r#"<div class="{}">{}</div>"#, class, line));
+        let start = if output_lines.len() > 15 { output_lines.len() - 15 } else { 0 };
+        for (line, is_current) in output_lines[start..].iter() {
+            let class = if *is_current { "terminal-line current" } else { "terminal-line" };
+            let escaped = line.replace('<', "&lt;").replace('>', "&gt;");
+            html.push_str(&format!(r#"<div class="{}">{}</div>"#, class, escaped));
         }
     }
 
@@ -1629,6 +1871,54 @@ pub fn configure_task_routes() -> Router<Arc<AppState>> {
         .route("/api/tasks/:id/status", put(handle_task_status_update))
         .route("/api/tasks/:id/priority", put(handle_task_priority_set))
         .route("/api/tasks/:id/dependencies", put(handle_task_set_dependencies))
+        .route("/api/tasks/:id/cancel", post(handle_task_cancel))
+}
+
+pub async fn handle_task_cancel(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    log::info!("[TASK_CANCEL] Cancelling task: {}", id);
+
+    let conn = state.conn.clone();
+    let task_id = id.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
+
+        let parsed_uuid = Uuid::parse_str(&task_id)
+            .map_err(|e| format!("Invalid task ID: {}", e))?;
+
+        diesel::sql_query(
+            "UPDATE auto_tasks SET status = 'cancelled', updated_at = NOW() WHERE id = $1"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(parsed_uuid)
+        .execute(&mut db_conn)
+        .map_err(|e| format!("Failed to cancel task: {}", e))?;
+
+        Ok::<_, String>(())
+    })
+    .await
+    .unwrap_or_else(|e| Err(format!("Task execution error: {}", e)));
+
+    match result {
+        Ok(()) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                "message": "Task cancelled"
+            })),
+        ).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "success": false,
+                "error": e
+            })),
+        ).into_response(),
+    }
 }
 
 pub fn configure(router: Router<Arc<TaskEngine>>) -> Router<Arc<TaskEngine>> {
@@ -1714,39 +2004,74 @@ pub async fn handle_task_list_htmx(
             _ => "status-pending"
         };
 
+        let is_app_task = task.title.to_lowercase().contains("create") ||
+                          task.title.to_lowercase().contains("app") ||
+                          task.title.to_lowercase().contains("crm") ||
+                          task.title.to_lowercase().contains("calculator");
+
+        let task_icon = if is_app_task {
+            r#"<svg class="task-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M14 9h3"/><path d="M14 14h3"/></svg>"#
+        } else {
+            r#"<svg class="task-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>"#
+        };
+
+        let app_url = if (task.status == "completed" || task.status == "done") && is_app_task {
+            let app_name = task.title
+                .to_lowercase()
+                .replace("create ", "")
+                .replace("a ", "")
+                .replace("an ", "")
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join("-");
+            Some(format!("/apps/{}/", app_name))
+        } else {
+            None
+        };
+
+        let open_app_btn = app_url.as_ref().map(|url| format!(
+            r#"<a href="{}" target="_blank" class="btn-open-app" onclick="event.stopPropagation()" rel="noopener noreferrer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Open App
+            </a>"#,
+            url
+        )).unwrap_or_default();
+
         let _ = write!(
             html,
             r#"
-            <div class="task-card {completed_class} {status_class}" data-task-id="{}" onclick="selectTask('{}')">
+            <div class="task-card {completed_class} {status_class}" data-task-id="{task_id}" onclick="selectTask('{task_id}')">
                 <div class="task-card-header">
-                    <span class="task-card-title">{}</span>
-                    <span class="task-card-status {}">{}</span>
+                    {task_icon}
+                    <span class="task-card-title">{title}</span>
+                    <span class="task-card-status {status_class}">{status}</span>
                 </div>
                 <div class="task-card-body">
                     <div class="task-card-priority">
-                        <span class="priority-badge priority-{}">{}</span>
+                        <span class="priority-badge priority-{priority}">{priority}</span>
                     </div>
                     {due_date_html}
+                    {open_app_btn}
                 </div>
                 <div class="task-card-footer">
-                    <button class="task-action-btn" data-action="priority" data-task-id="{}" onclick="event.stopPropagation()">
+                    <button class="task-action-btn" data-action="priority" data-task-id="{task_id}" onclick="event.stopPropagation()">
                         ⭐
                     </button>
-                    <button class="task-action-btn" data-action="delete" data-task-id="{}" onclick="event.stopPropagation()">
+                    <button class="task-action-btn" data-action="delete" data-task-id="{task_id}" onclick="event.stopPropagation()">
                         🗑️
                     </button>
                 </div>
             </div>
             "#,
-            task.id,
-            task.id,
-            task.title,
-            status_class,
-            task.status,
-            task.priority,
-            task.priority,
-            task.id,
-            task.id
+            task_id = task.id,
+            task_icon = task_icon,
+            title = task.title,
+            status_class = status_class,
+            status = task.status,
+            priority = task.priority,
+            due_date_html = due_date_html,
+            open_app_btn = open_app_btn,
+            completed_class = completed_class,
         );
     }
 

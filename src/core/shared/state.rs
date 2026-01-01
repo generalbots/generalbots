@@ -1,3 +1,4 @@
+use crate::auto_task::TaskManifest;
 use crate::core::bot::channels::{ChannelAdapter, VoiceAdapter, WebChannelAdapter};
 use crate::core::config::AppConfig;
 use crate::core::kb::KnowledgeBaseManager;
@@ -218,6 +219,12 @@ impl TaskProgressEvent {
     }
 
     #[must_use]
+    pub fn with_event_type(mut self, event_type: impl Into<String>) -> Self {
+        self.event_type = event_type.into();
+        self
+    }
+
+    #[must_use]
     pub fn with_error(mut self, error: impl Into<String>) -> Self {
         self.event_type = "task_error".to_string();
         self.error = Some(error.into());
@@ -337,6 +344,7 @@ pub struct AppState {
     pub extensions: Extensions,
     pub attendant_broadcast: Option<broadcast::Sender<AttendantNotification>>,
     pub task_progress_broadcast: Option<broadcast::Sender<TaskProgressEvent>>,
+    pub task_manifests: Arc<std::sync::RwLock<HashMap<String, TaskManifest>>>,
 }
 
 impl Clone for AppState {
@@ -367,6 +375,7 @@ impl Clone for AppState {
             extensions: self.extensions.clone(),
             attendant_broadcast: self.attendant_broadcast.clone(),
             task_progress_broadcast: self.task_progress_broadcast.clone(),
+            task_manifests: Arc::clone(&self.task_manifests),
         }
     }
 }
@@ -550,6 +559,7 @@ impl Default for AppState {
             extensions: Extensions::new(),
             attendant_broadcast: Some(attendant_tx),
             task_progress_broadcast: Some(task_progress_tx),
+            task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
         }
     }
 }

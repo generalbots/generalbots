@@ -912,7 +912,7 @@ BEGIN
     VALUES (
         v_bot_id,
         v_org_id,
-        'Default Bot',
+        'default',
         'Default bot for the default organization',
         'openai',
         '{"model": "gpt-4", "temperature": 0.7}'::jsonb,

@@ -1,3 +1,4 @@
+use crate::auto_task::task_manifest::TaskManifest;
 use crate::auto_task::task_types::{
     AutoTask, AutoTaskStatus, ExecutionMode, PendingApproval, PendingDecision, TaskPriority,
 };
@@ -1965,6 +1966,37 @@ pub async fn apply_recommendation_handler(
 // =============================================================================
 // HELPER FUNCTIONS FOR NEW ENDPOINTS
 // =============================================================================
+
+pub async fn get_manifest_handler(
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<String>,
+) -> impl IntoResponse {
+    info!("Getting manifest for task: {}", task_id);
+
+    match get_task_manifest(&state, &task_id) {
+        Some(manifest) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                "manifest": manifest.to_web_json()
+            })),
+        )
+            .into_response(),
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({
+                "success": false,
+                "error": "Manifest not found for task"
+            })),
+        )
+            .into_response(),
+    }
+}
+
+fn get_task_manifest(state: &Arc<AppState>, task_id: &str) -> Option<TaskManifest> {
+    let manifests = state.task_manifests.read().ok()?;
+    manifests.get(task_id).cloned()
+}
 
 fn get_task_logs(_state: &Arc<AppState>, task_id: &str) -> Vec<serde_json::Value> {
     // TODO: Fetch from database when task execution is implemented

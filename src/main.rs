@@ -869,6 +869,7 @@ async fn main() -> std::io::Result<()> {
         },
         attendant_broadcast: Some(attendant_tx),
         task_progress_broadcast: Some(task_progress_tx),
+        task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
     });
 
     let task_scheduler = Arc::new(botserver::tasks::scheduler::TaskScheduler::new(

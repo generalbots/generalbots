@@ -6,11 +6,18 @@ pub mod designer_ai;
 pub mod intent_classifier;
 pub mod intent_compiler;
 pub mod safety_layer;
+pub mod task_manifest;
 pub mod task_types;
 
 pub use app_generator::{
     AppGenerator, AppStructure, FileType, GeneratedApp, GeneratedFile, GeneratedPage, PageType,
     SyncResult,
+};
+pub use task_manifest::{
+    create_manifest_from_llm_response, FieldDefinition, FileDefinition, ItemStatus, ItemType,
+    ManifestBuilder, ManifestItem, ManifestSection, ManifestStatus, MonitorDefinition,
+    PageDefinition, ProcessingStats, SchedulerDefinition, SectionStatus, SectionType,
+    TableDefinition, TaskManifest, TerminalLine, TerminalLineType, ToolDefinition,
 };
 pub use app_logs::{
     generate_client_logger_js, get_designer_error_context, log_generator_error, log_generator_info,
@@ -21,10 +28,10 @@ pub use ask_later::{ask_later_keyword, PendingInfoItem};
 pub use autotask_api::{
     apply_recommendation_handler, cancel_task_handler, classify_intent_handler,
     compile_intent_handler, create_and_execute_handler, execute_plan_handler, execute_task_handler,
-    get_approvals_handler, get_decisions_handler, get_pending_items_handler, get_stats_handler,
-    get_task_handler, get_task_logs_handler, list_tasks_handler, pause_task_handler, resume_task_handler,
-    simulate_plan_handler, simulate_task_handler, submit_approval_handler, submit_decision_handler,
-    submit_pending_item_handler,
+    get_approvals_handler, get_decisions_handler, get_manifest_handler, get_pending_items_handler,
+    get_stats_handler, get_task_handler, get_task_logs_handler, list_tasks_handler,
+    pause_task_handler, resume_task_handler, simulate_plan_handler, simulate_task_handler,
+    submit_approval_handler, submit_decision_handler, submit_pending_item_handler,
 };
 pub use designer_ai::DesignerAI;
 pub use task_types::{AutoTask, AutoTaskStatus, ExecutionMode, TaskPriority};
@@ -103,6 +110,10 @@ pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared:
         .route(
             &ApiUrls::AUTOTASK_LOGS.replace(":task_id", "{task_id}"),
             get(get_task_logs_handler),
+        )
+        .route(
+            "/api/autotask/{task_id}/manifest",
+            get(get_manifest_handler),
         )
         .route(
             &ApiUrls::AUTOTASK_RECOMMENDATIONS_APPLY.replace(":rec_id", "{rec_id}"),
@@ -236,7 +247,8 @@ async fn handle_task_progress_websocket(
                     debug!("Received binary from task progress WebSocket (ignored)");
                 }
                 Err(e) => {
-                    error!("Task progress WebSocket error: {}", e);
+                    // TLS close_notify errors are normal when browser tab closes
+                    debug!("Task progress WebSocket closed: {}", e);
                     break;
                 }
             }

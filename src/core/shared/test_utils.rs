@@ -186,6 +186,8 @@ impl TestAppStateBuilder {
 
         let (attendant_tx, _) = broadcast::channel(100);
 
+        let (task_progress_tx, _) = broadcast::channel(100);
+
         Ok(AppState {
             #[cfg(feature = "drive")]
             drive: None,
@@ -211,6 +213,8 @@ impl TestAppStateBuilder {
             task_engine: Arc::new(TaskEngine::new(pool)),
             extensions: Extensions::new(),
             attendant_broadcast: Some(attendant_tx),
+            task_progress_broadcast: Some(task_progress_tx),
+            task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
         })
     }
 }
