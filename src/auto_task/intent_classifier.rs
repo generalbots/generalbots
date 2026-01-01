@@ -597,7 +597,7 @@ Respond with JSON only:
     fn handle_todo(
         &self,
         classification: &ClassifiedIntent,
-        session: &UserSession,
+        _session: &UserSession,
     ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
         info!("Handling TODO intent");
 
