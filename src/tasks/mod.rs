@@ -798,12 +798,12 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
             <div class="tree-section {}" data-section-id="{}">
                 <div class="tree-row tree-level-0" onclick="this.parentElement.classList.toggle('expanded')">
                     <span class="tree-name">{}</span>
-                    <span class="tree-view-details">View Details ›</span>
                     <span class="tree-step-badge">Step {}/{}</span>
                     <span class="tree-status {}">{}</span>
+                    <span class="tree-section-dot {}"></span>
                 </div>
                 <div class="tree-children">
-        "#, section_class, section.id, section.name, global_current, total_steps, section_class, status_text));
+        "#, section_class, section.id, section.name, global_current, total_steps, section_class, status_text, section_class));
 
         for child in &section.children {
             let child_class = match child.status {
@@ -827,7 +827,6 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
                     <div class="tree-row tree-level-1">
                         <span class="tree-indent"></span>
                         <span class="tree-name">{}</span>
-                        <span class="tree-view-details">View Details ›</span>
                         <span class="tree-step-badge">Step {}/{}</span>
                         <span class="tree-status {}">{}</span>
                     </div>
