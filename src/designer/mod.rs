@@ -1154,35 +1154,31 @@ Respond with valid JSON only."#,
 }
 
 async fn call_designer_llm(
-    _state: &AppState,
+    state: &AppState,
     prompt: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let llm_url = std::env::var("LLM_URL").unwrap_or_else(|_| "http://localhost:11434".to_string());
-    let llm_model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "llama3.2".to_string());
+    use crate::core::config::ConfigManager;
 
-    let client = reqwest::Client::new();
+    let config_manager = ConfigManager::new(state.conn.clone());
 
-    let response = client
-        .post(format!("{}/api/generate", llm_url))
-        .json(&serde_json::json!({
-            "model": llm_model,
-            "prompt": prompt,
-            "stream": false,
-            "options": {
-                "temperature": 0.3,
-                "num_predict": 2000
-            }
-        }))
-        .send()
-        .await?;
+    // Get LLM configuration from bot config or use defaults
+    let model = config_manager
+        .get_config(&uuid::Uuid::nil(), "llm-model", Some("claude-sonnet-4-20250514"))
+        .unwrap_or_else(|_| "claude-sonnet-4-20250514".to_string());
 
-    if !response.status().is_success() {
-        let status = response.status();
-        return Err(format!("LLM request failed: {status}").into());
-    }
+    let api_key = config_manager
+        .get_config(&uuid::Uuid::nil(), "llm-key", None)
+        .unwrap_or_default();
 
-    let result: serde_json::Value = response.json().await?;
-    let response_text = result["response"].as_str().unwrap_or("{}").to_string();
+    let system_prompt = "You are a web designer AI. Respond only with valid JSON.";
+    let messages = serde_json::json!({
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+    });
+
+    let response_text = state.llm_provider.generate(prompt, &messages, &model, &api_key).await?;
 
     let json_text = if response_text.contains("```json") {
         response_text
@@ -1291,36 +1287,43 @@ async fn apply_file_change(
         .select(name)
         .first(&mut conn)?;
 
-    let bucket_name = format!("{}.gbai", bot_name_val.to_lowercase());
-    let file_path = format!(".gbdrive/apps/{app_name}/{file_name}");
+    let site_path = state
+        .config
+        .as_ref()
+        .map(|c| c.site_path.clone())
+        .unwrap_or_else(|| "./botserver-stack/sites".to_string());
+
+    let local_path = format!("{site_path}/{app_name}/{file_name}");
+    if let Some(parent) = std::path::Path::new(&local_path).parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&local_path, content)?;
+    log::info!("Designer updated local file: {local_path}");
 
     if let Some(ref s3_client) = state.drive {
         use aws_sdk_s3::primitives::ByteStream;
 
-        s3_client
+        let bucket_name = format!("{}.gbai", bot_name_val.to_lowercase());
+        // Use same path pattern as app_generator: bucket.gbapp/app_name/file
+        let sanitized_bucket = bucket_name.trim_end_matches(".gbai");
+        let file_path = format!("{}.gbapp/{app_name}/{file_name}", sanitized_bucket);
+
+        match s3_client
             .put_object()
             .bucket(&bucket_name)
             .key(&file_path)
             .body(ByteStream::from(content.as_bytes().to_vec()))
             .content_type(get_content_type(file_name))
             .send()
-            .await?;
-
-        log::info!("Designer updated file: s3://{bucket_name}/{file_path}");
-
-        let site_path = state
-            .config
-            .as_ref()
-            .map(|c| c.site_path.clone())
-            .unwrap_or_else(|| "./botserver-stack/sites".to_string());
-
-        let local_path = format!("{site_path}/{app_name}/{file_name}");
-        if let Some(parent) = std::path::Path::new(&local_path).parent() {
-            let _ = std::fs::create_dir_all(parent);
+            .await
+        {
+            Ok(_) => {
+                log::info!("Designer synced to S3: s3://{bucket_name}/{file_path}");
+            }
+            Err(e) => {
+                log::warn!("Designer failed to sync to S3 (local write succeeded): {e}");
+            }
         }
-        std::fs::write(&local_path, content)?;
-
-        log::info!("Designer synced to local: {local_path}");
     }
 
     Ok(())

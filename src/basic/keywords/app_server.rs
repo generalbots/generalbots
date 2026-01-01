@@ -1,4 +1,4 @@
-use crate::core::shared::{get_content_type, sanitize_path_component};
+use crate::core::shared::get_content_type;
 use crate::shared::state::AppState;
 use axum::{
     body::Body,
@@ -35,7 +35,14 @@ pub struct AppFilePath {
 pub async fn serve_app_index(
     State(state): State<Arc<AppState>>,
     Path(params): Path<AppPath>,
+    original_uri: axum::extract::OriginalUri,
 ) -> impl IntoResponse {
+    // Redirect to trailing slash so relative paths resolve correctly
+    // /apps/calc-pro -> /apps/calc-pro/
+    let path = original_uri.path();
+    if !path.ends_with('/') {
+        return axum::response::Redirect::permanent(&format!("{}/", path)).into_response();
+    }
     serve_app_file_internal(&state, &params.app_name, "index.html").await
 }
 
@@ -46,9 +53,31 @@ pub async fn serve_app_file(
     serve_app_file_internal(&state, &params.app_name, &params.file_path).await
 }
 
+/// Sanitize app name - only alphanumeric, underscore, hyphen allowed
+fn sanitize_app_name(name: &str) -> String {
+    name.chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+        .collect::<String>()
+}
+
+/// Sanitize file path - preserve directory structure but remove dangerous characters
+fn sanitize_file_path(path: &str) -> String {
+    path.split('/')
+        .filter(|segment| !segment.is_empty() && *segment != ".." && *segment != ".")
+        .map(|segment| {
+            segment
+                .chars()
+                .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
+                .collect::<String>()
+        })
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
 async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &str) -> Response {
-    let sanitized_app_name = sanitize_path_component(app_name);
-    let sanitized_file_path = sanitize_path_component(file_path);
+    let sanitized_app_name = sanitize_app_name(app_name);
+    let sanitized_file_path = sanitize_file_path(file_path);
 
     if sanitized_app_name.is_empty() || sanitized_file_path.is_empty() {
         return (StatusCode::BAD_REQUEST, "Invalid path").into_response();
@@ -212,5 +241,23 @@ mod tests {
         );
         assert_eq!(get_content_type("image.png"), "image/png");
         assert_eq!(get_content_type("unknown.xyz"), "application/octet-stream");
+    }
+
+    #[test]
+    fn test_sanitize_app_name() {
+        assert_eq!(sanitize_app_name("my-app"), "my-app");
+        assert_eq!(sanitize_app_name("my_app_123"), "my_app_123");
+        assert_eq!(sanitize_app_name("../hack"), "hack");
+        assert_eq!(sanitize_app_name("app<script>"), "appscript");
+    }
+
+    #[test]
+    fn test_sanitize_file_path() {
+        assert_eq!(sanitize_file_path("styles.css"), "styles.css");
+        assert_eq!(sanitize_file_path("css/styles.css"), "css/styles.css");
+        assert_eq!(sanitize_file_path("assets/img/logo.png"), "assets/img/logo.png");
+        assert_eq!(sanitize_file_path("../../../etc/passwd"), "etc/passwd");
+        assert_eq!(sanitize_file_path("./styles.css"), "styles.css");
+        assert_eq!(sanitize_file_path("path//double//slash.js"), "path/double/slash.js");
     }
 }

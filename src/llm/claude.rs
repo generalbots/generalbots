@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use log::{error, info, trace, warn};
+use log::{error, trace, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;

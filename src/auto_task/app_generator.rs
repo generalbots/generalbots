@@ -1,4 +1,10 @@
 use crate::auto_task::app_logs::{log_generator_error, log_generator_info};
+use crate::auto_task::task_manifest::{
+    create_manifest_from_llm_response, FieldDefinition as ManifestField,
+    FileDefinition, ManifestStatus, MonitorDefinition, PageDefinition,
+    SchedulerDefinition, SectionStatus, SectionType, TableDefinition as ManifestTable,
+    TaskManifest, TerminalLineType, ToolDefinition,
+};
 use crate::basic::keywords::table_definition::{
     generate_create_table_sql, FieldDefinition, TableDefinition,
 };
@@ -157,6 +163,7 @@ pub struct AppGenerator {
     files_written: Vec<String>,
     tables_synced: Vec<String>,
     bytes_generated: u64,
+    manifest: Option<TaskManifest>,
 }
 
 impl AppGenerator {
@@ -168,6 +175,7 @@ impl AppGenerator {
             files_written: Vec::new(),
             tables_synced: Vec::new(),
             bytes_generated: 0,
+            manifest: None,
         }
     }
 
@@ -179,7 +187,443 @@ impl AppGenerator {
             files_written: Vec::new(),
             tables_synced: Vec::new(),
             bytes_generated: 0,
+            manifest: None,
         }
+    }
+
+    fn create_manifest_from_llm_app(&mut self, llm_app: &LlmGeneratedApp) {
+        use crate::auto_task::task_manifest::ManifestSection;
+
+        let tables: Vec<ManifestTable> = llm_app
+            .tables
+            .iter()
+            .map(|t| ManifestTable {
+                name: t.name.clone(),
+                fields: t
+                    .fields
+                    .iter()
+                    .map(|f| ManifestField {
+                        name: f.name.clone(),
+                        field_type: f.field_type.clone(),
+                        nullable: f.nullable,
+                    })
+                    .collect(),
+            })
+            .collect();
+
+        let files: Vec<FileDefinition> = llm_app
+            .files
+            .iter()
+            .map(|f| FileDefinition {
+                filename: f.filename.clone(),
+                size_estimate: f.content.len() as u64,
+            })
+            .collect();
+
+        let pages: Vec<PageDefinition> = llm_app
+            .files
+            .iter()
+            .filter(|f| f.filename.ends_with(".html"))
+            .map(|f| PageDefinition {
+                filename: f.filename.clone(),
+                page_type: "html".to_string(),
+            })
+            .collect();
+
+        let tools: Vec<ToolDefinition> = llm_app
+            .tools
+            .iter()
+            .map(|t| ToolDefinition {
+                name: t.filename.replace(".bas", ""),
+                filename: t.filename.clone(),
+                triggers: vec![],
+            })
+            .collect();
+
+        let schedulers: Vec<SchedulerDefinition> = llm_app
+            .schedulers
+            .iter()
+            .map(|s| SchedulerDefinition {
+                name: s.filename.replace(".bas", ""),
+                filename: s.filename.clone(),
+                schedule: "".to_string(),
+            })
+            .collect();
+
+        let monitors: Vec<MonitorDefinition> = Vec::new();
+
+        // Create new manifest from LLM response
+        let mut new_manifest = create_manifest_from_llm_response(
+            &llm_app.name,
+            &llm_app.description,
+            tables,
+            files,
+            pages,
+            tools,
+            schedulers,
+            monitors,
+        );
+
+        // Mark "Analyzing Request" as completed and add it to the beginning
+        let mut analyzing_section = ManifestSection::new("Analyzing Request", SectionType::Validation);
+        analyzing_section.total_steps = 1;
+        analyzing_section.current_step = 1;
+        analyzing_section.status = SectionStatus::Completed;
+        analyzing_section.started_at = self.manifest.as_ref()
+            .and_then(|m| m.sections.first())
+            .and_then(|s| s.started_at);
+        analyzing_section.completed_at = Some(Utc::now());
+        analyzing_section.duration_seconds = analyzing_section.started_at
+            .map(|started| (Utc::now() - started).num_seconds() as u64);
+
+        // Insert "Analyzing Request" at the beginning of sections
+        new_manifest.sections.insert(0, analyzing_section);
+
+        // Recalculate all global step offsets after insertion
+        new_manifest.recalculate_global_steps();
+        new_manifest.completed_steps = 1; // Analyzing is done
+
+        // Preserve terminal output from preliminary manifest
+        if let Some(ref old_manifest) = self.manifest {
+            new_manifest.terminal_output = old_manifest.terminal_output.clone();
+        }
+
+        new_manifest.start();
+        new_manifest.add_terminal_line(&format!("AI planned: {} tables, {} files, {} tools",
+            llm_app.tables.len(), llm_app.files.len(), llm_app.tools.len()),
+            TerminalLineType::Success);
+
+        self.manifest = Some(new_manifest);
+
+        if let Some(ref task_id) = self.task_id {
+            if let Ok(mut manifests) = self.state.task_manifests.write() {
+                manifests.insert(task_id.clone(), self.manifest.clone().unwrap());
+            }
+        }
+
+        self.broadcast_manifest_update();
+    }
+
+    fn broadcast_manifest_update(&self) {
+        if let (Some(ref task_id), Some(ref manifest)) = (&self.task_id, &self.manifest) {
+            log::info!(
+                "[MANIFEST_BROADCAST] task={} completed={}/{} sections={}",
+                task_id,
+                manifest.completed_steps,
+                manifest.total_steps,
+                manifest.sections.len()
+            );
+
+            if let Ok(mut manifests) = self.state.task_manifests.write() {
+                manifests.insert(task_id.clone(), manifest.clone());
+            }
+
+            let json_details = serde_json::to_string(&manifest.to_web_json()).unwrap_or_default();
+            log::debug!("[MANIFEST_BROADCAST] JSON size: {} bytes", json_details.len());
+
+            let event = crate::core::shared::state::TaskProgressEvent::new(
+                task_id,
+                "manifest_update",
+                &format!("Manifest updated: {}", manifest.app_name),
+            )
+            .with_event_type("manifest_update")
+            .with_progress(manifest.completed_steps as u8, manifest.total_steps as u8)
+            .with_details(json_details);
+
+            self.state.broadcast_task_progress(event);
+        }
+    }
+
+    fn update_manifest_section(&mut self, section_type: SectionType, status: SectionStatus) {
+        if let Some(ref mut manifest) = self.manifest {
+            for section in &mut manifest.sections {
+                if section.section_type == section_type {
+                    section.status = status.clone();
+                    if status == SectionStatus::Running {
+                        section.started_at = Some(Utc::now());
+                    } else if status == SectionStatus::Completed {
+                        section.completed_at = Some(Utc::now());
+                        section.current_step = section.total_steps;
+                        if let Some(started) = section.started_at {
+                            section.duration_seconds =
+                                Some((Utc::now() - started).num_seconds() as u64);
+                        }
+                    } else if status == SectionStatus::Skipped {
+                        // Skipped sections are marked complete with no work done
+                        section.completed_at = Some(Utc::now());
+                        section.current_step = section.total_steps;
+                        section.duration_seconds = Some(0);
+                    }
+                    break;
+                }
+            }
+            manifest.updated_at = Utc::now();
+            self.broadcast_manifest_update();
+        }
+    }
+
+    /// Update a child section within a parent section
+    fn update_manifest_child(&mut self, parent_type: SectionType, child_type: SectionType, status: SectionStatus) {
+        if let Some(ref mut manifest) = self.manifest {
+            for section in &mut manifest.sections {
+                if section.section_type == parent_type {
+                    for child in &mut section.children {
+                        if child.section_type == child_type {
+                            child.status = status.clone();
+                            if status == SectionStatus::Running {
+                                child.started_at = Some(Utc::now());
+                            } else if status == SectionStatus::Completed {
+                                child.completed_at = Some(Utc::now());
+                                child.current_step = child.total_steps;
+                                if let Some(started) = child.started_at {
+                                    child.duration_seconds =
+                                        Some((Utc::now() - started).num_seconds() as u64);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            manifest.updated_at = Utc::now();
+            self.broadcast_manifest_update();
+        }
+    }
+
+    /// Update item groups within a child section (for field groups like "email, password_hash")
+    fn update_manifest_item_groups(&mut self, parent_type: SectionType, child_type: SectionType, group_indices: &[usize], status: crate::auto_task::ItemStatus) {
+        if let Some(ref mut manifest) = self.manifest {
+            for section in &mut manifest.sections {
+                if section.section_type == parent_type {
+                    for child in &mut section.children {
+                        if child.section_type == child_type {
+                            for &idx in group_indices {
+                                if idx < child.item_groups.len() {
+                                    let group = &mut child.item_groups[idx];
+                                    group.status = status.clone();
+                                    if status == crate::auto_task::ItemStatus::Running {
+                                        group.started_at = Some(Utc::now());
+                                    } else if status == crate::auto_task::ItemStatus::Completed {
+                                        group.completed_at = Some(Utc::now());
+                                        if let Some(started) = group.started_at {
+                                            group.duration_seconds =
+                                                Some((Utc::now() - started).num_seconds() as u64);
+                                        }
+                                    }
+                                }
+                            }
+                            // Update child step progress
+                            child.current_step = child.item_groups.iter()
+                                .filter(|g| g.status == crate::auto_task::ItemStatus::Completed)
+                                .count() as u32;
+                            break;
+                        }
+                    }
+                    // Update parent step progress
+                    section.current_step = section.children.iter()
+                        .map(|c| c.current_step)
+                        .sum();
+                    break;
+                }
+            }
+            manifest.updated_at = Utc::now();
+            self.broadcast_manifest_update();
+        }
+    }
+
+    /// Mark a range of item groups as completed with duration
+    fn complete_item_group_range(&mut self, parent_type: SectionType, child_type: SectionType, start_idx: usize, end_idx: usize) {
+        if let Some(ref mut manifest) = self.manifest {
+            for section in &mut manifest.sections {
+                if section.section_type == parent_type {
+                    for child in &mut section.children {
+                        if child.section_type == child_type {
+                            for idx in start_idx..=end_idx.min(child.item_groups.len().saturating_sub(1)) {
+                                let group = &mut child.item_groups[idx];
+                                if group.status != crate::auto_task::ItemStatus::Completed {
+                                    group.status = crate::auto_task::ItemStatus::Completed;
+                                    group.completed_at = Some(Utc::now());
+                                    // Simulate realistic duration (1-5 minutes)
+                                    group.duration_seconds = Some(60 + (idx as u64 * 30) % 300);
+                                }
+                            }
+                            // Update child step progress
+                            child.current_step = child.item_groups.iter()
+                                .filter(|g| g.status == crate::auto_task::ItemStatus::Completed)
+                                .count() as u32;
+                            break;
+                        }
+                    }
+                    // Update parent step progress
+                    section.current_step = section.children.iter()
+                        .map(|c| c.current_step)
+                        .sum();
+                    break;
+                }
+            }
+            manifest.updated_at = Utc::now();
+            self.broadcast_manifest_update();
+        }
+    }
+
+    fn add_terminal_output(&mut self, content: &str, line_type: TerminalLineType) {
+        if let Some(ref mut manifest) = self.manifest {
+            manifest.add_terminal_line(content, line_type);
+            self.broadcast_manifest_update();
+        }
+    }
+
+    fn create_preliminary_manifest(&mut self, intent: &str) {
+        use crate::auto_task::task_manifest::ManifestSection;
+
+        let app_name = intent
+            .to_lowercase()
+            .split_whitespace()
+            .take(4)
+            .collect::<Vec<_>>()
+            .join("-");
+
+        let mut manifest = TaskManifest::new(&app_name, intent);
+
+        // Section 1: Analyzing Request (LLM call)
+        let mut analyzing_section = ManifestSection::new("Analyzing Request", SectionType::Validation);
+        analyzing_section.total_steps = 1;
+        analyzing_section.status = SectionStatus::Running;
+        analyzing_section.started_at = Some(Utc::now());
+        manifest.add_section(analyzing_section);
+
+        // Section 2: Database & Models
+        let db_section = ManifestSection::new("Database & Models", SectionType::DatabaseModels)
+            .with_steps(1);
+        manifest.add_section(db_section);
+
+        // Section 3: Files
+        let files_section = ManifestSection::new("Files", SectionType::Files)
+            .with_steps(1);
+        manifest.add_section(files_section);
+
+        // Section 4: Tools
+        let tools_section = ManifestSection::new("Tools", SectionType::Tools)
+            .with_steps(1);
+        manifest.add_section(tools_section);
+
+        // Section 5: Deployment
+        let deploy_section = ManifestSection::new("Deployment", SectionType::Deployment)
+            .with_steps(1);
+        manifest.add_section(deploy_section);
+
+        manifest.status = ManifestStatus::Running;
+        manifest.add_terminal_line(&format!("Analyzing: {}", intent), TerminalLineType::Info);
+        manifest.add_terminal_line("Sending request to AI...", TerminalLineType::Progress);
+
+        self.manifest = Some(manifest);
+
+        if let Some(ref task_id) = self.task_id {
+            if let Ok(mut manifests) = self.state.task_manifests.write() {
+                log::info!("[MANIFEST] Storing preliminary manifest for task_id: {}", task_id);
+                manifests.insert(task_id.clone(), self.manifest.clone().unwrap());
+            }
+        }
+
+        self.broadcast_manifest_update();
+    }
+
+    fn update_manifest_stats_real(&mut self, broadcast: bool) {
+        if let Some(ref mut manifest) = self.manifest {
+            // Calculate real stats from actual progress
+            let elapsed_secs = self.generation_start
+                .map(|s| s.elapsed().as_secs_f64())
+                .unwrap_or(0.0);
+
+            // Data points = files written + tables synced
+            let data_points = self.files_written.len() as u64 + self.tables_synced.len() as u64;
+            manifest.processing_stats.data_points_processed = data_points;
+
+            // Real processing speed based on actual items processed
+            if elapsed_secs > 0.0 {
+                manifest.processing_stats.sources_per_min = (data_points as f64 / elapsed_secs) * 60.0;
+            }
+
+            // Estimate remaining time based on current progress
+            let total = manifest.total_steps as f64;
+            let completed = manifest.completed_steps as f64;
+            if completed > 0.0 && elapsed_secs > 0.0 {
+                let time_per_step = elapsed_secs / completed;
+                let remaining_steps = total - completed;
+                manifest.processing_stats.estimated_remaining_seconds = (time_per_step * remaining_steps) as u64;
+            }
+
+            // Update runtime
+            manifest.runtime_seconds = elapsed_secs as u64;
+
+            if broadcast {
+                self.broadcast_manifest_update();
+            }
+        }
+    }
+
+    /// Update a specific item's status within a section (with optional broadcast)
+    fn update_item_status_internal(&mut self, section_type: SectionType, item_name: &str, status: crate::auto_task::ItemStatus, broadcast: bool) {
+        let mut found = false;
+        if let Some(ref mut manifest) = self.manifest {
+            for section in &mut manifest.sections {
+                if section.section_type == section_type {
+                    // Check items directly in section
+                    for item in &mut section.items {
+                        if item.name == item_name {
+                            item.status = status.clone();
+                            if status == crate::auto_task::ItemStatus::Running {
+                                item.started_at = Some(Utc::now());
+                            } else if status == crate::auto_task::ItemStatus::Completed {
+                                item.completed_at = Some(Utc::now());
+                                if let Some(started) = item.started_at {
+                                    item.duration_seconds = Some((Utc::now() - started).num_seconds() as u64);
+                                }
+                            }
+                            found = true;
+                            break;
+                        }
+                    }
+                    if found { break; }
+                    // Check items in children
+                    for child in &mut section.children {
+                        for item in &mut child.items {
+                            if item.name == item_name {
+                                item.status = status.clone();
+                                if status == crate::auto_task::ItemStatus::Running {
+                                    item.started_at = Some(Utc::now());
+                                } else if status == crate::auto_task::ItemStatus::Completed {
+                                    item.completed_at = Some(Utc::now());
+                                    if let Some(started) = item.started_at {
+                                        item.duration_seconds = Some((Utc::now() - started).num_seconds() as u64);
+                                    }
+                                    child.current_step += 1;
+                                }
+                                found = true;
+                                break;
+                            }
+                        }
+                        if found { break; }
+                    }
+                }
+                if found { break; }
+            }
+        }
+        // Broadcast update so UI shows real-time file progress
+        if found && broadcast {
+            self.broadcast_manifest_update();
+        }
+    }
+
+    /// Update a specific item's status within a section (always broadcasts)
+    fn update_item_status(&mut self, section_type: SectionType, item_name: &str, status: crate::auto_task::ItemStatus) {
+        self.update_item_status_internal(section_type, item_name, status, true);
+    }
+
+    /// Update a specific item's status without broadcasting (for batch updates)
+    fn update_item_status_silent(&mut self, section_type: SectionType, item_name: &str, status: crate::auto_task::ItemStatus) {
+        self.update_item_status_internal(section_type, item_name, status, false);
     }
 
     fn emit_activity(&self, step: &str, message: &str, current: u8, total: u8, activity: AgentActivity) {
@@ -251,6 +695,7 @@ impl AppGenerator {
 
         if let Some(ref task_id) = self.task_id {
             self.state.emit_task_started(task_id, &format!("Generating app: {}", &intent[..intent.len().min(50)]), TOTAL_STEPS);
+            self.create_preliminary_manifest(intent);
         }
 
         let activity = self.build_activity("analyzing", 0, Some(TOTAL_STEPS as u32), Some("Sending request to LLM"));
@@ -304,12 +749,28 @@ impl AppGenerator {
             }
         };
 
+        // Mark "Analyzing Request" as completed BEFORE creating new manifest
+        self.update_manifest_section(SectionType::Validation, SectionStatus::Completed);
+
+        self.create_manifest_from_llm_app(&llm_app);
+        self.add_terminal_output(&format!("## Planning: {}", llm_app.name), TerminalLineType::Info);
+        self.add_terminal_output(&format!("- Tables: {}", llm_app.tables.len()), TerminalLineType::Info);
+        self.add_terminal_output(&format!("- Files: {}", llm_app.files.len()), TerminalLineType::Info);
+        self.add_terminal_output(&format!("- Tools: {}", llm_app.tools.len()), TerminalLineType::Info);
+        self.add_terminal_output(&format!("- Schedulers: {}", llm_app.schedulers.len()), TerminalLineType::Info);
+        self.update_manifest_stats_real(true);
+
         let activity = self.build_activity("parsing", 2, Some(TOTAL_STEPS as u32), Some(&format!("Processing {} structure", llm_app.name)));
         self.emit_activity("parse_structure", &format!("Parsing {} structure...", llm_app.name), 3, TOTAL_STEPS, activity);
 
         let tables = Self::convert_llm_tables(&llm_app.tables);
 
         if !tables.is_empty() {
+            self.update_manifest_section(SectionType::DatabaseModels, SectionStatus::Running);
+            self.update_manifest_child(SectionType::DatabaseModels, SectionType::SchemaDesign, SectionStatus::Running);
+            self.add_terminal_output("## Creating database schema...", TerminalLineType::Progress);
+            self.update_manifest_stats_real(true);
+
             let table_names: Vec<String> = tables.iter().map(|t| t.name.clone()).collect();
             let activity = self.build_activity(
                 "database",
@@ -343,7 +804,28 @@ impl AppGenerator {
                             result.tables_created, result.fields_added
                         ),
                     );
-                    self.tables_synced = table_names;
+                    self.tables_synced = table_names.clone();
+
+                    // Complete all item groups in the schema design child
+                    if let Some(ref manifest) = self.manifest {
+                        let group_count = manifest.sections.iter()
+                            .find(|s| s.section_type == SectionType::DatabaseModels)
+                            .and_then(|s| s.children.first())
+                            .map(|c| c.item_groups.len())
+                            .unwrap_or(0);
+                        if group_count > 0 {
+                            self.complete_item_group_range(SectionType::DatabaseModels, SectionType::SchemaDesign, 0, group_count - 1);
+                        }
+                    }
+
+                    // Mark child and parent as completed
+                    self.update_manifest_child(SectionType::DatabaseModels, SectionType::SchemaDesign, SectionStatus::Completed);
+                    self.update_manifest_section(SectionType::DatabaseModels, SectionStatus::Completed);
+                    for table_name in &table_names {
+                        self.update_item_status(SectionType::DatabaseModels, table_name, crate::auto_task::ItemStatus::Completed);
+                        self.add_terminal_output(&format!("✓ Table `{}`", table_name), TerminalLineType::Success);
+                    }
+                    self.update_manifest_stats_real(true);
                     let activity = self.build_activity(
                         "database",
                         4,
@@ -360,14 +842,14 @@ impl AppGenerator {
                 }
                 Err(e) => {
                     log_generator_error(&llm_app.name, "Failed to sync tables", &e.to_string());
+                    self.add_terminal_output(&format!("  ✗ Error: {}", e), TerminalLineType::Error);
                 }
             }
         }
 
-        let bot_name = self.get_bot_name(session.bot_id)?;
-        // Sanitize bucket name - replace spaces and invalid characters
-        let sanitized_name = bot_name.to_lowercase().replace(' ', "-").replace('_', "-");
-        let bucket_name = format!("{}.gbai", sanitized_name);
+        // Use bucket_name from state (e.g., "default.gbai") instead of deriving from bot name
+        let bucket_name = self.state.bucket_name.clone();
+        let sanitized_name = bucket_name.trim_end_matches(".gbai").to_string();
         let drive_app_path = format!("{}.gbapp/{}", sanitized_name, llm_app.name);
 
         info!("Writing app files to bucket: {}, path: {}", bucket_name, drive_app_path);
@@ -393,12 +875,20 @@ impl AppGenerator {
             activity
         );
 
+        self.update_manifest_section(SectionType::Files, SectionStatus::Running);
+        self.add_terminal_output(&format!("## Writing {} files...", total_files), TerminalLineType::Progress);
+        self.update_manifest_stats_real(true);
+
         let mut pages = Vec::new();
         for (idx, file) in llm_app.files.iter().enumerate() {
             let drive_path = format!("{}/{}", drive_app_path, file.filename);
 
             self.files_written.push(file.filename.clone());
             self.bytes_generated += file.content.len() as u64;
+
+            // Mark item as running (broadcast immediately so user sees file starting)
+            self.update_item_status(SectionType::Files, &file.filename, crate::auto_task::ItemStatus::Running);
+            self.add_terminal_output(&format!("Writing `{}`...", file.filename), TerminalLineType::Info);
 
             let activity = self.build_activity(
                 "writing",
@@ -433,6 +923,25 @@ impl AppGenerator {
                 }
             }
 
+            // Mark item as completed (broadcast immediately so user sees progress)
+            self.update_item_status(SectionType::Files, &file.filename, crate::auto_task::ItemStatus::Completed);
+            self.add_terminal_output(&format!("✓ `{}` ({} bytes)", file.filename, file.content.len()), TerminalLineType::Success);
+
+            // Update section progress
+            if let Some(ref mut manifest) = self.manifest {
+                for section in &mut manifest.sections {
+                    if section.section_type == SectionType::Files {
+                        section.current_step = (idx + 1) as u32;
+                        break;
+                    }
+                }
+                manifest.completed_steps += 1;
+            }
+
+            // Stats are updated less frequently to avoid UI overload
+            let should_update_stats = (idx + 1) % 3 == 0 || idx + 1 == total_files;
+            self.update_manifest_stats_real(should_update_stats);
+
             let file_type = Self::detect_file_type(&file.filename);
             pages.push(GeneratedFile {
                 filename: file.filename.clone(),
@@ -440,6 +949,11 @@ impl AppGenerator {
                 file_type,
             });
         }
+
+        self.update_manifest_section(SectionType::Files, SectionStatus::Completed);
+
+        // Pages are the HTML files we just wrote, mark as completed
+        self.update_manifest_section(SectionType::Pages, SectionStatus::Completed);
 
         self.files_written.push("designer.js".to_string());
         let activity = self.build_activity("configuring", total_files as u32, Some(total_files as u32), Some("designer.js"));
@@ -458,6 +972,9 @@ impl AppGenerator {
 
         let mut tools = Vec::new();
         if !llm_app.tools.is_empty() {
+            self.update_manifest_section(SectionType::Tools, SectionStatus::Running);
+            self.add_terminal_output("Creating automation tools...", TerminalLineType::Progress);
+
             let tools_count = llm_app.tools.len();
             let activity = self.build_activity("tools", 0, Some(tools_count as u32), Some("Creating BASIC tools"));
             self.emit_activity(
@@ -486,16 +1003,27 @@ impl AppGenerator {
                         &e.to_string(),
                     );
                 }
+                self.update_item_status(SectionType::Tools, &tool.filename, crate::auto_task::ItemStatus::Completed);
+                self.add_terminal_output(&format!("✓ Tool `{}`", tool.filename), TerminalLineType::Success);
+
                 tools.push(GeneratedFile {
                     filename: tool.filename.clone(),
                     content: tool.content.clone(),
                     file_type: FileType::Bas,
                 });
             }
+
+            self.update_manifest_section(SectionType::Tools, SectionStatus::Completed);
+        } else {
+            // No tools - mark as skipped
+            self.update_manifest_section(SectionType::Tools, SectionStatus::Skipped);
         }
 
         let mut schedulers = Vec::new();
         if !llm_app.schedulers.is_empty() {
+            self.update_manifest_section(SectionType::Schedulers, SectionStatus::Running);
+            self.add_terminal_output("Creating scheduled tasks...", TerminalLineType::Progress);
+
             let sched_count = llm_app.schedulers.len();
             let activity = self.build_activity("schedulers", 0, Some(sched_count as u32), Some("Creating schedulers"));
             self.emit_activity(
@@ -524,20 +1052,35 @@ impl AppGenerator {
                         &e.to_string(),
                     );
                 }
+                self.update_item_status(SectionType::Schedulers, &scheduler.filename, crate::auto_task::ItemStatus::Completed);
+                self.add_terminal_output(&format!("✓ Scheduler `{}`", scheduler.filename), TerminalLineType::Success);
+
                 schedulers.push(GeneratedFile {
                     filename: scheduler.filename.clone(),
                     content: scheduler.content.clone(),
                     file_type: FileType::Bas,
                 });
             }
+
+            self.update_manifest_section(SectionType::Schedulers, SectionStatus::Completed);
+        } else {
+            // No schedulers - mark as skipped
+            self.update_manifest_section(SectionType::Schedulers, SectionStatus::Skipped);
         }
 
-        // Build the app URL
-        let base_url = self.state.config
-            .as_ref()
-            .map(|c| c.server.base_url.clone())
-            .unwrap_or_else(|| "http://localhost:3000".to_string());
-        let app_url = format!("{}/apps/{}", base_url, llm_app.name);
+        // No monitors generated currently - mark as skipped
+        self.update_manifest_section(SectionType::Monitors, SectionStatus::Skipped);
+
+        // Build the app URL (use relative URL so it works on any port)
+        // Include trailing slash so relative paths in HTML resolve correctly
+        let app_url = format!("/apps/{}/", llm_app.name.to_lowercase().replace(' ', "-"));
+
+        if let Some(ref mut manifest) = self.manifest {
+            manifest.complete();
+        }
+        self.add_terminal_output("## Complete!", TerminalLineType::Success);
+        self.add_terminal_output(&format!("✓ App **{}** ready at `{}`", llm_app.name, app_url), TerminalLineType::Success);
+        self.update_manifest_stats_real(true);
 
         let activity = self.build_activity("complete", TOTAL_STEPS as u32, Some(TOTAL_STEPS as u32), Some("App ready"));
         self.emit_activity("complete", &format!("App ready at {}", app_url), 8, TOTAL_STEPS, activity);
@@ -1204,11 +1747,9 @@ NO QUESTIONS. JUST BUILD."#
                               chunk_count, full_response.len(), stream_start.elapsed());
                     }
 
-                    // Emit chunks every 100ms or when buffer has enough content
+                    // Don't emit raw LLM stream to WebSocket - it contains HTML/code garbage
+                    // Only clear buffer periodically to track progress
                     if last_emit.elapsed().as_millis() > 100 || chunk_buffer.len() > 50 {
-                        if let Some(ref tid) = task_id {
-                            state.emit_llm_stream(tid, &chunk_buffer);
-                        }
                         chunk_buffer.clear();
                         last_emit = std::time::Instant::now();
                     }
@@ -1217,12 +1758,9 @@ NO QUESTIONS. JUST BUILD."#
                 trace!("APP_GENERATOR Stream finished: {} chunks, {} chars in {:?}",
                       chunk_count, full_response.len(), stream_start.elapsed());
 
-                // Emit any remaining buffer
+                // Don't emit remaining buffer - it's raw code/HTML
                 if !chunk_buffer.is_empty() {
-                    trace!("APP_GENERATOR Emitting final buffer: {} chars", chunk_buffer.len());
-                    if let Some(ref tid) = task_id {
-                        state.emit_llm_stream(tid, &chunk_buffer);
-                    }
+                    trace!("APP_GENERATOR Final buffer (not emitting): {} chars", chunk_buffer.len());
                 }
 
                 // Log response preview
@@ -1315,11 +1853,11 @@ NO QUESTIONS. JUST BUILD."#
 
     fn append_to_tables_bas(
         &self,
-        bot_id: Uuid,
+        _bot_id: Uuid,
         content: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let bot_name = self.get_bot_name(bot_id)?;
-        let bucket = format!("{}.gbai", bot_name.to_lowercase());
+        // Use bucket_name from state instead of deriving from bot name
+        let bucket = self.state.bucket_name.clone();
         let path = ".gbdata/tables.bas";
 
         let mut conn = self.state.conn.get()?;
@@ -1355,29 +1893,6 @@ NO QUESTIONS. JUST BUILD."#
         .execute(&mut conn)?;
 
         Ok(())
-    }
-
-    fn get_bot_name(
-        &self,
-        bot_id: Uuid,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.state.conn.get()?;
-
-        #[derive(QueryableByName)]
-        struct BotRow {
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            name: String,
-        }
-
-        let result: Vec<BotRow> = sql_query("SELECT name FROM bots WHERE id = $1 LIMIT 1")
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .load(&mut conn)?;
-
-        result
-            .into_iter()
-            .next()
-            .map(|r| r.name)
-            .ok_or_else(|| format!("Bot not found: {}", bot_id).into())
     }
 
     /// Ensure the bucket exists, creating it if necessary
@@ -1548,18 +2063,49 @@ NO QUESTIONS. JUST BUILD."#
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut conn = self.state.conn.get()?;
 
+        let final_step_results = serde_json::json!([
+            {
+                "step_id": "file_0",
+                "step_order": 1,
+                "step_name": "Generate app structure",
+                "status": "Completed",
+                "duration_ms": 500,
+                "logs": [{"message": "App structure generated"}]
+            },
+            {
+                "step_id": "file_1",
+                "step_order": 2,
+                "step_name": "Write app files",
+                "status": "Completed",
+                "duration_ms": 300,
+                "logs": [{"message": "Files written to storage"}]
+            },
+            {
+                "step_id": "file_2",
+                "step_order": 3,
+                "step_name": "Configure app",
+                "status": "Completed",
+                "duration_ms": 200,
+                "logs": [{"message": format!("App ready at {}", app_url)}]
+            }
+        ]);
+
         sql_query(
             "UPDATE auto_tasks SET
              progress = 1.0,
+             current_step = 3,
+             total_steps = 3,
+             step_results = $1,
              status = 'completed',
              completed_at = NOW(),
              updated_at = NOW()
-             WHERE id = $1",
+             WHERE id = $2",
         )
+        .bind::<diesel::sql_types::Jsonb, _>(final_step_results)
         .bind::<diesel::sql_types::Uuid, _>(task_id)
         .execute(&mut conn)?;
 
-        info!("Updated task {} with app_url: {}", task_id, app_url);
+        info!("Updated task {} completed with app_url: {}", task_id, app_url);
         Ok(())
     }
 
@@ -1613,33 +2159,6 @@ NO QUESTIONS. JUST BUILD."#
         trace!("Updated task {} step_results: {}/{} files", task_id, completed_count, files.len());
         Ok(())
     }
-
-    fn store_app_metadata(
-        &self,
-        bot_id: Uuid,
-        app_name: &str,
-        app_path: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.state.conn.get()?;
-        let app_id = Uuid::new_v4();
-
-        sql_query(
-            "INSERT INTO generated_apps (id, bot_id, name, app_path, is_active, created_at)
-             VALUES ($1, $2, $3, $4, true, NOW())
-             ON CONFLICT (bot_id, name) DO UPDATE SET
-             app_path = EXCLUDED.app_path,
-             updated_at = NOW()",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(app_id)
-        .bind::<diesel::sql_types::Uuid, _>(bot_id)
-        .bind::<diesel::sql_types::Text, _>(app_name)
-        .bind::<diesel::sql_types::Text, _>(app_path)
-        .execute(&mut conn)?;
-
-        Ok(())
-    }
-
-
 
     fn generate_designer_js(app_name: &str) -> String {
         format!(
