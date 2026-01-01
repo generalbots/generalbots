@@ -728,19 +728,32 @@ fn build_status_section_html(manifest: &TaskManifest, title: &str, runtime: &str
     let mut html = String::new();
 
     let current_action = manifest.current_status.current_action.as_deref().unwrap_or("Processing...");
-    let estimated = format!("{}s", manifest.estimated_seconds);
+
+    // Format estimated time nicely
+    let estimated = if manifest.estimated_seconds >= 60 {
+        format!("{} min", manifest.estimated_seconds / 60)
+    } else {
+        format!("{} sec", manifest.estimated_seconds)
+    };
+
+    // Format runtime nicely
+    let runtime_display = if runtime == "0s" || runtime == "calculating..." {
+        "Not started".to_string()
+    } else {
+        runtime.to_string()
+    };
 
     html.push_str(&format!(r#"
         <div class="status-row status-main">
             <span class="status-title">{}</span>
-            <span class="status-time">Runtime: {}</span>
+            <span class="status-time">Runtime: {} <span class="status-indicator"></span></span>
         </div>
         <div class="status-row status-current">
             <span class="status-dot active"></span>
             <span class="status-text">{}</span>
-            <span class="status-time">Estimated: {}</span>
+            <span class="status-time">Estimated: {} <span class="status-gear">⚙</span></span>
         </div>
-    "#, title, runtime, current_action, estimated));
+    "#, title, runtime_display, current_action, estimated));
 
     if let Some(ref dp) = manifest.current_status.decision_point {
         html.push_str(&format!(r#"
@@ -764,7 +777,7 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
     for section in &manifest.sections {
         let section_class = match section.status {
             crate::auto_task::SectionStatus::Completed => "completed",
-            crate::auto_task::SectionStatus::Running => "running",
+            crate::auto_task::SectionStatus::Running => "running expanded",
             crate::auto_task::SectionStatus::Failed => "failed",
             crate::auto_task::SectionStatus::Skipped => "skipped",
             _ => "pending",
@@ -781,29 +794,21 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
         // Use global step count (e.g., "Step 24/60")
         let global_current = section.global_step_start + section.current_step;
 
-        // TASK.md style checkbox
-        let section_checkbox = match section.status {
-            crate::auto_task::SectionStatus::Completed => "[x]",
-            crate::auto_task::SectionStatus::Running => "[>]",
-            crate::auto_task::SectionStatus::Skipped => "[-]",
-            _ => "[ ]",
-        };
-
         html.push_str(&format!(r#"
             <div class="tree-section {}" data-section-id="{}">
                 <div class="tree-row tree-level-0" onclick="this.parentElement.classList.toggle('expanded')">
-                    <span class="tree-checkbox">{}</span>
                     <span class="tree-name">{}</span>
+                    <span class="tree-view-details">View Details ›</span>
                     <span class="tree-step-badge">Step {}/{}</span>
                     <span class="tree-status {}">{}</span>
                 </div>
                 <div class="tree-children">
-        "#, section_class, section.id, section_checkbox, section.name, global_current, total_steps, section_class, status_text));
+        "#, section_class, section.id, section.name, global_current, total_steps, section_class, status_text));
 
         for child in &section.children {
             let child_class = match child.status {
                 crate::auto_task::SectionStatus::Completed => "completed",
-                crate::auto_task::SectionStatus::Running => "running",
+                crate::auto_task::SectionStatus::Running => "running expanded",
                 crate::auto_task::SectionStatus::Failed => "failed",
                 crate::auto_task::SectionStatus::Skipped => "skipped",
                 _ => "pending",
@@ -817,32 +822,24 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
                 _ => "Pending",
             };
 
-            // TASK.md style checkbox for child
-            let child_checkbox = match child.status {
-                crate::auto_task::SectionStatus::Completed => "[x]",
-                crate::auto_task::SectionStatus::Running => "[>]",
-                crate::auto_task::SectionStatus::Skipped => "[-]",
-                _ => "[ ]",
-            };
-
             html.push_str(&format!(r#"
                 <div class="tree-child {}" onclick="this.classList.toggle('expanded')">
                     <div class="tree-row tree-level-1">
                         <span class="tree-indent"></span>
-                        <span class="tree-checkbox">{}</span>
                         <span class="tree-name">{}</span>
+                        <span class="tree-view-details">View Details ›</span>
                         <span class="tree-step-badge">Step {}/{}</span>
                         <span class="tree-status {}">{}</span>
                     </div>
                     <div class="tree-items">
-            "#, child_class, child_checkbox, child.name, child.current_step, child.total_steps, child_class, child_status));
+            "#, child_class, child.name, child.current_step, child.total_steps, child_class, child_status));
 
             // Render item groups first (grouped fields like "email, password_hash, email_verified")
             for group in &child.item_groups {
-                let (group_class, group_checkbox) = match group.status {
-                    crate::auto_task::ItemStatus::Completed => ("completed", "[x]"),
-                    crate::auto_task::ItemStatus::Running => ("running", "[>]"),
-                    _ => ("pending", "[ ]"),
+                let group_class = match group.status {
+                    crate::auto_task::ItemStatus::Completed => "completed",
+                    crate::auto_task::ItemStatus::Running => "running",
+                    _ => "pending",
                 };
                 let check_mark = if group.status == crate::auto_task::ItemStatus::Completed { "✓" } else { "" };
 
@@ -854,20 +851,20 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
 
                 html.push_str(&format!(r#"
                     <div class="tree-item {}">
-                        <span class="tree-item-checkbox">{}</span>
+                        <span class="tree-item-dot {}"></span>
                         <span class="tree-item-name">{}</span>
                         <span class="tree-item-duration">{}</span>
                         <span class="tree-item-check {}">{}</span>
                     </div>
-                "#, group_class, group_checkbox, group_name, group_duration, group_class, check_mark));
+                "#, group_class, group_class, group_name, group_duration, group_class, check_mark));
             }
 
             // Then individual items
             for item in &child.items {
-                let (item_class, item_checkbox) = match item.status {
-                    crate::auto_task::ItemStatus::Completed => ("completed", "[x]"),
-                    crate::auto_task::ItemStatus::Running => ("running", "[>]"),
-                    _ => ("pending", "[ ]"),
+                let item_class = match item.status {
+                    crate::auto_task::ItemStatus::Completed => "completed",
+                    crate::auto_task::ItemStatus::Running => "running",
+                    _ => "pending",
                 };
                 let check_mark = if item.status == crate::auto_task::ItemStatus::Completed { "✓" } else { "" };
 
@@ -877,12 +874,12 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
 
                 html.push_str(&format!(r#"
                     <div class="tree-item {}">
-                        <span class="tree-item-checkbox">{}</span>
+                        <span class="tree-item-dot {}"></span>
                         <span class="tree-item-name">{}</span>
                         <span class="tree-item-duration">{}</span>
                         <span class="tree-item-check {}">{}</span>
                     </div>
-                "#, item_class, item_checkbox, item.name, item_duration, item_class, check_mark));
+                "#, item_class, item_class, item.name, item_duration, item_class, check_mark));
             }
 
             html.push_str("</div></div>");
@@ -890,10 +887,10 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
 
         // Render section-level item groups
         for group in &section.item_groups {
-            let (group_class, group_checkbox) = match group.status {
-                crate::auto_task::ItemStatus::Completed => ("completed", "[x]"),
-                crate::auto_task::ItemStatus::Running => ("running", "[>]"),
-                _ => ("pending", "[ ]"),
+            let group_class = match group.status {
+                crate::auto_task::ItemStatus::Completed => "completed",
+                crate::auto_task::ItemStatus::Running => "running",
+                _ => "pending",
             };
             let check_mark = if group.status == crate::auto_task::ItemStatus::Completed { "✓" } else { "" };
 
@@ -905,20 +902,20 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
 
             html.push_str(&format!(r#"
                 <div class="tree-item {}">
-                    <span class="tree-item-checkbox">{}</span>
+                    <span class="tree-item-dot {}"></span>
                     <span class="tree-item-name">{}</span>
                     <span class="tree-item-duration">{}</span>
                     <span class="tree-item-check {}">{}</span>
                 </div>
-            "#, group_class, group_checkbox, group_name, group_duration, group_class, check_mark));
+            "#, group_class, group_class, group_name, group_duration, group_class, check_mark));
         }
 
         // Render section-level items
         for item in &section.items {
-            let (item_class, item_checkbox) = match item.status {
-                crate::auto_task::ItemStatus::Completed => ("completed", "[x]"),
-                crate::auto_task::ItemStatus::Running => ("running", "[>]"),
-                _ => ("pending", "[ ]"),
+            let item_class = match item.status {
+                crate::auto_task::ItemStatus::Completed => "completed",
+                crate::auto_task::ItemStatus::Running => "running",
+                _ => "pending",
             };
             let check_mark = if item.status == crate::auto_task::ItemStatus::Completed { "✓" } else { "" };
 
@@ -928,12 +925,12 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
 
             html.push_str(&format!(r#"
                 <div class="tree-item {}">
-                    <span class="tree-item-checkbox">{}</span>
+                    <span class="tree-item-dot {}"></span>
                     <span class="tree-item-name">{}</span>
                     <span class="tree-item-duration">{}</span>
                     <span class="tree-item-check {}">{}</span>
                 </div>
-            "#, item_class, item_checkbox, item.name, item_duration, item_class, check_mark));
+            "#, item_class, item_class, item.name, item_duration, item_class, check_mark));
         }
 
         html.push_str("</div></div>");
