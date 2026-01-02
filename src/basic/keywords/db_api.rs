@@ -256,6 +256,20 @@ pub async fn get_record_handler(
             .into_response();
     };
 
+    // Check if table actually exists in database (supports dynamic tables from app_generator)
+    if !is_table_allowed_with_conn(&mut conn, &table_name) {
+        warn!("Table not found in database: {}", table_name);
+        return (
+            StatusCode::NOT_FOUND,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some(format!("Table '{}' not found", table_name)),
+            }),
+        )
+            .into_response();
+    }
+
     // Check table-level read access
     let access_info =
         match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Read) {
@@ -357,6 +371,20 @@ pub async fn create_record_handler(
         )
             .into_response();
     };
+
+    // Check if table actually exists in database (supports dynamic tables from app_generator)
+    if !is_table_allowed_with_conn(&mut conn, &table_name) {
+        warn!("Table not found in database: {}", table_name);
+        return (
+            StatusCode::NOT_FOUND,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some(format!("Table '{}' not found", table_name)),
+            }),
+        )
+            .into_response();
+    }
 
     let access_info =
         match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Write) {
@@ -494,6 +522,20 @@ pub async fn update_record_handler(
         }
     };
 
+    // Check if table actually exists in database (supports dynamic tables from app_generator)
+    if !is_table_allowed_with_conn(&mut conn, &table_name) {
+        warn!("Table not found in database: {}", table_name);
+        return (
+            StatusCode::NOT_FOUND,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some(format!("Table '{}' not found", table_name)),
+            }),
+        )
+            .into_response();
+    }
+
     // Check table-level write access
     let access_info =
         match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Write) {
@@ -590,6 +632,20 @@ pub async fn delete_record_handler(
         )
             .into_response();
     };
+
+    // Check if table actually exists in database (supports dynamic tables from app_generator)
+    if !is_table_allowed_with_conn(&mut conn, &table_name) {
+        warn!("Table not found in database: {}", table_name);
+        return (
+            StatusCode::NOT_FOUND,
+            Json(DeleteResponse {
+                success: false,
+                deleted: 0,
+                message: Some(format!("Table '{}' not found", table_name)),
+            }),
+        )
+            .into_response();
+    }
 
     if let Err(e) = check_table_access(&mut conn, &table_name, &user_roles, AccessType::Write) {
         return (
