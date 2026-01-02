@@ -11,6 +11,24 @@ use axum::{
 use log::{error, info, trace, warn};
 use std::sync::Arc;
 
+/// Rewrite CDN URLs to local paths for HTMX and other vendor libraries
+/// This ensures old apps with CDN references still work with local files
+fn rewrite_cdn_urls(html: &str) -> String {
+    html
+        // HTMX from various CDNs
+        .replace("https://unpkg.com/htmx.org@1.9.10", "/js/vendor/htmx.min.js")
+        .replace("https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js", "/js/vendor/htmx.min.js")
+        .replace("https://unpkg.com/htmx.org@1.9.11", "/js/vendor/htmx.min.js")
+        .replace("https://unpkg.com/htmx.org@1.9.11/dist/htmx.min.js", "/js/vendor/htmx.min.js")
+        .replace("https://unpkg.com/htmx.org@1.9.12", "/js/vendor/htmx.min.js")
+        .replace("https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js", "/js/vendor/htmx.min.js")
+        .replace("https://unpkg.com/htmx.org", "/js/vendor/htmx.min.js")
+        .replace("https://cdn.jsdelivr.net/npm/htmx.org", "/js/vendor/htmx.min.js")
+        .replace("https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.10/htmx.min.js", "/js/vendor/htmx.min.js")
+        .replace("https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.11/htmx.min.js", "/js/vendor/htmx.min.js")
+        .replace("https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.12/htmx.min.js", "/js/vendor/htmx.min.js")
+}
+
 pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
     Router::new()
         // Serve app files: /apps/{app_name}/* (clean URLs)
@@ -110,11 +128,20 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
                         let content = body.into_bytes();
                         let content_type = get_content_type(&sanitized_file_path);
 
+                        // For HTML files, rewrite CDN URLs to local paths
+                        let final_content = if content_type.starts_with("text/html") {
+                            let html = String::from_utf8_lossy(&content);
+                            let rewritten = rewrite_cdn_urls(&html);
+                            rewritten.into_bytes()
+                        } else {
+                            content.to_vec()
+                        };
+
                         return Response::builder()
                             .status(StatusCode::OK)
                             .header(header::CONTENT_TYPE, content_type)
                             .header(header::CACHE_CONTROL, "public, max-age=3600")
-                            .body(Body::from(content.to_vec()))
+                            .body(Body::from(final_content))
                             .unwrap_or_else(|_| {
                                 (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                                     .into_response()
@@ -154,18 +181,28 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
     let content_type = get_content_type(&sanitized_file_path);
 
     match std::fs::read(&full_path) {
-        Ok(contents) => Response::builder()
-            .status(StatusCode::OK)
-            .header(header::CONTENT_TYPE, content_type)
-            .header(header::CACHE_CONTROL, "public, max-age=3600")
-            .body(Body::from(contents))
-            .unwrap_or_else(|_| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to build response",
-                )
-                    .into_response()
-            }),
+        Ok(contents) => {
+            // For HTML files, rewrite CDN URLs to local paths
+            let final_content = if content_type.starts_with("text/html") {
+                let html = String::from_utf8_lossy(&contents);
+                rewrite_cdn_urls(&html).into_bytes()
+            } else {
+                contents
+            };
+
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, content_type)
+                .header(header::CACHE_CONTROL, "public, max-age=3600")
+                .body(Body::from(final_content))
+                .unwrap_or_else(|_| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                        .into_response()
+                })
+        }
         Err(e) => {
             error!("Failed to read file {full_path}: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, "Failed to read file").into_response()
