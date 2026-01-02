@@ -1144,7 +1144,7 @@ Guidelines:
 - Forms should use hx-post for submissions
 - Lists should use hx-get with pagination
 - IMPORTANT: Use RELATIVE paths for app assets (styles.css, app.js, NOT /static/styles.css)
-- For HTMX, use CDN: <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+- For HTMX, use LOCAL: <script src="/js/vendor/htmx.min.js"></script> (NO external CDN)
 - CSS link should be: <link rel="stylesheet" href="styles.css">
 
 Respond with valid JSON only."#,
