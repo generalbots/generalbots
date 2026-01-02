@@ -508,9 +508,6 @@ pub async fn handle_task_get(
             // Build terminal output from recent activity
             let terminal_html = build_terminal_html(&task.step_results, &task.status);
 
-            let task_url = format!("/tasks/{}", task_id);
-
-
             // Extract app_url from step_results if task is completed
             let app_url = if task.status == "completed" || task.status == "done" {
                 extract_app_url_from_results(&task.step_results, &task.title)
@@ -538,12 +535,8 @@ pub async fn handle_task_get(
 
             let html = format!(r#"
                 <div class="task-detail-rich" data-task-id="{task_id}">
-                    <!-- Header -->
+                    <!-- Header - compact -->
                     <div class="taskmd-header">
-                        <div class="taskmd-url">
-                            <span class="url-icon">🔗</span>
-                            <span class="url-path">{task_url}</span>
-                        </div>
                         <h1 class="taskmd-title">{title}</h1>
                         <span class="taskmd-status-badge status-{status_class}">{status_label}</span>
                     </div>
@@ -594,7 +587,6 @@ pub async fn handle_task_get(
                 </div>
             "#,
                 task_id = task_id,
-                task_url = task_url,
                 title = task.title,
                 status_class = status_class,
                 status_label = status_label,
