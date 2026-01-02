@@ -3325,6 +3325,7 @@ CREATE TABLE IF NOT EXISTS auto_tasks (
     total_steps INTEGER DEFAULT 0,
     progress FLOAT DEFAULT 0.0,
     step_results JSONB DEFAULT '[]'::jsonb,
+    manifest_json JSONB,
     error TEXT,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,

@@ -826,7 +826,7 @@ impl ManifestBuilder {
         self
     }
 
-    pub fn with_pages(mut self, _pages: Vec<PageDefinition>) -> Self {
+    pub fn with_pages(self, _pages: Vec<PageDefinition>) -> Self {
         // Pages are now included in Files section as HTML Pages child
         self
     }

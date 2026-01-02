@@ -397,6 +397,8 @@ pub async fn handle_task_get(
             pub total_steps: i32,
             #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
             pub step_results: Option<serde_json::Value>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
+            pub manifest_json: Option<serde_json::Value>,
             #[diesel(sql_type = diesel::sql_types::Timestamptz)]
             pub created_at: chrono::DateTime<chrono::Utc>,
             #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
@@ -417,7 +419,7 @@ pub async fn handle_task_get(
         };
 
         let task: Option<AutoTaskRow> = diesel::sql_query(
-            "SELECT id, title, status, priority, intent, error, progress, current_step, total_steps, step_results, created_at, started_at, completed_at
+            "SELECT id, title, status, priority, intent, error, progress, current_step, total_steps, step_results, manifest_json, created_at, started_at, completed_at
              FROM auto_tasks WHERE id = $1 LIMIT 1"
         )
         .bind::<diesel::sql_types::Uuid, _>(parsed_uuid)
@@ -470,9 +472,7 @@ pub async fn handle_task_get(
                 "failed" | "error" => "error",
                 _ => "pending"
             };
-            let progress_percent = (task.progress * 100.0) as u8;
 
-            // Calculate runtime
             let runtime = if let Some(started) = task.started_at {
                 let end_time = task.completed_at.unwrap_or_else(chrono::Utc::now);
                 let duration = end_time.signed_duration_since(started);
@@ -488,7 +488,6 @@ pub async fn handle_task_get(
             };
 
             let task_id = task.id.to_string();
-            let intent_text = task.intent.clone().unwrap_or_else(|| task.title.clone());
             let error_html = task.error.clone().map(|e| format!(
                 r#"<div class="error-alert">
                     <span class="error-icon">⚠</span>
@@ -535,7 +534,7 @@ pub async fn handle_task_get(
                 ),
             };
 
-            let (status_html, progress_log_html) = build_taskmd_html(&state, &task_id, &task.title, &runtime);
+            let (status_html, progress_log_html) = build_taskmd_html(&state, &task_id, &task.title, &runtime, task.manifest_json.as_ref());
 
             let html = format!(r#"
                 <div class="task-detail-rich" data-task-id="{task_id}">
@@ -552,7 +551,7 @@ pub async fn handle_task_get(
                     {error_html}
 
                     <!-- STATUS Section -->
-                    <div class="taskmd-section">
+                    <div class="taskmd-section taskmd-section-status">
                         <div class="taskmd-section-header">STATUS</div>
                         <div class="taskmd-status-content">
                             {status_html}
@@ -560,7 +559,7 @@ pub async fn handle_task_get(
                     </div>
 
                     <!-- PROGRESS LOG Section -->
-                    <div class="taskmd-section">
+                    <div class="taskmd-section taskmd-section-progress">
                         <div class="taskmd-section-header">PROGRESS LOG</div>
                         <div class="taskmd-progress-content" id="progress-log-{task_id}">
                             {progress_log_html}
@@ -568,7 +567,7 @@ pub async fn handle_task_get(
                     </div>
 
                     <!-- TERMINAL Section -->
-                    <div class="taskmd-section taskmd-terminal">
+                    <div class="taskmd-section taskmd-section-terminal taskmd-terminal">
                         <div class="taskmd-terminal-header">
                             <div class="taskmd-terminal-title">
                                 <span class="terminal-dot {terminal_active}"></span>
@@ -702,17 +701,40 @@ fn get_manifest_eta(state: &Arc<AppState>, task_id: &str) -> String {
     "calculating...".to_string()
 }
 
-fn build_taskmd_html(state: &Arc<AppState>, task_id: &str, title: &str, runtime: &str) -> (String, String) {
+fn build_taskmd_html(state: &Arc<AppState>, task_id: &str, title: &str, runtime: &str, db_manifest: Option<&serde_json::Value>) -> (String, String) {
     log::info!("[TASKMD_HTML] Building TASK.md view for task_id: {}", task_id);
 
+    // First, try to get manifest from in-memory cache (for active/running tasks)
     if let Ok(manifests) = state.task_manifests.read() {
         if let Some(manifest) = manifests.get(task_id) {
-            log::info!("[TASKMD_HTML] Found manifest for task: {} with {} sections", manifest.app_name, manifest.sections.len());
+            log::info!("[TASKMD_HTML] Found manifest in memory for task: {} with {} sections", manifest.app_name, manifest.sections.len());
             let status_html = build_status_section_html(manifest, title, runtime);
             let progress_html = build_progress_log_html(manifest);
             return (status_html, progress_html);
         }
     }
+
+    // If not in memory, try to load from database (for completed/historical tasks)
+    if let Some(manifest_json) = db_manifest {
+        log::info!("[TASKMD_HTML] Found manifest in database for task: {}", task_id);
+        if let Ok(manifest) = serde_json::from_value::<TaskManifest>(manifest_json.clone()) {
+            log::info!("[TASKMD_HTML] Parsed DB manifest for task: {} with {} sections", manifest.app_name, manifest.sections.len());
+            let status_html = build_status_section_html(&manifest, title, runtime);
+            let progress_html = build_progress_log_html(&manifest);
+            return (status_html, progress_html);
+        } else {
+            // Try parsing as web JSON format (the format we store)
+            if let Ok(web_manifest) = parse_web_manifest_json(manifest_json) {
+                log::info!("[TASKMD_HTML] Parsed web manifest from DB for task: {}", task_id);
+                let status_html = build_status_section_from_web_json(&web_manifest, title, runtime);
+                let progress_html = build_progress_log_from_web_json(&web_manifest);
+                return (status_html, progress_html);
+            }
+            log::warn!("[TASKMD_HTML] Failed to parse manifest JSON for task: {}", task_id);
+        }
+    }
+
+    log::info!("[TASKMD_HTML] No manifest found for task: {}", task_id);
 
     let default_status = format!(r#"
         <div class="status-row">
@@ -722,6 +744,190 @@ fn build_taskmd_html(state: &Arc<AppState>, task_id: &str, title: &str, runtime:
     "#, title, runtime);
 
     (default_status, r#"<div class="progress-empty">No steps executed yet</div>"#.to_string())
+}
+
+// Parse the web JSON format that we store in the database
+fn parse_web_manifest_json(json: &serde_json::Value) -> Result<serde_json::Value, ()> {
+    // The web format has sections with status as strings, etc.
+    if json.get("sections").is_some() {
+        Ok(json.clone())
+    } else {
+        Err(())
+    }
+}
+
+fn build_status_section_from_web_json(manifest: &serde_json::Value, title: &str, runtime: &str) -> String {
+    let mut html = String::new();
+
+    let current_action = manifest
+        .get("current_status")
+        .and_then(|s| s.get("current_action"))
+        .and_then(|a| a.as_str())
+        .unwrap_or("Processing...");
+
+    let estimated_seconds = manifest
+        .get("estimated_seconds")
+        .and_then(|e| e.as_u64())
+        .unwrap_or(0);
+
+    let estimated = if estimated_seconds >= 60 {
+        format!("{} min", estimated_seconds / 60)
+    } else {
+        format!("{} sec", estimated_seconds)
+    };
+
+    let runtime_display = if runtime == "0s" || runtime == "calculating..." {
+        "Not started".to_string()
+    } else {
+        runtime.to_string()
+    };
+
+    html.push_str(&format!(r#"
+        <div class="status-row status-main">
+            <span class="status-title">{}</span>
+            <span class="status-time">Runtime: {} <span class="status-indicator"></span></span>
+        </div>
+        <div class="status-row status-current">
+            <span class="status-dot active"></span>
+            <span class="status-text">{}</span>
+            <span class="status-time">Estimated: {} <span class="status-gear">⚙</span></span>
+        </div>
+    "#, title, runtime_display, current_action, estimated));
+
+    html
+}
+
+fn build_progress_log_from_web_json(manifest: &serde_json::Value) -> String {
+    let mut html = String::new();
+    html.push_str(r#"<div class="taskmd-tree">"#);
+
+    let total_steps = manifest
+        .get("total_steps")
+        .and_then(|t| t.as_u64())
+        .unwrap_or(60) as u32;
+
+    let sections = match manifest.get("sections").and_then(|s| s.as_array()) {
+        Some(s) => s,
+        None => {
+            html.push_str("</div>");
+            return html;
+        }
+    };
+
+    for section in sections {
+        let section_id = section.get("id").and_then(|i| i.as_str()).unwrap_or("unknown");
+        let section_name = section.get("name").and_then(|n| n.as_str()).unwrap_or("Unknown");
+        let section_status = section.get("status").and_then(|s| s.as_str()).unwrap_or("Pending");
+
+        // Progress fields are nested inside a "progress" object in the web JSON format
+        let progress = section.get("progress");
+        let current_step = progress
+            .and_then(|p| p.get("current"))
+            .and_then(|c| c.as_u64())
+            .unwrap_or(0) as u32;
+        let global_step_start = progress
+            .and_then(|p| p.get("global_start"))
+            .and_then(|g| g.as_u64())
+            .unwrap_or(0) as u32;
+
+        let section_class = match section_status.to_lowercase().as_str() {
+            "completed" => "completed expanded",
+            "running" => "running expanded",
+            "failed" => "failed",
+            "skipped" => "skipped",
+            _ => "pending",
+        };
+
+        let global_current = global_step_start + current_step;
+
+        html.push_str(&format!(r#"
+            <div class="tree-section {}" data-section-id="{}">
+                <div class="tree-row tree-level-0" onclick="this.parentElement.classList.toggle('expanded')">
+                    <span class="tree-name">{}</span>
+                    <span class="tree-step-badge">Step {}/{}</span>
+                    <span class="tree-status {}">{}</span>
+                    <span class="tree-section-dot {}"></span>
+                </div>
+                <div class="tree-children">
+        "#, section_class, section_id, section_name, global_current, total_steps, section_class, section_status, section_class));
+
+        // Render children
+        if let Some(children) = section.get("children").and_then(|c| c.as_array()) {
+            for child in children {
+                let child_id = child.get("id").and_then(|i| i.as_str()).unwrap_or("unknown");
+                let child_name = child.get("name").and_then(|n| n.as_str()).unwrap_or("Unknown");
+                let child_status = child.get("status").and_then(|s| s.as_str()).unwrap_or("Pending");
+
+                // Progress fields are nested inside a "progress" object in the web JSON format
+                let child_progress = child.get("progress");
+                let child_current = child_progress
+                    .and_then(|p| p.get("current"))
+                    .and_then(|c| c.as_u64())
+                    .unwrap_or(0) as u32;
+                let child_total = child_progress
+                    .and_then(|p| p.get("total"))
+                    .and_then(|t| t.as_u64())
+                    .unwrap_or(0) as u32;
+
+                let child_class = match child_status.to_lowercase().as_str() {
+                    "completed" => "completed expanded",
+                    "running" => "running expanded",
+                    "failed" => "failed",
+                    "skipped" => "skipped",
+                    _ => "pending",
+                };
+
+                html.push_str(&format!(r#"
+                    <div class="tree-child {}" data-child-id="{}">
+                        <div class="tree-row tree-level-1" onclick="this.parentElement.classList.toggle('expanded')">
+                            <span class="tree-indent"></span>
+                            <span class="tree-name">{}</span>
+                            <span class="tree-step-badge">Step {}/{}</span>
+                            <span class="tree-status {}">{}</span>
+                        </div>
+                        <div class="tree-items">
+                "#, child_class, child_id, child_name, child_current, child_total, child_class, child_status));
+
+                // Render items
+                if let Some(items) = child.get("items").and_then(|i| i.as_array()) {
+                    for item in items {
+                        let item_name = item.get("name").and_then(|n| n.as_str()).unwrap_or("Unknown");
+                        let item_status = item.get("status").and_then(|s| s.as_str()).unwrap_or("Pending");
+                        let duration = item.get("duration_seconds").and_then(|d| d.as_u64());
+
+                        let item_class = match item_status.to_lowercase().as_str() {
+                            "completed" => "completed",
+                            "running" => "running",
+                            _ => "pending",
+                        };
+
+                        let check_mark = if item_status.to_lowercase() == "completed" { "✓" } else { "" };
+                        let duration_str = duration
+                            .map(|s| if s >= 60 { format!("Duration: {} min", s / 60) } else { format!("Duration: {} sec", s) })
+                            .unwrap_or_default();
+
+                        html.push_str(&format!(r#"
+                            <div class="tree-item {}">
+                                <span class="item-dot {}"></span>
+                                <span class="item-name">{}</span>
+                                <div class="item-info">
+                                    <span class="item-duration">{}</span>
+                                    <span class="item-check {}">{}</span>
+                                </div>
+                            </div>
+                        "#, item_class, item_class, item_name, duration_str, item_class, check_mark));
+                    }
+                }
+
+                html.push_str("</div></div>"); // Close tree-items and tree-child
+            }
+        }
+
+        html.push_str("</div></div>"); // Close tree-children and tree-section
+    }
+
+    html.push_str("</div>"); // Close taskmd-tree
+    html
 }
 
 fn build_status_section_html(manifest: &TaskManifest, title: &str, runtime: &str) -> String {
@@ -774,9 +980,13 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
 
     let total_steps = manifest.total_steps;
 
+    log::info!("[PROGRESS_HTML] Building progress log, {} sections, total_steps={}", manifest.sections.len(), total_steps);
+
     for section in &manifest.sections {
+        log::info!("[PROGRESS_HTML] Section '{}': children={}, items={}, item_groups={}",
+            section.name, section.children.len(), section.items.len(), section.item_groups.len());
         let section_class = match section.status {
-            crate::auto_task::SectionStatus::Completed => "completed",
+            crate::auto_task::SectionStatus::Completed => "completed expanded",
             crate::auto_task::SectionStatus::Running => "running expanded",
             crate::auto_task::SectionStatus::Failed => "failed",
             crate::auto_task::SectionStatus::Skipped => "skipped",
@@ -806,8 +1016,10 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
         "#, section_class, section.id, section.name, global_current, total_steps, section_class, status_text, section_class));
 
         for child in &section.children {
+            log::info!("[PROGRESS_HTML]   Child '{}': items={}, item_groups={}",
+                child.name, child.items.len(), child.item_groups.len());
             let child_class = match child.status {
-                crate::auto_task::SectionStatus::Completed => "completed",
+                crate::auto_task::SectionStatus::Completed => "completed expanded",
                 crate::auto_task::SectionStatus::Running => "running expanded",
                 crate::auto_task::SectionStatus::Failed => "failed",
                 crate::auto_task::SectionStatus::Skipped => "skipped",
@@ -823,7 +1035,7 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
             };
 
             html.push_str(&format!(r#"
-                <div class="tree-child {}" onclick="this.classList.toggle('expanded')">
+                <div class="tree-child {}" data-child-id="{}" onclick="this.classList.toggle('expanded')">
                     <div class="tree-row tree-level-1">
                         <span class="tree-indent"></span>
                         <span class="tree-name">{}</span>
@@ -831,7 +1043,7 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
                         <span class="tree-status {}">{}</span>
                     </div>
                     <div class="tree-items">
-            "#, child_class, child.name, child.current_step, child.total_steps, child_class, child_status));
+            "#, child_class, child.id, child.name, child.current_step, child.total_steps, child_class, child_status));
 
             // Render item groups first (grouped fields like "email, password_hash, email_verified")
             for group in &child.item_groups {
@@ -849,13 +1061,13 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
                 let group_name = group.display_name();
 
                 html.push_str(&format!(r#"
-                    <div class="tree-item {}">
+                    <div class="tree-item {}" data-item-id="{}">
                         <span class="tree-item-dot {}"></span>
                         <span class="tree-item-name">{}</span>
                         <span class="tree-item-duration">{}</span>
                         <span class="tree-item-check {}">{}</span>
                     </div>
-                "#, group_class, group_class, group_name, group_duration, group_class, check_mark));
+                "#, group_class, group.id, group_class, group_name, group_duration, group_class, check_mark));
             }
 
             // Then individual items
@@ -872,13 +1084,13 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
                     .unwrap_or_default();
 
                 html.push_str(&format!(r#"
-                    <div class="tree-item {}">
+                    <div class="tree-item {}" data-item-id="{}">
                         <span class="tree-item-dot {}"></span>
                         <span class="tree-item-name">{}</span>
                         <span class="tree-item-duration">{}</span>
                         <span class="tree-item-check {}">{}</span>
                     </div>
-                "#, item_class, item_class, item.name, item_duration, item_class, check_mark));
+                "#, item_class, item.id, item_class, item.name, item_duration, item_class, check_mark));
             }
 
             html.push_str("</div></div>");
@@ -900,13 +1112,13 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
             let group_name = group.display_name();
 
             html.push_str(&format!(r#"
-                <div class="tree-item {}">
+                <div class="tree-item {}" data-item-id="{}">
                     <span class="tree-item-dot {}"></span>
                     <span class="tree-item-name">{}</span>
                     <span class="tree-item-duration">{}</span>
                     <span class="tree-item-check {}">{}</span>
                 </div>
-            "#, group_class, group_class, group_name, group_duration, group_class, check_mark));
+            "#, group_class, group.id, group_class, group_name, group_duration, group_class, check_mark));
         }
 
         // Render section-level items
@@ -923,13 +1135,13 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
                 .unwrap_or_default();
 
             html.push_str(&format!(r#"
-                <div class="tree-item {}">
+                <div class="tree-item {}" data-item-id="{}">
                     <span class="tree-item-dot {}"></span>
                     <span class="tree-item-name">{}</span>
                     <span class="tree-item-duration">{}</span>
                     <span class="tree-item-check {}">{}</span>
                 </div>
-            "#, item_class, item_class, item.name, item_duration, item_class, check_mark));
+            "#, item_class, item.id, item_class, item.name, item_duration, item_class, check_mark));
         }
 
         html.push_str("</div></div>");

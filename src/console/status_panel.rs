@@ -1,7 +1,5 @@
 use crate::config::ConfigManager;
 #[cfg(feature = "nvidia")]
-use crate::nvidia;
-#[cfg(feature = "nvidia")]
 use crate::nvidia::get_system_metrics;
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::state::AppState;
