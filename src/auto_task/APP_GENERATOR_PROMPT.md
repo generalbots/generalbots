@@ -504,51 +504,73 @@ Every HTML page MUST include proper SEO meta tags:
 
 ---
 
-## RESPONSE FORMAT
+## RESPONSE FORMAT (STREAMING DELIMITERS)
 
-When generating an app, respond with JSON:
+Use this EXACT format with delimiters (NOT JSON) so content can stream safely:
 
-```json
-{
-    "name": "app-name-lowercase-dashes",
-    "description": "What this app does",
-    "domain": "custom|healthcare|sales|inventory|booking|etc",
-    "tables": [
-        {
-            "name": "table_name",
-            "fields": [
-                {"name": "id", "type": "guid", "nullable": false},
-                {"name": "created_at", "type": "datetime", "nullable": false},
-                {"name": "updated_at", "type": "datetime", "nullable": false},
-                {"name": "field_name", "type": "string", "nullable": true}
-            ]
-        }
-    ],
-    "pages": [
-        {
-            "filename": "index.html",
-            "title": "Dashboard",
-            "html": "complete HTML document"
-        }
-    ],
-    "tools": [
-        {
-            "name": "tool_name",
-            "triggers": ["phrase1", "phrase2"],
-            "basic_code": "BASIC code"
-        }
-    ],
-    "schedulers": [
-        {
-            "name": "scheduler_name", 
-            "schedule": "0 9 * * *",
-            "basic_code": "BASIC code"
-        }
-    ],
-    "css": "complete CSS styles",
-    "custom_js": "optional JavaScript"
-}
 ```
+<<<APP_START>>>
+name: app-name-lowercase-dashes
+description: What this app does
+domain: healthcare|sales|inventory|booking|utility|etc
+<<<TABLES_START>>>
+<<<TABLE:table_name>>>
+id:guid:false
+created_at:datetime:false:now()
+updated_at:datetime:false:now()
+field_name:string:true
+foreign_key:guid:false:ref:other_table
+<<<TABLE:another_table>>>
+id:guid:false
+name:string:true
+<<<TABLES_END>>>
+<<<FILE:index.html>>>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Title</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="/js/vendor/htmx.min.js"></script>
+    <script src="designer.js" defer></script>
+</head>
+<body data-app-name="app-name-here">
+    <!-- Complete HTML content here -->
+</body>
+</html>
+<<<FILE:styles.css>>>
+:root { --primary: #3b82f6; --bg: #0f172a; --text: #f8fafc; }
+body { margin: 0; font-family: system-ui; background: var(--bg); color: var(--text); }
+/* Complete CSS content here */
+<<<FILE:app.js>>>
+// Complete JavaScript content here
+<<<FILE:table_name.html>>>
+<!DOCTYPE html>
+<!-- Complete list page for table_name -->
+<<<FILE:table_name_form.html>>>
+<!DOCTYPE html>
+<!-- Complete form page for table_name -->
+<<<TOOL:app_helper.bas>>>
+HEAR "help", "assist"
+    TALK "I can help you with..."
+END HEAR
+<<<SCHEDULER:daily_report.bas>>>
+SET SCHEDULE "0 9 * * *"
+    data = GET FROM "table"
+    SEND MAIL TO "admin@example.com" WITH SUBJECT "Daily Report" BODY data
+END SCHEDULE
+<<<APP_END>>>
+```
+
+### Table Field Format
+
+Each field on its own line: `name:type:nullable[:default][:ref:table]`
+
+- **Types**: guid, string, text, integer, decimal, boolean, date, datetime, json
+- **nullable**: true or false
+- **default**: optional (e.g., now(), 0, '', uuid())
+- **ref:table**: optional foreign key reference
 
 ### Field Types
 
