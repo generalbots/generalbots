@@ -922,7 +922,7 @@ fn build_progress_log_from_web_json(manifest: &serde_json::Value) -> String {
     html
 }
 
-fn build_status_section_html(manifest: &TaskManifest, title: &str, runtime: &str) -> String {
+fn build_status_section_html(manifest: &TaskManifest, _title: &str, runtime: &str) -> String {
     let mut html = String::new();
 
     let current_action = manifest.current_status.current_action.as_deref().unwrap_or("Processing...");
