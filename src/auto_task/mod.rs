@@ -196,18 +196,45 @@ async fn handle_task_progress_websocket(
         loop {
             match broadcast_rx.recv().await {
                 Ok(event) => {
+                    let is_manifest = event.step == "manifest_update" || event.event_type == "manifest_update";
                     let should_send = task_filter_clone.is_none()
                         || task_filter_clone.as_ref() == Some(&event.task_id);
 
+                    if is_manifest {
+                        info!(
+                            "[WS_HANDLER] Received manifest_update event: task={}, should_send={}, filter={:?}",
+                            event.task_id, should_send, task_filter_clone
+                        );
+                    }
+
                     if should_send {
-                        if let Ok(json_str) = serde_json::to_string(&event) {
-                            debug!(
-                                "Sending task progress to WebSocket: {} - {}",
-                                event.task_id, event.step
-                            );
-                            if sender.send(Message::Text(json_str)).await.is_err() {
-                                error!("Failed to send task progress to WebSocket");
-                                break;
+                        match serde_json::to_string(&event) {
+                            Ok(json_str) => {
+                                if is_manifest {
+                                    info!(
+                                        "[WS_HANDLER] Sending manifest_update to WebSocket: {} bytes, task={}",
+                                        json_str.len(), event.task_id
+                                    );
+                                } else {
+                                    debug!(
+                                        "Sending task progress to WebSocket: {} - {}",
+                                        event.task_id, event.step
+                                    );
+                                }
+                                match sender.send(Message::Text(json_str)).await {
+                                    Ok(()) => {
+                                        if is_manifest {
+                                            info!("[WS_HANDLER] manifest_update SENT successfully to WebSocket");
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!("[WS_HANDLER] Failed to send to WebSocket: {:?}", e);
+                                        break;
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                error!("[WS_HANDLER] Failed to serialize event: {:?}", e);
                             }
                         }
                     }

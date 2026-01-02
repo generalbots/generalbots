@@ -1,4 +1,5 @@
 use crate::auto_task::app_logs::{log_generator_error, log_generator_info};
+use std::sync::OnceLock;
 use crate::auto_task::task_manifest::{
     create_manifest_from_llm_response, FieldDefinition as ManifestField,
     FileDefinition, ManifestStatus, MonitorDefinition, PageDefinition,
@@ -194,6 +195,9 @@ impl AppGenerator {
     fn create_manifest_from_llm_app(&mut self, llm_app: &LlmGeneratedApp) {
         use crate::auto_task::task_manifest::ManifestSection;
 
+        log::info!("[MANIFEST_CREATE] Creating manifest from LLM app: {} tables, {} files, {} tools, {} schedulers",
+            llm_app.tables.len(), llm_app.files.len(), llm_app.tools.len(), llm_app.schedulers.len());
+
         let tables: Vec<ManifestTable> = llm_app
             .tables
             .iter()
@@ -253,6 +257,9 @@ impl AppGenerator {
         let monitors: Vec<MonitorDefinition> = Vec::new();
 
         // Create new manifest from LLM response
+        log::info!("[MANIFEST_CREATE] Calling create_manifest_from_llm_response with {} tables, {} files, {} pages, {} tools",
+            tables.len(), files.len(), pages.len(), tools.len());
+
         let mut new_manifest = create_manifest_from_llm_response(
             &llm_app.name,
             &llm_app.description,
@@ -263,6 +270,16 @@ impl AppGenerator {
             schedulers,
             monitors,
         );
+
+        log::info!("[MANIFEST_CREATE] New manifest created with {} sections:", new_manifest.sections.len());
+        for section in &new_manifest.sections {
+            log::info!("[MANIFEST_CREATE]   Section '{}': {} children, {} items, {} item_groups",
+                section.name, section.children.len(), section.items.len(), section.item_groups.len());
+            for child in &section.children {
+                log::info!("[MANIFEST_CREATE]     Child '{}': {} items, {} item_groups",
+                    child.name, child.items.len(), child.item_groups.len());
+            }
+        }
 
         // Mark "Analyzing Request" as completed and add it to the beginning
         let mut analyzing_section = ManifestSection::new("Analyzing Request", SectionType::Validation);
@@ -278,6 +295,11 @@ impl AppGenerator {
 
         // Insert "Analyzing Request" at the beginning of sections
         new_manifest.sections.insert(0, analyzing_section);
+
+        // Add Deployment section at the end
+        let deploy_section = ManifestSection::new("Deployment", SectionType::Deployment)
+            .with_steps(1);
+        new_manifest.add_section(deploy_section);
 
         // Recalculate all global step offsets after insertion
         new_manifest.recalculate_global_steps();
@@ -297,15 +319,25 @@ impl AppGenerator {
 
         if let Some(ref task_id) = self.task_id {
             if let Ok(mut manifests) = self.state.task_manifests.write() {
+                log::info!("[MANIFEST_CREATE] Storing manifest for task_id: {}", task_id);
                 manifests.insert(task_id.clone(), self.manifest.clone().unwrap());
             }
         }
 
+        log::info!("[MANIFEST_CREATE] Broadcasting manifest update");
         self.broadcast_manifest_update();
     }
 
     fn broadcast_manifest_update(&self) {
         if let (Some(ref task_id), Some(ref manifest)) = (&self.task_id, &self.manifest) {
+            // Log the TASK.md structure for debugging
+            let task_md = manifest.to_task_md();
+            log::info!(
+                "[TASK.md] task={}\n{}",
+                task_id,
+                task_md
+            );
+
             log::info!(
                 "[MANIFEST_BROADCAST] task={} completed={}/{} sections={}",
                 task_id,
@@ -314,30 +346,116 @@ impl AppGenerator {
                 manifest.sections.len()
             );
 
+            // Log section details with children
+            for section in &manifest.sections {
+                let status = format!("{:?}", section.status);
+                log::info!(
+                    "[MANIFEST_BROADCAST]   Section '{}': status={}, children={}, items={}, item_groups={}",
+                    section.name,
+                    status,
+                    section.children.len(),
+                    section.items.len(),
+                    section.item_groups.len()
+                );
+                for child in &section.children {
+                    let child_status = format!("{:?}", child.status);
+                    log::info!(
+                        "[MANIFEST_BROADCAST]     Child '{}': status={}, items={}, item_groups={}",
+                        child.name,
+                        child_status,
+                        child.items.len(),
+                        child.item_groups.len()
+                    );
+                }
+            }
+
             if let Ok(mut manifests) = self.state.task_manifests.write() {
                 manifests.insert(task_id.clone(), manifest.clone());
             }
 
             let json_details = serde_json::to_string(&manifest.to_web_json()).unwrap_or_default();
-            log::debug!("[MANIFEST_BROADCAST] JSON size: {} bytes", json_details.len());
+            let json_size = json_details.len();
+            log::info!("[MANIFEST_BROADCAST] JSON size: {} bytes", json_size);
 
-            let event = crate::core::shared::state::TaskProgressEvent::new(
-                task_id,
-                "manifest_update",
-                &format!("Manifest updated: {}", manifest.app_name),
-            )
-            .with_event_type("manifest_update")
-            .with_progress(manifest.completed_steps as u8, manifest.total_steps as u8)
-            .with_details(json_details);
+            // Persist manifest to database for historical viewing
+            self.persist_manifest_to_db(task_id, &json_details);
+
+            // Build the event - if manifest JSON is too large (> 64KB), send without details
+            // to avoid WebSocket frame size issues. Client will fetch full manifest via API.
+            let event = if json_size > 65536 {
+                log::warn!("[MANIFEST_BROADCAST] Manifest too large ({} bytes), sending without details", json_size);
+                crate::core::shared::state::TaskProgressEvent::new(
+                    task_id,
+                    "manifest_update",
+                    &format!("Manifest updated: {}", manifest.app_name),
+                )
+                .with_event_type("manifest_update")
+                .with_progress(manifest.completed_steps as u8, manifest.total_steps as u8)
+            } else {
+                crate::core::shared::state::TaskProgressEvent::new(
+                    task_id,
+                    "manifest_update",
+                    &format!("Manifest updated: {}", manifest.app_name),
+                )
+                .with_event_type("manifest_update")
+                .with_progress(manifest.completed_steps as u8, manifest.total_steps as u8)
+                .with_details(json_details)
+            };
+
+            // Log the final serialized event size
+            if let Ok(event_json) = serde_json::to_string(&event) {
+                log::info!("[MANIFEST_BROADCAST] Final event size: {} bytes (has_details={})",
+                    event_json.len(), json_size <= 65536);
+            }
 
             self.state.broadcast_task_progress(event);
         }
     }
 
+    fn persist_manifest_to_db(&self, task_id: &str, manifest_json: &str) {
+        let Ok(task_uuid) = Uuid::parse_str(task_id) else {
+            log::warn!("[MANIFEST_PERSIST] Invalid task_id: {}", task_id);
+            return;
+        };
+
+        let Ok(mut conn) = self.state.conn.get() else {
+            log::warn!("[MANIFEST_PERSIST] Failed to get DB connection for task: {}", task_id);
+            return;
+        };
+
+        let manifest_value: serde_json::Value = match serde_json::from_str(manifest_json) {
+            Ok(v) => v,
+            Err(e) => {
+                log::warn!("[MANIFEST_PERSIST] Failed to parse manifest JSON: {}", e);
+                return;
+            }
+        };
+
+        let result = sql_query(
+            "UPDATE auto_tasks SET manifest_json = $1, updated_at = NOW() WHERE id = $2",
+        )
+        .bind::<diesel::sql_types::Jsonb, _>(manifest_value)
+        .bind::<diesel::sql_types::Uuid, _>(task_uuid)
+        .execute(&mut conn);
+
+        match result {
+            Ok(_) => log::trace!("[MANIFEST_PERSIST] Saved manifest for task: {}", task_id),
+            Err(e) => log::warn!("[MANIFEST_PERSIST] Failed to save manifest: {}", e),
+        }
+    }
+
     fn update_manifest_section(&mut self, section_type: SectionType, status: SectionStatus) {
         if let Some(ref mut manifest) = self.manifest {
+            log::info!("[UPDATE_SECTION] Looking for {:?} to set {:?}", section_type, status);
+            log::info!("[UPDATE_SECTION] Manifest has {} sections:", manifest.sections.len());
+            for (i, s) in manifest.sections.iter().enumerate() {
+                log::info!("[UPDATE_SECTION]   [{}] {:?} = '{}'", i, s.section_type, s.name);
+            }
+            let mut found = false;
             for section in &mut manifest.sections {
                 if section.section_type == section_type {
+                    found = true;
+                    log::info!("[UPDATE_SECTION] Found section '{}'! Setting to {:?}", section.name, status);
                     section.status = status.clone();
                     if status == SectionStatus::Running {
                         section.started_at = Some(Utc::now());
@@ -357,8 +475,13 @@ impl AppGenerator {
                     break;
                 }
             }
+            if !found {
+                log::warn!("[UPDATE_SECTION] Section {:?} NOT FOUND in manifest!", section_type);
+            }
             manifest.updated_at = Utc::now();
             self.broadcast_manifest_update();
+        } else {
+            log::warn!("[UPDATE_SECTION] No manifest exists! Cannot update {:?}", section_type);
         }
     }
 
@@ -391,47 +514,6 @@ impl AppGenerator {
         }
     }
 
-    /// Update item groups within a child section (for field groups like "email, password_hash")
-    fn update_manifest_item_groups(&mut self, parent_type: SectionType, child_type: SectionType, group_indices: &[usize], status: crate::auto_task::ItemStatus) {
-        if let Some(ref mut manifest) = self.manifest {
-            for section in &mut manifest.sections {
-                if section.section_type == parent_type {
-                    for child in &mut section.children {
-                        if child.section_type == child_type {
-                            for &idx in group_indices {
-                                if idx < child.item_groups.len() {
-                                    let group = &mut child.item_groups[idx];
-                                    group.status = status.clone();
-                                    if status == crate::auto_task::ItemStatus::Running {
-                                        group.started_at = Some(Utc::now());
-                                    } else if status == crate::auto_task::ItemStatus::Completed {
-                                        group.completed_at = Some(Utc::now());
-                                        if let Some(started) = group.started_at {
-                                            group.duration_seconds =
-                                                Some((Utc::now() - started).num_seconds() as u64);
-                                        }
-                                    }
-                                }
-                            }
-                            // Update child step progress
-                            child.current_step = child.item_groups.iter()
-                                .filter(|g| g.status == crate::auto_task::ItemStatus::Completed)
-                                .count() as u32;
-                            break;
-                        }
-                    }
-                    // Update parent step progress
-                    section.current_step = section.children.iter()
-                        .map(|c| c.current_step)
-                        .sum();
-                    break;
-                }
-            }
-            manifest.updated_at = Utc::now();
-            self.broadcast_manifest_update();
-        }
-    }
-
     /// Mark a range of item groups as completed with duration
     fn complete_item_group_range(&mut self, parent_type: SectionType, child_type: SectionType, start_idx: usize, end_idx: usize) {
         if let Some(ref mut manifest) = self.manifest {
@@ -439,7 +521,11 @@ impl AppGenerator {
                 if section.section_type == parent_type {
                     for child in &mut section.children {
                         if child.section_type == child_type {
-                            for idx in start_idx..=end_idx.min(child.item_groups.len().saturating_sub(1)) {
+                            // Skip if no item_groups exist
+                            if child.item_groups.is_empty() {
+                                continue;
+                            }
+                            for idx in start_idx..=end_idx.min(child.item_groups.len() - 1) {
                                 let group = &mut child.item_groups[idx];
                                 if group.status != crate::auto_task::ItemStatus::Completed {
                                     group.status = crate::auto_task::ItemStatus::Completed;
@@ -469,8 +555,11 @@ impl AppGenerator {
 
     fn add_terminal_output(&mut self, content: &str, line_type: TerminalLineType) {
         if let Some(ref mut manifest) = self.manifest {
+            log::info!("[TERMINAL_OUTPUT] Adding line: {:?} - '{}'", line_type, content);
             manifest.add_terminal_line(content, line_type);
             self.broadcast_manifest_update();
+        } else {
+            log::warn!("[TERMINAL_OUTPUT] No manifest! Cannot add: '{}'", content);
         }
     }
 
@@ -518,6 +607,19 @@ impl AppGenerator {
         manifest.add_terminal_line("Sending request to AI...", TerminalLineType::Progress);
 
         self.manifest = Some(manifest);
+
+        // Log the preliminary TASK.md (no children yet - they come after LLM response)
+        if let Some(ref m) = self.manifest {
+            log::info!(
+                "[PRELIMINARY_MANIFEST] Created for intent: '{}'\n\
+                 ============ PRELIMINARY TASK.md ============\n\
+                 {}\n\
+                 ============================================\n\
+                 NOTE: Sections have NO CHILDREN yet - children are added after LLM completes",
+                intent,
+                m.to_task_md()
+            );
+        }
 
         if let Some(ref task_id) = self.task_id {
             if let Ok(mut manifests) = self.state.task_manifests.write() {
@@ -621,11 +723,6 @@ impl AppGenerator {
         self.update_item_status_internal(section_type, item_name, status, true);
     }
 
-    /// Update a specific item's status without broadcasting (for batch updates)
-    fn update_item_status_silent(&mut self, section_type: SectionType, item_name: &str, status: crate::auto_task::ItemStatus) {
-        self.update_item_status_internal(section_type, item_name, status, false);
-    }
-
     fn emit_activity(&self, step: &str, message: &str, current: u8, total: u8, activity: AgentActivity) {
         if let Some(ref task_id) = self.task_id {
             self.state.emit_activity(task_id, step, message, current, total, activity);
@@ -680,21 +777,24 @@ impl AppGenerator {
         self.tables_synced.clear();
         self.bytes_generated = 0;
 
+        let intent_preview: String = intent.chars().take(100).collect();
         info!(
             "Generating app from intent: {}",
-            &intent[..intent.len().min(100)]
+            intent_preview
         );
 
+        let intent_short: String = intent.chars().take(50).collect();
         log_generator_info(
             "pending",
             &format!(
                 "Starting app generation: {}",
-                &intent[..intent.len().min(50)]
+                intent_short
             ),
         );
 
         if let Some(ref task_id) = self.task_id {
-            self.state.emit_task_started(task_id, &format!("Generating app: {}", &intent[..intent.len().min(50)]), TOTAL_STEPS);
+            let intent_msg: String = intent.chars().take(50).collect();
+            self.state.emit_task_started(task_id, &format!("Generating app: {}", intent_msg), TOTAL_STEPS);
             self.create_preliminary_manifest(intent);
         }
 
@@ -707,58 +807,149 @@ impl AppGenerator {
             activity
         );
 
-        trace!("APP_GENERATOR Calling LLM for intent: {}", &intent[..intent.len().min(50)]);
-        let llm_start = std::time::Instant::now();
+        // ========== PHASE 1: Get project plan (structure only) ==========
+        let intent_trace: String = intent.chars().take(50).collect();
+        trace!("APP_GENERATOR [PHASE1] Getting project plan for: {}", intent_trace);
+        let plan_start = std::time::Instant::now();
 
-        let llm_app = match self.generate_complete_app_with_llm(intent, session.bot_id).await {
-            Ok(app) => {
-                let llm_elapsed = llm_start.elapsed();
-                info!("APP_GENERATOR LLM completed in {:?}: app={}, files={}, tables={}",
-                      llm_elapsed, app.name, app.files.len(), app.tables.len());
-                log_generator_info(
-                    &app.name,
-                    "LLM successfully generated app structure and files",
-                );
+        let mut llm_app = match self.get_project_plan_from_llm(intent, session.bot_id).await {
+            Ok(plan) => {
+                let plan_elapsed = plan_start.elapsed();
+                info!("APP_GENERATOR [PHASE1] Plan received in {:?}: app={}, tables={}, files={}, tools={}",
+                      plan_elapsed, plan.name, plan.tables.len(), plan.files.len(), plan.tools.len());
 
-                let total_bytes: u64 = app.files.iter().map(|f| f.content.len() as u64).sum();
-                self.bytes_generated = total_bytes;
+                let is_empty_plan = plan.files.is_empty() && plan.tables.is_empty() && plan.tools.is_empty();
 
-                let activity = self.build_activity(
-                    "parsing",
-                    1,
-                    Some(TOTAL_STEPS as u32),
-                    Some(&format!("Generated {} with {} files", app.name, app.files.len()))
-                );
-                self.emit_activity(
-                    "llm_response",
-                    &format!("AI generated {} structure", app.name),
-                    2,
-                    TOTAL_STEPS,
-                    activity
-                );
-                app
+                if is_empty_plan {
+                    warn!("APP_GENERATOR [PHASE1] Empty plan received, falling back to single-phase generation");
+                    self.add_terminal_output("Plan parsing returned empty, trying full generation...", TerminalLineType::Warning);
+                    match self.generate_complete_app_with_llm(intent, session.bot_id).await {
+                        Ok(app) => app,
+                        Err(e2) => {
+                            log_generator_error("unknown", "LLM app generation failed", &e2.to_string());
+                            if let Some(ref task_id) = self.task_id {
+                                self.state.emit_task_error(task_id, "llm_request", &e2.to_string());
+                            }
+                            return Err(e2);
+                        }
+                    }
+                } else {
+                    let activity = self.build_activity(
+                        "planning",
+                        1,
+                        Some(TOTAL_STEPS as u32),
+                        Some(&format!("Planned {} with {} files", plan.name, plan.files.len()))
+                    );
+                    self.emit_activity(
+                        "plan_complete",
+                        &format!("Project plan ready: {} tables, {} files", plan.tables.len(), plan.files.len()),
+                        2,
+                        TOTAL_STEPS,
+                        activity
+                    );
+                    plan
+                }
             }
             Err(e) => {
-                let llm_elapsed = llm_start.elapsed();
-                error!("APP_GENERATOR LLM failed after {:?}: {}", llm_elapsed, e);
-                log_generator_error("unknown", "LLM app generation failed", &e.to_string());
-                if let Some(ref task_id) = self.task_id {
-                    self.state.emit_task_error(task_id, "llm_request", &e.to_string());
+                error!("APP_GENERATOR [PHASE1] Planning failed: {}", e);
+                self.add_terminal_output(&format!("Planning error: {e}, trying full generation..."), TerminalLineType::Warning);
+                match self.generate_complete_app_with_llm(intent, session.bot_id).await {
+                    Ok(app) => app,
+                    Err(e2) => {
+                        log_generator_error("unknown", "LLM app generation failed", &e2.to_string());
+                        if let Some(ref task_id) = self.task_id {
+                            self.state.emit_task_error(task_id, "llm_request", &e2.to_string());
+                        }
+                        return Err(e2);
+                    }
                 }
-                return Err(e);
             }
         };
 
-        // Mark "Analyzing Request" as completed BEFORE creating new manifest
+        // Mark "Analyzing Request" as completed
+        info!("[PHASE1->2] Marking Analyzing Request as Completed");
         self.update_manifest_section(SectionType::Validation, SectionStatus::Completed);
+        self.broadcast_manifest_update();
 
+        // Create manifest WITH children immediately (before Phase 2)
         self.create_manifest_from_llm_app(&llm_app);
-        self.add_terminal_output(&format!("## Planning: {}", llm_app.name), TerminalLineType::Info);
+        self.broadcast_manifest_update();
+
+        info!("APP_GENERATOR [PHASE1->2] Manifest created with full structure, starting content generation");
+        self.add_terminal_output(&format!("## Project Plan: {}", llm_app.name), TerminalLineType::Info);
         self.add_terminal_output(&format!("- Tables: {}", llm_app.tables.len()), TerminalLineType::Info);
         self.add_terminal_output(&format!("- Files: {}", llm_app.files.len()), TerminalLineType::Info);
         self.add_terminal_output(&format!("- Tools: {}", llm_app.tools.len()), TerminalLineType::Info);
         self.add_terminal_output(&format!("- Schedulers: {}", llm_app.schedulers.len()), TerminalLineType::Info);
+        self.add_terminal_output("", TerminalLineType::Info);
+        self.add_terminal_output("## Phase 2: Generating content...", TerminalLineType::Progress);
         self.update_manifest_stats_real(true);
+
+        // ========== PHASE 2: Generate content for each file ==========
+        let total_items = llm_app.files.len() + llm_app.tools.len() + llm_app.schedulers.len();
+        let mut generated_count = 0;
+
+        // Generate content for files that don't have it yet
+        let files_needing_content: Vec<usize> = llm_app.files.iter()
+            .enumerate()
+            .filter(|(_, f)| f.content.is_empty())
+            .map(|(i, _)| i)
+            .collect();
+
+        info!("[PHASE2] Files needing content: {} out of {} total files", files_needing_content.len(), llm_app.files.len());
+        for (i, file) in llm_app.files.iter().enumerate() {
+            info!("[PHASE2] File {}: {} - content_len={}", i, file.filename, file.content.len());
+        }
+
+        if !files_needing_content.is_empty() {
+            info!("[PHASE2] Setting Files section to Running - manifest exists: {}", self.manifest.is_some());
+
+            // Debug: List all sections before update
+            if let Some(ref manifest) = self.manifest {
+                info!("[PHASE2] Current manifest sections:");
+                for (i, s) in manifest.sections.iter().enumerate() {
+                    info!("[PHASE2]   [{}] {:?} = '{}' status={:?}", i, s.section_type, s.name, s.status);
+                }
+            }
+
+            self.update_manifest_section(SectionType::Files, SectionStatus::Running);
+            self.broadcast_manifest_update();
+            self.add_terminal_output(&format!("## Phase 2: Generating {} files...", files_needing_content.len()), TerminalLineType::Progress);
+
+            for idx in files_needing_content {
+                let filename = llm_app.files[idx].filename.clone();
+                generated_count += 1;
+                info!("[PHASE2] Starting generation for file: {}", filename);
+                self.add_terminal_output(&format!("Generating `{filename}`..."), TerminalLineType::Info);
+                self.update_item_status(SectionType::Files, &filename, crate::auto_task::ItemStatus::Running);
+
+                match self.generate_file_content(&llm_app, &filename, session.bot_id).await {
+                    Ok(content) => {
+                        let content_len = content.len();
+                        info!("[PHASE2] Generated file {} with {} bytes", filename, content_len);
+                        llm_app.files[idx].content = content;
+                        self.add_terminal_output(&format!("✓ `{filename}` ({content_len} bytes)"), TerminalLineType::Success);
+                        self.update_item_status(SectionType::Files, &filename, crate::auto_task::ItemStatus::Completed);
+                    }
+                    Err(e) => {
+                        error!("[PHASE2] Failed to generate {}: {}", filename, e);
+                        self.add_terminal_output(&format!("✗ `{filename}` failed: {e}"), TerminalLineType::Error);
+                    }
+                }
+
+                let activity = self.build_activity("generating", generated_count as u32, Some(total_items as u32), Some(&filename));
+                self.emit_activity("file_generated", &format!("Generated {filename}"), 3, TOTAL_STEPS, activity);
+            }
+        } else {
+            info!("[PHASE2] No files need content generation - all {} files already have content", llm_app.files.len());
+            self.add_terminal_output(&format!("All {} files already generated", llm_app.files.len()), TerminalLineType::Success);
+            self.update_manifest_section(SectionType::Files, SectionStatus::Completed);
+            self.broadcast_manifest_update();
+        }
+
+        // Mark Files section as completed
+        self.update_manifest_section(SectionType::Files, SectionStatus::Completed);
+        self.broadcast_manifest_update();
 
         let activity = self.build_activity("parsing", 2, Some(TOTAL_STEPS as u32), Some(&format!("Processing {} structure", llm_app.name)));
         self.emit_activity("parse_structure", &format!("Parsing {} structure...", llm_app.name), 3, TOTAL_STEPS, activity);
@@ -766,7 +957,9 @@ impl AppGenerator {
         let tables = Self::convert_llm_tables(&llm_app.tables);
 
         if !tables.is_empty() {
+            info!("[PHASE2] Setting Database & Models section to Running");
             self.update_manifest_section(SectionType::DatabaseModels, SectionStatus::Running);
+            self.broadcast_manifest_update();
             self.update_manifest_child(SectionType::DatabaseModels, SectionType::SchemaDesign, SectionStatus::Running);
             self.add_terminal_output("## Creating database schema...", TerminalLineType::Progress);
             self.update_manifest_stats_real(true);
@@ -795,56 +988,97 @@ impl AppGenerator {
                 );
             }
 
-            match self.sync_tables_to_database(&tables) {
-                Ok(result) => {
-                    log_generator_info(
-                        &llm_app.name,
-                        &format!(
-                            "Tables synced: {} created, {} fields",
-                            result.tables_created, result.fields_added
-                        ),
-                    );
-                    self.tables_synced = table_names.clone();
+            // Sync tables one-by-one with real-time progress updates
+            let total_tables = tables.len();
+            let mut tables_created = 0;
+            let mut fields_added = 0;
 
-                    // Complete all item groups in the schema design child
-                    if let Some(ref manifest) = self.manifest {
-                        let group_count = manifest.sections.iter()
-                            .find(|s| s.section_type == SectionType::DatabaseModels)
-                            .and_then(|s| s.children.first())
-                            .map(|c| c.item_groups.len())
-                            .unwrap_or(0);
-                        if group_count > 0 {
-                            self.complete_item_group_range(SectionType::DatabaseModels, SectionType::SchemaDesign, 0, group_count - 1);
+            for (idx, table) in tables.iter().enumerate() {
+                // Update current action to show which table is being processed
+                self.add_terminal_output(&format!("  Creating table `{}`...", table.name), TerminalLineType::Info);
+
+                // Mark this specific item as running
+                self.update_item_status(SectionType::DatabaseModels, &table.name, crate::auto_task::ItemStatus::Running);
+                self.broadcast_manifest_update();
+
+                // Sync the individual table
+                match self.sync_single_table_to_database(table) {
+                    Ok(field_count) => {
+                        tables_created += 1;
+                        fields_added += field_count;
+
+                        // Mark item as completed and broadcast immediately
+                        self.update_item_status(SectionType::DatabaseModels, &table.name, crate::auto_task::ItemStatus::Completed);
+                        self.add_terminal_output(&format!("  ✓ Table `{}` ({} fields)", table.name, field_count), TerminalLineType::Success);
+
+                        // Update child progress
+                        if let Some(ref mut manifest) = self.manifest {
+                            if let Some(section) = manifest.sections.iter_mut().find(|s| s.section_type == SectionType::DatabaseModels) {
+                                if let Some(child) = section.children.iter_mut().find(|c| c.section_type == SectionType::SchemaDesign) {
+                                    child.current_step = (idx + 1) as u32;
+                                }
+                                section.current_step = (idx + 1) as u32;
+                            }
                         }
-                    }
 
-                    // Mark child and parent as completed
-                    self.update_manifest_child(SectionType::DatabaseModels, SectionType::SchemaDesign, SectionStatus::Completed);
-                    self.update_manifest_section(SectionType::DatabaseModels, SectionStatus::Completed);
-                    for table_name in &table_names {
-                        self.update_item_status(SectionType::DatabaseModels, table_name, crate::auto_task::ItemStatus::Completed);
-                        self.add_terminal_output(&format!("✓ Table `{}`", table_name), TerminalLineType::Success);
+                        // Complete item group if it exists
+                        self.complete_item_group_range(SectionType::DatabaseModels, SectionType::SchemaDesign, idx, idx);
+
+                        self.broadcast_manifest_update();
+
+                        // Emit activity for each table
+                        let activity = self.build_activity(
+                            "database",
+                            3,
+                            Some(total_tables as u32),
+                            Some(&format!("Created table {} ({}/{})", table.name, idx + 1, total_tables))
+                        );
+                        self.emit_activity(
+                            "table_created",
+                            &format!("Created table {}", table.name),
+                            4,
+                            TOTAL_STEPS,
+                            activity
+                        );
                     }
-                    self.update_manifest_stats_real(true);
-                    let activity = self.build_activity(
-                        "database",
-                        4,
-                        Some(TOTAL_STEPS as u32),
-                        Some(&format!("{} tables, {} fields created", result.tables_created, result.fields_added))
-                    );
-                    self.emit_activity(
-                        "tables_synced",
-                        "Database tables created",
-                        4,
-                        TOTAL_STEPS,
-                        activity
-                    );
+                    Err(e) => {
+                        warn!("Table {} may already exist or failed: {}", table.name, e);
+                        // Still mark as completed (table likely exists)
+                        self.update_item_status(SectionType::DatabaseModels, &table.name, crate::auto_task::ItemStatus::Completed);
+                        self.add_terminal_output(&format!("  ⚠ Table `{}` (may exist)", table.name), TerminalLineType::Info);
+                        self.broadcast_manifest_update();
+                    }
                 }
-                Err(e) => {
-                    log_generator_error(&llm_app.name, "Failed to sync tables", &e.to_string());
-                    self.add_terminal_output(&format!("  ✗ Error: {}", e), TerminalLineType::Error);
-                }
+
+                self.tables_synced.push(table.name.clone());
             }
+
+            log_generator_info(
+                &llm_app.name,
+                &format!(
+                    "Tables synced: {} created, {} fields",
+                    tables_created, fields_added
+                ),
+            );
+
+            // Mark child and parent as completed
+            self.update_manifest_child(SectionType::DatabaseModels, SectionType::SchemaDesign, SectionStatus::Completed);
+            self.update_manifest_section(SectionType::DatabaseModels, SectionStatus::Completed);
+            self.update_manifest_stats_real(true);
+
+            let activity = self.build_activity(
+                "database",
+                4,
+                Some(TOTAL_STEPS as u32),
+                Some(&format!("{} tables, {} fields created", tables_created, fields_added))
+            );
+            self.emit_activity(
+                "tables_synced",
+                "Database tables created",
+                4,
+                TOTAL_STEPS,
+                activity
+            );
         }
 
         // Use bucket_name from state (e.g., "default.gbai") instead of deriving from bot name
@@ -1142,6 +1376,26 @@ impl AppGenerator {
     }
 
     fn get_platform_prompt() -> &'static str {
+        static PROMPT: OnceLock<String> = OnceLock::new();
+
+        PROMPT.get_or_init(|| {
+            let prompt_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("src/auto_task/APP_GENERATOR_PROMPT.md");
+
+            match std::fs::read_to_string(&prompt_path) {
+                Ok(content) => {
+                    info!("[APP_GENERATOR] Loaded prompt from {:?} ({} chars)", prompt_path, content.len());
+                    content
+                }
+                Err(e) => {
+                    warn!("[APP_GENERATOR] Failed to load APP_GENERATOR_PROMPT.md: {}, using fallback", e);
+                    Self::get_fallback_prompt().to_string()
+                }
+            }
+        }).as_str()
+    }
+
+    fn get_fallback_prompt() -> &'static str {
         r##"
 GENERAL BOTS PLATFORM - APP GENERATION
 
@@ -1152,98 +1406,354 @@ You are an expert full-stack developer generating complete applications for Gene
 DATABASE (/api/db/):
 - GET /api/db/{table} - List records (query: limit, offset, order_by, order_dir, search, field=value)
 - GET /api/db/{table}/{id} - Get single record
-- GET /api/db/{table}/count - Count records
 - POST /api/db/{table} - Create record (JSON body)
 - PUT /api/db/{table}/{id} - Update record
 - DELETE /api/db/{table}/{id} - Delete record
 
-DRIVE (/api/drive/):
-- GET /api/drive/list?path=/folder - List files
-- GET /api/drive/download?path=/file - Download
-- POST /api/drive/upload - Upload (multipart)
-- DELETE /api/drive/delete?path=/file - Delete
-
-COMMUNICATION:
-- POST /api/mail/send - {"to", "subject", "body"}
-- POST /api/whatsapp/send - {"to", "message"}
-- POST /api/llm/generate - {"prompt", "max_tokens"}
-
 === HTMX REQUIREMENTS ===
 
-All HTML pages MUST use HTMX exclusively. NO fetch(), NO XMLHttpRequest, NO inline onclick.
+All HTML pages MUST use HTMX exclusively. NO fetch(), NO XMLHttpRequest.
 
-Key attributes:
-- hx-get, hx-post, hx-put, hx-delete - HTTP methods
-- hx-target="#id" - Response destination
-- hx-swap="innerHTML|outerHTML|beforeend|delete" - Insert method
-- hx-trigger="click|submit|load|every 5s|keyup changed delay:300ms"
-- hx-indicator="#spinner" - Loading indicator
-- hx-confirm="Message?" - Confirmation
-- hx-vals='{"key":"value"}' - Extra values
-- hx-headers='{"X-Custom":"value"}' - Headers
-
-=== REQUIRED HTML STRUCTURE ===
-
-Every HTML file must include:
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page Title</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="/js/vendor/htmx.min.js"></script>
-    <script src="/api/app-logs/logger.js" defer></script>
-    <script src="designer.js" defer></script>
-</head>
-<body data-app-name="APP_NAME_HERE">
-    <!-- Content -->
-</body>
-</html>
-```
+Key attributes: hx-get, hx-post, hx-put, hx-delete, hx-target, hx-swap, hx-trigger
 
 === BASIC SCRIPTS (.bas) ===
 
-Tools (triggered by chat):
-```
-HEAR "keyword1", "keyword2"
-    result = GET FROM "table" WHERE field = value
-    TALK "Response: " + result
-END HEAR
-```
-
-Schedulers (cron-based):
-```
-SET SCHEDULE "0 9 * * *"
-    data = GET FROM "table"
-    SEND MAIL TO "email" WITH SUBJECT "Report" BODY data
-END SCHEDULE
-```
-
-BASIC Keywords:
-- TALK "message" - Send message
-- ASK "question" - Get input
-- GET FROM "table" WHERE field=val - Query
-- SAVE TO "table" WITH field1, field2 - Insert
-- SEND MAIL TO "x" WITH SUBJECT "y" BODY "z"
-- result = LLM "prompt" - AI generation
+Tools: HEAR "keyword" ... END HEAR
+Schedulers: SET SCHEDULE "cron" ... END SCHEDULE
+Keywords: TALK, ASK, GET FROM, SAVE TO, SEND MAIL, LLM
 
 === FIELD TYPES ===
 guid, string, text, integer, decimal, boolean, date, datetime, json
 
-=== GENERATION RULES ===
-
-1. Generate COMPLETE, WORKING code - no placeholders, no "...", no "add more here"
-2. Use semantic HTML5 (header, main, nav, section, article, footer)
-3. Include loading states (hx-indicator)
-4. Include error handling
-5. Make it beautiful, modern, responsive
-6. Include dark mode support in CSS
-7. Tables should have id, created_at, updated_at fields
-8. Forms must validate required fields
-9. Lists must have search, pagination, edit/delete actions
+Generate COMPLETE, WORKING code with no placeholders.
 "##
+    }
+
+    /// PHASE 1: Get complete project plan from LLM (structure only, no content)
+    async fn get_project_plan_from_llm(
+        &self,
+        intent: &str,
+        bot_id: Uuid,
+    ) -> Result<LlmGeneratedApp, Box<dyn std::error::Error + Send + Sync>> {
+        let platform = Self::get_platform_prompt();
+        let prompt = format!(
+            r#"{platform}
+
+=== PLANNING PHASE ===
+Analyze this request and return ONLY the project structure (no file content yet).
+
+USER REQUEST: "{intent}"
+
+Output format (use EXACT delimiters):
+
+<<<APP_START>>>
+name: app-name-lowercase
+description: Brief description
+domain: utility|crm|inventory|booking|etc
+<<<TABLES_START>>>
+<<<TABLE:table_name>>>
+id:guid:false
+field_name:type:nullable
+<<<TABLES_END>>>
+<<<FILES_PLAN>>>
+index.html: Main page with [describe purpose]
+styles.css: Styling with [describe theme]
+app.js: Logic for [describe functionality]
+<<<FILES_END>>>
+<<<TOOLS_PLAN>>>
+helper.bas: Voice command for [purpose]
+<<<TOOLS_END>>>
+<<<SCHEDULERS_PLAN>>>
+daily_task.bas: Runs daily to [purpose]
+<<<SCHEDULERS_END>>>
+<<<APP_END>>>
+
+RESPOND ONLY WITH THE PLAN STRUCTURE. NO QUESTIONS."#
+        );
+
+        let intent_preview: String = intent.chars().take(50).collect();
+        info!("[PHASE1] Getting project plan from LLM for: {}", intent_preview);
+        let response = self.call_llm(&prompt, bot_id).await?;
+        info!("[PHASE1] Project plan received, parsing...");
+
+        Self::parse_project_plan(&response, intent)
+    }
+
+    /// Parse the project plan (structure only)
+    fn parse_project_plan(
+        response: &str,
+        intent: &str,
+    ) -> Result<LlmGeneratedApp, Box<dyn std::error::Error + Send + Sync>> {
+        let mut app = LlmGeneratedApp::default();
+
+        // Debug: Log the raw response to understand what LLM returned
+        let response_preview: String = response.chars().take(500).collect();
+        info!("[PHASE1_PARSE] Response preview: {}", response_preview.replace('\n', "\\n"));
+        info!("[PHASE1_PARSE] Has APP_START: {}, Has TABLES_START: {}, Has FILES_PLAN: {}, Has TOOLS_PLAN: {}",
+            response.contains("<<<APP_START>>>"),
+            response.contains("<<<TABLES_START>>>"),
+            response.contains("<<<FILES_PLAN>>>"),
+            response.contains("<<<TOOLS_PLAN>>>")
+        );
+
+        // Extract app name and description
+        if let Some(start) = response.find("<<<APP_START>>>") {
+            let content = response.get(start..).unwrap_or("");
+
+            for line in content.lines() {
+                let line = line.trim();
+                if line.starts_with("name:") {
+                    app.name = line.get(5..).unwrap_or("").trim().to_string();
+                } else if line.starts_with("description:") {
+                    app.description = line.get(12..).unwrap_or("").trim().to_string();
+                } else if line.starts_with("domain:") {
+                    app.domain = line.get(7..).unwrap_or("").trim().to_string();
+                }
+            }
+        }
+
+        // Default name if not found
+        if app.name.is_empty() {
+            app.name = intent.split_whitespace().take(3).collect::<Vec<_>>().join("-").to_lowercase();
+        }
+        if app.description.is_empty() {
+            app.description = intent.to_string();
+        }
+
+        // Parse tables
+        if let (Some(start), Some(end)) = (response.find("<<<TABLES_START>>>"), response.find("<<<TABLES_END>>>")) {
+            let tables_section = response.get(start..end).unwrap_or("");
+            let mut current_table: Option<LlmTable> = None;
+
+            for line in tables_section.lines() {
+                let line = line.trim();
+                if line.starts_with("<<<TABLE:") && line.ends_with(">>>") {
+                    if let Some(table) = current_table.take() {
+                        if !table.name.is_empty() {
+                            app.tables.push(table);
+                        }
+                    }
+                    let table_name = line.get(9..line.len().saturating_sub(3)).unwrap_or("").trim();
+                    current_table = Some(LlmTable {
+                        name: table_name.to_string(),
+                        fields: Vec::new(),
+                    });
+                } else if line.contains(':') && current_table.is_some() {
+                    let parts: Vec<&str> = line.split(':').collect();
+                    if parts.len() >= 2 {
+                        let field = LlmField {
+                            name: parts[0].trim().to_string(),
+                            field_type: parts[1].trim().to_string(),
+                            nullable: parts.get(2).map(|s| *s == "true").unwrap_or(true),
+                            default: parts.get(3).map(|s| s.to_string()),
+                            reference: parts.get(5).map(|s| s.to_string()),
+                        };
+                        if let Some(ref mut table) = current_table {
+                            table.fields.push(field);
+                        }
+                    }
+                }
+            }
+            if let Some(table) = current_table {
+                if !table.name.is_empty() {
+                    app.tables.push(table);
+                }
+            }
+        } else {
+            info!("[PHASE1_PARSE] TABLES_START not found, trying <<<TABLE:>>> delimiters...");
+            for table_match in response.match_indices("<<<TABLE:") {
+                let start = table_match.0;
+                if let Some(rest) = response.get(start..) {
+                    if let Some(end_offset) = rest.find(">>>") {
+                        if let Some(table_name) = rest.get(9..end_offset) {
+                            let table_name = table_name.trim();
+                            if !table_name.is_empty() {
+                                info!("[PHASE1_PARSE] Found table from delimiter: {}", table_name);
+                                app.tables.push(LlmTable {
+                                    name: table_name.to_string(),
+                                    fields: Vec::new(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Parse file plan (just names, no content yet)
+        if let (Some(start), Some(end)) = (response.find("<<<FILES_PLAN>>>"), response.find("<<<FILES_END>>>")) {
+            let files_section = response.get(start + 16..end).unwrap_or("");
+            info!("[PHASE1_PARSE] FILES_PLAN section: {}", files_section.replace('\n', "\\n"));
+            for line in files_section.lines() {
+                let line = line.trim();
+                if line.contains(':') {
+                    let parts: Vec<&str> = line.splitn(2, ':').collect();
+                    let filename = parts[0].trim().to_string();
+                    // Accept common web file extensions
+                    if !filename.is_empty() && (filename.ends_with(".html") || filename.ends_with(".css") || filename.ends_with(".js") || filename.ends_with(".bas") || filename.ends_with(".json")) {
+                        info!("[PHASE1_PARSE] Adding file: {}", filename);
+                        app.files.push(LlmFile {
+                            filename,
+                            content: String::new(), // Content will be generated in Phase 2
+                        });
+                    } else if !filename.is_empty() {
+                        info!("[PHASE1_PARSE] Skipped file (unknown ext): {}", filename);
+                    }
+                }
+            }
+        } else {
+            info!("[PHASE1_PARSE] FILES_PLAN section not found! Looking for <<<FILE: delimiters...");
+            // Fallback: try to find <<<FILE:xxx>>> delimiters directly
+            for file_match in response.match_indices("<<<FILE:") {
+                let start = file_match.0;
+                if let Some(rest) = response.get(start..) {
+                    if let Some(end_offset) = rest.find(">>>") {
+                        if let Some(filename) = rest.get(8..end_offset) {
+                            let filename = filename.trim();
+                            if !filename.is_empty() {
+                                info!("[PHASE1_PARSE] Found file from delimiter: {}", filename);
+                                app.files.push(LlmFile {
+                                    filename: filename.to_string(),
+                                    content: String::new(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Parse tools plan
+        if let (Some(start), Some(end)) = (response.find("<<<TOOLS_PLAN>>>"), response.find("<<<TOOLS_END>>>")) {
+            let tools_section = response.get(start + 16..end).unwrap_or("");
+            for line in tools_section.lines() {
+                let line = line.trim();
+                if line.contains(':') {
+                    let parts: Vec<&str> = line.splitn(2, ':').collect();
+                    let filename = parts[0].trim().to_string();
+                    if !filename.is_empty() {
+                        let filename = if filename.ends_with(".bas") { filename } else { format!("{}.bas", filename) };
+                        app.tools.push(LlmFile {
+                            filename,
+                            content: String::new(),
+                        });
+                    }
+                }
+            }
+        } else {
+            info!("[PHASE1_PARSE] TOOLS_PLAN not found, trying <<<TOOL:>>> delimiters...");
+            for tool_match in response.match_indices("<<<TOOL:") {
+                let start = tool_match.0;
+                if let Some(rest) = response.get(start..) {
+                    if let Some(end_offset) = rest.find(">>>") {
+                        if let Some(tool_name) = rest.get(8..end_offset) {
+                            let tool_name = tool_name.trim();
+                            if !tool_name.is_empty() {
+                                let filename = if tool_name.ends_with(".bas") { tool_name.to_string() } else { format!("{}.bas", tool_name) };
+                                info!("[PHASE1_PARSE] Found tool from delimiter: {}", filename);
+                                app.tools.push(LlmFile {
+                                    filename,
+                                    content: String::new(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Parse schedulers plan
+        if let (Some(start), Some(end)) = (response.find("<<<SCHEDULERS_PLAN>>>"), response.find("<<<SCHEDULERS_END>>>")) {
+            let sched_section = response.get(start + 21..end).unwrap_or("");
+            for line in sched_section.lines() {
+                let line = line.trim();
+                if line.contains(':') {
+                    let parts: Vec<&str> = line.splitn(2, ':').collect();
+                    let filename = parts[0].trim().to_string();
+                    if !filename.is_empty() {
+                        let filename = if filename.ends_with(".bas") { filename } else { format!("{}.bas", filename) };
+                        app.schedulers.push(LlmFile {
+                            filename,
+                            content: String::new(),
+                        });
+                    }
+                }
+            }
+        } else {
+            info!("[PHASE1_PARSE] SCHEDULERS_PLAN not found, trying <<<SCHEDULER:>>> delimiters...");
+            for sched_match in response.match_indices("<<<SCHEDULER:") {
+                let start = sched_match.0;
+                if let Some(rest) = response.get(start..) {
+                    if let Some(end_offset) = rest.find(">>>") {
+                        if let Some(sched_name) = rest.get(13..end_offset) {
+                            let sched_name = sched_name.trim();
+                            if !sched_name.is_empty() {
+                                let filename = if sched_name.ends_with(".bas") { sched_name.to_string() } else { format!("{}.bas", sched_name) };
+                                info!("[PHASE1_PARSE] Found scheduler from delimiter: {}", filename);
+                                app.schedulers.push(LlmFile {
+                                    filename,
+                                    content: String::new(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        info!("[PHASE1_PARSE] Final result: {} tables, {} files, {} tools, {} schedulers",
+            app.tables.len(), app.files.len(), app.tools.len(), app.schedulers.len());
+
+        if app.tables.is_empty() && app.files.is_empty() && app.tools.is_empty() {
+            warn!("[PHASE1_PARSE] Empty plan! LLM did not return expected delimiters. Full response ({} chars):", response.len());
+            let full_preview: String = response.chars().take(2000).collect();
+            warn!("[PHASE1_PARSE] {}", full_preview);
+        }
+
+        Ok(app)
+    }
+
+    /// PHASE 2: Generate content for a single file
+    async fn generate_file_content(
+        &self,
+        app: &LlmGeneratedApp,
+        filename: &str,
+        bot_id: Uuid,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let platform = Self::get_platform_prompt();
+        let tables_desc = app.tables.iter()
+            .map(|t| format!("- {}: {}", t.name, t.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", ")))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let prompt = format!(
+            r#"{platform}
+
+=== APP CONTEXT ===
+App Name: {app_name}
+Description: {description}
+Tables:
+{tables_desc}
+
+=== GENERATE FILE: {filename} ===
+Generate COMPLETE content for this file. No placeholders, no "...", no shortcuts.
+
+Rules:
+- Use data-app-name="{app_name}" in HTML for API calls
+- Include all necessary HTML structure, CSS, and JavaScript
+- For CRUD pages, implement full list/create/edit/delete functionality
+- CSS should be comprehensive with dark mode support
+- JavaScript should be complete and functional
+
+RESPOND WITH ONLY THE FILE CONTENT. NO EXPLANATIONS."#,
+            platform = platform,
+            app_name = app.name,
+            description = app.description,
+            tables_desc = if tables_desc.is_empty() { "None".to_string() } else { tables_desc },
+            filename = filename,
+        );
+
+        self.call_llm(&prompt, bot_id).await
     }
 
     async fn generate_complete_app_with_llm(
@@ -1256,79 +1766,11 @@ guid, string, text, integer, decimal, boolean, date, datetime, json
         let prompt = format!(
             r#"{platform}
 
-=== USER REQUEST ===
-"{intent}"
+=== FULL GENERATION MODE ===
+USER REQUEST: "{intent}"
 
-=== YOLO MODE - JUST BUILD IT ===
-DO NOT ask questions. DO NOT request clarification. Just CREATE the app NOW.
-
-If user says "calculator" → build a full-featured calculator with basic ops, scientific functions, history
-If user says "CRM" → build customer management with contacts, companies, deals, notes
-If user says "inventory" → build stock tracking with products, categories, movements
-If user says "booking" → build appointment scheduler with calendar, slots, confirmations
-If user says ANYTHING → interpret creatively and BUILD SOMETHING AWESOME
-
-=== OUTPUT FORMAT (STREAMING DELIMITERS) ===
-
-Use this EXACT format with delimiters (NOT JSON) so content can stream safely:
-
-<<<APP_START>>>
-name: app-name-lowercase-dashes
-description: What this app does
-domain: healthcare|sales|inventory|booking|utility|etc
-<<<TABLES_START>>>
-<<<TABLE:table_name>>>
-id:guid:false
-created_at:datetime:false:now()
-updated_at:datetime:false:now()
-field_name:string:true
-foreign_key:guid:false:ref:other_table
-<<<TABLE:another_table>>>
-id:guid:false
-name:string:true
-<<<TABLES_END>>>
-<<<FILE:index.html>>>
-<!DOCTYPE html>
-<html lang="en">
-... complete HTML content here ...
-</html>
-<<<FILE:styles.css>>>
-:root {{ --primary: #3b82f6; }}
-body {{ margin: 0; font-family: system-ui; }}
-... complete CSS content here ...
-<<<FILE:table_name.html>>>
-<!DOCTYPE html>
-... complete list page ...
-<<<FILE:table_name_form.html>>>
-<!DOCTYPE html>
-... complete form page ...
-<<<TOOL:app_helper.bas>>>
-HEAR "help"
-    TALK "I can help with..."
-END HEAR
-<<<SCHEDULER:daily_report.bas>>>
-SET SCHEDULE "0 9 * * *"
-    data = GET FROM "table"
-    SEND MAIL TO "admin@example.com" WITH SUBJECT "Daily Report" BODY data
-END SCHEDULE
-<<<APP_END>>>
-
-=== TABLE FIELD FORMAT ===
-Each field on its own line: name:type:nullable[:default][:ref:table]
-- Types: guid, string, text, integer, decimal, boolean, date, datetime, json
-- nullable: true or false
-- default: optional, e.g., now(), 0, ''
-- ref:table: optional foreign key reference
-
-=== CRITICAL RULES ===
-- For utilities (calculator, timer, converter): TABLES_START/END with nothing between, focus on HTML/JS
-- For data apps (CRM, inventory): design proper tables and CRUD pages
-- Generate ALL files completely - no placeholders, no "...", no shortcuts
-- CSS must be comprehensive with variables, responsive design, dark mode
-- Every HTML page needs proper structure with all required scripts
-- Replace APP_NAME_HERE with actual app name in data-app-name attribute
-- BE CREATIVE - add extra features the user didn't ask for but would love
-- Use the EXACT delimiter format above - this allows streaming progress!
+Generate a COMPLETE app with all files. Use the STREAMING DELIMITERS format from the platform docs.
+Be creative - add features the user would love. NO placeholders, NO "...", complete code only.
 
 NO QUESTIONS. JUST BUILD."#
         );
@@ -1348,10 +1790,12 @@ NO QUESTIONS. JUST BUILD."#
         let end_idx = response.find(DELIM_APP_END);
 
         let content = match (start_idx, end_idx) {
-            (Some(s), Some(e)) => &response[s + DELIM_APP_START.len()..e],
+            (Some(s), Some(e)) => {
+                response.get(s + DELIM_APP_START.len()..e).unwrap_or("")
+            }
             (Some(s), None) => {
                 warn!("No APP_END found, using rest of response");
-                &response[s + DELIM_APP_START.len()..]
+                response.get(s + DELIM_APP_START.len()..).unwrap_or("")
             }
             _ => {
                 // Fallback: try to parse as JSON for backwards compatibility
@@ -1370,15 +1814,15 @@ NO QUESTIONS. JUST BUILD."#
             // Parse header fields
             if current_section == "header" {
                 if line.starts_with("name:") {
-                    app.name = line[5..].trim().to_string();
+                    app.name = line.get(5..).unwrap_or("").trim().to_string();
                     continue;
                 }
                 if line.starts_with("description:") {
-                    app.description = line[12..].trim().to_string();
+                    app.description = line.get(12..).unwrap_or("").trim().to_string();
                     continue;
                 }
                 if line.starts_with("domain:") {
-                    app.domain = line[7..].trim().to_string();
+                    app.domain = line.get(7..).unwrap_or("").trim().to_string();
                     continue;
                 }
             }
@@ -1407,7 +1851,7 @@ NO QUESTIONS. JUST BUILD."#
                         app.tables.push(table);
                     }
                 }
-                let table_name = &line[DELIM_TABLE_PREFIX.len()..line.len() - DELIM_END.len()];
+                let table_name = line.get(DELIM_TABLE_PREFIX.len()..line.len().saturating_sub(DELIM_END.len())).unwrap_or("").trim();
                 current_table = Some(LlmTable {
                     name: table_name.to_string(),
                     fields: Vec::new(),
@@ -1431,7 +1875,7 @@ NO QUESTIONS. JUST BUILD."#
                 if let Some((file_type, filename, content)) = current_file.take() {
                     Self::save_parsed_file(&mut app, &file_type, filename, content);
                 }
-                let filename = &line[DELIM_FILE_PREFIX.len()..line.len() - DELIM_END.len()];
+                let filename = line.get(DELIM_FILE_PREFIX.len()..line.len().saturating_sub(DELIM_END.len())).unwrap_or("").trim();
                 current_file = Some(("file".to_string(), filename.to_string(), String::new()));
                 continue;
             }
@@ -1441,7 +1885,7 @@ NO QUESTIONS. JUST BUILD."#
                 if let Some((file_type, filename, content)) = current_file.take() {
                     Self::save_parsed_file(&mut app, &file_type, filename, content);
                 }
-                let filename = &line[DELIM_TOOL_PREFIX.len()..line.len() - DELIM_END.len()];
+                let filename = line.get(DELIM_TOOL_PREFIX.len()..line.len().saturating_sub(DELIM_END.len())).unwrap_or("").trim();
                 current_file = Some(("tool".to_string(), filename.to_string(), String::new()));
                 continue;
             }
@@ -1451,7 +1895,7 @@ NO QUESTIONS. JUST BUILD."#
                 if let Some((file_type, filename, content)) = current_file.take() {
                     Self::save_parsed_file(&mut app, &file_type, filename, content);
                 }
-                let filename = &line[DELIM_SCHEDULER_PREFIX.len()..line.len() - DELIM_END.len()];
+                let filename = line.get(DELIM_SCHEDULER_PREFIX.len()..line.len().saturating_sub(DELIM_END.len())).unwrap_or("").trim();
                 current_file = Some(("scheduler".to_string(), filename.to_string(), String::new()));
                 continue;
             }
@@ -1642,7 +2086,8 @@ NO QUESTIONS. JUST BUILD."#
             }
             Err(e) => {
                 error!("Failed to parse LLM response: {}", e);
-                error!("Response was: {}", &response[..response.len().min(500)]);
+                let preview: String = response.chars().take(500).collect();
+                error!("Response was: {}", preview);
                 Err(format!("Failed to parse LLM response: {}", e).into())
             }
         }
@@ -1733,7 +2178,10 @@ NO QUESTIONS. JUST BUILD."#
                 let mut last_emit = std::time::Instant::now();
                 let mut chunk_count = 0u32;
                 let stream_start = std::time::Instant::now();
-
+                let mut last_progress_update = std::time::Instant::now();
+                let mut detected_tables: Vec<String> = Vec::new();
+                let mut detected_files: Vec<String> = Vec::new();
+                let mut detected_tools: Vec<String> = Vec::new();
                 trace!("APP_GENERATOR Stream receiver started");
 
                 while let Some(chunk) = rx.recv().await {
@@ -1741,18 +2189,196 @@ NO QUESTIONS. JUST BUILD."#
                     full_response.push_str(&chunk);
                     chunk_buffer.push_str(&chunk);
 
+                    // Detect section markers using full_response (not chunk_buffer which gets trimmed)
+                    let in_files_plan = full_response.contains("<<<FILES_PLAN>>>") && !full_response.contains("<<<FILES_END>>>");
+                    let in_tools_plan = full_response.contains("<<<TOOLS_PLAN>>>") && !full_response.contains("<<<TOOLS_END>>>");
+                    let in_schedulers_plan = full_response.contains("<<<SCHEDULERS_PLAN>>>") && !full_response.contains("<<<SCHEDULERS_END>>>");
+
+                    // Detect items being generated in real-time (full generation format)
+                    // Use full_response for reliable detection with safe string extraction
+                    for table_match in full_response.match_indices("<<<TABLE:") {
+                        let start = table_match.0;
+                        if let Some(rest) = full_response.get(start..) {
+                            if let Some(end_offset) = rest.find(">>>") {
+                                if let Some(table_name) = rest.get(9..end_offset) {
+                                    let table_name = table_name.trim();
+                                    if !table_name.is_empty() && !detected_tables.contains(&table_name.to_string()) {
+                                        detected_tables.push(table_name.to_string());
+                                        info!("[LLM_STREAM] Detected table: {table_name}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    for file_match in full_response.match_indices("<<<FILE:") {
+                        let start = file_match.0;
+                        if let Some(rest) = full_response.get(start..) {
+                            if let Some(end_offset) = rest.find(">>>") {
+                                if let Some(file_name) = rest.get(8..end_offset) {
+                                    let file_name = file_name.trim();
+                                    if !file_name.is_empty() && !detected_files.contains(&file_name.to_string()) {
+                                        detected_files.push(file_name.to_string());
+                                        info!("[LLM_STREAM] Detected file: {file_name}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    for tool_match in full_response.match_indices("<<<TOOL:") {
+                        let start = tool_match.0;
+                        if let Some(rest) = full_response.get(start..) {
+                            if let Some(end_offset) = rest.find(">>>") {
+                                if let Some(tool_name) = rest.get(8..end_offset) {
+                                    let tool_name = tool_name.trim();
+                                    if !tool_name.is_empty() && !detected_tools.contains(&tool_name.to_string()) {
+                                        detected_tools.push(tool_name.to_string());
+                                        info!("[LLM_STREAM] Detected tool: {tool_name}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Detect items from plan format (filename: description lines)
+                    // Parse from full_response for FILES_PLAN section
+                    if in_files_plan {
+                        if let Some(plan_start) = full_response.find("<<<FILES_PLAN>>>") {
+                            if let Some(plan_content) = full_response.get(plan_start.saturating_add(16)..) {
+                                for line in plan_content.lines() {
+                                    let line = line.trim();
+                                    if line.starts_with("<<<") {
+                                        break;
+                                    }
+                                    if line.contains(':') {
+                                        let parts: Vec<&str> = line.splitn(2, ':').collect();
+                                        let name = parts[0].trim();
+                                        if !name.is_empty() && (name.ends_with(".html") || name.ends_with(".css") || name.ends_with(".js") || name.ends_with(".bas")) {
+                                            if !detected_files.contains(&name.to_string()) {
+                                                detected_files.push(name.to_string());
+                                                info!("[LLM_STREAM] Detected planned file: {name}");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if in_tools_plan {
+                        if let Some(plan_start) = full_response.find("<<<TOOLS_PLAN>>>") {
+                            if let Some(plan_content) = full_response.get(plan_start.saturating_add(16)..) {
+                                for line in plan_content.lines() {
+                                    let line = line.trim();
+                                    if line.starts_with("<<<") {
+                                        break;
+                                    }
+                                    if line.contains(':') {
+                                        let parts: Vec<&str> = line.splitn(2, ':').collect();
+                                        let name = parts[0].trim();
+                                        if !name.is_empty() {
+                                            let tool_name = if name.ends_with(".bas") { name.to_string() } else { format!("{name}.bas") };
+                                            if !detected_tools.contains(&tool_name) {
+                                                detected_tools.push(tool_name.clone());
+                                                info!("[LLM_STREAM] Detected planned tool: {tool_name}");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if in_schedulers_plan {
+                        if let Some(plan_start) = full_response.find("<<<SCHEDULERS_PLAN>>>") {
+                            if let Some(plan_content) = full_response.get(plan_start.saturating_add(21)..) {
+                                for line in plan_content.lines() {
+                                    let line = line.trim();
+                                    if line.starts_with("<<<") {
+                                        break;
+                                    }
+                                    if line.contains(':') {
+                                        let parts: Vec<&str> = line.splitn(2, ':').collect();
+                                        let name = parts[0].trim();
+                                        if !name.is_empty() {
+                                            let sched_name = if name.ends_with(".bas") { name.to_string() } else { format!("{name}.bas") };
+                                            if !detected_tools.contains(&sched_name) {
+                                                detected_tools.push(sched_name.clone());
+                                                info!("[LLM_STREAM] Detected planned scheduler: {sched_name}");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Log progress periodically
                     if chunk_count == 1 || chunk_count % 500 == 0 {
                         trace!("APP_GENERATOR Stream progress: {} chunks, {} chars, {:?}",
                               chunk_count, full_response.len(), stream_start.elapsed());
                     }
 
+                    // Emit progress updates every 2 seconds
+                    if last_progress_update.elapsed().as_secs() >= 2 {
+                        if let Some(ref tid) = task_id {
+                            let total_detected = detected_tables.len() + detected_files.len() + detected_tools.len();
+                            let progress_msg = if total_detected > 0 {
+                                format!(
+                                    "AI generating... {} tables, {} files, {} tools detected",
+                                    detected_tables.len(),
+                                    detected_files.len(),
+                                    detected_tools.len()
+                                )
+                            } else {
+                                let chars_received = full_response.len();
+                                format!("AI generating content... {} chars received", chars_received)
+                            };
+                            info!("[LLM_STREAM] Progress: {}", progress_msg);
+                            let event = crate::core::shared::state::TaskProgressEvent::new(
+                                tid,
+                                "llm_generating",
+                                &progress_msg,
+                            )
+                            .with_progress(1, 10);
+                            state.broadcast_task_progress(event);
+                        }
+                        last_progress_update = std::time::Instant::now();
+                    }
+
                     // Don't emit raw LLM stream to WebSocket - it contains HTML/code garbage
                     // Only clear buffer periodically to track progress
-                    if last_emit.elapsed().as_millis() > 100 || chunk_buffer.len() > 50 {
-                        chunk_buffer.clear();
+                    if last_emit.elapsed().as_millis() > 100 || chunk_buffer.len() > 500 {
+                        // Keep last 200 chars for detecting split delimiters (Unicode-safe)
+                        if chunk_buffer.chars().count() > 200 {
+                            chunk_buffer = chunk_buffer.chars().skip(chunk_buffer.chars().count() - 200).collect();
+                        }
                         last_emit = std::time::Instant::now();
                     }
+                }
+
+                // Final progress update
+                if let Some(ref tid) = task_id {
+                    let total_detected = detected_tables.len() + detected_files.len() + detected_tools.len();
+                    let final_msg = if total_detected > 0 {
+                        format!(
+                            "AI complete: {} tables, {} files, {} tools",
+                            detected_tables.len(),
+                            detected_files.len(),
+                            detected_tools.len()
+                        )
+                    } else {
+                        format!("AI complete: {} chars generated", full_response.len())
+                    };
+                    info!("[LLM_STREAM] {}", final_msg);
+                    let event = crate::core::shared::state::TaskProgressEvent::new(
+                        tid,
+                        "llm_complete",
+                        &final_msg,
+                    )
+                    .with_progress(2, 10);
+                    state.broadcast_task_progress(event);
                 }
 
                 trace!("APP_GENERATOR Stream finished: {} chunks, {} chars in {:?}",
@@ -1763,14 +2389,11 @@ NO QUESTIONS. JUST BUILD."#
                     trace!("APP_GENERATOR Final buffer (not emitting): {} chars", chunk_buffer.len());
                 }
 
-                // Log response preview
-                if full_response.len() > 0 {
-                    let preview = if full_response.len() > 200 {
-                        format!("{}...", &full_response[..200])
-                    } else {
-                        full_response.clone()
-                    };
-                    trace!("APP_GENERATOR Response preview: {}", preview.replace('\n', "\\n"));
+                // Log response preview (Unicode-safe)
+                if !full_response.is_empty() {
+                    let preview: String = full_response.chars().take(200).collect();
+                    let suffix = if full_response.chars().count() > 200 { "..." } else { "" };
+                    trace!("APP_GENERATOR Response preview: {}{}", preview.replace('\n', "\\n"), suffix);
                 }
 
                 full_response
@@ -2025,35 +2648,18 @@ NO QUESTIONS. JUST BUILD."#
         Ok(())
     }
 
-    fn sync_tables_to_database(
+    /// Sync a single table to database - used for real-time progress updates
+    fn sync_single_table_to_database(
         &self,
-        tables: &[TableDefinition],
-    ) -> Result<SyncResult, Box<dyn std::error::Error + Send + Sync>> {
-        let mut tables_created = 0;
-        let mut fields_added = 0;
-
+        table: &TableDefinition,
+    ) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
         let mut conn = self.state.conn.get()?;
+        let create_sql = generate_create_table_sql(table, "postgres");
 
-        for table in tables {
-            let create_sql = generate_create_table_sql(table, "postgres");
+        sql_query(&create_sql).execute(&mut conn)?;
+        info!("Created table: {}", table.name);
 
-            match sql_query(&create_sql).execute(&mut conn) {
-                Ok(_) => {
-                    tables_created += 1;
-                    fields_added += table.fields.len();
-                    info!("Created table: {}", table.name);
-                }
-                Err(e) => {
-                    warn!("Table {} may already exist: {}", table.name, e);
-                }
-            }
-        }
-
-        Ok(SyncResult {
-            tables_created,
-            fields_added,
-            migrations_applied: tables_created,
-        })
+        Ok(table.fields.len())
     }
 
     fn update_task_app_url(
