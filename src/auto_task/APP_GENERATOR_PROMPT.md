@@ -492,8 +492,8 @@ Every HTML page MUST include proper SEO meta tags:
     <title>{Page Title} - {App Name}</title>
     <!-- IMPORTANT: Use relative paths for app assets -->
     <link rel="stylesheet" href="styles.css">
-    <!-- HTMX from CDN - allowed by CSP -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- HTMX served locally - NO external CDN -->
+    <script src="/js/vendor/htmx.min.js"></script>
     <script src="designer.js" defer></script>
 </head>
 ```
