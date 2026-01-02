@@ -885,72 +885,7 @@ impl AppGenerator {
         self.add_terminal_output("## Phase 2: Generating content...", TerminalLineType::Progress);
         self.update_manifest_stats_real(true);
 
-        // ========== PHASE 2: Generate content for each file ==========
-        let total_items = llm_app.files.len() + llm_app.tools.len() + llm_app.schedulers.len();
-        let mut generated_count = 0;
-
-        // Generate content for files that don't have it yet
-        let files_needing_content: Vec<usize> = llm_app.files.iter()
-            .enumerate()
-            .filter(|(_, f)| f.content.is_empty())
-            .map(|(i, _)| i)
-            .collect();
-
-        info!("[PHASE2] Files needing content: {} out of {} total files", files_needing_content.len(), llm_app.files.len());
-        for (i, file) in llm_app.files.iter().enumerate() {
-            info!("[PHASE2] File {}: {} - content_len={}", i, file.filename, file.content.len());
-        }
-
-        if !files_needing_content.is_empty() {
-            info!("[PHASE2] Setting Files section to Running - manifest exists: {}", self.manifest.is_some());
-
-            // Debug: List all sections before update
-            if let Some(ref manifest) = self.manifest {
-                info!("[PHASE2] Current manifest sections:");
-                for (i, s) in manifest.sections.iter().enumerate() {
-                    info!("[PHASE2]   [{}] {:?} = '{}' status={:?}", i, s.section_type, s.name, s.status);
-                }
-            }
-
-            self.update_manifest_section(SectionType::Files, SectionStatus::Running);
-            self.broadcast_manifest_update();
-            self.add_terminal_output(&format!("## Phase 2: Generating {} files...", files_needing_content.len()), TerminalLineType::Progress);
-
-            for idx in files_needing_content {
-                let filename = llm_app.files[idx].filename.clone();
-                generated_count += 1;
-                info!("[PHASE2] Starting generation for file: {}", filename);
-                self.add_terminal_output(&format!("Generating `{filename}`..."), TerminalLineType::Info);
-                self.update_item_status(SectionType::Files, &filename, crate::auto_task::ItemStatus::Running);
-
-                match self.generate_file_content(&llm_app, &filename, session.bot_id).await {
-                    Ok(content) => {
-                        let content_len = content.len();
-                        info!("[PHASE2] Generated file {} with {} bytes", filename, content_len);
-                        llm_app.files[idx].content = content;
-                        self.add_terminal_output(&format!("✓ `{filename}` ({content_len} bytes)"), TerminalLineType::Success);
-                        self.update_item_status(SectionType::Files, &filename, crate::auto_task::ItemStatus::Completed);
-                    }
-                    Err(e) => {
-                        error!("[PHASE2] Failed to generate {}: {}", filename, e);
-                        self.add_terminal_output(&format!("✗ `{filename}` failed: {e}"), TerminalLineType::Error);
-                    }
-                }
-
-                let activity = self.build_activity("generating", generated_count as u32, Some(total_items as u32), Some(&filename));
-                self.emit_activity("file_generated", &format!("Generated {filename}"), 3, TOTAL_STEPS, activity);
-            }
-        } else {
-            info!("[PHASE2] No files need content generation - all {} files already have content", llm_app.files.len());
-            self.add_terminal_output(&format!("All {} files already generated", llm_app.files.len()), TerminalLineType::Success);
-            self.update_manifest_section(SectionType::Files, SectionStatus::Completed);
-            self.broadcast_manifest_update();
-        }
-
-        // Mark Files section as completed
-        self.update_manifest_section(SectionType::Files, SectionStatus::Completed);
-        self.broadcast_manifest_update();
-
+        // ========== PHASE 2A: DATABASE & MODELS (must come first!) ==========
         let activity = self.build_activity("parsing", 2, Some(TOTAL_STEPS as u32), Some(&format!("Processing {} structure", llm_app.name)));
         self.emit_activity("parse_structure", &format!("Parsing {} structure...", llm_app.name), 3, TOTAL_STEPS, activity);
 
@@ -1079,7 +1014,74 @@ impl AppGenerator {
                 TOTAL_STEPS,
                 activity
             );
+        } else {
+            // No tables - mark database section as skipped
+            self.update_manifest_section(SectionType::DatabaseModels, SectionStatus::Skipped);
+            self.broadcast_manifest_update();
         }
+
+        // ========== PHASE 2B: GENERATE FILE CONTENT ==========
+        let total_items = llm_app.files.len() + llm_app.tools.len() + llm_app.schedulers.len();
+        let mut generated_count = 0;
+
+        // Generate content for files that don't have it yet
+        let files_needing_content: Vec<usize> = llm_app.files.iter()
+            .enumerate()
+            .filter(|(_, f)| f.content.is_empty())
+            .map(|(i, _)| i)
+            .collect();
+
+        info!("[PHASE2B] Files needing content: {} out of {} total files", files_needing_content.len(), llm_app.files.len());
+        for (i, file) in llm_app.files.iter().enumerate() {
+            info!("[PHASE2B] File {}: {} - content_len={}", i, file.filename, file.content.len());
+        }
+
+        if !files_needing_content.is_empty() {
+            info!("[PHASE2B] Setting Files section to Running - manifest exists: {}", self.manifest.is_some());
+
+            // Debug: List all sections before update
+            if let Some(ref manifest) = self.manifest {
+                info!("[PHASE2B] Current manifest sections:");
+                for (i, s) in manifest.sections.iter().enumerate() {
+                    info!("[PHASE2B]   [{}] {:?} = '{}' status={:?}", i, s.section_type, s.name, s.status);
+                }
+            }
+
+            self.update_manifest_section(SectionType::Files, SectionStatus::Running);
+            self.broadcast_manifest_update();
+            self.add_terminal_output(&format!("## Generating {} files...", files_needing_content.len()), TerminalLineType::Progress);
+
+            for idx in files_needing_content {
+                let filename = llm_app.files[idx].filename.clone();
+                generated_count += 1;
+                info!("[PHASE2B] Starting generation for file: {}", filename);
+                self.add_terminal_output(&format!("Generating `{filename}`..."), TerminalLineType::Info);
+                self.update_item_status(SectionType::Files, &filename, crate::auto_task::ItemStatus::Running);
+
+                match self.generate_file_content(&llm_app, &filename, session.bot_id).await {
+                    Ok(content) => {
+                        let content_len = content.len();
+                        info!("[PHASE2B] Generated file {} with {} bytes", filename, content_len);
+                        llm_app.files[idx].content = content;
+                        self.add_terminal_output(&format!("✓ `{filename}` ({content_len} bytes)"), TerminalLineType::Success);
+                        self.update_item_status(SectionType::Files, &filename, crate::auto_task::ItemStatus::Completed);
+                    }
+                    Err(e) => {
+                        error!("[PHASE2B] Failed to generate {}: {}", filename, e);
+                        self.add_terminal_output(&format!("✗ `{filename}` failed: {e}"), TerminalLineType::Error);
+                    }
+                }
+
+                let activity = self.build_activity("generating", generated_count as u32, Some(total_items as u32), Some(&filename));
+                self.emit_activity("file_generated", &format!("Generated {filename}"), 3, TOTAL_STEPS, activity);
+            }
+        } else {
+            info!("[PHASE2B] No files need content generation - all {} files already have content", llm_app.files.len());
+            self.add_terminal_output(&format!("All {} files already generated", llm_app.files.len()), TerminalLineType::Success);
+        }
+
+        // Mark Files content generation as completed (writing happens next)
+        self.broadcast_manifest_update();
 
         // Use bucket_name from state (e.g., "default.gbai") instead of deriving from bot name
         let bucket_name = self.state.bucket_name.clone();
