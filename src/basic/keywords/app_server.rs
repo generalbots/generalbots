@@ -13,6 +13,69 @@ use std::sync::Arc;
 
 /// Rewrite CDN URLs to local paths for HTMX and other vendor libraries
 /// This ensures old apps with CDN references still work with local files
+#[derive(Debug, serde::Deserialize)]
+pub struct VendorFilePath {
+    pub file_path: String,
+}
+
+pub async fn serve_vendor_file(
+    State(state): State<Arc<AppState>>,
+    Path(params): Path<VendorFilePath>,
+) -> Response {
+    let file_path = sanitize_file_path(&params.file_path);
+
+    if file_path.is_empty() {
+        return (StatusCode::BAD_REQUEST, "Invalid path").into_response();
+    }
+
+    let bot_name = state.bucket_name
+        .trim_end_matches(".gbai")
+        .to_string();
+    let sanitized_bot_name = bot_name.to_lowercase().replace(' ', "-").replace('_', "-");
+
+    let bucket = format!("{}.gbai", sanitized_bot_name);
+    let key = format!("{}.gblib/vendor/{}", sanitized_bot_name, file_path);
+
+    info!("Serving vendor file from MinIO: bucket={}, key={}", bucket, key);
+
+    if let Some(ref drive) = state.drive {
+        match drive
+            .get_object()
+            .bucket(&bucket)
+            .key(&key)
+            .send()
+            .await
+        {
+            Ok(response) => {
+                match response.body.collect().await {
+                    Ok(body) => {
+                        let content = body.into_bytes();
+                        let content_type = get_content_type(&file_path);
+
+                        return Response::builder()
+                            .status(StatusCode::OK)
+                            .header(header::CONTENT_TYPE, content_type)
+                            .header(header::CACHE_CONTROL, "public, max-age=86400")
+                            .body(Body::from(content.to_vec()))
+                            .unwrap_or_else(|_| {
+                                (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
+                                    .into_response()
+                            });
+                    }
+                    Err(e) => {
+                        error!("Failed to read MinIO response body: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("MinIO get_object failed for {}/{}: {}", bucket, key, e);
+            }
+        }
+    }
+
+    (StatusCode::NOT_FOUND, "Vendor file not found").into_response()
+}
+
 fn rewrite_cdn_urls(html: &str) -> String {
     html
         // HTMX from various CDNs
@@ -31,6 +94,8 @@ fn rewrite_cdn_urls(html: &str) -> String {
 
 pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
     Router::new()
+        // Serve shared vendor files from MinIO: /js/vendor/*
+        .route("/js/vendor/*file_path", get(serve_vendor_file))
         // Serve app files: /apps/{app_name}/* (clean URLs)
         .route("/apps/:app_name", get(serve_app_index))
         .route("/apps/:app_name/", get(serve_app_index))
