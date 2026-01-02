@@ -701,6 +701,16 @@ impl AppGenerator {
                                         item.duration_seconds = Some((Utc::now() - started).num_seconds() as u64);
                                     }
                                     child.current_step += 1;
+
+                                    // Check if all items in child are completed, then mark child as completed
+                                    let all_completed = child.items.iter().all(|i| i.status == crate::auto_task::ItemStatus::Completed);
+                                    if all_completed && !child.items.is_empty() {
+                                        child.status = SectionStatus::Completed;
+                                        child.completed_at = Some(Utc::now());
+                                        if let Some(started) = child.started_at {
+                                            child.duration_seconds = Some((Utc::now() - started).num_seconds() as u64);
+                                        }
+                                    }
                                 }
                                 found = true;
                                 break;
