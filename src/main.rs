@@ -314,6 +314,8 @@ async fn run_axum_server(
             auth_config.clone(),
             auth_middleware,
         ))
+        // Vendor JS files (htmx, etc.) served locally - no CDN
+        .nest_service("/js/vendor", ServeDir::new("./botserver-stack/static/js/vendor"))
         // Static files fallback for legacy /apps/* paths
         .nest_service("/static", ServeDir::new(&site_path))
         // Security middleware stack (order matters - first added is outermost)
