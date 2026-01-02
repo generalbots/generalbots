@@ -833,7 +833,7 @@ fn build_progress_log_from_web_json(manifest: &serde_json::Value) -> String {
         let global_current = global_step_start + current_step;
 
         html.push_str(&format!(r#"
-            <div class="tree-section {}" data-section-id="{}">
+            <div class="tree-section {} expanded" data-section-id="{}">
                 <div class="tree-row tree-level-0" onclick="this.parentElement.classList.toggle('expanded')">
                     <span class="tree-name">{}</span>
                     <span class="tree-step-badge">Step {}/{}</span>
@@ -870,7 +870,7 @@ fn build_progress_log_from_web_json(manifest: &serde_json::Value) -> String {
                 };
 
                 html.push_str(&format!(r#"
-                    <div class="tree-child {}" data-child-id="{}">
+                    <div class="tree-child {} expanded" data-child-id="{}">
                         <div class="tree-row tree-level-1" onclick="this.parentElement.classList.toggle('expanded')">
                             <span class="tree-indent"></span>
                             <span class="tree-name">{}</span>
@@ -997,7 +997,7 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
         let global_current = section.global_step_start + section.current_step;
 
         html.push_str(&format!(r#"
-            <div class="tree-section {}" data-section-id="{}">
+            <div class="tree-section {} expanded" data-section-id="{}">
                 <div class="tree-row tree-level-0" onclick="this.parentElement.classList.toggle('expanded')">
                     <span class="tree-name">{}</span>
                     <span class="tree-step-badge">Step {}/{}</span>
@@ -1027,7 +1027,7 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
             };
 
             html.push_str(&format!(r#"
-                <div class="tree-child {}" data-child-id="{}" onclick="this.classList.toggle('expanded')">
+                <div class="tree-child {} expanded" data-child-id="{}" onclick="this.classList.toggle('expanded')">
                     <div class="tree-row tree-level-1">
                         <span class="tree-indent"></span>
                         <span class="tree-name">{}</span>
