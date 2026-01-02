@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
-static ALLOWED_TABLES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
+/// System tables that are always allowed (core application tables)
+static SYSTEM_TABLES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
         "automations",
         "bots",
@@ -32,6 +33,35 @@ static ALLOWED_TABLES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "sources",
     ])
 });
+
+/// Check if a table exists in the database
+/// This allows dynamically created tables (from app generator) to be accessed
+pub fn table_exists_in_database(conn: &mut diesel::PgConnection, table_name: &str) -> bool {
+    use diesel::prelude::*;
+    use diesel::sql_query;
+    use diesel::sql_types::Text;
+
+    #[derive(diesel::QueryableByName)]
+    struct TableExists {
+        #[diesel(sql_type = diesel::sql_types::Bool)]
+        exists: bool,
+    }
+
+    let result: Result<TableExists, _> = sql_query(
+        "SELECT EXISTS (
+            SELECT FROM information_schema.tables
+            WHERE table_schema = 'public'
+            AND table_name = $1
+        ) as exists"
+    )
+    .bind::<Text, _>(table_name)
+    .get_result(conn);
+
+    match result {
+        Ok(r) => r.exists,
+        Err(_) => false,
+    }
+}
 
 static ALLOWED_ORDER_COLUMNS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
@@ -75,10 +105,59 @@ impl std::fmt::Display for SqlGuardError {
 
 impl std::error::Error for SqlGuardError {}
 
+/// Validate table name - checks system tables whitelist only
+/// For full validation including dynamic tables, use validate_table_name_with_conn
 pub fn validate_table_name(table: &str) -> Result<&str, SqlGuardError> {
     let sanitized = sanitize_identifier(table);
 
-    if ALLOWED_TABLES.contains(sanitized.as_str()) {
+    // Check basic identifier validity (no SQL injection)
+    if sanitized.is_empty() || sanitized.len() > 63 {
+        return Err(SqlGuardError::InvalidTableName(table.to_string()));
+    }
+
+    // Check for dangerous patterns
+    if sanitized.contains(';') || sanitized.contains("--") || sanitized.contains("/*") {
+        return Err(SqlGuardError::PotentialInjection(table.to_string()));
+    }
+
+    // System tables are always allowed
+    if SYSTEM_TABLES.contains(sanitized.as_str()) {
+        return Ok(table);
+    }
+
+    // For non-system tables, we allow them if they look safe
+    // The actual existence check should be done with validate_table_name_with_conn
+    // This allows dynamically created tables from app_generator to work
+    if sanitized.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        Ok(table)
+    } else {
+        Err(SqlGuardError::InvalidTableName(table.to_string()))
+    }
+}
+
+/// Validate table name with database connection - checks if table actually exists
+pub fn validate_table_name_with_conn<'a>(
+    conn: &mut diesel::PgConnection,
+    table: &'a str,
+) -> Result<&'a str, SqlGuardError> {
+    let sanitized = sanitize_identifier(table);
+
+    // First do basic validation
+    if sanitized.is_empty() || sanitized.len() > 63 {
+        return Err(SqlGuardError::InvalidTableName(table.to_string()));
+    }
+
+    if sanitized.contains(';') || sanitized.contains("--") || sanitized.contains("/*") {
+        return Err(SqlGuardError::PotentialInjection(table.to_string()));
+    }
+
+    // System tables are always allowed
+    if SYSTEM_TABLES.contains(sanitized.as_str()) {
+        return Ok(table);
+    }
+
+    // Check if table exists in database (for dynamically created tables)
+    if table_exists_in_database(conn, &sanitized) {
         Ok(table)
     } else {
         Err(SqlGuardError::InvalidTableName(table.to_string()))
@@ -229,9 +308,32 @@ pub fn register_dynamic_table(table_name: &'static str) {
     log::info!("Dynamic table registration requested for: {}", table_name);
 }
 
+/// Check if table is in the system tables whitelist
+pub fn is_system_table(table: &str) -> bool {
+    let sanitized = sanitize_identifier(table);
+    SYSTEM_TABLES.contains(sanitized.as_str())
+}
+
+/// Check if table is allowed (system table or valid identifier)
+/// For full check including database existence, use is_table_allowed_with_conn
 pub fn is_table_allowed(table: &str) -> bool {
     let sanitized = sanitize_identifier(table);
-    ALLOWED_TABLES.contains(sanitized.as_str())
+    if SYSTEM_TABLES.contains(sanitized.as_str()) {
+        return true;
+    }
+    // Allow valid identifiers (actual existence checked elsewhere)
+    !sanitized.is_empty()
+        && sanitized.len() <= 63
+        && sanitized.chars().all(|c| c.is_alphanumeric() || c == '_')
+}
+
+/// Check if table is allowed with database connection
+pub fn is_table_allowed_with_conn(conn: &mut diesel::PgConnection, table: &str) -> bool {
+    let sanitized = sanitize_identifier(table);
+    if SYSTEM_TABLES.contains(sanitized.as_str()) {
+        return true;
+    }
+    table_exists_in_database(conn, &sanitized)
 }
 
 #[cfg(test)]

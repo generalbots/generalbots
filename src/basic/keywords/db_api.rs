@@ -6,7 +6,7 @@ use crate::core::shared::sanitize_identifier;
 use crate::core::urls::ApiUrls;
 use crate::security::error_sanitizer::log_and_sanitize;
 use crate::security::sql_guard::{
-    build_safe_count_query, build_safe_select_query, validate_table_name,
+    build_safe_count_query, build_safe_select_query, is_table_allowed_with_conn, validate_table_name,
 };
 use axum::{
     extract::{Path, Query, State},
@@ -126,7 +126,7 @@ pub async fn list_records_handler(
     let limit = params.limit.unwrap_or(20).min(100);
     let offset = params.offset.unwrap_or(0);
 
-    // Validate table name against whitelist
+    // Validate table name (basic check - no SQL injection)
     if let Err(e) = validate_table_name(&table_name) {
         warn!("Invalid table name attempted: {} - {}", table_name, e);
         return (
@@ -149,6 +149,16 @@ pub async fn list_records_handler(
                 .into_response()
         }
     };
+
+    // Check if table actually exists in database (supports dynamic tables from app_generator)
+    if !is_table_allowed_with_conn(&mut conn, &table_name) {
+        warn!("Table not found in database: {}", table_name);
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": format!("Table '{}' not found", table_name) })),
+        )
+            .into_response();
+    }
 
     // Check table-level read access
     let access_info =
@@ -631,6 +641,16 @@ pub async fn count_records_handler(
     let table_name = sanitize_identifier(&table);
     let user_roles = user_roles_from_headers(&headers);
 
+    // Validate table name (basic check - no SQL injection)
+    if let Err(e) = validate_table_name(&table_name) {
+        warn!("Invalid table name attempted: {} - {}", table_name, e);
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "Invalid table name" })),
+        )
+            .into_response();
+    }
+
     let mut conn = match state.conn.get() {
         Ok(c) => c,
         Err(e) => {
@@ -638,6 +658,16 @@ pub async fn count_records_handler(
             return (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     };
+
+    // Check if table actually exists in database (supports dynamic tables from app_generator)
+    if !is_table_allowed_with_conn(&mut conn, &table_name) {
+        warn!("Table not found in database: {}", table_name);
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": format!("Table '{}' not found", table_name) })),
+        )
+            .into_response();
+    }
 
     // Check table-level read access (count requires read permission)
     if let Err(e) = check_table_access(&mut conn, &table_name, &user_roles, AccessType::Read) {
