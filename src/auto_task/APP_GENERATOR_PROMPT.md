@@ -490,8 +490,10 @@ Every HTML page MUST include proper SEO meta tags:
     <meta property="og:type" content="website">
     <link rel="icon" href="/assets/icons/gb-logo.svg" type="image/svg+xml">
     <title>{Page Title} - {App Name}</title>
+    <!-- IMPORTANT: Use relative paths for app assets -->
     <link rel="stylesheet" href="styles.css">
-    <script src="/js/vendor/htmx.min.js"></script>
+    <!-- HTMX from CDN - allowed by CSP -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="designer.js" defer></script>
 </head>
 ```

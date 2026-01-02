@@ -1143,6 +1143,9 @@ Guidelines:
 - API endpoints follow pattern: /api/db/{{table_name}}
 - Forms should use hx-post for submissions
 - Lists should use hx-get with pagination
+- IMPORTANT: Use RELATIVE paths for app assets (styles.css, app.js, NOT /static/styles.css)
+- For HTMX, use CDN: <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+- CSS link should be: <link rel="stylesheet" href="styles.css">
 
 Respond with valid JSON only."#,
         request.app_name,
@@ -1277,36 +1280,35 @@ async fn apply_file_change(
     app_name: &str,
     file_name: &str,
     content: &str,
-    session: &crate::shared::models::UserSession,
+    _session: &crate::shared::models::UserSession,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use crate::shared::models::schema::bots::dsl::*;
+    // Use bucket_name from state (like app_generator) - e.g., "default.gbai"
+    let bucket_name = state.bucket_name.clone();
+    let sanitized_name = bucket_name.trim_end_matches(".gbai").to_string();
 
-    let mut conn = state.conn.get()?;
-    let bot_name_val: String = bots
-        .filter(id.eq(session.bot_id))
-        .select(name)
-        .first(&mut conn)?;
-
+    // Always write to local disk first (primary storage, like import templates)
+    // Match app_server filesystem fallback path: {site_path}/{bot}.gbai/{bot}.gbapp/{app_name}/{file}
     let site_path = state
         .config
         .as_ref()
         .map(|c| c.site_path.clone())
         .unwrap_or_else(|| "./botserver-stack/sites".to_string());
 
-    let local_path = format!("{site_path}/{app_name}/{file_name}");
+    let local_path = format!("{site_path}/{}.gbai/{}.gbapp/{app_name}/{file_name}", sanitized_name, sanitized_name);
     if let Some(parent) = std::path::Path::new(&local_path).parent() {
         std::fs::create_dir_all(parent)?;
     }
     std::fs::write(&local_path, content)?;
     log::info!("Designer updated local file: {local_path}");
 
+    // Also sync to S3/MinIO if available (with bucket creation retry like app_generator)
     if let Some(ref s3_client) = state.drive {
         use aws_sdk_s3::primitives::ByteStream;
 
-        let bucket_name = format!("{}.gbai", bot_name_val.to_lowercase());
-        // Use same path pattern as app_generator: bucket.gbapp/app_name/file
-        let sanitized_bucket = bucket_name.trim_end_matches(".gbai");
-        let file_path = format!("{}.gbapp/{app_name}/{file_name}", sanitized_bucket);
+        // Use same path pattern as app_server/app_generator: {sanitized_name}.gbapp/{app_name}/{file}
+        let file_path = format!("{}.gbapp/{}/{}", sanitized_name, app_name, file_name);
+
+        log::info!("Designer syncing to S3: bucket={}, key={}", bucket_name, file_path);
 
         match s3_client
             .put_object()
@@ -1321,7 +1323,47 @@ async fn apply_file_change(
                 log::info!("Designer synced to S3: s3://{bucket_name}/{file_path}");
             }
             Err(e) => {
-                log::warn!("Designer failed to sync to S3 (local write succeeded): {e}");
+                // Check if bucket doesn't exist and try to create it (like app_generator)
+                let err_str = format!("{:?}", e);
+                if err_str.contains("NoSuchBucket") || err_str.contains("NotFound") {
+                    log::warn!("Bucket {} not found, attempting to create...", bucket_name);
+
+                    // Try to create the bucket
+                    match s3_client.create_bucket().bucket(&bucket_name).send().await {
+                        Ok(_) => {
+                            log::info!("Created bucket: {}", bucket_name);
+                        }
+                        Err(create_err) => {
+                            let create_err_str = format!("{:?}", create_err);
+                            // Ignore if bucket already exists (race condition)
+                            if !create_err_str.contains("BucketAlreadyExists")
+                                && !create_err_str.contains("BucketAlreadyOwnedByYou") {
+                                log::warn!("Failed to create bucket {}: {}", bucket_name, create_err);
+                            }
+                        }
+                    }
+
+                    // Retry the write after bucket creation
+                    match s3_client
+                        .put_object()
+                        .bucket(&bucket_name)
+                        .key(&file_path)
+                        .body(ByteStream::from(content.as_bytes().to_vec()))
+                        .content_type(get_content_type(file_name))
+                        .send()
+                        .await
+                    {
+                        Ok(_) => {
+                            log::info!("Designer synced to S3 after bucket creation: s3://{bucket_name}/{file_path}");
+                        }
+                        Err(retry_err) => {
+                            log::warn!("Designer S3 retry failed (local write succeeded): {retry_err}");
+                        }
+                    }
+                } else {
+                    // S3 sync is optional - local write already succeeded
+                    log::warn!("Designer S3 sync failed (local write succeeded): {e}");
+                }
             }
         }
     }

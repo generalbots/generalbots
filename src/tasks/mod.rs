@@ -655,12 +655,31 @@ fn extract_app_url_from_results(step_results: &Option<serde_json::Value>, title:
 
 // Helper functions to get real manifest stats
 fn get_manifest_processed_count(state: &Arc<AppState>, task_id: &str) -> String {
+    // First check in-memory manifest
     if let Ok(manifests) = state.task_manifests.read() {
         if let Some(manifest) = manifests.get(task_id) {
-            return manifest.processing_stats.data_points_processed.to_string();
+            let count = manifest.processing_stats.data_points_processed;
+            if count > 0 {
+                return count.to_string();
+            }
+            // Fallback: count completed items from manifest sections
+            let completed_items: u64 = manifest.sections.iter()
+                .map(|s| {
+                    let section_items = s.items.iter().filter(|i| i.status == crate::auto_task::ItemStatus::Completed).count() as u64;
+                    let section_groups = s.item_groups.iter().filter(|g| g.status == crate::auto_task::ItemStatus::Completed).count() as u64;
+                    let child_items: u64 = s.children.iter().map(|c| {
+                        c.items.iter().filter(|i| i.status == crate::auto_task::ItemStatus::Completed).count() as u64 +
+                        c.item_groups.iter().filter(|g| g.status == crate::auto_task::ItemStatus::Completed).count() as u64
+                    }).sum();
+                    section_items + section_groups + child_items
+                })
+                .sum();
+            if completed_items > 0 {
+                return completed_items.to_string();
+            }
         }
     }
-    "0".to_string()
+    "-".to_string()
 }
 
 fn get_manifest_speed(state: &Arc<AppState>, task_id: &str) -> String {
@@ -670,14 +689,22 @@ fn get_manifest_speed(state: &Arc<AppState>, task_id: &str) -> String {
             if speed > 0.0 {
                 return format!("{:.1}/min", speed);
             }
+            // For completed tasks, show "-" instead of "calculating..."
+            if manifest.status == crate::auto_task::ManifestStatus::Completed {
+                return "-".to_string();
+            }
         }
     }
-    "calculating...".to_string()
+    "-".to_string()
 }
 
 fn get_manifest_eta(state: &Arc<AppState>, task_id: &str) -> String {
     if let Ok(manifests) = state.task_manifests.read() {
         if let Some(manifest) = manifests.get(task_id) {
+            // Check if completed first
+            if manifest.status == crate::auto_task::ManifestStatus::Completed {
+                return "Done".to_string();
+            }
             let eta_secs = manifest.processing_stats.estimated_remaining_seconds;
             if eta_secs > 0 {
                 if eta_secs >= 60 {
@@ -685,12 +712,10 @@ fn get_manifest_eta(state: &Arc<AppState>, task_id: &str) -> String {
                 } else {
                     return format!("~{} sec", eta_secs);
                 }
-            } else if manifest.status == crate::auto_task::ManifestStatus::Completed {
-                return "Done".to_string();
             }
         }
     }
-    "calculating...".to_string()
+    "-".to_string()
 }
 
 fn build_taskmd_html(state: &Arc<AppState>, task_id: &str, title: &str, runtime: &str, db_manifest: Option<&serde_json::Value>) -> (String, String) {
