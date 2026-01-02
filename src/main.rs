@@ -23,6 +23,27 @@ use std::sync::Arc;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
+async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
+    use aws_sdk_s3::primitives::ByteStream;
+
+    let htmx_content = include_bytes!("../../botserver-stack/static/js/vendor/htmx.min.js");
+    let bucket = "default.gbai";
+    let key = "default.gblib/vendor/htmx.min.js";
+
+    match drive
+        .put_object()
+        .bucket(bucket)
+        .key(key)
+        .body(ByteStream::from_static(htmx_content))
+        .content_type("application/javascript")
+        .send()
+        .await
+    {
+        Ok(_) => info!("Uploaded vendor file to MinIO: s3://{}/{}", bucket, key),
+        Err(e) => warn!("Failed to upload vendor file to MinIO: {}", e),
+    }
+}
+
 use botserver::security::{
     auth_middleware, create_cors_layer, create_rate_limit_layer, create_security_headers_layer,
     request_id_middleware, security_headers_middleware, set_cors_allowed_origins,
@@ -314,8 +335,6 @@ async fn run_axum_server(
             auth_config.clone(),
             auth_middleware,
         ))
-        // Vendor JS files (htmx, etc.) served locally - no CDN
-        .nest_service("/js/vendor", ServeDir::new("./botserver-stack/static/js/vendor"))
         // Static files fallback for legacy /apps/* paths
         .nest_service("/static", ServeDir::new(&site_path))
         // Security middleware stack (order matters - first added is outermost)
@@ -729,6 +748,8 @@ async fn main() -> std::io::Result<()> {
     let drive = create_s3_operator(&config.drive)
         .await
         .map_err(|e| std::io::Error::other(format!("Failed to initialize Drive: {}", e)))?;
+
+    ensure_vendor_files_in_minio(&drive).await;
 
     let session_manager = Arc::new(tokio::sync::Mutex::new(session::SessionManager::new(
         pool.get().map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?,
