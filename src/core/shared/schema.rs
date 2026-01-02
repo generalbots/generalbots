@@ -20,6 +20,7 @@ diesel::table! {
         updated_at -> Timestamptz,
         is_active -> Nullable<Bool>,
         tenant_id -> Nullable<Uuid>,
+        database_name -> Nullable<Varchar>,
     }
 }
 

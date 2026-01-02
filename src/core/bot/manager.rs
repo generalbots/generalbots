@@ -592,6 +592,11 @@ END IF
 
         self.create_minio_bucket(&bucket_name).await?;
 
+        let db_name = format!("bot_{}", bot_name.replace('-', "_"));
+        if let Err(e) = self.create_bot_database(conn, &db_name).await {
+            warn!("Failed to create database for bot {}: {}", bot_name, e);
+        }
+
 
         let bot_id = Uuid::new_v4();
         let now = Utc::now();
@@ -641,6 +646,51 @@ END IF
         Ok(bot_config)
     }
 
+    async fn create_bot_database(
+        &self,
+        conn: &DbPool,
+        db_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        use diesel::sql_query;
+
+        let safe_db_name: String = db_name
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
+
+        if safe_db_name.is_empty() || safe_db_name.len() > 63 {
+            return Err("Invalid database name".into());
+        }
+
+        let mut db_conn = conn.get()?;
+
+        let check_query = format!(
+            "SELECT 1 FROM pg_database WHERE datname = '{}'",
+            safe_db_name
+        );
+        let exists: Result<Option<i32>, _> = sql_query(&check_query)
+            .get_result::<(i32,)>(&mut db_conn)
+            .optional()
+            .map(|r| r.map(|t| t.0));
+
+        if exists.unwrap_or(None).is_some() {
+            info!("Database {} already exists", safe_db_name);
+            return Ok(());
+        }
+
+        let create_query = format!("CREATE DATABASE {}", safe_db_name);
+        if let Err(e) = sql_query(&create_query).execute(&mut db_conn) {
+            let err_str = e.to_string();
+            if err_str.contains("already exists") {
+                info!("Database {} already exists", safe_db_name);
+                return Ok(());
+            }
+            return Err(e.into());
+        }
+
+        info!("Created database: {}", safe_db_name);
+        Ok(())
+    }
 
     fn sanitize_bot_name(&self, name: &str) -> String {
         name.to_lowercase()
