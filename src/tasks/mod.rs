@@ -942,16 +942,12 @@ fn build_status_section_html(manifest: &TaskManifest, title: &str, runtime: &str
     };
 
     html.push_str(&format!(r#"
-        <div class="status-row status-main">
-            <span class="status-title">{}</span>
-            <span class="status-time">Runtime: {} <span class="status-indicator"></span></span>
-        </div>
         <div class="status-row status-current">
             <span class="status-dot active"></span>
             <span class="status-text">{}</span>
-            <span class="status-time">Estimated: {} <span class="status-gear">⚙</span></span>
+            <span class="status-time">Runtime: {} | Est: {}</span>
         </div>
-    "#, title, runtime_display, current_action, estimated));
+    "#, current_action, runtime_display, estimated));
 
     if let Some(ref dp) = manifest.current_status.decision_point {
         html.push_str(&format!(r#"
