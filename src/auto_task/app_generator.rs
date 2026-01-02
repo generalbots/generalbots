@@ -1777,7 +1777,73 @@ RESPOND WITH ONLY THE FILE CONTENT. NO EXPLANATIONS."#,
             filename = filename,
         );
 
-        self.call_llm(&prompt, bot_id).await
+        let raw_content = self.call_llm(&prompt, bot_id).await?;
+        Ok(Self::clean_file_content(&raw_content, filename))
+    }
+
+    fn clean_file_content(content: &str, filename: &str) -> String {
+        let content = content.trim();
+
+        let content = if content.starts_with("```") {
+            if let Some(first_newline) = content.find('\n') {
+                let after_fence = &content[first_newline + 1..];
+                if let Some(end_fence) = after_fence.rfind("```") {
+                    after_fence[..end_fence].trim().to_string()
+                } else {
+                    after_fence.trim().to_string()
+                }
+            } else {
+                content.to_string()
+            }
+        } else {
+            content.to_string()
+        };
+
+        if filename.ends_with(".html") {
+            if let Some(doctype_pos) = content.to_lowercase().find("<!doctype") {
+                if let Some(html_end) = content.rfind("</html>") {
+                    return content[doctype_pos..html_end + 7].to_string();
+                }
+                return content[doctype_pos..].to_string();
+            }
+            if let Some(html_start) = content.find("<html") {
+                if let Some(html_end) = content.rfind("</html>") {
+                    return content[html_start..html_end + 7].to_string();
+                }
+            }
+        }
+
+        if filename.ends_with(".css") {
+            let lines: Vec<&str> = content.lines()
+                .filter(|line| {
+                    let trimmed = line.trim();
+                    !trimmed.starts_with("Here") &&
+                    !trimmed.starts_with("This") &&
+                    !trimmed.starts_with("The ") &&
+                    !trimmed.starts_with("Note:") &&
+                    !trimmed.starts_with("I've") &&
+                    !trimmed.starts_with("```")
+                })
+                .collect();
+            return lines.join("\n");
+        }
+
+        if filename.ends_with(".js") {
+            let lines: Vec<&str> = content.lines()
+                .filter(|line| {
+                    let trimmed = line.trim();
+                    !trimmed.starts_with("Here") &&
+                    !trimmed.starts_with("This") &&
+                    !trimmed.starts_with("The ") &&
+                    !trimmed.starts_with("Note:") &&
+                    !trimmed.starts_with("I've") &&
+                    !trimmed.starts_with("```")
+                })
+                .collect();
+            return lines.join("\n");
+        }
+
+        content
     }
 
     async fn generate_complete_app_with_llm(
