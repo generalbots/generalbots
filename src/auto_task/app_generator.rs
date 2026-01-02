@@ -296,11 +296,6 @@ impl AppGenerator {
         // Insert "Analyzing Request" at the beginning of sections
         new_manifest.sections.insert(0, analyzing_section);
 
-        // Add Deployment section at the end
-        let deploy_section = ManifestSection::new("Deployment", SectionType::Deployment)
-            .with_steps(1);
-        new_manifest.add_section(deploy_section);
-
         // Recalculate all global step offsets after insertion
         new_manifest.recalculate_global_steps();
         new_manifest.completed_steps = 1; // Analyzing is done
@@ -538,6 +533,17 @@ impl AppGenerator {
                             child.current_step = child.item_groups.iter()
                                 .filter(|g| g.status == crate::auto_task::ItemStatus::Completed)
                                 .count() as u32;
+
+                            // Check if all item_groups in child are completed, then mark child as completed
+                            let all_groups_completed = child.item_groups.iter()
+                                .all(|g| g.status == crate::auto_task::ItemStatus::Completed);
+                            if all_groups_completed && !child.item_groups.is_empty() {
+                                child.status = SectionStatus::Completed;
+                                child.completed_at = Some(Utc::now());
+                                if let Some(started) = child.started_at {
+                                    child.duration_seconds = Some((Utc::now() - started).num_seconds() as u64);
+                                }
+                            }
                             break;
                         }
                     }
@@ -545,6 +551,17 @@ impl AppGenerator {
                     section.current_step = section.children.iter()
                         .map(|c| c.current_step)
                         .sum();
+
+                    // Check if all children in section are completed, then mark section as completed
+                    let all_children_completed = section.children.iter()
+                        .all(|c| c.status == SectionStatus::Completed);
+                    if all_children_completed && !section.children.is_empty() {
+                        section.status = SectionStatus::Completed;
+                        section.completed_at = Some(Utc::now());
+                        if let Some(started) = section.started_at {
+                            section.duration_seconds = Some((Utc::now() - started).num_seconds() as u64);
+                        }
+                    }
                     break;
                 }
             }
@@ -596,11 +613,6 @@ impl AppGenerator {
         let tools_section = ManifestSection::new("Tools", SectionType::Tools)
             .with_steps(1);
         manifest.add_section(tools_section);
-
-        // Section 5: Deployment
-        let deploy_section = ManifestSection::new("Deployment", SectionType::Deployment)
-            .with_steps(1);
-        manifest.add_section(deploy_section);
 
         manifest.status = ManifestStatus::Running;
         manifest.add_terminal_line(&format!("Analyzing: {}", intent), TerminalLineType::Info);
