@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::{Html, IntoResponse, Json},
     routing::{get, post},
     Router,
 };
@@ -256,14 +256,39 @@ pub async fn create_meeting(
     }
 }
 
-pub async fn list_rooms(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn list_rooms(State(state): State<Arc<AppState>>) -> Html<String> {
     let transcription_service = Arc::new(DefaultTranscriptionService);
     let meeting_service = MeetingService::new(state.clone(), transcription_service);
 
     let rooms = meeting_service.rooms.read().await;
-    let room_list: Vec<_> = rooms.values().cloned().collect();
 
-    (StatusCode::OK, Json(serde_json::json!(room_list)))
+    if rooms.is_empty() {
+        return Html(r##"<div class="empty-state">
+            <div class="empty-icon">📹</div>
+            <p>No active rooms</p>
+            <p class="empty-hint">Create a new meeting to get started</p>
+        </div>"##.to_string());
+    }
+
+    let mut html = String::new();
+    for room in rooms.values() {
+        let participant_count = room.participants.len();
+        html.push_str(&format!(
+            r##"<div class="room-card" data-room-id="{id}">
+                <div class="room-icon">📹</div>
+                <div class="room-info">
+                    <h3 class="room-name">{name}</h3>
+                    <span class="room-participants">{count} participant(s)</span>
+                </div>
+                <button class="btn-join" hx-post="/api/meet/rooms/{id}/join" hx-target="#meeting-room" hx-swap="outerHTML">Join</button>
+            </div>"##,
+            id = room.id,
+            name = room.name,
+            count = participant_count,
+        ));
+    }
+
+    Html(html)
 }
 
 pub async fn get_room(
@@ -382,23 +407,22 @@ async fn handle_meeting_socket(_socket: axum::extract::ws::WebSocket, _state: Ar
     info!("Meeting WebSocket connection established");
 }
 
-pub async fn all_participants(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "participants": [],
-        "message": "No participants"
-    }))
+pub async fn all_participants(State(_state): State<Arc<AppState>>) -> Html<String> {
+    Html(r##"<div class="empty-state">
+        <p>No participants</p>
+    </div>"##.to_string())
 }
 
-pub async fn recent_meetings(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "meetings": [],
-        "message": "No recent meetings"
-    }))
+pub async fn recent_meetings(State(_state): State<Arc<AppState>>) -> Html<String> {
+    Html(r##"<div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>No recent meetings</p>
+    </div>"##.to_string())
 }
 
-pub async fn scheduled_meetings(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "meetings": [],
-        "message": "No scheduled meetings"
-    }))
+pub async fn scheduled_meetings(State(_state): State<Arc<AppState>>) -> Html<String> {
+    Html(r##"<div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <p>No scheduled meetings</p>
+    </div>"##.to_string())
 }

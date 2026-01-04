@@ -515,6 +515,7 @@ pub async fn start_reminder_job(engine: Arc<CalendarEngine>) {
 
 pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
     Router::new()
+        // JSON APIs
         .route(
             ApiUrls::CALENDAR_EVENTS,
             get(list_events).post(create_event),
@@ -525,12 +526,13 @@ pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
         )
         .route(ApiUrls::CALENDAR_EXPORT, get(export_ical))
         .route(ApiUrls::CALENDAR_IMPORT, post(import_ical))
-        .route(ApiUrls::CALENDAR_CALENDARS, get(list_calendars_api))
-        .route(ApiUrls::CALENDAR_UPCOMING, get(upcoming_events_api))
-        .route("/ui/calendar/list", get(list_calendars))
-        .route("/ui/calendar/upcoming", get(upcoming_events))
-        .route("/ui/calendar/event/new", get(new_event_form))
-        .route("/ui/calendar/new", get(new_calendar_form))
+        .route(ApiUrls::CALENDAR_CALENDARS_JSON, get(list_calendars_api))
+        .route(ApiUrls::CALENDAR_UPCOMING_JSON, get(upcoming_events_api))
+        // HTMX/HTML APIs
+        .route(ApiUrls::CALENDAR_CALENDARS, get(list_calendars))
+        .route(ApiUrls::CALENDAR_UPCOMING, get(upcoming_events))
+        .route(ApiUrls::CALENDAR_NEW_EVENT_FORM, get(new_event_form))
+        .route(ApiUrls::CALENDAR_NEW_CALENDAR_FORM, get(new_calendar_form))
 }
 
 #[cfg(test)]

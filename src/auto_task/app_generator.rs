@@ -958,8 +958,8 @@ impl AppGenerator {
                 self.update_item_status(SectionType::DatabaseModels, &table.name, crate::auto_task::ItemStatus::Running);
                 self.broadcast_manifest_update();
 
-                // Sync the individual table
-                match self.sync_single_table_to_database(table) {
+                // Sync the individual table to the bot's specific database
+                match self.sync_single_table_to_database(table, session.bot_id) {
                     Ok(field_count) => {
                         tables_created += 1;
                         fields_added += field_count;
@@ -2738,18 +2738,32 @@ NO QUESTIONS. JUST BUILD."#
         Ok(())
     }
 
-    /// Sync a single table to database - used for real-time progress updates
+    /// Sync a single table to the bot's specific database - used for real-time progress updates
     fn sync_single_table_to_database(
         &self,
         table: &TableDefinition,
+        bot_id: Uuid,
     ) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.state.conn.get()?;
         let create_sql = generate_create_table_sql(table, "postgres");
 
-        sql_query(&create_sql).execute(&mut conn)?;
-        info!("Created table: {}", table.name);
-
-        Ok(table.fields.len())
+        // Try to use bot's specific database first
+        match self.state.bot_database_manager.create_table_in_bot_database(bot_id, &create_sql) {
+            Ok(()) => {
+                info!("Created table '{}' in bot database (bot_id: {})", table.name, bot_id);
+                Ok(table.fields.len())
+            }
+            Err(e) => {
+                // Log warning and fall back to main database
+                warn!(
+                    "Failed to create table '{}' in bot database: {}, falling back to main database",
+                    table.name, e
+                );
+                let mut conn = self.state.conn.get()?;
+                sql_query(&create_sql).execute(&mut conn)?;
+                info!("Created table '{}' in main database (fallback)", table.name);
+                Ok(table.fields.len())
+            }
+        }
     }
 
     fn update_task_app_url(

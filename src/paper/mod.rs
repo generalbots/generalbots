@@ -1,5 +1,6 @@
 #[cfg(feature = "llm")]
 use crate::llm::OpenAIClient;
+use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 use aws_sdk_s3::primitives::ByteStream;
 use axum::{
@@ -78,32 +79,34 @@ pub struct UserRow {
 }
 
 pub fn configure_paper_routes() -> Router<Arc<AppState>> {
+    use crate::core::urls::ApiUrls;
+
     Router::new()
-        .route("/api/paper/new", post(handle_new_document))
-        .route("/api/paper/list", get(handle_list_documents))
-        .route("/api/paper/search", get(handle_search_documents))
-        .route("/api/paper/save", post(handle_save_document))
-        .route("/api/paper/autosave", post(handle_autosave))
-        .route("/api/paper/{id}", get(handle_get_document))
-        .route("/api/paper/{id}/delete", post(handle_delete_document))
-        .route("/api/paper/template/blank", post(handle_template_blank))
-        .route("/api/paper/template/meeting", post(handle_template_meeting))
-        .route("/api/paper/template/todo", post(handle_template_todo))
+        .route(ApiUrls::PAPER_NEW, post(handle_new_document))
+        .route(ApiUrls::PAPER_LIST, get(handle_list_documents))
+        .route(ApiUrls::PAPER_SEARCH, get(handle_search_documents))
+        .route(ApiUrls::PAPER_SAVE, post(handle_save_document))
+        .route(ApiUrls::PAPER_AUTOSAVE, post(handle_autosave))
+        .route(&ApiUrls::PAPER_BY_ID.replace(":id", "{id}"), get(handle_get_document))
+        .route(&ApiUrls::PAPER_DELETE.replace(":id", "{id}"), post(handle_delete_document))
+        .route(ApiUrls::PAPER_TEMPLATE_BLANK, post(handle_template_blank))
+        .route(ApiUrls::PAPER_TEMPLATE_MEETING, post(handle_template_meeting))
+        .route(ApiUrls::PAPER_TEMPLATE_TODO, post(handle_template_todo))
         .route(
-            "/api/paper/template/research",
+            ApiUrls::PAPER_TEMPLATE_RESEARCH,
             post(handle_template_research),
         )
-        .route("/api/paper/ai/summarize", post(handle_ai_summarize))
-        .route("/api/paper/ai/expand", post(handle_ai_expand))
-        .route("/api/paper/ai/improve", post(handle_ai_improve))
-        .route("/api/paper/ai/simplify", post(handle_ai_simplify))
-        .route("/api/paper/ai/translate", post(handle_ai_translate))
-        .route("/api/paper/ai/custom", post(handle_ai_custom))
-        .route("/api/paper/export/pdf", get(handle_export_pdf))
-        .route("/api/paper/export/docx", get(handle_export_docx))
-        .route("/api/paper/export/md", get(handle_export_md))
-        .route("/api/paper/export/html", get(handle_export_html))
-        .route("/api/paper/export/txt", get(handle_export_txt))
+        .route(ApiUrls::PAPER_AI_SUMMARIZE, post(handle_ai_summarize))
+        .route(ApiUrls::PAPER_AI_EXPAND, post(handle_ai_expand))
+        .route(ApiUrls::PAPER_AI_IMPROVE, post(handle_ai_improve))
+        .route(ApiUrls::PAPER_AI_SIMPLIFY, post(handle_ai_simplify))
+        .route(ApiUrls::PAPER_AI_TRANSLATE, post(handle_ai_translate))
+        .route(ApiUrls::PAPER_AI_CUSTOM, post(handle_ai_custom))
+        .route(ApiUrls::PAPER_EXPORT_PDF, get(handle_export_pdf))
+        .route(ApiUrls::PAPER_EXPORT_DOCX, get(handle_export_docx))
+        .route(ApiUrls::PAPER_EXPORT_MD, get(handle_export_md))
+        .route(ApiUrls::PAPER_EXPORT_HTML, get(handle_export_html))
+        .route(ApiUrls::PAPER_EXPORT_TXT, get(handle_export_txt))
 }
 
 async fn get_current_user(
@@ -552,9 +555,8 @@ pub async fn handle_new_document(
 
     html.push_str("<script>");
     html.push_str("htmx.trigger('#paper-list', 'refresh');");
-    html.push_str("htmx.ajax('GET', '/api/paper/");
-    html.push_str(&html_escape(&doc_id));
-    html.push_str("', {target: '#editor-content', swap: 'innerHTML'});");
+    html.push_str(&format!("htmx.ajax('GET', '{}', {{target: '#editor-content', swap: 'innerHTML'}});",
+        ApiUrls::PAPER_BY_ID.replace(":id", &html_escape(&doc_id))));
     html.push_str("</script>");
     html.push_str("</div>");
 
@@ -588,7 +590,7 @@ pub async fn handle_list_documents(
     if documents.is_empty() {
         html.push_str("<div class=\"paper-empty\">");
         html.push_str("<p>No documents yet</p>");
-        html.push_str("<button class=\"btn-new\" hx-post=\"/api/paper/new\" hx-target=\"#paper-list\" hx-swap=\"afterbegin\">Create your first document</button>");
+        html.push_str(&format!("<button class=\"btn-new\" hx-post=\"{}\" hx-target=\"#paper-list\" hx-swap=\"afterbegin\">Create your first document</button>", ApiUrls::PAPER_NEW));
         html.push_str("</div>");
     } else {
         for doc in documents {
@@ -768,7 +770,7 @@ pub async fn handle_delete_document(
     match delete_document_from_drive(&state, &user_identifier, &id).await {
         Ok(()) => {
             log::info!("Document deleted: {}", id);
-            Html("<div class=\"delete-success\" hx-trigger=\"load\" hx-get=\"/api/paper/list\" hx-target=\"#paper-list\" hx-swap=\"innerHTML\"></div>".to_string())
+            Html(format!("<div class=\"delete-success\" hx-trigger=\"load\" hx-get=\"{}\" hx-target=\"#paper-list\" hx-swap=\"innerHTML\"></div>", ApiUrls::PAPER_LIST))
         }
         Err(e) => {
             log::error!("Failed to delete document {}: {}", id, e);
@@ -1218,8 +1220,8 @@ fn format_document_list_item(id: &str, title: &str, time: &str, is_new: bool) ->
     html.push_str(new_class);
     html.push_str("\" data-id=\"");
     html.push_str(&html_escape(id));
-    html.push_str("\" hx-get=\"/api/paper/");
-    html.push_str(&html_escape(id));
+    html.push_str("\" hx-get=\"");
+    html.push_str(&ApiUrls::PAPER_BY_ID.replace(":id", &html_escape(id)));
     html.push_str("\" hx-target=\"#editor-content\" hx-swap=\"innerHTML\">");
     html.push_str("<div class=\"paper-item-icon\">📄</div>");
     html.push_str("<div class=\"paper-item-info\">");

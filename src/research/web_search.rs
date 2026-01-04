@@ -96,12 +96,14 @@ pub struct SearchHistoryQuery {
 }
 
 pub fn configure_web_search_routes() -> Router<Arc<AppState>> {
+    use crate::core::urls::ApiUrls;
+
     Router::new()
-        .route("/api/research/web/search", post(handle_web_search))
-        .route("/api/research/web/summarize", post(handle_summarize))
-        .route("/api/research/web/deep", post(handle_deep_research))
-        .route("/api/research/web/history", get(handle_search_history))
-        .route("/api/research/web/instant", get(handle_instant_answer))
+        .route(ApiUrls::RESEARCH_WEB_SEARCH, post(handle_web_search))
+        .route(ApiUrls::RESEARCH_WEB_SUMMARIZE, post(handle_summarize))
+        .route(ApiUrls::RESEARCH_WEB_DEEP, post(handle_deep_research))
+        .route(ApiUrls::RESEARCH_WEB_HISTORY, get(handle_search_history))
+        .route(ApiUrls::RESEARCH_WEB_INSTANT, get(handle_instant_answer))
 }
 
 pub async fn handle_web_search(

@@ -1,4 +1,5 @@
 use crate::core::bot::channels::{ChannelAdapter, VoiceAdapter, WebChannelAdapter};
+use crate::core::bot_database::BotDatabaseManager;
 use crate::core::config::AppConfig;
 use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
@@ -188,6 +189,8 @@ impl TestAppStateBuilder {
 
         let (task_progress_tx, _) = broadcast::channel(100);
 
+        let bot_database_manager = Arc::new(BotDatabaseManager::new(pool.clone(), &database_url));
+
         Ok(AppState {
             #[cfg(feature = "drive")]
             drive: None,
@@ -198,6 +201,7 @@ impl TestAppStateBuilder {
             config: self.config,
             conn: pool.clone(),
             database_url,
+            bot_database_manager,
             session_manager: Arc::new(tokio::sync::Mutex::new(session_manager)),
             metrics_collector: MetricsCollector::new(),
             task_scheduler: None,

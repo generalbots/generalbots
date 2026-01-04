@@ -148,47 +148,49 @@ pub struct AppInfo {
 }
 
 pub fn configure_sources_routes() -> Router<Arc<AppState>> {
+    use crate::core::urls::ApiUrls;
+
     Router::new()
         .merge(knowledge_base::configure_knowledge_base_routes())
-        .route("/api/sources/prompts", get(handle_prompts))
-        .route("/api/sources/templates", get(handle_templates))
-        .route("/api/sources/news", get(handle_news))
-        .route("/api/sources/mcp-servers", get(handle_mcp_servers))
-        .route("/api/sources/llm-tools", get(handle_llm_tools))
-        .route("/api/sources/models", get(handle_models))
-        .route("/api/sources/search", get(handle_search))
-        .route("/api/sources/repositories", get(handle_list_repositories))
+        .route(ApiUrls::SOURCES_PROMPTS, get(handle_prompts))
+        .route(ApiUrls::SOURCES_TEMPLATES, get(handle_templates))
+        .route(ApiUrls::SOURCES_NEWS, get(handle_news))
+        .route(ApiUrls::SOURCES_MCP_SERVERS, get(handle_mcp_servers))
+        .route(ApiUrls::SOURCES_LLM_TOOLS, get(handle_llm_tools))
+        .route(ApiUrls::SOURCES_MODELS, get(handle_models))
+        .route(ApiUrls::SOURCES_SEARCH, get(handle_search))
+        .route(ApiUrls::SOURCES_REPOSITORIES, get(handle_list_repositories))
         .route(
-            "/api/sources/repositories/:id/connect",
+            ApiUrls::SOURCES_REPOSITORIES_CONNECT,
             post(handle_connect_repository),
         )
         .route(
-            "/api/sources/repositories/:id/disconnect",
+            ApiUrls::SOURCES_REPOSITORIES_DISCONNECT,
             post(handle_disconnect_repository),
         )
-        .route("/api/sources/apps", get(handle_list_apps))
-        .route("/api/sources/mcp", get(handle_list_mcp_servers_json))
-        .route("/api/sources/mcp", post(handle_add_mcp_server))
-        .route("/api/sources/mcp/:name", get(handle_get_mcp_server))
-        .route("/api/sources/mcp/:name", put(handle_update_mcp_server))
-        .route("/api/sources/mcp/:name", delete(handle_delete_mcp_server))
+        .route(ApiUrls::SOURCES_APPS, get(handle_list_apps))
+        .route(ApiUrls::SOURCES_MCP, get(handle_list_mcp_servers_json))
+        .route(ApiUrls::SOURCES_MCP, post(handle_add_mcp_server))
+        .route(&ApiUrls::SOURCES_MCP_BY_NAME.replace(":name", "{name}"), get(handle_get_mcp_server))
+        .route(&ApiUrls::SOURCES_MCP_BY_NAME.replace(":name", "{name}"), put(handle_update_mcp_server))
+        .route(&ApiUrls::SOURCES_MCP_BY_NAME.replace(":name", "{name}"), delete(handle_delete_mcp_server))
         .route(
-            "/api/sources/mcp/:name/enable",
+            &ApiUrls::SOURCES_MCP_ENABLE.replace(":name", "{name}"),
             post(handle_enable_mcp_server),
         )
         .route(
-            "/api/sources/mcp/:name/disable",
+            &ApiUrls::SOURCES_MCP_DISABLE.replace(":name", "{name}"),
             post(handle_disable_mcp_server),
         )
         .route(
-            "/api/sources/mcp/:name/tools",
+            &ApiUrls::SOURCES_MCP_TOOLS.replace(":name", "{name}"),
             get(handle_list_mcp_server_tools),
         )
-        .route("/api/sources/mcp/:name/test", post(handle_test_mcp_server))
-        .route("/api/sources/mcp/scan", post(handle_scan_mcp_directory))
-        .route("/api/sources/mcp/examples", get(handle_get_mcp_examples))
-        .route("/api/sources/mentions", get(handle_mentions_autocomplete))
-        .route("/api/sources/tools", get(handle_list_all_tools))
+        .route(&ApiUrls::SOURCES_MCP_TEST.replace(":name", "{name}"), post(handle_test_mcp_server))
+        .route(ApiUrls::SOURCES_MCP_SCAN, post(handle_scan_mcp_directory))
+        .route(ApiUrls::SOURCES_MCP_EXAMPLES, get(handle_get_mcp_examples))
+        .route(ApiUrls::SOURCES_MENTIONS, get(handle_mentions_autocomplete))
+        .route(ApiUrls::SOURCES_TOOLS, get(handle_list_all_tools))
 }
 
 pub async fn handle_list_mcp_servers_json(
@@ -676,7 +678,71 @@ pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> im
         last_sync: Some("2024-01-15T10:30:00Z".to_string()),
     }];
 
-    Json(ApiResponse::success(repos))
+    let mut html = String::new();
+    html.push_str("<div class=\"repos-grid\">");
+
+    for repo in &repos {
+        let status_class = if repo.status == "connected" { "connected" } else { "disconnected" };
+        let status_text = if repo.status == "connected" { "Connected" } else { "Disconnected" };
+        let language = repo.language.as_deref().unwrap_or("Unknown");
+        let last_sync = repo.last_sync.as_deref().unwrap_or("Never");
+
+        let _ = write!(
+            html,
+            r#"<div class="repo-card">
+                <div class="repo-header">
+                    <div class="repo-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                        </svg>
+                    </div>
+                    <div class="repo-info">
+                        <h4 class="repo-name">{}</h4>
+                        <span class="repo-owner">{}</span>
+                    </div>
+                    <span class="repo-status {}">{}</span>
+                </div>
+                <p class="repo-description">{}</p>
+                <div class="repo-meta">
+                    <span class="repo-meta-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        {}
+                    </span>
+                    <span class="repo-meta-item">⭐ {}</span>
+                    <span class="repo-meta-item">🍴 {}</span>
+                    <span class="repo-meta-item">Last sync: {}</span>
+                </div>
+                <div class="repo-actions">
+                    <button class="btn-browse" onclick="window.open('{}', '_blank')">Browse</button>
+                </div>
+            </div>"#,
+            html_escape(&repo.name),
+            html_escape(&repo.owner),
+            status_class,
+            status_text,
+            html_escape(&repo.description),
+            language,
+            repo.stars,
+            repo.forks,
+            last_sync,
+            html_escape(&repo.url)
+        );
+    }
+
+    if repos.is_empty() {
+        html.push_str(r#"<div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+            </svg>
+            <h3>No Repositories</h3>
+            <p>Connect your GitHub repositories to get started</p>
+        </div>"#);
+    }
+
+    html.push_str("</div>");
+    Html(html)
 }
 
 pub async fn handle_connect_repository(
@@ -707,7 +773,56 @@ pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoR
         status: "active".to_string(),
     }];
 
-    Json(ApiResponse::success(apps))
+    let mut html = String::new();
+    html.push_str("<div class=\"apps-grid\">");
+
+    for app in &apps {
+        let app_icon = match app.app_type.as_str() {
+            "htmx" => "📱",
+            "react" => "⚛️",
+            "vue" => "💚",
+            _ => "🔷",
+        };
+
+        let _ = write!(
+            html,
+            r#"<div class="app-card">
+                <div class="app-header">
+                    <div class="app-icon">{}</div>
+                    <div class="app-info">
+                        <h4 class="app-name">{}</h4>
+                        <span class="app-type">{}</span>
+                    </div>
+                </div>
+                <p class="app-description">{}</p>
+                <div class="app-actions">
+                    <button class="btn-open" onclick="window.location.href='{}'">Open</button>
+                    <button class="btn-edit">Edit</button>
+                </div>
+            </div>"#,
+            app_icon,
+            html_escape(&app.name),
+            html_escape(&app.app_type),
+            html_escape(&app.description),
+            html_escape(&app.url)
+        );
+    }
+
+    if apps.is_empty() {
+        html.push_str(r#"<div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <h3>No Apps</h3>
+            <p>Create your first app to get started</p>
+        </div>"#);
+    }
+
+    html.push_str("</div>");
+    Html(html)
 }
 
 pub async fn handle_prompts(
@@ -826,6 +941,98 @@ pub async fn handle_news(State(_state): State<Arc<AppState>>) -> impl IntoRespon
     Html(html)
 }
 
+/// MCP Server from JSON catalog
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpServerCatalogEntry {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub icon: String,
+    #[serde(rename = "type")]
+    pub server_type: String,
+    pub category: String,
+    pub provider: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpServersCatalog {
+    pub mcp_servers: Vec<McpServerCatalogEntry>,
+    pub categories: Vec<String>,
+    pub types: Vec<McpServerType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpServerType {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+}
+
+fn load_mcp_servers_catalog() -> Option<McpServersCatalog> {
+    let catalog_path = std::path::Path::new("./3rdparty/mcp_servers.json");
+    if catalog_path.exists() {
+        match std::fs::read_to_string(catalog_path) {
+            Ok(content) => match serde_json::from_str(&content) {
+                Ok(catalog) => Some(catalog),
+                Err(e) => {
+                    error!("Failed to parse mcp_servers.json: {}", e);
+                    None
+                }
+            },
+            Err(e) => {
+                error!("Failed to read mcp_servers.json: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    }
+}
+
+fn get_type_badge_class(server_type: &str) -> &'static str {
+    match server_type {
+        "Local" => "badge-local",
+        "Remote" => "badge-remote",
+        "Custom" => "badge-custom",
+        _ => "badge-default",
+    }
+}
+
+fn get_category_icon(category: &str) -> &'static str {
+    match category {
+        "Database" => "🗄️",
+        "Analytics" => "📊",
+        "Search" => "🔍",
+        "Vector Database" => "🧮",
+        "Deployment" => "🚀",
+        "Data Catalog" => "📚",
+        "Productivity" => "✅",
+        "AI/ML" => "🤖",
+        "Storage" => "💾",
+        "DevOps" => "⚙️",
+        "Process Mining" => "⛏️",
+        "Development" => "💻",
+        "Communication" => "💬",
+        "Customer Support" => "🎧",
+        "Finance" => "💰",
+        "Enterprise" => "🏢",
+        "HR" => "👥",
+        "Security" => "🔒",
+        "Documentation" => "📖",
+        "Integration" => "🔗",
+        "API" => "🔌",
+        "Payments" => "💳",
+        "Maps" => "🗺️",
+        "Web Development" => "🌐",
+        "Scheduling" => "📅",
+        "Document Management" => "📁",
+        "Contact Management" => "📇",
+        "URL Shortener" => "🔗",
+        "Manufacturing" => "🏭",
+        _ => "📦",
+    }
+}
+
 pub async fn handle_mcp_servers(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
@@ -836,49 +1043,66 @@ pub async fn handle_mcp_servers(
     let loader = McpCsvLoader::new(&work_path, &bot_id);
     let scan_result = loader.load();
 
+    // Load MCP servers catalog from JSON
+    let catalog = load_mcp_servers_catalog();
+
     let mut html = String::new();
-    html.push_str("<div class=\"mcp-container\">");
-    html.push_str("<div class=\"mcp-header\">");
-    html.push_str("<h3>MCP Servers</h3>");
-    html.push_str("<p>Model Context Protocol servers extend your bot's capabilities. Configure servers in <code>mcp.csv</code>.</p>");
-    html.push_str("<div class=\"mcp-header-actions\">");
-    html.push_str("<button class=\"btn-scan\" hx-post=\"/api/sources/mcp/scan\" hx-target=\"#mcp-grid\" hx-swap=\"innerHTML\">🔄 Reload</button>");
-    html.push_str(
-        "<button class=\"btn-add-server\" onclick=\"showAddMcpModal()\">+ Add Server</button>",
-    );
+    html.push_str("<div class=\"mcp-container\" style=\"padding:1rem;\">");
+
+    // Header section
+    html.push_str("<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;\">");
+    html.push_str("<div><h3 style=\"margin:0;\">MCP Servers</h3>");
+    html.push_str("<p style=\"margin:0.25rem 0 0;color:#666;\">Model Context Protocol servers extend your bot's capabilities</p></div>");
+    html.push_str("<div style=\"display:flex;gap:0.5rem;\">");
+    html.push_str("<button style=\"padding:0.5rem 1rem;border:1px solid #ddd;border-radius:0.25rem;background:#f5f5f5;cursor:pointer;\" hx-post=\"/api/sources/mcp/scan\" hx-target=\"#mcp-grid\" hx-swap=\"innerHTML\">🔄 Reload</button>");
+    html.push_str("<button style=\"padding:0.5rem 1rem;border:none;border-radius:0.25rem;background:#2196F3;color:white;cursor:pointer;\" onclick=\"showAddMcpModal()\">+ Add Server</button>");
     html.push_str("</div></div>");
 
+    // Configured Servers Section (from CSV)
+    html.push_str("<div style=\"margin-bottom:2rem;\">");
+    html.push_str("<h4 style=\"font-size:1.1rem;margin-bottom:0.75rem;\">🔧 Configured Servers</h4>");
     let _ = write!(
         html,
-        "<div class=\"mcp-directory-info\"><span class=\"label\">MCP Config:</span><code>{}</code>{}</div>",
+        "<div style=\"font-size:0.85rem;color:#666;margin-bottom:0.75rem;\"><span>Config:</span> <code style=\"background:#f5f5f5;padding:0.2rem 0.4rem;border-radius:0.25rem;\">{}</code>{}</div>",
         scan_result.file_path.to_string_lossy(),
-        if loader.csv_exists() { "" } else { "<span class=\"badge badge-warning\">Not Found</span>" }
+        if loader.csv_exists() { "" } else { " <span style=\"background:#fff3cd;color:#856404;padding:0.2rem 0.4rem;border-radius:0.25rem;font-size:0.75rem;\">Not Found</span>" }
     );
 
-    html.push_str("<div class=\"mcp-grid\" id=\"mcp-grid\">");
+    html.push_str("<div style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;\" id=\"mcp-grid\">");
 
     if scan_result.servers.is_empty() {
-        html.push_str("<div class=\"empty-state\"><div class=\"empty-icon\">🔌</div><h4>No MCP Servers Found</h4><p>Add MCP server configuration files to your <code>.gbmcp</code> directory.</p></div>");
+        html.push_str("<div style=\"display:flex;align-items:center;gap:0.5rem;padding:1rem;background:#f9f9f9;border-radius:0.5rem;color:#666;font-size:0.9rem;grid-column:1/-1;\"><span>🔌</span><span>No servers configured. Add from catalog below or create <code>mcp.csv</code>.</span></div>");
     } else {
         for server in &scan_result.servers {
             let is_active = matches!(
                 server.status,
                 crate::basic::keywords::mcp_client::McpServerStatus::Active
             );
-            let status_class = if is_active {
-                "status-active"
-            } else {
-                "status-inactive"
-            };
+            let status_class = if is_active { "status-active" } else { "status-inactive" };
             let status_text = if is_active { "Active" } else { "Inactive" };
+
+            let status_bg = if is_active { "#e8f5e9" } else { "#ffebee" };
+            let status_color = if is_active { "#2e7d32" } else { "#c62828" };
 
             let _ = write!(
                 html,
-                "<div class=\"mcp-card\"><div class=\"mcp-card-header\"><div class=\"mcp-icon\">{}</div><div class=\"mcp-title\"><h4>{}</h4><span class=\"mcp-type\">{}</span></div><div class=\"mcp-status {}\">{}</div></div><p class=\"mcp-description\">{}</p><div class=\"mcp-tools-count\"><span class=\"tools-badge\">{} tools</span></div><div class=\"mcp-actions\"><button class=\"btn-test\" hx-post=\"/api/sources/mcp/{}/test\">Test</button></div></div>",
+                "<div style=\"background:#fff;border:1px solid #e0e0e0;border-left:3px solid #2196F3;border-radius:0.5rem;padding:1rem;\">
+                    <div style=\"display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;\">
+                        <div style=\"font-size:1.25rem;\">{}</div>
+                        <div style=\"flex:1;\"><h4 style=\"margin:0;font-size:0.95rem;\">{}</h4><span style=\"font-size:0.75rem;color:#888;\">{}</span></div>
+                        <span style=\"font-size:0.7rem;padding:0.2rem 0.5rem;border-radius:0.25rem;background:{};color:{};\">{}</span>
+                    </div>
+                    <p style=\"font-size:0.85rem;color:#666;margin:0.5rem 0;\">{}</p>
+                    <div style=\"display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;\">
+                        <span style=\"font-size:0.75rem;background:#e3f2fd;color:#1565c0;padding:0.2rem 0.5rem;border-radius:0.25rem;\">{} tools</span>
+                        <button style=\"padding:0.3rem 0.6rem;font-size:0.75rem;border:1px solid #ddd;border-radius:0.25rem;background:#f5f5f5;cursor:pointer;\" hx-post=\"/api/sources/mcp/{}/test\">Test</button>
+                    </div>
+                </div>",
                 mcp::get_server_type_icon(&server.server_type.to_string()),
                 html_escape(&server.name),
                 server.server_type,
-                status_class,
+                status_bg,
+                status_color,
                 status_text,
                 if server.description.is_empty() { "<em>No description</em>".to_string() } else { html_escape(&server.description) },
                 server.tools.len(),
@@ -886,8 +1110,84 @@ pub async fn handle_mcp_servers(
             );
         }
     }
-
     html.push_str("</div></div>");
+
+    // MCP Server Catalog Section (from JSON)
+    if let Some(ref catalog) = catalog {
+        html.push_str("<div style=\"margin-bottom:2rem;\">");
+        html.push_str("<h4 style=\"font-size:1.1rem;margin-bottom:0.75rem;\">📦 Available MCP Servers</h4>");
+        html.push_str("<p style=\"color:#666;font-size:0.9rem;margin-bottom:1rem;\">Browse and add MCP servers from the catalog</p>");
+
+        // Category filter with inline onclick handlers
+        html.push_str("<div style=\"display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;\" id=\"mcp-category-filter\">");
+        html.push_str("<button class=\"category-btn active\" style=\"padding:0.4rem 0.8rem;border:1px solid #ddd;border-radius:1rem;background:#f5f5f5;cursor:pointer;font-size:0.8rem;\" onclick=\"filterMcpCategory(this, 'all')\">All</button>");
+        for category in &catalog.categories {
+            let _ = write!(
+                html,
+                "<button class=\"category-btn\" style=\"padding:0.4rem 0.8rem;border:1px solid #ddd;border-radius:1rem;background:#f5f5f5;cursor:pointer;font-size:0.8rem;\" onclick=\"filterMcpCategory(this, '{}')\"> {}</button>",
+                html_escape(category),
+                html_escape(category)
+            );
+        }
+        html.push_str("</div>");
+
+        html.push_str("<div style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;\" id=\"mcp-catalog-grid\">");
+        for server in &catalog.mcp_servers {
+            let badge_bg = match server.server_type.as_str() {
+                "Local" => "#e3f2fd",
+                "Remote" => "#e8f5e9",
+                "Custom" => "#fff3e0",
+                _ => "#f5f5f5",
+            };
+            let badge_color = match server.server_type.as_str() {
+                "Local" => "#1565c0",
+                "Remote" => "#2e7d32",
+                "Custom" => "#ef6c00",
+                _ => "#333",
+            };
+            let category_icon = get_category_icon(&server.category);
+
+            let _ = write!(
+                html,
+                "<div class=\"server-card\" data-category=\"{}\" data-id=\"{}\" style=\"background:#fff;border:1px solid #e0e0e0;border-radius:0.75rem;padding:1rem;\">
+                    <div style=\"display:flex;align-items:flex-start;gap:0.75rem;margin-bottom:0.75rem;\">
+                        <div style=\"font-size:1.5rem;\">{}</div>
+                        <div style=\"flex:1;min-width:0;\">
+                            <h4 style=\"font-size:0.95rem;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;\">{}</h4>
+                            <span style=\"font-size:0.75rem;color:#888;\">{}</span>
+                        </div>
+                        <span style=\"font-size:0.65rem;padding:0.2rem 0.5rem;border-radius:0.25rem;white-space:nowrap;background:{};color:{};\">MCP: {}</span>
+                    </div>
+                    <p style=\"font-size:0.85rem;color:#666;margin-bottom:0.75rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;\">{}</p>
+                    <div style=\"display:flex;justify-content:space-between;align-items:center;\">
+                        <span style=\"font-size:0.75rem;color:#999;\">{} {}</span>
+                        <button style=\"padding:0.3rem 0.6rem;font-size:0.75rem;background:#4CAF50;color:white;border:none;border-radius:0.25rem;cursor:pointer;\" onclick=\"addCatalogServer('{}', '{}')\">+ Add</button>
+                    </div>
+                </div>",
+                html_escape(&server.category),
+                html_escape(&server.id),
+                category_icon,
+                html_escape(&server.name),
+                html_escape(&server.provider),
+                badge_bg,
+                badge_color,
+                html_escape(&server.server_type),
+                html_escape(&server.description),
+                category_icon,
+                html_escape(&server.category),
+                html_escape(&server.id),
+                html_escape(&server.name)
+            );
+        }
+        html.push_str("</div></div>");
+    } else {
+        html.push_str("<div style=\"margin-bottom:2rem;\">");
+        html.push_str("<div style=\"text-align:center;padding:2rem;background:#f9f9f9;border-radius:0.5rem;\"><div style=\"font-size:2rem;\">📦</div><h4>MCP Catalog Not Found</h4><p style=\"color:#666;\">Create <code>3rdparty/mcp_servers.json</code> to browse available servers.</p></div>");
+        html.push_str("</div>");
+    }
+
+    html.push_str("</div>");
+
     Html(html)
 }
 

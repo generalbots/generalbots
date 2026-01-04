@@ -1,23 +1,35 @@
 
-
-
-
 use axum::{extract::State, response::Html, routing::get, Router};
-use log::info;
+use chrono::Local;
 use std::sync::Arc;
 use sysinfo::{Disks, Networks, System};
 
+use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 
 
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/monitoring/dashboard", get(dashboard))
-        .route("/api/monitoring/services", get(services))
-        .route("/api/monitoring/resources", get(resources))
-        .route("/api/monitoring/logs", get(logs))
-        .route("/api/monitoring/llm", get(llm_metrics))
-        .route("/api/monitoring/health", get(health))
+        .route(ApiUrls::MONITORING_DASHBOARD, get(dashboard))
+        .route(ApiUrls::MONITORING_SERVICES, get(services))
+        .route(ApiUrls::MONITORING_RESOURCES, get(resources))
+        .route(ApiUrls::MONITORING_LOGS, get(logs))
+        .route(ApiUrls::MONITORING_LLM, get(llm_metrics))
+        .route(ApiUrls::MONITORING_HEALTH, get(health))
+        // Additional endpoints expected by the frontend
+        .route("/api/ui/monitoring/timestamp", get(timestamp))
+        .route("/api/ui/monitoring/bots", get(bots))
+        .route("/api/ui/monitoring/services/status", get(services_status))
+        .route("/api/ui/monitoring/resources/bars", get(resources_bars))
+        .route("/api/ui/monitoring/activity/latest", get(activity_latest))
+        .route("/api/ui/monitoring/metric/sessions", get(metric_sessions))
+        .route("/api/ui/monitoring/metric/messages", get(metric_messages))
+        .route("/api/ui/monitoring/metric/response_time", get(metric_response_time))
+        .route("/api/ui/monitoring/trend/sessions", get(trend_sessions))
+        .route("/api/ui/monitoring/rate/messages", get(rate_messages))
+        // Aliases for frontend compatibility
+        .route("/api/ui/monitoring/sessions", get(sessions_panel))
+        .route("/api/ui/monitoring/messages", get(messages_panel))
 }
 
 
@@ -398,4 +410,161 @@ fn check_minio() -> bool {
 
 fn check_llm() -> bool {
     true
+}
+
+
+async fn timestamp(State(_state): State<Arc<AppState>>) -> Html<String> {
+    let now = Local::now();
+    Html(format!("Last updated: {}", now.format("%H:%M:%S")))
+}
+
+
+async fn bots(State(state): State<Arc<AppState>>) -> Html<String> {
+    let active_sessions = state
+        .session_manager
+        .try_lock()
+        .map(|sm| sm.active_count())
+        .unwrap_or(0);
+
+    Html(format!(
+        r##"<div class="bots-list">
+    <div class="bot-item">
+        <span class="bot-name">Active Sessions</span>
+        <span class="bot-count">{active_sessions}</span>
+    </div>
+</div>"##
+    ))
+}
+
+
+async fn services_status(State(_state): State<Arc<AppState>>) -> Html<String> {
+    let services = vec![
+        ("postgresql", check_postgres()),
+        ("redis", check_redis()),
+        ("minio", check_minio()),
+        ("llm", check_llm()),
+    ];
+
+    let mut status_updates = String::new();
+    for (name, running) in services {
+        let status = if running { "running" } else { "stopped" };
+        status_updates.push_str(&format!(
+            r##"<script>
+                (function() {{
+                    var el = document.querySelector('[data-service="{name}"]');
+                    if (el) el.setAttribute('data-status', '{status}');
+                }})();
+            </script>"##
+        ));
+    }
+
+    Html(status_updates)
+}
+
+
+async fn resources_bars(State(_state): State<Arc<AppState>>) -> Html<String> {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    let cpu_usage = sys.global_cpu_usage();
+    let total_memory = sys.total_memory();
+    let used_memory = sys.used_memory();
+    let memory_percent = if total_memory > 0 {
+        (used_memory as f64 / total_memory as f64) * 100.0
+    } else {
+        0.0
+    };
+
+    Html(format!(
+        r##"<g>
+    <text x="0" y="0" fill="#94a3b8" font-family="system-ui" font-size="10">CPU</text>
+    <rect x="40" y="-8" width="100" height="10" rx="2" fill="#1e293b"/>
+    <rect x="40" y="-8" width="{cpu_width}" height="10" rx="2" fill="#3b82f6"/>
+    <text x="150" y="0" fill="#f8fafc" font-family="system-ui" font-size="10">{cpu_usage:.0}%</text>
+</g>
+<g transform="translate(0, 20)">
+    <text x="0" y="0" fill="#94a3b8" font-family="system-ui" font-size="10">MEM</text>
+    <rect x="40" y="-8" width="100" height="10" rx="2" fill="#1e293b"/>
+    <rect x="40" y="-8" width="{mem_width}" height="10" rx="2" fill="#10b981"/>
+    <text x="150" y="0" fill="#f8fafc" font-family="system-ui" font-size="10">{memory_percent:.0}%</text>
+</g>"##,
+        cpu_width = cpu_usage.min(100.0),
+        mem_width = memory_percent.min(100.0),
+    ))
+}
+
+
+async fn activity_latest(State(_state): State<Arc<AppState>>) -> Html<String> {
+    Html("System monitoring active...".to_string())
+}
+
+
+async fn metric_sessions(State(state): State<Arc<AppState>>) -> Html<String> {
+    let active_sessions = state
+        .session_manager
+        .try_lock()
+        .map(|sm| sm.active_count())
+        .unwrap_or(0);
+
+    Html(format!("{}", active_sessions))
+}
+
+
+async fn metric_messages(State(_state): State<Arc<AppState>>) -> Html<String> {
+    Html("--".to_string())
+}
+
+
+async fn metric_response_time(State(_state): State<Arc<AppState>>) -> Html<String> {
+    Html("--".to_string())
+}
+
+
+async fn trend_sessions(State(_state): State<Arc<AppState>>) -> Html<String> {
+    Html("↑ 0%".to_string())
+}
+
+
+async fn rate_messages(State(_state): State<Arc<AppState>>) -> Html<String> {
+    Html("0/hr".to_string())
+}
+
+
+async fn sessions_panel(State(state): State<Arc<AppState>>) -> Html<String> {
+    let active_sessions = state
+        .session_manager
+        .try_lock()
+        .map(|sm| sm.active_count())
+        .unwrap_or(0);
+
+    Html(format!(
+        r##"<div class="sessions-panel">
+    <div class="panel-header">
+        <h3>Active Sessions</h3>
+        <span class="session-count">{active_sessions}</span>
+    </div>
+    <div class="session-list">
+        <div class="empty-state">
+            <p>No active sessions</p>
+        </div>
+    </div>
+</div>"##
+    ))
+}
+
+
+async fn messages_panel(State(_state): State<Arc<AppState>>) -> Html<String> {
+    Html(
+        r##"<div class="messages-panel">
+    <div class="panel-header">
+        <h3>Recent Messages</h3>
+    </div>
+    <div class="message-list">
+        <div class="empty-state">
+            <p>No recent messages</p>
+        </div>
+    </div>
+</div>"##
+            .to_string(),
+    )
 }
