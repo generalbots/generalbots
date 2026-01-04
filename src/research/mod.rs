@@ -5,7 +5,7 @@ use axum::{
     extract::{Path, State},
     response::{Html, IntoResponse},
     routing::{get, post},
-    Json, Router,
+    Form, Json, Router,
 };
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -58,20 +58,22 @@ pub struct CollectionRow {
 }
 
 pub fn configure_research_routes() -> Router<Arc<AppState>> {
+    use crate::core::urls::ApiUrls;
+
     Router::new()
         .merge(web_search::configure_web_search_routes())
-        .route("/api/research/collections", get(handle_list_collections))
+        .route(ApiUrls::RESEARCH_COLLECTIONS, get(handle_list_collections))
         .route(
-            "/api/research/collections/new",
+            ApiUrls::RESEARCH_COLLECTIONS_NEW,
             post(handle_create_collection),
         )
-        .route("/api/research/collections/{id}", get(handle_get_collection))
-        .route("/api/research/search", post(handle_search))
-        .route("/api/research/recent", get(handle_recent_searches))
-        .route("/api/research/trending", get(handle_trending_tags))
-        .route("/api/research/prompts", get(handle_prompts))
+        .route(&ApiUrls::RESEARCH_COLLECTION_BY_ID.replace(":id", "{id}"), get(handle_get_collection))
+        .route(ApiUrls::RESEARCH_SEARCH, post(handle_search))
+        .route(ApiUrls::RESEARCH_RECENT, get(handle_recent_searches))
+        .route(ApiUrls::RESEARCH_TRENDING, get(handle_trending_tags))
+        .route(ApiUrls::RESEARCH_PROMPTS, get(handle_prompts))
         .route(
-            "/api/research/export-citations",
+            ApiUrls::RESEARCH_EXPORT_CITATIONS,
             get(handle_export_citations),
         )
 }
@@ -264,7 +266,7 @@ pub async fn handle_get_collection(
 
 pub async fn handle_search(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<SearchRequest>,
+    Form(payload): Form<SearchRequest>,
 ) -> impl IntoResponse {
     let query = payload.query.unwrap_or_default();
 

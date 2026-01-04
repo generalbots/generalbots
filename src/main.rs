@@ -26,7 +26,7 @@ use tower_http::trace::TraceLayer;
 async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
     use aws_sdk_s3::primitives::ByteStream;
 
-    let htmx_content = include_bytes!("../../botserver-stack/static/js/vendor/htmx.min.js");
+    let htmx_content = include_bytes!("../botserver-stack/static/js/vendor/htmx.min.js");
     let bucket = "default.gbai";
     let key = "default.gblib/vendor/htmx.min.js";
 
@@ -91,6 +91,7 @@ use bootstrap::BootstrapManager;
 use botserver::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
 use botserver::core::bot::websocket_handler;
 use botserver::core::bot::BotOrchestrator;
+use botserver::core::bot_database::BotDatabaseManager;
 use botserver::core::config::AppConfig;
 
 #[cfg(feature = "directory")]
@@ -283,6 +284,8 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::research::configure_research_routes());
     api_router = api_router.merge(botserver::sources::configure_sources_routes());
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
+    api_router = api_router.merge(botserver::monitoring::configure());
+    api_router = api_router.merge(botserver::settings::configure_settings_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_db_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_app_server_routes());
     api_router = api_router.merge(botserver::auto_task::configure_autotask_routes());
@@ -858,12 +861,36 @@ async fn main() -> std::io::Result<()> {
         botserver::core::shared::state::TaskProgressEvent,
     >(1000);
 
+    // Initialize BotDatabaseManager for per-bot database support
+    let database_url = crate::shared::utils::get_database_url_sync().unwrap_or_default();
+    let bot_database_manager = Arc::new(BotDatabaseManager::new(pool.clone(), &database_url));
+
+    // Sync all bot databases on startup - ensures each bot has its own database
+    info!("Syncing bot databases on startup...");
+    match bot_database_manager.sync_all_bot_databases() {
+        Ok(sync_result) => {
+            info!(
+                "Bot database sync complete: {} created, {} verified, {} errors",
+                sync_result.databases_created,
+                sync_result.databases_verified,
+                sync_result.errors.len()
+            );
+            for err in &sync_result.errors {
+                warn!("Bot database sync error: {}", err);
+            }
+        }
+        Err(e) => {
+            error!("Failed to sync bot databases: {}", e);
+        }
+    }
+
     let app_state = Arc::new(AppState {
         drive: Some(drive.clone()),
         s3_client: Some(drive),
         config: Some(cfg.clone()),
         conn: pool.clone(),
-        database_url: crate::shared::utils::get_database_url_sync().unwrap_or_default(),
+        database_url: database_url.clone(),
+        bot_database_manager: bot_database_manager.clone(),
         bucket_name: "default.gbai".to_string(),
         cache: redis_client.clone(),
         session_manager: session_manager.clone(),

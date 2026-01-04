@@ -124,18 +124,19 @@ pub fn configure() -> Router<Arc<AppState>> {
         )
         .route("/api/email/tracking/list", get(list_sent_emails_tracking))
         .route("/api/email/tracking/stats", get(get_tracking_stats))
-        .route("/ui/email/accounts", get(list_email_accounts_htmx))
-        .route("/ui/email/list", get(list_emails_htmx))
-        .route("/ui/email/folders", get(list_folders_htmx))
-        .route("/ui/email/compose", get(compose_email_htmx))
-        .route("/ui/email/:id", get(get_email_content_htmx))
-        .route("/ui/email/:id/delete", delete(delete_email_htmx))
-        .route("/ui/email/labels", get(list_labels_htmx))
-        .route("/ui/email/templates", get(list_templates_htmx))
-        .route("/ui/email/signatures", get(list_signatures_htmx))
-        .route("/ui/email/rules", get(list_rules_htmx))
-        .route("/ui/email/search", get(search_emails_htmx))
-        .route("/ui/email/auto-responder", post(save_auto_responder))
+        // HTMX/HTML APIs
+        .route(ApiUrls::EMAIL_ACCOUNTS_HTMX, get(list_email_accounts_htmx))
+        .route(ApiUrls::EMAIL_LIST_HTMX, get(list_emails_htmx))
+        .route(ApiUrls::EMAIL_FOLDERS_HTMX, get(list_folders_htmx))
+        .route(ApiUrls::EMAIL_COMPOSE_HTMX, get(compose_email_htmx))
+        .route(&ApiUrls::EMAIL_CONTENT_HTMX.replace(":id", "{id}"), get(get_email_content_htmx))
+        .route("/api/ui/email/{id}/delete", delete(delete_email_htmx))
+        .route(ApiUrls::EMAIL_LABELS_HTMX, get(list_labels_htmx))
+        .route(ApiUrls::EMAIL_TEMPLATES_HTMX, get(list_templates_htmx))
+        .route(ApiUrls::EMAIL_SIGNATURES_HTMX, get(list_signatures_htmx))
+        .route(ApiUrls::EMAIL_RULES_HTMX, get(list_rules_htmx))
+        .route(ApiUrls::EMAIL_SEARCH_HTMX, get(search_emails_htmx))
+        .route(ApiUrls::EMAIL_AUTO_RESPONDER_HTMX, post(save_auto_responder))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1717,39 +1718,73 @@ struct EmailContent {
 pub async fn list_emails_htmx(
     State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
-) -> Result<impl IntoResponse, EmailError> {
+) -> impl IntoResponse {
     let folder = params
         .get("folder")
         .cloned()
         .unwrap_or_else(|| "inbox".to_string());
 
-    let user_id = extract_user_from_session(&state)
-        .map_err(|_| EmailError("Authentication required".to_string()))?;
+    let user_id = match extract_user_from_session(&state) {
+        Ok(id) => id,
+        Err(_) => {
+            return axum::response::Html(
+                r#"<div class="empty-state">
+                    <h3>Authentication required</h3>
+                    <p>Please sign in to view your emails</p>
+                </div>"#
+                    .to_string(),
+            );
+        }
+    };
 
     let conn = state.conn.clone();
-    let account = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn
-            .get()
-            .map_err(|e| format!("DB connection error: {}", e))?;
+    let account_result = tokio::task::spawn_blocking(move || {
+        let db_conn_result = conn.get();
+        let mut db_conn = match db_conn_result {
+            Ok(c) => c,
+            Err(e) => return Err(format!("DB connection error: {}", e)),
+        };
 
-        diesel::sql_query("SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1")
+        diesel::sql_query("SELECT * FROM user_email_accounts WHERE user_id = $1 LIMIT 1")
             .bind::<diesel::sql_types::Uuid, _>(user_id)
             .get_result::<EmailAccountRow>(&mut db_conn)
             .optional()
             .map_err(|e| format!("Failed to get email account: {}", e))
     })
-    .await
-    .map_err(|e| EmailError(format!("Task join error: {e}")))?
-    .map_err(EmailError)?;
+    .await;
 
-    let Some(account) = account else {
-        return Ok(axum::response::Html(
-            r#"<div class="empty-state">
-                <h3>No email account configured</h3>
-                <p>Please add an email account first</p>
-            </div>"#
-                .to_string(),
-        ));
+    let account = match account_result {
+        Ok(Ok(Some(acc))) => acc,
+        Ok(Ok(None)) => {
+            return axum::response::Html(
+                r##"<div class="empty-state">
+                    <h3>No email account configured</h3>
+                    <p>Please add an email account in settings to get started</p>
+                    <a href="#settings" class="btn-primary" style="margin-top: 1rem; display: inline-block;">Add Email Account</a>
+                </div>"##
+                    .to_string(),
+            );
+        }
+        Ok(Err(e)) => {
+            log::error!("Email account query error: {}", e);
+            return axum::response::Html(
+                r#"<div class="empty-state">
+                    <h3>Unable to load emails</h3>
+                    <p>There was an error connecting to the database. Please try again later.</p>
+                </div>"#
+                    .to_string(),
+            );
+        }
+        Err(e) => {
+            log::error!("Task join error: {}", e);
+            return axum::response::Html(
+                r#"<div class="empty-state">
+                    <h3>Unable to load emails</h3>
+                    <p>An internal error occurred. Please try again later.</p>
+                </div>"#
+                    .to_string(),
+            );
+        }
     };
 
     let config = EmailConfig {
@@ -1795,20 +1830,28 @@ pub async fn list_emails_htmx(
         );
     }
 
-    Ok(axum::response::Html(html))
+    axum::response::Html(html)
 }
 
 pub async fn list_folders_htmx(
     State(state): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, EmailError> {
-    let user_id = extract_user_from_session(&state)
-        .map_err(|_| EmailError("Authentication required".to_string()))?;
+) -> impl IntoResponse {
+    let user_id = match extract_user_from_session(&state) {
+        Ok(id) => id,
+        Err(_) => {
+            return axum::response::Html(
+                r#"<div class="nav-item">Please sign in</div>"#.to_string(),
+            );
+        }
+    };
 
     let conn = state.conn.clone();
-    let account = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn
-            .get()
-            .map_err(|e| format!("DB connection error: {}", e))?;
+    let account_result = tokio::task::spawn_blocking(move || {
+        let db_conn_result = conn.get();
+        let mut db_conn = match db_conn_result {
+            Ok(c) => c,
+            Err(e) => return Err(format!("DB connection error: {}", e)),
+        };
 
         diesel::sql_query("SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1")
             .bind::<diesel::sql_types::Uuid, _>(user_id)
@@ -1816,20 +1859,27 @@ pub async fn list_folders_htmx(
             .optional()
             .map_err(|e| format!("Failed to get email account: {}", e))
     })
-    .await
-    .map_err(|e| EmailError(format!("Task join error: {e}")))?
-    .map_err(EmailError)?;
+    .await;
 
-    if account.is_none() {
-        return Ok(axum::response::Html(
-            r#"<div class="nav-item">No account configured</div>"#.to_string(),
-        ));
-    }
-
-    let Some(account) = account else {
-        return Ok(Html(
-            r#"<div class="nav-item">Account not found</div>"#.to_string(),
-        ));
+    let account = match account_result {
+        Ok(Ok(Some(acc))) => acc,
+        Ok(Ok(None)) => {
+            return axum::response::Html(
+                r#"<div class="nav-item">No account configured</div>"#.to_string(),
+            );
+        }
+        Ok(Err(e)) => {
+            log::error!("Email folder query error: {}", e);
+            return axum::response::Html(
+                r#"<div class="nav-item">Error loading folders</div>"#.to_string(),
+            );
+        }
+        Err(e) => {
+            log::error!("Task join error: {}", e);
+            return axum::response::Html(
+                r#"<div class="nav-item">Error loading folders</div>"#.to_string(),
+            );
+        }
     };
 
     let config = EmailConfig {
@@ -1889,7 +1939,7 @@ pub async fn list_folders_htmx(
         );
     }
 
-    Ok(axum::response::Html(html))
+    axum::response::Html(html)
 }
 
 pub async fn compose_email_htmx(
@@ -2016,15 +2066,27 @@ pub async fn get_email_content_htmx(
 pub async fn delete_email_htmx(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-) -> Result<impl IntoResponse, EmailError> {
-    let user_id = extract_user_from_session(&state)
-        .map_err(|_| EmailError("Authentication required".to_string()))?;
+) -> impl IntoResponse {
+    let user_id = match extract_user_from_session(&state) {
+        Ok(id) => id,
+        Err(_) => {
+            return axum::response::Html(
+                r#"<div class="empty-state">
+                    <h3>Authentication required</h3>
+                    <p>Please sign in to delete emails</p>
+                </div>"#
+                    .to_string(),
+            );
+        }
+    };
 
     let conn = state.conn.clone();
-    let account = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn
-            .get()
-            .map_err(|e| format!("DB connection error: {}", e))?;
+    let account_result = tokio::task::spawn_blocking(move || {
+        let db_conn_result = conn.get();
+        let mut db_conn = match db_conn_result {
+            Ok(c) => c,
+            Err(e) => return Err(format!("DB connection error: {}", e)),
+        };
 
         diesel::sql_query("SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1")
             .bind::<diesel::sql_types::Uuid, _>(user_id)
@@ -2032,28 +2094,75 @@ pub async fn delete_email_htmx(
             .optional()
             .map_err(|e| format!("Failed to get email account: {}", e))
     })
-    .await
-    .map_err(|e| EmailError(format!("Task join error: {e}")))?
-    .map_err(EmailError)?;
+    .await;
 
-    if let Some(account) = account {
-        let config = EmailConfig {
-            username: account.username.clone(),
-            password: account.password.clone(),
-            server: account.imap_server.clone(),
-            port: account.imap_port as u16,
-            from: account.email.clone(),
-            smtp_server: account.smtp_server.clone(),
-            smtp_port: account.smtp_port as u16,
-        };
+    let account = match account_result {
+        Ok(Ok(Some(acc))) => acc,
+        Ok(Ok(None)) => {
+            return axum::response::Html(
+                r#"<div class="empty-state">
+                    <h3>No email account configured</h3>
+                    <p>Please add an email account first</p>
+                </div>"#
+                    .to_string(),
+            );
+        }
+        Ok(Err(e)) => {
+            log::error!("Email account query error: {}", e);
+            return axum::response::Html(
+                r#"<div class="empty-state">
+                    <h3>Error deleting email</h3>
+                    <p>Database error occurred</p>
+                </div>"#
+                    .to_string(),
+            );
+        }
+        Err(e) => {
+            log::error!("Task join error: {}", e);
+            return axum::response::Html(
+                r#"<div class="empty-state">
+                    <h3>Error deleting email</h3>
+                    <p>An internal error occurred</p>
+                </div>"#
+                    .to_string(),
+            );
+        }
+    };
 
-        move_email_to_trash(&config, &id)
-            .map_err(|e| EmailError(format!("Failed to delete email: {}", e)))?;
+    let config = EmailConfig {
+        username: account.username.clone(),
+        password: account.password.clone(),
+        server: account.imap_server.clone(),
+        port: account.imap_port as u16,
+        from: account.email.clone(),
+        smtp_server: account.smtp_server.clone(),
+        smtp_port: account.smtp_port as u16,
+    };
+
+    if let Err(e) = move_email_to_trash(&config, &id) {
+        log::error!("Failed to delete email: {}", e);
+        return axum::response::Html(
+            r#"<div class="empty-state">
+                <h3>Error deleting email</h3>
+                <p>Failed to move email to trash</p>
+            </div>"#
+                .to_string(),
+        );
     }
 
     info!("Email {} moved to trash", id);
 
-    list_emails_htmx(State(state), Query(std::collections::HashMap::new())).await
+    axum::response::Html(
+        r#"<div class="success-message">
+            <p>Email moved to trash</p>
+        </div>
+        <script>
+            setTimeout(function() {
+                htmx.trigger('#mail-list', 'load');
+            }, 100);
+        </script>"#
+            .to_string(),
+    )
 }
 
 pub async fn get_latest_email(

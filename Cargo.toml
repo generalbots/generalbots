@@ -44,7 +44,7 @@ features = ["database"]
 
 [features]
 # ===== DEFAULT FEATURE SET =====
-default = ["console", "chat", "automation", "tasks", "drive", "llm", "cache", "progress-bars", "directory"]
+default = ["console", "chat", "automation", "tasks", "drive", "llm", "cache", "progress-bars", "directory", "calendar", "meet", "email"]
 
 # ===== UI FEATURES =====
 console = ["dep:crossterm", "dep:ratatui", "monitoring"]
