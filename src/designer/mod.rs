@@ -111,13 +111,13 @@ pub fn configure_designer_routes() -> Router<Arc<AppState>> {
         .route(ApiUrls::DESIGNER_VALIDATE, post(handle_validate))
         .route(ApiUrls::DESIGNER_EXPORT, get(handle_export))
         .route(
-            "/api/designer/dialogs",
+            ApiUrls::DESIGNER_DIALOGS,
             get(handle_list_dialogs).post(handle_create_dialog),
         )
-        .route("/api/designer/dialogs/{id}", get(handle_get_dialog))
+        .route(&ApiUrls::DESIGNER_DIALOG_BY_ID.replace(":id", "{id}"), get(handle_get_dialog))
         .route(ApiUrls::DESIGNER_MODIFY, post(handle_designer_modify))
-        .route("/api/v1/designer/magic", post(handle_magic_suggestions))
-        .route("/api/v1/editor/magic", post(handle_editor_magic))
+        .route("/api/ui/designer/magic", post(handle_magic_suggestions))
+        .route("/api/ui/editor/magic", post(handle_editor_magic))
 }
 
 pub async fn handle_editor_magic(

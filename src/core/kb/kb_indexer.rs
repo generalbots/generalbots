@@ -183,11 +183,29 @@ impl KbIndexer {
                 MemoryStats::format_bytes(before_embed.rss_bytes)
             );
 
+            // Re-validate embedding server is still available before generating embeddings
+            // This prevents memory from being held if server went down during document processing
+            if !is_embedding_server_ready() {
+                warn!("[KB_INDEXER] Embedding server became unavailable during indexing, aborting");
+                return Err(anyhow::anyhow!(
+                    "Embedding server became unavailable during KB indexing. Processed {} documents before failure.",
+                    indexed_documents
+                ));
+            }
+
             trace!("[KB_INDEXER] Calling generate_embeddings for {} chunks...", chunks.len());
-            let embeddings = self
+            let embeddings = match self
                 .embedding_generator
                 .generate_embeddings(&chunks)
-                .await?;
+                .await
+            {
+                Ok(emb) => emb,
+                Err(e) => {
+                    warn!("[KB_INDEXER] Embedding generation failed for {}: {}", doc_path, e);
+                    // Continue with next document instead of failing entire batch
+                    continue;
+                }
+            };
 
             let after_embed = MemoryStats::current();
             trace!("[KB_INDEXER] After generate_embeddings: {} embeddings, RSS={} (delta={})",

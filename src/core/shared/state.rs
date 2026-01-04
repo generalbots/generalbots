@@ -1,5 +1,6 @@
 use crate::auto_task::TaskManifest;
 use crate::core::bot::channels::{ChannelAdapter, VoiceAdapter, WebChannelAdapter};
+use crate::core::bot_database::BotDatabaseManager;
 use crate::core::config::AppConfig;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::session::SessionManager;
@@ -328,6 +329,7 @@ pub struct AppState {
     pub config: Option<AppConfig>,
     pub conn: DbPool,
     pub database_url: String,
+    pub bot_database_manager: Arc<BotDatabaseManager>,
     pub session_manager: Arc<tokio::sync::Mutex<SessionManager>>,
     pub metrics_collector: MetricsCollector,
     pub task_scheduler: Option<Arc<TaskScheduler>>,
@@ -357,6 +359,7 @@ impl Clone for AppState {
             config: self.config.clone(),
             conn: self.conn.clone(),
             database_url: self.database_url.clone(),
+            bot_database_manager: Arc::clone(&self.bot_database_manager),
             #[cfg(feature = "cache")]
             cache: self.cache.clone(),
             session_manager: Arc::clone(&self.session_manager),
@@ -397,6 +400,7 @@ impl std::fmt::Debug for AppState {
             .field("config", &self.config.is_some())
             .field("conn", &"DbPool")
             .field("database_url", &"[REDACTED]")
+            .field("bot_database_manager", &"Arc<BotDatabaseManager>")
             .field("session_manager", &"Arc<Mutex<SessionManager>>")
             .field("metrics_collector", &"MetricsCollector")
             .field("task_scheduler", &self.task_scheduler.is_some());
@@ -533,6 +537,8 @@ impl Default for AppState {
         let (attendant_tx, _) = broadcast::channel(100);
         let (task_progress_tx, _) = broadcast::channel(100);
 
+        let bot_database_manager = Arc::new(BotDatabaseManager::new(pool.clone(), &database_url));
+
         Self {
             #[cfg(feature = "drive")]
             drive: None,
@@ -543,6 +549,7 @@ impl Default for AppState {
             config: None,
             conn: pool.clone(),
             database_url,
+            bot_database_manager,
             session_manager: Arc::new(tokio::sync::Mutex::new(session_manager)),
             metrics_collector: MetricsCollector::new(),
             task_scheduler: None,

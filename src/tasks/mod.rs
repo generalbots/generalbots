@@ -2067,32 +2067,36 @@ pub async fn handle_task_set_dependencies(
 }
 
 pub fn configure_task_routes() -> Router<Arc<AppState>> {
+    use crate::core::urls::ApiUrls;
+
     log::info!("[ROUTES] Registering task routes with /api/tasks/:id pattern");
 
     Router::new()
-        // Task list and create
+        // JSON API - Task create
+        .route(ApiUrls::TASKS, post(handle_task_create))
+        // HTMX/HTML APIs
+        .route(ApiUrls::TASKS_LIST_HTMX, get(handle_task_list_htmx))
+        .route(ApiUrls::TASKS_STATS, get(handle_task_stats_htmx))
+        .route(ApiUrls::TASKS_TIME_SAVED, get(handle_time_saved))
+        .route(ApiUrls::TASKS_COMPLETED, delete(handle_clear_completed))
         .route(
-            "/api/tasks",
-            post(handle_task_create).get(handle_task_list_htmx),
+            &ApiUrls::TASKS_GET_HTMX.replace(":id", "{id}"),
+            get(handle_task_get),
         )
-        // Specific routes MUST come before parameterized route
-        .route("/api/tasks/stats", get(handle_task_stats_htmx))
-        .route("/api/tasks/stats/json", get(handle_task_stats))
-        .route("/api/tasks/time-saved", get(handle_time_saved))
-        .route("/api/tasks/completed", delete(handle_clear_completed))
-        // Parameterized task routes - use :id for axum path params
+        // JSON API - Stats
+        .route(ApiUrls::TASKS_STATS_JSON, get(handle_task_stats))
+        // JSON API - Parameterized task routes
         .route(
-            "/api/tasks/:id",
-            get(handle_task_get)
-                .put(handle_task_update)
+            &ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
+            put(handle_task_update)
                 .delete(handle_task_delete)
                 .patch(handle_task_patch),
         )
-        .route("/api/tasks/:id/assign", post(handle_task_assign))
-        .route("/api/tasks/:id/status", put(handle_task_status_update))
-        .route("/api/tasks/:id/priority", put(handle_task_priority_set))
-        .route("/api/tasks/:id/dependencies", put(handle_task_set_dependencies))
-        .route("/api/tasks/:id/cancel", post(handle_task_cancel))
+        .route(&ApiUrls::TASK_ASSIGN.replace(":id", "{id}"), post(handle_task_assign))
+        .route(&ApiUrls::TASK_STATUS.replace(":id", "{id}"), put(handle_task_status_update))
+        .route(&ApiUrls::TASK_PRIORITY.replace(":id", "{id}"), put(handle_task_priority_set))
+        .route("/api/tasks/{id}/dependencies", put(handle_task_set_dependencies))
+        .route("/api/tasks/{id}/cancel", post(handle_task_cancel))
 }
 
 pub async fn handle_task_cancel(

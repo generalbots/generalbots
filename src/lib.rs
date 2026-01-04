@@ -69,6 +69,10 @@ pub use llm::DynamicLLMProvider;
 #[cfg(feature = "meet")]
 pub mod meet;
 
+pub mod monitoring;
+
+pub mod settings;
+
 #[cfg(feature = "msteams")]
 pub mod msteams;
 

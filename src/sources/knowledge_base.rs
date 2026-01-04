@@ -229,14 +229,16 @@ struct SearchResultRow {
 }
 
 pub fn configure_knowledge_base_routes() -> Router<Arc<AppState>> {
+    use crate::core::urls::ApiUrls;
+
     Router::new()
-        .route("/api/sources/kb/upload", post(handle_upload_document))
-        .route("/api/sources/kb/list", get(handle_list_sources))
-        .route("/api/sources/kb/query", post(handle_query_knowledge_base))
-        .route("/api/sources/kb/:id", get(handle_get_source))
-        .route("/api/sources/kb/:id", delete(handle_delete_source))
-        .route("/api/sources/kb/reindex", post(handle_reindex_sources))
-        .route("/api/sources/kb/stats", get(handle_get_stats))
+        .route(ApiUrls::SOURCES_KB_UPLOAD, post(handle_upload_document))
+        .route(ApiUrls::SOURCES_KB_LIST, get(handle_list_sources))
+        .route(ApiUrls::SOURCES_KB_QUERY, post(handle_query_knowledge_base))
+        .route(&ApiUrls::SOURCES_KB_BY_ID.replace(":id", "{id}"), get(handle_get_source))
+        .route(&ApiUrls::SOURCES_KB_BY_ID.replace(":id", "{id}"), delete(handle_delete_source))
+        .route(ApiUrls::SOURCES_KB_REINDEX, post(handle_reindex_sources))
+        .route(ApiUrls::SOURCES_KB_STATS, get(handle_get_stats))
 }
 
 pub async fn handle_upload_document(
