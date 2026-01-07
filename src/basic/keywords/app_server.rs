@@ -28,6 +28,28 @@ pub async fn serve_vendor_file(
         return (StatusCode::BAD_REQUEST, "Invalid path").into_response();
     }
 
+    let content_type = get_content_type(&file_path);
+
+    let local_paths = [
+        format!("./botui/ui/suite/js/vendor/{}", file_path),
+        format!("./botserver-stack/static/js/vendor/{}", file_path),
+    ];
+
+    for local_path in &local_paths {
+        if let Ok(content) = tokio::fs::read(local_path).await {
+            trace!("Serving vendor file from local path: {}", local_path);
+            return Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, content_type)
+                .header(header::CACHE_CONTROL, "public, max-age=86400")
+                .body(Body::from(content))
+                .unwrap_or_else(|_| {
+                    (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
+                        .into_response()
+                });
+        }
+    }
+
     let bot_name = state.bucket_name
         .trim_end_matches(".gbai")
         .to_string();
@@ -36,7 +58,7 @@ pub async fn serve_vendor_file(
     let bucket = format!("{}.gbai", sanitized_bot_name);
     let key = format!("{}.gblib/vendor/{}", sanitized_bot_name, file_path);
 
-    info!("Serving vendor file from MinIO: bucket={}, key={}", bucket, key);
+    trace!("Trying MinIO for vendor file: bucket={}, key={}", bucket, key);
 
     if let Some(ref drive) = state.drive {
         match drive
@@ -50,7 +72,6 @@ pub async fn serve_vendor_file(
                 match response.body.collect().await {
                     Ok(body) => {
                         let content = body.into_bytes();
-                        let content_type = get_content_type(&file_path);
 
                         return Response::builder()
                             .status(StatusCode::OK)

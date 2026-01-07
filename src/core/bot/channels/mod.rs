@@ -1,5 +1,6 @@
 pub mod instagram;
 pub mod teams;
+pub mod telegram;
 pub mod whatsapp;
 
 use crate::shared::models::BotResponse;

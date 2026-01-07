@@ -2,11 +2,12 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::Arc;
 #[cfg(not(feature = "vectordb"))]
 use tokio::fs;
 use uuid::Uuid;
 
+#[cfg(feature = "vectordb")]
+use std::sync::Arc;
 #[cfg(feature = "vectordb")]
 use qdrant_client::{
     qdrant::{Distance, PointStruct, VectorParams},
@@ -111,7 +112,19 @@ impl UserEmailVectorDB {
 
     #[cfg(not(feature = "vectordb"))]
     pub async fn initialize(&mut self, _qdrant_url: &str) -> Result<()> {
-        log::warn!("Vector DB feature not enabled, using fallback storage");
+        log::warn!(
+            "Vector DB feature not enabled for user={} bot={}, using fallback storage at {}",
+            self.user_id,
+            self.bot_id,
+            self.db_path.display()
+        );
+        std::fs::create_dir_all(&self.db_path)?;
+        let metadata_path = self.db_path.join(format!("{}.meta", self.collection_name));
+        let metadata = format!(
+            "{{\"user_id\":\"{}\",\"bot_id\":\"{}\",\"collection\":\"{}\"}}",
+            self.user_id, self.bot_id, self.collection_name
+        );
+        std::fs::write(metadata_path, metadata)?;
         Ok(())
     }
 

@@ -26,7 +26,20 @@ use tower_http::trace::TraceLayer;
 async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
     use aws_sdk_s3::primitives::ByteStream;
 
-    let htmx_content = include_bytes!("../botserver-stack/static/js/vendor/htmx.min.js");
+    let htmx_paths = [
+        "./botui/ui/suite/js/vendor/htmx.min.js",
+        "../botui/ui/suite/js/vendor/htmx.min.js",
+    ];
+
+    let htmx_content = htmx_paths
+        .iter()
+        .find_map(|path| std::fs::read(path).ok());
+
+    let Some(content) = htmx_content else {
+        warn!("Could not find htmx.min.js in botui, skipping MinIO upload");
+        return;
+    };
+
     let bucket = "default.gbai";
     let key = "default.gblib/vendor/htmx.min.js";
 
@@ -34,7 +47,7 @@ async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
         .put_object()
         .bucket(bucket)
         .key(key)
-        .body(ByteStream::from_static(htmx_content))
+        .body(ByteStream::from(content))
         .content_type("application/javascript")
         .send()
         .await
@@ -222,20 +235,28 @@ async fn run_axum_server(
         .add_public_path("/apps"));  // Apps are public - no auth required
 
     use crate::core::urls::ApiUrls;
+    use crate::core::product::{PRODUCT_CONFIG, get_product_config_json};
+
+    // Initialize product configuration
+    {
+        let config = PRODUCT_CONFIG.read().expect("Failed to read product config");
+        info!("Product: {} | Theme: {} | Apps: {:?}",
+            config.name, config.theme, config.get_enabled_apps());
+    }
+
+    // Product config endpoint
+    async fn get_product_config() -> Json<serde_json::Value> {
+        Json(get_product_config_json())
+    }
 
     let mut api_router = Router::new()
         .route("/health", get(health_check_simple))
         .route(ApiUrls::HEALTH, get(health_check))
+        .route("/api/product", get(get_product_config))
         .route(ApiUrls::SESSIONS, post(create_session))
         .route(ApiUrls::SESSIONS, get(get_sessions))
-        .route(
-            &ApiUrls::SESSION_HISTORY.replace(":id", "{session_id}"),
-            get(get_session_history),
-        )
-        .route(
-            &ApiUrls::SESSION_START.replace(":id", "{session_id}"),
-            post(start_session),
-        )
+        .route(ApiUrls::SESSION_HISTORY, get(get_session_history))
+        .route(ApiUrls::SESSION_START, post(start_session))
         .route(ApiUrls::WS, get(websocket_handler))
         .merge(botserver::drive::configure());
 
@@ -244,7 +265,8 @@ async fn run_axum_server(
         api_router = api_router
             .route(ApiUrls::AUTH, get(auth_handler))
             .merge(crate::core::directory::api::configure_user_routes())
-            .merge(crate::directory::router::configure());
+            .merge(crate::directory::router::configure())
+            .merge(crate::directory::auth_routes::configure());
     }
 
     #[cfg(feature = "meet")]
@@ -280,7 +302,11 @@ async fn run_axum_server(
     }
 
     api_router = api_router.merge(botserver::analytics::configure_analytics_routes());
+    api_router = api_router.merge(crate::core::i18n::configure_i18n_routes());
+    api_router = api_router.merge(botserver::docs::configure_docs_routes());
     api_router = api_router.merge(botserver::paper::configure_paper_routes());
+    api_router = api_router.merge(botserver::sheet::configure_sheet_routes());
+    api_router = api_router.merge(botserver::slides::configure_slides_routes());
     api_router = api_router.merge(botserver::research::configure_research_routes());
     api_router = api_router.merge(botserver::sources::configure_sources_routes());
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
@@ -289,10 +315,16 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::basic::keywords::configure_db_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_app_server_routes());
     api_router = api_router.merge(botserver::auto_task::configure_autotask_routes());
+    api_router = api_router.merge(crate::core::shared::admin::configure());
 
     #[cfg(feature = "whatsapp")]
     {
         api_router = api_router.merge(crate::whatsapp::configure());
+    }
+
+    #[cfg(feature = "telegram")]
+    {
+        api_router = api_router.merge(botserver::telegram::configure());
     }
 
     #[cfg(feature = "attendance")]
@@ -331,6 +363,10 @@ async fn run_axum_server(
 
     info!("Security middleware enabled: rate limiting, security headers, panic handler, request ID tracking, authentication");
 
+    // Path to UI files (botui)
+    let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| "./botui/ui/suite".to_string());
+    info!("Serving UI from: {}", ui_path);
+
     let app = Router::new()
         .merge(api_router.with_state(app_state.clone()))
         // Authentication middleware for protected routes
@@ -338,6 +374,8 @@ async fn run_axum_server(
             auth_config.clone(),
             auth_middleware,
         ))
+        // Serve auth UI pages
+        .nest_service("/auth", ServeDir::new(format!("{}/auth", ui_path)))
         // Static files fallback for legacy /apps/* paths
         .nest_service("/static", ServeDir::new(&site_path))
         // Security middleware stack (order matters - first added is outermost)
@@ -484,6 +522,21 @@ async fn main() -> std::io::Result<()> {
             .init();
 
         println!("Starting General Bots {}...", env!("CARGO_PKG_VERSION"));
+    }
+
+    let locales_path = if std::path::Path::new("./locales").exists() {
+        "./locales"
+    } else if std::path::Path::new("../botlib/locales").exists() {
+        "../botlib/locales"
+    } else if std::path::Path::new("../locales").exists() {
+        "../locales"
+    } else {
+        "./locales"
+    };
+    if let Err(e) = crate::core::i18n::init_i18n(locales_path) {
+        warn!("Failed to initialize i18n from {}: {}. Translations will show keys.", locales_path, e);
+    } else {
+        info!("i18n initialized from {} with locales: {:?}", locales_path, crate::core::i18n::available_locales());
     }
 
     let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
@@ -760,20 +813,100 @@ async fn main() -> std::io::Result<()> {
     )));
 
     #[cfg(feature = "directory")]
-    let zitadel_config = botserver::directory::client::ZitadelConfig {
-        issuer_url: "https://localhost:8080".to_string(),
-        issuer: "https://localhost:8080".to_string(),
-        client_id: "client_id".to_string(),
-        client_secret: "client_secret".to_string(),
-        redirect_uri: "https://localhost:8080/callback".to_string(),
-        project_id: "default".to_string(),
-        api_url: "https://localhost:8080".to_string(),
-        service_account_key: None,
+    let zitadel_config = {
+        // Try to load from directory_config.json first
+        let config_path = "./config/directory_config.json";
+        if let Ok(content) = std::fs::read_to_string(config_path) {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                let base_url = json.get("base_url")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("http://localhost:8300");
+                let client_id = json.get("client_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let client_secret = json.get("client_secret")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+
+                info!("Loaded Zitadel config from {}: url={}", config_path, base_url);
+
+                botserver::directory::client::ZitadelConfig {
+                    issuer_url: base_url.to_string(),
+                    issuer: base_url.to_string(),
+                    client_id: client_id.to_string(),
+                    client_secret: client_secret.to_string(),
+                    redirect_uri: format!("{}/callback", base_url),
+                    project_id: "default".to_string(),
+                    api_url: base_url.to_string(),
+                    service_account_key: None,
+                }
+            } else {
+                warn!("Failed to parse directory_config.json, using defaults");
+                botserver::directory::client::ZitadelConfig {
+                    issuer_url: "http://localhost:8300".to_string(),
+                    issuer: "http://localhost:8300".to_string(),
+                    client_id: String::new(),
+                    client_secret: String::new(),
+                    redirect_uri: "http://localhost:8300/callback".to_string(),
+                    project_id: "default".to_string(),
+                    api_url: "http://localhost:8300".to_string(),
+                    service_account_key: None,
+                }
+            }
+        } else {
+            warn!("directory_config.json not found, using default Zitadel config");
+            botserver::directory::client::ZitadelConfig {
+                issuer_url: "http://localhost:8300".to_string(),
+                issuer: "http://localhost:8300".to_string(),
+                client_id: String::new(),
+                client_secret: String::new(),
+                redirect_uri: "http://localhost:8300/callback".to_string(),
+                project_id: "default".to_string(),
+                api_url: "http://localhost:8300".to_string(),
+                service_account_key: None,
+            }
+        }
     };
     #[cfg(feature = "directory")]
     let auth_service = Arc::new(tokio::sync::Mutex::new(
-        botserver::directory::AuthService::new(zitadel_config).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
+        botserver::directory::AuthService::new(zitadel_config.clone()).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
     ));
+
+    #[cfg(feature = "directory")]
+    {
+        let pat_path = std::path::Path::new("./botserver-stack/conf/directory/admin-pat.txt");
+        let bootstrap_client = if pat_path.exists() {
+            match std::fs::read_to_string(pat_path) {
+                Ok(pat_token) => {
+                    let pat_token = pat_token.trim().to_string();
+                    info!("Using admin PAT token for bootstrap authentication");
+                    botserver::directory::client::ZitadelClient::with_pat_token(zitadel_config, pat_token)
+                        .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client with PAT: {}", e)))?
+                }
+                Err(e) => {
+                    warn!("Failed to read admin PAT token: {}, falling back to OAuth2", e);
+                    botserver::directory::client::ZitadelClient::new(zitadel_config)
+                        .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
+                }
+            }
+        } else {
+            info!("Admin PAT not found, using OAuth2 client credentials for bootstrap");
+            botserver::directory::client::ZitadelClient::new(zitadel_config)
+                .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
+        };
+
+        match botserver::directory::bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
+            Ok(Some(_)) => {
+                info!("Bootstrap completed - admin credentials displayed in console");
+            }
+            Ok(None) => {
+                info!("Admin user exists, bootstrap skipped");
+            }
+            Err(e) => {
+                warn!("Bootstrap check failed (Zitadel may not be ready): {}", e);
+            }
+        }
+    }
     let config_manager = ConfigManager::new(pool.clone());
 
     let mut bot_conn = pool.get().map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
@@ -961,18 +1094,18 @@ async fn main() -> std::io::Result<()> {
         let monitor_bot_id = default_bot_id;
         tokio::spawn(async move {
             register_thread("drive-monitor", "drive");
-            trace!("[PROFILE] DriveMonitor::new starting...");
+            trace!("DriveMonitor::new starting...");
             let monitor = botserver::DriveMonitor::new(
                 drive_monitor_state,
                 bucket_name.clone(),
                 monitor_bot_id,
             );
-            trace!("[PROFILE] DriveMonitor::new done, calling start_monitoring...");
+            trace!("DriveMonitor::new done, calling start_monitoring...");
             info!("Starting DriveMonitor for bucket: {}", bucket_name);
             if let Err(e) = monitor.start_monitoring().await {
                 error!("DriveMonitor failed: {}", e);
             }
-            trace!("[PROFILE] DriveMonitor start_monitoring returned");
+            trace!("DriveMonitor start_monitoring returned");
         });
     }
 
@@ -994,23 +1127,23 @@ async fn main() -> std::io::Result<()> {
     let app_state_for_llm = app_state.clone();
     tokio::spawn(async move {
         register_thread("llm-server-init", "llm");
-        eprintln!("[PROFILE] ensure_llama_servers_running starting...");
+        trace!("ensure_llama_servers_running starting...");
         if let Err(e) = ensure_llama_servers_running(app_state_for_llm).await {
             error!("Failed to start LLM servers: {}", e);
         }
-        eprintln!("[PROFILE] ensure_llama_servers_running completed");
+        trace!("ensure_llama_servers_running completed");
         record_thread_activity("llm-server-init");
     });
     trace!("Initial data setup task spawned");
-    eprintln!("[PROFILE] All background tasks spawned, starting HTTP server...");
+    trace!("All background tasks spawned, starting HTTP server...");
 
     trace!("Starting HTTP server on port {}...", config.server.port);
-    eprintln!("[PROFILE] run_axum_server starting on port {}...", config.server.port);
+    info!("Starting HTTP server on port {}...", config.server.port);
     if let Err(e) = run_axum_server(app_state, config.server.port, worker_count).await {
         error!("Failed to start HTTP server: {}", e);
         std::process::exit(1);
     }
-    eprintln!("[PROFILE] run_axum_server returned (should not happen normally)");
+    trace!("run_axum_server returned (should not happen normally)");
 
     if let Some(handle) = ui_handle {
         handle.join().ok();

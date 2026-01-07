@@ -20,6 +20,7 @@ pub struct ZitadelClient {
     config: ZitadelConfig,
     http_client: reqwest::Client,
     access_token: Arc<RwLock<Option<String>>>,
+    pat_token: Option<String>,
 }
 
 impl ZitadelClient {
@@ -33,11 +34,38 @@ impl ZitadelClient {
             config,
             http_client,
             access_token: Arc::new(RwLock::new(None)),
+            pat_token: None,
         })
+    }
+
+    pub fn with_pat_token(config: ZitadelConfig, pat_token: String) -> Result<Self> {
+        let http_client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| anyhow!("Failed to create HTTP client: {}", e))?;
+
+        Ok(Self {
+            config,
+            http_client,
+            access_token: Arc::new(RwLock::new(None)),
+            pat_token: Some(pat_token),
+        })
+    }
+
+    pub fn set_pat_token(&mut self, token: String) {
+        self.pat_token = Some(token);
     }
 
     pub fn api_url(&self) -> &str {
         &self.config.api_url
+    }
+
+    pub fn client_id(&self) -> &str {
+        &self.config.client_id
+    }
+
+    pub fn client_secret(&self) -> &str {
+        &self.config.client_secret
     }
 
     pub async fn http_get(&self, url: String) -> reqwest::RequestBuilder {
@@ -60,7 +88,16 @@ impl ZitadelClient {
         self.http_client.patch(url).bearer_auth(token)
     }
 
+    pub async fn http_delete(&self, url: String) -> reqwest::RequestBuilder {
+        let token = self.get_access_token().await.unwrap_or_default();
+        self.http_client.delete(url).bearer_auth(token)
+    }
+
     pub async fn get_access_token(&self) -> Result<String> {
+        if let Some(ref pat) = self.pat_token {
+            return Ok(pat.clone());
+        }
+
         {
             let token = self.access_token.read().await;
             if let Some(t) = token.as_ref() {
@@ -69,6 +106,7 @@ impl ZitadelClient {
         }
 
         let token_url = format!("{}/oauth/v2/token", self.config.api_url);
+        log::info!("Requesting access token from: {}", token_url);
 
         let params = [
             ("grant_type", "client_credentials"),
@@ -123,7 +161,7 @@ impl ZitadelClient {
             },
             "email": {
                 "email": email,
-                "isVerified": false
+                "isVerified": true
             }
         });
 
@@ -466,5 +504,33 @@ impl ZitadelClient {
         }
 
         Ok(true)
+    }
+
+    pub async fn set_user_password(&self, user_id: &str, password: &str, change_required: bool) -> Result<()> {
+        let token = self.get_access_token().await?;
+        let url = format!("{}/v2/users/{}/password", self.config.api_url, user_id);
+
+        let body = serde_json::json!({
+            "newPassword": {
+                "password": password,
+                "changeRequired": change_required
+            }
+        });
+
+        let response = self
+            .http_client
+            .post(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to set password: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to set password: {}", error_text));
+        }
+
+        Ok(())
     }
 }

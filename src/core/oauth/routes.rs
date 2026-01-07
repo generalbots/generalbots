@@ -49,8 +49,8 @@ pub struct ProviderInfo {
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/auth/oauth/providers", get(list_providers))
-        .route("/auth/oauth/{provider}", get(start_oauth))
-        .route("/auth/oauth/{provider}/callback", get(oauth_callback))
+        .route("/auth/oauth/:provider", get(start_oauth))
+        .route("/auth/oauth/:provider/callback", get(oauth_callback))
 }
 
 async fn list_providers(State(state): State<Arc<AppState>>) -> impl IntoResponse {

@@ -2,7 +2,7 @@ use crate::shared::state::AppState;
 use axum::{
     extract::{Multipart, Path, Query, State},
     response::{Html, IntoResponse},
-    routing::{delete, get, post},
+    routing::{get, post},
     Json, Router,
 };
 use chrono::{DateTime, Utc};
@@ -235,8 +235,7 @@ pub fn configure_knowledge_base_routes() -> Router<Arc<AppState>> {
         .route(ApiUrls::SOURCES_KB_UPLOAD, post(handle_upload_document))
         .route(ApiUrls::SOURCES_KB_LIST, get(handle_list_sources))
         .route(ApiUrls::SOURCES_KB_QUERY, post(handle_query_knowledge_base))
-        .route(&ApiUrls::SOURCES_KB_BY_ID.replace(":id", "{id}"), get(handle_get_source))
-        .route(&ApiUrls::SOURCES_KB_BY_ID.replace(":id", "{id}"), delete(handle_delete_source))
+        .route(ApiUrls::SOURCES_KB_BY_ID, get(handle_get_source).delete(handle_delete_source))
         .route(ApiUrls::SOURCES_KB_REINDEX, post(handle_reindex_sources))
         .route(ApiUrls::SOURCES_KB_STATS, get(handle_get_stats))
 }

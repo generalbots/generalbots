@@ -26,18 +26,9 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(ApiUrls::MEET_PARTICIPANTS, get(all_participants))
         .route(ApiUrls::MEET_RECENT, get(recent_meetings))
         .route(ApiUrls::MEET_SCHEDULED, get(scheduled_meetings))
-        .route(
-            &ApiUrls::MEET_ROOM_BY_ID.replace(":id", "{room_id}"),
-            get(get_room),
-        )
-        .route(
-            &ApiUrls::MEET_JOIN.replace(":id", "{room_id}"),
-            post(join_room),
-        )
-        .route(
-            &ApiUrls::MEET_TRANSCRIPTION.replace(":id", "{room_id}"),
-            post(start_transcription),
-        )
+        .route(ApiUrls::MEET_ROOM_BY_ID, get(get_room))
+        .route(ApiUrls::MEET_JOIN, post(join_room))
+        .route(ApiUrls::MEET_TRANSCRIPTION, post(start_transcription))
         .route(ApiUrls::MEET_TOKEN, post(get_meeting_token))
         .route(ApiUrls::MEET_INVITE, post(send_meeting_invites))
         .route(ApiUrls::WS_MEET, get(meeting_websocket))
@@ -46,7 +37,7 @@ pub fn configure() -> Router<Arc<AppState>> {
             post(conversations::create_conversation),
         )
         .route(
-            "/conversations/{id}/join",
+            "/conversations/:id/join",
             post(conversations::join_conversation),
         )
         .route(

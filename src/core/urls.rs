@@ -22,6 +22,9 @@ impl ApiUrls {
     pub const GROUP_REMOVE_MEMBER: &'static str = "/api/groups/:id/members/:user_id";
     pub const GROUP_PERMISSIONS: &'static str = "/api/groups/:id/permissions";
 
+    // Product - JSON APIs
+    pub const PRODUCT: &'static str = "/api/product";
+
     // Auth - JSON APIs
     pub const AUTH: &'static str = "/api/auth";
     pub const AUTH_TOKEN: &'static str = "/api/auth/token";
@@ -162,8 +165,17 @@ impl ApiUrls {
     pub const ANALYTICS_BUDGET_STATUS: &'static str = "/api/ui/analytics/budget/status";
 
     // Admin - JSON APIs
+    pub const ADMIN_DASHBOARD: &'static str = "/api/admin/dashboard";
     pub const ADMIN_STATS: &'static str = "/api/admin/stats";
+    pub const ADMIN_STATS_USERS: &'static str = "/api/admin/stats/users";
+    pub const ADMIN_STATS_GROUPS: &'static str = "/api/admin/stats/groups";
+    pub const ADMIN_STATS_BOTS: &'static str = "/api/admin/stats/bots";
+    pub const ADMIN_STATS_STORAGE: &'static str = "/api/admin/stats/storage";
     pub const ADMIN_USERS: &'static str = "/api/admin/users";
+    pub const ADMIN_GROUPS: &'static str = "/api/admin/groups";
+    pub const ADMIN_BOTS: &'static str = "/api/admin/bots";
+    pub const ADMIN_DNS: &'static str = "/api/admin/dns";
+    pub const ADMIN_BILLING: &'static str = "/api/admin/billing";
     pub const ADMIN_SYSTEM: &'static str = "/api/admin/system";
     pub const ADMIN_LOGS: &'static str = "/api/admin/logs";
     pub const ADMIN_BACKUPS: &'static str = "/api/admin/backups";
@@ -174,6 +186,10 @@ impl ApiUrls {
     pub const HEALTH: &'static str = "/api/health";
     pub const STATUS: &'static str = "/api/status";
     pub const SERVICES_STATUS: &'static str = "/api/services/status";
+
+    // i18n - JSON APIs
+    pub const I18N_TRANSLATIONS: &'static str = "/api/i18n/:locale";
+    pub const I18N_LOCALES: &'static str = "/api/i18n/locales";
 
     // Knowledge Base - JSON APIs
     pub const KB_SEARCH: &'static str = "/api/kb/search";
@@ -278,7 +294,32 @@ impl ApiUrls {
     pub const MSTEAMS_MESSAGES: &'static str = "/api/msteams/messages";
     pub const MSTEAMS_SEND: &'static str = "/api/msteams/send";
 
-    // Paper - HTMX/HTML APIs
+    // Docs (Word Processor) - HTMX/HTML APIs
+    pub const DOCS_NEW: &'static str = "/api/ui/docs/new";
+    pub const DOCS_LIST: &'static str = "/api/ui/docs/list";
+    pub const DOCS_SEARCH: &'static str = "/api/ui/docs/search";
+    pub const DOCS_SAVE: &'static str = "/api/ui/docs/save";
+    pub const DOCS_AUTOSAVE: &'static str = "/api/ui/docs/autosave";
+    pub const DOCS_BY_ID: &'static str = "/api/ui/docs/:id";
+    pub const DOCS_DELETE: &'static str = "/api/ui/docs/:id/delete";
+    pub const DOCS_TEMPLATE_BLANK: &'static str = "/api/ui/docs/template/blank";
+    pub const DOCS_TEMPLATE_MEETING: &'static str = "/api/ui/docs/template/meeting";
+    pub const DOCS_TEMPLATE_REPORT: &'static str = "/api/ui/docs/template/report";
+    pub const DOCS_TEMPLATE_LETTER: &'static str = "/api/ui/docs/template/letter";
+    pub const DOCS_AI_SUMMARIZE: &'static str = "/api/ui/docs/ai/summarize";
+    pub const DOCS_AI_EXPAND: &'static str = "/api/ui/docs/ai/expand";
+    pub const DOCS_AI_IMPROVE: &'static str = "/api/ui/docs/ai/improve";
+    pub const DOCS_AI_SIMPLIFY: &'static str = "/api/ui/docs/ai/simplify";
+    pub const DOCS_AI_TRANSLATE: &'static str = "/api/ui/docs/ai/translate";
+    pub const DOCS_AI_CUSTOM: &'static str = "/api/ui/docs/ai/custom";
+    pub const DOCS_EXPORT_PDF: &'static str = "/api/ui/docs/export/pdf";
+    pub const DOCS_EXPORT_DOCX: &'static str = "/api/ui/docs/export/docx";
+    pub const DOCS_EXPORT_MD: &'static str = "/api/ui/docs/export/md";
+    pub const DOCS_EXPORT_HTML: &'static str = "/api/ui/docs/export/html";
+    pub const DOCS_EXPORT_TXT: &'static str = "/api/ui/docs/export/txt";
+    pub const DOCS_WS: &'static str = "/ws/docs/:doc_id";
+
+    // Paper (Notes App) - HTMX/HTML APIs
     pub const PAPER_NEW: &'static str = "/api/ui/paper/new";
     pub const PAPER_LIST: &'static str = "/api/ui/paper/list";
     pub const PAPER_SEARCH: &'static str = "/api/ui/paper/search";
@@ -290,6 +331,8 @@ impl ApiUrls {
     pub const PAPER_TEMPLATE_MEETING: &'static str = "/api/ui/paper/template/meeting";
     pub const PAPER_TEMPLATE_TODO: &'static str = "/api/ui/paper/template/todo";
     pub const PAPER_TEMPLATE_RESEARCH: &'static str = "/api/ui/paper/template/research";
+    pub const PAPER_TEMPLATE_REPORT: &'static str = "/api/ui/paper/template/report";
+    pub const PAPER_TEMPLATE_LETTER: &'static str = "/api/ui/paper/template/letter";
     pub const PAPER_AI_SUMMARIZE: &'static str = "/api/ui/paper/ai/summarize";
     pub const PAPER_AI_EXPAND: &'static str = "/api/ui/paper/ai/expand";
     pub const PAPER_AI_IMPROVE: &'static str = "/api/ui/paper/ai/improve";

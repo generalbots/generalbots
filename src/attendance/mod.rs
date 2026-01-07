@@ -53,10 +53,7 @@ pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
             ApiUrls::ATTENDANCE_TRANSFER,
             post(queue::transfer_conversation),
         )
-        .route(
-            &ApiUrls::ATTENDANCE_RESOLVE.replace(":session_id", "{session_id}"),
-            post(queue::resolve_conversation),
-        )
+        .route(ApiUrls::ATTENDANCE_RESOLVE, post(queue::resolve_conversation))
         .route(ApiUrls::ATTENDANCE_INSIGHTS, get(queue::get_insights))
         .route(ApiUrls::ATTENDANCE_RESPOND, post(attendant_respond))
         .route(ApiUrls::WS_ATTENDANT, get(attendant_websocket_handler))
@@ -72,18 +69,12 @@ pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
             ApiUrls::ATTENDANCE_LLM_SMART_REPLIES,
             post(llm_assist::generate_smart_replies),
         )
-        .route(
-            &ApiUrls::ATTENDANCE_LLM_SUMMARY.replace(":session_id", "{session_id}"),
-            get(llm_assist::generate_summary),
-        )
+        .route(ApiUrls::ATTENDANCE_LLM_SUMMARY, get(llm_assist::generate_summary))
         .route(
             ApiUrls::ATTENDANCE_LLM_SENTIMENT,
             post(llm_assist::analyze_sentiment),
         )
-        .route(
-            &ApiUrls::ATTENDANCE_LLM_CONFIG.replace(":bot_id", "{bot_id}"),
-            get(llm_assist::get_llm_config),
-        )
+        .route(ApiUrls::ATTENDANCE_LLM_CONFIG, get(llm_assist::get_llm_config))
 }
 
 #[derive(Debug, Deserialize)]

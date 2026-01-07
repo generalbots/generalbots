@@ -521,7 +521,7 @@ pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
             get(list_events).post(create_event),
         )
         .route(
-            &ApiUrls::CALENDAR_EVENT_BY_ID.replace(":id", "{id}"),
+            ApiUrls::CALENDAR_EVENT_BY_ID,
             get(get_event).put(update_event).delete(delete_event),
         )
         .route(ApiUrls::CALENDAR_EXPORT, get(export_ical))

@@ -12,7 +12,7 @@ use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
-    routing::{delete, get, post, put},
+    routing::{get, post},
     Json, Router,
 };
 use diesel::prelude::*;
@@ -79,40 +79,10 @@ pub struct DeleteResponse {
 
 pub fn configure_db_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route(
-            &ApiUrls::DB_TABLE.replace(":table", "{table}"),
-            get(list_records_handler),
-        )
-        .route(
-            &ApiUrls::DB_TABLE.replace(":table", "{table}"),
-            post(create_record_handler),
-        )
-        .route(
-            &ApiUrls::DB_TABLE_RECORD
-                .replace(":table", "{table}")
-                .replace(":id", "{id}"),
-            get(get_record_handler),
-        )
-        .route(
-            &ApiUrls::DB_TABLE_RECORD
-                .replace(":table", "{table}")
-                .replace(":id", "{id}"),
-            put(update_record_handler),
-        )
-        .route(
-            &ApiUrls::DB_TABLE_RECORD
-                .replace(":table", "{table}")
-                .replace(":id", "{id}"),
-            delete(delete_record_handler),
-        )
-        .route(
-            &ApiUrls::DB_TABLE_COUNT.replace(":table", "{table}"),
-            get(count_records_handler),
-        )
-        .route(
-            &ApiUrls::DB_TABLE_SEARCH.replace(":table", "{table}"),
-            post(search_records_handler),
-        )
+        .route(ApiUrls::DB_TABLE, get(list_records_handler).post(create_record_handler))
+        .route(ApiUrls::DB_TABLE_RECORD, get(get_record_handler).put(update_record_handler).delete(delete_record_handler))
+        .route(ApiUrls::DB_TABLE_COUNT, get(count_records_handler))
+        .route(ApiUrls::DB_TABLE_SEARCH, post(search_records_handler))
 }
 
 pub async fn list_records_handler(
