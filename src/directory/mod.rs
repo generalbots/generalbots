@@ -9,6 +9,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+pub mod auth_routes;
+pub mod bootstrap;
 pub mod client;
 pub mod groups;
 pub mod router;

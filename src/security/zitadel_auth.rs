@@ -28,8 +28,8 @@ pub struct ZitadelAuthConfig {
 impl Default for ZitadelAuthConfig {
     fn default() -> Self {
         Self {
-            issuer_url: "https://localhost:8080".to_string(),
-            api_url: "https://localhost:8080".to_string(),
+            issuer_url: "http://localhost:8300".to_string(),
+            api_url: "http://localhost:8300".to_string(),
             client_id: String::new(),
             client_secret: String::new(),
             project_id: String::new(),

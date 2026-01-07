@@ -87,8 +87,8 @@ pub fn configure_paper_routes() -> Router<Arc<AppState>> {
         .route(ApiUrls::PAPER_SEARCH, get(handle_search_documents))
         .route(ApiUrls::PAPER_SAVE, post(handle_save_document))
         .route(ApiUrls::PAPER_AUTOSAVE, post(handle_autosave))
-        .route(&ApiUrls::PAPER_BY_ID.replace(":id", "{id}"), get(handle_get_document))
-        .route(&ApiUrls::PAPER_DELETE.replace(":id", "{id}"), post(handle_delete_document))
+        .route(ApiUrls::PAPER_BY_ID, get(handle_get_document))
+        .route(ApiUrls::PAPER_DELETE, post(handle_delete_document))
         .route(ApiUrls::PAPER_TEMPLATE_BLANK, post(handle_template_blank))
         .route(ApiUrls::PAPER_TEMPLATE_MEETING, post(handle_template_meeting))
         .route(ApiUrls::PAPER_TEMPLATE_TODO, post(handle_template_todo))
@@ -96,6 +96,8 @@ pub fn configure_paper_routes() -> Router<Arc<AppState>> {
             ApiUrls::PAPER_TEMPLATE_RESEARCH,
             post(handle_template_research),
         )
+        .route(ApiUrls::PAPER_TEMPLATE_REPORT, post(handle_template_report))
+        .route(ApiUrls::PAPER_TEMPLATE_LETTER, post(handle_template_letter))
         .route(ApiUrls::PAPER_AI_SUMMARIZE, post(handle_ai_summarize))
         .route(ApiUrls::PAPER_AI_EXPAND, post(handle_ai_expand))
         .route(ApiUrls::PAPER_AI_IMPROVE, post(handle_ai_improve))
@@ -869,6 +871,83 @@ pub async fn handle_template_research(
     content.push_str("## Analysis\n\n\n\n");
     content.push_str("## Conclusions\n\n\n\n");
     content.push_str("## References\n\n");
+
+    let _ =
+        save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await;
+
+    Html(format_document_content(&title, &content))
+}
+
+pub async fn handle_template_report(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
+        Ok(u) => u,
+        Err(e) => {
+            log::error!("Auth error: {}", e);
+            return Html(format_error("Authentication required"));
+        }
+    };
+
+    let doc_id = Uuid::new_v4().to_string();
+    let title = "Report".to_string();
+    let now = Utc::now();
+
+    let mut content = String::new();
+    content.push_str("# Report\n\n");
+    let _ = writeln!(content, "**Date:** {}\n", now.format("%Y-%m-%d"));
+    content.push_str("**Author:**\n\n");
+    content.push_str("---\n\n");
+    content.push_str("## Executive Summary\n\n\n\n");
+    content.push_str("## Introduction\n\n\n\n");
+    content.push_str("## Background\n\n\n\n");
+    content.push_str("## Findings\n\n### Key Finding 1\n\n\n\n### Key Finding 2\n\n\n\n");
+    content.push_str("## Analysis\n\n\n\n");
+    content.push_str("## Recommendations\n\n1. \n2. \n3. \n\n");
+    content.push_str("## Conclusion\n\n\n\n");
+    content.push_str("## Appendix\n\n");
+
+    let _ =
+        save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await;
+
+    Html(format_document_content(&title, &content))
+}
+
+pub async fn handle_template_letter(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
+        Ok(u) => u,
+        Err(e) => {
+            log::error!("Auth error: {}", e);
+            return Html(format_error("Authentication required"));
+        }
+    };
+
+    let doc_id = Uuid::new_v4().to_string();
+    let title = "Letter".to_string();
+    let now = Utc::now();
+
+    let mut content = String::new();
+    content.push_str("[Your Name]\n");
+    content.push_str("[Your Address]\n");
+    content.push_str("[City, State ZIP]\n");
+    content.push_str("[Your Email]\n\n");
+    let _ = writeln!(content, "{}\n", now.format("%B %d, %Y"));
+    content.push_str("[Recipient Name]\n");
+    content.push_str("[Recipient Title]\n");
+    content.push_str("[Company/Organization]\n");
+    content.push_str("[Address]\n");
+    content.push_str("[City, State ZIP]\n\n");
+    content.push_str("Dear [Recipient Name],\n\n");
+    content.push_str("[Opening paragraph - State the purpose of your letter]\n\n");
+    content.push_str("[Body paragraph(s) - Provide details, explanations, or supporting information]\n\n");
+    content.push_str("[Closing paragraph - Summarize, request action, or express appreciation]\n\n");
+    content.push_str("Sincerely,\n\n\n");
+    content.push_str("[Your Signature]\n");
+    content.push_str("[Your Typed Name]\n");
 
     let _ =
         save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await;

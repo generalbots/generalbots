@@ -86,7 +86,7 @@ impl DriveMonitor {
     }
 
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        trace!("[PROFILE] start_monitoring ENTER");
+        trace!("start_monitoring ENTER");
         let start_mem = MemoryStats::current();
         trace!("[DRIVE_MONITOR] Starting DriveMonitor for bot {}, RSS={}",
               self.bot_id, MemoryStats::format_bytes(start_mem.rss_bytes));
@@ -99,7 +99,7 @@ impl DriveMonitor {
         self.is_processing
             .store(true, std::sync::atomic::Ordering::SeqCst);
 
-        trace!("[PROFILE] start_monitoring: calling check_for_changes...");
+        trace!("start_monitoring: calling check_for_changes...");
         info!("[DRIVE_MONITOR] Calling initial check_for_changes...");
 
         match self.check_for_changes().await {
@@ -111,7 +111,7 @@ impl DriveMonitor {
                 self.consecutive_failures.fetch_add(1, Ordering::Relaxed);
             }
         }
-        trace!("[PROFILE] start_monitoring: check_for_changes returned");
+        trace!("start_monitoring: check_for_changes returned");
 
         let after_initial = MemoryStats::current();
         trace!("[DRIVE_MONITOR] After initial check, RSS={} (delta={})",
@@ -215,38 +215,38 @@ impl DriveMonitor {
         })
     }
     async fn check_for_changes(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        trace!("[PROFILE] check_for_changes ENTER");
+        trace!("check_for_changes ENTER");
         let start_mem = MemoryStats::current();
         trace!("[DRIVE_MONITOR] check_for_changes START, RSS={}",
               MemoryStats::format_bytes(start_mem.rss_bytes));
 
         let Some(client) = &self.state.drive else {
-            trace!("[PROFILE] check_for_changes: no drive client, returning");
+            trace!("check_for_changes: no drive client, returning");
             return Ok(());
         };
 
-        trace!("[PROFILE] check_for_changes: calling check_gbdialog_changes...");
+        trace!("check_for_changes: calling check_gbdialog_changes...");
         trace!("[DRIVE_MONITOR] Checking gbdialog...");
         self.check_gbdialog_changes(client).await?;
-        trace!("[PROFILE] check_for_changes: check_gbdialog_changes done");
+        trace!("check_for_changes: check_gbdialog_changes done");
         let after_dialog = MemoryStats::current();
         trace!("[DRIVE_MONITOR] After gbdialog, RSS={} (delta={})",
               MemoryStats::format_bytes(after_dialog.rss_bytes),
               MemoryStats::format_bytes(after_dialog.rss_bytes.saturating_sub(start_mem.rss_bytes)));
 
-        trace!("[PROFILE] check_for_changes: calling check_gbot...");
+        trace!("check_for_changes: calling check_gbot...");
         trace!("[DRIVE_MONITOR] Checking gbot...");
         self.check_gbot(client).await?;
-        trace!("[PROFILE] check_for_changes: check_gbot done");
+        trace!("check_for_changes: check_gbot done");
         let after_gbot = MemoryStats::current();
         trace!("[DRIVE_MONITOR] After gbot, RSS={} (delta={})",
               MemoryStats::format_bytes(after_gbot.rss_bytes),
               MemoryStats::format_bytes(after_gbot.rss_bytes.saturating_sub(after_dialog.rss_bytes)));
 
-        trace!("[PROFILE] check_for_changes: calling check_gbkb_changes...");
+        trace!("check_for_changes: calling check_gbkb_changes...");
         trace!("[DRIVE_MONITOR] Checking gbkb...");
         self.check_gbkb_changes(client).await?;
-        trace!("[PROFILE] check_for_changes: check_gbkb_changes done");
+        trace!("check_for_changes: check_gbkb_changes done");
         let after_gbkb = MemoryStats::current();
         trace!("[DRIVE_MONITOR] After gbkb, RSS={} (delta={})",
               MemoryStats::format_bytes(after_gbkb.rss_bytes),
@@ -260,7 +260,7 @@ impl DriveMonitor {
                   MemoryStats::format_bytes(total_delta));
         }
 
-        trace!("[PROFILE] check_for_changes EXIT");
+        trace!("check_for_changes EXIT");
         Ok(())
     }
     async fn check_gbdialog_changes(
@@ -335,7 +335,7 @@ impl DriveMonitor {
         Ok(())
     }
     async fn check_gbot(&self, client: &Client) -> Result<(), Box<dyn Error + Send + Sync>> {
-        trace!("[PROFILE] check_gbot ENTER");
+        trace!("check_gbot ENTER");
         let config_manager = ConfigManager::new(self.state.conn.clone());
         debug!("check_gbot: Checking bucket {} for config.csv changes", self.bucket_name);
         let mut continuation_token = None;
@@ -481,7 +481,7 @@ impl DriveMonitor {
             }
             continuation_token = list_objects.next_continuation_token;
         }
-        trace!("[PROFILE] check_gbot EXIT");
+        trace!("check_gbot EXIT");
         Ok(())
     }
     async fn broadcast_theme_change(
@@ -616,7 +616,7 @@ impl DriveMonitor {
         &self,
         client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        trace!("[PROFILE] check_gbkb_changes ENTER");
+        trace!("check_gbkb_changes ENTER");
         let bot_name = self
             .bucket_name
             .strip_suffix(".gbai")
@@ -850,7 +850,7 @@ impl DriveMonitor {
             }
         }
 
-        trace!("[PROFILE] check_gbkb_changes EXIT");
+        trace!("check_gbkb_changes EXIT");
         Ok(())
     }
 

@@ -6,8 +6,11 @@ pub mod security;
 
 pub mod analytics;
 pub mod designer;
+pub mod docs;
 pub mod paper;
 pub mod research;
+pub mod sheet;
+pub mod slides;
 pub mod sources;
 
 pub use core::shared;
@@ -93,6 +96,9 @@ pub mod weba;
 
 #[cfg(feature = "whatsapp")]
 pub mod whatsapp;
+
+#[cfg(feature = "telegram")]
+pub mod telegram;
 
 #[cfg(test)]
 mod tests {

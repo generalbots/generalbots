@@ -13,14 +13,14 @@ use tokio;
 pub async fn ensure_llama_servers_running(
     app_state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    trace!("[PROFILE] ensure_llama_servers_running ENTER");
+    trace!("ensure_llama_servers_running ENTER");
     let start_mem = MemoryStats::current();
     trace!("[LLM_LOCAL] ensure_llama_servers_running START, RSS={}",
           MemoryStats::format_bytes(start_mem.rss_bytes));
     log_jemalloc_stats();
 
     if std::env::var("SKIP_LLM_SERVER").is_ok() {
-        trace!("[PROFILE] SKIP_LLM_SERVER set, returning early");
+        trace!("SKIP_LLM_SERVER set, returning early");
         info!("SKIP_LLM_SERVER set - skipping local LLM server startup (using mock/external LLM)");
         return Ok(());
     }
@@ -83,7 +83,7 @@ pub async fn ensure_llama_servers_running(
     info!("  Embedding Model: {embedding_model}");
     info!("  LLM Server Path: {llm_server_path}");
     info!("Restarting any existing llama-server processes...");
-    trace!("[PROFILE] About to pkill llama-server...");
+    trace!("About to pkill llama-server...");
     let before_pkill = MemoryStats::current();
     trace!("[LLM_LOCAL] Before pkill, RSS={}", MemoryStats::format_bytes(before_pkill.rss_bytes));
 
@@ -97,7 +97,7 @@ pub async fn ensure_llama_servers_running(
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
         info!("Existing llama-server processes terminated (if any)");
     }
-    trace!("[PROFILE] pkill done");
+    trace!("pkill done");
 
     let after_pkill = MemoryStats::current();
     trace!("[LLM_LOCAL] After pkill, RSS={} (delta={})",
@@ -153,7 +153,7 @@ pub async fn ensure_llama_servers_running(
         task.await??;
     }
     info!("Waiting for servers to become ready...");
-    trace!("[PROFILE] Starting wait loop for servers...");
+    trace!("Starting wait loop for servers...");
     let before_wait = MemoryStats::current();
     trace!("[LLM_LOCAL] Before wait loop, RSS={}", MemoryStats::format_bytes(before_wait.rss_bytes));
 
@@ -162,7 +162,7 @@ pub async fn ensure_llama_servers_running(
     let mut attempts = 0;
     let max_attempts = 120;
     while attempts < max_attempts && (!llm_ready || !embedding_ready) {
-        trace!("[PROFILE] Wait loop iteration {}", attempts);
+        trace!("Wait loop iteration {}", attempts);
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
         if attempts % 5 == 0 {
@@ -221,7 +221,7 @@ pub async fn ensure_llama_servers_running(
         if !embedding_model.is_empty() {
             set_embedding_server_ready(true);
         }
-        trace!("[PROFILE] Servers ready!");
+        trace!("Servers ready!");
 
         let after_ready = MemoryStats::current();
         trace!("[LLM_LOCAL] Servers ready, RSS={} (delta from start={})",
@@ -240,7 +240,7 @@ pub async fn ensure_llama_servers_running(
               MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes)));
         log_jemalloc_stats();
 
-        trace!("[PROFILE] ensure_llama_servers_running EXIT OK");
+        trace!("ensure_llama_servers_running EXIT OK");
         Ok(())
     } else {
         let mut error_msg = "Servers failed to start within timeout:".to_string();
