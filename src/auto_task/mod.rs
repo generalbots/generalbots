@@ -61,76 +61,31 @@ pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared:
         .route(ApiUrls::AUTOTASK_CLASSIFY, post(classify_intent_handler))
         .route(ApiUrls::AUTOTASK_COMPILE, post(compile_intent_handler))
         .route(ApiUrls::AUTOTASK_EXECUTE, post(execute_plan_handler))
-        .route(
-            &ApiUrls::AUTOTASK_SIMULATE.replace(":plan_id", "{plan_id}"),
-            post(simulate_plan_handler),
-        )
+        .route(ApiUrls::AUTOTASK_SIMULATE, post(simulate_plan_handler))
         .route(ApiUrls::AUTOTASK_LIST, get(list_tasks_handler))
-        .route(
-            &ApiUrls::AUTOTASK_GET.replace(":task_id", "{task_id}"),
-            get(get_task_handler),
-        )
+        .route(ApiUrls::AUTOTASK_GET, get(get_task_handler))
         .route(ApiUrls::AUTOTASK_STATS, get(get_stats_handler))
-        .route(
-            &ApiUrls::AUTOTASK_PAUSE.replace(":task_id", "{task_id}"),
-            post(pause_task_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_RESUME.replace(":task_id", "{task_id}"),
-            post(resume_task_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_CANCEL.replace(":task_id", "{task_id}"),
-            post(cancel_task_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_TASK_SIMULATE.replace(":task_id", "{task_id}"),
-            post(simulate_task_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_DECISIONS.replace(":task_id", "{task_id}"),
-            get(get_decisions_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_DECIDE.replace(":task_id", "{task_id}"),
-            post(submit_decision_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_APPROVALS.replace(":task_id", "{task_id}"),
-            get(get_approvals_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_APPROVE.replace(":task_id", "{task_id}"),
-            post(submit_approval_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_TASK_EXECUTE.replace(":task_id", "{task_id}"),
-            post(execute_task_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_LOGS.replace(":task_id", "{task_id}"),
-            get(get_task_logs_handler),
-        )
-        .route(
-            "/api/autotask/{task_id}/manifest",
-            get(get_manifest_handler),
-        )
-        .route(
-            &ApiUrls::AUTOTASK_RECOMMENDATIONS_APPLY.replace(":rec_id", "{rec_id}"),
-            post(apply_recommendation_handler),
-        )
+        .route(ApiUrls::AUTOTASK_PAUSE, post(pause_task_handler))
+        .route(ApiUrls::AUTOTASK_RESUME, post(resume_task_handler))
+        .route(ApiUrls::AUTOTASK_CANCEL, post(cancel_task_handler))
+        .route(ApiUrls::AUTOTASK_TASK_SIMULATE, post(simulate_task_handler))
+        .route(ApiUrls::AUTOTASK_DECISIONS, get(get_decisions_handler))
+        .route(ApiUrls::AUTOTASK_DECIDE, post(submit_decision_handler))
+        .route(ApiUrls::AUTOTASK_APPROVALS, get(get_approvals_handler))
+        .route(ApiUrls::AUTOTASK_APPROVE, post(submit_approval_handler))
+        .route(ApiUrls::AUTOTASK_TASK_EXECUTE, post(execute_task_handler))
+        .route(ApiUrls::AUTOTASK_LOGS, get(get_task_logs_handler))
+        .route("/api/autotask/:task_id/manifest", get(get_manifest_handler))
+        .route(ApiUrls::AUTOTASK_RECOMMENDATIONS_APPLY, post(apply_recommendation_handler))
         .route(ApiUrls::AUTOTASK_PENDING, get(get_pending_items_handler))
-        .route(
-            &ApiUrls::AUTOTASK_PENDING_ITEM.replace(":item_id", "{item_id}"),
-            post(submit_pending_item_handler),
-        )
+        .route(ApiUrls::AUTOTASK_PENDING_ITEM, post(submit_pending_item_handler))
         .route("/api/app-logs/client", post(handle_client_logs))
         .route("/api/app-logs/list", get(handle_list_logs))
         .route("/api/app-logs/stats", get(handle_log_stats))
-        .route("/api/app-logs/clear/{app_name}", post(handle_clear_logs))
+        .route("/api/app-logs/clear/:app_name", post(handle_clear_logs))
         .route("/api/app-logs/logger.js", get(handle_logger_js))
         .route("/ws/task-progress", get(task_progress_websocket_handler))
-        .route("/ws/task-progress/{task_id}", get(task_progress_by_id_websocket_handler))
+        .route("/ws/task-progress/:task_id", get(task_progress_by_id_websocket_handler))
 }
 
 pub async fn task_progress_websocket_handler(

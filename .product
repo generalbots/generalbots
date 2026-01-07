@@ -1,0 +1,42 @@
+# Product Configuration File
+# This file defines white-label settings for the application.
+#
+# All occurrences of "General Bots" will be replaced by the 'name' value.
+# Only apps listed in 'apps' will be active in the suite (and their APIs enabled).
+# The 'theme' value sets the default theme for the UI.
+
+# Product name (replaces "General Bots" throughout the application)
+name=General Bots
+
+# Active apps (comma-separated list)
+# Available apps: chat, mail, calendar, drive, tasks, docs, paper, sheet, slides,
+#                 meet, research, sources, analytics, admin, monitoring, settings
+# Only listed apps will be visible in the UI and have their APIs enabled.
+apps=chat,mail,calendar,drive,tasks,docs,paper,sheet,slides,meet,research,sources,analytics,admin,monitoring,settings
+
+# Default theme
+# Available themes: dark, light, blue, purple, green, orange, sentient, cyberpunk,
+#                   retrowave, vapordream, y2kglow, arcadeflash, discofever, grungeera,
+#                   jazzage, mellowgold, midcenturymod, polaroidmemories, saturdaycartoons,
+#                   seasidepostcard, typewriter, 3dbevel, xeroxui, xtreegold
+theme=sentient
+
+# Logo URL (optional - leave empty to use default)
+# Can be a relative path or absolute URL
+logo=
+
+# Favicon URL (optional - leave empty to use default)
+favicon=
+
+# Primary color override (optional - hex color code)
+# Example: #d4f505
+primary_color=
+
+# Support email (optional)
+support_email=
+
+# Documentation URL (optional)
+docs_url=https://docs.pragmatismo.com.br
+
+# Copyright text (optional - {year} will be replaced with current year)
+copyright=© {year} {name}. All rights reserved.

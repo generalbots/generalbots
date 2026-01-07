@@ -67,7 +67,7 @@ pub fn configure_research_routes() -> Router<Arc<AppState>> {
             ApiUrls::RESEARCH_COLLECTIONS_NEW,
             post(handle_create_collection),
         )
-        .route(&ApiUrls::RESEARCH_COLLECTION_BY_ID.replace(":id", "{id}"), get(handle_get_collection))
+        .route(ApiUrls::RESEARCH_COLLECTION_BY_ID, get(handle_get_collection))
         .route(ApiUrls::RESEARCH_SEARCH, post(handle_search))
         .route(ApiUrls::RESEARCH_RECENT, get(handle_recent_searches))
         .route(ApiUrls::RESEARCH_TRENDING, get(handle_trending_tags))

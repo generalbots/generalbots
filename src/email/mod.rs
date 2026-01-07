@@ -2,7 +2,7 @@ use crate::{config::EmailConfig, core::urls::ApiUrls, shared::state::AppState};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::{Html, IntoResponse, Response},
+    response::{IntoResponse, Response},
     Json,
 };
 use axum::{
@@ -129,8 +129,8 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(ApiUrls::EMAIL_LIST_HTMX, get(list_emails_htmx))
         .route(ApiUrls::EMAIL_FOLDERS_HTMX, get(list_folders_htmx))
         .route(ApiUrls::EMAIL_COMPOSE_HTMX, get(compose_email_htmx))
-        .route(&ApiUrls::EMAIL_CONTENT_HTMX.replace(":id", "{id}"), get(get_email_content_htmx))
-        .route("/api/ui/email/{id}/delete", delete(delete_email_htmx))
+        .route(ApiUrls::EMAIL_CONTENT_HTMX, get(get_email_content_htmx))
+        .route("/api/ui/email/:id/delete", delete(delete_email_htmx))
         .route(ApiUrls::EMAIL_LABELS_HTMX, get(list_labels_htmx))
         .route(ApiUrls::EMAIL_TEMPLATES_HTMX, get(list_templates_htmx))
         .route(ApiUrls::EMAIL_SIGNATURES_HTMX, get(list_signatures_htmx))

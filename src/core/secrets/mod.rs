@@ -224,7 +224,7 @@ impl SecretsManager {
         Ok((
             s.get("url")
                 .cloned()
-                .unwrap_or_else(|| "https://localhost:8080".into()),
+                .unwrap_or_else(|| "http://localhost:8300".into()),
             s.get("project_id").cloned().unwrap_or_default(),
             s.get("client_id").cloned().unwrap_or_default(),
             s.get("client_secret").cloned().unwrap_or_default(),

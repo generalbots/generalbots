@@ -32,6 +32,7 @@ pub struct ValidateRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileQuery {
     pub path: Option<String>,
+    pub bucket: Option<String>,
 }
 
 #[derive(Debug, QueryableByName)]
@@ -114,7 +115,7 @@ pub fn configure_designer_routes() -> Router<Arc<AppState>> {
             ApiUrls::DESIGNER_DIALOGS,
             get(handle_list_dialogs).post(handle_create_dialog),
         )
-        .route(&ApiUrls::DESIGNER_DIALOG_BY_ID.replace(":id", "{id}"), get(handle_get_dialog))
+        .route(ApiUrls::DESIGNER_DIALOG_BY_ID, get(handle_get_dialog))
         .route(ApiUrls::DESIGNER_MODIFY, post(handle_designer_modify))
         .route("/api/ui/designer/magic", post(handle_magic_suggestions))
         .route("/api/ui/editor/magic", post(handle_editor_magic))
@@ -396,31 +397,43 @@ pub async fn handle_load_file(
     State(state): State<Arc<AppState>>,
     Query(params): Query<FileQuery>,
 ) -> impl IntoResponse {
-    let file_id = params.path.unwrap_or_else(|| "welcome".to_string());
-    let conn = state.conn.clone();
+    let file_path = params.path.unwrap_or_else(|| "welcome".to_string());
 
-    let dialog = tokio::task::spawn_blocking(move || {
-        let mut db_conn = match conn.get() {
+    let content = if let Some(bucket) = params.bucket {
+        match load_from_drive(&state, &bucket, &file_path).await {
             Ok(c) => c,
             Err(e) => {
-                log::error!("DB connection error: {}", e);
-                return None;
+                log::error!("Failed to load file from drive: {}", e);
+                get_default_dialog_content()
             }
-        };
+        }
+    } else {
+        let conn = state.conn.clone();
+        let file_id = file_path;
 
-        diesel::sql_query(
-            "SELECT id, name, content, updated_at FROM designer_dialogs WHERE id = $1",
-        )
-        .bind::<diesel::sql_types::Text, _>(&file_id)
-        .get_result::<DialogRow>(&mut db_conn)
-        .ok()
-    })
-    .await
-    .unwrap_or(None);
+        let dialog = tokio::task::spawn_blocking(move || {
+            let mut db_conn = match conn.get() {
+                Ok(c) => c,
+                Err(e) => {
+                    log::error!("DB connection error: {}", e);
+                    return None;
+                }
+            };
 
-    let content = match dialog {
-        Some(d) => d.content,
-        None => get_default_dialog_content(),
+            diesel::sql_query(
+                "SELECT id, name, content, updated_at FROM designer_dialogs WHERE id = $1",
+            )
+            .bind::<diesel::sql_types::Text, _>(&file_id)
+            .get_result::<DialogRow>(&mut db_conn)
+            .ok()
+        })
+        .await
+        .unwrap_or(None);
+
+        match dialog {
+            Some(d) => d.content,
+            None => get_default_dialog_content(),
+        }
     };
 
     let mut html = String::new();
@@ -848,6 +861,34 @@ fn validate_basic_code(code: &str) -> ValidationResult {
         errors,
         warnings,
     }
+}
+
+async fn load_from_drive(
+    state: &Arc<AppState>,
+    bucket: &str,
+    path: &str,
+) -> Result<String, String> {
+    let s3_client = state
+        .drive
+        .as_ref()
+        .ok_or_else(|| "S3 service not available".to_string())?;
+
+    let result = s3_client
+        .get_object()
+        .bucket(bucket)
+        .key(path)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to read file from drive: {e}"))?;
+
+    let bytes = result
+        .body
+        .collect()
+        .await
+        .map_err(|e| format!("Failed to read file body: {e}"))?
+        .into_bytes();
+
+    String::from_utf8(bytes.to_vec()).map_err(|e| format!("File is not valid UTF-8: {e}"))
 }
 
 fn get_default_dialog_content() -> String {

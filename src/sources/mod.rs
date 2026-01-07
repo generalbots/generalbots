@@ -9,7 +9,7 @@ use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse},
-    routing::{delete, get, post, put},
+    routing::{get, post},
     Router,
 };
 use log::{error, info};
@@ -171,22 +171,11 @@ pub fn configure_sources_routes() -> Router<Arc<AppState>> {
         .route(ApiUrls::SOURCES_APPS, get(handle_list_apps))
         .route(ApiUrls::SOURCES_MCP, get(handle_list_mcp_servers_json))
         .route(ApiUrls::SOURCES_MCP, post(handle_add_mcp_server))
-        .route(&ApiUrls::SOURCES_MCP_BY_NAME.replace(":name", "{name}"), get(handle_get_mcp_server))
-        .route(&ApiUrls::SOURCES_MCP_BY_NAME.replace(":name", "{name}"), put(handle_update_mcp_server))
-        .route(&ApiUrls::SOURCES_MCP_BY_NAME.replace(":name", "{name}"), delete(handle_delete_mcp_server))
-        .route(
-            &ApiUrls::SOURCES_MCP_ENABLE.replace(":name", "{name}"),
-            post(handle_enable_mcp_server),
-        )
-        .route(
-            &ApiUrls::SOURCES_MCP_DISABLE.replace(":name", "{name}"),
-            post(handle_disable_mcp_server),
-        )
-        .route(
-            &ApiUrls::SOURCES_MCP_TOOLS.replace(":name", "{name}"),
-            get(handle_list_mcp_server_tools),
-        )
-        .route(&ApiUrls::SOURCES_MCP_TEST.replace(":name", "{name}"), post(handle_test_mcp_server))
+        .route(ApiUrls::SOURCES_MCP_BY_NAME, get(handle_get_mcp_server).put(handle_update_mcp_server).delete(handle_delete_mcp_server))
+        .route(ApiUrls::SOURCES_MCP_ENABLE, post(handle_enable_mcp_server))
+        .route(ApiUrls::SOURCES_MCP_DISABLE, post(handle_disable_mcp_server))
+        .route(ApiUrls::SOURCES_MCP_TOOLS, get(handle_list_mcp_server_tools))
+        .route(ApiUrls::SOURCES_MCP_TEST, post(handle_test_mcp_server))
         .route(ApiUrls::SOURCES_MCP_SCAN, post(handle_scan_mcp_directory))
         .route(ApiUrls::SOURCES_MCP_EXAMPLES, get(handle_get_mcp_examples))
         .route(ApiUrls::SOURCES_MENTIONS, get(handle_mentions_autocomplete))
@@ -989,15 +978,6 @@ fn load_mcp_servers_catalog() -> Option<McpServersCatalog> {
     }
 }
 
-fn get_type_badge_class(server_type: &str) -> &'static str {
-    match server_type {
-        "Local" => "badge-local",
-        "Remote" => "badge-remote",
-        "Custom" => "badge-custom",
-        _ => "badge-default",
-    }
-}
-
 fn get_category_icon(category: &str) -> &'static str {
     match category {
         "Database" => "🗄️",
@@ -1078,7 +1058,6 @@ pub async fn handle_mcp_servers(
                 server.status,
                 crate::basic::keywords::mcp_client::McpServerStatus::Active
             );
-            let status_class = if is_active { "status-active" } else { "status-inactive" };
             let status_text = if is_active { "Active" } else { "Inactive" };
 
             let status_bg = if is_active { "#e8f5e9" } else { "#ffebee" };

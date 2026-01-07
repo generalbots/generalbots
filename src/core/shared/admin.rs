@@ -1,13 +1,16 @@
 use axum::{
     extract::{Query, State},
     http::StatusCode,
-    response::Json,
+    response::{Html, Json},
+    routing::get,
+    Router,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -194,7 +197,505 @@ pub struct SuccessResponse {
     pub message: Option<String>,
 }
 
-pub fn get_system_status(
+#[derive(Debug, Serialize)]
+pub struct AdminDashboardData {
+    pub total_users: i64,
+    pub active_groups: i64,
+    pub running_bots: i64,
+    pub storage_used_gb: f64,
+    pub storage_total_gb: f64,
+    pub recent_activity: Vec<ActivityItem>,
+    pub system_health: SystemHealth,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ActivityItem {
+    pub id: String,
+    pub action: String,
+    pub user: String,
+    pub timestamp: DateTime<Utc>,
+    pub details: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SystemHealth {
+    pub status: String,
+    pub cpu_percent: f64,
+    pub memory_percent: f64,
+    pub services_healthy: i32,
+    pub services_total: i32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct StatValue {
+    pub value: String,
+    pub label: String,
+    pub trend: Option<String>,
+}
+
+pub fn configure() -> Router<Arc<AppState>> {
+    Router::new()
+        .route(ApiUrls::ADMIN_DASHBOARD, get(get_admin_dashboard))
+        .route(ApiUrls::ADMIN_STATS_USERS, get(get_stats_users))
+        .route(ApiUrls::ADMIN_STATS_GROUPS, get(get_stats_groups))
+        .route(ApiUrls::ADMIN_STATS_BOTS, get(get_stats_bots))
+        .route(ApiUrls::ADMIN_STATS_STORAGE, get(get_stats_storage))
+        .route(ApiUrls::ADMIN_USERS, get(get_admin_users))
+        .route(ApiUrls::ADMIN_GROUPS, get(get_admin_groups))
+        .route(ApiUrls::ADMIN_BOTS, get(get_admin_bots))
+        .route(ApiUrls::ADMIN_DNS, get(get_admin_dns))
+        .route(ApiUrls::ADMIN_BILLING, get(get_admin_billing))
+        .route(ApiUrls::ADMIN_AUDIT, get(get_admin_audit))
+        .route(ApiUrls::ADMIN_SYSTEM, get(get_system_status))
+}
+
+pub async fn get_admin_dashboard(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="dashboard-view">
+    <div class="page-header">
+        <h1 data-i18n="admin-dashboard-title">Dashboard</h1>
+        <p class="subtitle" data-i18n="admin-dashboard-subtitle">System overview and quick statistics</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card"
+             hx-get="/api/admin/stats/users"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+            <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+        <div class="stat-card"
+             hx-get="/api/admin/stats/groups"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+            <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+        <div class="stat-card"
+             hx-get="/api/admin/stats/bots"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+            <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+        <div class="stat-card"
+             hx-get="/api/admin/stats/storage"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+            <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 data-i18n="admin-quick-actions">Quick Actions</h2>
+        <div class="quick-actions-grid">
+            <button class="action-card" onclick="document.getElementById('create-user-modal').showModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+                <span data-i18n="admin-add-user">Add User</span>
+            </button>
+            <button class="action-card" onclick="document.getElementById('create-group-modal').showModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                </svg>
+                <span data-i18n="admin-add-group">Add Group</span>
+            </button>
+            <button class="action-card" hx-get="/api/admin/audit" hx-target="#admin-content" hx-swap="innerHTML">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span data-i18n="admin-view-audit">View Audit Log</span>
+            </button>
+            <button class="action-card" hx-get="/api/admin/billing" hx-target="#admin-content" hx-swap="innerHTML">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+                <span data-i18n="admin-billing">Billing</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 data-i18n="admin-system-health">System Health</h2>
+        <div class="health-grid">
+            <div class="health-card">
+                <div class="health-card-header">
+                    <span class="health-card-title">API Server</span>
+                    <span class="health-status healthy">Healthy</span>
+                </div>
+                <div class="health-value">99.9%</div>
+                <div class="health-label">Uptime</div>
+            </div>
+            <div class="health-card">
+                <div class="health-card-header">
+                    <span class="health-card-title">Database</span>
+                    <span class="health-status healthy">Healthy</span>
+                </div>
+                <div class="health-value">12ms</div>
+                <div class="health-label">Avg Response</div>
+            </div>
+            <div class="health-card">
+                <div class="health-card-header">
+                    <span class="health-card-title">Storage</span>
+                    <span class="health-status healthy">Healthy</span>
+                </div>
+                <div class="health-value">45%</div>
+                <div class="health-label">Capacity Used</div>
+            </div>
+        </div>
+    </div>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_stats_users(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="stat-icon users">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
+</div>
+<div class="stat-content">
+    <span class="stat-value">127</span>
+    <span class="stat-label" data-i18n="admin-total-users">Total Users</span>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_stats_groups(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="stat-icon groups">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <circle cx="19" cy="11" r="2"></circle>
+    </svg>
+</div>
+<div class="stat-content">
+    <span class="stat-value">12</span>
+    <span class="stat-label" data-i18n="admin-active-groups">Active Groups</span>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_stats_bots(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="stat-icon bots">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+        <circle cx="12" cy="5" r="2"></circle>
+        <path d="M12 7v4"></path>
+    </svg>
+</div>
+<div class="stat-content">
+    <span class="stat-value">8</span>
+    <span class="stat-label" data-i18n="admin-running-bots">Running Bots</span>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_stats_storage(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="stat-icon storage">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+    </svg>
+</div>
+<div class="stat-content">
+    <span class="stat-value">45.2 GB</span>
+    <span class="stat-label" data-i18n="admin-storage-used">Storage Used</span>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_admin_users(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="admin-page">
+    <div class="page-header">
+        <h1 data-i18n="admin-users">Users</h1>
+        <p class="subtitle" data-i18n="admin-users-subtitle">Manage user accounts and permissions</p>
+    </div>
+    <div class="toolbar">
+        <button class="btn-primary" onclick="document.getElementById('create-user-modal').showModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add User
+        </button>
+    </div>
+    <div class="data-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>John Doe</td>
+                    <td>john@example.com</td>
+                    <td><span class="badge badge-admin">Admin</span></td>
+                    <td><span class="status status-active">Active</span></td>
+                    <td><button class="btn-icon">Edit</button></td>
+                </tr>
+                <tr>
+                    <td>Jane Smith</td>
+                    <td>jane@example.com</td>
+                    <td><span class="badge badge-user">User</span></td>
+                    <td><span class="status status-active">Active</span></td>
+                    <td><button class="btn-icon">Edit</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_admin_groups(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="admin-page">
+    <div class="page-header">
+        <h1 data-i18n="admin-groups">Groups</h1>
+        <p class="subtitle" data-i18n="admin-groups-subtitle">Manage groups and team permissions</p>
+    </div>
+    <div class="toolbar">
+        <button class="btn-primary" onclick="document.getElementById('create-group-modal').showModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Group
+        </button>
+    </div>
+    <div class="data-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Members</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Engineering</td>
+                    <td>15</td>
+                    <td>2024-01-15</td>
+                    <td><button class="btn-icon">Manage</button></td>
+                </tr>
+                <tr>
+                    <td>Marketing</td>
+                    <td>8</td>
+                    <td>2024-02-20</td>
+                    <td><button class="btn-icon">Manage</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_admin_bots(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="admin-page">
+    <div class="page-header">
+        <h1 data-i18n="admin-bots">Bots</h1>
+        <p class="subtitle" data-i18n="admin-bots-subtitle">Manage bot instances and deployments</p>
+    </div>
+    <div class="data-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Messages</th>
+                    <th>Last Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Support Bot</td>
+                    <td><span class="status status-active">Running</span></td>
+                    <td>1,234</td>
+                    <td>Just now</td>
+                    <td><button class="btn-icon">Configure</button></td>
+                </tr>
+                <tr>
+                    <td>Sales Assistant</td>
+                    <td><span class="status status-active">Running</span></td>
+                    <td>567</td>
+                    <td>5 min ago</td>
+                    <td><button class="btn-icon">Configure</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_admin_dns(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="admin-page">
+    <div class="page-header">
+        <h1 data-i18n="admin-dns">DNS Management</h1>
+        <p class="subtitle" data-i18n="admin-dns-subtitle">Configure custom domains and DNS settings</p>
+    </div>
+    <div class="toolbar">
+        <button class="btn-primary" onclick="document.getElementById('add-dns-modal').showModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Domain
+        </button>
+    </div>
+    <div class="data-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Domain</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>SSL</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>bot.example.com</td>
+                    <td>CNAME</td>
+                    <td><span class="status status-active">Active</span></td>
+                    <td><span class="status status-active">Valid</span></td>
+                    <td><button class="btn-icon">Edit</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_admin_billing(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let html = r##"
+<div class="admin-page">
+    <div class="page-header">
+        <h1 data-i18n="admin-billing">Billing</h1>
+        <p class="subtitle" data-i18n="admin-billing-subtitle">Manage subscription and payment settings</p>
+    </div>
+    <div class="billing-overview">
+        <div class="billing-card">
+            <h3>Current Plan</h3>
+            <div class="plan-name">Enterprise</div>
+            <div class="plan-price">$499/month</div>
+        </div>
+        <div class="billing-card">
+            <h3>Next Billing Date</h3>
+            <div class="billing-date">January 15, 2025</div>
+        </div>
+        <div class="billing-card">
+            <h3>Payment Method</h3>
+            <div class="payment-method">**** **** **** 4242</div>
+        </div>
+    </div>
+</div>
+"##;
+    Html(html.to_string())
+}
+
+pub async fn get_admin_audit(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    let now = Utc::now();
+    let html = format!(r##"
+<div class="admin-page">
+    <div class="page-header">
+        <h1 data-i18n="admin-audit">Audit Log</h1>
+        <p class="subtitle" data-i18n="admin-audit-subtitle">Track system events and user actions</p>
+    </div>
+    <div class="data-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{}</td>
+                    <td>admin@example.com</td>
+                    <td>User Login</td>
+                    <td>Successful login from 192.168.1.1</td>
+                </tr>
+                <tr>
+                    <td>{}</td>
+                    <td>admin@example.com</td>
+                    <td>Settings Changed</td>
+                    <td>Updated system configuration</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+"##, now.format("%Y-%m-%d %H:%M"), now.format("%Y-%m-%d %H:%M"));
+    Html(html)
+}
+
+pub async fn get_system_status(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SystemStatusResponse>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
@@ -259,7 +760,7 @@ pub fn get_system_status(
     Ok(Json(status))
 }
 
-pub fn get_system_metrics(
+pub async fn get_system_metrics(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SystemMetricsResponse>, (StatusCode, Json<serde_json::Value>)> {
     let metrics = SystemMetricsResponse {
