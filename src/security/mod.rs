@@ -1,26 +1,50 @@
 pub mod antivirus;
+pub mod api_keys;
+pub mod audit;
 pub mod auth;
 pub mod ca;
 pub mod cert_pinning;
 pub mod command_guard;
 pub mod cors;
+pub mod csrf;
+pub mod dlp;
+pub mod encryption;
 pub mod error_sanitizer;
 pub mod headers;
 pub mod integration;
+pub mod jwt;
+pub mod mfa;
 pub mod mutual_tls;
 pub mod panic_handler;
+pub mod passkey;
+pub mod password;
 pub mod path_guard;
+pub mod prompt_security;
 pub mod rate_limiter;
+pub mod rbac_middleware;
 pub mod request_id;
 pub mod secrets;
+pub mod security_monitoring;
+pub mod session;
 pub mod sql_guard;
 pub mod tls;
 pub mod validation;
+pub mod webhook;
 pub mod zitadel_auth;
 
 pub use antivirus::{
     AntivirusConfig, AntivirusManager, ProtectionStatus, ScanResult, ScanStatus, ScanType, Threat,
     ThreatSeverity, ThreatStatus, Vulnerability,
+};
+pub use api_keys::{
+    ApiKey as ManagedApiKey, ApiKeyConfig, ApiKeyManager, ApiKeyScope, ApiKeyStatus, ApiKeyUsage,
+    CreateApiKeyRequest, CreateApiKeyResponse, RateLimitConfig as ApiKeyRateLimitConfig,
+    extract_api_key_from_header,
+};
+pub use audit::{
+    ActorType, AuditActor, AuditConfig, AuditEvent, AuditEventCategory, AuditEventType,
+    AuditLogger, AuditOutcome, AuditQuery, AuditQueryResult, AuditResource, AuditSeverity,
+    AuditStore, InMemoryAuditStore,
 };
 pub use auth::{
     admin_only_middleware, auth_middleware, bot_operator_middleware, bot_owner_middleware,
@@ -29,6 +53,41 @@ pub use auth::{
     require_role_middleware, AuthConfig, AuthError, AuthenticatedUser, BotAccess, Permission, Role,
 };
 pub use zitadel_auth::{ZitadelAuthConfig, ZitadelAuthProvider, ZitadelUser};
+pub use jwt::{
+    Claims, JwtAlgorithm, JwtConfig, JwtKey, JwtManager, JwkSet, TokenIntrospectionResponse,
+    TokenPair, TokenType, extract_bearer_token,
+};
+pub use mfa::{
+    MfaConfig, MfaManager, MfaMethod, MfaStatus, OtpChallenge, RecoveryCode, TotpAlgorithm,
+    TotpEnrollment, UserMfaState, WebAuthnChallenge, WebAuthnCredential,
+};
+pub use password::{
+    Argon2Config, PasswordConfig, PasswordHasher2, PasswordIssue, PasswordStrength,
+    PasswordValidationResult, generate_recovery_codes, generate_secure_password, hash_password,
+    validate_password, verify_password,
+};
+pub use rbac_middleware::{
+    AccessDecision, AccessDecisionResult, RbacConfig, RbacManager, RequirePermission,
+    RequireResourceAccess, RequireRole, ResourceAcl, ResourcePermission, RoutePermission,
+    build_default_route_permissions, rbac_middleware,
+};
+pub use session::{
+    DeviceInfo, InMemorySessionStore, SameSite, Session, SessionConfig, SessionManager,
+    SessionStatus, SessionStore, extract_session_id_from_cookie, generate_session_id,
+};
+pub use csrf::{
+    CsrfConfig, CsrfLayer, CsrfManager, CsrfToken, CsrfValidationResult,
+    SameSite as CsrfSameSite, csrf_middleware, extract_csrf_from_cookie, extract_csrf_from_form,
+};
+pub use encryption::{
+    EncryptedData, EncryptionAlgorithm, EncryptionConfig, EncryptionKey, EncryptionManager,
+    EnvelopeEncryptedData, KeyPurpose, decrypt_field, derive_key_from_password, encrypt_field,
+    generate_salt, hash_for_search,
+};
+pub use prompt_security::{
+    InjectionDetection, InjectionType, OutputIssue, OutputValidation, PromptSecurityConfig,
+    PromptSecurityManager, ThreatLevel, escape_for_prompt, quick_injection_check,
+};
 pub use ca::{CaConfig, CaManager, CertificateRequest, CertificateResponse};
 pub use cert_pinning::{
     compute_spki_fingerprint, format_fingerprint, parse_fingerprint, CertPinningConfig,

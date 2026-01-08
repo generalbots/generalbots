@@ -7,6 +7,9 @@ use sysinfo::{Disks, Networks, System};
 use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 
+pub mod real_time;
+pub mod tracing;
+
 
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()

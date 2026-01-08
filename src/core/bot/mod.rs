@@ -325,7 +325,6 @@ impl BotOrchestrator {
     }
 }
 
-#[allow(clippy::unused_async)]
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,

@@ -44,7 +44,7 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT FEATURE SET =====
-default = ["console", "chat", "automation", "tasks", "drive", "llm", "cache", "progress-bars", "directory", "calendar", "meet", "email", "whatsapp", "telegram"]
+default = ["console", "chat", "automation", "tasks", "drive", "llm", "cache", "progress-bars", "directory", "calendar", "meet", "email", "whatsapp", "telegram", "learn"]
 
 # ===== UI FEATURES =====
 console = ["dep:crossterm", "dep:ratatui", "monitoring"]
@@ -68,6 +68,7 @@ tasks = ["dep:cron"]
 calendar = []
 meet = ["dep:livekit"]
 mail = ["email"]
+learn = []
 
 # ===== ENTERPRISE FEATURES =====
 compliance = ["dep:csv"]
@@ -95,7 +96,7 @@ full = [
 ]
 
 communications = ["email", "whatsapp", "instagram", "msteams", "chat", "cache"]
-productivity = ["chat", "drive", "tasks", "calendar", "meet", "mail", "cache"]
+productivity = ["chat", "drive", "tasks", "calendar", "meet", "mail", "cache", "learn"]
 enterprise = ["compliance", "attendance", "directory", "llm", "vectordb", "monitoring", "timeseries"]
 minimal = ["chat"]
 lightweight = ["chat", "drive", "tasks"]

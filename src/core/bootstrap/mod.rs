@@ -1,6 +1,7 @@
 use crate::config::AppConfig;
 use crate::package_manager::setup::{DirectorySetup, EmailSetup, VectorDbSetup};
 use crate::package_manager::{InstallMode, PackageManager};
+use crate::security::command_guard::SafeCommand;
 use crate::shared::utils::{establish_pg_connection, init_secrets_manager};
 use anyhow::Result;
 use aws_config::BehaviorVersion;
@@ -15,7 +16,47 @@ use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+
+
+fn safe_pkill(args: &[&str]) {
+    if let Ok(cmd) = SafeCommand::new("pkill")
+        .and_then(|c| c.args(args))
+    {
+        let _ = cmd.execute();
+    }
+}
+
+
+
+fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("pgrep")
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_sh_command(script: &str) -> Option<std::process::Output> {
+    SafeCommand::new("sh")
+        .and_then(|c| c.arg("-c"))
+        .and_then(|c| c.arg(script))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_curl(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("curl")
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_fuser(args: &[&str]) {
+    if let Ok(cmd) = SafeCommand::new("fuser")
+        .and_then(|c| c.args(args))
+    {
+        let _ = cmd.execute();
+    }
+}
 #[derive(Debug)]
 pub struct ComponentInfo {
     pub name: &'static str,
@@ -68,7 +109,7 @@ impl BootstrapManager {
         ];
 
         for pattern in patterns {
-            let _ = Command::new("pkill").args(["-9", "-f", pattern]).output();
+            safe_pkill(&["-9", "-f", pattern]);
         }
 
         let process_names = vec![
@@ -86,15 +127,14 @@ impl BootstrapManager {
         ];
 
         for name in process_names {
-            let _ = Command::new("pkill").args(["-9", "-f", name]).output();
+            safe_pkill(&["-9", "-f", name]);
         }
 
         let ports = vec![8200, 5432, 9000, 6379, 8300, 8081, 8082, 25, 443, 53];
 
         for port in ports {
-            let _ = Command::new("fuser")
-                .args(["-k", "-9", &format!("{}/tcp", port)])
-                .output();
+            let port_arg = format!("{}/tcp", port);
+            safe_fuser(&["-k", "-9", &port_arg]);
         }
 
         std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -108,8 +148,12 @@ impl BootstrapManager {
         if lock_file.exists() {
             if let Ok(pid_str) = fs::read_to_string(&lock_file) {
                 if let Ok(pid) = pid_str.trim().parse::<i32>() {
-                    let check = Command::new("kill").args(["-0", &pid.to_string()]).output();
-                    if let Ok(output) = check {
+                    let pid_str = pid.to_string();
+                    if let Some(output) = SafeCommand::new("kill")
+                        .and_then(|c| c.args(&["-0", &pid_str]))
+                        .ok()
+                        .and_then(|cmd| cmd.execute().ok())
+                    {
                         if output.status.success() {
                             warn!("Another botserver process (PID {}) is already running on this stack", pid);
                             return Ok(false);
@@ -183,13 +227,8 @@ impl BootstrapManager {
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
         if pm.is_installed("vault") {
-            let vault_already_running = Command::new("sh")
-                .arg("-c")
-                .arg("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status()
-                .map(|s| s.success())
+            let vault_already_running = safe_sh_command("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
+                .map(|o| o.status.success())
                 .unwrap_or(false);
 
             if vault_already_running {
@@ -206,13 +245,8 @@ impl BootstrapManager {
                 }
 
                 for i in 0..10 {
-                    let vault_ready = Command::new("sh")
-                        .arg("-c")
-                        .arg("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
-                        .stdout(std::process::Stdio::null())
-                        .stderr(std::process::Stdio::null())
-                        .status()
-                        .map(|s| s.success())
+                    let vault_ready = safe_sh_command("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
+                        .map(|o| o.status.success())
                         .unwrap_or(false);
 
                     if vault_ready {
@@ -232,9 +266,7 @@ impl BootstrapManager {
                     error!("Vault failed to unseal but stack is installed - NOT re-initializing");
                     error!("Try manually restarting Vault or check ./botserver-stack/logs/vault/vault.log");
 
-                    let _ = Command::new("pkill")
-                        .args(["-9", "-f", "botserver-stack/bin/vault"])
-                        .output();
+                    safe_pkill(&["-9", "-f", "botserver-stack/bin/vault"]);
 
                     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
@@ -252,9 +284,7 @@ impl BootstrapManager {
                 } else {
                     warn!("No installed stack detected - proceeding with re-initialization");
 
-                    let _ = Command::new("pkill")
-                        .args(["-9", "-f", "botserver-stack/bin/vault"])
-                        .output();
+                    safe_pkill(&["-9", "-f", "botserver-stack/bin/vault"]);
 
                     if let Err(e) = Self::reset_vault_only() {
                         error!("Failed to reset Vault: {}", e);
@@ -285,16 +315,16 @@ impl BootstrapManager {
             info!("Starting PostgreSQL database...");
             match pm.start("tables") {
                 Ok(_child) => {
-                    let pg_isready = self.stack_dir("bin/tables/bin/pg_isready");
                     let mut ready = false;
                     for attempt in 1..=30 {
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                        let status = std::process::Command::new(&pg_isready)
-                            .args(["-h", "localhost", "-p", "5432", "-U", "gbuser"])
-                            .stdout(std::process::Stdio::null())
-                            .stderr(std::process::Stdio::null())
-                            .status();
-                        if status.map(|s| s.success()).unwrap_or(false) {
+                        let status = SafeCommand::new("pg_isready")
+                            .and_then(|c| c.args(&["-h", "localhost", "-p", "5432", "-U", "gbuser"]))
+                            .ok()
+                            .and_then(|cmd| cmd.execute().ok())
+                            .map(|o| o.status.success())
+                            .unwrap_or(false);
+                        if status {
                             ready = true;
                             info!("PostgreSQL started and ready (attempt {})", attempt);
                             break;
@@ -339,13 +369,8 @@ impl BootstrapManager {
                         info!("Started component: {}", component.name);
                         if component.name == "drive" {
                             for i in 0..15 {
-                                let drive_ready = Command::new("sh")
-                                    .arg("-c")
-                                    .arg("curl -sf --cacert ./botserver-stack/conf/drive/certs/CAs/ca.crt 'https://127.0.0.1:9000/minio/health/live' >/dev/null 2>&1")
-                                    .stdout(std::process::Stdio::null())
-                                    .stderr(std::process::Stdio::null())
-                                    .status()
-                                    .map(|s| s.success())
+                                let drive_ready = safe_sh_command("curl -sf --cacert ./botserver-stack/conf/drive/certs/CAs/ca.crt 'https://127.0.0.1:9000/minio/health/live' >/dev/null 2>&1")
+                                    .map(|o| o.status.success())
                                     .unwrap_or(false);
 
                                 if drive_ready {
@@ -411,13 +436,8 @@ impl BootstrapManager {
         }
 
         if installer.is_installed("vault") {
-            let vault_running = Command::new("sh")
-                .arg("-c")
-                .arg("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status()
-                .map(|s| s.success())
+            let vault_running = safe_sh_command("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
+                .map(|o| o.status.success())
                 .unwrap_or(false);
 
             if vault_running {
@@ -448,9 +468,7 @@ impl BootstrapManager {
                 } else {
                     warn!("Vault unseal failed: {} - attempting Vault restart only", e);
 
-                    let _ = Command::new("pkill")
-                        .args(["-9", "-f", "botserver-stack/bin/vault"])
-                        .output();
+                    safe_pkill(&["-9", "-f", "botserver-stack/bin/vault"]);
 
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
@@ -599,15 +617,12 @@ impl BootstrapManager {
                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
             }
 
-            let status_output = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} {} status -format=json 2>&1",
-                    vault_addr, vault_bin
-                ))
-                .stdout(std::process::Stdio::piped())
-                .stderr(std::process::Stdio::piped())
-                .output()?;
+            let status_cmd = format!(
+                "VAULT_ADDR={} {} status -format=json 2>&1",
+                vault_addr, vault_bin
+            );
+            let status_output = safe_sh_command(&status_cmd)
+                .ok_or_else(|| anyhow::anyhow!("Failed to execute vault status command"))?;
 
             status_str = String::from_utf8_lossy(&status_output.stdout).to_string();
             let stderr_str = String::from_utf8_lossy(&status_output.stderr).to_string();
@@ -643,15 +658,12 @@ impl BootstrapManager {
 
             if sealed {
                 info!("Unsealing Vault...");
-                let unseal_output = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(format!(
-                        "VAULT_ADDR={} {} operator unseal {} >/dev/null 2>&1",
-                        vault_addr, vault_bin, unseal_key
-                    ))
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .output()?;
+                let unseal_cmd = format!(
+                    "VAULT_ADDR={} {} operator unseal {} >/dev/null 2>&1",
+                    vault_addr, vault_bin, unseal_key
+                );
+                let unseal_output = safe_sh_command(&unseal_cmd)
+                    .ok_or_else(|| anyhow::anyhow!("Failed to execute vault unseal command"))?;
 
                 if !unseal_output.status.success() {
                     let stderr = String::from_utf8_lossy(&unseal_output.stderr);
@@ -659,15 +671,12 @@ impl BootstrapManager {
                 }
 
                 tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                let verify_output = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(format!(
-                        "VAULT_ADDR={} {} status -format=json 2>/dev/null",
-                        vault_addr, vault_bin
-                    ))
-                    .stdout(std::process::Stdio::piped())
-                    .stderr(std::process::Stdio::null())
-                    .output()?;
+                let verify_cmd = format!(
+                    "VAULT_ADDR={} {} status -format=json 2>/dev/null",
+                    vault_addr, vault_bin
+                );
+                let verify_output = safe_sh_command(&verify_cmd)
+                    .ok_or_else(|| anyhow::anyhow!("Failed to verify vault status"))?;
 
                 let verify_str = String::from_utf8_lossy(&verify_output.stdout);
                 if let Ok(verify_status) = serde_json::from_str::<serde_json::Value>(&verify_str) {
@@ -680,10 +689,7 @@ impl BootstrapManager {
                 info!("Vault unsealed successfully");
             }
         } else {
-            let vault_pid = std::process::Command::new("pgrep")
-                .args(["-f", "vault server"])
-                .output()
-                .ok()
+            let vault_pid = safe_pgrep(&["-f", "vault server"])
                 .and_then(|o| {
                     String::from_utf8_lossy(&o.stdout)
                         .trim()
@@ -693,9 +699,7 @@ impl BootstrapManager {
 
             if vault_pid.is_some() {
                 warn!("Vault process exists but not responding - killing and will restart");
-                let _ = std::process::Command::new("pkill")
-                    .args(["-9", "-f", "vault server"])
-                    .status();
+                safe_pkill(&["-9", "-f", "vault server"]);
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
 
@@ -783,14 +787,12 @@ impl BootstrapManager {
                     .unwrap_or_else(|| component.to_string());
 
                 if component == "vault" || component == "tables" || component == "directory" {
-                    let _ = Command::new("sh")
-                        .arg("-c")
-                        .arg(format!(
-                            "pkill -9 -f '{}/{}' 2>/dev/null; true",
-                            bin_path.display(),
-                            binary_name
-                        ))
-                        .status();
+                    let kill_cmd = format!(
+                        "pkill -9 -f '{}/{}' 2>/dev/null; true",
+                        bin_path.display(),
+                        binary_name
+                    );
+                    let _ = safe_sh_command(&kill_cmd);
                     std::thread::sleep(std::time::Duration::from_millis(200));
                 }
 
@@ -887,16 +889,11 @@ impl BootstrapManager {
                         "cd {} && nohup ./vault server -config=../../conf/vault/config.hcl > ../../logs/vault/vault.log 2>&1 &",
                         vault_bin_dir.display()
                     );
-                    let _ = std::process::Command::new("sh")
-                        .arg("-c")
-                        .arg(&vault_start_cmd)
-                        .status();
+                    let _ = safe_sh_command(&vault_start_cmd);
                     std::thread::sleep(std::time::Duration::from_secs(2));
 
-                    let check = std::process::Command::new("pgrep")
-                        .args(["-f", "vault server"])
-                        .output();
-                    if let Ok(output) = &check {
+                    let check = safe_pgrep(&["-f", "vault server"]);
+                    if let Some(output) = &check {
                         let pids = String::from_utf8_lossy(&output.stdout);
                         if pids.trim().is_empty() {
                             debug!("Direct start failed, trying pm.start...");
@@ -919,10 +916,8 @@ impl BootstrapManager {
                         }
                     }
 
-                    let final_check = std::process::Command::new("pgrep")
-                        .args(["-f", "vault server"])
-                        .output();
-                    if let Ok(output) = final_check {
+                    let final_check = safe_pgrep(&["-f", "vault server"]);
+                    if let Some(output) = final_check {
                         let pids = String::from_utf8_lossy(&output.stdout);
                         if pids.trim().is_empty() {
                             error!("Vault is not running after all start attempts");
@@ -1103,31 +1098,27 @@ DefaultInstance:
         info!("Created steps.yaml for first instance setup");
 
         info!("Creating zitadel database...");
-        let create_db_result = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "PGPASSWORD='{}' psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE zitadel\" 2>&1 || true",
-                db_password
-            ))
-            .output();
+        let create_db_cmd = format!(
+            "PGPASSWORD='{}' psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE zitadel\" 2>&1 || true",
+            db_password
+        );
+        let create_db_result = safe_sh_command(&create_db_cmd);
 
-        if let Ok(output) = create_db_result {
+        if let Some(output) = create_db_result {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if !stdout.contains("already exists") {
                 info!("Created zitadel database");
             }
         }
 
-        let create_user_result = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "PGPASSWORD='{}' psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE USER zitadel WITH PASSWORD '{}' SUPERUSER\" 2>&1 || true",
-                db_password,
-                zitadel_db_password
-            ))
-            .output();
+        let create_user_cmd = format!(
+            "PGPASSWORD='{}' psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE USER zitadel WITH PASSWORD '{}' SUPERUSER\" 2>&1 || true",
+            db_password,
+            zitadel_db_password
+        );
+        let create_user_result = safe_sh_command(&create_user_cmd);
 
-        if let Ok(output) = create_user_result {
+        if let Some(output) = create_user_result {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if !stdout.contains("already exists") {
                 info!("Created zitadel database user");
@@ -1258,11 +1249,9 @@ meet        IN      A       127.0.0.1
         let max_attempts = 60;
 
         while attempts < max_attempts {
-            let health_check = std::process::Command::new("curl")
-                .args(["-f", "-s", "http://localhost:8300/healthz"])
-                .output();
+            let health_check = safe_curl(&["-f", "-s", "http://localhost:8300/healthz"]);
 
-            if let Ok(output) = health_check {
+            if let Some(output) = health_check {
                 if output.status.success() {
                     info!("Zitadel is healthy");
                     break;
@@ -1393,12 +1382,9 @@ meet        IN      A       127.0.0.1
         let max_attempts = 30;
 
         while attempts < max_attempts {
-            let ps_check = std::process::Command::new("sh")
-                .arg("-c")
-                .arg("pgrep -f 'vault server' || echo 'NOT_RUNNING'")
-                .output();
+            let ps_check = safe_sh_command("pgrep -f 'vault server' || echo 'NOT_RUNNING'");
 
-            if let Ok(ps_output) = ps_check {
+            if let Some(ps_output) = ps_check {
                 let ps_result = String::from_utf8_lossy(&ps_output.stdout);
                 if ps_result.contains("NOT_RUNNING") {
                     warn!("Vault process is not running (attempt {})", attempts + 1);
@@ -1417,11 +1403,9 @@ meet        IN      A       127.0.0.1
                 }
             }
 
-            let health_check = std::process::Command::new("curl")
-                .args(["-f", "-sk", "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"])
-                .output();
+            let health_check = safe_curl(&["-f", "-sk", "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"]);
 
-            if let Ok(output) = health_check {
+            if let Some(output) = health_check {
                 if output.status.success() {
                     info!("Vault is responding");
                     break;
@@ -1503,13 +1487,12 @@ meet        IN      A       127.0.0.1
             info!("Initializing Vault...");
             let vault_bin = self.vault_bin();
 
-            let init_output = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} VAULT_CACERT={} {} operator init -key-shares=1 -key-threshold=1 -format=json",
-                    vault_addr, ca_cert_path, vault_bin
-                ))
-                .output()?;
+            let init_cmd = format!(
+                "VAULT_ADDR={} VAULT_CACERT={} {} operator init -key-shares=1 -key-threshold=1 -format=json",
+                vault_addr, ca_cert_path, vault_bin
+            );
+            let init_output = safe_sh_command(&init_cmd)
+                .ok_or_else(|| anyhow::anyhow!("Failed to execute vault init command"))?;
 
             if !init_output.status.success() {
                 let stderr = String::from_utf8_lossy(&init_output.stderr);
@@ -1519,15 +1502,13 @@ meet        IN      A       127.0.0.1
                     if let Some(_token) = env_token {
                         info!("Found VAULT_TOKEN in .env, checking if Vault is unsealed...");
 
-                        let status_check = std::process::Command::new("sh")
-                            .arg("-c")
-                            .arg(format!(
-                                "VAULT_ADDR={} VAULT_CACERT={} {} status -format=json 2>/dev/null",
-                                vault_addr, ca_cert_path, vault_bin
-                            ))
-                            .output();
+                        let status_cmd = format!(
+                            "VAULT_ADDR={} VAULT_CACERT={} {} status -format=json 2>/dev/null",
+                            vault_addr, ca_cert_path, vault_bin
+                        );
+                        let status_check = safe_sh_command(&status_cmd);
 
-                        if let Ok(status_output) = status_check {
+                        if let Some(status_output) = status_check {
                             let status_str = String::from_utf8_lossy(&status_output.stdout);
                             if let Ok(status) =
                                 serde_json::from_str::<serde_json::Value>(&status_str)
@@ -1586,13 +1567,12 @@ meet        IN      A       127.0.0.1
         info!("Unsealing Vault...");
         let vault_bin = self.vault_bin();
 
-        let unseal_output = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "VAULT_ADDR={} VAULT_CACERT={} {} operator unseal {}",
-                vault_addr, ca_cert_path, vault_bin, unseal_key
-            ))
-            .output()?;
+        let unseal_cmd = format!(
+            "VAULT_ADDR={} VAULT_CACERT={} {} operator unseal {}",
+            vault_addr, ca_cert_path, vault_bin, unseal_key
+        );
+        let unseal_output = safe_sh_command(&unseal_cmd)
+            .ok_or_else(|| anyhow::anyhow!("Failed to execute vault unseal command"))?;
 
         if !unseal_output.status.success() {
             let stderr = String::from_utf8_lossy(&unseal_output.stderr);
@@ -1637,65 +1617,58 @@ VAULT_CACHE_TTL=300
 
         info!("Enabling KV secrets engine...");
         let ca_cert_path = "./botserver-stack/conf/system/certificates/ca/ca.crt";
-        let _ = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} secrets enable -path=secret kv-v2 2>&1 || true",
-                vault_addr, root_token, ca_cert_path, vault_bin
-            ))
-            .output();
+        let enable_cmd = format!(
+            "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} secrets enable -path=secret kv-v2 2>&1 || true",
+            vault_addr, root_token, ca_cert_path, vault_bin
+        );
+        let _ = safe_sh_command(&enable_cmd);
 
         info!("Storing secrets in Vault (only if not existing)...");
 
         let vault_bin_clone = vault_bin.clone();
         let ca_cert_clone = ca_cert_path.to_string();
+        let vault_addr_clone = vault_addr.to_string();
+        let root_token_clone = root_token.clone();
         let secret_exists = |path: &str| -> bool {
-            let output = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get {} 2>/dev/null",
-                    vault_addr, root_token, ca_cert_clone, vault_bin_clone, path
-                ))
-                .output();
-            output.map(|o| o.status.success()).unwrap_or(false)
+            let check_cmd = format!(
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get {} 2>/dev/null",
+                vault_addr_clone, root_token_clone, ca_cert_clone, vault_bin_clone, path
+            );
+            safe_sh_command(&check_cmd)
+                .map(|o| o.status.success())
+                .unwrap_or(false)
         };
 
         if secret_exists("secret/gbo/tables") {
             info!("  Database credentials already exist - preserving");
         } else {
-            let _ = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
-                    vault_addr, root_token, ca_cert_path, vault_bin, db_password
-                ))
-                .output()?;
+            let tables_cmd = format!(
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
+                vault_addr, root_token, ca_cert_path, vault_bin, db_password
+            );
+            let _ = safe_sh_command(&tables_cmd);
             info!("  Stored database credentials");
         }
 
         if secret_exists("secret/gbo/drive") {
             info!("  Drive credentials already exist - preserving");
         } else {
-            let _ = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/drive accesskey='{}' secret='{}'",
-                    vault_addr, root_token, ca_cert_path, vault_bin, drive_accesskey, drive_secret
-                ))
-                .output()?;
+            let drive_cmd = format!(
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/drive accesskey='{}' secret='{}'",
+                vault_addr, root_token, ca_cert_path, vault_bin, drive_accesskey, drive_secret
+            );
+            let _ = safe_sh_command(&drive_cmd);
             info!("  Stored drive credentials");
         }
 
         if secret_exists("secret/gbo/cache") {
             info!("  Cache credentials already exist - preserving");
         } else {
-            let _ = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/cache password='{}'",
-                    vault_addr, root_token, ca_cert_path, vault_bin, cache_password
-                ))
-                .output()?;
+            let cache_cmd = format!(
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/cache password='{}'",
+                vault_addr, root_token, ca_cert_path, vault_bin, cache_password
+            );
+            let _ = safe_sh_command(&cache_cmd);
             info!("  Stored cache credentials");
         }
 
@@ -1708,39 +1681,33 @@ VAULT_CACHE_TTL=300
                 .take(32)
                 .map(char::from)
                 .collect();
-            let _ = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/directory url=https://localhost:8300 project_id= client_id= client_secret= masterkey={}",
-                    vault_addr, root_token, ca_cert_path, vault_bin, masterkey
-                ))
-                .output()?;
+            let directory_cmd = format!(
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/directory url=https://localhost:8300 project_id= client_id= client_secret= masterkey={}",
+                vault_addr, root_token, ca_cert_path, vault_bin, masterkey
+            );
+            let _ = safe_sh_command(&directory_cmd);
             info!("  Created directory placeholder with masterkey");
         }
 
         if secret_exists("secret/gbo/llm") {
             info!("  LLM credentials already exist - preserving");
         } else {
-            let _ = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
-                    vault_addr, root_token, ca_cert_path, vault_bin
-                ))
-                .output()?;
+            let llm_cmd = format!(
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
+                vault_addr, root_token, ca_cert_path, vault_bin
+            );
+            let _ = safe_sh_command(&llm_cmd);
             info!("  Created LLM placeholder");
         }
 
         if secret_exists("secret/gbo/email") {
             info!("  Email credentials already exist - preserving");
         } else {
-            let _ = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/email username= password=",
-                    vault_addr, root_token, ca_cert_path, vault_bin
-                ))
-                .output()?;
+            let email_cmd = format!(
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/email username= password=",
+                vault_addr, root_token, ca_cert_path, vault_bin
+            );
+            let _ = safe_sh_command(&email_cmd);
             info!("  Created email placeholder");
         }
 
@@ -1748,13 +1715,11 @@ VAULT_CACHE_TTL=300
             info!("  Encryption key already exists - preserving (CRITICAL)");
         } else {
             let encryption_key = Self::generate_secure_password(32);
-            let _ = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/encryption master_key='{}'",
-                    vault_addr, root_token, ca_cert_path, vault_bin, encryption_key
-                ))
-                .output()?;
+            let encryption_cmd = format!(
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/encryption master_key='{}'",
+                vault_addr, root_token, ca_cert_path, vault_bin, encryption_key
+            );
+            let _ = safe_sh_command(&encryption_cmd);
             info!("  Generated and stored encryption key");
         }
 
@@ -2359,15 +2324,15 @@ log_level = "info"
         let drive_key_src = drive_cert_dir.join("server.key");
         let drive_key_dst = minio_certs_dir.join("private.key");
 
-        let conversion_result = std::process::Command::new("openssl")
-            .args(["ec", "-in"])
-            .arg(&drive_key_src)
-            .args(["-out"])
-            .arg(&drive_key_dst)
-            .output();
+        let drive_key_src_str = drive_key_src.to_string_lossy().to_string();
+        let drive_key_dst_str = drive_key_dst.to_string_lossy().to_string();
+        let conversion_result = SafeCommand::new("openssl")
+            .and_then(|c| c.args(&["ec", "-in", &drive_key_src_str, "-out", &drive_key_dst_str]))
+            .ok()
+            .and_then(|cmd| cmd.execute().ok());
 
         match conversion_result {
-            Ok(output) if output.status.success() => {
+            Some(output) if output.status.success() => {
                 debug!("Converted drive private key to SEC1 format for MinIO");
             }
             _ => {

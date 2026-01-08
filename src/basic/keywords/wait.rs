@@ -9,7 +9,6 @@ pub fn wait_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) 
         .register_custom_syntax(["WAIT", "$expr$"], false, move |context, inputs| {
             let seconds = context.eval_expression_tree(&inputs[0])?;
             let duration_secs = if seconds.is::<i64>() {
-                #[allow(clippy::cast_precision_loss)]
                 let val = seconds.cast::<i64>() as f64;
                 val
             } else if seconds.is::<f64>() {

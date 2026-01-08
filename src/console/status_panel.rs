@@ -1,6 +1,7 @@
 use crate::config::ConfigManager;
 #[cfg(feature = "nvidia")]
 use crate::nvidia::get_system_metrics;
+use crate::security::command_guard::SafeCommand;
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
@@ -44,10 +45,11 @@ impl ComponentStatusCache {
     }
 
     fn check_component_running(process_name: &str) -> bool {
-        std::process::Command::new("pgrep")
-            .arg("-f")
-            .arg(process_name)
-            .output()
+        SafeCommand::new("pgrep")
+            .and_then(|c| c.arg("-f"))
+            .and_then(|c| c.arg(process_name))
+            .ok()
+            .and_then(|cmd| cmd.execute().ok())
             .map(|output| !output.stdout.is_empty())
             .unwrap_or(false)
     }

@@ -1,3 +1,6 @@
+pub mod goals;
+pub mod insights;
+
 use crate::core::urls::ApiUrls;
 use crate::llm::observability::{ObservabilityConfig, ObservabilityManager, QuickStats};
 use crate::shared::state::AppState;

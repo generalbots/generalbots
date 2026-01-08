@@ -6,8 +6,6 @@ use axum::{
     Router,
 };
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
 use icalendar::{
     Calendar, CalendarDateTime, Component, DatePerhapsTime, Event as IcalEvent, EventLike, Property,
 };
@@ -184,15 +182,12 @@ pub fn import_from_ical(ical_str: &str, organizer: &str) -> Vec<CalendarEvent> {
 #[derive(Default)]
 pub struct CalendarEngine {
     events: Vec<CalendarEvent>,
-    #[allow(dead_code)]
-    conn: Option<Pool<ConnectionManager<PgConnection>>>,
 }
 
 impl CalendarEngine {
-    pub fn new(conn: Pool<ConnectionManager<PgConnection>>) -> Self {
+    pub fn new() -> Self {
         Self {
             events: Vec::new(),
-            conn: Some(conn),
         }
     }
 

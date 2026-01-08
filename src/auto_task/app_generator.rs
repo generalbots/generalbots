@@ -312,10 +312,10 @@ impl AppGenerator {
 
         self.manifest = Some(new_manifest);
 
-        if let Some(ref task_id) = self.task_id {
+        if let (Some(ref task_id), Some(ref manifest)) = (&self.task_id, &self.manifest) {
             if let Ok(mut manifests) = self.state.task_manifests.write() {
                 log::info!("[MANIFEST_CREATE] Storing manifest for task_id: {}", task_id);
-                manifests.insert(task_id.clone(), self.manifest.clone().unwrap());
+                manifests.insert(task_id.clone(), manifest.clone());
             }
         }
 
@@ -633,10 +633,10 @@ impl AppGenerator {
             );
         }
 
-        if let Some(ref task_id) = self.task_id {
+        if let (Some(ref task_id), Some(ref manifest)) = (&self.task_id, &self.manifest) {
             if let Ok(mut manifests) = self.state.task_manifests.write() {
                 log::info!("[MANIFEST] Storing preliminary manifest for task_id: {}", task_id);
-                manifests.insert(task_id.clone(), self.manifest.clone().unwrap());
+                manifests.insert(task_id.clone(), manifest.clone());
             }
         }
 

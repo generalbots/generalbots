@@ -1,10 +1,16 @@
 use crate::core::secrets::{SecretPaths, SecretsManager};
 use crate::package_manager::{get_all_components, InstallMode, PackageManager};
+use crate::security::command_guard::SafeCommand;
 use anyhow::Result;
 use rand::Rng;
 use std::collections::HashMap;
 use std::env;
-use std::process::Command;
+
+fn safe_pkill(args: &[&str]) {
+    if let Ok(cmd) = SafeCommand::new("pkill").and_then(|c| c.args(args)) {
+        let _ = cmd.execute();
+    }
+}
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -45,10 +51,7 @@ pub async fn run() -> Result<()> {
             println!("Stopping all components...");
             let components = get_all_components();
             for component in components {
-                let _ = Command::new("pkill")
-                    .arg("-f")
-                    .arg(component.termination_command)
-                    .output();
+                safe_pkill(&["-f", component.termination_command]);
             }
             println!("* BotServer components stopped");
         }
@@ -56,10 +59,7 @@ pub async fn run() -> Result<()> {
             println!("Restarting BotServer...");
             let components = get_all_components();
             for component in components {
-                let _ = Command::new("pkill")
-                    .arg("-f")
-                    .arg(component.termination_command)
-                    .output();
+                safe_pkill(&["-f", component.termination_command]);
             }
             tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
             let mode = if args.contains(&"--container".to_string()) {
@@ -624,10 +624,10 @@ async fn print_version(show_all: bool) -> Result<()> {
 }
 
 fn rustc_version() -> String {
-    Command::new("rustc")
-        .arg("--version")
-        .output()
+    SafeCommand::new("rustc")
+        .and_then(|c| c.arg("--version"))
         .ok()
+        .and_then(|cmd| cmd.execute().ok())
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .map(|s| s.trim().to_string())
         .unwrap_or_else(|| "unknown".to_string())

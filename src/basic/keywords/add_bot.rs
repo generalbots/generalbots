@@ -470,7 +470,6 @@ fn set_bot_priority_keyword(
                 .to_string()
                 .trim_matches('"')
                 .to_string();
-            #[allow(clippy::cast_possible_truncation)]
             let priority = context
                 .eval_expression_tree(&inputs[1])?
                 .as_int()
