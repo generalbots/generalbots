@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::collections::HashMap;
 use sysinfo::System;
+use crate::security::command_guard::SafeCommand;
 
 #[derive(Debug, Default)]
 pub struct SystemMetrics {
@@ -25,21 +26,28 @@ pub fn get_system_metrics() -> Result<SystemMetrics> {
 
 #[must_use]
 pub fn has_nvidia_gpu() -> bool {
-    match std::process::Command::new("nvidia-smi")
-        .arg("--query-gpu=utilization.gpu")
-        .arg("--format=csv,noheader,nounits")
-        .output()
-    {
-        Ok(output) => output.status.success(),
+    let cmd = SafeCommand::new("nvidia-smi")
+        .and_then(|c| c.arg("--query-gpu=utilization.gpu"))
+        .and_then(|c| c.arg("--format=csv,noheader,nounits"));
+
+    match cmd {
+        Ok(safe_cmd) => match safe_cmd.execute() {
+            Ok(output) => output.status.success(),
+            Err(_) => false,
+        },
         Err(_) => false,
     }
 }
 
 pub fn get_gpu_utilization() -> Result<HashMap<String, f32>> {
-    let output = std::process::Command::new("nvidia-smi")
-        .arg("--query-gpu=utilization.gpu,utilization.memory")
-        .arg("--format=csv,noheader,nounits")
-        .output()?;
+    let cmd = SafeCommand::new("nvidia-smi")
+        .and_then(|c| c.arg("--query-gpu=utilization.gpu,utilization.memory"))
+        .and_then(|c| c.arg("--format=csv,noheader,nounits"))
+        .map_err(|e| anyhow::anyhow!("Failed to build nvidia-smi command: {}", e))?;
+
+    let output = cmd.execute()
+        .map_err(|e| anyhow::anyhow!("Failed to execute nvidia-smi: {}", e))?;
+
     if !output.status.success() {
         return Err(anyhow::anyhow!("Failed to query GPU utilization"));
     }

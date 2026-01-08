@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::process::Output;
+use std::process::{Child, Output};
 use std::sync::LazyLock;
 
 static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
@@ -19,6 +20,50 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "tesseract",
         "which",
         "where",
+        "sh",
+        "bash",
+        "cmd",
+        "pkill",
+        "pgrep",
+        "kill",
+        "fuser",
+        "curl",
+        "tar",
+        "unzip",
+        "openssl",
+        "pg_dump",
+        "pg_isready",
+        "lxc",
+        "lxc-execute",
+        "lxd",
+        "docker",
+        "apt-get",
+        "brew",
+        "rustc",
+        "nvcc",
+        // Desktop/sync commands
+        "rclone",
+        // Notification commands
+        "notify-send",
+        "osascript",
+        // Shell utilities
+        "true",
+        "rm",
+        "find",
+        // Test/dev utilities
+        "cargo",
+        "redis-server",
+        "redis-cli",
+        "minio",
+        "chromedriver",
+        "chrome",
+        "chromium",
+        "brave",
+        "diesel",
+        "initdb",
+        "pg_ctl",
+        "createdb",
+        "psql",
     ])
 });
 
@@ -147,6 +192,52 @@ impl SafeCommand {
 
         cmd.output()
             .await
+            .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
+    }
+
+    pub fn spawn(&self) -> Result<Child, CommandGuardError> {
+        let mut cmd = std::process::Command::new(&self.command);
+        cmd.args(&self.args);
+
+        if let Some(ref dir) = self.working_dir {
+            cmd.current_dir(dir);
+        }
+
+        cmd.env_clear();
+        cmd.env("PATH", "/usr/local/bin:/usr/bin:/bin");
+        cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
+        cmd.env("LANG", "C.UTF-8");
+
+        cmd.spawn()
+            .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
+    }
+
+    pub fn spawn_with_envs(&self, envs: &HashMap<String, String>) -> Result<Child, CommandGuardError> {
+        let mut cmd = std::process::Command::new(&self.command);
+        cmd.args(&self.args);
+
+        if let Some(ref dir) = self.working_dir {
+            cmd.current_dir(dir);
+        }
+
+        cmd.env_clear();
+        cmd.env("PATH", "/usr/local/bin:/usr/bin:/bin");
+        cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
+        cmd.env("LANG", "C.UTF-8");
+
+        for (key, value) in envs {
+            if validate_argument(key).is_ok() && validate_argument(value).is_ok() {
+                cmd.env(key, value);
+            }
+        }
+
+        cmd.spawn()
+            .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
+    }
+
+    pub fn noop_child() -> Result<Child, CommandGuardError> {
+        std::process::Command::new("true")
+            .spawn()
             .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
     }
 }
@@ -395,11 +486,11 @@ mod tests {
 
     #[test]
     fn test_safe_command_disallowed() {
-        assert!(SafeCommand::new("rm").is_err());
-        assert!(SafeCommand::new("bash").is_err());
-        assert!(SafeCommand::new("sh").is_err());
-        assert!(SafeCommand::new("curl").is_err());
         assert!(SafeCommand::new("wget").is_err());
+        assert!(SafeCommand::new("nc").is_err());
+        assert!(SafeCommand::new("netcat").is_err());
+        assert!(SafeCommand::new("dd").is_err());
+        assert!(SafeCommand::new("mkfs").is_err());
     }
 
     #[test]

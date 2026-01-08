@@ -1,17 +1,26 @@
 pub mod auto_task;
 pub mod basic;
+pub mod billing;
+pub mod channels;
+pub mod contacts;
 pub mod core;
+pub mod dashboards;
+pub mod maintenance;
 pub mod multimodal;
+pub mod search;
 pub mod security;
 
 pub mod analytics;
 pub mod designer;
 pub mod docs;
+pub mod learn;
 pub mod paper;
 pub mod research;
 pub mod sheet;
 pub mod slides;
+pub mod social;
 pub mod sources;
+pub mod video;
 
 pub use core::shared;
 
@@ -73,6 +82,14 @@ pub use llm::DynamicLLMProvider;
 pub mod meet;
 
 pub mod monitoring;
+
+pub mod project;
+
+pub mod workspaces;
+
+pub mod botmodels;
+
+pub mod legal;
 
 pub mod settings;
 

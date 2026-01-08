@@ -219,6 +219,8 @@ impl TestAppStateBuilder {
             attendant_broadcast: Some(attendant_tx),
             task_progress_broadcast: Some(task_progress_tx),
             task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
+            project_service: Arc::new(tokio::sync::RwLock::new(crate::project::ProjectService::new())),
+            legal_service: Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new())),
         })
     }
 }

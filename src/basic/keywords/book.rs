@@ -225,13 +225,11 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 );
 
                 let state_for_task = Arc::clone(&state_clone3);
-                let user_for_task = user.clone();
 
                 let result = tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current().block_on(async move {
                         check_availability(
                             &state_for_task,
-                            &user_for_task,
                             &date_str,
                             duration_minutes,
                         )
@@ -407,7 +405,6 @@ fn execute_book_meeting(
 
 fn check_availability(
     state: &AppState,
-    _user: &UserSession,
     date_str: &str,
     duration_minutes: i64,
 ) -> Result<String, String> {

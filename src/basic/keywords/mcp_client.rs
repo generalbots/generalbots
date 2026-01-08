@@ -1,3 +1,4 @@
+use crate::security::command_guard::SafeCommand;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
@@ -767,8 +768,6 @@ impl McpClient {
         server: &McpServer,
         request: &McpRequest,
     ) -> Result<McpResponse, Box<dyn std::error::Error + Send + Sync>> {
-        use tokio::process::Command;
-
         let _input = serde_json::json!({
             "jsonrpc": "2.0",
             "method": "tools/call",
@@ -779,13 +778,12 @@ impl McpClient {
             "id": request.id
         });
 
-        let output = Command::new(&server.connection.url)
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .spawn()?
-            .wait_with_output()
-            .await?;
+        let cmd = SafeCommand::new(&server.connection.url)
+            .map_err(|e| anyhow::anyhow!("Failed to build MCP command: {}", e))?;
+
+        let output = cmd.execute_async()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to execute MCP command: {}", e))?;
 
         if output.status.success() {
             let result: serde_json::Value = serde_json::from_slice(&output.stdout)?;

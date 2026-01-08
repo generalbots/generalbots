@@ -5,6 +5,8 @@ use crate::core::config::AppConfig;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
+use crate::project::ProjectService;
+use crate::legal::LegalService;
 #[cfg(all(test, feature = "directory"))]
 use crate::core::shared::test_utils::create_mock_auth_service;
 #[cfg(all(test, feature = "llm"))]
@@ -347,6 +349,8 @@ pub struct AppState {
     pub attendant_broadcast: Option<broadcast::Sender<AttendantNotification>>,
     pub task_progress_broadcast: Option<broadcast::Sender<TaskProgressEvent>>,
     pub task_manifests: Arc<std::sync::RwLock<HashMap<String, TaskManifest>>>,
+    pub project_service: Arc<RwLock<ProjectService>>,
+    pub legal_service: Arc<RwLock<LegalService>>,
 }
 
 impl Clone for AppState {
@@ -379,6 +383,8 @@ impl Clone for AppState {
             attendant_broadcast: self.attendant_broadcast.clone(),
             task_progress_broadcast: self.task_progress_broadcast.clone(),
             task_manifests: Arc::clone(&self.task_manifests),
+            project_service: Arc::clone(&self.project_service),
+            legal_service: Arc::clone(&self.legal_service),
         }
     }
 }
@@ -567,6 +573,8 @@ impl Default for AppState {
             attendant_broadcast: Some(attendant_tx),
             task_progress_broadcast: Some(task_progress_tx),
             task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
+            project_service: Arc::new(RwLock::new(crate::project::ProjectService::new())),
+            legal_service: Arc::new(RwLock::new(crate::legal::LegalService::new())),
         }
     }
 }

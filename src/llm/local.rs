@@ -1,6 +1,7 @@
 use crate::config::ConfigManager;
 use crate::core::kb::embedding_generator::set_embedding_server_ready;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
+use crate::security::command_guard::SafeCommand;
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
@@ -87,15 +88,20 @@ pub async fn ensure_llama_servers_running(
     let before_pkill = MemoryStats::current();
     trace!("[LLM_LOCAL] Before pkill, RSS={}", MemoryStats::format_bytes(before_pkill.rss_bytes));
 
-    if let Err(e) = tokio::process::Command::new("sh")
-        .arg("-c")
-        .arg("pkill llama-server -9 || true")
-        .spawn()
-    {
-        error!("Failed to execute pkill for llama-server: {e}");
-    } else {
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        info!("Existing llama-server processes terminated (if any)");
+    let pkill_result = SafeCommand::new("sh")
+        .and_then(|c| c.arg("-c"))
+        .and_then(|c| c.arg("pkill llama-server -9 || true"));
+
+    match pkill_result {
+        Ok(cmd) => {
+            if let Err(e) = cmd.execute() {
+                error!("Failed to execute pkill for llama-server: {e}");
+            } else {
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                info!("Existing llama-server processes terminated (if any)");
+            }
+        }
+        Err(e) => error!("Failed to build pkill command: {e}"),
     }
     trace!("pkill done");
 
@@ -354,22 +360,27 @@ pub fn start_llm_server(
     let _ = write!(args, " --ctx-size {n_ctx_size}");
 
     if cfg!(windows) {
-        let mut cmd = tokio::process::Command::new("cmd");
-        cmd.arg("/C")
-            .arg(format!("cd {llama_cpp_path} && .\\llama-server.exe {args}"));
+        let cmd_arg = format!("cd {llama_cpp_path} && .\\llama-server.exe {args}");
         info!(
             "Executing LLM server command: cd {llama_cpp_path} && .\\llama-server.exe {args} --verbose"
         );
-        cmd.spawn()?;
+        let cmd = SafeCommand::new("cmd")
+            .and_then(|c| c.arg("/C"))
+            .and_then(|c| c.arg(&cmd_arg))
+            .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
+        cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
     } else {
-        let mut cmd = tokio::process::Command::new("sh");
-        cmd.arg("-c").arg(format!(
+        let cmd_arg = format!(
             "cd {llama_cpp_path} && ./llama-server {args} --verbose >llm-stdout.log 2>&1 &"
-        ));
+        );
         info!(
             "Executing LLM server command: cd {llama_cpp_path} && ./llama-server {args} --verbose"
         );
-        cmd.spawn()?;
+        let cmd = SafeCommand::new("sh")
+            .and_then(|c| c.arg("-c"))
+            .and_then(|c| c.arg(&cmd_arg))
+            .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
+        cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
     }
     Ok(())
 }
@@ -394,20 +405,26 @@ pub async fn start_embedding_server(
     info!("Starting embedding server on port {port} with model: {model_path}");
 
     if cfg!(windows) {
-        let mut cmd = tokio::process::Command::new("cmd");
-        cmd.arg("/c").arg(format!(
+        let cmd_arg = format!(
             "cd {llama_cpp_path} && .\\llama-server.exe -m {model_path} --verbose --host 0.0.0.0 --port {port} --embedding --n-gpu-layers 99 >stdout.log 2>&1"
-        ));
-        cmd.spawn()?;
+        );
+        let cmd = SafeCommand::new("cmd")
+            .and_then(|c| c.arg("/c"))
+            .and_then(|c| c.arg(&cmd_arg))
+            .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
+        cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
     } else {
-        let mut cmd = tokio::process::Command::new("sh");
-        cmd.arg("-c").arg(format!(
+        let cmd_arg = format!(
             "cd {llama_cpp_path} && ./llama-server -m {model_path} --verbose --host 0.0.0.0 --port {port} --embedding --n-gpu-layers 99 >llmembd-stdout.log 2>&1 &"
-        ));
+        );
         info!(
             "Executing embedding server command: cd {llama_cpp_path} && ./llama-server -m {model_path} --host 0.0.0.0 --port {port} --embedding"
         );
-        cmd.spawn()?;
+        let cmd = SafeCommand::new("sh")
+            .and_then(|c| c.arg("-c"))
+            .and_then(|c| c.arg(&cmd_arg))
+            .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
+        cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
     }
 
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;

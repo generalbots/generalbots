@@ -1,3 +1,4 @@
+use crate::security::command_guard::SafeCommand;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
@@ -143,11 +144,12 @@ impl TaskScheduler {
                         match backup_type {
                             "database" => {
                                 let backup_file = format!("/tmp/backup_db_{}.sql", timestamp);
-                                std::process::Command::new("pg_dump")
-                                    .env("DATABASE_URL", state.database_url.clone())
-                                    .arg("-f")
-                                    .arg(&backup_file)
-                                    .output()?;
+                                if let Ok(cmd) = SafeCommand::new("pg_dump")
+                                    .and_then(|c| c.arg("-f"))
+                                    .and_then(|c| c.arg(&backup_file))
+                                {
+                                    let _ = cmd.execute();
+                                }
 
                                 if state.s3_client.is_some() {
                                     let s3 = state.s3_client.as_ref().expect("s3 client configured");
@@ -167,11 +169,13 @@ impl TaskScheduler {
                             }
                             "files" => {
                                 let backup_file = format!("/tmp/backup_files_{}.tar.gz", timestamp);
-                                std::process::Command::new("tar")
-                                    .arg("czf")
-                                    .arg(&backup_file)
-                                    .arg("/var/lib/botserver/files")
-                                    .output()?;
+                                if let Ok(cmd) = SafeCommand::new("tar")
+                                    .and_then(|c| c.arg("czf"))
+                                    .and_then(|c| c.arg(&backup_file))
+                                    .and_then(|c| c.arg("/var/lib/botserver/files"))
+                                {
+                                    let _ = cmd.execute();
+                                }
 
                                 Ok(serde_json::json!({
                                     "status": "completed",

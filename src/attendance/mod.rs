@@ -294,7 +294,6 @@ async fn save_message_to_history(
     Ok(())
 }
 
-#[allow(clippy::unused_async)]
 async fn broadcast_attendant_action(
     state: &Arc<AppState>,
     session: &UserSession,

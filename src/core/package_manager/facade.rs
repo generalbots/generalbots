@@ -3,6 +3,7 @@ use crate::package_manager::component::{ComponentConfig, InstallResult};
 use crate::package_manager::installer::PackageManager;
 use crate::package_manager::InstallMode;
 use crate::package_manager::OsType;
+use crate::security::command_guard::SafeCommand;
 use crate::shared::utils::{self, get_database_url_sync, parse_database_url};
 use anyhow::{Context, Result};
 use log::{error, info, trace, warn};
@@ -10,7 +11,41 @@ use reqwest::Client;
 use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::path::PathBuf;
-use std::process::Command;
+fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("lxc")
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("lxd")
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_tar(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("tar")
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_apt_get(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("apt-get")
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_brew(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("brew")
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
 impl PackageManager {
     pub async fn install(&self, component_name: &str) -> Result<Option<InstallResult>> {
         let component = self
@@ -122,7 +157,7 @@ impl PackageManager {
     pub fn install_container(&self, component: &ComponentConfig) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component.name);
 
-        let _ = Command::new("lxd").args(["init", "--auto"]).output();
+        let _ = safe_lxd(&["init", "--auto"]);
 
         let images = [
             "ubuntu:24.04",
@@ -136,15 +171,18 @@ impl PackageManager {
 
         for image in &images {
             info!("Attempting to create container with image: {}", image);
-            let output = Command::new("lxc")
-                .args([
-                    "launch",
-                    image,
-                    &container_name,
-                    "-c",
-                    "security.privileged=true",
-                ])
-                .output()?;
+            let output = safe_lxc(&[
+                "launch",
+                image,
+                &container_name,
+                "-c",
+                "security.privileged=true",
+            ]);
+
+            let output = match output {
+                Some(o) => o,
+                None => continue,
+            };
 
             if output.status.success() {
                 info!("Successfully created container with image: {}", image);
@@ -154,9 +192,7 @@ impl PackageManager {
             last_error = String::from_utf8_lossy(&output.stderr).to_string();
             warn!("Failed to create container with {}: {}", image, last_error);
 
-            let _ = Command::new("lxc")
-                .args(["delete", &container_name, "--force"])
-                .output();
+            let _ = safe_lxc(&["delete", &container_name, "--force"]);
         }
 
         if !success {
@@ -265,9 +301,12 @@ impl PackageManager {
     fn get_container_ip(container_name: &str) -> Result<String> {
         std::thread::sleep(std::time::Duration::from_secs(2));
 
-        let output = Command::new("lxc")
-            .args(["list", container_name, "-c", "4", "--format", "csv"])
-            .output()?;
+        let output = safe_lxc(&["list", container_name, "-c", "4", "--format", "csv"]);
+
+        let output = match output {
+            Some(o) => o,
+            None => return Ok("unknown".to_string()),
+        };
 
         if output.status.success() {
             let ip_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -280,9 +319,12 @@ impl PackageManager {
             }
         }
 
-        let output = Command::new("lxc")
-            .args(["exec", container_name, "--", "hostname", "-I"])
-            .output()?;
+        let output = safe_lxc(&["exec", container_name, "--", "hostname", "-I"]);
+
+        let output = match output {
+            Some(o) => o,
+            None => return Ok("unknown".to_string()),
+        };
 
         if output.status.success() {
             let ip_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -301,16 +343,19 @@ impl PackageManager {
 
         std::thread::sleep(std::time::Duration::from_secs(5));
 
-        let output = Command::new("lxc")
-            .args([
-                "exec",
-                container_name,
-                "--",
-                "bash",
-                "-c",
-                "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator init -key-shares=5 -key-threshold=3 -format=json",
-            ])
-            .output()?;
+        let output = safe_lxc(&[
+            "exec",
+            container_name,
+            "--",
+            "bash",
+            "-c",
+            "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator init -key-shares=5 -key-threshold=3 -format=json",
+        ]);
+
+        let output = match output {
+            Some(o) => o,
+            None => return Err(anyhow::anyhow!("Failed to execute vault init command")),
+        };
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -385,12 +430,14 @@ impl PackageManager {
                     "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator unseal {}",
                     key_str
                 );
-                let unseal_output = Command::new("lxc")
-                    .args(["exec", container_name, "--", "bash", "-c", &unseal_cmd])
-                    .output()?;
+                let unseal_output = safe_lxc(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
 
-                if !unseal_output.status.success() {
-                    warn!("Unseal step {} may have failed", i + 1);
+                if let Some(output) = unseal_output {
+                    if !output.status.success() {
+                        warn!("Unseal step {} may have failed", i + 1);
+                    }
+                } else {
+                    warn!("Unseal step {} command failed to execute", i + 1);
                 }
             }
         }
@@ -604,15 +651,15 @@ Store credentials in Vault:
     }
     pub fn remove_container(&self, component: &ComponentConfig) -> Result<()> {
         let container_name = format!("{}-{}", self.tenant, component.name);
-        let _ = Command::new("lxc").args(["stop", &container_name]).output();
-        let output = Command::new("lxc")
-            .args(["delete", &container_name])
-            .output()?;
-        if !output.status.success() {
-            warn!(
-                "Container deletion had issues: {}",
-                String::from_utf8_lossy(&output.stderr)
-            );
+        let _ = safe_lxc(&["stop", &container_name]);
+        let output = safe_lxc(&["delete", &container_name]);
+        if let Some(o) = output {
+            if !o.status.success() {
+                warn!(
+                    "Container deletion had issues: {}",
+                    String::from_utf8_lossy(&o.stderr)
+                );
+            }
         }
         Ok(())
     }
@@ -627,13 +674,10 @@ Store credentials in Vault:
             }
             InstallMode::Container => {
                 let container_name = format!("{}-{}", self.tenant, component_name);
-                let output = match Command::new("lxc")
-                    .args(["list", &container_name, "--format=json"])
-                    .output()
-                {
-                    Ok(o) => o,
-                    Err(e) => {
-                        log::warn!("Failed to check container status: {}", e);
+                let output = match safe_lxc(&["list", &container_name, "--format=json"]) {
+                    Some(o) => o,
+                    None => {
+                        log::warn!("Failed to check container status");
                         return false;
                     }
                 };
@@ -670,25 +714,30 @@ Store credentials in Vault:
         );
         match self.os_type {
             OsType::Linux => {
-                let output = Command::new("apt-get").args(["update"]).output()?;
-                if !output.status.success() {
-                    warn!("apt-get update had issues");
+                if let Some(output) = safe_apt_get(&["update"]) {
+                    if !output.status.success() {
+                        warn!("apt-get update had issues");
+                    }
                 }
-                let output = Command::new("apt-get")
-                    .args(["install", "-y"])
-                    .args(packages)
-                    .output()?;
-                if !output.status.success() {
-                    warn!("Some packages may have failed to install");
+                let mut args = vec!["install", "-y"];
+                for pkg in packages {
+                    args.push(pkg.as_str());
+                }
+                if let Some(output) = safe_apt_get(&args) {
+                    if !output.status.success() {
+                        warn!("Some packages may have failed to install");
+                    }
                 }
             }
             OsType::MacOS => {
-                let output = Command::new("brew")
-                    .args(["install"])
-                    .args(packages)
-                    .output()?;
-                if !output.status.success() {
-                    warn!("Homebrew installation had warnings");
+                let mut args = vec!["install"];
+                for pkg in packages {
+                    args.push(pkg.as_str());
+                }
+                if let Some(output) = safe_brew(&args) {
+                    if !output.status.success() {
+                        warn!("Homebrew installation had warnings");
+                    }
                 }
             }
             OsType::Windows => {
@@ -860,9 +909,13 @@ Store credentials in Vault:
         bin_path: &std::path::Path,
     ) -> Result<()> {
         // Check if tarball has a top-level directory or files at root
-        let list_output = Command::new("tar")
-            .args(["-tzf", temp_file.to_str().unwrap_or_default()])
-            .output()?;
+        let temp_file_str = temp_file.to_str().unwrap_or_default();
+        let list_output = safe_tar(&["-tzf", temp_file_str]);
+
+        let list_output = match list_output {
+            Some(o) => o,
+            None => return Err(anyhow::anyhow!("Failed to execute tar list command")),
+        };
 
         let has_subdir = if list_output.status.success() {
             let contents = String::from_utf8_lossy(&list_output.stdout);
@@ -877,10 +930,12 @@ Store credentials in Vault:
             args.push("--strip-components=1");
         }
 
-        let output = Command::new("tar")
-            .current_dir(bin_path)
-            .args(&args)
-            .output()?;
+        let output = SafeCommand::new("tar")
+            .and_then(|c| c.args(&args))
+            .and_then(|c| c.working_dir(bin_path))
+            .map_err(|e| anyhow::anyhow!("Failed to build tar command: {}", e))?
+            .execute()
+            .map_err(|e| anyhow::anyhow!("Failed to execute tar: {}", e))?;
         if !output.status.success() {
             return Err(anyhow::anyhow!(
                 "tar extraction failed: {}",
@@ -898,10 +953,13 @@ Store credentials in Vault:
         temp_file: &std::path::Path,
         bin_path: &std::path::Path,
     ) -> Result<()> {
-        let output = Command::new("unzip")
-            .current_dir(bin_path)
-            .args(["-o", "-q", temp_file.to_str().unwrap_or_default()])
-            .output()?;
+        let temp_file_str = temp_file.to_str().unwrap_or_default();
+        let output = SafeCommand::new("unzip")
+            .and_then(|c| c.args(&["-o", "-q", temp_file_str]))
+            .and_then(|c| c.working_dir(bin_path))
+            .map_err(|e| anyhow::anyhow!("Failed to build unzip command: {}", e))?
+            .execute()
+            .map_err(|e| anyhow::anyhow!("Failed to execute unzip: {}", e))?;
         if !output.status.success() {
             return Err(anyhow::anyhow!(
                 "unzip extraction failed: {}",
@@ -1005,12 +1063,11 @@ Store credentials in Vault:
                 .replace("{{DB_PASSWORD}}", &db_password);
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
-                let output = Command::new("bash")
-                    .current_dir(&bin_path)
-                    .args(["-c", &rendered_cmd])
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::piped())
-                    .output()
+                let output = SafeCommand::new("bash")
+                    .and_then(|c| c.args(&["-c", &rendered_cmd]))
+                    .and_then(|c| c.working_dir(&bin_path))
+                    .map_err(|e| anyhow::anyhow!("Failed to build bash command: {}", e))?
+                    .execute()
                     .with_context(|| {
                         format!("Failed to execute command for component '{}'", component)
                     })?;
@@ -1028,9 +1085,8 @@ Store credentials in Vault:
     }
     pub fn exec_in_container(&self, container: &str, command: &str) -> Result<()> {
         info!("Executing in container {}: {}", container, command);
-        let output = Command::new("lxc")
-            .args(["exec", container, "--", "bash", "-c", command])
-            .output()?;
+        let output = safe_lxc(&["exec", container, "--", "bash", "-c", command])
+            .ok_or_else(|| anyhow::anyhow!("Failed to execute lxc command"))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -1093,21 +1149,26 @@ Store credentials in Vault:
             std::fs::create_dir_all(&host_path)?;
             let device_name = format!("{}-{}", component, dir);
             let container_path = format!("/opt/gbo/{}", dir);
-            let _ = Command::new("lxc")
-                .args(["config", "device", "remove", container, &device_name])
-                .output();
-            let output = Command::new("lxc")
-                .args([
-                    "config",
-                    "device",
-                    "add",
-                    container,
-                    &device_name,
-                    "disk",
-                    &format!("source={}", host_path),
-                    &format!("path={}", container_path),
-                ])
-                .output()?;
+            let _ = safe_lxc(&["config", "device", "remove", container, &device_name]);
+            let source_arg = format!("source={}", host_path);
+            let path_arg = format!("path={}", container_path);
+            let output = safe_lxc(&[
+                "config",
+                "device",
+                "add",
+                container,
+                &device_name,
+                "disk",
+                &source_arg,
+                &path_arg,
+            ]);
+            let output = match output {
+                Some(o) => o,
+                None => {
+                    warn!("Failed to execute lxc mount command for {}", dir);
+                    continue;
+                }
+            };
             if !output.status.success() {
                 warn!("Failed to mount {} in container {}", dir, container);
             }
@@ -1161,14 +1222,9 @@ Store credentials in Vault:
         );
         let service_file = format!("/tmp/{}.service", component);
         std::fs::write(&service_file, &service_content)?;
-        let output = Command::new("lxc")
-            .args([
-                "file",
-                "push",
-                &service_file,
-                &format!("{container}/etc/systemd/system/{component}.service"),
-            ])
-            .output()?;
+        let dest = format!("{container}/etc/systemd/system/{component}.service");
+        let output = safe_lxc(&["file", "push", &service_file, &dest])
+            .ok_or_else(|| anyhow::anyhow!("Failed to execute lxc file push command"))?;
         if !output.status.success() {
             warn!("Failed to push service file to container");
         }
@@ -1186,21 +1242,19 @@ Store credentials in Vault:
     pub fn setup_port_forwarding(&self, container: &str, ports: &[u16]) -> Result<()> {
         for port in ports {
             let device_name = format!("port-{}", port);
-            let _ = Command::new("lxc")
-                .args(["config", "device", "remove", container, &device_name])
-                .output();
-            let output = Command::new("lxc")
-                .args([
-                    "config",
-                    "device",
-                    "add",
-                    container,
-                    &device_name,
-                    "proxy",
-                    &format!("listen=tcp:0.0.0.0:{port}"),
-                    &format!("connect=tcp:127.0.0.1:{port}"),
-                ])
-                .output()?;
+            let _ = safe_lxc(&["config", "device", "remove", container, &device_name]);
+            let listen_arg = format!("listen=tcp:0.0.0.0:{port}");
+            let connect_arg = format!("connect=tcp:127.0.0.1:{port}");
+            let output = safe_lxc(&[
+                "config",
+                "device",
+                "add",
+                container,
+                &device_name,
+                "proxy",
+                &listen_arg,
+                &connect_arg,
+            ]).ok_or_else(|| anyhow::anyhow!("Failed to execute lxc port forward command"))?;
             if !output.status.success() {
                 warn!("Failed to setup port forwarding for port {}", port);
             }

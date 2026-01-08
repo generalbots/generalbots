@@ -1,3 +1,6 @@
+pub mod anonymous;
+pub mod migration;
+
 use crate::bot::BotOrchestrator;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;

@@ -497,6 +497,22 @@ pub fn log_and_sanitize<E: std::error::Error>(
     sanitizer.sanitize_error(error, request_id)
 }
 
+pub fn log_and_sanitize_str(
+    error_msg: &str,
+    context: &str,
+    request_id: Option<&str>,
+) -> SafeErrorResponse {
+    warn!(
+        context = %context,
+        request_id = ?request_id,
+        error = %error_msg,
+        "Error occurred"
+    );
+
+    SafeErrorResponse::internal_error()
+        .with_request_id(request_id.unwrap_or("unknown").to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

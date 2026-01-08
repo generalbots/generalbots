@@ -1,3 +1,9 @@
+pub mod audit_log;
+pub mod menu_config;
+pub mod permission_inheritance;
+pub mod rbac;
+pub mod rbac_ui;
+
 use axum::{
     extract::State,
     response::Html,
@@ -21,6 +27,7 @@ pub fn configure_settings_routes() -> Router<Arc<AppState>> {
             post(revoke_all_sessions),
         )
         .route("/api/user/security/devices", get(get_trusted_devices))
+        .merge(rbac::configure_rbac_routes())
 }
 
 async fn get_storage_info(State(_state): State<Arc<AppState>>) -> Html<String> {

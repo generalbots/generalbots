@@ -1,3 +1,4 @@
+use crate::security::command_guard::SafeCommand;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
@@ -5,7 +6,6 @@ use log::{trace, warn};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::timeout;
@@ -325,36 +325,24 @@ impl CodeSandbox {
         std::fs::write(&code_file, code)
             .map_err(|e| format!("Failed to write code file: {}", e))?;
 
-        let mut cmd = Command::new("lxc-execute");
-        cmd.arg("-n")
-            .arg(&container_name)
-            .arg("-f")
-            .arg(format!("/etc/lxc/{}.conf", language.lxc_image()))
-            .arg("--")
-            .arg(language.interpreter())
-            .arg(&code_file);
-
-        cmd.env(
-            "LXC_CGROUP_MEMORY_LIMIT",
-            format!("{}M", self.config.memory_limit_mb),
-        )
-        .env(
-            "LXC_CGROUP_CPU_QUOTA",
-            format!("{}", self.config.cpu_limit_percent * 1000),
-        );
+        let lxc_conf = format!("/etc/lxc/{}.conf", language.lxc_image());
+        let interpreter = language.interpreter();
 
         let timeout_duration = Duration::from_secs(self.config.timeout_seconds);
         let output = timeout(timeout_duration, async {
-            tokio::process::Command::new("lxc-execute")
-                .arg("-n")
-                .arg(&container_name)
-                .arg("-f")
-                .arg(format!("/etc/lxc/{}.conf", language.lxc_image()))
-                .arg("--")
-                .arg(language.interpreter())
-                .arg(&code_file)
-                .output()
-                .await
+            let cmd_result = SafeCommand::new("lxc-execute")
+                .and_then(|c| c.arg("-n"))
+                .and_then(|c| c.arg(&container_name))
+                .and_then(|c| c.arg("-f"))
+                .and_then(|c| c.arg(&lxc_conf))
+                .and_then(|c| c.arg("--"))
+                .and_then(|c| c.arg(interpreter))
+                .and_then(|c| c.arg(&code_file));
+
+            match cmd_result {
+                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            }
         })
         .await;
 
@@ -417,10 +405,13 @@ impl CodeSandbox {
 
         let timeout_duration = Duration::from_secs(self.config.timeout_seconds);
         let output = timeout(timeout_duration, async {
-            tokio::process::Command::new("docker")
-                .args(&args)
-                .output()
-                .await
+            let cmd_result = SafeCommand::new("docker")
+                .and_then(|c| c.args(&args.iter().map(|s| s.as_str()).collect::<Vec<_>>()));
+
+            match cmd_result {
+                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            }
         })
         .await;
 
@@ -475,15 +466,14 @@ impl CodeSandbox {
 
         let timeout_duration = Duration::from_secs(self.config.timeout_seconds);
         let output = timeout(timeout_duration, async {
-            tokio::process::Command::new(cmd_name)
-                .args(&cmd_args)
-                .current_dir(&temp_dir)
-                .env_clear()
-                .env("PATH", "/usr/local/bin:/usr/bin:/bin")
-                .env("HOME", &temp_dir)
-                .env("TMPDIR", &temp_dir)
-                .output()
-                .await
+            let cmd_result = SafeCommand::new(cmd_name)
+                .and_then(|c| c.args(&cmd_args))
+                .and_then(|c| c.working_dir(std::path::Path::new(&temp_dir)));
+
+            match cmd_result {
+                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            }
         })
         .await;
 

@@ -1,3 +1,5 @@
+pub mod canvas;
+
 use crate::auto_task::get_designer_error_context;
 use crate::core::shared::get_content_type;
 use crate::core::urls::ApiUrls;

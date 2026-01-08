@@ -168,7 +168,6 @@ pub struct RestoreResponse {
     pub new_version_id: Option<String>,
 }
 
-#[allow(unused)]
 #[derive(Debug, Serialize)]
 pub struct BucketInfo {
     pub name: String,

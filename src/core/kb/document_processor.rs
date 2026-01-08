@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::io::AsyncReadExt;
+use crate::security::command_guard::SafeCommand;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DocumentFormat {
@@ -183,12 +184,19 @@ impl DocumentProcessor {
     }
 
     async fn extract_pdf_text(&self, file_path: &Path) -> Result<String> {
-        let output = tokio::process::Command::new("pdftotext")
-            .arg("-layout")
-            .arg(file_path)
-            .arg("-")
-            .output()
-            .await;
+        let file_path_str = file_path.to_string_lossy().to_string();
+        let cmd_result = SafeCommand::new("pdftotext")
+            .and_then(|c| c.arg("-layout"))
+            .and_then(|c| c.arg(&file_path_str))
+            .and_then(|c| c.arg("-"));
+
+        let output = match cmd_result {
+            Ok(cmd) => cmd.execute_async().await,
+            Err(e) => {
+                warn!("Failed to build pdftotext command: {}", e);
+                return self.extract_pdf_with_library(file_path);
+            }
+        };
 
         match output {
             Ok(output) if output.status.success() => {
@@ -240,14 +248,21 @@ impl DocumentProcessor {
     }
 
     async fn extract_docx_text(&self, file_path: &Path) -> Result<String> {
-        let output = tokio::process::Command::new("pandoc")
-            .arg("-f")
-            .arg("docx")
-            .arg("-t")
-            .arg("plain")
-            .arg(file_path)
-            .output()
-            .await;
+        let file_path_str = file_path.to_string_lossy().to_string();
+        let cmd_result = SafeCommand::new("pandoc")
+            .and_then(|c| c.arg("-f"))
+            .and_then(|c| c.arg("docx"))
+            .and_then(|c| c.arg("-t"))
+            .and_then(|c| c.arg("plain"))
+            .and_then(|c| c.arg(&file_path_str));
+
+        let output = match cmd_result {
+            Ok(cmd) => cmd.execute_async().await,
+            Err(e) => {
+                warn!("Failed to build pandoc command: {}", e);
+                return self.fallback_text_extraction(file_path).await;
+            }
+        };
 
         match output {
             Ok(output) if output.status.success() => {

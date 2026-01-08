@@ -211,9 +211,11 @@ impl AntivirusManager {
             Set-MpPreference -DisableScriptScanning $true
         "#;
 
-        let output = Command::new("powershell")
-            .args(["-Command", script])
-            .output()
+        let output = SafeCommand::new("powershell")
+            .and_then(|c| c.arg("-Command"))
+            .and_then(|c| c.arg(script))
+            .map_err(|e| anyhow::anyhow!("Failed to build PowerShell command: {}", e))?
+            .execute()
             .context("Failed to execute PowerShell command")?;
 
         if output.status.success() {
@@ -251,9 +253,11 @@ impl AntivirusManager {
             Set-MpPreference -DisableScriptScanning $false
         "#;
 
-        let output = Command::new("powershell")
-            .args(["-Command", script])
-            .output()
+        let output = SafeCommand::new("powershell")
+            .and_then(|c| c.arg("-Command"))
+            .and_then(|c| c.arg(script))
+            .map_err(|e| anyhow::anyhow!("Failed to build PowerShell command: {}", e))?
+            .execute()
             .context("Failed to execute PowerShell command")?;
 
         if output.status.success() {
@@ -579,30 +583,30 @@ impl AntivirusManager {
 
         #[cfg(target_os = "windows")]
         {
-            let output = Command::new("powershell")
-                .args([
-                    "-Command",
-                    "Get-HotFix | Sort-Object -Property InstalledOn -Descending | Select-Object -First 1",
-                ])
-                .output();
+            let script = "Get-HotFix | Sort-Object -Property InstalledOn -Descending | Select-Object -First 1";
+            let output = SafeCommand::new("powershell")
+                .and_then(|c| c.arg("-Command"))
+                .and_then(|c| c.arg(script));
 
-            if let Ok(output) = output {
-                let result = String::from_utf8_lossy(&output.stdout);
+            if let Ok(cmd) = output {
+                if let Ok(result) = cmd.execute() {
+                    let output_str = String::from_utf8_lossy(&result.stdout);
 
-                if result.is_empty() {
-                    vulnerabilities.push(Vulnerability {
-                        id: uuid::Uuid::new_v4().to_string(),
-                        cve_id: None,
-                        name: "Missing Windows Updates".to_string(),
-                        severity: ThreatSeverity::High,
-                        affected_component: "Windows Update".to_string(),
-                        description: "System may be missing critical security updates".to_string(),
-                        remediation: Some(
-                            "Run Windows Update to install latest patches".to_string(),
-                        ),
-                        detected_at: chrono::Utc::now(),
-                        is_patched: false,
-                    });
+                    if output_str.is_empty() {
+                        vulnerabilities.push(Vulnerability {
+                            id: uuid::Uuid::new_v4().to_string(),
+                            cve_id: None,
+                            name: "Missing Windows Updates".to_string(),
+                            severity: ThreatSeverity::High,
+                            affected_component: "Windows Update".to_string(),
+                            description: "System may be missing critical security updates".to_string(),
+                            remediation: Some(
+                                "Run Windows Update to install latest patches".to_string(),
+                            ),
+                            detected_at: chrono::Utc::now(),
+                            is_patched: false,
+                        });
+                    }
                 }
             }
         }

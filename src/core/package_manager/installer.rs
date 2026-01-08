@@ -1,10 +1,33 @@
 use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::os::detect_os;
 use crate::package_manager::{InstallMode, OsType};
+use crate::security::command_guard::SafeCommand;
 use anyhow::Result;
 use log::{error, info, trace, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+fn safe_nvcc_version() -> Option<std::process::Output> {
+    SafeCommand::new("nvcc")
+        .and_then(|c| c.arg("--version"))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_sh_command(script: &str) -> Option<std::process::Output> {
+    SafeCommand::new("sh")
+        .and_then(|c| c.arg("-c"))
+        .and_then(|c| c.arg(script))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("pgrep")
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
 
 const LLAMA_CPP_VERSION: &str = "b7345";
 
@@ -22,7 +45,7 @@ fn get_llama_cpp_url() -> Option<String> {
                 || std::path::Path::new("/opt/cuda").exists()
                 || std::env::var("CUDA_HOME").is_ok()
             {
-                if let Ok(output) = std::process::Command::new("nvcc").arg("--version").output() {
+                if let Some(output) = safe_nvcc_version() {
                     let version_str = String::from_utf8_lossy(&output.stdout);
                     if version_str.contains("13.") {
                         info!("Detected CUDA 13.x - using CUDA 13.1 build");
@@ -101,7 +124,7 @@ fn get_llama_cpp_url() -> Option<String> {
         #[cfg(target_arch = "x86_64")]
         {
             if std::env::var("CUDA_PATH").is_ok() {
-                if let Ok(output) = std::process::Command::new("nvcc").arg("--version").output() {
+                if let Some(output) = safe_nvcc_version() {
                     let version_str = String::from_utf8_lossy(&output.stdout);
                     if version_str.contains("13.") {
                         info!("Detected CUDA 13.x on Windows");
@@ -142,12 +165,6 @@ fn get_llama_cpp_url() -> Option<String> {
                 base_url, LLAMA_CPP_VERSION
             ));
         }
-    }
-
-    #[allow(unreachable_code)]
-    {
-        warn!("Unknown platform - no llama.cpp binary available");
-        None
     }
 }
 
@@ -1042,23 +1059,17 @@ EOF"#.to_string(),
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
-            let check_output = std::process::Command::new("sh")
-                .current_dir(&bin_path)
-                .arg("-c")
-                .arg(&check_cmd)
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status();
+            let check_output = safe_sh_command(&check_cmd)
+                .map(|o| o.status.success())
+                .unwrap_or(false);
 
-            if check_output.map(|o| o.success()).unwrap_or(false) {
+            if check_output {
                 info!(
                     "Component {} is already running, skipping start",
                     component.name
                 );
-                return Ok(std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg("true")
-                    .spawn()?);
+                return SafeCommand::noop_child()
+                    .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e));
             }
 
             let rendered_cmd = component
@@ -1099,12 +1110,12 @@ EOF"#.to_string(),
                 component.name, rendered_cmd
             );
             trace!("[START] Working dir: {}", bin_path.display());
-            let child = std::process::Command::new("sh")
-                .current_dir(&bin_path)
-                .arg("-c")
-                .arg(&rendered_cmd)
-                .envs(&evaluated_envs)
-                .spawn();
+            let child = SafeCommand::new("sh")
+                .and_then(|c| c.arg("-c"))
+                .and_then(|c| c.arg(&rendered_cmd))
+                .and_then(|c| c.working_dir(&bin_path))
+                .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs))
+                .map_err(|e| anyhow::anyhow!("Failed to spawn process: {}", e));
 
             trace!(
                 "Spawn result for {}: {:?}",
@@ -1117,10 +1128,8 @@ EOF"#.to_string(),
                 "Checking if {} process exists after 2s sleep...",
                 component.name
             );
-            let check_proc = std::process::Command::new("pgrep")
-                .args(["-f", &component.name])
-                .output();
-            if let Ok(output) = check_proc {
+            let check_proc = safe_pgrep(&["-f", &component.name]);
+            if let Some(output) = check_proc {
                 let pids = String::from_utf8_lossy(&output.stdout);
                 trace!(
                     "pgrep '{}' result: '{}'",
@@ -1145,10 +1154,8 @@ EOF"#.to_string(),
                             "Component {} may already be running, continuing anyway",
                             component.name
                         );
-                        Ok(std::process::Command::new("sh")
-                            .arg("-c")
-                            .arg("true")
-                            .spawn()?)
+                        SafeCommand::noop_child()
+                            .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e).into())
                     } else {
                         Err(e.into())
                     }
@@ -1175,11 +1182,8 @@ EOF"#.to_string(),
 
         // Check if Vault is reachable before trying to fetch credentials
         // Use -k for self-signed certs in dev
-        let vault_check = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!("curl -sfk {}/v1/sys/health >/dev/null 2>&1", vault_addr))
-            .status()
-            .map(|s| s.success())
+        let vault_check = safe_sh_command(&format!("curl -sfk {}/v1/sys/health >/dev/null 2>&1", vault_addr))
+            .map(|o| o.status.success())
             .unwrap_or(false);
 
         if !vault_check {
@@ -1206,12 +1210,8 @@ EOF"#.to_string(),
             "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -format=json secret/gbo/drive",
             vault_addr, vault_token, ca_cert_path, vault_bin_str
         );
-        match std::process::Command::new("sh")
-            .arg("-c")
-            .arg(&drive_cmd)
-            .output()
-        {
-            Ok(output) => {
+        match safe_sh_command(&drive_cmd) {
+            Some(output) => {
                 if output.status.success() {
                     let json_str = String::from_utf8_lossy(&output.stdout);
                     trace!("Vault drive response: {}", json_str);
@@ -1237,17 +1237,14 @@ EOF"#.to_string(),
                     warn!("Vault drive command failed: {}", stderr);
                 }
             }
-            Err(e) => warn!("Failed to execute Vault command: {}", e),
+            None => warn!("Failed to execute Vault command"),
         }
 
-        if let Ok(output) = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -format=json secret/gbo/cache 2>/dev/null",
-                vault_addr, vault_token, ca_cert_path, vault_bin_str
-            ))
-            .output()
-        {
+        let cache_cmd = format!(
+            "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -format=json secret/gbo/cache 2>/dev/null",
+            vault_addr, vault_token, ca_cert_path, vault_bin_str
+        );
+        if let Some(output) = safe_sh_command(&cache_cmd) {
             if output.status.success() {
                 if let Ok(json_str) = String::from_utf8(output.stdout) {
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {

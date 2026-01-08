@@ -2172,7 +2172,7 @@ pub async fn handle_task_list_htmx(
             .map_err(|e| format!("DB connection error: {}", e))?;
 
         let mut query = String::from(
-            "SELECT id, title, status, priority, intent as description, NULL::timestamp as due_date FROM auto_tasks WHERE 1=1",
+            "SELECT id, title, status, priority, NULL::timestamp as due_date FROM auto_tasks WHERE 1=1",
         );
 
         match filter_clone.as_str() {
@@ -2640,9 +2640,6 @@ struct TaskRow {
     pub status: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub priority: String,
-    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-    #[allow(dead_code)]
-    pub description: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
 }

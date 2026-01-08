@@ -5,6 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use futures::{SinkExt, StreamExt};
 use log::{error, info};
 use serde::Deserialize;
 use serde_json::Value;
@@ -14,7 +15,11 @@ use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 
 pub mod conversations;
+pub mod recording;
 pub mod service;
+pub mod webinar;
+pub mod whiteboard;
+pub mod whiteboard_export;
 use service::{DefaultTranscriptionService, MeetingService};
 
 pub fn configure() -> Router<Arc<AppState>> {
@@ -393,9 +398,28 @@ pub async fn meeting_websocket(
     ws.on_upgrade(|socket| handle_meeting_socket(socket, state))
 }
 
-#[allow(clippy::unused_async)]
-async fn handle_meeting_socket(_socket: axum::extract::ws::WebSocket, _state: Arc<AppState>) {
+async fn handle_meeting_socket(socket: axum::extract::ws::WebSocket, state: Arc<AppState>) {
     info!("Meeting WebSocket connection established");
+    let (mut sender, mut receiver) = socket.split();
+
+    while let Some(msg) = receiver.next().await {
+        match msg {
+            Ok(axum::extract::ws::Message::Text(text)) => {
+                info!("Meeting message received: {}", text);
+                if sender.send(axum::extract::ws::Message::Text(format!("Echo: {text}"))).await.is_err() {
+                    break;
+                }
+            }
+            Ok(axum::extract::ws::Message::Close(_)) => break,
+            Err(e) => {
+                log::error!("WebSocket error: {}", e);
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    drop(state);
 }
 
 pub async fn all_participants(State(_state): State<Arc<AppState>>) -> Html<String> {

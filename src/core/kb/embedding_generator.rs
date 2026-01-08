@@ -94,16 +94,10 @@ struct EmbeddingResponse {
 #[derive(Debug, Deserialize)]
 struct EmbeddingData {
     embedding: Vec<f32>,
-    #[serde(default)]
-    #[allow(dead_code)]
-    index: usize,
 }
 
 #[derive(Debug, Deserialize)]
 struct EmbeddingUsage {
-    #[serde(default)]
-    #[allow(dead_code)]
-    prompt_tokens: usize,
     #[serde(default)]
     total_tokens: usize,
 }
