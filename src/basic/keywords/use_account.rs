@@ -7,7 +7,6 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(QueryableByName)]
-#[allow(dead_code)]
 struct AccountResult {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
@@ -15,8 +14,6 @@ struct AccountResult {
     email: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     provider: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    account_type: String,
 }
 
 #[derive(QueryableByName, Debug, Clone)]
@@ -93,7 +90,7 @@ fn add_account_to_session(
         .map_err(|e| format!("Failed to get DB connection: {}", e))?;
 
     let account: Option<AccountResult> = diesel::sql_query(
-        "SELECT id, email, provider, account_type FROM connected_accounts
+        "SELECT id, email, provider FROM connected_accounts
          WHERE email = $1 AND (bot_id = $2 OR user_id = $3) AND status = 'active'",
     )
     .bind::<diesel::sql_types::Text, _>(email)

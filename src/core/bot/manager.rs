@@ -1,11 +1,6 @@
 
 
-
-
-
-
-
-
+use crate::security::command_guard::SafeCommand;
 use crate::core::shared::schema::organizations;
 use crate::shared::platform_name;
 use crate::shared::utils::DbPool;
@@ -710,25 +705,32 @@ END IF
 
 
 
-        let output = tokio::process::Command::new("mc")
-            .args(["mb", &format!("local/{}", bucket_name), "--ignore-existing"])
-            .output()
-            .await;
+        let bucket_arg = format!("local/{}", bucket_name);
+        let cmd = SafeCommand::new("mc")
+            .and_then(|c| c.arg("mb"))
+            .and_then(|c| c.arg(&bucket_arg))
+            .and_then(|c| c.arg("--ignore-existing"));
 
-        match output {
-            Ok(result) => {
-                if result.status.success() {
-                    info!("Bucket created: {}", bucket_name);
-                } else {
-                    let stderr = String::from_utf8_lossy(&result.stderr);
-                    if !stderr.contains("already exists") {
-                        warn!("Bucket creation warning: {}", stderr);
+        match cmd {
+            Ok(safe_cmd) => {
+                match safe_cmd.execute_async().await {
+                    Ok(result) => {
+                        if result.status.success() {
+                            info!("Bucket created: {}", bucket_name);
+                        } else {
+                            let stderr = String::from_utf8_lossy(&result.stderr);
+                            if !stderr.contains("already exists") {
+                                warn!("Bucket creation warning: {}", stderr);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to create bucket: {}", e);
                     }
                 }
             }
             Err(e) => {
-                error!("Failed to create bucket: {}", e);
-
+                error!("Failed to build safe command: {}", e);
             }
         }
 
@@ -749,10 +751,16 @@ END IF
 
 
 
-        let _ = tokio::process::Command::new("mc")
-            .args(["admin", "user", "add", "local/", username, password])
-            .output()
-            .await;
+        if let Ok(cmd) = SafeCommand::new("mc")
+            .and_then(|c| c.arg("admin"))
+            .and_then(|c| c.arg("user"))
+            .and_then(|c| c.arg("add"))
+            .and_then(|c| c.arg("local/"))
+            .and_then(|c| c.arg(username))
+            .and_then(|c| c.arg(password))
+        {
+            let _ = cmd.execute_async().await;
+        }
 
 
         let policy = serde_json::json!({
@@ -781,32 +789,30 @@ END IF
 
 
         let policy_name = format!("policy_{}", bucket);
-        let _ = tokio::process::Command::new("mc")
-            .args([
-                "admin",
-                "policy",
-                "create",
-                "local/",
-                &policy_name,
-                &policy_path,
-            ])
-            .output()
-            .await;
+        if let Ok(cmd) = SafeCommand::new("mc")
+            .and_then(|c| c.arg("admin"))
+            .and_then(|c| c.arg("policy"))
+            .and_then(|c| c.arg("create"))
+            .and_then(|c| c.arg("local/"))
+            .and_then(|c| c.arg(&policy_name))
+            .and_then(|c| c.arg(&policy_path))
+        {
+            let _ = cmd.execute_async().await;
+        }
 
 
 
-        let _ = tokio::process::Command::new("mc")
-            .args([
-                "admin",
-                "policy",
-                "attach",
-                "local/",
-                &policy_name,
-                "--user",
-                username,
-            ])
-            .output()
-            .await;
+        if let Ok(cmd) = SafeCommand::new("mc")
+            .and_then(|c| c.arg("admin"))
+            .and_then(|c| c.arg("policy"))
+            .and_then(|c| c.arg("attach"))
+            .and_then(|c| c.arg("local/"))
+            .and_then(|c| c.arg(&policy_name))
+            .and_then(|c| c.arg("--user"))
+            .and_then(|c| c.arg(username))
+        {
+            let _ = cmd.execute_async().await;
+        }
 
 
         let _ = std::fs::remove_file(&policy_path);
@@ -926,10 +932,17 @@ TALK response
         std::fs::write(&temp_path, content)?;
 
 
-        let result = tokio::process::Command::new("mc")
-            .args(["cp", &temp_path, &format!("local/{}/{}", bucket, path)])
-            .output()
-            .await;
+        let dest_path = format!("local/{}/{}", bucket, path);
+        let result = SafeCommand::new("mc")
+            .and_then(|c| c.arg("cp"))
+            .and_then(|c| c.arg(&temp_path))
+            .and_then(|c| c.arg(&dest_path))
+            .map(|c| c.execute_async());
+
+        let result = match result {
+            Ok(fut) => fut.await,
+            Err(e) => Err(e),
+        };
 
 
         let _ = std::fs::remove_file(&temp_path);
@@ -996,21 +1009,24 @@ TALK response
         info!("Deleting bot: {} ({})", bot.name, bot_id);
 
 
-        let _ = tokio::process::Command::new("mc")
-            .args([
-                "rm",
-                "--recursive",
-                "--force",
-                &format!("local/{}", bot.bucket),
-            ])
-            .output()
-            .await;
+        let bucket_path = format!("local/{}", bot.bucket);
+        if let Ok(cmd) = SafeCommand::new("mc")
+            .and_then(|c| c.arg("rm"))
+            .and_then(|c| c.arg("--recursive"))
+            .and_then(|c| c.arg("--force"))
+            .and_then(|c| c.arg(&bucket_path))
+        {
+            let _ = cmd.execute_async().await;
+        }
 
 
-        let _ = tokio::process::Command::new("mc")
-            .args(["rb", &format!("local/{}", bot.bucket)])
-            .output()
-            .await;
+        let bucket_path = format!("local/{}", bot.bucket);
+        if let Ok(cmd) = SafeCommand::new("mc")
+            .and_then(|c| c.arg("rb"))
+            .and_then(|c| c.arg(&bucket_path))
+        {
+            let _ = cmd.execute_async().await;
+        }
 
 
         {

@@ -38,7 +38,6 @@ impl From<&str> for ReflectionType {
 }
 
 impl ReflectionType {
-    #[allow(clippy::literal_string_with_formatting_args)]
     pub fn prompt_template(&self) -> String {
         match self {
             Self::ConversationQuality => r#"Analyze the following conversation and evaluate:
@@ -534,7 +533,6 @@ impl ReflectionEngine {
         Ok(history)
     }
 
-    #[allow(clippy::literal_string_with_formatting_args)]
     fn build_reflection_prompt(
         &self,
         reflection_type: &ReflectionType,

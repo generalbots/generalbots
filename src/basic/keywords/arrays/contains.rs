@@ -68,7 +68,6 @@ fn items_equal(a: &Dynamic, b: &Dynamic) -> bool {
     }
 
     if a.is_int() && b.is_float() {
-        #[allow(clippy::cast_precision_loss)]
         let af = a.as_int().unwrap_or(0) as f64;
         let bf = b.as_float().unwrap_or(1.0);
         return (af - bf).abs() < f64::EPSILON;
@@ -76,7 +75,6 @@ fn items_equal(a: &Dynamic, b: &Dynamic) -> bool {
 
     if a.is_float() && b.is_int() {
         let af = a.as_float().unwrap_or(0.0);
-        #[allow(clippy::cast_precision_loss)]
         let bf = b.as_int().unwrap_or(1) as f64;
         return (af - bf).abs() < f64::EPSILON;
     }

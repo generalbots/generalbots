@@ -282,7 +282,7 @@ async fn run_axum_server(
     #[cfg(feature = "calendar")]
     {
         let calendar_engine =
-            Arc::new(crate::calendar::CalendarEngine::new(app_state.conn.clone()));
+            Arc::new(crate::calendar::CalendarEngine::new());
 
         let reminder_engine = Arc::clone(&calendar_engine);
         tokio::spawn(async move {
@@ -307,9 +307,11 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::paper::configure_paper_routes());
     api_router = api_router.merge(botserver::sheet::configure_sheet_routes());
     api_router = api_router.merge(botserver::slides::configure_slides_routes());
+    api_router = api_router.merge(botserver::video::configure_video_routes());
     api_router = api_router.merge(botserver::research::configure_research_routes());
     api_router = api_router.merge(botserver::sources::configure_sources_routes());
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
+    api_router = api_router.merge(botserver::dashboards::configure_dashboards_routes());
     api_router = api_router.merge(botserver::monitoring::configure());
     api_router = api_router.merge(botserver::settings::configure_settings_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_db_routes());
@@ -1053,6 +1055,8 @@ async fn main() -> std::io::Result<()> {
         attendant_broadcast: Some(attendant_tx),
         task_progress_broadcast: Some(task_progress_tx),
         task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
+        project_service: Arc::new(tokio::sync::RwLock::new(botserver::project::ProjectService::new())),
+        legal_service: Arc::new(tokio::sync::RwLock::new(botserver::legal::LegalService::new())),
     });
 
     let task_scheduler = Arc::new(botserver::tasks::scheduler::TaskScheduler::new(

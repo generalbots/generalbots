@@ -4,10 +4,16 @@ use std::collections::HashMap;
 
 pub mod access_review;
 pub mod audit;
+pub mod backup_verification;
 pub mod code_scanner;
+pub mod evidence_collection;
+pub mod incident_response;
 pub mod policy_checker;
 pub mod risk_assessment;
+pub mod soc2;
+pub mod sop_middleware;
 pub mod training_tracker;
+pub mod vulnerability_scanner;
 
 pub use code_scanner::{
     CodeIssue, CodeScanner, ComplianceReporter, ComplianceScanResult, IssueSeverity, IssueType,

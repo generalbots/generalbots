@@ -34,8 +34,6 @@ pub struct ExportDocumentRequest {
     pub bucket: String,
     pub source_path: String,
     pub format: String,
-    #[allow(dead_code)]
-    pub options: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]

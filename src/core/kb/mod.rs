@@ -1,6 +1,7 @@
 pub mod document_processor;
 pub mod embedding_generator;
 pub mod kb_indexer;
+pub mod permissions;
 pub mod web_crawler;
 pub mod website_crawler_service;
 

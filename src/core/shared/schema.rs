@@ -447,6 +447,98 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    rbac_roles (id) {
+        id -> Uuid,
+        name -> Varchar,
+        display_name -> Varchar,
+        description -> Nullable<Text>,
+        is_system -> Bool,
+        is_active -> Bool,
+        created_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    rbac_groups (id) {
+        id -> Uuid,
+        name -> Varchar,
+        display_name -> Varchar,
+        description -> Nullable<Text>,
+        parent_group_id -> Nullable<Uuid>,
+        is_active -> Bool,
+        created_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    rbac_permissions (id) {
+        id -> Uuid,
+        name -> Varchar,
+        display_name -> Varchar,
+        description -> Nullable<Text>,
+        resource_type -> Varchar,
+        action -> Varchar,
+        category -> Varchar,
+        is_system -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    rbac_role_permissions (id) {
+        id -> Uuid,
+        role_id -> Uuid,
+        permission_id -> Uuid,
+        granted_by -> Nullable<Uuid>,
+        granted_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    rbac_user_roles (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        role_id -> Uuid,
+        granted_by -> Nullable<Uuid>,
+        granted_at -> Timestamptz,
+        expires_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    rbac_user_groups (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        group_id -> Uuid,
+        added_by -> Nullable<Uuid>,
+        added_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    rbac_group_roles (id) {
+        id -> Uuid,
+        group_id -> Uuid,
+        role_id -> Uuid,
+        granted_by -> Nullable<Uuid>,
+        granted_at -> Timestamptz,
+    }
+}
+
+diesel::joinable!(rbac_role_permissions -> rbac_roles (role_id));
+diesel::joinable!(rbac_role_permissions -> rbac_permissions (permission_id));
+diesel::joinable!(rbac_user_roles -> users (user_id));
+diesel::joinable!(rbac_user_roles -> rbac_roles (role_id));
+diesel::joinable!(rbac_user_groups -> users (user_id));
+diesel::joinable!(rbac_user_groups -> rbac_groups (group_id));
+diesel::joinable!(rbac_group_roles -> rbac_groups (group_id));
+diesel::joinable!(rbac_group_roles -> rbac_roles (role_id));
+
 diesel::allow_tables_to_appear_in_same_query!(
     organizations,
     bots,
@@ -479,4 +571,11 @@ diesel::allow_tables_to_appear_in_same_query!(
     distribution_lists,
     shared_mailboxes,
     shared_mailbox_members,
+    rbac_roles,
+    rbac_groups,
+    rbac_permissions,
+    rbac_role_permissions,
+    rbac_user_roles,
+    rbac_user_groups,
+    rbac_group_roles,
 );
