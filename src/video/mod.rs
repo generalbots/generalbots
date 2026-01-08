@@ -12,7 +12,7 @@ pub use analytics::{get_analytics_handler, record_view_handler, AnalyticsEngine}
 pub use engine::VideoEngine;
 pub use handlers::*;
 pub use models::*;
-pub use render::{start_render_worker, start_render_worker_with_broadcaster, VideoRenderWorker};
+pub use render::{start_render_worker, VideoRenderWorker};
 pub use schema::*;
 pub use websocket::{broadcast_export_progress, export_progress_websocket, ExportProgressBroadcaster};
 

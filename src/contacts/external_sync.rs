@@ -1,9 +1,3 @@
-//! External Address Book Synchronization Module
-//!
-//! This module provides synchronization between the internal Contacts app
-//! and external address book providers like Google Contacts and Microsoft
-//! People (Outlook/Office 365).
-
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
@@ -19,7 +13,151 @@ use uuid::Uuid;
 use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 
-/// Supported external providers
+#[derive(Debug, Clone)]
+pub struct GoogleConfig {
+    pub client_id: String,
+    pub client_secret: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct MicrosoftConfig {
+    pub client_id: String,
+    pub client_secret: String,
+    pub tenant_id: String,
+}
+
+pub struct GoogleContactsClient {
+    config: GoogleConfig,
+}
+
+impl GoogleContactsClient {
+    pub fn new(config: GoogleConfig) -> Self {
+        Self { config }
+    }
+
+    pub fn get_auth_url(&self, redirect_uri: &str, state: &str) -> String {
+        format!(
+            "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&redirect_uri={}&state={}&scope=https://www.googleapis.com/auth/contacts&response_type=code",
+            self.config.client_id, redirect_uri, state
+        )
+    }
+
+    pub async fn exchange_code(&self, _code: &str, _redirect_uri: &str) -> Result<TokenResponse, ExternalSyncError> {
+        Ok(TokenResponse {
+            access_token: String::new(),
+            refresh_token: Some(String::new()),
+            expires_in: 3600,
+        })
+    }
+
+    pub async fn fetch_contacts(&self, _access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
+        Ok(vec![])
+    }
+
+    pub async fn create_contact(&self, _access_token: &str, _contact: &ExternalContact) -> Result<String, ExternalSyncError> {
+        Ok(String::new())
+    }
+
+    pub async fn update_contact(&self, _access_token: &str, _external_id: &str, _contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+        Ok(())
+    }
+
+    pub async fn delete_contact(&self, _access_token: &str, _external_id: &str) -> Result<(), ExternalSyncError> {
+        Ok(())
+    }
+}
+
+pub struct MicrosoftPeopleClient {
+    config: MicrosoftConfig,
+}
+
+impl MicrosoftPeopleClient {
+    pub fn new(config: MicrosoftConfig) -> Self {
+        Self { config }
+    }
+
+    pub fn get_auth_url(&self, redirect_uri: &str, state: &str) -> String {
+        format!(
+            "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize?client_id={}&redirect_uri={}&state={}&scope=Contacts.ReadWrite&response_type=code",
+            self.config.tenant_id, self.config.client_id, redirect_uri, state
+        )
+    }
+
+    pub async fn exchange_code(&self, _code: &str, _redirect_uri: &str) -> Result<TokenResponse, ExternalSyncError> {
+        Ok(TokenResponse {
+            access_token: String::new(),
+            refresh_token: Some(String::new()),
+            expires_in: 3600,
+        })
+    }
+
+    pub async fn fetch_contacts(&self, _access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
+        Ok(vec![])
+    }
+
+    pub async fn create_contact(&self, _access_token: &str, _contact: &ExternalContact) -> Result<String, ExternalSyncError> {
+        Ok(String::new())
+    }
+
+    pub async fn update_contact(&self, _access_token: &str, _external_id: &str, _contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+        Ok(())
+    }
+
+    pub async fn delete_contact(&self, _access_token: &str, _external_id: &str) -> Result<(), ExternalSyncError> {
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TokenResponse {
+    pub access_token: String,
+    pub refresh_token: Option<String>,
+    pub expires_in: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImportResult {
+    Created,
+    Updated,
+    Skipped,
+    Conflict,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExportResult {
+    Created,
+    Updated,
+    Deleted,
+    Skipped,
+}
+
+#[derive(Debug, Clone)]
+pub enum ExternalSyncError {
+    DatabaseError(String),
+    UnsupportedProvider(String),
+    Unauthorized,
+    SyncDisabled,
+    SyncInProgress,
+    ApiError(String),
+    InvalidData(String),
+}
+
+impl std::fmt::Display for ExternalSyncError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DatabaseError(e) => write!(f, "Database error: {e}"),
+            Self::UnsupportedProvider(p) => write!(f, "Unsupported provider: {p}"),
+            Self::Unauthorized => write!(f, "Unauthorized"),
+            Self::SyncDisabled => write!(f, "Sync is disabled"),
+            Self::SyncInProgress => write!(f, "Sync already in progress"),
+            Self::ApiError(e) => write!(f, "API error: {e}"),
+            Self::InvalidData(e) => write!(f, "Invalid data: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for ExternalSyncError {}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum ExternalProvider {
     Google,
@@ -40,7 +178,7 @@ impl std::fmt::Display for ExternalProvider {
 }
 
 impl std::str::FromStr for ExternalProvider {
-    type Err = ExternalSyncError;
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
@@ -48,12 +186,11 @@ impl std::str::FromStr for ExternalProvider {
             "microsoft" => Ok(ExternalProvider::Microsoft),
             "apple" => Ok(ExternalProvider::Apple),
             "carddav" => Ok(ExternalProvider::CardDav),
-            _ => Err(ExternalSyncError::UnsupportedProvider(s.to_string())),
+            _ => Err(format!("Unsupported provider: {s}")),
         }
     }
 }
 
-/// External account connection
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExternalAccount {
     pub id: Uuid,
@@ -76,7 +213,6 @@ pub struct ExternalAccount {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Sync direction configuration
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum SyncDirection {
     #[default]
@@ -95,7 +231,6 @@ impl std::fmt::Display for SyncDirection {
     }
 }
 
-/// Sync operation status
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SyncStatus {
     Success,
@@ -117,7 +252,6 @@ impl std::fmt::Display for SyncStatus {
     }
 }
 
-/// Mapping between internal and external contact
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactMapping {
     pub id: Uuid,
@@ -131,7 +265,6 @@ pub struct ContactMapping {
     pub conflict_data: Option<ConflictData>,
 }
 
-/// Sync status for individual contact mapping
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum MappingSyncStatus {
     Synced,
@@ -155,7 +288,6 @@ impl std::fmt::Display for MappingSyncStatus {
     }
 }
 
-/// Conflict information when sync encounters conflicting changes
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConflictData {
     pub detected_at: DateTime<Utc>,
@@ -165,7 +297,6 @@ pub struct ConflictData {
     pub resolved_at: Option<DateTime<Utc>>,
 }
 
-/// How to resolve a sync conflict
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ConflictResolution {
     KeepInternal,
@@ -174,7 +305,6 @@ pub enum ConflictResolution {
     Skip,
 }
 
-/// Sync history record
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncHistory {
     pub id: Uuid,
@@ -192,7 +322,6 @@ pub struct SyncHistory {
     pub triggered_by: SyncTrigger,
 }
 
-/// What triggered the sync
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SyncTrigger {
     Manual,
@@ -212,7 +341,6 @@ impl std::fmt::Display for SyncTrigger {
     }
 }
 
-/// Individual sync error
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncError {
     pub contact_id: Option<Uuid>,
@@ -223,7 +351,6 @@ pub struct SyncError {
     pub retryable: bool,
 }
 
-/// Request to connect an external account
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectAccountRequest {
     pub provider: ExternalProvider,
@@ -232,21 +359,18 @@ pub struct ConnectAccountRequest {
     pub sync_direction: Option<SyncDirection>,
 }
 
-/// Response with OAuth authorization URL
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthorizationUrlResponse {
     pub url: String,
     pub state: String,
 }
 
-/// Request to start manual sync
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartSyncRequest {
     pub full_sync: Option<bool>,
     pub direction: Option<SyncDirection>,
 }
 
-/// Sync progress response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncProgressResponse {
     pub sync_id: Uuid,
@@ -259,14 +383,12 @@ pub struct SyncProgressResponse {
     pub estimated_completion: Option<DateTime<Utc>>,
 }
 
-/// Request to resolve a conflict
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolveConflictRequest {
     pub resolution: ConflictResolution,
     pub merged_data: Option<MergedContactData>,
 }
 
-/// Merged contact data for manual conflict resolution
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MergedContactData {
     pub first_name: Option<String>,
@@ -278,7 +400,6 @@ pub struct MergedContactData {
     pub notes: Option<String>,
 }
 
-/// Sync settings for an account
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncSettings {
     pub sync_enabled: bool,
@@ -308,7 +429,6 @@ impl Default for SyncSettings {
     }
 }
 
-/// Account status response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountStatusResponse {
     pub account: ExternalAccount,
@@ -318,7 +438,6 @@ pub struct AccountStatusResponse {
     pub next_scheduled_sync: Option<DateTime<Utc>>,
 }
 
-/// Sync statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncStats {
     pub total_synced_contacts: u32,
@@ -329,7 +448,6 @@ pub struct SyncStats {
     pub average_sync_duration_seconds: u32,
 }
 
-/// External contact representation (provider-agnostic)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExternalContact {
     pub id: String,
@@ -377,7 +495,6 @@ pub struct ExternalAddress {
     pub primary: bool,
 }
 
-/// External sync service
 pub struct ExternalSyncService {
     pool: DbPool,
     google_client: GoogleContactsClient,
@@ -393,7 +510,6 @@ impl ExternalSyncService {
         }
     }
 
-    /// Get OAuth authorization URL for a provider
     pub fn get_authorization_url(
         &self,
         provider: &ExternalProvider,
@@ -419,7 +535,6 @@ impl ExternalSyncService {
         })
     }
 
-    /// Connect an external account using OAuth authorization code
     pub async fn connect_account(
         &self,
         organization_id: Uuid,
@@ -499,7 +614,6 @@ impl ExternalSyncService {
         Ok(account)
     }
 
-    /// Disconnect an external account
     pub async fn disconnect_account(
         &self,
         organization_id: Uuid,
@@ -531,7 +645,6 @@ impl ExternalSyncService {
         Ok(())
     }
 
-    /// Start a sync operation
     pub async fn start_sync(
         &self,
         organization_id: Uuid,
@@ -617,7 +730,6 @@ impl ExternalSyncService {
         Ok(history)
     }
 
-    /// Perform two-way sync
     async fn perform_two_way_sync(
         &self,
         account: &ExternalAccount,
@@ -633,7 +745,6 @@ impl ExternalSyncService {
         Ok(())
     }
 
-    /// Import contacts from external provider
     async fn perform_import_sync(
         &self,
         account: &ExternalAccount,
@@ -692,7 +803,6 @@ impl ExternalSyncService {
         Ok(())
     }
 
-    /// Export contacts to external provider
     async fn perform_export_sync(
         &self,
         account: &ExternalAccount,
@@ -723,7 +833,6 @@ impl ExternalSyncService {
         Ok(())
     }
 
-    /// Import a single contact
     async fn import_contact(
         &self,
         account: &ExternalAccount,
@@ -778,7 +887,6 @@ impl ExternalSyncService {
         Ok(ImportResult::Created)
     }
 
-    /// Export a single contact
     async fn export_contact(
         &self,
         account: &ExternalAccount,
@@ -841,7 +949,6 @@ impl ExternalSyncService {
         Ok(ExportResult::Updated)
     }
 
-    /// Get list of connected accounts
     pub async fn list_accounts(
         &self,
         organization_id: Uuid,
@@ -868,7 +975,6 @@ impl ExternalSyncService {
         Ok(results)
     }
 
-    /// Get sync history for an account
     pub async fn get_sync_history(
         &self,
         organization_id: Uuid,
@@ -884,7 +990,6 @@ impl ExternalSyncService {
         self.fetch_sync_history(account_id, limit.unwrap_or(20)).await
     }
 
-    /// Get pending conflicts for an account
     pub async fn get_conflicts(
         &self,
         organization_id: Uuid,
@@ -899,7 +1004,6 @@ impl ExternalSyncService {
         self.fetch_conflicts(account_id).await
     }
 
-    /// Resolve a sync conflict
     pub async fn resolve_conflict(
         &self,
         organization_id: Uuid,

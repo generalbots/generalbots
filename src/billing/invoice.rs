@@ -59,6 +59,16 @@ pub struct InvoiceDiscount {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefundResult {
+    pub id: Uuid,
+    pub invoice_id: Uuid,
+    pub amount: i64,
+    pub currency: String,
+    pub reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
 pub struct InvoiceTax {
     pub id: Uuid,
     pub description: String,

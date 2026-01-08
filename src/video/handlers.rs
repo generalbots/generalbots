@@ -17,7 +17,7 @@ pub async fn list_projects(
     State(state): State<Arc<AppState>>,
     Query(filters): Query<ProjectFilters>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.list_projects(None, filters).await {
         Ok(projects) => (
             StatusCode::OK,
@@ -37,7 +37,7 @@ pub async fn create_project(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateProjectRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.create_project(None, None, req).await {
         Ok(project) => (
             StatusCode::CREATED,
@@ -57,7 +57,7 @@ pub async fn get_project(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.get_project_detail(id).await {
         Ok(detail) => (StatusCode::OK, Json(serde_json::json!(detail))),
         Err(diesel::result::Error::NotFound) => (
@@ -79,7 +79,7 @@ pub async fn update_project(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateProjectRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.update_project(id, req).await {
         Ok(project) => (
             StatusCode::OK,
@@ -103,7 +103,7 @@ pub async fn delete_project(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.delete_project(id).await {
         Ok(()) => (StatusCode::NO_CONTENT, Json(serde_json::json!({}))),
         Err(e) => {
@@ -120,7 +120,7 @@ pub async fn get_clips(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.get_clips(project_id).await {
         Ok(clips) => (StatusCode::OK, Json(serde_json::json!({ "clips": clips }))),
         Err(e) => {
@@ -138,7 +138,7 @@ pub async fn add_clip(
     Path(project_id): Path<Uuid>,
     Json(req): Json<AddClipRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.add_clip(project_id, req).await {
         Ok(clip) => (StatusCode::CREATED, Json(serde_json::json!({ "clip": clip }))),
         Err(e) => {
@@ -156,7 +156,7 @@ pub async fn update_clip(
     Path(clip_id): Path<Uuid>,
     Json(req): Json<UpdateClipRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.update_clip(clip_id, req).await {
         Ok(clip) => (StatusCode::OK, Json(serde_json::json!({ "clip": clip }))),
         Err(diesel::result::Error::NotFound) => (
@@ -177,7 +177,7 @@ pub async fn delete_clip(
     State(state): State<Arc<AppState>>,
     Path(clip_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.delete_clip(clip_id).await {
         Ok(()) => (StatusCode::NO_CONTENT, Json(serde_json::json!({}))),
         Err(e) => {
@@ -195,7 +195,7 @@ pub async fn split_clip_handler(
     Path(clip_id): Path<Uuid>,
     Json(req): Json<SplitClipRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.split_clip(clip_id, req.at_ms).await {
         Ok((first, second)) => (
             StatusCode::OK,
@@ -222,7 +222,7 @@ pub async fn get_layers(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.get_layers(project_id).await {
         Ok(layers) => (StatusCode::OK, Json(serde_json::json!({ "layers": layers }))),
         Err(e) => {
@@ -240,7 +240,7 @@ pub async fn add_layer(
     Path(project_id): Path<Uuid>,
     Json(req): Json<AddLayerRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.add_layer(project_id, req).await {
         Ok(layer) => (
             StatusCode::CREATED,
@@ -261,7 +261,7 @@ pub async fn update_layer(
     Path(layer_id): Path<Uuid>,
     Json(req): Json<UpdateLayerRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.update_layer(layer_id, req).await {
         Ok(layer) => (StatusCode::OK, Json(serde_json::json!({ "layer": layer }))),
         Err(diesel::result::Error::NotFound) => (
@@ -282,7 +282,7 @@ pub async fn delete_layer(
     State(state): State<Arc<AppState>>,
     Path(layer_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.delete_layer(layer_id).await {
         Ok(()) => (StatusCode::NO_CONTENT, Json(serde_json::json!({}))),
         Err(e) => {
@@ -299,7 +299,7 @@ pub async fn get_audio_tracks(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.get_audio_tracks(project_id).await {
         Ok(tracks) => (
             StatusCode::OK,
@@ -320,7 +320,7 @@ pub async fn add_audio_track(
     Path(project_id): Path<Uuid>,
     Json(req): Json<AddAudioRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.add_audio_track(project_id, req).await {
         Ok(track) => (
             StatusCode::CREATED,
@@ -340,7 +340,7 @@ pub async fn delete_audio_track(
     State(state): State<Arc<AppState>>,
     Path(track_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.delete_audio_track(track_id).await {
         Ok(()) => (StatusCode::NO_CONTENT, Json(serde_json::json!({}))),
         Err(e) => {
@@ -357,7 +357,7 @@ pub async fn get_keyframes(
     State(state): State<Arc<AppState>>,
     Path(layer_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.get_keyframes(layer_id).await {
         Ok(keyframes) => (
             StatusCode::OK,
@@ -378,7 +378,7 @@ pub async fn add_keyframe(
     Path(layer_id): Path<Uuid>,
     Json(req): Json<AddKeyframeRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.add_keyframe(layer_id, req).await {
         Ok(keyframe) => (
             StatusCode::CREATED,
@@ -398,7 +398,7 @@ pub async fn delete_keyframe(
     State(state): State<Arc<AppState>>,
     Path(keyframe_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine.delete_keyframe(keyframe_id).await {
         Ok(()) => (StatusCode::NO_CONTENT, Json(serde_json::json!({}))),
         Err(e) => {
@@ -423,7 +423,7 @@ pub async fn upload_media(
         error!("Failed to create upload directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": sanitize_error("upload_media") })),
+            Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
         );
     }
 
@@ -457,7 +457,7 @@ pub async fn upload_media(
             error!("Failed to write uploaded file: {e}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("upload_media") })),
+                Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
             );
         }
 
@@ -501,7 +501,7 @@ pub async fn get_preview_frame(
     Path(project_id): Path<Uuid>,
     Query(params): Query<PreviewFrameRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     let at_ms = params.at_ms.unwrap_or(0);
     let width = params.width.unwrap_or(640);
     let height = params.height.unwrap_or(360);
@@ -513,7 +513,7 @@ pub async fn get_preview_frame(
         error!("Failed to create preview directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": sanitize_error("get_preview_frame") })),
+            Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
         );
     }
 
@@ -529,7 +529,7 @@ pub async fn get_preview_frame(
             error!("Failed to generate preview: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("get_preview_frame") })),
+                Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
             )
         }
     }
@@ -540,7 +540,7 @@ pub async fn transcribe_handler(
     Path(project_id): Path<Uuid>,
     Json(req): Json<TranscribeRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     match engine
         .transcribe_audio(project_id, req.clip_id, req.language)
         .await
@@ -561,7 +561,7 @@ pub async fn generate_captions_handler(
     Path(project_id): Path<Uuid>,
     Json(req): Json<GenerateCaptionsRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     let transcription = match engine.transcribe_audio(project_id, None, None).await {
         Ok(t) => t,
@@ -569,7 +569,7 @@ pub async fn generate_captions_handler(
             error!("Transcription failed: {e}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("generate_captions") })),
+                Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
             );
         }
     };
@@ -614,7 +614,7 @@ pub async fn tts_handler(
     Path(project_id): Path<Uuid>,
     Json(req): Json<TTSRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     let output_dir =
         std::env::var("VIDEO_AUDIO_DIR").unwrap_or_else(|_| "./audio/video".to_string());
 
@@ -622,7 +622,7 @@ pub async fn tts_handler(
         error!("Failed to create audio directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": sanitize_error("tts") })),
+            Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
         );
     }
 
@@ -661,7 +661,7 @@ pub async fn tts_handler(
                     error!("Failed to add audio track: {e}");
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(serde_json::json!({ "error": sanitize_error("tts") })),
+                        Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
                     )
                 }
             }
@@ -680,7 +680,7 @@ pub async fn detect_scenes_handler(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     let output_dir =
         std::env::var("VIDEO_THUMBNAILS_DIR").unwrap_or_else(|_| "./thumbnails/video".to_string());
 
@@ -688,7 +688,7 @@ pub async fn detect_scenes_handler(
         error!("Failed to create thumbnails directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": sanitize_error("detect_scenes") })),
+            Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
         );
     }
 
@@ -709,7 +709,7 @@ pub async fn auto_reframe_handler(
     Path(project_id): Path<Uuid>,
     Json(req): Json<AutoReframeRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
     let clips = match engine.get_clips(project_id).await {
         Ok(c) => c,
         Err(_) => {
@@ -736,7 +736,7 @@ pub async fn auto_reframe_handler(
         error!("Failed to create reframe directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": sanitize_error("auto_reframe") })),
+            Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
         );
     }
 
@@ -769,7 +769,7 @@ pub async fn remove_background_handler(
     Path(project_id): Path<Uuid>,
     Json(req): Json<BackgroundRemovalRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     match engine
         .remove_background(project_id, req.clip_id, req.replacement)
@@ -791,7 +791,7 @@ pub async fn enhance_video_handler(
     Path(project_id): Path<Uuid>,
     Json(req): Json<VideoEnhanceRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     match engine.enhance_video(project_id, req).await {
         Ok(response) => (StatusCode::OK, Json(serde_json::json!(response))),
@@ -810,7 +810,7 @@ pub async fn beat_sync_handler(
     Path(project_id): Path<Uuid>,
     Json(req): Json<BeatSyncRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     match engine
         .detect_beats(project_id, req.audio_track_id, req.sensitivity)
@@ -832,7 +832,7 @@ pub async fn generate_waveform_handler(
     Path(project_id): Path<Uuid>,
     Json(req): Json<WaveformRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     match engine
         .generate_waveform(project_id, req.audio_track_id, req.samples_per_second)
@@ -896,7 +896,7 @@ pub async fn apply_template_handler(
     Path(project_id): Path<Uuid>,
     Json(req): Json<ApplyTemplateRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     match engine
         .apply_template(project_id, &req.template_id, req.customizations)
@@ -921,7 +921,7 @@ pub async fn add_transition_handler(
     Path((from_id, to_id)): Path<(Uuid, Uuid)>,
     Json(req): Json<TransitionRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     match engine
         .add_transition(from_id, to_id, &req.transition_type, req.duration_ms)
@@ -946,7 +946,7 @@ pub async fn chat_edit(
     Path(project_id): Path<Uuid>,
     Json(req): Json<ChatEditRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     match engine
         .process_chat_command(project_id, &req.message, req.playhead_ms, req.selection)
@@ -973,7 +973,7 @@ pub async fn start_export(
     Path(project_id): Path<Uuid>,
     Json(req): Json<ExportRequest>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     match engine.start_export(project_id, req, state.cache.as_ref()).await {
         Ok(export) => (
@@ -994,7 +994,7 @@ pub async fn get_export_status(
     State(state): State<Arc<AppState>>,
     Path(export_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = VideoEngine::new(state.db.clone());
+    let engine = VideoEngine::new(state.conn.clone());
 
     match engine.get_export_status(export_id).await {
         Ok(export) => (

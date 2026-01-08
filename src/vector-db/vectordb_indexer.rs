@@ -169,7 +169,7 @@ impl VectorDBIndexer {
     }
 
     async fn get_active_users(&self) -> Result<Vec<(Uuid, Uuid)>> {
-        let conn = self.db_pool.clone();
+        let conn = self.conn.clone();
 
         tokio::task::spawn_blocking(move || {
             use crate::shared::models::schema::user_sessions::dsl::*;
@@ -395,7 +395,7 @@ impl VectorDBIndexer {
     }
 
     async fn get_user_email_accounts(&self, user_id: Uuid) -> Result<Vec<String>> {
-        let conn = self.db_pool.clone();
+        let conn = self.conn.clone();
 
         tokio::task::spawn_blocking(move || {
             use diesel::prelude::*;
@@ -427,7 +427,7 @@ impl VectorDBIndexer {
         user_id: Uuid,
         account_id: &str,
     ) -> Result<Vec<EmailDocument>, Box<dyn std::error::Error + Send + Sync>> {
-        let pool = self.db_pool.clone();
+        let pool = self.conn.clone();
         let account_id = account_id.to_string();
 
         let results = tokio::task::spawn_blocking(move || {
@@ -504,7 +504,7 @@ impl VectorDBIndexer {
         &self,
         user_id: Uuid,
     ) -> Result<Vec<FileDocument>, Box<dyn std::error::Error + Send + Sync>> {
-        let pool = self.db_pool.clone();
+        let pool = self.conn.clone();
 
         let results = tokio::task::spawn_blocking(move || {
             use diesel::prelude::*;
