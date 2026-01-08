@@ -6,6 +6,37 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
+pub struct ExportBounds {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+#[derive(Debug, Clone)]
+pub enum ExportError {
+    InvalidFormat(String),
+    RenderError(String),
+    IoError(String),
+    EmptyCanvas,
+    InvalidDimensions,
+}
+
+impl std::fmt::Display for ExportError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidFormat(s) => write!(f, "Invalid format: {s}"),
+            Self::RenderError(s) => write!(f, "Render error: {s}"),
+            Self::IoError(s) => write!(f, "IO error: {s}"),
+            Self::EmptyCanvas => write!(f, "Empty canvas"),
+            Self::InvalidDimensions => write!(f, "Invalid dimensions"),
+        }
+    }
+}
+
+impl std::error::Error for ExportError {}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExportFormat {

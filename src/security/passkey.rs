@@ -23,7 +23,6 @@ use crate::shared::utils::DbPool;
 const CHALLENGE_TIMEOUT_SECONDS: i64 = 300;
 const PASSKEY_NAME_MAX_LENGTH: usize = 64;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
 #[derive(Debug, Clone)]
 struct FallbackAttemptTracker {
     attempts: u32,

@@ -59,7 +59,6 @@ pub struct InvoiceDiscount {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RefundResult {
     pub id: Uuid,
     pub invoice_id: Uuid,

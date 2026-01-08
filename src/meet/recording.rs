@@ -876,16 +876,16 @@ impl RecordingService {
 
     // Database helper methods (stubs - implement with actual queries)
 
-    async fn create_recording_in_db(&self, _recording: &Recording) -> Result<(), RecordingError> {
+    async fn create_recording_in_db(&self, _recording: &WebinarRecording) -> Result<(), RecordingError> {
         // Implementation would insert into database
         Ok(())
     }
 
-    async fn get_recording_from_db(&self, _recording_id: Uuid) -> Result<Recording, RecordingError> {
+    async fn get_recording_from_db(&self, _recording_id: Uuid) -> Result<WebinarRecording, RecordingError> {
         Err(RecordingError::NotFound)
     }
 
-    async fn update_recording_in_db(&self, _recording: &Recording) -> Result<(), RecordingError> {
+    async fn update_recording_in_db(&self, _recording: &WebinarRecording) -> Result<(), RecordingError> {
         Ok(())
     }
 

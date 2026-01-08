@@ -5,6 +5,35 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
+pub enum RekognitionError {
+    ConfigError(String),
+    AwsError(String),
+    InvalidImage(String),
+    FaceNotFound,
+    CollectionNotFound,
+    QuotaExceeded,
+    ServiceUnavailable,
+    Unauthorized,
+}
+
+impl std::fmt::Display for RekognitionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ConfigError(s) => write!(f, "Config error: {s}"),
+            Self::AwsError(s) => write!(f, "AWS error: {s}"),
+            Self::InvalidImage(s) => write!(f, "Invalid image: {s}"),
+            Self::FaceNotFound => write!(f, "Face not found"),
+            Self::CollectionNotFound => write!(f, "Collection not found"),
+            Self::QuotaExceeded => write!(f, "Quota exceeded"),
+            Self::ServiceUnavailable => write!(f, "Service unavailable"),
+            Self::Unauthorized => write!(f, "Unauthorized"),
+        }
+    }
+}
+
+impl std::error::Error for RekognitionError {}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RekognitionConfig {
     pub region: String,
