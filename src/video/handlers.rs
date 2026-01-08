@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tracing::{error, info};
 use uuid::Uuid;
 
-use crate::security::error_sanitizer::sanitize_error;
+use crate::security::error_sanitizer::SafeErrorResponse;
 use crate::shared::state::AppState;
 
 use super::engine::VideoEngine;
@@ -27,7 +27,7 @@ pub async fn list_projects(
             error!("Failed to list video projects: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("list_projects") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -47,7 +47,7 @@ pub async fn create_project(
             error!("Failed to create video project: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("create_project") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -68,7 +68,7 @@ pub async fn get_project(
             error!("Failed to get video project: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("get_project") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -93,7 +93,7 @@ pub async fn update_project(
             error!("Failed to update video project: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("update_project") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -110,7 +110,7 @@ pub async fn delete_project(
             error!("Failed to delete video project: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("delete_project") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -127,7 +127,7 @@ pub async fn get_clips(
             error!("Failed to get clips: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("get_clips") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -145,7 +145,7 @@ pub async fn add_clip(
             error!("Failed to add clip: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("add_clip") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -167,7 +167,7 @@ pub async fn update_clip(
             error!("Failed to update clip: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("update_clip") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -184,7 +184,7 @@ pub async fn delete_clip(
             error!("Failed to delete clip: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("delete_clip") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -212,7 +212,7 @@ pub async fn split_clip_handler(
             error!("Failed to split clip: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("split_clip") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -229,7 +229,7 @@ pub async fn get_layers(
             error!("Failed to get layers: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("get_layers") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -250,7 +250,7 @@ pub async fn add_layer(
             error!("Failed to add layer: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("add_layer") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -272,7 +272,7 @@ pub async fn update_layer(
             error!("Failed to update layer: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("update_layer") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -289,7 +289,7 @@ pub async fn delete_layer(
             error!("Failed to delete layer: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("delete_layer") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -309,7 +309,7 @@ pub async fn get_audio_tracks(
             error!("Failed to get audio tracks: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("get_audio_tracks") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -330,7 +330,7 @@ pub async fn add_audio_track(
             error!("Failed to add audio track: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("add_audio_track") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -347,7 +347,7 @@ pub async fn delete_audio_track(
             error!("Failed to delete audio track: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("delete_audio_track") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -367,7 +367,7 @@ pub async fn get_keyframes(
             error!("Failed to get keyframes: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("get_keyframes") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -388,7 +388,7 @@ pub async fn add_keyframe(
             error!("Failed to add keyframe: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("add_keyframe") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -405,7 +405,7 @@ pub async fn delete_keyframe(
             error!("Failed to delete keyframe: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("delete_keyframe") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -550,7 +550,7 @@ pub async fn transcribe_handler(
             error!("Failed to transcribe: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("transcribe") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -603,7 +603,7 @@ pub async fn generate_captions_handler(
             error!("Failed to generate captions: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("generate_captions") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -670,7 +670,7 @@ pub async fn tts_handler(
             error!("TTS failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("tts") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -698,7 +698,7 @@ pub async fn detect_scenes_handler(
             error!("Scene detection failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("detect_scenes") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -758,7 +758,7 @@ pub async fn auto_reframe_handler(
             error!("Auto-reframe failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("auto_reframe") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -780,7 +780,7 @@ pub async fn remove_background_handler(
             error!("Background removal failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("remove_background") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -799,7 +799,7 @@ pub async fn enhance_video_handler(
             error!("Video enhancement failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("enhance_video") })),
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
             )
         }
     }
@@ -821,4 +821,207 @@ pub async fn beat_sync_handler(
             error!("Beat sync failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": sanitize_error("beat_sync
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
+            )
+        }
+    }
+}
+
+pub async fn generate_waveform_handler(
+    State(state): State<Arc<AppState>>,
+    Path(project_id): Path<Uuid>,
+    Json(req): Json<WaveformRequest>,
+) -> impl IntoResponse {
+    let engine = VideoEngine::new(state.db.clone());
+
+    match engine
+        .generate_waveform(project_id, req.audio_track_id, req.samples_per_second)
+        .await
+    {
+        Ok(response) => (StatusCode::OK, Json(serde_json::json!(response))),
+        Err(e) => {
+            error!("Waveform generation failed: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
+            )
+        }
+    }
+}
+
+pub async fn list_templates(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
+    let templates = vec![
+        TemplateInfo {
+            id: "social-promo".to_string(),
+            name: "Social Promo".to_string(),
+            description: "Quick social media promotional video".to_string(),
+            thumbnail_url: "/video/templates/social-promo.jpg".to_string(),
+            duration_ms: 15000,
+            category: "social".to_string(),
+        },
+        TemplateInfo {
+            id: "youtube-intro".to_string(),
+            name: "YouTube Intro".to_string(),
+            description: "Professional YouTube channel intro".to_string(),
+            thumbnail_url: "/video/templates/youtube-intro.jpg".to_string(),
+            duration_ms: 5000,
+            category: "intro".to_string(),
+        },
+        TemplateInfo {
+            id: "talking-head".to_string(),
+            name: "Talking Head".to_string(),
+            description: "Interview or presentation style".to_string(),
+            thumbnail_url: "/video/templates/talking-head.jpg".to_string(),
+            duration_ms: 30000,
+            category: "presentation".to_string(),
+        },
+        TemplateInfo {
+            id: "product-showcase".to_string(),
+            name: "Product Showcase".to_string(),
+            description: "E-commerce product highlight".to_string(),
+            thumbnail_url: "/video/templates/product-showcase.jpg".to_string(),
+            duration_ms: 20000,
+            category: "commercial".to_string(),
+        },
+    ];
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "templates": templates })),
+    )
+}
+
+pub async fn apply_template_handler(
+    State(state): State<Arc<AppState>>,
+    Path(project_id): Path<Uuid>,
+    Json(req): Json<ApplyTemplateRequest>,
+) -> impl IntoResponse {
+    let engine = VideoEngine::new(state.db.clone());
+
+    match engine
+        .apply_template(project_id, &req.template_id, req.customizations)
+        .await
+    {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "success": true })),
+        ),
+        Err(e) => {
+            error!("Apply template failed: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
+            )
+        }
+    }
+}
+
+pub async fn add_transition_handler(
+    State(state): State<Arc<AppState>>,
+    Path((from_id, to_id)): Path<(Uuid, Uuid)>,
+    Json(req): Json<TransitionRequest>,
+) -> impl IntoResponse {
+    let engine = VideoEngine::new(state.db.clone());
+
+    match engine
+        .add_transition(from_id, to_id, &req.transition_type, req.duration_ms)
+        .await
+    {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "success": true })),
+        ),
+        Err(e) => {
+            error!("Add transition failed: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
+            )
+        }
+    }
+}
+
+pub async fn chat_edit(
+    State(state): State<Arc<AppState>>,
+    Path(project_id): Path<Uuid>,
+    Json(req): Json<ChatEditRequest>,
+) -> impl IntoResponse {
+    let engine = VideoEngine::new(state.db.clone());
+
+    match engine
+        .process_chat_command(project_id, &req.message, req.playhead_ms, req.selection)
+        .await
+    {
+        Ok(response) => (StatusCode::OK, Json(serde_json::json!(response))),
+        Err(e) => {
+            error!("Chat edit failed: {e}");
+            (
+                StatusCode::OK,
+                Json(serde_json::json!(ChatEditResponse {
+                    success: false,
+                    message: "Could not process that request".to_string(),
+                    commands_executed: vec![],
+                    project: None,
+                })),
+            )
+        }
+    }
+}
+
+pub async fn start_export(
+    State(state): State<Arc<AppState>>,
+    Path(project_id): Path<Uuid>,
+    Json(req): Json<ExportRequest>,
+) -> impl IntoResponse {
+    let engine = VideoEngine::new(state.db.clone());
+
+    match engine.start_export(project_id, req, state.cache.as_ref()).await {
+        Ok(export) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "export": export })),
+        ),
+        Err(e) => {
+            error!("Start export failed: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
+            )
+        }
+    }
+}
+
+pub async fn get_export_status(
+    State(state): State<Arc<AppState>>,
+    Path(export_id): Path<Uuid>,
+) -> impl IntoResponse {
+    let engine = VideoEngine::new(state.db.clone());
+
+    match engine.get_export_status(export_id).await {
+        Ok(export) => (
+            StatusCode::OK,
+            Json(serde_json::json!(ExportStatusResponse {
+                id: export.id,
+                status: export.status,
+                progress: export.progress,
+                output_url: export.output_url,
+                gbdrive_path: export.gbdrive_path,
+                error_message: export.error_message,
+            })),
+        ),
+        Err(diesel::result::Error::NotFound) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Export not found" })),
+        ),
+        Err(e) => {
+            error!("Get export status failed: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!(SafeErrorResponse::internal_error())),
+            )
+        }
+    }
+}
+
+pub async fn video_ui() -> Html<&'static str> {
+    Html(include_str!("../../../botui/ui/suite/video/video.html"))
+}
