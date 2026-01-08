@@ -1171,4 +1171,148 @@ impl VideoEngine {
             sample_rate: result["sample_rate"].as_i64().unwrap_or(10) as i32,
         })
     }
+
+    pub async fn process_chat_command(
+        &self,
+        project_id: Uuid,
+        message: &str,
+        playhead_ms: Option<i64>,
+        selection: Option<serde_json::Value>,
+    ) -> Result<ChatEditResponse, Box<dyn std::error::Error + Send + Sync>> {
+        let lower_msg = message.to_lowercase();
+        let mut commands_executed = Vec::new();
+
+        if lower_msg.contains("add text") || lower_msg.contains("add title") {
+            let content = extract_quoted_text(message).unwrap_or_else(|| "Text".to_string());
+            let at_ms = playhead_ms.unwrap_or(0);
+
+            self.add_layer(
+                project_id,
+                AddLayerRequest {
+                    name: Some("Text".to_string()),
+                    layer_type: "text".to_string(),
+                    start_ms: Some(at_ms),
+                    end_ms: Some(at_ms + 5000),
+                    x: Some(0.5),
+                    y: Some(0.5),
+                    width: Some(0.8),
+                    height: Some(0.2),
+                    properties: Some(serde_json::json!({
+                        "content": content,
+                        "font_family": "Arial",
+                        "font_size": 48,
+                        "color": "#FFFFFF",
+                    })),
+                },
+            )
+            .await?;
+
+            commands_executed.push("Added text layer".to_string());
+        }
+
+        if lower_msg.contains("delete") || lower_msg.contains("remove") {
+            if let Some(sel) = &selection {
+                if let Some(layer_id) = sel.get("layer_id").and_then(|v| v.as_str()) {
+                    if let Ok(id) = Uuid::parse_str(layer_id) {
+                        self.delete_layer(id).await?;
+                        commands_executed.push("Deleted layer".to_string());
+                    }
+                } else if let Some(clip_id) = sel.get("clip_id").and_then(|v| v.as_str()) {
+                    if let Ok(id) = Uuid::parse_str(clip_id) {
+                        self.delete_clip(id).await?;
+                        commands_executed.push("Deleted clip".to_string());
+                    }
+                }
+            }
+        }
+
+        if lower_msg.contains("split") {
+            if let Some(sel) = &selection {
+                if let Some(clip_id) = sel.get("clip_id").and_then(|v| v.as_str()) {
+                    if let Ok(id) = Uuid::parse_str(clip_id) {
+                        let at = playhead_ms.unwrap_or(0);
+                        self.split_clip(id, at).await?;
+                        commands_executed.push("Split clip".to_string());
+                    }
+                }
+            }
+        }
+
+        if lower_msg.contains("bigger") || lower_msg.contains("larger") {
+            if let Some(sel) = &selection {
+                if let Some(layer_id) = sel.get("layer_id").and_then(|v| v.as_str()) {
+                    if let Ok(id) = Uuid::parse_str(layer_id) {
+                        let layer = video_layers::table.find(id).first::<VideoLayer>(&mut self.get_conn()?)?;
+                        self.update_layer(
+                            id,
+                            UpdateLayerRequest {
+                                width: Some(layer.width * 1.2),
+                                height: Some(layer.height * 1.2),
+                                ..Default::default()
+                            },
+                        )
+                        .await?;
+                        commands_executed.push("Made layer bigger".to_string());
+                    }
+                }
+            }
+        }
+
+        if lower_msg.contains("smaller") {
+            if let Some(sel) = &selection {
+                if let Some(layer_id) = sel.get("layer_id").and_then(|v| v.as_str()) {
+                    if let Ok(id) = Uuid::parse_str(layer_id) {
+                        let layer = video_layers::table.find(id).first::<VideoLayer>(&mut self.get_conn()?)?;
+                        self.update_layer(
+                            id,
+                            UpdateLayerRequest {
+                                width: Some(layer.width * 0.8),
+                                height: Some(layer.height * 0.8),
+                                ..Default::default()
+                            },
+                        )
+                        .await?;
+                        commands_executed.push("Made layer smaller".to_string());
+                    }
+                }
+            }
+        }
+
+        let response_message = if commands_executed.is_empty() {
+            "I couldn't understand that command. Try: add text \"Hello\", delete, split, make it bigger/smaller".to_string()
+        } else {
+            commands_executed.join(", ")
+        };
+
+        let project_detail = self.get_project_detail(project_id).await.ok();
+
+        Ok(ChatEditResponse {
+            success: !commands_executed.is_empty(),
+            message: response_message,
+            commands_executed,
+            project: project_detail,
+        })
+    }
+}
+
+fn extract_quoted_text(message: &str) -> Option<String> {
+    let chars: Vec<char> = message.chars().collect();
+    let mut start = None;
+    let mut end = None;
+
+    for (i, c) in chars.iter().enumerate() {
+        if *c == '"' || *c == '\'' || *c == '"' || *c == '"' {
+            if start.is_none() {
+                start = Some(i + 1);
+            } else {
+                end = Some(i);
+                break;
+            }
+        }
+    }
+
+    match (start, end) {
+        (Some(s), Some(e)) if e > s => Some(chars[s..e].iter().collect()),
+        _ => None,
+    }
 }
