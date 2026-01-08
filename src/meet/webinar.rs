@@ -1596,7 +1596,7 @@ async fn create_webinar_handler(
     host_id: Uuid,
     Json(request): Json<CreateWebinarRequest>,
 ) -> Result<Json<Webinar>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let webinar = service.create_webinar(organization_id, host_id, request).await?;
     Ok(Json(webinar))
 }
@@ -1605,7 +1605,7 @@ async fn get_webinar_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
 ) -> Result<Json<Webinar>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let webinar = service.get_webinar(webinar_id).await?;
     Ok(Json(webinar))
 }
@@ -1615,7 +1615,7 @@ async fn start_webinar_handler(
     Path(webinar_id): Path<Uuid>,
     host_id: Uuid,
 ) -> Result<Json<Webinar>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let webinar = service.start_webinar(webinar_id, host_id).await?;
     Ok(Json(webinar))
 }
@@ -1625,7 +1625,7 @@ async fn end_webinar_handler(
     Path(webinar_id): Path<Uuid>,
     host_id: Uuid,
 ) -> Result<Json<Webinar>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let webinar = service.end_webinar(webinar_id, host_id).await?;
     Ok(Json(webinar))
 }
@@ -1635,7 +1635,7 @@ async fn register_handler(
     Path(webinar_id): Path<Uuid>,
     Json(request): Json<RegisterRequest>,
 ) -> Result<Json<WebinarRegistration>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let registration = service.register_attendee(webinar_id, request).await?;
     Ok(Json(registration))
 }
@@ -1645,7 +1645,7 @@ async fn join_handler(
     Path(webinar_id): Path<Uuid>,
     participant_id: Uuid,
 ) -> Result<Json<WebinarParticipant>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let participant = service.join_webinar(webinar_id, participant_id).await?;
     Ok(Json(participant))
 }
@@ -1655,7 +1655,7 @@ async fn raise_hand_handler(
     Path(webinar_id): Path<Uuid>,
     participant_id: Uuid,
 ) -> Result<StatusCode, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     service.raise_hand(webinar_id, participant_id).await?;
     Ok(StatusCode::OK)
 }
@@ -1665,7 +1665,7 @@ async fn lower_hand_handler(
     Path(webinar_id): Path<Uuid>,
     participant_id: Uuid,
 ) -> Result<StatusCode, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     service.lower_hand(webinar_id, participant_id).await?;
     Ok(StatusCode::OK)
 }
@@ -1674,7 +1674,7 @@ async fn get_raised_hands_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
 ) -> Result<Json<Vec<WebinarParticipant>>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let hands = service.get_raised_hands(webinar_id).await?;
     Ok(Json(hands))
 }
@@ -1683,7 +1683,7 @@ async fn get_questions_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
 ) -> Result<Json<Vec<QAQuestion>>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let questions = service.get_questions(webinar_id, false).await?;
     Ok(Json(questions))
 }
@@ -1694,7 +1694,7 @@ async fn submit_question_handler(
     asker_id: Option<Uuid>,
     Json(request): Json<SubmitQuestionRequest>,
 ) -> Result<Json<QAQuestion>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let question = service.submit_question(webinar_id, asker_id, "Anonymous".to_string(), request).await?;
     Ok(Json(question))
 }
@@ -1705,7 +1705,7 @@ async fn answer_question_handler(
     answerer_id: Uuid,
     Json(request): Json<AnswerQuestionRequest>,
 ) -> Result<Json<QAQuestion>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let question = service.answer_question(question_id, answerer_id, request).await?;
     Ok(Json(question))
 }
@@ -1715,7 +1715,7 @@ async fn upvote_question_handler(
     Path((webinar_id, question_id)): Path<(Uuid, Uuid)>,
     voter_id: Uuid,
 ) -> Result<Json<QAQuestion>, WebinarError> {
-    let service = WebinarService::new(state.db_pool.clone());
+    let service = WebinarService::new(state.conn.clone());
     let question = service.upvote_question(question_id, voter_id).await?;
     Ok(Json(question))
 }

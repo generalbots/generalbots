@@ -1334,7 +1334,7 @@ impl CanvasService {
 
     pub async fn get_asset_library(&self, asset_type: Option<AssetType>) -> Result<Vec<AssetLibraryItem>, CanvasError> {
         let icons = vec![
-            AssetLibraryItem { id: Uuid::new_v4(), name: "Bot".to_string(), asset_type: AssetType::Icon, url: None, svg_content: Some(include_str!("../../botui/ui/suite/assets/icons/gb-bot.svg").to_string()), category: "General Bots".to_string(), tags: vec!["bot".to_string(), "assistant".to_string()], is_system: true },
+            AssetLibraryItem { id: Uuid::new_v4(), name: "Bot".to_string(), asset_type: AssetType::Icon, url: None, svg_content: Some(include_str!("../../../botui/ui/suite/assets/icons/gb-bot.svg").to_string()), category: "General Bots".to_string(), tags: vec!["bot".to_string(), "assistant".to_string()], is_system: true },
             AssetLibraryItem { id: Uuid::new_v4(), name: "Analytics".to_string(), asset_type: AssetType::Icon, url: None, svg_content: Some("<svg></svg>".to_string()), category: "General Bots".to_string(), tags: vec!["analytics".to_string(), "chart".to_string()], is_system: true },
             AssetLibraryItem { id: Uuid::new_v4(), name: "Calendar".to_string(), asset_type: AssetType::Icon, url: None, svg_content: Some("<svg></svg>".to_string()), category: "General Bots".to_string(), tags: vec!["calendar".to_string(), "date".to_string()], is_system: true },
             AssetLibraryItem { id: Uuid::new_v4(), name: "Chat".to_string(), asset_type: AssetType::Icon, url: None, svg_content: Some("<svg></svg>".to_string()), category: "General Bots".to_string(), tags: vec!["chat".to_string(), "message".to_string()], is_system: true },
@@ -1455,7 +1455,7 @@ async fn create_canvas_handler(
     user_id: Uuid,
     Json(request): Json<CreateCanvasRequest>,
 ) -> Result<Json<Canvas>, CanvasError> {
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     let canvas = service.create_canvas(organization_id, user_id, request).await?;
     Ok(Json(canvas))
 }
@@ -1464,7 +1464,7 @@ async fn get_canvas_handler(
     State(state): State<Arc<AppState>>,
     Path(canvas_id): Path<Uuid>,
 ) -> Result<Json<Canvas>, CanvasError> {
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     let canvas = service.get_canvas(canvas_id).await?;
     Ok(Json(canvas))
 }
@@ -1475,7 +1475,7 @@ async fn add_element_handler(
     user_id: Uuid,
     Json(request): Json<AddElementRequest>,
 ) -> Result<Json<CanvasElement>, CanvasError> {
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     let element = service.add_element(canvas_id, user_id, request).await?;
     Ok(Json(element))
 }
@@ -1486,7 +1486,7 @@ async fn update_element_handler(
     user_id: Uuid,
     Json(request): Json<UpdateElementRequest>,
 ) -> Result<Json<CanvasElement>, CanvasError> {
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     let element = service.update_element(canvas_id, element_id, user_id, request).await?;
     Ok(Json(element))
 }
@@ -1496,7 +1496,7 @@ async fn delete_element_handler(
     Path((canvas_id, element_id)): Path<(Uuid, Uuid)>,
     user_id: Uuid,
 ) -> Result<StatusCode, CanvasError> {
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     service.delete_element(canvas_id, element_id, user_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -1507,7 +1507,7 @@ async fn group_elements_handler(
     user_id: Uuid,
     Json(request): Json<GroupElementsRequest>,
 ) -> Result<Json<CanvasElement>, CanvasError> {
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     let group = service.group_elements(canvas_id, user_id, request).await?;
     Ok(Json(group))
 }
@@ -1518,7 +1518,7 @@ async fn add_layer_handler(
     user_id: Uuid,
     Json(request): Json<CreateLayerRequest>,
 ) -> Result<Json<Layer>, CanvasError> {
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     let layer = service.add_layer(canvas_id, user_id, request).await?;
     Ok(Json(layer))
 }
@@ -1528,7 +1528,7 @@ async fn export_canvas_handler(
     Path(canvas_id): Path<Uuid>,
     Json(request): Json<ExportRequest>,
 ) -> Result<Json<ExportResult>, CanvasError> {
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     let result = service.export_canvas(canvas_id, request).await?;
     Ok(Json(result))
 }
@@ -1542,7 +1542,7 @@ async fn get_templates_handler(
     State(state): State<Arc<AppState>>,
     Query(query): Query<TemplatesQuery>,
 ) -> Result<Json<Vec<CanvasTemplate>>, CanvasError> {
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     let templates = service.get_templates(query.category).await?;
     Ok(Json(templates))
 }
@@ -1565,7 +1565,7 @@ async fn get_assets_handler(
         _ => None,
     });
 
-    let service = CanvasService::new(state.db_pool.clone());
+    let service = CanvasService::new(state.conn.clone());
     let assets = service.get_asset_library(asset_type).await?;
     Ok(Json(assets))
 }

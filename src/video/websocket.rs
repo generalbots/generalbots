@@ -15,6 +15,9 @@ use crate::shared::state::AppState;
 
 use super::models::ExportProgressEvent;
 
+static GLOBAL_BROADCASTER: std::sync::OnceLock<Arc<ExportProgressBroadcaster>> =
+    std::sync::OnceLock::new();
+
 pub struct ExportProgressBroadcaster {
     tx: broadcast::Sender<ExportProgressEvent>,
 }
@@ -23,6 +26,12 @@ impl ExportProgressBroadcaster {
     pub fn new() -> Self {
         let (tx, _) = broadcast::channel(100);
         Self { tx }
+    }
+
+    pub fn global() -> Arc<Self> {
+        GLOBAL_BROADCASTER
+            .get_or_init(|| Arc::new(Self::new()))
+            .clone()
     }
 
     pub fn sender(&self) -> broadcast::Sender<ExportProgressEvent> {
@@ -48,14 +57,14 @@ impl Default for ExportProgressBroadcaster {
 
 pub async fn export_progress_websocket(
     ws: WebSocketUpgrade,
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(export_id): Path<Uuid>,
 ) -> impl IntoResponse {
     info!("WebSocket connection request for export: {export_id}");
-    ws.on_upgrade(move |socket| handle_export_websocket(socket, state, export_id))
+    ws.on_upgrade(move |socket| handle_export_websocket(socket, export_id))
 }
 
-async fn handle_export_websocket(socket: WebSocket, state: Arc<AppState>, export_id: Uuid) {
+async fn handle_export_websocket(socket: WebSocket, export_id: Uuid) {
     let (mut sender, mut receiver) = socket.split();
 
     info!("WebSocket connected for export: {export_id}");
@@ -75,13 +84,8 @@ async fn handle_export_websocket(socket: WebSocket, state: Arc<AppState>, export
         return;
     }
 
-    let mut progress_rx = if let Some(broadcaster) = state.video_progress_broadcaster.as_ref() {
-        broadcaster.subscribe()
-    } else {
-        let (tx, rx) = broadcast::channel(1);
-        drop(tx);
-        rx
-    };
+    let broadcaster = ExportProgressBroadcaster::global();
+    let mut progress_rx = broadcaster.subscribe();
 
     let export_id_for_recv = export_id;
 
@@ -177,7 +181,6 @@ async fn handle_export_websocket(socket: WebSocket, state: Arc<AppState>, export
 }
 
 pub fn broadcast_export_progress(
-    broadcaster: &ExportProgressBroadcaster,
     export_id: Uuid,
     project_id: Uuid,
     status: &str,
@@ -196,5 +199,5 @@ pub fn broadcast_export_progress(
         gbdrive_path,
     };
 
-    broadcaster.send(event);
+    ExportProgressBroadcaster::global().send(event);
 }

@@ -57,7 +57,7 @@ impl WebsiteCrawlerService {
     fn check_and_crawl_websites(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Checking for websites that need recrawling");
 
-        let mut conn = self.db_pool.get()?;
+        let mut conn = self.conn.get()?;
 
         let websites = diesel::sql_query(
             "SELECT id, bot_id, url, expires_policy, max_depth, max_pages
@@ -77,7 +77,7 @@ impl WebsiteCrawlerService {
                 .execute(&mut conn)?;
 
             let kb_manager = Arc::clone(&self.kb_manager);
-            let db_pool = self.db_pool.clone();
+            let db_pool = self.conn.clone();
 
             tokio::spawn(async move {
                 if let Err(e) = Self::crawl_website(website, kb_manager, db_pool).await {

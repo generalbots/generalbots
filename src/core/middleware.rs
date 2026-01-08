@@ -334,7 +334,7 @@ impl ContextMiddlewareState {
             "#,
         )
         .bind(org_id)
-        .fetch_optional(self.db_pool.as_ref())
+        .fetch_optional(self.conn.as_ref())
         .await
         .ok()
         .flatten();
@@ -395,7 +395,7 @@ impl ContextMiddlewareState {
             )
             .bind(user_id)
             .bind(org_id)
-            .fetch_all(self.db_pool.as_ref())
+            .fetch_all(self.conn.as_ref())
             .await;
 
             if let Ok(r) = role_result {
@@ -413,7 +413,7 @@ impl ContextMiddlewareState {
             )
             .bind(user_id)
             .bind(org_id)
-            .fetch_all(self.db_pool.as_ref())
+            .fetch_all(self.conn.as_ref())
             .await;
 
             if let Ok(g) = group_result {
@@ -459,18 +459,13 @@ impl ContextMiddlewareState {
     }
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug)]
 struct OrganizationRow {
     id: Uuid,
     name: String,
     plan_id: Option<String>,
 }
 
-// ============================================================================
-// Middleware Functions
-// ============================================================================
-
-/// Extract organization context from request and add to extensions
 pub async fn organization_context_middleware(
     State(state): State<Arc<ContextMiddlewareState>>,
     mut request: Request<Body>,

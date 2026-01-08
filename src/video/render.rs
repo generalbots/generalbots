@@ -9,13 +9,12 @@ use crate::shared::utils::DbPool;
 
 use super::models::*;
 use super::schema::*;
-use super::websocket::{broadcast_export_progress, ExportProgressBroadcaster};
+use super::websocket::broadcast_export_progress;
 
 pub struct VideoRenderWorker {
     db: DbPool,
     cache: Arc<redis::Client>,
     output_dir: String,
-    broadcaster: Option<Arc<ExportProgressBroadcaster>>,
 }
 
 impl VideoRenderWorker {
@@ -24,21 +23,6 @@ impl VideoRenderWorker {
             db,
             cache,
             output_dir,
-            broadcaster: None,
-        }
-    }
-
-    pub fn with_broadcaster(
-        db: DbPool,
-        cache: Arc<redis::Client>,
-        output_dir: String,
-        broadcaster: Arc<ExportProgressBroadcaster>,
-    ) -> Self {
-        Self {
-            db,
-            cache,
-            output_dir,
-            broadcaster: Some(broadcaster),
         }
     }
 
@@ -163,18 +147,15 @@ impl VideoRenderWorker {
                 .execute(&mut db_conn)?;
         }
 
-        if let Some(broadcaster) = &self.broadcaster {
-            broadcast_export_progress(
-                broadcaster,
-                export_id,
-                project_id,
-                status,
-                progress,
-                Some(format!("Export {progress}%")),
-                output_url,
-                gbdrive_path,
-            );
-        }
+        broadcast_export_progress(
+            export_id,
+            project_id,
+            status,
+            progress,
+            Some(format!("Export {progress}%")),
+            output_url,
+            gbdrive_path,
+        );
 
         Ok(())
     }
@@ -447,18 +428,6 @@ impl VideoRenderWorker {
 
 pub fn start_render_worker(db: DbPool, cache: Arc<redis::Client>, output_dir: String) {
     let worker = VideoRenderWorker::new(db, cache, output_dir);
-    tokio::spawn(async move {
-        worker.run_worker_loop().await;
-    });
-}
-
-pub fn start_render_worker_with_broadcaster(
-    db: DbPool,
-    cache: Arc<redis::Client>,
-    output_dir: String,
-    broadcaster: Arc<ExportProgressBroadcaster>,
-) {
-    let worker = VideoRenderWorker::with_broadcaster(db, cache, output_dir, broadcaster);
     tokio::spawn(async move {
         worker.run_worker_loop().await;
     });

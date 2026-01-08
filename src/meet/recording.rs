@@ -1,9 +1,3 @@
-//! Webinar Recording and Transcription Service
-//!
-//! This module provides recording and automatic transcription capabilities for webinars.
-//! It integrates with various transcription providers and handles the full lifecycle
-//! of recordings from capture to processing to storage.
-
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -20,45 +14,59 @@ use uuid::Uuid;
 use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 
+#[derive(Debug, Clone)]
+pub enum RecordingError {
+    DatabaseError(String),
+    NotFound,
+    AlreadyExists,
+    InvalidState(String),
+    StorageError(String),
+    TranscriptionError(String),
+    Unauthorized,
+}
+
+impl std::fmt::Display for RecordingError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DatabaseError(e) => write!(f, "Database error: {e}"),
+            Self::NotFound => write!(f, "Recording not found"),
+            Self::AlreadyExists => write!(f, "Recording already exists"),
+            Self::InvalidState(s) => write!(f, "Invalid state: {s}"),
+            Self::StorageError(e) => write!(f, "Storage error: {e}"),
+            Self::TranscriptionError(e) => write!(f, "Transcription error: {e}"),
+            Self::Unauthorized => write!(f, "Unauthorized"),
+        }
+    }
+}
+
+impl std::error::Error for RecordingError {}
+
 use super::webinar::{
     RecordingQuality, RecordingStatus, TranscriptionFormat, TranscriptionSegment,
     TranscriptionStatus, TranscriptionWord, WebinarRecording, WebinarTranscription,
 };
 
-/// Maximum recording duration in seconds (8 hours)
 const MAX_RECORDING_DURATION_SECONDS: u64 = 28800;
 
-/// Default transcription language
 const DEFAULT_TRANSCRIPTION_LANGUAGE: &str = "en-US";
 
-/// Supported transcription languages
 const SUPPORTED_LANGUAGES: &[&str] = &[
     "en-US", "en-GB", "es-ES", "es-MX", "fr-FR", "de-DE", "it-IT", "pt-BR", "pt-PT", "nl-NL",
     "pl-PL", "ru-RU", "ja-JP", "ko-KR", "zh-CN", "zh-TW", "ar-SA", "hi-IN", "tr-TR", "vi-VN",
 ];
 
-/// Configuration for recording service
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecordingConfig {
-    /// Maximum recording duration in seconds
     pub max_duration_seconds: u64,
-    /// Default recording quality
     pub default_quality: RecordingQuality,
-    /// Storage backend (local, s3, azure, gcs)
     pub storage_backend: StorageBackend,
-    /// Storage bucket/container name
     pub storage_bucket: String,
-    /// Enable automatic transcription
     pub auto_transcribe: bool,
-    /// Default transcription language
     pub default_language: String,
-    /// Transcription provider
     pub transcription_provider: TranscriptionProvider,
-    /// Recording retention days (0 = indefinite)
     pub retention_days: u32,
-    /// Enable speaker diarization
     pub speaker_diarization: bool,
-    /// Maximum speakers to identify
     pub max_speakers: u8,
 }
 
@@ -79,7 +87,6 @@ impl Default for RecordingConfig {
     }
 }
 
-/// Storage backend options
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub enum StorageBackend {
     #[default]
@@ -100,7 +107,6 @@ impl std::fmt::Display for StorageBackend {
     }
 }
 
-/// Transcription provider options
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub enum TranscriptionProvider {
     #[default]
@@ -125,7 +131,6 @@ impl std::fmt::Display for TranscriptionProvider {
     }
 }
 
-/// Recording session state
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecordingSession {
     pub id: Uuid,
@@ -143,7 +148,6 @@ pub struct RecordingSession {
     pub bytes_written: u64,
 }
 
-/// Transcription job state
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranscriptionJob {
     pub id: Uuid,
@@ -161,7 +165,6 @@ pub struct TranscriptionJob {
     pub retry_count: u8,
 }
 
-/// Recording event types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RecordingEvent {
     Started {
@@ -216,7 +219,6 @@ pub enum RecordingEvent {
     },
 }
 
-/// Request to start recording
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartRecordingRequest {
     pub webinar_id: Uuid,
@@ -226,14 +228,12 @@ pub struct StartRecordingRequest {
     pub speaker_diarization: Option<bool>,
 }
 
-/// Request to stop recording
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StopRecordingRequest {
     pub recording_id: Uuid,
     pub start_transcription: Option<bool>,
 }
 
-/// Request to get transcription in specific format
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportTranscriptionRequest {
     pub format: TranscriptionFormat,
@@ -242,7 +242,6 @@ pub struct ExportTranscriptionRequest {
     pub max_line_length: Option<usize>,
 }
 
-/// Response for transcription export
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportTranscriptionResponse {
     pub format: TranscriptionFormat,
@@ -251,7 +250,6 @@ pub struct ExportTranscriptionResponse {
     pub filename: String,
 }
 
-/// Recording service for managing webinar recordings and transcriptions
 pub struct RecordingService {
     pool: DbPool,
     config: RecordingConfig,
@@ -272,12 +270,10 @@ impl RecordingService {
         }
     }
 
-    /// Subscribe to recording events
     pub fn subscribe(&self) -> broadcast::Receiver<RecordingEvent> {
         self.event_sender.subscribe()
     }
 
-    /// Start recording a webinar
     pub async fn start_recording(
         &self,
         request: StartRecordingRequest,
@@ -352,7 +348,6 @@ impl RecordingService {
         })
     }
 
-    /// Pause recording
     pub async fn pause_recording(&self, recording_id: Uuid) -> Result<(), RecordingError> {
         let mut sessions = self.active_sessions.write().await;
         let session = sessions
@@ -372,7 +367,6 @@ impl RecordingService {
         Ok(())
     }
 
-    /// Resume recording
     pub async fn resume_recording(&self, recording_id: Uuid) -> Result<(), RecordingError> {
         let mut sessions = self.active_sessions.write().await;
         let session = sessions
@@ -390,7 +384,6 @@ impl RecordingService {
         Ok(())
     }
 
-    /// Stop recording and optionally start transcription
     pub async fn stop_recording(
         &self,
         request: StopRecordingRequest,
@@ -452,7 +445,6 @@ impl RecordingService {
         })
     }
 
-    /// Process recording (convert, compress, generate thumbnails)
     async fn process_recording(&self, recording_id: Uuid) -> Result<(), RecordingError> {
         let _ = self
             .event_sender
@@ -484,7 +476,6 @@ impl RecordingService {
         Ok(())
     }
 
-    /// Start transcription for a recording
     pub async fn start_transcription(
         &self,
         recording_id: Uuid,
@@ -560,7 +551,6 @@ impl RecordingService {
         })
     }
 
-    /// Run the transcription process
     async fn run_transcription(&self, transcription_id: Uuid, recording_id: Uuid) {
         // Update status to in progress
         {
@@ -673,7 +663,6 @@ impl RecordingService {
             });
     }
 
-    /// Get recording by ID
     pub async fn get_recording(&self, recording_id: Uuid) -> Result<WebinarRecording, RecordingError> {
         // Check active sessions first
         let sessions = self.active_sessions.read().await;
@@ -709,7 +698,6 @@ impl RecordingService {
         self.get_recording_from_db(recording_id).await
     }
 
-    /// Get transcription by ID
     pub async fn get_transcription(
         &self,
         transcription_id: Uuid,
@@ -742,7 +730,6 @@ impl RecordingService {
         self.get_transcription_from_db(transcription_id).await
     }
 
-    /// Export transcription in specified format
     pub async fn export_transcription(
         &self,
         transcription_id: Uuid,
@@ -782,7 +769,6 @@ impl RecordingService {
         })
     }
 
-    /// Format transcription as plain text
     fn format_as_plain_text(
         &self,
         transcription: &WebinarTranscription,
@@ -810,7 +796,6 @@ impl RecordingService {
         output
     }
 
-    /// Format transcription as VTT (WebVTT)
     fn format_as_vtt(
         &self,
         transcription: &WebinarTranscription,
@@ -838,7 +823,6 @@ impl RecordingService {
         output
     }
 
-    /// Format transcription as SRT
     fn format_as_srt(
         &self,
         transcription: &WebinarTranscription,
@@ -866,7 +850,6 @@ impl RecordingService {
         output
     }
 
-    /// List recordings for a webinar
     pub async fn list_recordings(
         &self,
         webinar_id: Uuid,
@@ -874,7 +857,6 @@ impl RecordingService {
         self.list_recordings_from_db(webinar_id).await
     }
 
-    /// Delete a recording
     pub async fn delete_recording(&self, recording_id: Uuid) -> Result<(), RecordingError> {
         // Check if recording is active
         let sessions = self.active_sessions.read().await;

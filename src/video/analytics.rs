@@ -1,9 +1,16 @@
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Json},
+};
 use chrono::Utc;
 use diesel::prelude::*;
 use std::sync::Arc;
 use tracing::error;
 use uuid::Uuid;
 
+use crate::security::error_sanitizer::SafeErrorResponse;
+use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 
 use super::models::*;
@@ -296,20 +303,11 @@ fn parse_devices(json: &Option<serde_json::Value>) -> DeviceBreakdown {
     }
 }
 
-use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Json},
-};
-
-use crate::security::error_sanitizer::SafeErrorResponse;
-use crate::shared::state::AppState;
-
 pub async fn get_analytics_handler(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = AnalyticsEngine::new(state.db.clone());
+    let engine = AnalyticsEngine::new(state.conn.clone());
 
     let _ = engine.get_or_create_analytics(project_id, None).await;
 
@@ -329,7 +327,7 @@ pub async fn record_view_handler(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RecordViewRequest>,
 ) -> impl IntoResponse {
-    let engine = AnalyticsEngine::new(state.db.clone());
+    let engine = AnalyticsEngine::new(state.conn.clone());
 
     match engine.record_view(req).await {
         Ok(_) => (

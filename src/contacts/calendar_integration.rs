@@ -1,9 +1,3 @@
-//! Contacts-Calendar Integration Module
-//!
-//! This module provides integration between the Contacts and Calendar apps,
-//! allowing contacts to be linked to calendar events and providing contact
-//! context for meetings.
-
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
@@ -19,7 +13,6 @@ use uuid::Uuid;
 use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 
-/// A contact linked to a calendar event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventContact {
     pub id: Uuid,
@@ -32,7 +25,6 @@ pub struct EventContact {
     pub created_at: DateTime<Utc>,
 }
 
-/// Role of a contact in an event
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum EventContactRole {
     #[default]
@@ -57,7 +49,6 @@ impl std::fmt::Display for EventContactRole {
     }
 }
 
-/// Response status for event invitation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum ResponseStatus {
     #[default]
@@ -80,7 +71,6 @@ impl std::fmt::Display for ResponseStatus {
     }
 }
 
-/// Request to link a contact to an event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LinkContactRequest {
     pub contact_id: Uuid,
@@ -88,7 +78,6 @@ pub struct LinkContactRequest {
     pub send_notification: Option<bool>,
 }
 
-/// Request to link multiple contacts to an event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BulkLinkContactsRequest {
     pub contact_ids: Vec<Uuid>,
@@ -96,14 +85,12 @@ pub struct BulkLinkContactsRequest {
     pub send_notification: Option<bool>,
 }
 
-/// Request to update a contact's role or status in an event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateEventContactRequest {
     pub role: Option<EventContactRole>,
     pub response_status: Option<ResponseStatus>,
 }
 
-/// Query parameters for listing event contacts
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventContactsQuery {
     pub role: Option<EventContactRole>,
@@ -111,7 +98,6 @@ pub struct EventContactsQuery {
     pub include_contact_details: Option<bool>,
 }
 
-/// Query parameters for listing contact's events
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactEventsQuery {
     pub from_date: Option<DateTime<Utc>>,
@@ -122,14 +108,12 @@ pub struct ContactEventsQuery {
     pub offset: Option<u32>,
 }
 
-/// Event contact with full contact details
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventContactWithDetails {
     pub event_contact: EventContact,
     pub contact: ContactSummary,
 }
 
-/// Summary of contact information for display
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactSummary {
     pub id: Uuid,
@@ -142,7 +126,6 @@ pub struct ContactSummary {
     pub avatar_url: Option<String>,
 }
 
-/// Event summary for contact view
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventSummary {
     pub id: Uuid,
@@ -155,14 +138,12 @@ pub struct EventSummary {
     pub organizer_name: Option<String>,
 }
 
-/// Contact's event with role information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactEventWithDetails {
     pub event_contact: EventContact,
     pub event: EventSummary,
 }
 
-/// Response for listing contact events
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactEventsResponse {
     pub events: Vec<ContactEventWithDetails>,
@@ -171,7 +152,6 @@ pub struct ContactEventsResponse {
     pub past_count: u32,
 }
 
-/// Suggested contacts based on event context
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SuggestedContact {
     pub contact: ContactSummary,
@@ -179,7 +159,6 @@ pub struct SuggestedContact {
     pub score: f32,
 }
 
-/// Reason for contact suggestion
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SuggestionReason {
     FrequentCollaborator,
@@ -203,7 +182,6 @@ impl std::fmt::Display for SuggestionReason {
     }
 }
 
-/// Calendar integration service for contacts
 pub struct CalendarIntegrationService {
     pool: DbPool,
 }
@@ -213,7 +191,6 @@ impl CalendarIntegrationService {
         Self { pool }
     }
 
-    /// Link a contact to a calendar event
     pub async fn link_contact_to_event(
         &self,
         organization_id: Uuid,
@@ -267,7 +244,6 @@ impl CalendarIntegrationService {
         })
     }
 
-    /// Link multiple contacts to an event
     pub async fn bulk_link_contacts(
         &self,
         organization_id: Uuid,
@@ -296,7 +272,6 @@ impl CalendarIntegrationService {
         Ok(results)
     }
 
-    /// Unlink a contact from an event
     pub async fn unlink_contact_from_event(
         &self,
         organization_id: Uuid,
@@ -322,7 +297,6 @@ impl CalendarIntegrationService {
         Ok(())
     }
 
-    /// Update a contact's role or status in an event
     pub async fn update_event_contact(
         &self,
         organization_id: Uuid,
@@ -348,7 +322,6 @@ impl CalendarIntegrationService {
         Ok(event_contact)
     }
 
-    /// Get all contacts linked to an event
     pub async fn get_event_contacts(
         &self,
         organization_id: Uuid,
@@ -390,7 +363,6 @@ impl CalendarIntegrationService {
         }
     }
 
-    /// Get all events for a contact
     pub async fn get_contact_events(
         &self,
         organization_id: Uuid,
@@ -417,7 +389,6 @@ impl CalendarIntegrationService {
         })
     }
 
-    /// Get suggested contacts for an event
     pub async fn get_suggested_contacts(
         &self,
         organization_id: Uuid,
@@ -480,7 +451,6 @@ impl CalendarIntegrationService {
         Ok(suggestions)
     }
 
-    /// Find contacts by email for quick add to event
     pub async fn find_contacts_for_event(
         &self,
         organization_id: Uuid,
@@ -496,7 +466,6 @@ impl CalendarIntegrationService {
         Ok(results)
     }
 
-    /// Create contacts from event attendees who don't exist
     pub async fn create_contacts_from_attendees(
         &self,
         organization_id: Uuid,
@@ -763,7 +732,6 @@ impl CalendarIntegrationService {
     }
 }
 
-/// Attendee information for creating contacts
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttendeeInfo {
     pub email: String,
@@ -771,7 +739,6 @@ pub struct AttendeeInfo {
     pub company: Option<String>,
 }
 
-/// Error types for calendar integration
 #[derive(Debug, Clone)]
 pub enum CalendarIntegrationError {
     DatabaseError,
@@ -825,7 +792,6 @@ impl IntoResponse for CalendarIntegrationError {
     }
 }
 
-/// Create database tables migration
 pub fn create_calendar_integration_tables_migration() -> String {
     r#"
     CREATE TABLE IF NOT EXISTS event_contacts (
@@ -849,7 +815,6 @@ pub fn create_calendar_integration_tables_migration() -> String {
     .to_string()
 }
 
-/// API routes for calendar integration
 pub fn calendar_integration_routes() -> Router<Arc<AppState>> {
     Router::new()
         // Event contacts
@@ -888,8 +853,8 @@ async fn get_event_contacts_handler(
     Path(event_id): Path<Uuid>,
     Query(query): Query<EventContactsQuery>,
 ) -> impl IntoResponse {
-    let service = CalendarIntegrationService::new(state.db_pool.clone());
-    let org_id = Uuid::new_v4(); // Get from auth context
+    let service = CalendarIntegrationService::new(state.conn.clone());
+    let org_id = Uuid::new_v4();
 
     match service.get_event_contacts(org_id, event_id, &query).await {
         Ok(contacts) => Json(contacts).into_response(),
@@ -902,11 +867,106 @@ async fn link_contact_handler(
     Path(event_id): Path<Uuid>,
     Json(request): Json<LinkContactRequest>,
 ) -> impl IntoResponse {
-    let service = CalendarIntegrationService::new(state.db_pool.clone());
-    let org_id = Uuid::new_v4(); // Get from auth context
+    let service = CalendarIntegrationService::new(state.conn.clone());
+    let org_id = Uuid::new_v4();
 
     match service.link_contact_to_event(org_id, event_id, &request).await {
         Ok(event_contact) => Json(event_contact).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+async fn bulk_link_contacts_handler(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+    Json(request): Json<BulkLinkContactsRequest>,
+) -> impl IntoResponse {
+    let service = CalendarIntegrationService::new(state.conn.clone());
+    let org_id = Uuid::new_v4();
+
+    match service.bulk_link_contacts(org_id, event_id, &request).await {
+        Ok(contacts) => Json(contacts).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+async fn unlink_contact_handler(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, contact_id)): Path<(Uuid, Uuid)>,
+) -> impl IntoResponse {
+    let service = CalendarIntegrationService::new(state.conn.clone());
+    let org_id = Uuid::new_v4();
+
+    match service.unlink_contact_from_event(org_id, event_id, contact_id).await {
+        Ok(_) => Json(serde_json::json!({ "success": true })).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+async fn update_event_contact_handler(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, contact_id)): Path<(Uuid, Uuid)>,
+    Json(request): Json<UpdateEventContactRequest>,
+) -> impl IntoResponse {
+    let service = CalendarIntegrationService::new(state.conn.clone());
+    let org_id = Uuid::new_v4();
+
+    match service.update_event_contact(org_id, event_id, contact_id, &request).await {
+        Ok(contact) => Json(contact).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+async fn get_suggestions_handler(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+) -> impl IntoResponse {
+    let service = CalendarIntegrationService::new(state.conn.clone());
+    let org_id = Uuid::new_v4();
+
+    match service.get_suggested_contacts(org_id, event_id).await {
+        Ok(suggestions) => Json(suggestions).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+async fn get_contact_events_handler(
+    State(state): State<Arc<AppState>>,
+    Path(contact_id): Path<Uuid>,
+    Query(query): Query<ContactEventsQuery>,
+) -> impl IntoResponse {
+    let service = CalendarIntegrationService::new(state.conn.clone());
+    let org_id = Uuid::new_v4();
+
+    match service.get_contact_events(org_id, contact_id, &query).await {
+        Ok(events) => Json(events).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+async fn find_contacts_handler(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+) -> impl IntoResponse {
+    let service = CalendarIntegrationService::new(state.conn.clone());
+    let org_id = Uuid::new_v4();
+
+    match service.find_contacts_for_event(org_id, event_id).await {
+        Ok(contacts) => Json(contacts).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+async fn create_contacts_from_attendees_handler(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+    Json(attendees): Json<Vec<AttendeeInfo>>,
+) -> impl IntoResponse {
+    let service = CalendarIntegrationService::new(state.conn.clone());
+    let org_id = Uuid::new_v4();
+
+    match service.create_contacts_from_attendees(org_id, event_id, &attendees).await {
+        Ok(contacts) => Json(contacts).into_response(),
         Err(e) => e.into_response(),
     }
 }

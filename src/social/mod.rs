@@ -1111,39 +1111,35 @@ fn render_post_card_html(post: &PostWithAuthor) -> String {
         .post
         .reaction_counts
         .iter()
-        .map(|(emoji, count)| format!(r#"<span class="reaction">{emoji} {count}</span>"#))
+        .map(|(emoji, count)| format!("<span class=\"reaction\">{emoji} {count}</span>"))
         .collect();
 
+    let avatar_url = post.author.avatar_url.as_deref().unwrap_or("/assets/default-avatar.svg");
+    let post_time = post.post.created_at.format("%b %d, %Y");
+
     format!(
-        concat!(
-            r#"<article class="post-card" data-post-id="{}">"#,
-            r#"<header class="post-header">"#,
-            r#"<img class="avatar" src="{}" alt="{}" />"#,
-            r#"<div class="post-meta"><span class="author-name">{}</span><span class="post-time">{}</span></div>"#,
-            r#"</header>"#,
-            r#"<div class="post-content">{}</div>"#,
-            r#"<footer class="post-footer">"#,
-            r#"<div class="reactions">{}</div>"#,
-            r#"<div class="post-actions">"#,
-            r#"<button class="btn-react" hx-post="/api/social/posts/{}/react" hx-swap="outerHTML">👍</button>"#,
-            r#"<button class="btn-comment" hx-get="/api/social/posts/{}/comments" hx-target="#comments-{}">💬 {}</button>"#,
-            r#"</div>"#,
-            r#"</footer>"#,
-            r##"<div id="comments-{}" class="comments-section"></div>"##,
-            r#"</article>"#
-        ),
-        post.post.id,
-        post.author.avatar_url.as_deref().unwrap_or("/assets/default-avatar.svg"),
-        post.author.name,
-        post.author.name,
-        post.post.created_at.format("%b %d, %Y"),
-        post.post.content,
-        reactions_html,
-        post.post.id,
-        post.post.id,
-        post.post.id,
-        post.post.comment_count,
-        post.post.id
+        "<article class=\"post-card\" data-post-id=\"{id}\">\
+         <header class=\"post-header\">\
+         <img class=\"avatar\" src=\"{avatar}\" alt=\"{name}\" />\
+         <div class=\"post-meta\"><span class=\"author-name\">{name}</span><span class=\"post-time\">{time}</span></div>\
+         </header>\
+         <div class=\"post-content\">{content}</div>\
+         <footer class=\"post-footer\">\
+         <div class=\"reactions\">{reactions}</div>\
+         <div class=\"post-actions\">\
+         <button class=\"btn-react\" hx-post=\"/api/social/posts/{id}/react\" hx-swap=\"outerHTML\">Like</button>\
+         <button class=\"btn-comment\" hx-get=\"/api/social/posts/{id}/comments\" hx-target=\"#comments-{id}\">Comment {comments}</button>\
+         </div>\
+         </footer>\
+         <div id=\"comments-{id}\" class=\"comments-section\"></div>\
+         </article>",
+        id = post.post.id,
+        avatar = avatar_url,
+        name = post.author.name,
+        time = post_time,
+        content = post.post.content,
+        reactions = reactions_html,
+        comments = post.post.comment_count,
     )
 }
 

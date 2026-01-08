@@ -18,11 +18,19 @@ use std::sync::{Arc, RwLock};
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
+use crate::shared::utils::DbPool;
 
 const CHALLENGE_TIMEOUT_SECONDS: i64 = 300;
 const PASSKEY_NAME_MAX_LENGTH: usize = 64;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+struct FallbackAttemptTracker {
+    attempts: u32,
+    first_attempt_at: DateTime<Utc>,
+    locked_until: Option<DateTime<Utc>>,
+}
+
 pub struct PasskeyCredential {
     pub id: String,
     pub user_id: Uuid,
@@ -195,14 +203,12 @@ pub struct RegistrationResult {
     pub error: Option<String>,
 }
 
-/// Request for password fallback authentication when passkey is unavailable
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PasswordFallbackRequest {
     pub username: String,
     pub password: String,
 }
 
-/// Response for password fallback authentication
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PasswordFallbackResponse {
     pub success: bool,
@@ -212,18 +218,12 @@ pub struct PasswordFallbackResponse {
     pub passkey_available: bool,
 }
 
-/// Configuration for fallback authentication behavior
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FallbackConfig {
-    /// Whether password fallback is enabled
     pub enabled: bool,
-    /// Require additional verification after password fallback
     pub require_additional_verification: bool,
-    /// Maximum password fallback attempts before lockout
     pub max_fallback_attempts: u32,
-    /// Lockout duration in seconds after max attempts
     pub lockout_duration_seconds: u64,
-    /// Prompt user to set up passkey after password login
     pub prompt_passkey_setup: bool,
 }
 
@@ -291,7 +291,6 @@ impl PasskeyService {
         }
     }
 
-    /// Create a new PasskeyService with custom fallback configuration
     pub fn with_fallback_config(
         pool: DbPool,
         rp_id: String,
@@ -311,17 +310,11 @@ impl PasskeyService {
         }
     }
 
-    /// Check if user has any registered passkeys
     pub async fn user_has_passkeys(&self, username: &str) -> Result<bool, PasskeyError> {
         let passkeys = self.get_passkeys_by_username(username).await?;
         Ok(!passkeys.is_empty())
     }
 
-    /// Authenticate using password fallback when passkey is unavailable
-    /// This is used when:
-    /// 1. User's device doesn't support passkeys
-    /// 2. User hasn't set up passkeys yet
-    /// 3. Passkey authentication failed and fallback is enabled
     pub async fn authenticate_with_password_fallback(
         &self,
         request: &PasswordFallbackRequest,
@@ -384,7 +377,6 @@ impl PasskeyService {
         }
     }
 
-    /// Check if user is locked out due to too many failed attempts
     async fn is_user_locked_out(&self, username: &str) -> bool {
         let attempts = self.fallback_attempts.read().await;
         if let Some(tracker) = attempts.get(username) {
@@ -395,7 +387,6 @@ impl PasskeyService {
         false
     }
 
-    /// Track a failed fallback attempt
     async fn track_fallback_attempt(&self, username: &str) {
         let mut attempts = self.fallback_attempts.write().await;
         let now = Utc::now();
@@ -416,32 +407,25 @@ impl PasskeyService {
         }
     }
 
-    /// Clear fallback attempts after successful login
     async fn clear_fallback_attempts(&self, username: &str) {
         let mut attempts = self.fallback_attempts.write().await;
         attempts.remove(username);
     }
 
-    /// Verify password against database
     async fn verify_password(&self, username: &str, password: &str) -> Result<Uuid, PasskeyError> {
         let mut conn = self.pool.get().map_err(|_| PasskeyError::DatabaseError)?;
 
-        // Query user by username
-        let result = sqlx::query!(
-            r#"
-            SELECT id, password_hash
-            FROM users
-            WHERE username = $1 OR email = $1
-            "#,
-            username
+        let result: Option<(Uuid, Option<String>)> = diesel::sql_query(
+            "SELECT id, password_hash FROM users WHERE username = $1 OR email = $1"
         )
-        .fetch_optional(&mut *conn)
-        .await;
+        .bind::<Text, _>(username)
+        .get_result::<(Uuid, Option<String>)>(&mut conn)
+        .optional()
+        .map_err(|_| PasskeyError::DatabaseError)?;
 
         match result {
-            Ok(Some(user)) => {
-                // Verify password hash using argon2
-                if let Some(hash) = user.password_hash {
+            Some((user_id, password_hash)) => {
+                if let Some(hash) = password_hash {
                     let parsed_hash = argon2::PasswordHash::new(&hash)
                         .map_err(|_| PasskeyError::InvalidCredentialId)?;
 
@@ -449,17 +433,15 @@ impl PasskeyService {
                         .verify_password(password.as_bytes(), &parsed_hash)
                         .is_ok()
                     {
-                        return Ok(user.id);
+                        return Ok(user_id);
                     }
                 }
                 Err(PasskeyError::InvalidCredentialId)
             }
-            Ok(None) => Err(PasskeyError::InvalidCredentialId),
-            Err(_) => Err(PasskeyError::DatabaseError),
+            None => Err(PasskeyError::InvalidCredentialId),
         }
     }
 
-    /// Generate a session token for authenticated user
     fn generate_session_token(&self, user_id: &Uuid) -> String {
         use rand::Rng;
         let mut rng = rand::thread_rng();
@@ -471,7 +453,6 @@ impl PasskeyService {
         format!("{}:{}", user_id, token)
     }
 
-    /// Check if password fallback should be offered based on passkey availability
     pub async fn should_offer_password_fallback(&self, username: &str) -> Result<bool, PasskeyError> {
         if !self.fallback_config.enabled {
             return Ok(false);
@@ -482,12 +463,10 @@ impl PasskeyService {
         Ok(!has_passkeys || self.fallback_config.enabled)
     }
 
-    /// Get fallback configuration
     pub fn get_fallback_config(&self) -> &FallbackConfig {
         &self.fallback_config
     }
 
-    /// Update fallback configuration
     pub fn set_fallback_config(&mut self, config: FallbackConfig) {
         self.fallback_config = config;
     }
@@ -1303,7 +1282,6 @@ pub fn passkey_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
         .route("/fallback/config", get(get_fallback_config_handler))
 }
 
-    /// Handler for password fallback authentication
     async fn password_fallback_handler(
         State(state): State<Arc<AppState>>,
         Json(request): Json<PasswordFallbackRequest>,
@@ -1315,7 +1293,6 @@ pub fn passkey_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
         }
     }
 
-    /// Handler to check if password fallback is available for a user
     async fn check_fallback_available_handler(
         State(state): State<Arc<AppState>>,
         Path(username): Path<String>,
@@ -1346,7 +1323,6 @@ pub fn passkey_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
         }
     }
 
-    /// Handler to get fallback configuration (public settings only)
     async fn get_fallback_config_handler(
         State(state): State<Arc<AppState>>,
     ) -> impl IntoResponse {
@@ -1438,7 +1414,7 @@ struct RegistrationVerifyRequest {
 }
 
 fn get_passkey_service(state: &AppState) -> Result<PasskeyService, PasskeyError> {
-    let pool = state.db_pool.clone();
+    let pool = state.conn.clone();
     let rp_id = std::env::var("PASSKEY_RP_ID").unwrap_or_else(|_| "localhost".to_string());
     let rp_name = std::env::var("PASSKEY_RP_NAME").unwrap_or_else(|_| "General Bots".to_string());
     let rp_origin = std::env::var("PASSKEY_RP_ORIGIN").unwrap_or_else(|_| "http://localhost:8081".to_string());

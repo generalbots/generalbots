@@ -1,9 +1,3 @@
-//! Contacts-Tasks Integration Module
-//!
-//! This module provides integration between the Contacts and Tasks apps,
-//! allowing contacts to be assigned to tasks and providing contact
-//! context for task management.
-
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
@@ -19,7 +13,47 @@ use uuid::Uuid;
 use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 
-/// A contact assigned to a task
+#[derive(Debug, Clone)]
+pub enum TasksIntegrationError {
+    DatabaseError(String),
+    ContactNotFound,
+    TaskNotFound,
+    AlreadyAssigned,
+    NotAssigned,
+    Unauthorized,
+    InvalidInput(String),
+}
+
+impl std::fmt::Display for TasksIntegrationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DatabaseError(e) => write!(f, "Database error: {e}"),
+            Self::ContactNotFound => write!(f, "Contact not found"),
+            Self::TaskNotFound => write!(f, "Task not found"),
+            Self::AlreadyAssigned => write!(f, "Contact already assigned"),
+            Self::NotAssigned => write!(f, "Contact not assigned"),
+            Self::Unauthorized => write!(f, "Unauthorized"),
+            Self::InvalidInput(e) => write!(f, "Invalid input: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for TasksIntegrationError {}
+
+impl IntoResponse for TasksIntegrationError {
+    fn into_response(self) -> axum::response::Response {
+        use axum::http::StatusCode;
+        let status = match &self {
+            Self::ContactNotFound | Self::TaskNotFound => StatusCode::NOT_FOUND,
+            Self::AlreadyAssigned | Self::NotAssigned => StatusCode::CONFLICT,
+            Self::Unauthorized => StatusCode::UNAUTHORIZED,
+            Self::InvalidInput(_) => StatusCode::BAD_REQUEST,
+            Self::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        (status, Json(serde_json::json!({ "error": self.to_string() }))).into_response()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskContact {
     pub id: Uuid,
@@ -33,8 +67,7 @@ pub struct TaskContact {
     pub notes: Option<String>,
 }
 
-/// Role of a contact in a task
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum TaskContactRole {
     #[default]
     Assignee,
@@ -62,7 +95,6 @@ impl std::fmt::Display for TaskContactRole {
     }
 }
 
-/// Request to assign a contact to a task
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AssignContactRequest {
     pub contact_id: Uuid,
@@ -71,14 +103,12 @@ pub struct AssignContactRequest {
     pub notes: Option<String>,
 }
 
-/// Request to assign multiple contacts to a task
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BulkAssignContactsRequest {
     pub assignments: Vec<ContactAssignment>,
     pub send_notification: Option<bool>,
 }
 
-/// Individual contact assignment
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactAssignment {
     pub contact_id: Uuid,
@@ -86,21 +116,18 @@ pub struct ContactAssignment {
     pub notes: Option<String>,
 }
 
-/// Request to update a contact's assignment
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateTaskContactRequest {
     pub role: Option<TaskContactRole>,
     pub notes: Option<String>,
 }
 
-/// Query parameters for listing task contacts
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskContactsQuery {
     pub role: Option<TaskContactRole>,
     pub include_contact_details: Option<bool>,
 }
 
-/// Query parameters for listing contact's tasks
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactTasksQuery {
     pub status: Option<String>,
@@ -115,7 +142,6 @@ pub struct ContactTasksQuery {
     pub sort_order: Option<SortOrder>,
 }
 
-/// Sort fields for tasks
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum TaskSortField {
     #[default]
@@ -126,7 +152,6 @@ pub enum TaskSortField {
     Title,
 }
 
-/// Sort order
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum SortOrder {
     #[default]
@@ -134,14 +159,12 @@ pub enum SortOrder {
     Desc,
 }
 
-/// Task contact with full contact details
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskContactWithDetails {
     pub task_contact: TaskContact,
     pub contact: ContactSummary,
 }
 
-/// Summary of contact information for display
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactSummary {
     pub id: Uuid,
@@ -160,7 +183,6 @@ impl ContactSummary {
     }
 }
 
-/// Task summary for contact view
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskSummary {
     pub id: Uuid,
@@ -176,14 +198,12 @@ pub struct TaskSummary {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Contact's task with role information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactTaskWithDetails {
     pub task_contact: TaskContact,
     pub task: TaskSummary,
 }
 
-/// Response for listing contact tasks
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactTasksResponse {
     pub tasks: Vec<ContactTaskWithDetails>,
@@ -195,7 +215,6 @@ pub struct ContactTasksResponse {
     pub due_this_week_count: u32,
 }
 
-/// Task statistics for a contact
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactTaskStats {
     pub contact_id: Uuid,
@@ -209,7 +228,6 @@ pub struct ContactTaskStats {
     pub recent_activity: Vec<TaskActivity>,
 }
 
-/// Task activity record
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskActivity {
     pub id: Uuid,
@@ -220,7 +238,6 @@ pub struct TaskActivity {
     pub occurred_at: DateTime<Utc>,
 }
 
-/// Types of task activities
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskActivityType {
     Assigned,
@@ -246,7 +263,6 @@ impl std::fmt::Display for TaskActivityType {
     }
 }
 
-/// Suggested contacts for task assignment
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SuggestedTaskContact {
     pub contact: ContactSummary,
@@ -255,7 +271,6 @@ pub struct SuggestedTaskContact {
     pub workload: ContactWorkload,
 }
 
-/// Reason for suggesting a contact for a task
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskSuggestionReason {
     PreviouslyAssigned,
@@ -281,7 +296,6 @@ impl std::fmt::Display for TaskSuggestionReason {
     }
 }
 
-/// Contact's current workload
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactWorkload {
     pub active_tasks: u32,
@@ -291,7 +305,6 @@ pub struct ContactWorkload {
     pub workload_level: WorkloadLevel,
 }
 
-/// Workload level indicator
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum WorkloadLevel {
     Low,
@@ -311,7 +324,6 @@ impl std::fmt::Display for WorkloadLevel {
     }
 }
 
-/// Request to create a task and assign to contact
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTaskForContactRequest {
     pub title: String,
@@ -324,7 +336,6 @@ pub struct CreateTaskForContactRequest {
     pub send_notification: Option<bool>,
 }
 
-/// Tasks integration service for contacts
 pub struct TasksIntegrationService {
     pool: DbPool,
 }
@@ -334,7 +345,6 @@ impl TasksIntegrationService {
         Self { pool }
     }
 
-    /// Assign a contact to a task
     pub async fn assign_contact_to_task(
         &self,
         organization_id: Uuid,
@@ -400,7 +410,6 @@ impl TasksIntegrationService {
         })
     }
 
-    /// Assign multiple contacts to a task
     pub async fn bulk_assign_contacts(
         &self,
         organization_id: Uuid,
@@ -431,7 +440,6 @@ impl TasksIntegrationService {
         Ok(results)
     }
 
-    /// Unassign a contact from a task
     pub async fn unassign_contact_from_task(
         &self,
         organization_id: Uuid,
@@ -454,7 +462,6 @@ impl TasksIntegrationService {
         Ok(())
     }
 
-    /// Update a contact's assignment
     pub async fn update_task_contact(
         &self,
         organization_id: Uuid,
@@ -480,7 +487,6 @@ impl TasksIntegrationService {
         Ok(task_contact)
     }
 
-    /// Get all contacts assigned to a task
     pub async fn get_task_contacts(
         &self,
         organization_id: Uuid,
@@ -522,7 +528,6 @@ impl TasksIntegrationService {
         }
     }
 
-    /// Get all tasks for a contact
     pub async fn get_contact_tasks(
         &self,
         organization_id: Uuid,
@@ -569,7 +574,6 @@ impl TasksIntegrationService {
         })
     }
 
-    /// Get task statistics for a contact
     pub async fn get_contact_task_stats(
         &self,
         organization_id: Uuid,
@@ -582,7 +586,6 @@ impl TasksIntegrationService {
         Ok(stats)
     }
 
-    /// Get suggested contacts for a task
     pub async fn get_suggested_contacts(
         &self,
         organization_id: Uuid,
@@ -650,7 +653,6 @@ impl TasksIntegrationService {
         Ok(suggestions)
     }
 
-    /// Get contact's workload
     pub async fn get_contact_workload(
         &self,
         organization_id: Uuid,
@@ -663,7 +665,6 @@ impl TasksIntegrationService {
         Ok(workload)
     }
 
-    /// Create a task and assign to contact in one operation
     pub async fn create_task_for_contact(
         &self,
         organization_id: Uuid,

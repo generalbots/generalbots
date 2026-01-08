@@ -1334,7 +1334,7 @@ async fn list_contacts_handler(
     Query(query): Query<ContactListQuery>,
     organization_id: Uuid,
 ) -> Result<Json<ContactListResponse>, ContactsError> {
-    let service = ContactsService::new(state.db_pool.clone());
+    let service = ContactsService::new(state.conn.clone());
     let response = service.list_contacts(organization_id, query).await?;
     Ok(Json(response))
 }
@@ -1345,7 +1345,7 @@ async fn create_contact_handler(
     user_id: Option<Uuid>,
     Json(request): Json<CreateContactRequest>,
 ) -> Result<Json<Contact>, ContactsError> {
-    let service = ContactsService::new(state.db_pool.clone());
+    let service = ContactsService::new(state.conn.clone());
     let contact = service.create_contact(organization_id, user_id, request).await?;
     Ok(Json(contact))
 }
@@ -1355,7 +1355,7 @@ async fn get_contact_handler(
     Path(contact_id): Path<Uuid>,
     organization_id: Uuid,
 ) -> Result<Json<Contact>, ContactsError> {
-    let service = ContactsService::new(state.db_pool.clone());
+    let service = ContactsService::new(state.conn.clone());
     let contact = service.get_contact(organization_id, contact_id).await?;
     Ok(Json(contact))
 }
@@ -1367,7 +1367,7 @@ async fn update_contact_handler(
     user_id: Option<Uuid>,
     Json(request): Json<UpdateContactRequest>,
 ) -> Result<Json<Contact>, ContactsError> {
-    let service = ContactsService::new(state.db_pool.clone());
+    let service = ContactsService::new(state.conn.clone());
     let contact = service.update_contact(organization_id, contact_id, request, user_id).await?;
     Ok(Json(contact))
 }
@@ -1377,7 +1377,7 @@ async fn delete_contact_handler(
     Path(contact_id): Path<Uuid>,
     organization_id: Uuid,
 ) -> Result<StatusCode, ContactsError> {
-    let service = ContactsService::new(state.db_pool.clone());
+    let service = ContactsService::new(state.conn.clone());
     service.delete_contact(organization_id, contact_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -1388,7 +1388,7 @@ async fn import_contacts_handler(
     user_id: Option<Uuid>,
     Json(request): Json<ImportRequest>,
 ) -> Result<Json<ImportResult>, ContactsError> {
-    let service = ContactsService::new(state.db_pool.clone());
+    let service = ContactsService::new(state.conn.clone());
     let result = service.import_contacts(organization_id, user_id, request).await?;
     Ok(Json(result))
 }
@@ -1398,7 +1398,7 @@ async fn export_contacts_handler(
     organization_id: Uuid,
     Json(request): Json<ExportRequest>,
 ) -> Result<Json<ExportResult>, ContactsError> {
-    let service = ContactsService::new(state.db_pool.clone());
+    let service = ContactsService::new(state.conn.clone());
     let result = service.export_contacts(organization_id, request).await?;
     Ok(Json(result))
 }

@@ -1606,7 +1606,7 @@ pub async fn list_courses(
     State(state): State<Arc<AppState>>,
     Query(filters): Query<CourseFilters>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.list_courses(filters).await {
         Ok(courses) => Json(serde_json::json!({
@@ -1630,7 +1630,7 @@ pub async fn create_course(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateCourseRequest>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.create_course(req, None, None).await {
         Ok(course) => (
@@ -1657,7 +1657,7 @@ pub async fn get_course(
     State(state): State<Arc<AppState>>,
     Path(course_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.get_course(course_id).await {
         Ok(Some(course)) => {
@@ -1699,7 +1699,7 @@ pub async fn update_course(
     Path(course_id): Path<Uuid>,
     Json(req): Json<UpdateCourseRequest>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.update_course(course_id, req).await {
         Ok(course) => Json(serde_json::json!({
@@ -1723,7 +1723,7 @@ pub async fn delete_course(
     State(state): State<Arc<AppState>>,
     Path(course_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.delete_course(course_id).await {
         Ok(()) => Json(serde_json::json!({
@@ -1747,7 +1747,7 @@ pub async fn get_lessons(
     State(state): State<Arc<AppState>>,
     Path(course_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.get_lessons(course_id).await {
         Ok(lessons) => Json(serde_json::json!({
@@ -1772,7 +1772,7 @@ pub async fn create_lesson(
     Path(course_id): Path<Uuid>,
     Json(req): Json<CreateLessonRequest>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.create_lesson(course_id, req).await {
         Ok(lesson) => (
@@ -1800,7 +1800,7 @@ pub async fn update_lesson(
     Path(lesson_id): Path<Uuid>,
     Json(req): Json<UpdateLessonRequest>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.update_lesson(lesson_id, req).await {
         Ok(lesson) => Json(serde_json::json!({
@@ -1824,7 +1824,7 @@ pub async fn delete_lesson(
     State(state): State<Arc<AppState>>,
     Path(lesson_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.delete_lesson(lesson_id).await {
         Ok(()) => Json(serde_json::json!({
@@ -1848,7 +1848,7 @@ pub async fn get_quiz(
     State(state): State<Arc<AppState>>,
     Path(course_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.get_quiz(course_id).await {
         Ok(Some(quiz)) => Json(serde_json::json!({
@@ -1881,7 +1881,7 @@ pub async fn submit_quiz(
     Path(course_id): Path<Uuid>,
     Json(submission): Json<QuizSubmission>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     // Get quiz ID first
     let quiz = match engine.get_quiz(course_id).await {
@@ -1933,7 +1933,7 @@ pub async fn get_progress(
     State(state): State<Arc<AppState>>,
     Query(filters): Query<ProgressFilters>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     // TODO: Get user_id from session
     let user_id = Uuid::new_v4();
@@ -1960,7 +1960,7 @@ pub async fn start_course(
     State(state): State<Arc<AppState>>,
     Path(course_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     // TODO: Get user_id from session
     let user_id = Uuid::new_v4();
@@ -1987,7 +1987,7 @@ pub async fn complete_lesson_handler(
     State(state): State<Arc<AppState>>,
     Path(lesson_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     // TODO: Get user_id from session
     let user_id = Uuid::new_v4();
@@ -2014,7 +2014,7 @@ pub async fn create_assignment(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateAssignmentRequest>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     // TODO: Get assigner user_id from session
     let assigned_by = None;
@@ -2041,7 +2041,7 @@ pub async fn create_assignment(
 
 /// Get pending assignments
 pub async fn get_pending_assignments(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     // TODO: Get user_id from session
     let user_id = Uuid::new_v4();
@@ -2068,7 +2068,7 @@ pub async fn delete_assignment(
     State(state): State<Arc<AppState>>,
     Path(assignment_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.delete_assignment(assignment_id).await {
         Ok(()) => Json(serde_json::json!({
@@ -2089,7 +2089,7 @@ pub async fn delete_assignment(
 
 /// Get user certificates
 pub async fn get_certificates(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     // TODO: Get user_id from session
     let user_id = Uuid::new_v4();
@@ -2126,7 +2126,7 @@ pub async fn verify_certificate(Path(code): Path<String>) -> impl IntoResponse {
 
 /// Get categories
 pub async fn get_categories(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.get_categories().await {
         Ok(categories) => Json(serde_json::json!({
@@ -2147,7 +2147,7 @@ pub async fn get_categories(State(state): State<Arc<AppState>>) -> impl IntoResp
 
 /// Get AI recommendations
 pub async fn get_recommendations(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     // TODO: Get user_id from session
     let user_id = Uuid::new_v4();
@@ -2171,7 +2171,7 @@ pub async fn get_recommendations(State(state): State<Arc<AppState>>) -> impl Int
 
 /// Get learn statistics
 pub async fn get_statistics(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     match engine.get_statistics().await {
         Ok(stats) => Json(serde_json::json!({
@@ -2192,7 +2192,7 @@ pub async fn get_statistics(State(state): State<Arc<AppState>>) -> impl IntoResp
 
 /// Get user stats
 pub async fn get_user_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let engine = LearnEngine::new(state.db_pool.clone());
+    let engine = LearnEngine::new(state.conn.clone());
 
     // TODO: Get user_id from session
     let user_id = Uuid::new_v4();
