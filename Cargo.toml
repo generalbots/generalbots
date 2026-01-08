@@ -157,6 +157,7 @@ x509-parser = "0.15"
 rustls-native-certs = "0.8"
 webpki-roots = "0.25"
 ring = "0.17"
+ciborium = "0.2"
 time = { version = "0.3", features = ["formatting", "parsing"] }
 jsonwebtoken = "9.3"
 tower-cookies = "0.10"
