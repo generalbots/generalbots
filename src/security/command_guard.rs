@@ -296,8 +296,13 @@ pub fn validate_argument(arg: &str) -> Result<(), CommandGuardError> {
         ));
     }
 
+    let is_url = arg.starts_with("http://") || arg.starts_with("https://");
+
     for c in arg.chars() {
         if FORBIDDEN_SHELL_CHARS.contains(&c) {
+            if is_url && (c == '&' || c == '?' || c == '=') {
+                continue;
+            }
             return Err(CommandGuardError::ShellInjectionAttempt(format!(
                 "Forbidden character '{}' in argument",
                 c.escape_default()
@@ -311,6 +316,9 @@ pub fn validate_argument(arg: &str) -> Result<(), CommandGuardError> {
 
     for pattern in dangerous_patterns {
         if arg.contains(pattern) {
+            if is_url && pattern == "//" {
+                continue;
+            }
             return Err(CommandGuardError::ShellInjectionAttempt(format!(
                 "Dangerous pattern '{}' detected",
                 pattern
