@@ -912,6 +912,7 @@ listener "tcp" {
   tls_disable   = false
   tls_cert_file = "{{CONF_PATH}}/system/certificates/vault/server.crt"
   tls_key_file  = "{{CONF_PATH}}/system/certificates/vault/server.key"
+  tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
 api_addr = "https://localhost:8200"
@@ -937,6 +938,7 @@ listener "tcp" {
   tls_disable   = false
   tls_cert_file = "{{CONF_PATH}}/system/certificates/vault/server.crt"
   tls_key_file  = "{{CONF_PATH}}/system/certificates/vault/server.key"
+  tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
 api_addr = "https://localhost:8200"
