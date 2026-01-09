@@ -519,10 +519,7 @@ async fn main() -> std::io::Result<()> {
     use botserver::config::ConfigManager;
 
     if no_console || no_ui {
-        env_logger::Builder::from_env(env_logger::Env::default())
-            .write_style(env_logger::WriteStyle::Always)
-            .init();
-
+        botlib::logging::init_compact_logger_with_style("info");
         println!("Starting General Bots {}...", env!("CARGO_PKG_VERSION"));
     }
 

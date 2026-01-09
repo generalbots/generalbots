@@ -3,6 +3,7 @@ use log::{error, info, warn};
 use rand::Rng;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
+use uuid::Uuid;
 
 use super::client::ZitadelClient;
 
@@ -116,7 +117,7 @@ async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<BootstrapResul
 
     let initial_password = generate_secure_password();
 
-    if let Err(e) = client.set_user_password(&user_id, &initial_password, true).await {
+    if let Err(e) = client.set_user_password(&user_id, &initial_password, false).await {
         warn!("Failed to set initial password via API: {}. User may need to use password reset flow.", e);
     } else {
         info!("Initial password set for admin user");
@@ -157,7 +158,42 @@ async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<BootstrapResul
 
     save_setup_credentials(&result);
 
+    create_password_change_reminder(&user_id);
+
     Ok(result)
+}
+
+fn create_password_change_reminder(user_id: &str) {
+    let reminder_file = dirs::home_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("/tmp"))
+        .join(".gb-admin-reminders.json");
+
+    let reminder = serde_json::json!({
+        "id": Uuid::new_v4().to_string(),
+        "type": "security",
+        "priority": "high",
+        "title": "Change initial admin password",
+        "description": "The admin account was created with an auto-generated password. Please change it to a secure password of your choice.",
+        "user_id": user_id,
+        "created_at": chrono::Utc::now().to_rfc3339(),
+        "status": "pending",
+        "action_url": "/settings/security"
+    });
+
+    let reminders = if reminder_file.exists() {
+        let content = fs::read_to_string(&reminder_file).unwrap_or_default();
+        let mut arr: Vec<serde_json::Value> = serde_json::from_str(&content).unwrap_or_default();
+        arr.push(reminder);
+        arr
+    } else {
+        vec![reminder]
+    };
+
+    if let Err(e) = fs::write(&reminder_file, serde_json::to_string_pretty(&reminders).unwrap_or_default()) {
+        warn!("Failed to save password change reminder: {}", e);
+    } else {
+        info!("Created security reminder: Change initial admin password");
+    }
 }
 
 async fn create_default_organization(client: &ZitadelClient) -> Result<String> {
@@ -205,37 +241,27 @@ fn save_setup_credentials(result: &BootstrapResult) {
     let content = format!(
         r#"# General Bots Initial Setup Credentials
 # Created: {}
-# DELETE THIS FILE AFTER FIRST LOGIN
 
 ╔════════════════════════════════════════════════════════════╗
-║              ADMIN LOGIN CREDENTIALS (OTP)                 ║
+║           🔐 ADMIN LOGIN - READY TO USE                    ║
 ╠════════════════════════════════════════════════════════════╣
 ║                                                            ║
 ║  Username: {:<46}║
 ║  Password: {:<46}║
 ║  Email:    {:<46}║
 ║                                                            ║
-║  Login URL: {:<45}║
+║  🌐 LOGIN NOW: http://localhost:8088/suite/login           ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 
-IMPORTANT:
-- This is a one-time password (OTP)
-- You will be required to change it on first login
-- Delete this file after you have logged in successfully
-
-Alternative access via Zitadel console:
-1. Go to: {}/ui/console
-2. Login with admin PAT from: ./botserver-stack/conf/directory/admin-pat.txt
-3. Find user '{}' and manage settings
+✅ Login directly - no password change required on first access
+⚠️  SECURITY: Change this password after login (Settings > Security)
+🗑️  Delete this file after saving your new password
 "#,
         chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"),
         result.username,
         result.initial_password,
-        result.email,
-        result.setup_url,
-        result.setup_url.split("/ui/").next().unwrap_or("http://localhost:8300"),
-        result.username
+        result.email
     );
 
     match fs::write(&creds_path, &content) {
@@ -268,7 +294,7 @@ fn print_bootstrap_credentials(result: &BootstrapResult) {
     println!("║{:^60}║", "");
     println!("╠{}╣", separator);
     println!("║{:^60}║", "");
-    println!("║{:^60}║", "🔐 ONE-TIME PASSWORD (OTP) FOR LOGIN:");
+    println!("║{:^60}║", "🔐 LOGIN CREDENTIALS (READY TO USE):");
     println!("║{:^60}║", "");
     println!("║  {:<58}║", format!("Username: {}", result.username));
     println!("║  {:<58}║", format!("Password: {}", result.initial_password));
@@ -285,29 +311,22 @@ fn print_bootstrap_credentials(result: &BootstrapResult) {
 
     println!("╠{}╣", separator);
     println!("║{:^60}║", "");
-    println!("║  {:56}║", "🌐 LOGIN URL:");
+    println!("║  {:56}║", "🌐 LOGIN NOW:");
     println!("║{:^60}║", "");
-
-    let url_display = if result.setup_url.len() > 54 {
-        format!("{}...", &result.setup_url[..51])
-    } else {
-        result.setup_url.clone()
-    };
-    println!("║  {:56}║", url_display);
+    println!("║  {:56}║", "http://localhost:8088/suite/login");
     println!("║{:^60}║", "");
     println!("╠{}╣", separator);
     println!("║{:^60}║", "");
-    println!("║  ⚠️  {:<53}║", "IMPORTANT - SAVE THESE CREDENTIALS!");
+    println!("║  ✅ {:<54}║", "Login directly - no password change required");
     println!("║{:^60}║", "");
-    println!("║  {:<56}║", "• This password will NOT be shown again");
-    println!("║  {:<56}║", "• You must change it on first login");
-    println!("║  {:<56}║", "• Credentials also saved to: ~/.gb-setup-credentials");
+    println!("║  {:<56}║", "⚠️  Change password after login (Settings > Security)");
+    println!("║  {:<56}║", "📁 Credentials saved to: ~/.gb-setup-credentials");
     println!("║{:^60}║", "");
     println!("╚{}╝", separator);
     println!();
 
     info!(
-        "Bootstrap complete: admin user '{}' created with OTP password",
+        "Bootstrap complete: admin user '{}' created - ready for direct login",
         result.username
     );
 }
