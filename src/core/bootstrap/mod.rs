@@ -633,6 +633,7 @@ impl BootstrapManager {
     async fn ensure_vault_unsealed(&self) -> Result<()> {
         let vault_init_path = self.stack_dir("conf/vault/init.json");
         let vault_addr = "https://localhost:8200";
+        let vault_cacert = "./botserver-stack/conf/system/certificates/ca/ca.crt";
 
         if !vault_init_path.exists() {
             return Err(anyhow::anyhow!(
@@ -673,8 +674,8 @@ impl BootstrapManager {
             }
 
             let status_cmd = format!(
-                "VAULT_ADDR={} {} status -format=json 2>&1",
-                vault_addr, vault_bin
+                "VAULT_ADDR={} VAULT_CACERT={} {} status -format=json 2>&1",
+                vault_addr, vault_cacert, vault_bin
             );
             let status_output = safe_sh_command(&status_cmd)
                 .ok_or_else(|| anyhow::anyhow!("Failed to execute vault status command"))?;
@@ -714,8 +715,8 @@ impl BootstrapManager {
             if sealed {
                 info!("Unsealing Vault...");
                 let unseal_cmd = format!(
-                    "VAULT_ADDR={} {} operator unseal {} >/dev/null 2>&1",
-                    vault_addr, vault_bin, unseal_key
+                    "VAULT_ADDR={} VAULT_CACERT={} {} operator unseal {} >/dev/null 2>&1",
+                    vault_addr, vault_cacert, vault_bin, unseal_key
                 );
                 let unseal_output = safe_sh_command(&unseal_cmd)
                     .ok_or_else(|| anyhow::anyhow!("Failed to execute vault unseal command"))?;
@@ -727,8 +728,8 @@ impl BootstrapManager {
 
                 tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                 let verify_cmd = format!(
-                    "VAULT_ADDR={} {} status -format=json 2>/dev/null",
-                    vault_addr, vault_bin
+                    "VAULT_ADDR={} VAULT_CACERT={} {} status -format=json 2>/dev/null",
+                    vault_addr, vault_cacert, vault_bin
                 );
                 let verify_output = safe_sh_command(&verify_cmd)
                     .ok_or_else(|| anyhow::anyhow!("Failed to verify vault status"))?;
