@@ -960,7 +960,7 @@ async fn delete_task(
     }
 }
 
-pub fn configure(state: Arc<AppState>) -> Router {
+pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/projects", post(create_project))
         .route("/projects/:project_id", get(get_project))
@@ -973,5 +973,4 @@ pub fn configure(state: Arc<AppState>) -> Router {
         .route("/tasks/:task_id/progress", put(update_task_progress))
         .route("/tasks/:task_id/dependencies", post(add_dependency))
         .route("/tasks/:task_id", delete(delete_task))
-        .with_state(state)
 }
