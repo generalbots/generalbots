@@ -45,10 +45,8 @@ impl Default for OptimizerConfig {
 
 #[derive(Debug, Clone)]
 struct CachedMemberList {
-    organization_id: Uuid,
     member_ids: Vec<Uuid>,
     total_count: usize,
-    cached_at: DateTime<Utc>,
     expires_at: DateTime<Utc>,
     is_partial: bool,
     loaded_pages: Vec<usize>,
@@ -64,8 +62,6 @@ struct PermissionCacheKey {
 #[derive(Debug, Clone)]
 struct CachedPermissions {
     permissions: Vec<String>,
-    roles: Vec<String>,
-    cached_at: DateTime<Utc>,
     expires_at: DateTime<Utc>,
 }
 
@@ -85,14 +81,10 @@ pub struct PartitionManager {
 
 #[derive(Debug, Clone)]
 pub struct DataPartition {
-    id: Uuid,
-    organization_id: Uuid,
-    partition_key: String,
-    start_range: String,
-    end_range: String,
-    row_count: usize,
-    size_bytes: u64,
-    created_at: DateTime<Utc>,
+    pub id: Uuid,
+    pub partition_key: String,
+    pub row_count: usize,
+    pub size_bytes: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -292,10 +284,8 @@ impl LargeOrgOptimizer {
     ) {
         let now = Utc::now();
         let cached = CachedMemberList {
-            organization_id,
             member_ids,
             total_count,
-            cached_at: now,
             expires_at: now + chrono::Duration::seconds(self.config.member_cache_ttl_seconds as i64),
             is_partial,
             loaded_pages: pages,
@@ -333,7 +323,6 @@ impl LargeOrgOptimizer {
         user_id: Uuid,
         resource_type: &str,
         permissions: Vec<String>,
-        roles: Vec<String>,
     ) {
         let key = PermissionCacheKey {
             organization_id,
@@ -344,8 +333,6 @@ impl LargeOrgOptimizer {
         let now = Utc::now();
         let cached = CachedPermissions {
             permissions,
-            roles,
-            cached_at: now,
             expires_at: now + chrono::Duration::seconds(self.config.permission_cache_ttl_seconds as i64),
         };
 
@@ -550,6 +537,10 @@ impl LargeOrgOptimizer {
         &self.config
     }
 
+    pub fn partition_manager(&self) -> &Arc<PartitionManager> {
+        &self.partition_manager
+    }
+
     pub async fn get_statistics(&self) -> OptimizerStatistics {
         let stats = self.query_stats.read().await;
         let member_cache = self.member_cache.read().await;
@@ -590,18 +581,12 @@ impl PartitionManager {
         &self,
         organization_id: Uuid,
         partition_key: &str,
-        start_range: &str,
-        end_range: &str,
     ) -> DataPartition {
         let partition = DataPartition {
             id: Uuid::new_v4(),
-            organization_id,
             partition_key: partition_key.to_string(),
-            start_range: start_range.to_string(),
-            end_range: end_range.to_string(),
             row_count: 0,
             size_bytes: 0,
-            created_at: Utc::now(),
         };
 
         let mut partitions = self.partitions.write().await;
@@ -755,7 +740,6 @@ mod tests {
                 user_id,
                 "bot",
                 vec!["read".to_string(), "write".to_string()],
-                vec!["admin".to_string()],
             )
             .await;
 
@@ -792,10 +776,10 @@ mod tests {
         let user_id2 = Uuid::new_v4();
 
         optimizer
-            .cache_permissions(org_id, user_id1, "bot", vec!["read".to_string()], vec![])
+            .cache_permissions(org_id, user_id1, "bot", vec!["read".to_string()])
             .await;
         optimizer
-            .cache_permissions(org_id, user_id2, "bot", vec!["write".to_string()], vec![])
+            .cache_permissions(org_id, user_id2, "bot", vec!["write".to_string()])
             .await;
 
         optimizer.invalidate_permission_cache(org_id, None).await;
@@ -818,10 +802,10 @@ mod tests {
         let user_id2 = Uuid::new_v4();
 
         optimizer
-            .cache_permissions(org_id, user_id1, "bot", vec!["read".to_string()], vec![])
+            .cache_permissions(org_id, user_id1, "bot", vec!["read".to_string()])
             .await;
         optimizer
-            .cache_permissions(org_id, user_id2, "bot", vec!["write".to_string()], vec![])
+            .cache_permissions(org_id, user_id2, "bot", vec!["write".to_string()])
             .await;
 
         optimizer
@@ -891,9 +875,8 @@ mod tests {
         let org_id = Uuid::new_v4();
 
         let partition = manager
-            .create_partition(org_id, "user_id", "a", "m")
+            .create_partition(org_id, "user_id")
             .await;
-        assert_eq!(partition.organization_id, org_id);
         assert_eq!(partition.partition_key, "user_id");
         assert_eq!(partition.row_count, 0);
 
@@ -906,7 +889,7 @@ mod tests {
         let manager = PartitionManager::new(PartitionConfig::default());
         let org_id = Uuid::new_v4();
 
-        let partition = manager.create_partition(org_id, "id", "0", "9").await;
+        let partition = manager.create_partition(org_id, "id").await;
 
         assert!(!manager.should_split(&partition).await);
         assert!(manager.should_merge(&partition).await);

@@ -244,8 +244,6 @@ pub struct OrganizationRbacService {
     groups: Arc<RwLock<HashMap<Uuid, OrganizationGroup>>>,
     policies: Arc<RwLock<HashMap<Uuid, ResourcePolicy>>>,
     user_roles: Arc<RwLock<HashMap<(Uuid, Uuid), Vec<Uuid>>>>,
-    user_groups: Arc<RwLock<HashMap<Uuid, Vec<Uuid>>>>,
-    user_direct_permissions: Arc<RwLock<HashMap<Uuid, Vec<String>>>>,
     audit_log: Arc<RwLock<Vec<AccessAuditEntry>>>,
 }
 
@@ -270,8 +268,6 @@ impl OrganizationRbacService {
             groups: Arc::new(RwLock::new(HashMap::new())),
             policies: Arc::new(RwLock::new(HashMap::new())),
             user_roles: Arc::new(RwLock::new(HashMap::new())),
-            user_groups: Arc::new(RwLock::new(HashMap::new())),
-            user_direct_permissions: Arc::new(RwLock::new(HashMap::new())),
             audit_log: Arc::new(RwLock::new(Vec::new())),
         }
     }
