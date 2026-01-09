@@ -23,6 +23,8 @@ use std::sync::Arc;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
+use botserver::embedded_ui;
+
 async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
     use aws_sdk_s3::primitives::ByteStream;
 
@@ -318,6 +320,11 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::basic::keywords::configure_app_server_routes());
     api_router = api_router.merge(botserver::auto_task::configure_autotask_routes());
     api_router = api_router.merge(crate::core::shared::admin::configure());
+    api_router = api_router.merge(botserver::workspaces::configure_workspaces_routes());
+    api_router = api_router.merge(botserver::project::configure());
+    api_router = api_router.merge(botserver::analytics::goals::configure_goals_routes());
+    api_router = api_router.merge(botserver::player::configure_player_routes());
+    api_router = api_router.merge(botserver::canvas::configure_canvas_routes());
 
     #[cfg(feature = "whatsapp")]
     {
@@ -365,21 +372,46 @@ async fn run_axum_server(
 
     info!("Security middleware enabled: rate limiting, security headers, panic handler, request ID tracking, authentication");
 
-    // Path to UI files (botui)
+    // Path to UI files (botui) - use external folder or fallback to embedded
     let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| "./botui/ui/suite".to_string());
-    info!("Serving UI from: {}", ui_path);
+    let ui_path_exists = std::path::Path::new(&ui_path).exists();
+    let use_embedded_ui = !ui_path_exists && embedded_ui::has_embedded_ui();
 
-    let app = Router::new()
+    if ui_path_exists {
+        info!("Serving UI from external folder: {}", ui_path);
+    } else if use_embedded_ui {
+        info!("External UI folder not found at '{}', using embedded UI", ui_path);
+        let file_count = embedded_ui::list_embedded_files().len();
+        info!("Embedded UI contains {} files", file_count);
+    } else {
+        warn!("No UI available: folder '{}' not found and no embedded UI", ui_path);
+    }
+
+    let base_router = Router::new()
         .merge(api_router.with_state(app_state.clone()))
         // Authentication middleware for protected routes
         .layer(middleware::from_fn_with_state(
             auth_config.clone(),
             auth_middleware,
         ))
-        // Serve auth UI pages
-        .nest_service("/auth", ServeDir::new(format!("{}/auth", ui_path)))
         // Static files fallback for legacy /apps/* paths
-        .nest_service("/static", ServeDir::new(&site_path))
+        .nest_service("/static", ServeDir::new(&site_path));
+
+    // Add UI routes based on availability
+    let app_with_ui = if ui_path_exists {
+        base_router
+            .nest_service("/auth", ServeDir::new(format!("{}/auth", ui_path)))
+            .nest_service("/suite", ServeDir::new(&ui_path))
+            .nest_service("/themes", ServeDir::new(format!("{}/../themes", ui_path)))
+            .fallback_service(ServeDir::new(&ui_path))
+    } else if use_embedded_ui {
+        base_router
+            .merge(embedded_ui::embedded_ui_router())
+    } else {
+        base_router
+    };
+
+    let app = app_with_ui
         // Security middleware stack (order matters - first added is outermost)
         .layer(middleware::from_fn(security_headers_middleware))
         .layer(security_headers_extension)
