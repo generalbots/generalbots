@@ -28,7 +28,6 @@ const PASSKEY_NAME_MAX_LENGTH: usize = 64;
 #[derive(Debug, Clone)]
 struct FallbackAttemptTracker {
     attempts: u32,
-    first_attempt_at: DateTime<Utc>,
     locked_until: Option<DateTime<Utc>>,
 }
 
@@ -396,7 +395,6 @@ impl PasskeyService {
 
         let tracker = attempts.entry(username.to_string()).or_insert(FallbackAttemptTracker {
             attempts: 0,
-            first_attempt_at: now,
             locked_until: None,
         });
 

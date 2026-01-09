@@ -486,7 +486,6 @@ impl OpenCvFaceDetector {
                 return Ok(ImageInfo {
                     width,
                     height,
-                    format: ImageFormat::Png,
                 });
             }
         }
@@ -495,7 +494,6 @@ impl OpenCvFaceDetector {
             return Ok(ImageInfo {
                 width: 640,
                 height: 480,
-                format: ImageFormat::Jpeg,
             });
         }
 
@@ -517,7 +515,6 @@ impl OpenCvFaceDetector {
                 return Ok(ImageInfo {
                     width,
                     height,
-                    format: ImageFormat::Bmp,
                 });
             }
         }
@@ -525,7 +522,6 @@ impl OpenCvFaceDetector {
         Ok(ImageInfo {
             width: 640,
             height: 480,
-            format: ImageFormat::Unknown,
         })
     }
 
@@ -548,15 +544,6 @@ impl OpenCvFaceDetector {
 struct ImageInfo {
     width: i32,
     height: i32,
-    format: ImageFormat,
-}
-
-#[derive(Debug)]
-enum ImageFormat {
-    Jpeg,
-    Png,
-    Bmp,
-    Unknown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

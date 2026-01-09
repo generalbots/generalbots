@@ -551,7 +551,6 @@ pub struct RekognitionService {
     collections: Arc<RwLock<HashMap<String, FaceCollection>>>,
     indexed_faces: Arc<RwLock<HashMap<String, Vec<IndexedFace>>>>,
     face_details: Arc<RwLock<HashMap<String, RekognitionFace>>>,
-    liveness_sessions: Arc<RwLock<HashMap<String, LivenessSession>>>,
 }
 
 impl RekognitionService {
@@ -561,7 +560,6 @@ impl RekognitionService {
             collections: Arc::new(RwLock::new(HashMap::new())),
             indexed_faces: Arc::new(RwLock::new(HashMap::new())),
             face_details: Arc::new(RwLock::new(HashMap::new())),
-            liveness_sessions: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -571,7 +569,6 @@ impl RekognitionService {
             collections: Arc::new(RwLock::new(HashMap::new())),
             indexed_faces: Arc::new(RwLock::new(HashMap::new())),
             face_details: Arc::new(RwLock::new(HashMap::new())),
-            liveness_sessions: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
