@@ -227,7 +227,7 @@ impl BootstrapManager {
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
         if pm.is_installed("vault") {
-            let vault_already_running = safe_sh_command("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
+            let vault_already_running = safe_sh_command("curl -f -sk --cert ./botserver-stack/conf/system/certificates/botserver/client.crt --key ./botserver-stack/conf/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
                 .map(|o| o.status.success())
                 .unwrap_or(false);
 
@@ -245,7 +245,7 @@ impl BootstrapManager {
                 }
 
                 for i in 0..10 {
-                    let vault_ready = safe_sh_command("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
+                    let vault_ready = safe_sh_command("curl -f -sk --cert ./botserver-stack/conf/system/certificates/botserver/client.crt --key ./botserver-stack/conf/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
                         .map(|o| o.status.success())
                         .unwrap_or(false);
 
@@ -436,7 +436,7 @@ impl BootstrapManager {
         }
 
         if installer.is_installed("vault") {
-            let vault_running = safe_sh_command("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
+            let vault_running = safe_sh_command("curl -f -sk --cert ./botserver-stack/conf/system/certificates/botserver/client.crt --key ./botserver-stack/conf/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
                 .map(|o| o.status.success())
                 .unwrap_or(false);
 
@@ -1403,7 +1403,7 @@ meet        IN      A       127.0.0.1
                 }
             }
 
-            let health_check = safe_curl(&["-f", "-sk", "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"]);
+            let health_check = safe_curl(&["-f", "-sk", "--cert", "./botserver-stack/conf/system/certificates/botserver/client.crt", "--key", "./botserver-stack/conf/system/certificates/botserver/client.key", "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"]);
 
             if let Some(output) = health_check {
                 if output.status.success() {
