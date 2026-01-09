@@ -44,32 +44,70 @@ fn safe_sh_command(script: &str) -> Option<std::process::Output> {
 }
 
 fn safe_curl(args: &[&str]) -> Option<std::process::Output> {
-    SafeCommand::new("curl")
-        .and_then(|c| c.args(args))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
+    match SafeCommand::new("curl") {
+        Ok(cmd) => {
+            match cmd.args(args) {
+                Ok(cmd_with_args) => {
+                    match cmd_with_args.execute() {
+                        Ok(output) => Some(output),
+                        Err(e) => {
+                            log::warn!("safe_curl execute failed: {}", e);
+                            None
+                        }
+                    }
+                }
+                Err(e) => {
+                    log::warn!("safe_curl args failed: {} - args: {:?}", e, args);
+                    None
+                }
+            }
+        }
+        Err(e) => {
+            log::warn!("safe_curl new failed: {}", e);
+            None
+        }
+    }
 }
 
 fn vault_health_check() -> bool {
     let client_cert = std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.crt");
     let client_key = std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.key");
 
-    if client_cert.exists() && client_key.exists() {
+    let certs_exist = client_cert.exists() && client_key.exists();
+    log::info!("Vault health check: certs_exist={}", certs_exist);
+
+    let result = if certs_exist {
+        log::info!("Using mTLS for Vault health check");
         safe_curl(&[
             "-f", "-sk", "--connect-timeout", "2", "-m", "5",
             "--cert", "./botserver-stack/conf/system/certificates/botserver/client.crt",
             "--key", "./botserver-stack/conf/system/certificates/botserver/client.key",
             "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"
         ])
-        .map(|o| o.status.success())
-        .unwrap_or(false)
     } else {
+        log::info!("Using plain TLS for Vault health check (no client certs yet)");
         safe_curl(&[
             "-f", "-sk", "--connect-timeout", "2", "-m", "5",
             "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"
         ])
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    };
+
+    match &result {
+        Some(output) => {
+            let success = output.status.success();
+            log::info!("Vault health check result: success={}, status={:?}", success, output.status.code());
+            if !success {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                log::info!("Vault health check stderr: {}", stderr);
+                log::info!("Vault health check stdout: {}", stdout);
+            }
+            success
+        }
+        None => {
+            log::info!("Vault health check: safe_curl returned None");
+            false
+        }
     }
 }
 
