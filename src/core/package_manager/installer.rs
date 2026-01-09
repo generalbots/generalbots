@@ -912,7 +912,6 @@ listener "tcp" {
   tls_disable   = false
   tls_cert_file = "{{CONF_PATH}}/system/certificates/vault/server.crt"
   tls_key_file  = "{{CONF_PATH}}/system/certificates/vault/server.key"
-  tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
 api_addr = "https://localhost:8200"
@@ -938,7 +937,6 @@ listener "tcp" {
   tls_disable   = false
   tls_cert_file = "{{CONF_PATH}}/system/certificates/vault/server.crt"
   tls_key_file  = "{{CONF_PATH}}/system/certificates/vault/server.key"
-  tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
 api_addr = "https://localhost:8200"
@@ -965,7 +963,7 @@ EOF"#.to_string(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
                     .to_string(),
-                check_cmd: "curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1"
+                check_cmd: "curl -f -sk --connect-timeout 2 -m 5 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1"
                     .to_string(),
             },
         );
