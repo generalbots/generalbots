@@ -486,7 +486,7 @@ impl PackageManager {
 
 
 
-                    "ZITADEL_MASTERKEY=$(VAULT_ADDR=http://localhost:8200 vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start-from-init --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled --steps {{CONF_PATH}}/directory/steps.yaml > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
+                    "ZITADEL_MASTERKEY=$(VAULT_ADDR=https://localhost:8200 VAULT_CACERT={{CONF_PATH}}/system/certificates/ca/ca.crt vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start-from-init --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled --steps {{CONF_PATH}}/directory/steps.yaml > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
 
                     "for i in $(seq 1 90); do curl -sf http://localhost:8300/debug/ready && break || sleep 1; done".to_string(),
                 ],
@@ -503,7 +503,7 @@ impl PackageManager {
                     ("ZITADEL_TLS_ENABLED".to_string(), "false".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "ZITADEL_MASTERKEY=$(VAULT_ADDR=http://localhost:8200 vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
+                exec_cmd: "ZITADEL_MASTERKEY=$(VAULT_ADDR=https://localhost:8200 VAULT_CACERT={{CONF_PATH}}/system/certificates/ca/ca.crt vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
                 check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/healthz >/dev/null 2>&1".to_string(),
             },
         );
@@ -965,7 +965,7 @@ EOF"#.to_string(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
                     .to_string(),
-                check_cmd: "curl -f -sk --connect-timeout 2 -m 5 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1"
+                check_cmd: "curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1"
                     .to_string(),
             },
         );
@@ -1171,8 +1171,16 @@ EOF"#.to_string(),
 
         dotenvy::dotenv().ok();
 
+        let base_path = std::env::var("BOTSERVER_STACK_PATH")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|_| {
+                std::env::current_dir()
+                    .unwrap_or_else(|_| std::path::PathBuf::from("."))
+                    .join("botserver-stack")
+            });
+
         let vault_addr =
-            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "http://localhost:8200".to_string());
+            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
         let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
 
         if vault_token.is_empty() {
@@ -1181,8 +1189,15 @@ EOF"#.to_string(),
         }
 
         // Check if Vault is reachable before trying to fetch credentials
-        // Use -k for self-signed certs in dev
-        let vault_check = safe_sh_command(&format!("curl -sfk {}/v1/sys/health >/dev/null 2>&1", vault_addr))
+        // Use -k for self-signed certs and mTLS client cert
+        let client_cert = base_path.join("conf/system/certificates/botserver/client.crt");
+        let client_key = base_path.join("conf/system/certificates/botserver/client.key");
+        let vault_check = safe_sh_command(&format!(
+            "curl -sfk --cert {} --key {} {}/v1/sys/health >/dev/null 2>&1",
+            client_cert.display(),
+            client_key.display(),
+            vault_addr
+        ))
             .map(|o| o.status.success())
             .unwrap_or(false);
 
@@ -1191,13 +1206,6 @@ EOF"#.to_string(),
             return credentials;
         }
 
-        let base_path = std::env::var("BOTSERVER_STACK_PATH")
-            .map(std::path::PathBuf::from)
-            .unwrap_or_else(|_| {
-                std::env::current_dir()
-                    .unwrap_or_else(|_| std::path::PathBuf::from("."))
-                    .join("botserver-stack")
-            });
         let vault_bin = base_path.join("bin/vault/vault");
         let vault_bin_str = vault_bin.to_string_lossy();
 
