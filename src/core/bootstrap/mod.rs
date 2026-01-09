@@ -50,6 +50,29 @@ fn safe_curl(args: &[&str]) -> Option<std::process::Output> {
         .and_then(|cmd| cmd.execute().ok())
 }
 
+fn vault_health_check() -> bool {
+    let client_cert = std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.crt");
+    let client_key = std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.key");
+
+    if client_cert.exists() && client_key.exists() {
+        safe_curl(&[
+            "-f", "-sk", "--connect-timeout", "2", "-m", "5",
+            "--cert", "./botserver-stack/conf/system/certificates/botserver/client.crt",
+            "--key", "./botserver-stack/conf/system/certificates/botserver/client.key",
+            "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"
+        ])
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    } else {
+        safe_curl(&[
+            "-f", "-sk", "--connect-timeout", "2", "-m", "5",
+            "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"
+        ])
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    }
+}
+
 fn safe_fuser(args: &[&str]) {
     if let Ok(cmd) = SafeCommand::new("fuser")
         .and_then(|c| c.args(args))
@@ -227,9 +250,7 @@ impl BootstrapManager {
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
         if pm.is_installed("vault") {
-            let vault_already_running = safe_sh_command("curl -f -sk --cert ./botserver-stack/conf/system/certificates/botserver/client.crt --key ./botserver-stack/conf/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
-                .map(|o| o.status.success())
-                .unwrap_or(false);
+            let vault_already_running = vault_health_check();
 
             if vault_already_running {
                 info!("Vault is already running");
@@ -245,9 +266,7 @@ impl BootstrapManager {
                 }
 
                 for i in 0..10 {
-                    let vault_ready = safe_sh_command("curl -f -sk --cert ./botserver-stack/conf/system/certificates/botserver/client.crt --key ./botserver-stack/conf/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
-                        .map(|o| o.status.success())
-                        .unwrap_or(false);
+                    let vault_ready = vault_health_check();
 
                     if vault_ready {
                         info!("Vault is responding");
@@ -436,9 +455,7 @@ impl BootstrapManager {
         }
 
         if installer.is_installed("vault") {
-            let vault_running = safe_sh_command("curl -f -sk --cert ./botserver-stack/conf/system/certificates/botserver/client.crt --key ./botserver-stack/conf/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
-                .map(|o| o.status.success())
-                .unwrap_or(false);
+            let vault_running = vault_health_check();
 
             if vault_running {
                 info!("Vault is already running");
@@ -1403,18 +1420,9 @@ meet        IN      A       127.0.0.1
                 }
             }
 
-            let health_check = safe_curl(&["-f", "-sk", "--cert", "./botserver-stack/conf/system/certificates/botserver/client.crt", "--key", "./botserver-stack/conf/system/certificates/botserver/client.key", "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"]);
-
-            if let Some(output) = health_check {
-                if output.status.success() {
-                    info!("Vault is responding");
-                    break;
-                }
-
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                if !stderr.is_empty() && attempts % 5 == 0 {
-                    debug!("Vault health check attempt {}: {}", attempts + 1, stderr);
-                }
+            if vault_health_check() {
+                info!("Vault is responding");
+                break;
             } else if attempts % 5 == 0 {
                 warn!("Vault health check curl failed (attempt {})", attempts + 1);
             }
