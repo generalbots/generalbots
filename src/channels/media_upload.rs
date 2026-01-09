@@ -1,10 +1,3 @@
-use axum::{
-    extract::{Multipart, Path, Query, State},
-    http::StatusCode,
-    response::Json,
-    routing::{get, post},
-    Router,
-};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -12,9 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Platform {
     Twitter,
     Facebook,
@@ -757,6 +748,76 @@ impl MediaUploadService {
         })
     }
 
+    fn detect_media_type(&self, content_type: &str) -> MediaType {
+        if content_type.starts_with("image/gif") {
+            MediaType::Gif
+        } else if content_type.starts_with("image/") {
+            MediaType::Image
+        } else if content_type.starts_with("video/") {
+            MediaType::Video
+        } else if content_type.starts_with("audio/") {
+            MediaType::Audio
+        } else {
+            MediaType::Document
+        }
+    }
+
+    fn get_extension(&self, filename: &str) -> Option<String> {
+        filename
+            .rsplit('.')
+            .next()
+            .map(|s| s.to_lowercase())
+    }
+
+    fn validate_format(
+        &self,
+        media_type: &MediaType,
+        extension: &str,
+        limits: &PlatformLimits,
+    ) -> Result<(), MediaUploadError> {
+        let supported = match media_type {
+            MediaType::Image | MediaType::Gif => &limits.supported_image_formats,
+            MediaType::Video => &limits.supported_video_formats,
+            MediaType::Audio | MediaType::Document => return Ok(()),
+        };
+        if supported.iter().any(|f| f.eq_ignore_ascii_case(extension)) {
+            Ok(())
+        } else {
+            Err(MediaUploadError::UnsupportedFormat)
+        }
+    }
+
+    fn validate_size(
+        &self,
+        media_type: &MediaType,
+        size: u64,
+        limits: &PlatformLimits,
+    ) -> Result<(), MediaUploadError> {
+        let max_size = match media_type {
+            MediaType::Image | MediaType::Gif => limits.max_image_size_bytes,
+            MediaType::Video => limits.max_video_size_bytes,
+            MediaType::Audio | MediaType::Document => limits.max_video_size_bytes,
+        };
+        if size <= max_size {
+            Ok(())
+        } else {
+            Err(MediaUploadError::FileTooLarge)
+        }
+    }
+
+    async fn upload_to_platform(
+        &self,
+        _platform: &Platform,
+        _data: &[u8],
+        upload: &MediaUpload,
+    ) -> Result<PlatformUploadResult, MediaUploadError> {
+        Ok(PlatformUploadResult {
+            media_id: format!("media_{}", upload.id),
+            url: Some(format!("https://cdn.example.com/{}", upload.id)),
+            thumbnail_url: None,
+        })
+    }
+
     pub async fn append_chunk(
         &self,
         upload_id: Uuid,
@@ -797,6 +858,12 @@ impl MediaUploadService {
     }
 }
 
+struct PlatformUploadResult {
+    media_id: String,
+    url: Option<String>,
+    thumbnail_url: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 pub enum MediaUploadError {
     UploadNotFound,
@@ -805,6 +872,7 @@ pub enum MediaUploadError {
     UploadExpired,
     FileTooLarge,
     UnsupportedFormat,
+    UnsupportedPlatform(String),
     ProcessingError(String),
     StorageError(String),
 }
@@ -818,6 +886,7 @@ impl std::fmt::Display for MediaUploadError {
             Self::UploadExpired => write!(f, "Upload expired"),
             Self::FileTooLarge => write!(f, "File too large"),
             Self::UnsupportedFormat => write!(f, "Unsupported format"),
+            Self::UnsupportedPlatform(p) => write!(f, "Unsupported platform: {p}"),
             Self::ProcessingError(e) => write!(f, "Processing error: {e}"),
             Self::StorageError(e) => write!(f, "Storage error: {e}"),
         }

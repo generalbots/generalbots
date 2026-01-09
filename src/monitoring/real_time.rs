@@ -1,22 +1,10 @@
-use axum::{
-    extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
-        Query, State,
-    },
-    response::IntoResponse,
-    routing::get,
-    Json, Router,
-};
-use chrono::{DateTime, Duration, Utc};
-use futures::{SinkExt, StreamExt};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use uuid::Uuid;
-
-use crate::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MetricType {

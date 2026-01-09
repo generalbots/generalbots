@@ -12,7 +12,7 @@ use axum::{
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz, Uuid as DieselUuid};
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -1332,30 +1332,29 @@ pub fn contacts_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 async fn list_contacts_handler(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ContactListQuery>,
-    organization_id: Uuid,
 ) -> Result<Json<ContactListResponse>, ContactsError> {
-    let service = ContactsService::new(state.conn.clone());
+    let organization_id = Uuid::nil();
+    let service = ContactsService::new(Arc::new(state.conn.clone()));
     let response = service.list_contacts(organization_id, query).await?;
     Ok(Json(response))
 }
 
 async fn create_contact_handler(
     State(state): State<Arc<AppState>>,
-    organization_id: Uuid,
-    user_id: Option<Uuid>,
     Json(request): Json<CreateContactRequest>,
 ) -> Result<Json<Contact>, ContactsError> {
-    let service = ContactsService::new(state.conn.clone());
-    let contact = service.create_contact(organization_id, user_id, request).await?;
+    let organization_id = Uuid::nil();
+    let service = ContactsService::new(Arc::new(state.conn.clone()));
+    let contact = service.create_contact(organization_id, None, request).await?;
     Ok(Json(contact))
 }
 
 async fn get_contact_handler(
     State(state): State<Arc<AppState>>,
     Path(contact_id): Path<Uuid>,
-    organization_id: Uuid,
 ) -> Result<Json<Contact>, ContactsError> {
-    let service = ContactsService::new(state.conn.clone());
+    let organization_id = Uuid::nil();
+    let service = ContactsService::new(Arc::new(state.conn.clone()));
     let contact = service.get_contact(organization_id, contact_id).await?;
     Ok(Json(contact))
 }
@@ -1363,42 +1362,40 @@ async fn get_contact_handler(
 async fn update_contact_handler(
     State(state): State<Arc<AppState>>,
     Path(contact_id): Path<Uuid>,
-    organization_id: Uuid,
-    user_id: Option<Uuid>,
     Json(request): Json<UpdateContactRequest>,
 ) -> Result<Json<Contact>, ContactsError> {
-    let service = ContactsService::new(state.conn.clone());
-    let contact = service.update_contact(organization_id, contact_id, request, user_id).await?;
+    let organization_id = Uuid::nil();
+    let service = ContactsService::new(Arc::new(state.conn.clone()));
+    let contact = service.update_contact(organization_id, contact_id, request, None).await?;
     Ok(Json(contact))
 }
 
 async fn delete_contact_handler(
     State(state): State<Arc<AppState>>,
     Path(contact_id): Path<Uuid>,
-    organization_id: Uuid,
 ) -> Result<StatusCode, ContactsError> {
-    let service = ContactsService::new(state.conn.clone());
+    let organization_id = Uuid::nil();
+    let service = ContactsService::new(Arc::new(state.conn.clone()));
     service.delete_contact(organization_id, contact_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
 async fn import_contacts_handler(
     State(state): State<Arc<AppState>>,
-    organization_id: Uuid,
-    user_id: Option<Uuid>,
     Json(request): Json<ImportRequest>,
 ) -> Result<Json<ImportResult>, ContactsError> {
-    let service = ContactsService::new(state.conn.clone());
-    let result = service.import_contacts(organization_id, user_id, request).await?;
+    let organization_id = Uuid::nil();
+    let service = ContactsService::new(Arc::new(state.conn.clone()));
+    let result = service.import_contacts(organization_id, None, request).await?;
     Ok(Json(result))
 }
 
 async fn export_contacts_handler(
     State(state): State<Arc<AppState>>,
-    organization_id: Uuid,
     Json(request): Json<ExportRequest>,
 ) -> Result<Json<ExportResult>, ContactsError> {
-    let service = ContactsService::new(state.conn.clone());
+    let organization_id = Uuid::nil();
+    let service = ContactsService::new(Arc::new(state.conn.clone()));
     let result = service.export_contacts(organization_id, request).await?;
     Ok(Json(result))
 }

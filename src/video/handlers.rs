@@ -416,6 +416,8 @@ pub async fn upload_media(
     Path(project_id): Path<Uuid>,
     mut multipart: Multipart,
 ) -> impl IntoResponse {
+    let engine = VideoEngine::new(state.conn.clone());
+    log::debug!("Processing media upload for project {project_id}, engine initialized: {}", engine.db.state().connections > 0);
     let upload_dir =
         std::env::var("VIDEO_UPLOAD_DIR").unwrap_or_else(|_| "./uploads/video".to_string());
 
@@ -898,8 +900,10 @@ pub async fn apply_template_handler(
 ) -> impl IntoResponse {
     let engine = VideoEngine::new(state.conn.clone());
 
+    let customizations = req.customizations.map(|h| serde_json::json!(h));
+
     match engine
-        .apply_template(project_id, &req.template_id, req.customizations)
+        .apply_template(project_id, &req.template_id, customizations)
         .await
     {
         Ok(_) => (
@@ -924,7 +928,7 @@ pub async fn add_transition_handler(
     let engine = VideoEngine::new(state.conn.clone());
 
     match engine
-        .add_transition(from_id, to_id, &req.transition_type, req.duration_ms)
+        .add_transition(from_id, to_id, &req.transition_type, req.duration_ms.unwrap_or(500))
         .await
     {
         Ok(_) => (

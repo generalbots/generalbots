@@ -4,7 +4,6 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Stdio};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PythonFaceDetection {
@@ -263,6 +262,7 @@ impl PythonFaceBridge {
         match response {
             PythonResponse::Success { .. } => Ok(true),
             PythonResponse::Error { message, .. } => {
+                log::warn!("Python bridge health check failed: {message}");
                 Err(PythonBridgeError::HealthCheckFailed)
             }
         }

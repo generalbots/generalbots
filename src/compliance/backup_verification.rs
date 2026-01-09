@@ -872,4 +872,35 @@ impl BackupVerificationService {
     pub async fn update_policy(&self, policy: BackupPolicy) -> Result<BackupPolicy, BackupError> {
         let mut policies = self.policies.write().await;
         if !policies.contains_key(&policy.id) {
-            return Err
+            return Err(BackupError::NotFound("Policy not found".to_string()));
+        }
+        policies.insert(policy.id, policy.clone());
+        Ok(policy)
+    }
+
+    pub async fn delete_policy(&self, id: Uuid) -> Result<(), BackupError> {
+        let mut policies = self.policies.write().await;
+        if policies.remove(&id).is_none() {
+            return Err(BackupError::NotFound("Policy not found".to_string()));
+        }
+        Ok(())
+    }
+
+    pub async fn get_restore_test_results(&self, backup_id: Uuid) -> Vec<RestoreTestResult> {
+        let restore_tests = self.restore_tests.read().await;
+        restore_tests
+            .iter()
+            .filter(|r| r.backup_id == backup_id)
+            .cloned()
+            .collect()
+    }
+
+    pub async fn get_verification_history(&self, backup_id: Uuid) -> Vec<VerificationResult> {
+        let verifications = self.verifications.read().await;
+        verifications
+            .iter()
+            .filter(|v| v.backup_id == backup_id)
+            .cloned()
+            .collect()
+    }
+}

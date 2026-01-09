@@ -24,12 +24,12 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
@@ -626,22 +626,11 @@ pub struct UserLearnStats {
 /// Main Learn engine that handles all LMS operations
 pub struct LearnEngine {
     db: DbPool,
-    cache: Arc<RwLock<LearnCache>>,
-}
-
-#[derive(Debug, Default)]
-struct LearnCache {
-    courses: HashMap<Uuid, Course>,
-    categories: Vec<Category>,
-    last_refresh: Option<DateTime<Utc>>,
 }
 
 impl LearnEngine {
     pub fn new(db: DbPool) -> Self {
-        Self {
-            db,
-            cache: Arc::new(RwLock::new(LearnCache::default())),
-        }
+        Self { db }
     }
 
     // ----- Course Operations -----
@@ -713,8 +702,8 @@ impl LearnEngine {
             let pattern = format!("%{}%", search.to_lowercase());
             query = query.filter(
                 learn_courses::title
-                    .ilike(&pattern)
-                    .or(learn_courses::description.ilike(&pattern)),
+                    .ilike(pattern.clone())
+                    .or(learn_courses::description.ilike(pattern)),
             );
         }
 

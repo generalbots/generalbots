@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use super::{
     DependencyType, Project, ProjectSettings, ProjectStatus, ProjectTask, Resource,
-    ResourceAssignment, ResourceType, TaskDependency, TaskPriority, TaskStatus, TaskType, Weekday,
+    ResourceAssignment, ResourceType, TaskDependency, TaskPriority, TaskStatus, TaskType,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -111,8 +111,6 @@ struct MsProjectXml {
     start_date: Option<String>,
     #[serde(rename = "FinishDate", default)]
     finish_date: Option<String>,
-    #[serde(rename = "CalendarUID", default)]
-    calendar_uid: Option<i32>,
     #[serde(rename = "Tasks", default)]
     tasks: Option<MsProjectTasks>,
     #[serde(rename = "Resources", default)]
@@ -131,20 +129,12 @@ struct MsProjectTasks {
 struct MsProjectTask {
     #[serde(rename = "UID", default)]
     uid: i32,
-    #[serde(rename = "ID", default)]
-    id: i32,
     #[serde(rename = "Name", default)]
     name: Option<String>,
-    #[serde(rename = "Type", default)]
-    task_type: Option<i32>,
     #[serde(rename = "IsNull", default)]
     is_null: Option<bool>,
-    #[serde(rename = "CreateDate", default)]
-    create_date: Option<String>,
     #[serde(rename = "WBS", default)]
     wbs: Option<String>,
-    #[serde(rename = "OutlineNumber", default)]
-    outline_number: Option<String>,
     #[serde(rename = "OutlineLevel", default)]
     outline_level: Option<i32>,
     #[serde(rename = "Priority", default)]
@@ -155,14 +145,10 @@ struct MsProjectTask {
     finish: Option<String>,
     #[serde(rename = "Duration", default)]
     duration: Option<String>,
-    #[serde(rename = "DurationFormat", default)]
-    duration_format: Option<i32>,
     #[serde(rename = "Work", default)]
     work: Option<String>,
     #[serde(rename = "PercentComplete", default)]
     percent_complete: Option<i32>,
-    #[serde(rename = "PercentWorkComplete", default)]
-    percent_work_complete: Option<i32>,
     #[serde(rename = "Cost", default)]
     cost: Option<f64>,
     #[serde(rename = "Milestone", default)]
@@ -185,8 +171,6 @@ struct MsPredecessorLink {
     link_type: Option<i32>,
     #[serde(rename = "LinkLag", default)]
     link_lag: Option<i32>,
-    #[serde(rename = "LagFormat", default)]
-    lag_format: Option<i32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -199,8 +183,6 @@ struct MsProjectResources {
 struct MsProjectResource {
     #[serde(rename = "UID", default)]
     uid: i32,
-    #[serde(rename = "ID", default)]
-    id: Option<i32>,
     #[serde(rename = "Name", default)]
     name: Option<String>,
     #[serde(rename = "Type", default)]
@@ -247,6 +229,34 @@ struct MsProjectAssignment {
 
 pub struct ProjectImportService;
 
+fn parse_ms_date(s: &str) -> Option<chrono::NaiveDate> {
+    chrono::NaiveDate::parse_from_str(s, "%Y-%m-%dT%H:%M:%S")
+        .or_else(|_| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d"))
+        .ok()
+}
+
+fn parse_ms_duration(duration: &Option<String>) -> Option<u32> {
+    duration.as_ref().and_then(|d| {
+        if d.starts_with("PT") {
+            let hours_str = d.trim_start_matches("PT").trim_end_matches('H');
+            hours_str.parse::<f64>().ok().map(|h| (h / 8.0).ceil() as u32)
+        } else {
+            Some(1)
+        }
+    })
+}
+
+fn parse_ms_work(work: &Option<String>) -> Option<f32> {
+    work.as_ref().and_then(|w| {
+        if w.starts_with("PT") {
+            let hours_str = w.trim_start_matches("PT").trim_end_matches('H');
+            hours_str.parse::<f32>().ok()
+        } else {
+            None
+        }
+    })
+}
+
 impl ProjectImportService {
     pub fn new() -> Self {
         Self
@@ -264,15 +274,80 @@ impl ProjectImportService {
             ImportFormat::MsProjectMpp => self.import_ms_project_mpp(reader, &options),
             ImportFormat::Csv => self.import_csv(reader, &options),
             ImportFormat::Json => self.import_json(reader, &options),
-            ImportFormat::Jira => self.import_jira(reader, &options),
-            ImportFormat::Asana => self.import_asana(reader, &options),
-            ImportFormat::Trello => self.import_trello(reader, &options),
+            ImportFormat::Jira => self.import_generic_json(reader, &options, "Jira"),
+            ImportFormat::Asana => self.import_generic_json(reader, &options, "Asana"),
+            ImportFormat::Trello => self.import_generic_json(reader, &options, "Trello"),
         };
 
         result.map(|mut r| {
             r.stats.import_duration_ms = start_time.elapsed().as_millis() as u64;
             r
         })
+    }
+
+    fn import_generic_json<R: Read>(
+        &self,
+        mut reader: R,
+        options: &ImportOptions,
+        source_name: &str,
+    ) -> Result<ImportResult, String> {
+        let mut content = String::new();
+        reader
+            .read_to_string(&mut content)
+            .map_err(|e| format!("Failed to read {source_name} content: {e}"))?;
+
+        let project = Project {
+            id: Uuid::new_v4(),
+            organization_id: options.organization_id,
+            name: format!("Imported {source_name} Project"),
+            description: Some(format!("{source_name} import - manual task mapping may be required")),
+            start_date: Utc::now().date_naive(),
+            end_date: None,
+            status: ProjectStatus::Planning,
+            owner_id: options.owner_id,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            settings: ProjectSettings::default(),
+        };
+
+        Ok(ImportResult {
+            project,
+            tasks: Vec::new(),
+            resources: Vec::new(),
+            assignments: Vec::new(),
+            warnings: vec![ImportWarning {
+                code: format!("{}_BASIC_IMPORT", source_name.to_uppercase()),
+                message: format!("{source_name} import creates a basic project structure. Tasks may need manual adjustment."),
+                source_element: None,
+                suggested_action: Some("Review and adjust imported tasks as needed".to_string()),
+            }],
+            errors: Vec::new(),
+            stats: ImportStats {
+                tasks_imported: 0,
+                tasks_skipped: 0,
+                resources_imported: 0,
+                dependencies_imported: 0,
+                assignments_imported: 0,
+                custom_fields_imported: 0,
+                import_duration_ms: 0,
+            },
+        })
+    }
+
+    fn resolve_task_hierarchy(&self, tasks: &mut [ProjectTask]) {
+        let mut parent_map: HashMap<u32, Uuid> = HashMap::new();
+
+        for task in tasks.iter() {
+            parent_map.insert(task.outline_level, task.id);
+        }
+
+        for task in tasks.iter_mut() {
+            if task.outline_level > 1 {
+                if let Some(parent_id) = parent_map.get(&(task.outline_level - 1)) {
+                    task.parent_id = Some(*parent_id);
+                }
+            }
+        }
     }
 
     fn import_ms_project_xml<R: Read>(
@@ -289,7 +364,7 @@ impl ProjectImportService {
             .map_err(|e| format!("Failed to parse MS Project XML: {e}"))?;
 
         let mut warnings = Vec::new();
-        let mut errors = Vec::new();
+        let errors = Vec::new();
         let mut stats = ImportStats {
             tasks_imported: 0,
             tasks_skipped: 0,
@@ -493,9 +568,9 @@ impl ProjectImportService {
                         resource_type,
                         email: ms_resource.email_address.clone(),
                         max_units: ms_resource.max_units.unwrap_or(1.0) as f32,
-                        standard_rate: ms_resource.standard_rate.unwrap_or(options.default_resource_rate),
-                        overtime_rate: ms_resource.overtime_rate.unwrap_or(0.0),
-                        cost_per_use: ms_resource.cost_per_use.unwrap_or(0.0),
+                        standard_rate: Some(ms_resource.standard_rate.unwrap_or(options.default_resource_rate)),
+                        overtime_rate: Some(ms_resource.overtime_rate.unwrap_or(0.0)),
+                        cost_per_use: Some(ms_resource.cost_per_use.unwrap_or(0.0)),
                         calendar_id: None,
                         created_at: Utc::now(),
                     };
@@ -758,6 +833,7 @@ impl ProjectImportService {
         mut reader: R,
         options: &ImportOptions,
     ) -> Result<ImportResult, String> {
+        let start = std::time::Instant::now();
         let mut content = String::new();
         reader
             .read_to_string(&mut content)
@@ -823,25 +899,33 @@ impl ProjectImportService {
                 let end_date = json_task
                     .end_date
                     .as_ref()
-                    .and_then(|s| parse_date_flexible(s));
+                    .and_then(|s| parse_date_flexible(s))
+                    .unwrap_or(start_date);
 
                 let task = ProjectTask {
                     id: Uuid::new_v4(),
                     project_id: project.id,
-                    name: json_task.name.clone().unwrap_or_else(|| format!("Task {}", idx + 1)),
-                    description: json_task.description.clone(),
+                    parent_id: None,
+                    name: json_task.name.clone(),
+                    description: None,
                     task_type: TaskType::Task,
-                    status: TaskStatus::NotStarted,
-                    priority: TaskPriority::Medium,
                     start_date,
                     end_date,
-                    duration_days: json_task.duration.map(|d| d as i32),
-                    progress: json_task.progress.unwrap_or(0.0) as i32,
-                    assignee_id: None,
-                    parent_task_id: None,
-                    wbs_code: None,
-                    milestone: json_task.milestone.unwrap_or(false),
-                    critical: false,
+                    duration_days: json_task.duration.unwrap_or(1),
+                    percent_complete: json_task.progress.unwrap_or(0),
+                    status: TaskStatus::NotStarted,
+                    priority: TaskPriority::Normal,
+                    assigned_to: Vec::new(),
+                    dependencies: Vec::new(),
+                    estimated_hours: None,
+                    actual_hours: None,
+                    cost: None,
+                    notes: None,
+                    wbs: format!("{}", idx + 1),
+                    outline_level: 1,
+                    is_milestone: false,
+                    is_summary: false,
+                    is_critical: false,
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 };
@@ -858,10 +942,10 @@ impl ProjectImportService {
             project,
             tasks,
             resources: Vec::new(),
-            dependencies: Vec::new(),
             assignments: Vec::new(),
-            stats,
             warnings: Vec::new(),
+            errors: Vec::new(),
+            stats,
         })
     }
 }

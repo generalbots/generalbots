@@ -10,8 +10,9 @@ pub enum RekognitionError {
     ConfigError(String),
     AwsError(String),
     InvalidImage(String),
-    FaceNotFound,
-    CollectionNotFound,
+    FaceNotFound(String),
+    CollectionNotFound(String),
+    CollectionAlreadyExists(String),
     QuotaExceeded,
     ServiceUnavailable,
     Unauthorized,
@@ -23,8 +24,9 @@ impl std::fmt::Display for RekognitionError {
             Self::ConfigError(s) => write!(f, "Config error: {s}"),
             Self::AwsError(s) => write!(f, "AWS error: {s}"),
             Self::InvalidImage(s) => write!(f, "Invalid image: {s}"),
-            Self::FaceNotFound => write!(f, "Face not found"),
-            Self::CollectionNotFound => write!(f, "Collection not found"),
+            Self::FaceNotFound(s) => write!(f, "Face not found: {s}"),
+            Self::CollectionNotFound(s) => write!(f, "Collection not found: {s}"),
+            Self::CollectionAlreadyExists(s) => write!(f, "Collection already exists: {s}"),
             Self::QuotaExceeded => write!(f, "Quota exceeded"),
             Self::ServiceUnavailable => write!(f, "Service unavailable"),
             Self::Unauthorized => write!(f, "Unauthorized"),
@@ -504,6 +506,14 @@ pub struct LivenessSessionResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LivenessSession {
+    pub session_id: String,
+    pub status: LivenessSessionStatus,
+    pub settings: Option<LivenessSettings>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetFaceLivenessSessionResultsResponse {
     pub session_id: String,
     pub status: LivenessSessionStatus,
@@ -541,7 +551,7 @@ pub struct RekognitionService {
     collections: Arc<RwLock<HashMap<String, FaceCollection>>>,
     indexed_faces: Arc<RwLock<HashMap<String, Vec<IndexedFace>>>>,
     face_details: Arc<RwLock<HashMap<String, RekognitionFace>>>,
-    liveness_sessions: Arc<RwLock<HashMap<String, GetFaceLivenessSessionResultsResponse>>>,
+    liveness_sessions: Arc<RwLock<HashMap<String, LivenessSession>>>,
 }
 
 impl RekognitionService {
@@ -895,6 +905,7 @@ impl RekognitionService {
 
         Ok(SearchFacesByImageResponse {
             searched_face_bounding_box,
+            searched_face_confidence: 99.5,
             face_matches,
             face_model_version: "6.0".to_string(),
         })

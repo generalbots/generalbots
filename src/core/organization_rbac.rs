@@ -244,8 +244,8 @@ pub struct OrganizationRbacService {
     groups: Arc<RwLock<HashMap<Uuid, OrganizationGroup>>>,
     policies: Arc<RwLock<HashMap<Uuid, ResourcePolicy>>>,
     user_roles: Arc<RwLock<HashMap<(Uuid, Uuid), Vec<Uuid>>>>,
-    user_groups: Arc<RwLock<HashMap<(Uuid, Uuid), Vec<Uuid>>>>,
-    user_direct_permissions: Arc<RwLock<HashMap<(Uuid, Uuid), Vec<PermissionGrant>>>>,
+    user_groups: Arc<RwLock<HashMap<Uuid, Vec<Uuid>>>>,
+    user_direct_permissions: Arc<RwLock<HashMap<Uuid, Vec<String>>>>,
     audit_log: Arc<RwLock<Vec<AccessAuditEntry>>>,
 }
 
@@ -928,9 +928,7 @@ impl OrganizationRbacService {
 
         let mut user_roles = self.user_roles.write().await;
         let entry = user_roles
-            .entry(organization_id)
-            .or_default()
-            .entry(user_id)
+            .entry((organization_id, user_id))
             .or_default();
 
         if !entry.contains(&role_id) {
@@ -946,10 +944,8 @@ impl OrganizationRbacService {
         role_id: Uuid,
     ) -> Result<(), String> {
         let mut user_roles = self.user_roles.write().await;
-        if let Some(org_roles) = user_roles.get_mut(&organization_id) {
-            if let Some(roles) = org_roles.get_mut(&user_id) {
-                roles.retain(|&r| r != role_id);
-            }
+        if let Some(roles) = user_roles.get_mut(&(organization_id, user_id)) {
+            roles.retain(|&r| r != role_id);
         }
         Ok(())
     }
@@ -963,8 +959,7 @@ impl OrganizationRbacService {
         let roles = self.roles.read().await;
 
         user_roles
-            .get(&organization_id)
-            .and_then(|org| org.get(&user_id))
+            .get(&(organization_id, user_id))
             .map(|role_ids| {
                 role_ids
                     .iter()

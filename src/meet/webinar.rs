@@ -1,14 +1,14 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post, put},
+    routing::{get, post},
     Json, Router,
 };
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid};
-use log::{debug, error, info, warn};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -18,7 +18,6 @@ use uuid::Uuid;
 use crate::shared::state::AppState;
 
 const MAX_WEBINAR_PARTICIPANTS: usize = 10000;
-const MAX_PRESENTERS: usize = 25;
 const MAX_RAISED_HANDS_VISIBLE: usize = 50;
 const QA_QUESTION_MAX_LENGTH: usize = 1000;
 
@@ -130,8 +129,8 @@ impl Default for WebinarSettings {
             max_attendees: MAX_WEBINAR_PARTICIPANTS as u32,
             practice_session_enabled: false,
             attendee_registration_fields: vec![
-                RegistrationField::required("name", FieldType::Text),
-                RegistrationField::required("email", FieldType::Email),
+                RegistrationField::required("name"),
+                RegistrationField::required("email"),
             ],
             auto_transcribe: true,
             transcription_language: Some("en-US".to_string()),
@@ -943,7 +942,8 @@ impl WebinarService {
 
         let id = Uuid::new_v4();
         let join_link = format!("/webinar/{}/join?token={}", webinar_id, Uuid::new_v4());
-        let custom_fields_json = serde_json::to_string(&request.custom_fields.unwrap_or_default())
+        let custom_fields = request.custom_fields.clone().unwrap_or_default();
+        let custom_fields_json = serde_json::to_string(&custom_fields)
             .unwrap_or_else(|_| "{}".to_string());
 
         let sql = r#"
@@ -980,7 +980,7 @@ impl WebinarService {
             webinar_id,
             email: request.email,
             name: request.name,
-            custom_fields: request.custom_fields.unwrap_or_default(),
+            custom_fields,
             status: RegistrationStatus::Confirmed,
             join_link,
             registered_at: Utc::now(),
@@ -1592,11 +1592,11 @@ async fn stop_recording_handler(
 
 async fn create_webinar_handler(
     State(state): State<Arc<AppState>>,
-    organization_id: Uuid,
-    host_id: Uuid,
     Json(request): Json<CreateWebinarRequest>,
 ) -> Result<Json<Webinar>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
+    let organization_id = Uuid::nil();
+    let host_id = Uuid::nil();
     let webinar = service.create_webinar(organization_id, host_id, request).await?;
     Ok(Json(webinar))
 }
@@ -1605,7 +1605,7 @@ async fn get_webinar_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
 ) -> Result<Json<Webinar>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
     let webinar = service.get_webinar(webinar_id).await?;
     Ok(Json(webinar))
 }
@@ -1613,9 +1613,9 @@ async fn get_webinar_handler(
 async fn start_webinar_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
-    host_id: Uuid,
 ) -> Result<Json<Webinar>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
+    let host_id = Uuid::nil();
     let webinar = service.start_webinar(webinar_id, host_id).await?;
     Ok(Json(webinar))
 }
@@ -1623,9 +1623,9 @@ async fn start_webinar_handler(
 async fn end_webinar_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
-    host_id: Uuid,
 ) -> Result<Json<Webinar>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
+    let host_id = Uuid::nil();
     let webinar = service.end_webinar(webinar_id, host_id).await?;
     Ok(Json(webinar))
 }
@@ -1635,7 +1635,7 @@ async fn register_handler(
     Path(webinar_id): Path<Uuid>,
     Json(request): Json<RegisterRequest>,
 ) -> Result<Json<WebinarRegistration>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
     let registration = service.register_attendee(webinar_id, request).await?;
     Ok(Json(registration))
 }
@@ -1643,9 +1643,9 @@ async fn register_handler(
 async fn join_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
-    participant_id: Uuid,
 ) -> Result<Json<WebinarParticipant>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
+    let participant_id = Uuid::nil();
     let participant = service.join_webinar(webinar_id, participant_id).await?;
     Ok(Json(participant))
 }
@@ -1653,9 +1653,9 @@ async fn join_handler(
 async fn raise_hand_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
-    participant_id: Uuid,
 ) -> Result<StatusCode, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
+    let participant_id = Uuid::nil();
     service.raise_hand(webinar_id, participant_id).await?;
     Ok(StatusCode::OK)
 }
@@ -1663,9 +1663,9 @@ async fn raise_hand_handler(
 async fn lower_hand_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
-    participant_id: Uuid,
 ) -> Result<StatusCode, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
+    let participant_id = Uuid::nil();
     service.lower_hand(webinar_id, participant_id).await?;
     Ok(StatusCode::OK)
 }
@@ -1674,7 +1674,7 @@ async fn get_raised_hands_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
 ) -> Result<Json<Vec<WebinarParticipant>>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
     let hands = service.get_raised_hands(webinar_id).await?;
     Ok(Json(hands))
 }
@@ -1683,7 +1683,7 @@ async fn get_questions_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
 ) -> Result<Json<Vec<QAQuestion>>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
     let questions = service.get_questions(webinar_id, false).await?;
     Ok(Json(questions))
 }
@@ -1691,10 +1691,10 @@ async fn get_questions_handler(
 async fn submit_question_handler(
     State(state): State<Arc<AppState>>,
     Path(webinar_id): Path<Uuid>,
-    asker_id: Option<Uuid>,
     Json(request): Json<SubmitQuestionRequest>,
 ) -> Result<Json<QAQuestion>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
+    let asker_id: Option<Uuid> = None;
     let question = service.submit_question(webinar_id, asker_id, "Anonymous".to_string(), request).await?;
     Ok(Json(question))
 }
@@ -1702,10 +1702,11 @@ async fn submit_question_handler(
 async fn answer_question_handler(
     State(state): State<Arc<AppState>>,
     Path((webinar_id, question_id)): Path<(Uuid, Uuid)>,
-    answerer_id: Uuid,
     Json(request): Json<AnswerQuestionRequest>,
 ) -> Result<Json<QAQuestion>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    log::debug!("Answering question {question_id} in webinar {webinar_id}");
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
+    let answerer_id = Uuid::nil();
     let question = service.answer_question(question_id, answerer_id, request).await?;
     Ok(Json(question))
 }
@@ -1713,9 +1714,10 @@ async fn answer_question_handler(
 async fn upvote_question_handler(
     State(state): State<Arc<AppState>>,
     Path((webinar_id, question_id)): Path<(Uuid, Uuid)>,
-    voter_id: Uuid,
 ) -> Result<Json<QAQuestion>, WebinarError> {
-    let service = WebinarService::new(state.conn.clone());
+    log::debug!("Upvoting question {question_id} in webinar {webinar_id}");
+    let service = WebinarService::new(Arc::new(state.conn.clone()));
+    let voter_id = Uuid::nil();
     let question = service.upvote_question(question_id, voter_id).await?;
     Ok(Json(question))
 }

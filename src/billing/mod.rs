@@ -145,9 +145,10 @@ pub struct UsageRecord {
     pub period_end: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum UsageMetric {
+    #[default]
     Messages,
     StorageBytes,
     ApiCalls,

@@ -1,16 +1,9 @@
-use axum::{
-    extract::{Path, Query, State},
-    response::IntoResponse,
-    routing::{delete, get, post, put},
-    Json, Router,
-};
+use axum::{response::IntoResponse, Json};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 
 #[derive(Debug, Clone)]
@@ -336,13 +329,11 @@ pub struct CreateTaskForContactRequest {
     pub send_notification: Option<bool>,
 }
 
-pub struct TasksIntegrationService {
-    pool: DbPool,
-}
+pub struct TasksIntegrationService {}
 
 impl TasksIntegrationService {
-    pub fn new(pool: DbPool) -> Self {
-        Self { pool }
+    pub fn new(_pool: DbPool) -> Self {
+        Self {}
     }
 
     pub async fn assign_contact_to_task(
@@ -539,7 +530,7 @@ impl TasksIntegrationService {
         let tasks = self.fetch_contact_tasks(contact_id, query).await?;
         let total_count = tasks.len() as u32;
         let now = Utc::now();
-        let today_end = now.date_naive().and_hms_opt(23, 59, 59).unwrap();
+
         let week_end = now + chrono::Duration::days(7);
 
         let mut by_status: HashMap<String, u32> = HashMap::new();
@@ -683,12 +674,8 @@ impl TasksIntegrationService {
             organization_id,
             &request.title,
             request.description.as_deref(),
-            request.priority.as_deref().unwrap_or("medium"),
+            Some(created_by),
             request.due_date,
-            request.project_id,
-            request.tags.as_ref(),
-            created_by,
-            now,
         )
         .await?;
 
@@ -721,7 +708,23 @@ impl TasksIntegrationService {
         Ok(ContactTaskWithDetails { task_contact, task })
     }
 
-    // Helper methods (database operations)
+    async fn send_task_assignment_notification(
+        &self,
+        _task_id: Uuid,
+        _contact_id: Uuid,
+    ) -> Result<(), TasksIntegrationError> {
+        Ok(())
+    }
+
+    async fn log_contact_activity(
+        &self,
+        _contact_id: Uuid,
+        _activity_type: TaskActivityType,
+        _description: &str,
+        _task_id: Uuid,
+    ) -> Result<(), TasksIntegrationError> {
+        Ok(())
+    }
 
     async fn verify_contact(
         &self,

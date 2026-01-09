@@ -112,7 +112,7 @@ impl UserProvisioningService {
             .to_string();
 
         let mut conn = self
-            .conn
+            .db_pool
             .get()
             .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
         diesel::insert_into(users::table)
@@ -184,7 +184,7 @@ impl UserProvisioningService {
         use diesel::prelude::*;
 
         let mut conn = self
-            .conn
+            .db_pool
             .get()
             .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
 
@@ -219,7 +219,7 @@ impl UserProvisioningService {
         ];
 
         let mut conn = self
-            .conn
+            .db_pool
             .get()
             .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
         for (key, value) in services {
@@ -259,7 +259,7 @@ impl UserProvisioningService {
         use diesel::prelude::*;
 
         let mut conn = self
-            .conn
+            .db_pool
             .get()
             .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
         diesel::delete(users::table.filter(users::username.eq(username))).execute(&mut conn)?;
@@ -310,7 +310,7 @@ impl UserProvisioningService {
         use diesel::prelude::*;
 
         let mut conn = self
-            .conn
+            .db_pool
             .get()
             .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
         diesel::delete(

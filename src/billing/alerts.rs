@@ -3,7 +3,7 @@
 //! Provides quota threshold monitoring and notification delivery for usage alerts.
 //! Supports multiple notification channels: email, webhook, in-app, SMS.
 
-use crate::billing::{UsageMetric, BillingError};
+use crate::billing::UsageMetric;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -726,19 +726,17 @@ impl AlertNotification {
 
 /// Email notification handler
 pub struct EmailNotificationHandler {
-    smtp_host: String,
-    smtp_port: u16,
-    from_address: String,
-    client: reqwest::Client,
+    _smtp_host: String,
+    _smtp_port: u16,
+    _from_address: String,
 }
 
 impl EmailNotificationHandler {
     pub fn new(smtp_host: String, smtp_port: u16, from_address: String) -> Self {
         Self {
-            smtp_host,
-            smtp_port,
-            from_address,
-            client: reqwest::Client::new(),
+            _smtp_host: smtp_host,
+            _smtp_port: smtp_port,
+            _from_address: from_address,
         }
     }
 }
@@ -763,15 +761,11 @@ impl NotificationHandler for EmailNotificationHandler {
 }
 
 /// Webhook notification handler
-pub struct WebhookNotificationHandler {
-    client: reqwest::Client,
-}
+pub struct WebhookNotificationHandler {}
 
 impl WebhookNotificationHandler {
     pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
+        Self {}
     }
 }
 
@@ -837,15 +831,11 @@ impl NotificationHandler for InAppNotificationHandler {
 }
 
 /// Slack notification handler
-pub struct SlackNotificationHandler {
-    client: reqwest::Client,
-}
+pub struct SlackNotificationHandler {}
 
 impl SlackNotificationHandler {
     pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
+        Self {}
     }
 
     fn build_slack_message(&self, notification: &AlertNotification) -> serde_json::Value {
@@ -911,15 +901,11 @@ impl NotificationHandler for SlackNotificationHandler {
 }
 
 /// Microsoft Teams notification handler
-pub struct TeamsNotificationHandler {
-    client: reqwest::Client,
-}
+pub struct TeamsNotificationHandler {}
 
 impl TeamsNotificationHandler {
     pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
+        Self {}
     }
 
     fn build_teams_message(&self, notification: &AlertNotification) -> serde_json::Value {

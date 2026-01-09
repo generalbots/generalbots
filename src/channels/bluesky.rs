@@ -125,39 +125,6 @@ impl BlueskyProvider {
             })
     }
 
-    async fn upload_blob(
-        &self,
-        session: &BlueskySession,
-        data: &[u8],
-        mime_type: &str,
-    ) -> Result<UploadedBlob, ChannelError> {
-        let response = self
-            .client
-            .post("https://bsky.social/xrpc/com.atproto.repo.uploadBlob")
-            .header("Authorization", format!("Bearer {}", session.access_jwt))
-            .header("Content-Type", mime_type)
-            .body(data.to_vec())
-            .send()
-            .await
-            .map_err(|e| ChannelError::NetworkError(e.to_string()))?;
-
-        if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            return Err(ChannelError::ApiError {
-                code: None,
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<UploadedBlob>()
-            .await
-            .map_err(|e| ChannelError::ApiError {
-                code: None,
-                message: e.to_string(),
-            })
-    }
-
     fn extract_facets(&self, text: &str) -> Vec<Facet> {
         let mut facets = Vec::new();
 
@@ -335,8 +302,6 @@ struct BlueskySession {
     handle: String,
     #[serde(rename = "accessJwt")]
     access_jwt: String,
-    #[serde(rename = "refreshJwt")]
-    refresh_jwt: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -422,7 +387,6 @@ enum FacetFeature {
 #[derive(Debug, Deserialize)]
 struct CreateRecordResponse {
     uri: String,
-    cid: String,
 }
 
 #[derive(Debug, Deserialize)]
