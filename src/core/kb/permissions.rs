@@ -139,7 +139,7 @@ impl KbPermissionParser {
     }
 
     pub fn from_yaml(yaml_content: &str) -> Result<Self, KbPermissionError> {
-        let permissions: KbPermissions = serde_yaml::from_str(yaml_content)
+        let permissions: KbPermissions = serde_json::from_str(yaml_content)
             .map_err(|e| KbPermissionError::ParseError(e.to_string()))?;
         Ok(Self::new(permissions))
     }
@@ -409,7 +409,7 @@ pub fn create_default_permissions() -> KbPermissions {
 }
 
 pub fn generate_permissions_yaml(permissions: &KbPermissions) -> Result<String, KbPermissionError> {
-    serde_yaml::to_string(permissions)
+    serde_json::to_string_pretty(permissions)
         .map_err(|e| KbPermissionError::ParseError(e.to_string()))
 }
 

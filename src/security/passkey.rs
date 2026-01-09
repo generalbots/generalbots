@@ -1,3 +1,4 @@
+use argon2::PasswordVerifier;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -8,13 +9,14 @@ use axum::{
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use chrono::{DateTime, Duration, Utc};
 use diesel::prelude::*;
-use diesel::sql_types::{BigInt, Bool, Bytea, Nullable, Text, Timestamptz, Uuid as DieselUuid};
-use log::{debug, error, info, warn};
+use diesel::sql_types::{BigInt, Bytea, Nullable, Text, Timestamptz, Uuid as DieselUuid};
+use log::{error, info, warn};
 use ring::rand::{SecureRandom, SystemRandom};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
@@ -269,6 +271,8 @@ pub struct PasskeyService {
     rp_origin: String,
     challenges: Arc<RwLock<HashMap<String, PasskeyChallenge>>>,
     rng: SystemRandom,
+    fallback_config: FallbackConfig,
+    fallback_attempts: Arc<RwLock<HashMap<String, FallbackAttemptTracker>>>,
 }
 
 impl PasskeyService {
@@ -279,12 +283,12 @@ impl PasskeyService {
         rp_origin: String,
     ) -> Self {
         Self {
-            pool,
+            pool: Arc::new(pool),
             rp_id,
             rp_name,
             rp_origin,
             challenges: Arc::new(RwLock::new(HashMap::new())),
-            rng: Arc::new(RwLock::new(rand::rngs::StdRng::from_entropy())),
+            rng: SystemRandom::new(),
             fallback_config: FallbackConfig::default(),
             fallback_attempts: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -298,19 +302,19 @@ impl PasskeyService {
         fallback_config: FallbackConfig,
     ) -> Self {
         Self {
-            pool,
+            pool: Arc::new(pool),
             rp_id,
             rp_name,
             rp_origin,
             challenges: Arc::new(RwLock::new(HashMap::new())),
-            rng: Arc::new(RwLock::new(rand::rngs::StdRng::from_entropy())),
+            rng: SystemRandom::new(),
             fallback_config,
             fallback_attempts: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    pub async fn user_has_passkeys(&self, username: &str) -> Result<bool, PasskeyError> {
-        let passkeys = self.get_passkeys_by_username(username).await?;
+    pub fn user_has_passkeys(&self, username: &str) -> Result<bool, PasskeyError> {
+        let passkeys = self.get_passkeys_by_username(username)?;
         Ok(!passkeys.is_empty())
     }
 
@@ -348,7 +352,7 @@ impl PasskeyService {
                 self.clear_fallback_attempts(&request.username).await;
 
                 // Check if user has passkeys available
-                let passkey_available = self.user_has_passkeys(&request.username).await.unwrap_or(false);
+                let passkey_available = self.user_has_passkeys(&request.username).unwrap_or(false);
 
                 // Generate session token
                 let token = self.generate_session_token(&user_id);
@@ -414,17 +418,25 @@ impl PasskeyService {
     async fn verify_password(&self, username: &str, password: &str) -> Result<Uuid, PasskeyError> {
         let mut conn = self.pool.get().map_err(|_| PasskeyError::DatabaseError)?;
 
-        let result: Option<(Uuid, Option<String>)> = diesel::sql_query(
+        #[derive(QueryableByName)]
+        struct UserPasswordRow {
+            #[diesel(sql_type = DieselUuid)]
+            id: Uuid,
+            #[diesel(sql_type = Nullable<Text>)]
+            password_hash: Option<String>,
+        }
+
+        let result: Option<UserPasswordRow> = diesel::sql_query(
             "SELECT id, password_hash FROM users WHERE username = $1 OR email = $1"
         )
         .bind::<Text, _>(username)
-        .get_result::<(Uuid, Option<String>)>(&mut conn)
+        .get_result::<UserPasswordRow>(&mut conn)
         .optional()
         .map_err(|_| PasskeyError::DatabaseError)?;
 
         match result {
-            Some((user_id, password_hash)) => {
-                if let Some(hash) = password_hash {
+            Some(row) => {
+                if let Some(hash) = row.password_hash {
                     let parsed_hash = argon2::PasswordHash::new(&hash)
                         .map_err(|_| PasskeyError::InvalidCredentialId)?;
 
@@ -432,7 +444,7 @@ impl PasskeyService {
                         .verify_password(password.as_bytes(), &parsed_hash)
                         .is_ok()
                     {
-                        return Ok(user_id);
+                        return Ok(row.id);
                     }
                 }
                 Err(PasskeyError::InvalidCredentialId)
@@ -442,9 +454,7 @@ impl PasskeyService {
     }
 
     fn generate_session_token(&self, user_id: &Uuid) -> String {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
-        let random_bytes: [u8; 32] = rng.gen();
+        let random_bytes: [u8; 32] = rand::random();
         let token = base64::Engine::encode(
             &base64::engine::general_purpose::URL_SAFE_NO_PAD,
             random_bytes
@@ -452,13 +462,12 @@ impl PasskeyService {
         format!("{}:{}", user_id, token)
     }
 
-    pub async fn should_offer_password_fallback(&self, username: &str) -> Result<bool, PasskeyError> {
+    pub fn should_offer_password_fallback(&self, username: &str) -> Result<bool, PasskeyError> {
         if !self.fallback_config.enabled {
             return Ok(false);
         }
 
-        // Always offer fallback if user has no passkeys
-        let has_passkeys = self.user_has_passkeys(username).await?;
+        let has_passkeys = self.user_has_passkeys(username)?;
         Ok(!has_passkeys || self.fallback_config.enabled)
     }
 
@@ -470,7 +479,7 @@ impl PasskeyService {
         self.fallback_config = config;
     }
 
-    pub fn generate_registration_options(
+    pub async fn generate_registration_options(
         &self,
         request: RegistrationOptionsRequest,
     ) -> Result<RegistrationOptions, PasskeyError> {
@@ -484,7 +493,8 @@ impl PasskeyService {
             operation: ChallengeOperation::Registration,
         };
 
-        if let Ok(mut challenges) = self.challenges.write() {
+        {
+            let mut challenges = self.challenges.write().await;
             challenges.insert(challenge_b64.clone(), passkey_challenge);
         }
 
@@ -533,7 +543,7 @@ impl PasskeyService {
         })
     }
 
-    pub fn verify_registration(
+    pub async fn verify_registration(
         &self,
         response: RegistrationResponse,
         passkey_name: Option<String>,
@@ -556,8 +566,9 @@ impl PasskeyService {
         let challenge_bytes = URL_SAFE_NO_PAD
             .decode(&client_data.challenge)
             .map_err(|_| PasskeyError::InvalidChallenge)?;
+        log::debug!("Decoded challenge bytes, length: {}", challenge_bytes.len());
 
-        let stored_challenge = self.get_and_remove_challenge(&client_data.challenge)?;
+        let stored_challenge = self.get_and_remove_challenge(&client_data.challenge).await?;
 
         if stored_challenge.operation != ChallengeOperation::Registration {
             return Err(PasskeyError::InvalidCeremonyType);
@@ -570,6 +581,7 @@ impl PasskeyService {
             .map_err(|_| PasskeyError::InvalidAttestationObject)?;
 
         let (auth_data, public_key, aaguid) = self.parse_attestation_object(&attestation_object)?;
+        log::debug!("Parsed attestation object, auth_data length: {}", auth_data.len());
 
         let credential_id = URL_SAFE_NO_PAD
             .decode(&response.raw_id)
@@ -610,7 +622,7 @@ impl PasskeyService {
         })
     }
 
-    pub fn generate_authentication_options(
+    pub async fn generate_authentication_options(
         &self,
         request: AuthenticationOptionsRequest,
     ) -> Result<AuthenticationOptions, PasskeyError> {
@@ -624,7 +636,8 @@ impl PasskeyService {
             operation: ChallengeOperation::Authentication,
         };
 
-        if let Ok(mut challenges) = self.challenges.write() {
+        {
+            let mut challenges = self.challenges.write().await;
             challenges.insert(challenge_b64.clone(), passkey_challenge);
         }
 
@@ -651,7 +664,7 @@ impl PasskeyService {
         })
     }
 
-    pub fn verify_authentication(
+    pub async fn verify_authentication(
         &self,
         response: AuthenticationResponse,
     ) -> Result<VerificationResult, PasskeyError> {
@@ -670,7 +683,7 @@ impl PasskeyService {
             return Err(PasskeyError::InvalidOrigin);
         }
 
-        let _stored_challenge = self.get_and_remove_challenge(&client_data.challenge)?;
+        let _stored_challenge = self.get_and_remove_challenge(&client_data.challenge).await?;
 
         let credential_id = URL_SAFE_NO_PAD
             .decode(&response.raw_id)
@@ -733,6 +746,7 @@ impl PasskeyService {
             user_id: Some(passkey.user_id),
             credential_id: Some(URL_SAFE_NO_PAD.encode(&credential_id)),
             error: None,
+            used_fallback: false,
         })
     }
 
@@ -851,18 +865,15 @@ impl PasskeyService {
         Ok(challenge)
     }
 
-    fn get_and_remove_challenge(&self, challenge_b64: &str) -> Result<PasskeyChallenge, PasskeyError> {
-        let mut challenges = self
-            .challenges
-            .write()
-            .map_err(|_| PasskeyError::ChallengeStorageError)?;
+    async fn get_and_remove_challenge(&self, challenge_b64: &str) -> Result<PasskeyChallenge, PasskeyError> {
+        let mut challenges = self.challenges.write().await;
 
         let challenge = challenges
             .remove(challenge_b64)
             .ok_or(PasskeyError::ChallengeNotFound)?;
 
         let age = Utc::now() - challenge.created_at;
-        if age > Duration::seconds(CHALLENGE_TIMEOUT_SECONDS) {
+        if age.num_seconds() > CHALLENGE_TIMEOUT_SECONDS {
             return Err(PasskeyError::ChallengeExpired);
         }
 
@@ -1158,11 +1169,10 @@ impl PasskeyService {
         Ok(())
     }
 
-    pub fn cleanup_expired_challenges(&self) {
-        if let Ok(mut challenges) = self.challenges.write() {
-            let cutoff = Utc::now() - Duration::seconds(CHALLENGE_TIMEOUT_SECONDS);
-            challenges.retain(|_, c| c.created_at > cutoff);
-        }
+    pub async fn cleanup_expired_challenges(&self) {
+        let mut challenges = self.challenges.write().await;
+        let cutoff = Utc::now() - Duration::seconds(CHALLENGE_TIMEOUT_SECONDS);
+        challenges.retain(|_, c| c.created_at > cutoff);
     }
 }
 
@@ -1172,8 +1182,6 @@ struct ClientData {
     r#type: String,
     challenge: String,
     origin: String,
-    #[serde(rename = "crossOrigin")]
-    cross_origin: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -1273,8 +1281,8 @@ pub fn passkey_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
         .route("/authentication/options", post(authentication_options_handler))
         .route("/authentication/verify", post(authentication_verify_handler))
         .route("/list/:user_id", get(list_passkeys_handler))
-        .route("/:passkey_id", delete(delete_passkey_handler))
-        .route("/:passkey_id/rename", post(rename_passkey_handler))
+        .route("/:user_id/:passkey_id", delete(delete_passkey_handler))
+        .route("/:user_id/:passkey_id/rename", post(rename_passkey_handler))
         // Password fallback routes
         .route("/fallback/authenticate", post(password_fallback_handler))
         .route("/fallback/check/:username", get(check_fallback_available_handler))
@@ -1285,7 +1293,10 @@ pub fn passkey_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
         State(state): State<Arc<AppState>>,
         Json(request): Json<PasswordFallbackRequest>,
     ) -> impl IntoResponse {
-        let service = get_passkey_service(&state);
+        let service = match get_passkey_service(&state) {
+            Ok(s) => s,
+            Err(e) => return e.into_response(),
+        };
         match service.authenticate_with_password_fallback(&request).await {
             Ok(response) => Json(response).into_response(),
             Err(e) => e.into_response(),
@@ -1296,7 +1307,10 @@ pub fn passkey_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
         State(state): State<Arc<AppState>>,
         Path(username): Path<String>,
     ) -> impl IntoResponse {
-        let service = get_passkey_service(&state);
+        let service = match get_passkey_service(&state) {
+            Ok(s) => s,
+            Err(e) => return e.into_response(),
+        };
 
         #[derive(Serialize)]
         struct FallbackAvailableResponse {
@@ -1305,9 +1319,9 @@ pub fn passkey_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
             reason: Option<String>,
         }
 
-        match service.should_offer_password_fallback(&username).await {
+        match service.should_offer_password_fallback(&username) {
             Ok(available) => {
-                let has_passkeys = service.user_has_passkeys(&username).await.unwrap_or(false);
+                let has_passkeys = service.user_has_passkeys(&username).unwrap_or(false);
                 Json(FallbackAvailableResponse {
                     available,
                     has_passkeys,
@@ -1325,7 +1339,10 @@ pub fn passkey_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
     async fn get_fallback_config_handler(
         State(state): State<Arc<AppState>>,
     ) -> impl IntoResponse {
-        let service = get_passkey_service(&state);
+        let service = match get_passkey_service(&state) {
+            Ok(s) => s,
+            Err(e) => return e.into_response(),
+        };
         let config = service.get_fallback_config();
 
         #[derive(Serialize)]
@@ -1337,7 +1354,7 @@ pub fn passkey_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
         Json(PublicFallbackConfig {
             enabled: config.enabled,
             prompt_passkey_setup: config.prompt_passkey_setup,
-        })
+        }).into_response()
     }
 
 async fn registration_options_handler(
@@ -1345,7 +1362,7 @@ async fn registration_options_handler(
     Json(request): Json<RegistrationOptionsRequest>,
 ) -> Result<Json<RegistrationOptions>, PasskeyError> {
     let service = get_passkey_service(&state)?;
-    let options = service.generate_registration_options(request)?;
+    let options = service.generate_registration_options(request).await?;
     Ok(Json(options))
 }
 
@@ -1354,7 +1371,7 @@ async fn registration_verify_handler(
     Json(request): Json<RegistrationVerifyRequest>,
 ) -> Result<Json<RegistrationResult>, PasskeyError> {
     let service = get_passkey_service(&state)?;
-    let result = service.verify_registration(request.response, request.name)?;
+    let result = service.verify_registration(request.response, request.name).await?;
     Ok(Json(result))
 }
 
@@ -1363,7 +1380,7 @@ async fn authentication_options_handler(
     Json(request): Json<AuthenticationOptionsRequest>,
 ) -> Result<Json<AuthenticationOptions>, PasskeyError> {
     let service = get_passkey_service(&state)?;
-    let options = service.generate_authentication_options(request)?;
+    let options = service.generate_authentication_options(request).await?;
     Ok(Json(options))
 }
 
@@ -1372,13 +1389,13 @@ async fn authentication_verify_handler(
     Json(response): Json<AuthenticationResponse>,
 ) -> Result<Json<VerificationResult>, PasskeyError> {
     let service = get_passkey_service(&state)?;
-    let result = service.verify_authentication(response)?;
+    let result = service.verify_authentication(response).await?;
     Ok(Json(result))
 }
 
 async fn list_passkeys_handler(
     State(state): State<Arc<AppState>>,
-    user_id: Uuid,
+    Path(user_id): Path<Uuid>,
 ) -> Result<Json<Vec<PasskeyInfo>>, PasskeyError> {
     let service = get_passkey_service(&state)?;
     let passkeys = service.list_passkeys(user_id)?;
@@ -1387,8 +1404,7 @@ async fn list_passkeys_handler(
 
 async fn delete_passkey_handler(
     State(state): State<Arc<AppState>>,
-    Path(passkey_id): Path<String>,
-    user_id: Uuid,
+    Path((user_id, passkey_id)): Path<(Uuid, String)>,
 ) -> Result<StatusCode, PasskeyError> {
     let service = get_passkey_service(&state)?;
     service.delete_passkey(user_id, &passkey_id)?;
@@ -1397,8 +1413,7 @@ async fn delete_passkey_handler(
 
 async fn rename_passkey_handler(
     State(state): State<Arc<AppState>>,
-    Path(passkey_id): Path<String>,
-    user_id: Uuid,
+    Path((user_id, passkey_id)): Path<(Uuid, String)>,
     Json(request): Json<RenamePasskeyRequest>,
 ) -> Result<StatusCode, PasskeyError> {
     let service = get_passkey_service(&state)?;

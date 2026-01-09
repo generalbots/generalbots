@@ -546,26 +546,26 @@ impl VideoEngine {
         let output_filename = format!("preview_{}_{}.jpg", project_id, at_ms);
         let output_path = format!("{}/{}", output_dir, output_filename);
 
-        let mut cmd = SafeCommand::new("ffmpeg")
-            .map_err(|e| format!("Command creation failed: {e}"))?;
-
-        cmd.arg("-y").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-ss").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&format!("{:.3}", seek_time)).map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-i").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&clip.source_url).map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-vframes").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("1").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-vf").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&format!("scale={}:{}", width, height)).map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-q:v").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("2").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&output_path).map_err(|e| format!("Arg error: {e}"))?;
+        let cmd = SafeCommand::new("ffmpeg")
+            .map_err(|e| format!("Command creation failed: {e}"))?
+            .arg("-y").map_err(|e| format!("Arg error: {e}"))?
+            .arg("-ss").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&format!("{:.3}", seek_time)).map_err(|e| format!("Arg error: {e}"))?
+            .arg("-i").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&clip.source_url).map_err(|e| format!("Arg error: {e}"))?
+            .arg("-vframes").map_err(|e| format!("Arg error: {e}"))?
+            .arg("1").map_err(|e| format!("Arg error: {e}"))?
+            .arg("-vf").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&format!("scale={}:{}", width, height)).map_err(|e| format!("Arg error: {e}"))?
+            .arg("-q:v").map_err(|e| format!("Arg error: {e}"))?
+            .arg("2").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&output_path).map_err(|e| format!("Arg error: {e}"))?;
 
         let result = cmd.execute().map_err(|e| format!("Execution failed: {e}"))?;
 
-        if !result.success {
-            return Err(format!("FFmpeg error: {}", result.stderr).into());
+        if !result.status.success() {
+            let stderr = String::from_utf8_lossy(&result.stderr);
+            return Err(format!("FFmpeg error: {stderr}").into());
         }
 
         Ok(format!("/video/previews/{}", output_filename))
@@ -725,20 +725,20 @@ impl VideoEngine {
     }
 
     fn get_audio_duration(&self, path: &str) -> Result<i64, Box<dyn std::error::Error + Send + Sync>> {
-        let mut cmd = SafeCommand::new("ffprobe")
-            .map_err(|e| format!("Command creation failed: {e}"))?;
-
-        cmd.arg("-v").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("error").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-show_entries").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("format=duration").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-of").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("default=noprint_wrappers=1:nokey=1").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(path).map_err(|e| format!("Arg error: {e}"))?;
+        let cmd = SafeCommand::new("ffprobe")
+            .map_err(|e| format!("Command creation failed: {e}"))?
+            .arg("-v").map_err(|e| format!("Arg error: {e}"))?
+            .arg("error").map_err(|e| format!("Arg error: {e}"))?
+            .arg("-show_entries").map_err(|e| format!("Arg error: {e}"))?
+            .arg("format=duration").map_err(|e| format!("Arg error: {e}"))?
+            .arg("-of").map_err(|e| format!("Arg error: {e}"))?
+            .arg("default=noprint_wrappers=1:nokey=1").map_err(|e| format!("Arg error: {e}"))?
+            .arg(path).map_err(|e| format!("Arg error: {e}"))?;
 
         let result = cmd.execute().map_err(|e| format!("Execution failed: {e}"))?;
 
-        let duration_secs: f64 = result.stdout.trim().parse().unwrap_or(0.0);
+        let stdout = String::from_utf8_lossy(&result.stdout);
+        let duration_secs: f64 = stdout.trim().parse().unwrap_or(0.0);
         Ok((duration_secs * 1000.0) as i64)
     }
 
@@ -748,26 +748,27 @@ impl VideoEngine {
         threshold: f32,
         output_dir: &str,
     ) -> Result<SceneDetectionResponse, Box<dyn std::error::Error + Send + Sync>> {
+        info!("Detecting scenes for project {project_id} with threshold {threshold}, output_dir: {output_dir}");
         let clips = self.get_clips(project_id).await?;
         let clip = clips.first().ok_or("No clips in project")?;
 
-        let mut cmd = SafeCommand::new("ffmpeg")
-            .map_err(|e| format!("Command creation failed: {e}"))?;
-
-        cmd.arg("-i").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&clip.source_url).map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-vf").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&format!("select='gt(scene,{})',showinfo", threshold)).map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-f").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("null").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-").map_err(|e| format!("Arg error: {e}"))?;
+        let cmd = SafeCommand::new("ffmpeg")
+            .map_err(|e| format!("Command creation failed: {e}"))?
+            .arg("-i").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&clip.source_url).map_err(|e| format!("Arg error: {e}"))?
+            .arg("-vf").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&format!("select='gt(scene,{})',showinfo", threshold)).map_err(|e| format!("Arg error: {e}"))?
+            .arg("-f").map_err(|e| format!("Arg error: {e}"))?
+            .arg("null").map_err(|e| format!("Arg error: {e}"))?
+            .arg("-").map_err(|e| format!("Arg error: {e}"))?;
 
         let result = cmd.execute().map_err(|e| format!("Execution failed: {e}"))?;
 
         let mut scenes = Vec::new();
         let mut last_time: f64 = 0.0;
 
-        for line in result.stderr.lines() {
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        for line in stderr.lines() {
             if line.contains("pts_time:") {
                 if let Some(time_str) = line.split("pts_time:").nth(1) {
                     if let Some(time_end) = time_str.find(char::is_whitespace) {
@@ -815,25 +816,24 @@ impl VideoEngine {
         let output_filename = format!("reframed_{}_{}.mp4", clip_id, target_width);
         let output_path = format!("{}/{}", output_dir, output_filename);
 
-        let mut cmd = SafeCommand::new("ffmpeg")
-            .map_err(|e| format!("Command creation failed: {e}"))?;
-
-        cmd.arg("-y").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-i").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&clip.source_url).map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-vf").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&format!(
-            "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}",
-            target_width, target_height, target_width, target_height
-        )).map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-c:a").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("copy").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&output_path).map_err(|e| format!("Arg error: {e}"))?;
+        let cmd = SafeCommand::new("ffmpeg")
+            .map_err(|e| format!("Command creation failed: {e}"))?
+            .arg("-i").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&clip.source_url).map_err(|e| format!("Arg error: {e}"))?
+            .arg("-vf").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&format!(
+                "scale={}:{}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2",
+                target_width, target_height, target_width, target_height
+            )).map_err(|e| format!("Arg error: {e}"))?
+            .arg("-c:a").map_err(|e| format!("Arg error: {e}"))?
+            .arg("copy").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&output_path).map_err(|e| format!("Arg error: {e}"))?;
 
         let result = cmd.execute().map_err(|e| format!("Execution failed: {e}"))?;
 
-        if !result.success {
-            return Err(format!("Auto-reframe failed: {}", result.stderr).into());
+        if !result.status.success() {
+            let stderr = String::from_utf8_lossy(&result.stderr);
+            return Err(format!("Auto-reframe failed: {stderr}").into());
         }
 
         Ok(format!("/video/reframed/{}", output_filename))

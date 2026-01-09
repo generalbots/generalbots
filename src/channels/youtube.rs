@@ -8,7 +8,6 @@ use crate::channels::{
     PostResult,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// YouTube API provider for video uploads and community posts
 pub struct YouTubeProvider {
@@ -1616,15 +1615,6 @@ struct YouTubeErrorResponse {
 struct YouTubeError {
     code: u16,
     message: String,
-    #[serde(default)]
-    errors: Vec<YouTubeErrorDetail>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-struct YouTubeErrorDetail {
-    message: String,
-    domain: String,
-    reason: String,
 }
 
 // ============================================================================

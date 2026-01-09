@@ -443,28 +443,7 @@ impl GoalsService {
         Ok(vec![])
     }
 
-    fn calculate_objective_progress(&self, key_results: &[KeyResult]) -> f32 {
-        if key_results.is_empty() {
-            return 0.0;
-        }
-        let total_weight: f32 = key_results.iter().map(|kr| kr.weight).sum();
-        if total_weight == 0.0 {
-            return 0.0;
-        }
-        key_results
-            .iter()
-            .map(|kr| {
-                let range = kr.target_value - kr.start_value;
-                let progress = if range == 0.0 {
-                    1.0
-                } else {
-                    ((kr.current_value - kr.start_value) / range).clamp(0.0, 1.0)
-                };
-                progress as f32 * kr.weight
-            })
-            .sum::<f32>()
-            / total_weight
-    }
+
 }
 
 impl Default for GoalsService {

@@ -203,7 +203,10 @@ impl TwilioSmsChannel {
         }
 
         if let Some(ref schedule_type) = request.schedule_type {
-            params.insert("ScheduleType", "fixed".to_string());
+            let schedule_str = match schedule_type {
+                ScheduleType::Fixed => "fixed",
+            };
+            params.insert("ScheduleType", schedule_str.to_string());
             if let Some(send_at) = request.send_at {
                 params.insert("SendAt", send_at.to_rfc3339());
             }
@@ -851,7 +854,6 @@ pub fn create_twilio_config(
         account_sid: account_sid.to_string(),
         auth_token: auth_token.to_string(),
         from_number: from_number.to_string(),
-        webhook_url: None,
         status_callback_url: None,
         messaging_service_sid: None,
     }

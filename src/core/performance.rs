@@ -736,7 +736,6 @@ pub struct ConnectionPoolMetrics {
 
 pub struct BatchProcessor<T> {
     batch_size: usize,
-    flush_interval_ms: u64,
     buffer: Arc<RwLock<Vec<T>>>,
     processor: Arc<dyn Fn(Vec<T>) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync>,
 }
@@ -752,7 +751,6 @@ impl<T: Clone + Send + Sync + 'static> BatchProcessor<T> {
 
         let batch_processor = Self {
             batch_size,
-            flush_interval_ms,
             buffer: Arc::new(RwLock::new(Vec::new())),
             processor: processor_arc,
         };

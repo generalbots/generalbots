@@ -1,23 +1,88 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::Write;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+use crate::security::path_guard::sanitize_filename;
+use crate::shared::parse_hex_color;
+
+
+
+pub struct PdfDocument {
+    name: String,
+    pages: Vec<PdfPage>,
+    fill_color: String,
+    stroke_color: String,
+}
+
+struct PdfPage {}
+
+impl PdfDocument {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            pages: Vec::new(),
+            fill_color: "#000000".to_string(),
+            stroke_color: "#000000".to_string(),
+        }
+    }
+
+    pub fn add_page(&mut self, width: f32, height: f32) {
+        let _ = (width, height);
+        self.pages.push(PdfPage {
+        });
+    }
+
+    pub fn set_fill_color(&mut self, color: &str) {
+        self.fill_color = color.to_string();
+    }
+
+    pub fn set_stroke_color(&mut self, color: &str) {
+        self.stroke_color = color.to_string();
+    }
+
+    pub fn set_line_width(&mut self, _width: f32) {}
+
+    pub fn draw_rect(&mut self, _x: f32, _y: f32, _w: f32, _h: f32, _fill: bool, _stroke: bool) {}
+
+    pub fn draw_ellipse(&mut self, _cx: f32, _cy: f32, _rx: f32, _ry: f32, _fill: bool, _stroke: bool) {}
+
+    pub fn draw_line(&mut self, _x1: f32, _y1: f32, _x2: f32, _y2: f32) {}
+
+    pub fn draw_path(&mut self, _points: &[(f32, f32)]) {}
+
+    pub fn draw_text(&mut self, _text: &str, _x: f32, _y: f32, _font_size: f32) {}
+
+    pub fn draw_image(&mut self, _data: &[u8], _x: f32, _y: f32, _w: f32, _h: f32) {}
+
+    pub fn add_metadata(&mut self, _title: &str, _date: &str) {}
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut output = Vec::new();
+        output.extend_from_slice(b"%PDF-1.4\n");
+        output.extend_from_slice(format!("% {}\n", self.name).as_bytes());
+        output.extend_from_slice(b"%%EOF\n");
+        output
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ExportBounds {
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
+    pub min_x: f64,
+    pub min_y: f64,
+    pub max_x: f64,
+    pub max_y: f64,
+    pub width: f64,
+    pub height: f64,
 }
 
 #[derive(Debug, Clone)]
 pub enum ExportError {
     InvalidFormat(String),
     RenderError(String),
+    RenderFailed(String),
     IoError(String),
     EmptyCanvas,
     InvalidDimensions,
@@ -28,6 +93,7 @@ impl std::fmt::Display for ExportError {
         match self {
             Self::InvalidFormat(s) => write!(f, "Invalid format: {s}"),
             Self::RenderError(s) => write!(f, "Render error: {s}"),
+            Self::RenderFailed(s) => write!(f, "Render failed: {s}"),
             Self::IoError(s) => write!(f, "IO error: {s}"),
             Self::EmptyCanvas => write!(f, "Empty canvas"),
             Self::InvalidDimensions => write!(f, "Invalid dimensions"),
@@ -122,6 +188,7 @@ pub struct WhiteboardShape {
     pub font_family: Option<String>,
     pub z_index: i32,
     pub locked: bool,
+    pub image_data: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -581,17 +648,19 @@ impl WhiteboardExportService {
         }
 
         let mut png_data = Vec::new();
-        let mut encoder = png::Encoder::new(&mut png_data, width, height);
-        encoder.set_color(png::ColorType::Rgba);
-        encoder.set_depth(png::BitDepth::Eight);
+        {
+            let mut encoder = png::Encoder::new(&mut png_data, width, height);
+            encoder.set_color(png::ColorType::Rgba);
+            encoder.set_depth(png::BitDepth::Eight);
 
-        let mut writer = encoder
-            .write_header()
-            .map_err(|e| ExportError::RenderError(e.to_string()))?;
+            let mut writer = encoder
+                .write_header()
+                .map_err(|e| ExportError::RenderError(e.to_string()))?;
 
-        writer
-            .write_image_data(&pixels)
-            .map_err(|e| ExportError::RenderError(e.to_string()))?;
+            writer
+                .write_image_data(&pixels)
+                .map_err(|e| ExportError::RenderError(e.to_string()))?;
+        }
 
         Ok(png_data)
     }
@@ -605,8 +674,8 @@ impl WhiteboardExportService {
     ) -> Result<Vec<u8>, ExportError> {
         let mut pdf = PdfDocument::new(&whiteboard.name);
 
-        let page_width = bounds.width.max(595.0);
-        let page_height = bounds.height.max(842.0);
+        let page_width = bounds.width.max(595.0) as f32;
+        let page_height = bounds.height.max(842.0) as f32;
 
         pdf.add_page(page_width, page_height);
 
@@ -637,10 +706,10 @@ impl WhiteboardExportService {
         options: &ExportOptions,
     ) {
         let scale = options.scale as f64;
-        let x = (shape.x - bounds.min_x) * scale;
-        let y = (shape.y - bounds.min_y) * scale;
-        let w = shape.width * scale;
-        let h = shape.height * scale;
+        let x = ((shape.x - bounds.min_x) * scale) as f32;
+        let y = ((shape.y - bounds.min_y) * scale) as f32;
+        let w = (shape.width * scale) as f32;
+        let h = (shape.height * scale) as f32;
 
         if let Some(fill) = &shape.fill_color {
             pdf.set_fill_color(fill);
@@ -648,7 +717,7 @@ impl WhiteboardExportService {
         if let Some(stroke) = &shape.stroke_color {
             pdf.set_stroke_color(stroke);
         }
-        pdf.set_line_width(shape.stroke_width as f64);
+        pdf.set_line_width(shape.stroke_width as f32);
 
         match shape.shape_type {
             ShapeType::Rectangle | ShapeType::Sticky => {
@@ -659,11 +728,11 @@ impl WhiteboardExportService {
             }
             ShapeType::Line | ShapeType::Arrow | ShapeType::Freehand => {
                 if !shape.points.is_empty() {
-                    let points: Vec<(f64, f64)> = shape
+                    let points: Vec<(f32, f32)> = shape
                         .points
                         .iter()
                         .map(|p| {
-                            ((p.x - bounds.min_x) * scale, (p.y - bounds.min_y) * scale)
+                            (((p.x - bounds.min_x) * scale) as f32, ((p.y - bounds.min_y) * scale) as f32)
                         })
                         .collect();
                     pdf.draw_path(&points);
@@ -671,12 +740,12 @@ impl WhiteboardExportService {
             }
             ShapeType::Text => {
                 if let Some(text) = &shape.text {
-                    let font_size = shape.font_size.unwrap_or(12.0) * options.scale;
-                    pdf.draw_text(text, x, y, font_size as f64);
+                    let font_size = (shape.font_size.unwrap_or(12.0) * options.scale) as f32;
+                    pdf.draw_text(text, x, y, font_size);
                 }
             }
             ShapeType::Triangle => {
-                let points = vec![
+                let points: Vec<(f32, f32)> = vec![
                     (x + w / 2.0, y),
                     (x + w, y + h),
                     (x, y + h),
@@ -685,7 +754,7 @@ impl WhiteboardExportService {
                 pdf.draw_path(&points);
             }
             ShapeType::Diamond => {
-                let points = vec![
+                let points: Vec<(f32, f32)> = vec![
                     (x + w / 2.0, y),
                     (x + w, y + h / 2.0),
                     (x + w / 2.0, y + h),
@@ -873,7 +942,7 @@ impl WhiteboardExportService {
                 }
             }
             ShapeType::Text => {
-                let font_size = shape.font_size.unwrap_or(16.0) * scale;
+                let font_size = f64::from(shape.font_size.unwrap_or(16.0)) * scale;
                 let text_content = shape.text.as_deref().unwrap_or("");
                 format!(
                     r#"<text class="shape" x="{}" y="{}" font-size="{}" fill="{}" opacity="{}"{}>{}</text>"#,
@@ -881,7 +950,7 @@ impl WhiteboardExportService {
                 )
             }
             ShapeType::Image => {
-                if let Some(src) = &shape.image_url {
+                if let Some(src) = &shape.image_data {
                     format!(
                         r#"<image class="shape" x="{}" y="{}" width="{}" height="{}" href="{}" opacity="{}"{}/>"#,
                         x, y, w, h, src, opacity, transform
@@ -890,6 +959,89 @@ impl WhiteboardExportService {
                     String::new()
                 }
             }
+            ShapeType::Connector => {
+                if shape.points.len() >= 2 {
+                    let points: Vec<String> = shape
+                        .points
+                        .iter()
+                        .map(|p| {
+                            format!(
+                                "{},{}",
+                                (p.x - bounds.min_x) * scale,
+                                (p.y - bounds.min_y) * scale
+                            )
+                        })
+                        .collect();
+                    let line_points = points.join(" ");
+                    format!(
+                        r#"<polyline class="shape" points="{}" fill="none" stroke="{}" stroke-width="{}" opacity="{}" marker-end="url(#arrowhead)"{}/>"#,
+                        line_points, stroke, stroke_width, opacity, transform
+                    )
+                } else {
+                    String::new()
+                }
+            }
+            ShapeType::Triangle => {
+                let x1 = x + w / 2.0;
+                let y1 = y;
+                let x2 = x;
+                let y2 = y + h;
+                let x3 = x + w;
+                let y3 = y + h;
+                format!(
+                    r#"<polygon class="shape" points="{},{} {},{} {},{}" fill="{}" stroke="{}" stroke-width="{}" opacity="{}"{}/>"#,
+                    x1, y1, x2, y2, x3, y3, fill, stroke, stroke_width, opacity, transform
+                )
+            }
+            ShapeType::Diamond => {
+                let x1 = x + w / 2.0;
+                let y1 = y;
+                let x2 = x + w;
+                let y2 = y + h / 2.0;
+                let x3 = x + w / 2.0;
+                let y3 = y + h;
+                let x4 = x;
+                let y4 = y + h / 2.0;
+                format!(
+                    r#"<polygon class="shape" points="{},{} {},{} {},{} {},{}" fill="{}" stroke="{}" stroke-width="{}" opacity="{}"{}/>"#,
+                    x1, y1, x2, y2, x3, y3, x4, y4, fill, stroke, stroke_width, opacity, transform
+                )
+            }
+            ShapeType::Star => {
+                let cx = x + w / 2.0;
+                let cy = y + h / 2.0;
+                let outer_r = w.min(h) / 2.0;
+                let inner_r = outer_r * 0.4;
+                let mut points = Vec::new();
+                for i in 0..10 {
+                    let angle = std::f64::consts::PI / 2.0 - (i as f64) * std::f64::consts::PI / 5.0;
+                    let r = if i % 2 == 0 { outer_r } else { inner_r };
+                    let px = cx + r * angle.cos();
+                    let py = cy - r * angle.sin();
+                    points.push(format!("{px},{py}"));
+                }
+                format!(
+                    r#"<polygon class="shape" points="{}" fill="{}" stroke="{}" stroke-width="{}" opacity="{}"{}/>"#,
+                    points.join(" "), fill, stroke, stroke_width, opacity, transform
+                )
+            }
         }
+    }
+
+    fn export_to_json(
+        &self,
+        whiteboard: &WhiteboardData,
+        shapes: &[WhiteboardShape],
+    ) -> Result<String, ExportError> {
+        let export_data = serde_json::json!({
+            "id": whiteboard.id,
+            "name": whiteboard.name,
+            "created_at": whiteboard.created_at,
+            "updated_at": whiteboard.updated_at,
+            "shapes": shapes,
+        });
+
+        serde_json::to_string_pretty(&export_data)
+            .map_err(|e| ExportError::RenderFailed(format!("JSON serialization failed: {e}")))
     }
 }

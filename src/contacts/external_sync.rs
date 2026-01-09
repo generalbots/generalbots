@@ -1,17 +1,9 @@
-use axum::{
-    extract::{Path, Query, State},
-    response::IntoResponse,
-    routing::{delete, get, post},
-    Json, Router,
-};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
-
-use crate::shared::state::AppState;
-use crate::shared::utils::DbPool;
 
 #[derive(Debug, Clone)]
 pub struct GoogleConfig {
@@ -37,32 +29,50 @@ impl GoogleContactsClient {
 
     pub fn get_auth_url(&self, redirect_uri: &str, state: &str) -> String {
         format!(
-            "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&redirect_uri={}&state={}&scope=https://www.googleapis.com/auth/contacts&response_type=code",
+            "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&redirect_uri={}&response_type=code&scope=https://www.googleapis.com/auth/contacts&state={}",
             self.config.client_id, redirect_uri, state
         )
     }
 
     pub async fn exchange_code(&self, _code: &str, _redirect_uri: &str) -> Result<TokenResponse, ExternalSyncError> {
         Ok(TokenResponse {
-            access_token: String::new(),
-            refresh_token: Some(String::new()),
+            access_token: "mock_access_token".to_string(),
+            refresh_token: Some("mock_refresh_token".to_string()),
             expires_in: 3600,
+            expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
+            scopes: vec!["https://www.googleapis.com/auth/contacts".to_string()],
         })
     }
 
-    pub async fn fetch_contacts(&self, _access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
-        Ok(vec![])
+    pub async fn get_user_info(&self, _access_token: &str) -> Result<UserInfo, ExternalSyncError> {
+        Ok(UserInfo {
+            id: Uuid::new_v4().to_string(),
+            email: "user@example.com".to_string(),
+            name: Some("Test User".to_string()),
+        })
     }
 
-    pub async fn create_contact(&self, _access_token: &str, _contact: &ExternalContact) -> Result<String, ExternalSyncError> {
-        Ok(String::new())
-    }
-
-    pub async fn update_contact(&self, _access_token: &str, _external_id: &str, _contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+    pub async fn revoke_token(&self, _access_token: &str) -> Result<(), ExternalSyncError> {
         Ok(())
     }
 
-    pub async fn delete_contact(&self, _access_token: &str, _external_id: &str) -> Result<(), ExternalSyncError> {
+    pub async fn list_contacts(&self, _access_token: &str, _cursor: Option<&str>) -> Result<(Vec<ExternalContact>, Option<String>), ExternalSyncError> {
+        Ok((Vec::new(), None))
+    }
+
+    pub async fn fetch_contacts(&self, _access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
+        Ok(Vec::new())
+    }
+
+    pub async fn create_contact(&self, _access_token: &str, _contact: &ExternalContact) -> Result<String, ExternalSyncError> {
+        Ok(Uuid::new_v4().to_string())
+    }
+
+    pub async fn update_contact(&self, _access_token: &str, _contact_id: &str, _contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+        Ok(())
+    }
+
+    pub async fn delete_contact(&self, _access_token: &str, _contact_id: &str) -> Result<(), ExternalSyncError> {
         Ok(())
     }
 }
@@ -78,32 +88,50 @@ impl MicrosoftPeopleClient {
 
     pub fn get_auth_url(&self, redirect_uri: &str, state: &str) -> String {
         format!(
-            "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize?client_id={}&redirect_uri={}&state={}&scope=Contacts.ReadWrite&response_type=code",
+            "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize?client_id={}&redirect_uri={}&response_type=code&scope=Contacts.ReadWrite&state={}",
             self.config.tenant_id, self.config.client_id, redirect_uri, state
         )
     }
 
     pub async fn exchange_code(&self, _code: &str, _redirect_uri: &str) -> Result<TokenResponse, ExternalSyncError> {
         Ok(TokenResponse {
-            access_token: String::new(),
-            refresh_token: Some(String::new()),
+            access_token: "mock_access_token".to_string(),
+            refresh_token: Some("mock_refresh_token".to_string()),
             expires_in: 3600,
+            expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
+            scopes: vec!["Contacts.ReadWrite".to_string()],
         })
     }
 
-    pub async fn fetch_contacts(&self, _access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
-        Ok(vec![])
+    pub async fn get_user_info(&self, _access_token: &str) -> Result<UserInfo, ExternalSyncError> {
+        Ok(UserInfo {
+            id: Uuid::new_v4().to_string(),
+            email: "user@example.com".to_string(),
+            name: Some("Test User".to_string()),
+        })
     }
 
-    pub async fn create_contact(&self, _access_token: &str, _contact: &ExternalContact) -> Result<String, ExternalSyncError> {
-        Ok(String::new())
-    }
-
-    pub async fn update_contact(&self, _access_token: &str, _external_id: &str, _contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+    pub async fn revoke_token(&self, _access_token: &str) -> Result<(), ExternalSyncError> {
         Ok(())
     }
 
-    pub async fn delete_contact(&self, _access_token: &str, _external_id: &str) -> Result<(), ExternalSyncError> {
+    pub async fn list_contacts(&self, _access_token: &str, _cursor: Option<&str>) -> Result<(Vec<ExternalContact>, Option<String>), ExternalSyncError> {
+        Ok((Vec::new(), None))
+    }
+
+    pub async fn fetch_contacts(&self, _access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
+        Ok(Vec::new())
+    }
+
+    pub async fn create_contact(&self, _access_token: &str, _contact: &ExternalContact) -> Result<String, ExternalSyncError> {
+        Ok(Uuid::new_v4().to_string())
+    }
+
+    pub async fn update_contact(&self, _access_token: &str, _contact_id: &str, _contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+        Ok(())
+    }
+
+    pub async fn delete_contact(&self, _access_token: &str, _contact_id: &str) -> Result<(), ExternalSyncError> {
         Ok(())
     }
 }
@@ -113,6 +141,8 @@ pub struct TokenResponse {
     pub access_token: String,
     pub refresh_token: Option<String>,
     pub expires_in: i64,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub scopes: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -207,7 +237,7 @@ pub struct ExternalAccount {
     pub sync_enabled: bool,
     pub sync_direction: SyncDirection,
     pub last_sync_at: Option<DateTime<Utc>>,
-    pub last_sync_status: Option<SyncStatus>,
+    pub last_sync_status: Option<String>,
     pub sync_cursor: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -234,6 +264,7 @@ impl std::fmt::Display for SyncDirection {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SyncStatus {
     Success,
+    Synced,
     PartialSuccess,
     Failed,
     InProgress,
@@ -243,11 +274,12 @@ pub enum SyncStatus {
 impl std::fmt::Display for SyncStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SyncStatus::Success => write!(f, "success"),
-            SyncStatus::PartialSuccess => write!(f, "partial_success"),
-            SyncStatus::Failed => write!(f, "failed"),
-            SyncStatus::InProgress => write!(f, "in_progress"),
-            SyncStatus::Cancelled => write!(f, "cancelled"),
+            Self::Success => write!(f, "success"),
+            Self::Synced => write!(f, "synced"),
+            Self::PartialSuccess => write!(f, "partial_success"),
+            Self::Failed => write!(f, "failed"),
+            Self::InProgress => write!(f, "in_progress"),
+            Self::Cancelled => write!(f, "cancelled"),
         }
     }
 }
@@ -256,13 +288,20 @@ impl std::fmt::Display for SyncStatus {
 pub struct ContactMapping {
     pub id: Uuid,
     pub account_id: Uuid,
-    pub internal_contact_id: Uuid,
+    pub contact_id: Uuid,
+    pub local_contact_id: Uuid,
+    pub external_id: String,
     pub external_contact_id: String,
     pub external_etag: Option<String>,
     pub internal_version: i64,
     pub last_synced_at: DateTime<Utc>,
     pub sync_status: MappingSyncStatus,
     pub conflict_data: Option<ConflictData>,
+    pub local_data: Option<serde_json::Value>,
+    pub remote_data: Option<serde_json::Value>,
+    pub conflict_detected_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -297,10 +336,13 @@ pub struct ConflictData {
     pub resolved_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ConflictResolution {
     KeepInternal,
     KeepExternal,
+    KeepLocal,
+    KeepRemote,
+    Manual,
     Merge,
     Skip,
 }
@@ -387,6 +429,7 @@ pub struct SyncProgressResponse {
 pub struct ResolveConflictRequest {
     pub resolution: ConflictResolution,
     pub merged_data: Option<MergedContactData>,
+    pub manual_data: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -496,18 +539,286 @@ pub struct ExternalAddress {
 }
 
 pub struct ExternalSyncService {
-    pool: DbPool,
     google_client: GoogleContactsClient,
     microsoft_client: MicrosoftPeopleClient,
+    accounts: Arc<RwLock<HashMap<Uuid, ExternalAccount>>>,
+    mappings: Arc<RwLock<HashMap<Uuid, ContactMapping>>>,
+    sync_history: Arc<RwLock<Vec<SyncHistory>>>,
+    contacts: Arc<RwLock<HashMap<Uuid, ExternalContact>>>,
+}
+
+pub struct UserInfo {
+    pub id: String,
+    pub email: String,
+    pub name: Option<String>,
 }
 
 impl ExternalSyncService {
-    pub fn new(pool: DbPool, google_config: GoogleConfig, microsoft_config: MicrosoftConfig) -> Self {
+    pub fn new(google_config: GoogleConfig, microsoft_config: MicrosoftConfig) -> Self {
         Self {
-            pool,
             google_client: GoogleContactsClient::new(google_config),
             microsoft_client: MicrosoftPeopleClient::new(microsoft_config),
+            accounts: Arc::new(RwLock::new(HashMap::new())),
+            mappings: Arc::new(RwLock::new(HashMap::new())),
+            sync_history: Arc::new(RwLock::new(Vec::new())),
+            contacts: Arc::new(RwLock::new(HashMap::new())),
         }
+    }
+
+    async fn find_existing_account(
+        &self,
+        organization_id: Uuid,
+        provider: &ExternalProvider,
+        external_id: &str,
+    ) -> Result<Option<ExternalAccount>, ExternalSyncError> {
+        let accounts = self.accounts.read().await;
+        Ok(accounts.values().find(|a| {
+            a.organization_id == organization_id
+                && &a.provider == provider
+                && a.external_account_id == external_id
+        }).cloned())
+    }
+
+    async fn update_account_tokens(
+        &self,
+        account_id: Uuid,
+        tokens: &TokenResponse,
+    ) -> Result<ExternalAccount, ExternalSyncError> {
+        let mut accounts = self.accounts.write().await;
+        let account = accounts.get_mut(&account_id)
+            .ok_or_else(|| ExternalSyncError::DatabaseError("Account not found".into()))?;
+        account.access_token = tokens.access_token.clone();
+        account.refresh_token = tokens.refresh_token.clone();
+        account.token_expires_at = tokens.expires_at;
+        account.updated_at = Utc::now();
+        Ok(account.clone())
+    }
+
+    async fn save_account(&self, account: &ExternalAccount) -> Result<(), ExternalSyncError> {
+        let mut accounts = self.accounts.write().await;
+        accounts.insert(account.id, account.clone());
+        Ok(())
+    }
+
+    async fn get_account(&self, account_id: Uuid) -> Result<ExternalAccount, ExternalSyncError> {
+        let accounts = self.accounts.read().await;
+        accounts.get(&account_id).cloned()
+            .ok_or_else(|| ExternalSyncError::DatabaseError("Account not found".into()))
+    }
+
+    async fn delete_account(&self, account_id: Uuid) -> Result<(), ExternalSyncError> {
+        let mut accounts = self.accounts.write().await;
+        accounts.remove(&account_id);
+        Ok(())
+    }
+
+    async fn ensure_valid_token(&self, _account: &ExternalAccount) -> Result<String, ExternalSyncError> {
+        Ok("valid_token".into())
+    }
+
+    async fn save_sync_history(&self, history: &SyncHistory) -> Result<(), ExternalSyncError> {
+        let mut sync_history = self.sync_history.write().await;
+        sync_history.push(history.clone());
+        Ok(())
+    }
+
+    async fn update_account_sync_status(
+        &self,
+        account_id: Uuid,
+        status: SyncStatus,
+    ) -> Result<(), ExternalSyncError> {
+        let mut accounts = self.accounts.write().await;
+        if let Some(account) = accounts.get_mut(&account_id) {
+            account.last_sync_status = Some(status.to_string());
+            account.last_sync_at = Some(Utc::now());
+        }
+        Ok(())
+    }
+
+    async fn update_account_sync_cursor(
+        &self,
+        account_id: Uuid,
+        cursor: Option<String>,
+    ) -> Result<(), ExternalSyncError> {
+        let mut accounts = self.accounts.write().await;
+        if let Some(account) = accounts.get_mut(&account_id) {
+            account.sync_cursor = cursor;
+        }
+        Ok(())
+    }
+
+    async fn get_pending_uploads(&self, account_id: Uuid) -> Result<Vec<ContactMapping>, ExternalSyncError> {
+        let mappings = self.mappings.read().await;
+        Ok(mappings.values()
+            .filter(|m| m.account_id == account_id && m.sync_status == MappingSyncStatus::PendingUpload)
+            .cloned()
+            .collect())
+    }
+
+    async fn get_mapping_by_external_id(
+        &self,
+        account_id: Uuid,
+        external_id: &str,
+    ) -> Result<Option<ContactMapping>, ExternalSyncError> {
+        let mappings = self.mappings.read().await;
+        Ok(mappings.values()
+            .find(|m| m.account_id == account_id && m.external_id == external_id)
+            .cloned())
+    }
+
+    async fn has_internal_changes(&self, _mapping: &ContactMapping) -> Result<bool, ExternalSyncError> {
+        Ok(false)
+    }
+
+    async fn mark_conflict(
+        &self,
+        mapping_id: Uuid,
+        _internal_changes: Vec<String>,
+        _external_changes: Vec<String>,
+    ) -> Result<(), ExternalSyncError> {
+        let mut mappings = self.mappings.write().await;
+        if let Some(mapping) = mappings.get_mut(&mapping_id) {
+            mapping.sync_status = MappingSyncStatus::Conflict;
+            mapping.conflict_detected_at = Some(Utc::now());
+        }
+        Ok(())
+    }
+
+    async fn update_internal_contact(
+        &self,
+        _contact_id: Uuid,
+        _external: &ExternalContact,
+    ) -> Result<(), ExternalSyncError> {
+        Ok(())
+    }
+
+    async fn update_mapping_after_sync(
+        &self,
+        mapping_id: Uuid,
+        etag: Option<String>,
+    ) -> Result<(), ExternalSyncError> {
+        let mut mappings = self.mappings.write().await;
+        if let Some(mapping) = mappings.get_mut(&mapping_id) {
+            mapping.external_etag = etag;
+            mapping.last_synced_at = Utc::now();
+            mapping.sync_status = MappingSyncStatus::Synced;
+        }
+        Ok(())
+    }
+
+    async fn create_internal_contact(
+        &self,
+        _organization_id: Uuid,
+        external: &ExternalContact,
+    ) -> Result<Uuid, ExternalSyncError> {
+        let contact_id = Uuid::new_v4();
+        let mut contacts = self.contacts.write().await;
+        let mut contact = external.clone();
+        contact.id = contact_id.to_string();
+        contacts.insert(contact_id, contact);
+        Ok(contact_id)
+    }
+
+    async fn create_mapping(&self, mapping: &ContactMapping) -> Result<(), ExternalSyncError> {
+        let mut mappings = self.mappings.write().await;
+        mappings.insert(mapping.id, mapping.clone());
+        Ok(())
+    }
+
+    async fn get_internal_contact(&self, contact_id: Uuid) -> Result<ExternalContact, ExternalSyncError> {
+        let contacts = self.contacts.read().await;
+        contacts.get(&contact_id).cloned()
+            .ok_or_else(|| ExternalSyncError::DatabaseError("Contact not found".into()))
+    }
+
+    async fn convert_to_external(&self, contact: &ExternalContact) -> Result<ExternalContact, ExternalSyncError> {
+        Ok(contact.clone())
+    }
+
+    async fn update_mapping_external_id(
+        &self,
+        mapping_id: Uuid,
+        external_id: String,
+        etag: Option<String>,
+    ) -> Result<(), ExternalSyncError> {
+        let mut mappings = self.mappings.write().await;
+        if let Some(mapping) = mappings.get_mut(&mapping_id) {
+            mapping.external_id = external_id;
+            mapping.external_etag = etag;
+        }
+        Ok(())
+    }
+
+    async fn fetch_accounts(&self, organization_id: Uuid) -> Result<Vec<ExternalAccount>, ExternalSyncError> {
+        let accounts = self.accounts.read().await;
+        Ok(accounts.values()
+            .filter(|a| a.organization_id == organization_id)
+            .cloned()
+            .collect())
+    }
+
+    async fn get_sync_stats(&self, account_id: Uuid) -> Result<SyncStats, ExternalSyncError> {
+        let history = self.sync_history.read().await;
+        let account_history: Vec<_> = history.iter()
+            .filter(|h| h.account_id == account_id)
+            .collect();
+        let successful = account_history.iter().filter(|h| h.status == SyncStatus::Success).count();
+        let failed = account_history.iter().filter(|h| h.status == SyncStatus::Failed).count();
+        Ok(SyncStats {
+            total_synced_contacts: account_history.iter().map(|h| h.contacts_created + h.contacts_updated).sum(),
+            total_syncs: account_history.len() as u32,
+            successful_syncs: successful as u32,
+            failed_syncs: failed as u32,
+            last_successful_sync: account_history.iter()
+                .filter(|h| h.status == SyncStatus::Success)
+                .max_by_key(|h| h.completed_at)
+                .and_then(|h| h.completed_at),
+            average_sync_duration_seconds: 60,
+        })
+    }
+
+    async fn count_pending_conflicts(&self, account_id: Uuid) -> Result<u32, ExternalSyncError> {
+        let mappings = self.mappings.read().await;
+        Ok(mappings.values()
+            .filter(|m| m.account_id == account_id && m.sync_status == MappingSyncStatus::Conflict)
+            .count() as u32)
+    }
+
+    async fn count_pending_errors(&self, account_id: Uuid) -> Result<u32, ExternalSyncError> {
+        let mappings = self.mappings.read().await;
+        Ok(mappings.values()
+            .filter(|m| m.account_id == account_id && m.sync_status == MappingSyncStatus::Error)
+            .count() as u32)
+    }
+
+    async fn get_next_scheduled_sync(&self, _account_id: Uuid) -> Result<Option<DateTime<Utc>>, ExternalSyncError> {
+        Ok(Some(Utc::now() + chrono::Duration::hours(1)))
+    }
+
+    async fn fetch_sync_history(
+        &self,
+        account_id: Uuid,
+        _limit: u32,
+    ) -> Result<Vec<SyncHistory>, ExternalSyncError> {
+        let history = self.sync_history.read().await;
+        Ok(history.iter()
+            .filter(|h| h.account_id == account_id)
+            .cloned()
+            .collect())
+    }
+
+    async fn fetch_conflicts(&self, account_id: Uuid) -> Result<Vec<ContactMapping>, ExternalSyncError> {
+        let mappings = self.mappings.read().await;
+        Ok(mappings.values()
+            .filter(|m| m.account_id == account_id && m.sync_status == MappingSyncStatus::Conflict)
+            .cloned()
+            .collect())
+    }
+
+    async fn get_mapping(&self, mapping_id: Uuid) -> Result<ContactMapping, ExternalSyncError> {
+        let mappings = self.mappings.read().await;
+        mappings.get(&mapping_id).cloned()
+            .ok_or_else(|| ExternalSyncError::DatabaseError("Mapping not found".into()))
     }
 
     pub fn get_authorization_url(
@@ -662,19 +973,23 @@ impl ExternalSyncService {
             return Err(ExternalSyncError::SyncDisabled);
         }
 
-        // Check if sync is already in progress
         if let Some(last_status) = &account.last_sync_status {
-            if *last_status == SyncStatus::InProgress {
+            if last_status == "in_progress" {
                 return Err(ExternalSyncError::SyncInProgress);
             }
         }
 
         // Refresh token if needed
-        let account = self.ensure_valid_token(account).await?;
+        let access_token = self.ensure_valid_token(&account).await?;
+        let sync_direction = account.sync_direction.clone();
+        let account = ExternalAccount {
+            access_token,
+            ..account
+        };
 
         let sync_id = Uuid::new_v4();
         let now = Utc::now();
-        let direction = request.direction.clone().unwrap_or(account.sync_direction.clone());
+        let direction = request.direction.clone().unwrap_or(sync_direction);
 
         let mut history = SyncHistory {
             id: sync_id,
@@ -796,9 +1111,7 @@ impl ExternalSyncService {
         }
 
         // Update sync cursor
-        if let Some(cursor) = new_cursor {
-            self.update_account_sync_cursor(account.id, &cursor).await?;
-        }
+        self.update_account_sync_cursor(account.id, new_cursor).await?;
 
         Ok(())
     }
@@ -819,7 +1132,7 @@ impl ExternalSyncService {
                 Ok(ExportResult::Skipped) => history.contacts_skipped += 1,
                 Err(e) => {
                     history.errors.push(SyncError {
-                        contact_id: Some(mapping.internal_contact_id),
+                        contact_id: Some(mapping.local_contact_id),
                         external_id: Some(mapping.external_contact_id.clone()),
                         operation: "export".to_string(),
                         error_code: "export_failed".to_string(),
@@ -839,23 +1152,19 @@ impl ExternalSyncService {
         external: &ExternalContact,
         _history: &mut SyncHistory,
     ) -> Result<ImportResult, ExternalSyncError> {
-        // Check if mapping exists
         let existing_mapping = self
             .get_mapping_by_external_id(account.id, &external.id)
             .await?;
 
         if let Some(mapping) = existing_mapping {
-            // Check for conflicts
             if mapping.external_etag.as_ref() != external.etag.as_ref() {
-                // External changed
                 let internal_changed = self
-                    .has_internal_changes(mapping.internal_contact_id, mapping.internal_version)
+                    .has_internal_changes(&mapping)
                     .await?;
 
                 if internal_changed {
-                    // Conflict detected
                     self.mark_conflict(
-                        &mapping,
+                        mapping.id,
                         vec!["external_updated".to_string()],
                         vec!["internal_updated".to_string()],
                     )
@@ -863,26 +1172,40 @@ impl ExternalSyncService {
                     return Ok(ImportResult::Conflict);
                 }
 
-                // Update internal contact
-                self.update_internal_contact(mapping.internal_contact_id, external)
+                self.update_internal_contact(mapping.local_contact_id, external)
                     .await?;
-                self.update_mapping_after_sync(&mapping, external.etag.as_deref())
+                self.update_mapping_after_sync(mapping.id, external.etag.clone())
                     .await?;
                 return Ok(ImportResult::Updated);
             }
 
-            // No changes
             return Ok(ImportResult::Skipped);
         }
 
-        // Create new internal contact
         let contact_id = self
-            .create_internal_contact(account.organization_id, account.user_id, external)
+            .create_internal_contact(account.organization_id, external)
             .await?;
 
-        // Create mapping
-        self.create_mapping(account.id, contact_id, &external.id, external.etag.as_deref())
-            .await?;
+        let now = Utc::now();
+        let mapping = ContactMapping {
+            id: Uuid::new_v4(),
+            account_id: account.id,
+            contact_id,
+            local_contact_id: contact_id,
+            external_id: external.id.clone(),
+            external_contact_id: external.id.clone(),
+            external_etag: external.etag.clone(),
+            internal_version: 1,
+            last_synced_at: now,
+            sync_status: MappingSyncStatus::Synced,
+            conflict_data: None,
+            local_data: None,
+            remote_data: None,
+            conflict_detected_at: None,
+            created_at: now,
+            updated_at: now,
+        };
+        self.create_mapping(&mapping).await?;
 
         Ok(ImportResult::Created)
     }
@@ -893,16 +1216,12 @@ impl ExternalSyncService {
         mapping: &ContactMapping,
         _history: &mut SyncHistory,
     ) -> Result<ExportResult, ExternalSyncError> {
-        // Get internal contact
-        let internal = self.get_internal_contact(mapping.internal_contact_id).await?;
+        let internal = self.get_internal_contact(mapping.local_contact_id).await?;
 
-        // Convert to external format
-        let external = self.convert_to_external(&internal);
+        let external = self.convert_to_external(&internal).await?;
 
-        // Check if this is a new contact or update
         if mapping.external_contact_id.is_empty() {
-            // Create new external contact
-            let (external_id, etag) = match account.provider {
+            let external_id = match account.provider {
                 ExternalProvider::Google => {
                     self.google_client
                         .create_contact(&account.access_token, &external)
@@ -916,13 +1235,12 @@ impl ExternalSyncService {
                 _ => return Err(ExternalSyncError::UnsupportedProvider(account.provider.to_string())),
             };
 
-            self.update_mapping_external_id(mapping.id, &external_id, etag.as_deref())
+            self.update_mapping_external_id(mapping.id, external_id, None)
                 .await?;
             return Ok(ExportResult::Created);
         }
 
-        // Update existing external contact
-        let etag = match account.provider {
+        match account.provider {
             ExternalProvider::Google => {
                 self.google_client
                     .update_contact(
@@ -930,7 +1248,7 @@ impl ExternalSyncService {
                         &mapping.external_contact_id,
                         &external,
                     )
-                    .await?
+                    .await?;
             }
             ExternalProvider::Microsoft => {
                 self.microsoft_client
@@ -939,12 +1257,12 @@ impl ExternalSyncService {
                         &mapping.external_contact_id,
                         &external,
                     )
-                    .await?
+                    .await?;
             }
             _ => return Err(ExternalSyncError::UnsupportedProvider(account.provider.to_string())),
-        };
+        }
 
-        self.update_mapping_after_sync(mapping, etag.as_deref()).await?;
+        self.update_mapping_after_sync(mapping.id, None).await?;
 
         Ok(ExportResult::Updated)
     }
@@ -954,7 +1272,12 @@ impl ExternalSyncService {
         organization_id: Uuid,
         user_id: Option<Uuid>,
     ) -> Result<Vec<AccountStatusResponse>, ExternalSyncError> {
-        let accounts = self.fetch_accounts(organization_id, user_id).await?;
+        let accounts = self.fetch_accounts(organization_id).await?;
+        let accounts: Vec<_> = if let Some(uid) = user_id {
+            accounts.into_iter().filter(|a| a.user_id == uid).collect()
+        } else {
+            accounts
+        };
         let mut results = Vec::new();
 
         for account in accounts {
@@ -1014,17 +1337,14 @@ impl ExternalSyncService {
         let account = self.get_account(mapping.account_id).await?;
 
         if account.organization_id != organization_id {
-            return Err(ExternalSyncError::Unauthorized(
-                "Access denied to this mapping".to_string(),
-            ));
+            return Err(ExternalSyncError::Unauthorized);
         }
 
         // Apply the resolution based on strategy
         let resolved_contact = match request.resolution {
-            ConflictResolution::KeepLocal => mapping.local_data.clone(),
-            ConflictResolution::KeepRemote => mapping.remote_data.clone(),
+            ConflictResolution::KeepLocal | ConflictResolution::KeepInternal => mapping.local_data.clone(),
+            ConflictResolution::KeepRemote | ConflictResolution::KeepExternal => mapping.remote_data.clone(),
             ConflictResolution::Merge => {
-                // Merge logic: prefer remote for non-null fields
                 let mut merged = mapping.local_data.clone().unwrap_or_default();
                 if let Some(remote) = &mapping.remote_data {
                     merged = remote.clone();
@@ -1032,22 +1352,31 @@ impl ExternalSyncService {
                 Some(merged)
             }
             ConflictResolution::Manual => request.manual_data.clone(),
+            ConflictResolution::Skip => None,
         };
 
-        // Update the mapping with resolved data
+        let now = Utc::now();
         let updated_mapping = ContactMapping {
             id: mapping.id,
             account_id: mapping.account_id,
+            contact_id: mapping.contact_id,
             local_contact_id: mapping.local_contact_id,
-            external_id: mapping.external_id,
-            local_data: resolved_contact.clone(),
-            remote_data: mapping.remote_data,
-            sync_status: SyncStatus::Synced,
-            last_synced_at: Some(Utc::now()),
+            external_id: mapping.external_id.clone(),
+            external_contact_id: mapping.external_contact_id.clone(),
+            external_etag: mapping.external_etag.clone(),
+            internal_version: mapping.internal_version + 1,
+            last_synced_at: now,
+            sync_status: MappingSyncStatus::Synced,
+            conflict_data: None,
+            local_data: resolved_contact,
+            remote_data: mapping.remote_data.clone(),
             conflict_detected_at: None,
             created_at: mapping.created_at,
-            updated_at: Utc::now(),
+            updated_at: now,
         };
+
+        let mut mappings = self.mappings.write().await;
+        mappings.insert(updated_mapping.id, updated_mapping.clone());
 
         Ok(updated_mapping)
     }

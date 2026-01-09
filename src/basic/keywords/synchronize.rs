@@ -11,19 +11,18 @@
 //!   SYNCHRONIZE "/api/customers", "customers", "id", "page", "limit"
 
 use chrono::{DateTime, Utc};
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
-use std::sync::Arc;
+
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
+
 use crate::shared::utils::DbPool;
 
 const DEFAULT_PAGE_SIZE: u32 = 100;
 const MAX_PAGE_SIZE: u32 = 1000;
-const MAX_RETRIES: u32 = 3;
 const RETRY_DELAY_MS: u64 = 1000;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -222,20 +221,18 @@ pub struct SyncJob {
 }
 
 pub struct SynchronizeService {
-    pool: DbPool,
     http_client: reqwest::Client,
     base_url: Option<String>,
 }
 
 impl SynchronizeService {
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(_pool: DbPool) -> Self {
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .unwrap_or_default();
 
         Self {
-            pool,
             http_client,
             base_url: None,
         }

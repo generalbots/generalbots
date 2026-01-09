@@ -263,6 +263,7 @@ impl SubscriptionLifecycleService {
 
         if request.immediate {
             let old_plan = subscription.plan_id.clone();
+            let org_id = subscription.organization_id;
             subscription.plan_id = request.new_plan_id.clone();
             subscription.updated_at = Utc::now();
 
@@ -271,7 +272,7 @@ impl SubscriptionLifecycleService {
 
             self.record_event(
                 change.subscription_id,
-                subscription.organization_id,
+                org_id,
                 LifecycleEventType::Upgraded,
                 Some(old_plan),
                 Some(request.new_plan_id),
@@ -358,6 +359,7 @@ impl SubscriptionLifecycleService {
             .ok_or(LifecycleError::SubscriptionNotFound)?;
 
         let org_id = subscription.organization_id;
+        let plan_id = subscription.plan_id.clone();
 
         if request.cancel_immediately {
             subscription.status = SubscriptionStatus::Canceled;
@@ -369,7 +371,7 @@ impl SubscriptionLifecycleService {
                 request.subscription_id,
                 org_id,
                 LifecycleEventType::Cancelled,
-                Some(subscription.plan_id.clone()),
+                Some(plan_id),
                 None,
                 HashMap::from([
                     ("immediate".to_string(), "true".to_string()),

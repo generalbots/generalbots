@@ -8,7 +8,6 @@ use crate::channels::{
     PostResult,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// TikTok API provider for video uploads and content posting
 pub struct TikTokProvider {

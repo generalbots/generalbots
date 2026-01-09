@@ -64,7 +64,7 @@ impl std::fmt::Debug for CachedLLMProvider {
             .field("cache", &self.cache)
             .field("config", &self.config)
             .field("embedding_service", &self.embedding_service.is_some())
-            .field("db_pool", &self.conn.is_some())
+            .field("db_pool", &self.db_pool.is_some())
             .finish()
     }
 }
@@ -145,7 +145,7 @@ impl CachedLLMProvider {
     }
 
     async fn is_cache_enabled(&self, bot_id: &str) -> bool {
-        if let Some(ref db_pool) = self.conn {
+        if let Some(ref db_pool) = self.db_pool {
             let bot_uuid = match Uuid::parse_str(bot_id) {
                 Ok(uuid) => uuid,
                 Err(_) => {
@@ -181,7 +181,7 @@ impl CachedLLMProvider {
     }
 
     fn get_bot_cache_config(&self, bot_id: &str) -> CacheConfig {
-        if let Some(ref db_pool) = self.conn {
+        if let Some(ref db_pool) = self.db_pool {
             let bot_uuid = match Uuid::parse_str(bot_id) {
                 Ok(uuid) => uuid,
                 Err(_) => {

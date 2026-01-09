@@ -16,7 +16,6 @@ type HmacSha256 = Hmac<Sha256>;
 const DEFAULT_TIMESTAMP_TOLERANCE_SECONDS: i64 = 300;
 const DEFAULT_REPLAY_WINDOW_SECONDS: i64 = 600;
 const SIGNATURE_HEADER: &str = "X-Webhook-Signature";
-const TIMESTAMP_HEADER: &str = "X-Webhook-Timestamp";
 const SIGNATURE_VERSION: &str = "v1";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -505,7 +504,7 @@ impl WebhookManager {
         let mut deliveries = self.deliveries.write().await;
         deliveries.push(delivery.clone());
 
-        Ok((delivery, payload_json, signature, timestamp))
+        Ok((delivery, payload_json, format!("{header_name}: {signature}"), timestamp))
     }
 
     pub async fn record_delivery_result(
@@ -516,26 +515,28 @@ impl WebhookManager {
         response_body: Option<String>,
         error: Option<&str>,
     ) -> Result<()> {
-        let mut deliveries = self.deliveries.write().await;
-        let delivery = deliveries
-            .iter_mut()
-            .find(|d| d.id == delivery_id)
-            .ok_or_else(|| anyhow!("Delivery not found"))?;
+        let webhook_id = {
+            let mut deliveries = self.deliveries.write().await;
+            let delivery = deliveries
+                .iter_mut()
+                .find(|d| d.id == delivery_id)
+                .ok_or_else(|| anyhow!("Delivery not found"))?;
 
-        if success {
-            delivery.mark_success(response_code.unwrap_or(200), response_body);
-        } else {
-            let should_retry = delivery.attempt < self.config.retry_count;
-            let retry_delay = Duration::seconds(
-                self.config.retry_delay_seconds as i64 * 2i64.pow(delivery.attempt),
-            );
-            delivery.mark_failed(error.unwrap_or("Unknown error"), should_retry, retry_delay);
-        }
+            if success {
+                delivery.mark_success(response_code.unwrap_or(200), response_body);
+            } else {
+                let should_retry = delivery.attempt < self.config.retry_count;
+                let retry_delay = Duration::seconds(
+                    self.config.retry_delay_seconds as i64 * 2i64.pow(delivery.attempt),
+                );
+                delivery.mark_failed(error.unwrap_or("Unknown error"), should_retry, retry_delay);
+            }
 
-        drop(deliveries);
+            delivery.webhook_id
+        };
 
         let mut endpoints = self.endpoints.write().await;
-        if let Some(endpoint) = endpoints.get_mut(&delivery.webhook_id) {
+        if let Some(endpoint) = endpoints.get_mut(&webhook_id) {
             if success {
                 endpoint.record_success();
             } else {

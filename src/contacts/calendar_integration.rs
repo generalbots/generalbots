@@ -182,13 +182,11 @@ impl std::fmt::Display for SuggestionReason {
     }
 }
 
-pub struct CalendarIntegrationService {
-    pool: DbPool,
-}
+pub struct CalendarIntegrationService {}
 
 impl CalendarIntegrationService {
-    pub fn new(pool: DbPool) -> Self {
-        Self { pool }
+    pub fn new(_pool: DbPool) -> Self {
+        Self {}
     }
 
     pub async fn link_contact_to_event(
@@ -924,7 +922,7 @@ async fn get_suggestions_handler(
     let service = CalendarIntegrationService::new(state.conn.clone());
     let org_id = Uuid::new_v4();
 
-    match service.get_suggested_contacts(org_id, event_id).await {
+    match service.get_suggested_contacts(org_id, event_id, None).await {
         Ok(suggestions) => Json(suggestions).into_response(),
         Err(e) => e.into_response(),
     }
@@ -948,10 +946,11 @@ async fn find_contacts_handler(
     State(state): State<Arc<AppState>>,
     Path(event_id): Path<Uuid>,
 ) -> impl IntoResponse {
+    log::debug!("Finding contacts for event {event_id}");
     let service = CalendarIntegrationService::new(state.conn.clone());
     let org_id = Uuid::new_v4();
 
-    match service.find_contacts_for_event(org_id, event_id).await {
+    match service.find_contacts_for_event(org_id, &[]).await {
         Ok(contacts) => Json(contacts).into_response(),
         Err(e) => e.into_response(),
     }

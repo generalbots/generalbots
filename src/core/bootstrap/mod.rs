@@ -38,7 +38,7 @@ fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
 fn safe_sh_command(script: &str) -> Option<std::process::Output> {
     SafeCommand::new("sh")
         .and_then(|c| c.arg("-c"))
-        .and_then(|c| c.arg(script))
+        .and_then(|c| c.shell_script_arg(script))
         .ok()
         .and_then(|cmd| cmd.execute().ok())
 }

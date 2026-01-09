@@ -76,15 +76,6 @@ struct QueryStatistics {
     cache_misses: AtomicU64,
     slow_queries: AtomicU64,
     avg_query_time_ms: AtomicU64,
-    query_patterns: HashMap<String, QueryPatternStats>,
-}
-
-#[derive(Debug, Clone, Default)]
-struct QueryPatternStats {
-    count: u64,
-    total_time_ms: u64,
-    avg_time_ms: f64,
-    max_time_ms: u64,
 }
 
 pub struct PartitionManager {
@@ -93,7 +84,7 @@ pub struct PartitionManager {
 }
 
 #[derive(Debug, Clone)]
-struct DataPartition {
+pub struct DataPartition {
     id: Uuid,
     organization_id: Uuid,
     partition_key: String,
@@ -105,8 +96,7 @@ struct DataPartition {
 }
 
 #[derive(Debug, Clone)]
-struct PartitionConfig {
-    max_partition_size: usize,
+pub struct PartitionConfig {
     auto_split_threshold: usize,
     merge_threshold: usize,
 }
@@ -114,7 +104,6 @@ struct PartitionConfig {
 impl Default for PartitionConfig {
     fn default() -> Self {
         Self {
-            max_partition_size: 10000,
             auto_split_threshold: 8000,
             merge_threshold: 1000,
         }
@@ -518,7 +507,7 @@ impl LargeOrgOptimizer {
         processor: F,
     ) -> Vec<Result<(), LargeOrgError>>
     where
-        T: Send + Sync + 'static,
+        T: Send + Sync + Clone + 'static,
         F: Fn(Vec<T>) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = Result<(), LargeOrgError>> + Send,
     {
@@ -535,22 +524,20 @@ impl LargeOrgOptimizer {
 
     pub async fn cleanup_expired_caches(&self) -> CleanupResult {
         let now = Utc::now();
-        let mut members_removed = 0;
-        let mut permissions_removed = 0;
 
-        {
+        let members_removed = {
             let mut member_cache = self.member_cache.write().await;
             let original_len = member_cache.len();
             member_cache.retain(|_, v| v.expires_at > now);
-            members_removed = original_len - member_cache.len();
-        }
+            original_len - member_cache.len()
+        };
 
-        {
+        let permissions_removed = {
             let mut permission_cache = self.permission_cache.write().await;
             let original_len = permission_cache.len();
             permission_cache.retain(|_, v| v.expires_at > now);
-            permissions_removed = original_len - permission_cache.len();
-        }
+            original_len - permission_cache.len()
+        };
 
         CleanupResult {
             members_removed,
