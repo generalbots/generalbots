@@ -17,7 +17,7 @@ fn safe_nvcc_version() -> Option<std::process::Output> {
 fn safe_sh_command(script: &str) -> Option<std::process::Output> {
     SafeCommand::new("sh")
         .and_then(|c| c.arg("-c"))
-        .and_then(|c| c.shell_script_arg(script))
+        .and_then(|c| c.trusted_shell_script_arg(script))
         .ok()
         .and_then(|cmd| cmd.execute().ok())
 }
@@ -1112,7 +1112,7 @@ EOF"#.to_string(),
             trace!("[START] Working dir: {}", bin_path.display());
             let child = SafeCommand::new("sh")
                 .and_then(|c| c.arg("-c"))
-                .and_then(|c| c.shell_script_arg(&rendered_cmd))
+                .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
                 .and_then(|c| c.working_dir(&bin_path))
                 .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs))
                 .map_err(|e| anyhow::anyhow!("Failed to spawn process: {}", e));

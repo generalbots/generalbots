@@ -90,7 +90,7 @@ pub async fn ensure_llama_servers_running(
 
     let pkill_result = SafeCommand::new("sh")
         .and_then(|c| c.arg("-c"))
-        .and_then(|c| c.shell_script_arg("pkill llama-server -9; true"));
+        .and_then(|c| c.trusted_shell_script_arg("pkill llama-server -9; true"));
 
     match pkill_result {
         Ok(cmd) => {
@@ -366,7 +366,7 @@ pub fn start_llm_server(
         );
         let cmd = SafeCommand::new("cmd")
             .and_then(|c| c.arg("/C"))
-            .and_then(|c| c.shell_script_arg(&cmd_arg))
+            .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
             .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
         cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
     } else {
@@ -378,7 +378,7 @@ pub fn start_llm_server(
         );
         let cmd = SafeCommand::new("sh")
             .and_then(|c| c.arg("-c"))
-            .and_then(|c| c.shell_script_arg(&cmd_arg))
+            .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
             .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
         cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
     }
@@ -410,7 +410,7 @@ pub async fn start_embedding_server(
         );
         let cmd = SafeCommand::new("cmd")
             .and_then(|c| c.arg("/c"))
-            .and_then(|c| c.shell_script_arg(&cmd_arg))
+            .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
             .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
         cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
     } else {
@@ -422,7 +422,7 @@ pub async fn start_embedding_server(
         );
         let cmd = SafeCommand::new("sh")
             .and_then(|c| c.arg("-c"))
-            .and_then(|c| c.shell_script_arg(&cmd_arg))
+            .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
             .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
         cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
     }
