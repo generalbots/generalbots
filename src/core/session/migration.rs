@@ -165,8 +165,8 @@ impl SessionMigrationService {
         };
 
         let mut migrated_count: u32 = 0;
-        let mut failed_count: u32 = 0;
-        let mut errors = Vec::new();
+        let failed_count: u32 = 0;
+        let errors = Vec::new();
         let mut migrated = Vec::new();
         let now = Utc::now();
 
@@ -294,7 +294,7 @@ impl SessionMigrationService {
         &self,
         migration_id: Uuid,
     ) -> Result<(), MigrationError> {
-        let mut migrations = self.migrations.write().await;
+        let migrations = self.migrations.read().await;
         let migration = migrations
             .get(&migration_id)
             .ok_or(MigrationError::NotFound)?;

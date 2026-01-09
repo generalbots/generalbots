@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use diesel::sql_types::{BigInt, Double, Float, Integer, Nullable, Text, Timestamptz};
-use log::{debug, error, info, warn};
+use diesel::sql_types::{BigInt, Float, Integer, Nullable, Text, Timestamptz};
+use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -190,7 +190,6 @@ impl SearchService {
         })?;
 
         let sanitized_query = self.sanitize_query(&query.query);
-        let ts_query = self.build_tsquery(&sanitized_query);
 
         let source_filter: Vec<String> = sources.iter().map(|s| s.to_string()).collect();
         let source_list = source_filter.join("','");
@@ -959,14 +958,6 @@ impl SearchService {
             .collect::<String>()
             .trim()
             .to_string()
-    }
-
-    fn build_tsquery(&self, query: &str) -> String {
-        query
-            .split_whitespace()
-            .map(|word| format!("{}:*", word))
-            .collect::<Vec<_>>()
-            .join(" & ")
     }
 
     fn build_date_filter(

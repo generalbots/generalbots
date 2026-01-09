@@ -46,7 +46,7 @@ impl KbContextManager {
     }
 
     pub fn get_active_kbs(&self, session_id: Uuid) -> Result<Vec<SessionKbAssociation>> {
-        let mut conn = self.conn.get()?;
+        let mut conn = self.db_pool.get()?;
 
         let query = diesel::sql_query(
             "SELECT kb_name, qdrant_collection, kb_folder_path, is_active
@@ -227,7 +227,7 @@ impl KbContextManager {
     }
 
     pub fn get_active_tools(&self, session_id: Uuid) -> Result<Vec<String>> {
-        let mut conn = self.conn.get()?;
+        let mut conn = self.db_pool.get()?;
 
         let query = diesel::sql_query(
             "SELECT tool_name

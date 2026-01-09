@@ -413,7 +413,7 @@ impl WhiteboardState {
                     },
                 }))
             }
-            WhiteboardOperation::RotateShape { shape_id, angle } => {
+            WhiteboardOperation::RotateShape { shape_id, .. } => {
                 if let Some(shape) = self.shapes.get(shape_id) {
                     Ok(Some(WhiteboardOperation::RotateShape {
                         shape_id: *shape_id,
@@ -725,8 +725,8 @@ async fn create_whiteboard(
 ) -> impl IntoResponse {
     let manager = state
         .extensions
-        .get::<Arc<WhiteboardManager>>()
-        .cloned()
+        .get::<WhiteboardManager>()
+        .await
         .unwrap_or_else(|| Arc::new(WhiteboardManager::new()));
 
     let whiteboard_id = manager
@@ -754,8 +754,8 @@ async fn handle_whiteboard_socket(
 ) {
     let manager = state
         .extensions
-        .get::<Arc<WhiteboardManager>>()
-        .cloned()
+        .get::<WhiteboardManager>()
+        .await
         .unwrap_or_else(|| Arc::new(WhiteboardManager::new()));
 
     let receiver = match manager.subscribe(&whiteboard_id).await {
@@ -891,6 +891,6 @@ async fn handle_whiteboard_socket(
     let _ = tokio::join!(send_task, receive_task);
 
     manager
-        .remove_connection(&whiteboard_id, &connection_id)
+        .user_leave(&whiteboard_id, user_id)
         .await;
 }

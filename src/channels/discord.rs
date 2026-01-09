@@ -399,22 +399,22 @@ struct EmbedFooter {
 }
 
 #[derive(Debug, Deserialize)]
-struct DiscordMessage {
-    id: String,
-    channel_id: String,
+pub struct DiscordMessage {
+    pub id: String,
+    pub channel_id: String,
     #[serde(default)]
-    content: String,
-    timestamp: String,
-    author: Option<DiscordUser>,
+    pub content: String,
+    pub timestamp: String,
+    pub author: Option<DiscordUser>,
 }
 
 #[derive(Debug, Deserialize)]
-struct DiscordUser {
-    id: String,
-    username: String,
-    discriminator: String,
+pub struct DiscordUser {
+    pub id: String,
+    pub username: String,
+    pub discriminator: String,
     #[serde(default)]
-    bot: bool,
+    pub bot: bool,
 }
 
 #[derive(Debug, Serialize)]

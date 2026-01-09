@@ -1,11 +1,9 @@
-use anyhow::{anyhow, Result};
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::net::IpAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 const DEFAULT_BRUTE_FORCE_THRESHOLD: u32 = 5;
@@ -687,13 +685,13 @@ impl SecurityMonitor {
             return;
         }
 
-        let mut profiles = self.user_profiles.write().await;
-        let profile = profiles
-            .entry(user_id)
-            .or_insert_with(|| UserSecurityProfile::new(user_id));
-
-        let is_new_ip = !profile.is_known_ip(ip);
-        let is_new_device = false;
+        let is_new_ip = {
+            let profiles = self.user_profiles.read().await;
+            profiles
+                .get(&user_id)
+                .map(|p| !p.is_known_ip(ip))
+                .unwrap_or(true)
+        };
 
         if is_new_ip {
             let event = SecurityEvent::new(SecurityEventType::NewDeviceLogin)
@@ -701,14 +699,19 @@ impl SecurityMonitor {
                 .with_ip(ip.to_string())
                 .with_detail("reason", serde_json::json!("new_ip"));
 
-            drop(profiles);
             self.record_event(event).await;
-            profiles = self.user_profiles.write().await;
+
+            let mut profiles = self.user_profiles.write().await;
             let profile = profiles
                 .entry(user_id)
                 .or_insert_with(|| UserSecurityProfile::new(user_id));
             profile.add_known_ip(ip);
         }
+
+        let mut profiles = self.user_profiles.write().await;
+        let profile = profiles
+            .entry(user_id)
+            .or_insert_with(|| UserSecurityProfile::new(user_id));
 
         if self.config.impossible_travel_detection {
             if let (Some(last_loc), Some(current_loc)) =
@@ -727,8 +730,9 @@ impl SecurityMonitor {
                                 .with_detail("distance_km", serde_json::json!(distance))
                                 .with_detail("speed_kmh", serde_json::json!(speed));
 
+                            let event_to_record = event;
                             drop(profiles);
-                            self.record_event(event).await;
+                            self.record_event(event_to_record).await;
 
                             warn!(
                                 "Impossible travel detected for user {}: {} km in {} hours",

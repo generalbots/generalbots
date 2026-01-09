@@ -555,12 +555,12 @@ impl FaceApiService {
         );
 
         let request = match image {
-            ImageSource::Url(url) => {
+            ImageSource::Url(image_url) => {
                 self.client
                     .post(&url)
                     .header("Ocp-Apim-Subscription-Key", api_key)
                     .header("Content-Type", "application/json")
-                    .json(&serde_json::json!({ "url": url }))
+                    .json(&serde_json::json!({ "url": image_url }))
             }
             ImageSource::Base64(data) => {
                 let bytes = base64::Engine::decode(
@@ -653,11 +653,10 @@ impl FaceApiService {
         attributes: &[FaceAttributeType],
         options: &AnalysisOptions,
     ) -> Result<FaceAnalysisResult, FaceApiError> {
-        // For Azure, we use detect with all attributes
         let detect_options = DetectionOptions {
             return_face_id: true,
             return_landmarks: options.return_landmarks,
-            return_attributes: true,
+            return_attributes: !attributes.is_empty(),
             ..Default::default()
         };
 
@@ -859,7 +858,6 @@ struct AzureEmotion {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AzureVerifyResponse {
-    is_identical: bool,
     confidence: f64,
 }
 

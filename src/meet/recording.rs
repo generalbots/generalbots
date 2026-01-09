@@ -1,9 +1,4 @@
-use axum::{
-    extract::{Path, State},
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -11,17 +6,21 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
+use crate::shared::{format_timestamp_plain, format_timestamp_srt, format_timestamp_vtt};
 
 #[derive(Debug, Clone)]
 pub enum RecordingError {
     DatabaseError(String),
     NotFound,
     AlreadyExists,
+    AlreadyRecording,
     InvalidState(String),
     StorageError(String),
     TranscriptionError(String),
+    TranscriptionNotReady,
+    UnsupportedLanguage(String),
+    ExportFailed(String),
     Unauthorized,
 }
 
@@ -31,9 +30,13 @@ impl std::fmt::Display for RecordingError {
             Self::DatabaseError(e) => write!(f, "Database error: {e}"),
             Self::NotFound => write!(f, "Recording not found"),
             Self::AlreadyExists => write!(f, "Recording already exists"),
+            Self::AlreadyRecording => write!(f, "Already recording"),
             Self::InvalidState(s) => write!(f, "Invalid state: {s}"),
             Self::StorageError(e) => write!(f, "Storage error: {e}"),
             Self::TranscriptionError(e) => write!(f, "Transcription error: {e}"),
+            Self::TranscriptionNotReady => write!(f, "Transcription not ready"),
+            Self::UnsupportedLanguage(l) => write!(f, "Unsupported language: {l}"),
+            Self::ExportFailed(e) => write!(f, "Export failed: {e}"),
             Self::Unauthorized => write!(f, "Unauthorized"),
         }
     }
@@ -463,7 +466,11 @@ impl RecordingService {
             recording_id
         );
 
-        self.update_recording_processed(recording_id, &file_url)
+        let download_url = format!(
+            "https://storage.example.com/recordings/{}/download",
+            recording_id
+        );
+        self.update_recording_processed(recording_id, &file_url, &download_url)
             .await?;
 
         let _ = self
@@ -513,7 +520,7 @@ impl RecordingService {
         drop(jobs);
 
         // Create database record
-        self.create_transcription_record(transcription_id, recording_id, webinar_id, &language)
+        self.create_transcription_record(transcription_id, recording_id, &language)
             .await?;
 
         // Start transcription process (async)
@@ -552,6 +559,7 @@ impl RecordingService {
     }
 
     async fn run_transcription(&self, transcription_id: Uuid, recording_id: Uuid) {
+        log::info!("Starting transcription {transcription_id} for recording {recording_id}");
         // Update status to in progress
         {
             let mut jobs = self.transcription_jobs.write().await;
@@ -650,9 +658,13 @@ impl RecordingService {
             }
         }
 
+        // Create mock transcription data
+        let full_text = "Welcome to this webinar session.".to_string();
+        let segments: Vec<TranscriptionSegment> = vec![];
+
         // Update database
         let _ = self
-            .update_transcription_completed(transcription_id, 1500)
+            .update_transcription_completed(transcription_id, &full_text, &segments)
             .await;
 
         let _ = self
@@ -756,7 +768,7 @@ impl RecordingService {
             }
             TranscriptionFormat::Json => {
                 let json = serde_json::to_string_pretty(&transcription)
-                    .map_err(|_| RecordingError::ExportFailed)?;
+                    .map_err(|e| RecordingError::ExportFailed(e.to_string()))?;
                 (json, "application/json", "json")
             }
         };
@@ -785,8 +797,8 @@ impl RecordingService {
             if request.include_timestamps {
                 output.push_str(&format!(
                     "[{} - {}] ",
-                    format_timestamp_plain(segment.start_time_ms),
-                    format_timestamp_plain(segment.end_time_ms)
+                    format_timestamp_plain(segment.start_time_ms as i64),
+                    format_timestamp_plain(segment.end_time_ms as i64)
                 ));
             }
             output.push_str(&segment.text);
@@ -807,8 +819,8 @@ impl RecordingService {
             output.push_str(&format!("{}\n", i + 1));
             output.push_str(&format!(
                 "{} --> {}\n",
-                format_timestamp_vtt(segment.start_time_ms),
-                format_timestamp_vtt(segment.end_time_ms)
+                format_timestamp_vtt(segment.start_time_ms as i64),
+                format_timestamp_vtt(segment.end_time_ms as i64)
             ));
 
             if request.include_speaker_names {
@@ -834,8 +846,8 @@ impl RecordingService {
             output.push_str(&format!("{}\n", i + 1));
             output.push_str(&format!(
                 "{} --> {}\n",
-                format_timestamp_srt(segment.start_time_ms),
-                format_timestamp_srt(segment.end_time_ms)
+                format_timestamp_srt(segment.start_time_ms as i64),
+                format_timestamp_srt(segment.end_time_ms as i64)
             ));
 
             let mut text = segment.text.clone();
@@ -876,25 +888,84 @@ impl RecordingService {
 
     // Database helper methods (stubs - implement with actual queries)
 
-    async fn create_recording_in_db(&self, _recording: &WebinarRecording) -> Result<(), RecordingError> {
-        // Implementation would insert into database
-        Ok(())
-    }
-
     async fn get_recording_from_db(&self, _recording_id: Uuid) -> Result<WebinarRecording, RecordingError> {
         Err(RecordingError::NotFound)
-    }
-
-    async fn update_recording_in_db(&self, _recording: &WebinarRecording) -> Result<(), RecordingError> {
-        Ok(())
     }
 
     async fn delete_recording_from_db(&self, _recording_id: Uuid) -> Result<(), RecordingError> {
         Ok(())
     }
 
-    async fn list_recordings_from_db(&self, _room_id: Uuid) -> Result<Vec<Recording>, RecordingError> {
+    async fn list_recordings_from_db(&self, _room_id: Uuid) -> Result<Vec<WebinarRecording>, RecordingError> {
         Ok(vec![])
+    }
+
+    async fn create_recording_record(
+        &self,
+        _recording_id: Uuid,
+        _webinar_id: Uuid,
+        _quality: &RecordingQuality,
+        _started_at: DateTime<Utc>,
+    ) -> Result<(), RecordingError> {
+        Ok(())
+    }
+
+    async fn update_recording_stopped(
+        &self,
+        _recording_id: Uuid,
+        _ended_at: DateTime<Utc>,
+        _duration_seconds: u64,
+        _file_size_bytes: u64,
+    ) -> Result<(), RecordingError> {
+        Ok(())
+    }
+
+    async fn update_recording_processed(
+        &self,
+        _recording_id: Uuid,
+        _file_url: &str,
+        _download_url: &str,
+    ) -> Result<(), RecordingError> {
+        Ok(())
+    }
+
+    async fn create_transcription_record(
+        &self,
+        _transcription_id: Uuid,
+        _recording_id: Uuid,
+        _language: &str,
+    ) -> Result<(), RecordingError> {
+        Ok(())
+    }
+
+    pub fn clone_for_task(&self) -> Self {
+        Self {
+            pool: self.pool.clone(),
+            config: self.config.clone(),
+            active_sessions: Arc::new(RwLock::new(HashMap::new())),
+            transcription_jobs: Arc::new(RwLock::new(HashMap::new())),
+            event_sender: self.event_sender.clone(),
+        }
+    }
+
+    async fn update_transcription_completed(
+        &self,
+        _transcription_id: Uuid,
+        _text: &str,
+        _segments: &[TranscriptionSegment],
+    ) -> Result<(), RecordingError> {
+        Ok(())
+    }
+
+    async fn get_transcription_from_db(
+        &self,
+        _transcription_id: Uuid,
+    ) -> Result<WebinarTranscription, RecordingError> {
+        Err(RecordingError::NotFound)
+    }
+
+    async fn delete_recording_files(&self, _recording_id: Uuid) -> Result<(), RecordingError> {
+        Ok(())
     }
 }
 

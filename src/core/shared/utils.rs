@@ -461,3 +461,37 @@ pub fn create_tls_client_with_ca(ca_cert_path: &str, timeout_secs: Option<u64>) 
         Client::new()
     })
 }
+
+pub fn format_timestamp_plain(ms: i64) -> String {
+    let secs = ms / 1000;
+    let mins = secs / 60;
+    let hours = mins / 60;
+    format!("{:02}:{:02}:{:02}", hours, mins % 60, secs % 60)
+}
+
+pub fn format_timestamp_vtt(ms: i64) -> String {
+    let secs = ms / 1000;
+    let mins = secs / 60;
+    let hours = mins / 60;
+    let millis = ms % 1000;
+    format!("{:02}:{:02}:{:02}.{:03}", hours, mins % 60, secs % 60, millis)
+}
+
+pub fn format_timestamp_srt(ms: i64) -> String {
+    let secs = ms / 1000;
+    let mins = secs / 60;
+    let hours = mins / 60;
+    let millis = ms % 1000;
+    format!("{:02}:{:02}:{:02},{:03}", hours, mins % 60, secs % 60, millis)
+}
+
+pub fn parse_hex_color(hex: &str) -> Option<(u8, u8, u8)> {
+    let hex = hex.trim_start_matches('#');
+    if hex.len() < 6 {
+        return None;
+    }
+    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+    Some((r, g, b))
+}

@@ -294,6 +294,4 @@ impl ChannelProvider for ThreadsProvider {
 struct ThreadsUser {
     id: String,
     username: String,
-    #[serde(default)]
-    threads_profile_picture_url: Option<String>,
 }

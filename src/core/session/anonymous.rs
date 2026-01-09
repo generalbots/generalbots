@@ -248,8 +248,10 @@ impl AnonymousSessionManager {
             .map(|m| m.len() as u32)
             .unwrap_or(0);
 
-        if let Some(ref ip) = session.ip_address {
-            drop(sessions);
+        let ip_to_decrement = session.ip_address.clone();
+        drop(sessions);
+
+        if let Some(ref ip) = ip_to_decrement {
             let mut ip_counts = self.ip_session_count.write().await;
             if let Some(count) = ip_counts.get_mut(ip) {
                 *count = count.saturating_sub(1);

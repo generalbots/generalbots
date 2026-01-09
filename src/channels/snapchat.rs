@@ -8,7 +8,6 @@ use crate::channels::{
     PostResult,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Snapchat Marketing API provider
 pub struct SnapchatProvider {
@@ -810,7 +809,7 @@ impl ChannelProvider for SnapchatProvider {
                 message: "ad_account_id required in settings".to_string(),
             })?;
 
-        let campaign_id = account
+        account
             .settings
             .custom
             .get("campaign_id")

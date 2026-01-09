@@ -222,49 +222,50 @@ impl VideoRenderWorker {
 
         let filter_complex = self.build_filter_complex(&clips, &layers, &project, resolution);
 
-        let mut cmd = SafeCommand::new("ffmpeg")
-            .map_err(|e| format!("Failed to create command: {e}"))?;
+        let cmd = SafeCommand::new("ffmpeg")
+            .map_err(|e| format!("Failed to create command: {e}"))?
+            .arg("-y").map_err(|e| format!("Arg error: {e}"))?;
 
-        cmd.arg("-y").map_err(|e| format!("Arg error: {e}"))?;
-
+        let mut cmd = cmd;
         for clip in &clips {
-            cmd.arg("-i").map_err(|e| format!("Arg error: {e}"))?;
-            cmd.arg(&clip.source_url).map_err(|e| format!("Arg error: {e}"))?;
+            cmd = cmd.arg("-i").map_err(|e| format!("Arg error: {e}"))?
+                .arg(&clip.source_url).map_err(|e| format!("Arg error: {e}"))?;
         }
 
         if !filter_complex.is_empty() {
-            cmd.arg("-filter_complex").map_err(|e| format!("Arg error: {e}"))?;
-            cmd.arg(&filter_complex).map_err(|e| format!("Arg error: {e}"))?;
-            cmd.arg("-map").map_err(|e| format!("Arg error: {e}"))?;
-            cmd.arg("[outv]").map_err(|e| format!("Arg error: {e}"))?;
+            cmd = cmd.arg("-filter_complex").map_err(|e| format!("Arg error: {e}"))?
+                .arg(&filter_complex).map_err(|e| format!("Arg error: {e}"))?
+                .arg("-map").map_err(|e| format!("Arg error: {e}"))?
+                .arg("[outv]").map_err(|e| format!("Arg error: {e}"))?;
 
             if clips.len() == 1 {
-                cmd.arg("-map").map_err(|e| format!("Arg error: {e}"))?;
-                cmd.arg("0:a?").map_err(|e| format!("Arg error: {e}"))?;
+                cmd = cmd.arg("-map").map_err(|e| format!("Arg error: {e}"))?
+                    .arg("0:a?").map_err(|e| format!("Arg error: {e}"))?;
             }
         }
 
-        cmd.arg("-c:v").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("libx264").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-preset").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("medium").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-b:v").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(bitrate).map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-c:a").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("aac").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-b:a").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("192k").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("-movflags").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg("+faststart").map_err(|e| format!("Arg error: {e}"))?;
-        cmd.arg(&output_path).map_err(|e| format!("Arg error: {e}"))?;
+        let cmd = cmd.arg("-c:v").map_err(|e| format!("Arg error: {e}"))?
+            .arg("libx264").map_err(|e| format!("Arg error: {e}"))?
+            .arg("-preset").map_err(|e| format!("Arg error: {e}"))?
+            .arg("medium").map_err(|e| format!("Arg error: {e}"))?
+            .arg("-b:v").map_err(|e| format!("Arg error: {e}"))?
+            .arg(bitrate).map_err(|e| format!("Arg error: {e}"))?
+            .arg("-c:a").map_err(|e| format!("Arg error: {e}"))?
+            .arg("aac").map_err(|e| format!("Arg error: {e}"))?
+            .arg("-b:a").map_err(|e| format!("Arg error: {e}"))?
+            .arg("192k").map_err(|e| format!("Arg error: {e}"))?
+            .arg("-movflags").map_err(|e| format!("Arg error: {e}"))?
+            .arg("+faststart").map_err(|e| format!("Arg error: {e}"))?
+            .arg(&output_path).map_err(|e| format!("Arg error: {e}"))?;
 
         info!("Running FFmpeg render for export {export_id}");
 
         let result = cmd.execute().map_err(|e| format!("Execution failed: {e}"))?;
 
-        if !result.success {
-            warn!("FFmpeg stderr: {}", result.stderr);
-            return Err(format!("FFmpeg failed: {}", result.stderr).into());
+        if !result.status.success() {
+            let stderr = String::from_utf8_lossy(&result.stderr);
+            warn!("FFmpeg stderr: {stderr}");
+            return Err(format!("FFmpeg failed: {stderr}").into());
         }
 
         let output_url = format!("/video/exports/{output_filename}");

@@ -2,7 +2,7 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{get, post},
     Json, Router,
 };
 use chrono::{DateTime, Duration, Utc};
@@ -10,7 +10,7 @@ use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Text, Timestamptz};
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -512,7 +512,7 @@ impl CleanupService {
 
         for category in CleanupCategory::all() {
             let table = category.table_name();
-            let ts_col = category.timestamp_column();
+            let _ts_col = category.timestamp_column();
 
             let count_sql = format!(
                 "SELECT COUNT(*) as count FROM {table} WHERE organization_id = $1"
@@ -1012,7 +1012,7 @@ async fn preview_cleanup_handler(
     State(state): State<Arc<AppState>>,
     Query(query): Query<PreviewQuery>,
 ) -> Result<Json<CleanupPreview>, CleanupError> {
-    let service = CleanupService::new(state.conn.clone());
+    let service = CleanupService::new(Arc::new(state.conn.clone()));
 
     let categories = query.categories.map(|s| {
         s.split(',')
@@ -1041,7 +1041,7 @@ async fn execute_cleanup_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<ExecuteRequest>,
 ) -> Result<Json<CleanupResult>, CleanupError> {
-    let service = CleanupService::new(state.conn.clone());
+    let service = CleanupService::new(Arc::new(state.conn.clone()));
 
     let categories = request.categories.map(|cats| {
         cats.iter()
@@ -1076,7 +1076,7 @@ async fn storage_usage_handler(
     State(state): State<Arc<AppState>>,
     Query(query): Query<StorageQuery>,
 ) -> Result<Json<StorageUsage>, CleanupError> {
-    let service = CleanupService::new(state.conn.clone());
+    let service = CleanupService::new(Arc::new(state.conn.clone()));
     let usage = service.get_storage_usage(query.organization_id).await?;
     Ok(Json(usage))
 }
@@ -1085,7 +1085,7 @@ async fn cleanup_history_handler(
     State(state): State<Arc<AppState>>,
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<Vec<CleanupHistory>>, CleanupError> {
-    let service = CleanupService::new(state.conn.clone());
+    let service = CleanupService::new(Arc::new(state.conn.clone()));
     let history = service
         .get_cleanup_history(query.organization_id, query.limit)
         .await?;
@@ -1096,7 +1096,7 @@ async fn get_config_handler(
     State(state): State<Arc<AppState>>,
     Query(query): Query<StorageQuery>,
 ) -> Result<Json<CleanupConfig>, CleanupError> {
-    let service = CleanupService::new(state.conn.clone());
+    let service = CleanupService::new(Arc::new(state.conn.clone()));
     let config = service.get_cleanup_config(query.organization_id).await?;
     Ok(Json(config))
 }
@@ -1105,7 +1105,7 @@ async fn save_config_handler(
     State(state): State<Arc<AppState>>,
     Json(config): Json<CleanupConfig>,
 ) -> Result<StatusCode, CleanupError> {
-    let service = CleanupService::new(state.conn.clone());
+    let service = CleanupService::new(Arc::new(state.conn.clone()));
     service.save_cleanup_config(&config).await?;
     Ok(StatusCode::OK)
 }

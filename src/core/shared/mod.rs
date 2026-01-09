@@ -47,9 +47,12 @@ pub use models::{
 };
 
 pub use utils::{
-    create_conn, get_content_type, sanitize_identifier, sanitize_path_component,
-    sanitize_path_for_filename, sanitize_sql_value, DbPool,
+    create_conn, format_timestamp_plain, format_timestamp_srt, format_timestamp_vtt,
+    get_content_type, parse_hex_color, sanitize_path_component, sanitize_path_for_filename,
+    sanitize_sql_value, DbPool,
 };
+
+pub use crate::security::sql_guard::sanitize_identifier;
 
 
 

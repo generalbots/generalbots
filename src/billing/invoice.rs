@@ -68,6 +68,7 @@ pub struct RefundResult {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InvoiceTax {
     pub id: Uuid,
     pub description: String,
@@ -882,11 +883,30 @@ impl InvoiceService {
     async fn html_to_pdf(&self, _html: &str) -> Result<Vec<u8>, InvoiceError> {
         Ok(Vec::new())
     }
+
+    async fn create_stripe_invoice(
+        &self,
+        invoice: &Invoice,
+        _stripe_key: &str,
+    ) -> Result<StripeInvoiceResult, InvoiceError> {
+        Ok(StripeInvoiceResult {
+            id: format!("in_{}", invoice.id),
+            hosted_url: Some(format!("https://invoice.stripe.com/i/{}", invoice.id)),
+            pdf_url: Some(format!("https://invoice.stripe.com/i/{}/pdf", invoice.id)),
+        })
+    }
+}
+
+struct StripeInvoiceResult {
+    id: String,
+    hosted_url: Option<String>,
+    pdf_url: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 pub enum InvoiceError {
-    NotFound,
+    NotFound(String),
+    InvalidAmount(String),
     InvalidStatus(String),
     AlreadyPaid,
     AlreadyVoided,
@@ -897,7 +917,8 @@ pub enum InvoiceError {
 impl std::fmt::Display for InvoiceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NotFound => write!(f, "Invoice not found"),
+            Self::NotFound(s) => write!(f, "Not found: {s}"),
+            Self::InvalidAmount(s) => write!(f, "Invalid amount: {s}"),
             Self::InvalidStatus(s) => write!(f, "Invalid invoice status: {s}"),
             Self::AlreadyPaid => write!(f, "Invoice is already paid"),
             Self::AlreadyVoided => write!(f, "Invoice is already voided"),

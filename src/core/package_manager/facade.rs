@@ -1064,7 +1064,8 @@ Store credentials in Vault:
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
                 let output = SafeCommand::new("bash")
-                    .and_then(|c| c.args(&["-c", &rendered_cmd]))
+                    .and_then(|c| c.arg("-c"))
+                    .and_then(|c| c.shell_script_arg(&rendered_cmd))
                     .and_then(|c| c.working_dir(&bin_path))
                     .map_err(|e| anyhow::anyhow!("Failed to build bash command: {}", e))?
                     .execute()

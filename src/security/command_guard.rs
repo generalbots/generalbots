@@ -135,6 +135,47 @@ impl SafeCommand {
         Ok(self)
     }
 
+    pub fn shell_script_arg(mut self, script: &str) -> Result<Self, CommandGuardError> {
+        let is_unix_shell = self.command == "bash" || self.command == "sh";
+        let is_windows_cmd = self.command == "cmd";
+        if !is_unix_shell && !is_windows_cmd {
+            return Err(CommandGuardError::InvalidArgument(
+                "shell_script_arg only allowed for bash/sh/cmd commands".to_string(),
+            ));
+        }
+        let valid_flag = if is_unix_shell {
+            self.args.last().is_some_and(|a| a == "-c")
+        } else {
+            self.args.last().is_some_and(|a| a == "/C" || a == "/c")
+        };
+        if !valid_flag {
+            return Err(CommandGuardError::InvalidArgument(
+                "shell_script_arg requires -c (unix) or /C (windows) flag to be set first".to_string(),
+            ));
+        }
+        if script.is_empty() {
+            return Err(CommandGuardError::InvalidArgument(
+                "Empty script".to_string(),
+            ));
+        }
+        if script.len() > 8192 {
+            return Err(CommandGuardError::InvalidArgument(
+                "Script too long".to_string(),
+            ));
+        }
+        let forbidden_patterns = ["$(", "`", ".."];
+        for pattern in forbidden_patterns {
+            if script.contains(pattern) {
+                return Err(CommandGuardError::ShellInjectionAttempt(format!(
+                    "Dangerous pattern '{}' in shell script",
+                    pattern
+                )));
+            }
+        }
+        self.args.push(script.to_string());
+        Ok(self)
+    }
+
     pub fn args(mut self, args: &[&str]) -> Result<Self, CommandGuardError> {
         for arg in args {
             validate_argument(arg)?;

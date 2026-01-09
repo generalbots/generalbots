@@ -1,9 +1,31 @@
 use chrono::{DateTime, Utc};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+
+fn generate_trace_id() -> String {
+    let mut rng = rand::rng();
+    let bytes: [u8; 16] = rng.random();
+    hex::encode(bytes)
+}
+
+fn generate_span_id() -> String {
+    let mut rng = rand::rng();
+    let bytes: [u8; 8] = rng.random();
+    hex::encode(bytes)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceDependency {
+    pub parent_service: String,
+    pub child_service: String,
+    pub call_count: u64,
+    pub error_count: u64,
+    pub avg_duration_us: f64,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
@@ -194,7 +216,7 @@ impl Default for ResourceAttributes {
             service_name: "botserver".to_string(),
             service_version: "6.1.0".to_string(),
             service_instance_id: Uuid::new_v4().to_string(),
-            host_name: hostname::get().ok().map(|h| h.to_string_lossy().to_string()),
+            host_name: std::env::var("HOSTNAME").ok(),
             host_type: None,
             os_type: Some(std::env::consts::OS.to_string()),
             deployment_environment: std::env::var("DEPLOYMENT_ENV").ok(),
@@ -535,17 +557,28 @@ impl DistributedTracingService {
         let config = self.sampling_config.read().await;
 
         if let Some(rate) = config.operation_overrides.get(operation_name) {
-            return should_sample_with_rate(*rate, trace_id);
+            return self.should_sample_with_rate(*rate, trace_id);
         }
 
         match config.strategy {
             SamplingStrategy::Always => true,
             SamplingStrategy::Never => false,
-            SamplingStrategy::Probabilistic => should_sample_with_rate(config.rate, trace_id),
+            SamplingStrategy::Probabilistic => self.should_sample_with_rate(config.rate, trace_id),
             SamplingStrategy::RateLimiting | SamplingStrategy::Adaptive => {
-                should_sample_with_rate(config.rate, trace_id)
+                self.should_sample_with_rate(config.rate, trace_id)
             }
         }
+    }
+
+    fn should_sample_with_rate(&self, rate: f32, trace_id: &str) -> bool {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        trace_id.hash(&mut hasher);
+        let hash = hasher.finish();
+        let normalized = (hash as f64) / (u64::MAX as f64);
+        normalized < (rate as f64)
     }
 
     pub async fn record_span(&self, mut span: Span) {
@@ -784,10 +817,10 @@ impl DistributedTracingService {
 
         durations.sort();
 
-        let p50 = percentile(&durations, 50);
-        let p90 = percentile(&durations, 90);
-        let p95 = percentile(&durations, 95);
-        let p99 = percentile(&durations, 99);
+        let p50 = self.percentile(&durations, 50);
+        let p90 = self.percentile(&durations, 90);
+        let p95 = self.percentile(&durations, 95);
+        let p99 = self.percentile(&durations, 99);
 
         let avg_duration = if total_spans > 0 {
             total_duration as f64 / total_spans as f64
@@ -879,9 +912,17 @@ impl DistributedTracingService {
         let exporter_config = self.exporter_config.read().await;
         if exporter_config.enabled {
             for span in spans_to_export {
-                tracing::debug!("Exporting span: {} ({})", span.name, span.span_id);
+                tracing::debug!("Exporting span: {} ({})", span.operation_name, span.span_id);
                 let _ = span;
             }
         }
+    }
+
+    fn percentile(&self, sorted_data: &[i64], p: u8) -> i64 {
+        if sorted_data.is_empty() {
+            return 0;
+        }
+        let idx = ((p as f64 / 100.0) * (sorted_data.len() as f64 - 1.0)).round() as usize;
+        sorted_data[idx.min(sorted_data.len() - 1)]
     }
 }

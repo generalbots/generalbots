@@ -41,8 +41,6 @@ pub struct RoleHierarchy {
 
 #[derive(Debug, Clone)]
 struct RoleNode {
-    name: String,
-    display_name: String,
     permissions: HashSet<String>,
     parent_roles: Vec<String>,
     hierarchy_level: i32,
@@ -59,14 +57,12 @@ impl RoleHierarchy {
     pub fn add_role(
         &mut self,
         name: &str,
-        display_name: &str,
+        _display_name: &str,
         permissions: Vec<String>,
         parent_roles: Vec<String>,
         hierarchy_level: i32,
     ) {
         let node = RoleNode {
-            name: name.to_string(),
-            display_name: display_name.to_string(),
             permissions: permissions.into_iter().collect(),
             parent_roles,
             hierarchy_level,
@@ -145,7 +141,6 @@ pub struct GroupHierarchy {
 
 #[derive(Debug, Clone)]
 struct GroupNode {
-    name: String,
     permissions: HashSet<String>,
     parent_group: Option<String>,
     child_groups: Vec<String>,
@@ -172,7 +167,6 @@ impl GroupHierarchy {
         }
 
         let node = GroupNode {
-            name: name.to_string(),
             permissions: permissions.into_iter().collect(),
             parent_group,
             child_groups: Vec::new(),

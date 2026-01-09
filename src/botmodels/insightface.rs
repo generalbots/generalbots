@@ -7,21 +7,28 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
 pub enum InsightFaceModel {
-    Buffalo_L,
-    Buffalo_M,
-    Buffalo_S,
-    Buffalo_SC,
+    #[serde(rename = "buffalo_l")]
+    BuffaloL,
+    #[serde(rename = "buffalo_m")]
+    BuffaloM,
+    #[serde(rename = "buffalo_s")]
+    BuffaloS,
+    #[serde(rename = "buffalo_sc")]
+    BuffaloSc,
+    #[serde(rename = "antelopev2")]
     Antelopev2,
+    #[serde(rename = "glintr100")]
     Glintr100,
-    W600k_R50,
-    W600k_MBF,
+    #[serde(rename = "w600k_r50")]
+    W600kR50,
+    #[serde(rename = "w600k_mbf")]
+    W600kMbf,
 }
 
 impl Default for InsightFaceModel {
     fn default() -> Self {
-        Self::Buffalo_L
+        Self::BuffaloL
     }
 }
 
