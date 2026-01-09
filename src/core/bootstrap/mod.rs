@@ -2098,7 +2098,6 @@ listener "tcp" {
   tls_disable   = false
   tls_cert_file = "../../conf/system/certificates/vault/server.crt"
   tls_key_file  = "../../conf/system/certificates/vault/server.key"
-  tls_client_ca_file = "../../conf/system/certificates/ca/ca.crt"
 }
 
 # API settings - use HTTPS
