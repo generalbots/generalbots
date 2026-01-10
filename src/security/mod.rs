@@ -79,7 +79,7 @@ pub use rbac_middleware::{
     AccessDecision, AccessDecisionResult, RbacConfig, RbacError, RbacManager, RbacMiddlewareState,
     RequirePermission, RequireResourceAccess, RequireRole, ResourceAcl, ResourcePermission,
     RoutePermission, build_default_route_permissions, create_admin_layer, create_permission_layer,
-    create_role_layer, rbac_middleware, require_admin_middleware, require_super_admin_middleware,
+    create_role_layer, rbac_middleware, rbac_middleware_fn, require_admin_middleware, require_super_admin_middleware,
 };
 pub use session::{
     DeviceInfo, InMemorySessionStore, SameSite, Session, SessionConfig, SessionManager,
