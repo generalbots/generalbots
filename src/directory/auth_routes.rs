@@ -7,9 +7,28 @@ use axum::{
 };
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::RwLock;
+use once_cell::sync::Lazy;
 
 use crate::shared::state::AppState;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionUserData {
+    pub user_id: String,
+    pub email: String,
+    pub username: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub display_name: Option<String>,
+    pub organization_id: Option<String>,
+    pub roles: Vec<String>,
+    pub created_at: i64,
+}
+
+static SESSION_CACHE: Lazy<RwLock<HashMap<String, SessionUserData>>> =
+    Lazy::new(|| RwLock::new(HashMap::new()));
 
 const BOOTSTRAP_SECRET_ENV: &str = "GB_BOOTSTRAP_SECRET";
 
@@ -288,13 +307,33 @@ pub async fn login(
         .and_then(|s| s.as_str())
         .map(String::from);
 
+    let access_token = session_id.clone().unwrap_or_else(|| user_id.clone());
+
+    let session_user = SessionUserData {
+        user_id: user_id.clone(),
+        email: req.email.clone(),
+        username: req.email.split('@').next().unwrap_or("user").to_string(),
+        first_name: None,
+        last_name: None,
+        display_name: Some(req.email.split('@').next().unwrap_or("User").to_string()),
+        organization_id: None,
+        roles: vec!["admin".to_string()],
+        created_at: chrono::Utc::now().timestamp(),
+    };
+
+    {
+        let mut cache = SESSION_CACHE.write().await;
+        cache.insert(access_token.clone(), session_user);
+        info!("Session cached for user: {} with token: {}...", req.email, &access_token[..std::cmp::min(20, access_token.len())]);
+    }
+
     info!("Login successful for: {} (user_id: {})", req.email, user_id);
 
     Ok(Json(LoginResponse {
         success: true,
         user_id: Some(user_id),
         session_id: session_id.clone(),
-        access_token: session_id,
+        access_token: Some(access_token),
         refresh_token: None,
         expires_in: Some(3600),
         requires_2fa: false,
@@ -314,8 +353,13 @@ pub async fn logout(
         .and_then(|auth| auth.strip_prefix("Bearer "))
         .map(String::from);
 
-    if let Some(ref _token) = token {
-        info!("User logged out");
+    if let Some(ref token_str) = token {
+        let mut cache = SESSION_CACHE.write().await;
+        if cache.remove(token_str).is_some() {
+            info!("User logged out, session removed from cache");
+        } else {
+            info!("User logged out (session was not in cache)");
+        }
     }
 
     Ok(Json(LogoutResponse {
@@ -325,7 +369,7 @@ pub async fn logout(
 }
 
 pub async fn get_current_user(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
 ) -> Result<Json<CurrentUserResponse>, (StatusCode, Json<ErrorResponse>)> {
     let session_token = headers
@@ -333,6 +377,7 @@ pub async fn get_current_user(
         .and_then(|v| v.to_str().ok())
         .and_then(|auth| auth.strip_prefix("Bearer "))
         .ok_or_else(|| {
+            warn!("get_current_user: Missing authorization header");
             (
                 StatusCode::UNAUTHORIZED,
                 Json(ErrorResponse {
@@ -342,192 +387,49 @@ pub async fn get_current_user(
             )
         })?;
 
-    let client = {
-        let auth_service = state.auth_service.lock().await;
-        auth_service.client().clone()
-    };
-
-    let pat_path = std::path::Path::new("./botserver-stack/conf/directory/admin-pat.txt");
-    let admin_token = std::fs::read_to_string(pat_path)
-        .map(|s| s.trim().to_string())
-        .unwrap_or_default();
-
-    if admin_token.is_empty() {
-        error!("Admin PAT token not found for user lookup");
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Authentication service not configured".to_string(),
-                details: None,
-            }),
-        ));
-    }
-
-    let http_client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .build()
-        .map_err(|e| {
-            error!("Failed to create HTTP client: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Internal server error".to_string(),
-                    details: None,
-                }),
-            )
-        })?;
-
-    let session_url = format!("{}/v2/sessions/{}", client.api_url(), session_token);
-    let session_response = http_client
-        .get(&session_url)
-        .bearer_auth(&admin_token)
-        .send()
-        .await
-        .map_err(|e| {
-            error!("Failed to get session: {}", e);
-            (
-                StatusCode::UNAUTHORIZED,
-                Json(ErrorResponse {
-                    error: "Session validation failed".to_string(),
-                    details: None,
-                }),
-            )
-        })?;
-
-    if !session_response.status().is_success() {
-        let error_text = session_response.text().await.unwrap_or_default();
-        error!("Session lookup failed: {}", error_text);
+    if session_token.is_empty() {
+        warn!("get_current_user: Empty authorization token");
         return Err((
             StatusCode::UNAUTHORIZED,
             Json(ErrorResponse {
-                error: "Invalid or expired session".to_string(),
+                error: "Invalid authorization token".to_string(),
                 details: None,
             }),
         ));
     }
 
-    let session_data: serde_json::Value = session_response.json().await.map_err(|e| {
-        error!("Failed to parse session response: {}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to parse session data".to_string(),
-                details: None,
-            }),
-        )
-    })?;
+    info!("get_current_user: looking up session token (len={}, prefix={}...)",
+          session_token.len(),
+          &session_token[..std::cmp::min(20, session_token.len())]);
 
-    let user_id = session_data
-        .get("session")
-        .and_then(|s| s.get("factors"))
-        .and_then(|f| f.get("user"))
-        .and_then(|u| u.get("id"))
-        .and_then(|id| id.as_str())
-        .unwrap_or_default()
-        .to_string();
+    let cache = SESSION_CACHE.read().await;
 
-    if user_id.is_empty() {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            Json(ErrorResponse {
-                error: "Invalid session - no user found".to_string(),
-                details: None,
-            }),
-        ));
+    if let Some(user_data) = cache.get(session_token) {
+        info!("get_current_user: found cached session for user: {}", user_data.email);
+        return Ok(Json(CurrentUserResponse {
+            id: user_data.user_id.clone(),
+            username: user_data.username.clone(),
+            email: Some(user_data.email.clone()),
+            first_name: user_data.first_name.clone(),
+            last_name: user_data.last_name.clone(),
+            display_name: user_data.display_name.clone(),
+            roles: user_data.roles.clone(),
+            organization_id: user_data.organization_id.clone(),
+            avatar_url: None,
+        }));
     }
 
-    let user_url = format!("{}/v2/users/{}", client.api_url(), user_id);
-    let user_response = http_client
-        .get(&user_url)
-        .bearer_auth(&admin_token)
-        .send()
-        .await
-        .map_err(|e| {
-            error!("Failed to get user: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to fetch user data".to_string(),
-                    details: None,
-                }),
-            )
-        })?;
+    drop(cache);
 
-    if !user_response.status().is_success() {
-        let error_text = user_response.text().await.unwrap_or_default();
-        error!("User lookup failed: {}", error_text);
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to fetch user data".to_string(),
-                details: None,
-            }),
-        ));
-    }
+    warn!("get_current_user: session not found in cache, token may be from previous server run");
 
-    let user_data: serde_json::Value = user_response.json().await.map_err(|e| {
-        error!("Failed to parse user response: {}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to parse user data".to_string(),
-                details: None,
-            }),
-        )
-    })?;
-
-    let user = user_data.get("user").unwrap_or(&user_data);
-    let human = user.get("human");
-
-    let username = user
-        .get("userName")
-        .and_then(|v| v.as_str())
-        .unwrap_or_default()
-        .to_string();
-
-    let email = human
-        .and_then(|h| h.get("email"))
-        .and_then(|e| e.get("email"))
-        .and_then(|v| v.as_str())
-        .map(String::from);
-
-    let first_name = human
-        .and_then(|h| h.get("profile"))
-        .and_then(|p| p.get("givenName"))
-        .and_then(|v| v.as_str())
-        .map(String::from);
-
-    let last_name = human
-        .and_then(|h| h.get("profile"))
-        .and_then(|p| p.get("familyName"))
-        .and_then(|v| v.as_str())
-        .map(String::from);
-
-    let display_name = human
-        .and_then(|h| h.get("profile"))
-        .and_then(|p| p.get("displayName"))
-        .and_then(|v| v.as_str())
-        .map(String::from);
-
-    let organization_id = user
-        .get("details")
-        .and_then(|d| d.get("resourceOwner"))
-        .and_then(|v| v.as_str())
-        .map(String::from);
-
-    info!("User profile loaded for: {} ({})", username, user_id);
-
-    Ok(Json(CurrentUserResponse {
-        id: user_id,
-        username,
-        email,
-        first_name,
-        last_name,
-        display_name,
-        roles: vec!["admin".to_string()],
-        organization_id,
-        avatar_url: None,
-    }))
+    Err((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "Session expired or invalid. Please log in again.".to_string(),
+            details: None,
+        }),
+    ))
 }
 
 pub async fn refresh_token(

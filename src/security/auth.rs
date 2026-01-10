@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use crate::security::auth_provider::AuthProviderRegistry;
@@ -530,11 +530,8 @@ impl Default for AuthConfig {
                 "/.well-known".to_string(),
                 "/metrics".to_string(),
                 "/api/auth/login".to_string(),
-                "/api/auth/logout".to_string(),
-                "/api/auth/refresh".to_string(),
                 "/api/auth/bootstrap".to_string(),
-                "/api/auth/2fa/verify".to_string(),
-                "/api/auth/2fa/resend".to_string(),
+                "/api/auth/refresh".to_string(),
                 "/oauth".to_string(),
                 "/auth/callback".to_string(),
             ],
@@ -873,32 +870,46 @@ pub async fn auth_middleware_with_providers(
 ) -> Response {
 
     let path = request.uri().path().to_string();
+    let method = request.method().to_string();
+
+    info!("[AUTH] Processing {} {}", method, path);
 
     if state.config.is_public_path(&path) || state.config.is_anonymous_allowed(&path) {
+        info!("[AUTH] Path is public/anonymous, skipping auth");
         request
             .extensions_mut()
             .insert(AuthenticatedUser::anonymous());
         return next.run(request).await;
     }
 
+    let auth_header = request
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    info!("[AUTH] Authorization header: {:?}", auth_header.as_ref().map(|h| {
+        if h.len() > 30 { format!("{}...", &h[..30]) } else { h.clone() }
+    }));
+
     let extracted = ExtractedAuthData::from_request(&request, &state.config);
     let user = authenticate_with_extracted_data(extracted, &state.config, &state.provider_registry).await;
 
     match user {
         Ok(authenticated_user) => {
-            debug!("Authenticated user: {} ({})", authenticated_user.username, authenticated_user.user_id);
+            info!("[AUTH] Success: user={} roles={:?}", authenticated_user.username, authenticated_user.roles);
             request.extensions_mut().insert(authenticated_user);
             next.run(request).await
         }
         Err(e) => {
             if !state.config.require_auth {
-                warn!("Authentication failed but not required, allowing anonymous: {:?}", e);
+                warn!("[AUTH] Failed but not required, allowing anonymous: {:?}", e);
                 request
                     .extensions_mut()
                     .insert(AuthenticatedUser::anonymous());
                 return next.run(request).await;
             }
-            debug!("Authentication failed: {:?}", e);
+            info!("[AUTH] Failed: {:?}", e);
             e.into_response()
         }
     }
