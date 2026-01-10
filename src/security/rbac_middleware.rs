@@ -619,6 +619,56 @@ impl RbacManager {
     }
 }
 
+/// RBAC middleware function for use with middleware::from_fn
+/// This version takes the RbacManager as a parameter instead of State
+pub async fn rbac_middleware_fn(
+    request: Request<Body>,
+    next: Next,
+    rbac: Arc<RbacManager>,
+) -> Response {
+    let path = request.uri().path().to_string();
+    let method = request.method().to_string();
+
+    let user = request
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .cloned()
+        .unwrap_or_else(AuthenticatedUser::anonymous);
+
+    let decision = rbac.check_route_access(&path, &method, &user).await;
+
+    if rbac.config.audit_all_decisions {
+        debug!(
+            "RBAC decision for {} {} by user {}: {:?} - {}",
+            method, path, user.user_id, decision.decision, decision.reason
+        );
+    }
+
+    if !decision.is_allowed() {
+        if !user.is_authenticated() {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({
+                    "error": "unauthorized",
+                    "message": "Authentication required"
+                })),
+            )
+                .into_response();
+        }
+
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({
+                "error": "forbidden",
+                "message": decision.reason
+            })),
+        )
+            .into_response();
+    }
+
+    next.run(request).await
+}
+
 pub async fn rbac_middleware(
     State(rbac): State<Arc<RbacManager>>,
     request: Request<Body>,
@@ -877,57 +927,360 @@ pub fn create_admin_layer(rbac_manager: Arc<RbacManager>) -> RbacMiddlewareState
 
 pub fn build_default_route_permissions() -> Vec<RoutePermission> {
     vec![
+        // =====================================================================
+        // PUBLIC / ANONYMOUS ROUTES (no auth required)
+        // =====================================================================
+        RoutePermission::new("/health", "GET", "").with_anonymous(true),
+        RoutePermission::new("/healthz", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/health", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/version", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/product", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/i18n/**", "GET", "").with_anonymous(true),
+
+        // Auth routes - login must be anonymous
         RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/auth/login", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/auth/bootstrap", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/auth/refresh", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/auth/logout", "POST", ""),
         RoutePermission::new("/api/auth/me", "GET", ""),
-        RoutePermission::new("/api/users", "GET", "users.read")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/users", "POST", "users.create")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/users/:id", "GET", "users.read"),
-        RoutePermission::new("/api/users/:id", "PUT", "users.update"),
-        RoutePermission::new("/api/users/:id", "DELETE", "users.delete")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/drive/**", "GET", "drive.read"),
-        RoutePermission::new("/api/drive/upload", "POST", "drive.write"),
-        RoutePermission::new("/api/drive/:id", "DELETE", "drive.delete"),
-        RoutePermission::new("/api/mail/**", "GET", "mail.read"),
-        RoutePermission::new("/api/mail/send", "POST", "mail.send"),
-        RoutePermission::new("/api/calendar/**", "GET", "calendar.read"),
-        RoutePermission::new("/api/calendar/events", "POST", "calendar.write"),
-        RoutePermission::new("/api/tasks/**", "GET", "tasks.read"),
-        RoutePermission::new("/api/tasks", "POST", "tasks.write"),
-        RoutePermission::new("/api/analytics/**", "GET", "analytics.read")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into(), "Moderator".into()]),
-        RoutePermission::new("/api/audit/**", "GET", "audit.read")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/rbac/**", "*", "roles.assign")
-            .with_roles(vec!["SuperAdmin".into()]),
-        RoutePermission::new("/api/monitoring/**", "GET", "monitoring.read")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/bots", "POST", "bots.create"),
-        RoutePermission::new("/api/bots/:id", "DELETE", "bots.delete"),
-        RoutePermission::new("/api/bots/:id/**", "GET", "bots.read"),
-        RoutePermission::new("/api/bots/:id/**", "PUT", "bots.update"),
-        // UI routes (HTMX endpoints) - allow authenticated users
+        RoutePermission::new("/api/auth/**", "GET", ""),
+        RoutePermission::new("/api/auth/**", "POST", ""),
+
+        // WebSocket - anonymous for chat support
+        RoutePermission::new("/ws", "GET", "").with_anonymous(true),
+        RoutePermission::new("/ws/**", "GET", "").with_anonymous(true),
+
+        // Chat - ANONYMOUS for customer support
+        RoutePermission::new("/api/chat/**", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/chat/**", "POST", "").with_anonymous(true),
+
+        // Sessions - anonymous can create sessions for chat
+        RoutePermission::new("/api/sessions", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/sessions", "GET", ""),
+        RoutePermission::new("/api/sessions/**", "GET", ""),
+
+        // =====================================================================
+        // AUTHENTICATED USER ROUTES (any logged-in user)
+        // =====================================================================
+
+        // Drive / Files
+        RoutePermission::new("/api/drive/**", "GET", ""),
+        RoutePermission::new("/api/drive/**", "POST", ""),
+        RoutePermission::new("/api/drive/**", "PUT", ""),
+        RoutePermission::new("/api/drive/**", "DELETE", ""),
+        RoutePermission::new("/api/files/**", "GET", ""),
+        RoutePermission::new("/api/files/**", "POST", ""),
+        RoutePermission::new("/api/files/**", "PUT", ""),
+        RoutePermission::new("/api/files/**", "DELETE", ""),
+
+        // Mail
+        RoutePermission::new("/api/mail/**", "GET", ""),
+        RoutePermission::new("/api/mail/**", "POST", ""),
+        RoutePermission::new("/api/mail/**", "PUT", ""),
+        RoutePermission::new("/api/mail/**", "DELETE", ""),
+
+        // Calendar
+        RoutePermission::new("/api/calendar/**", "GET", ""),
+        RoutePermission::new("/api/calendar/**", "POST", ""),
+        RoutePermission::new("/api/calendar/**", "PUT", ""),
+        RoutePermission::new("/api/calendar/**", "DELETE", ""),
+
+        // Tasks
+        RoutePermission::new("/api/tasks/**", "GET", ""),
+        RoutePermission::new("/api/tasks/**", "POST", ""),
+        RoutePermission::new("/api/tasks/**", "PUT", ""),
+        RoutePermission::new("/api/tasks/**", "PATCH", ""),
+        RoutePermission::new("/api/tasks/**", "DELETE", ""),
+
+        // Docs / Paper
+        RoutePermission::new("/api/docs/**", "GET", ""),
+        RoutePermission::new("/api/docs/**", "POST", ""),
+        RoutePermission::new("/api/docs/**", "PUT", ""),
+        RoutePermission::new("/api/docs/**", "DELETE", ""),
+        RoutePermission::new("/api/paper/**", "GET", ""),
+        RoutePermission::new("/api/paper/**", "POST", ""),
+        RoutePermission::new("/api/paper/**", "PUT", ""),
+        RoutePermission::new("/api/paper/**", "DELETE", ""),
+
+        // Sheet
+        RoutePermission::new("/api/sheet/**", "GET", ""),
+        RoutePermission::new("/api/sheet/**", "POST", ""),
+        RoutePermission::new("/api/sheet/**", "PUT", ""),
+        RoutePermission::new("/api/sheet/**", "DELETE", ""),
+
+        // Slides
+        RoutePermission::new("/api/slides/**", "GET", ""),
+        RoutePermission::new("/api/slides/**", "POST", ""),
+        RoutePermission::new("/api/slides/**", "PUT", ""),
+        RoutePermission::new("/api/slides/**", "DELETE", ""),
+
+        // Meet
+        RoutePermission::new("/api/meet/**", "GET", ""),
+        RoutePermission::new("/api/meet/**", "POST", ""),
+        RoutePermission::new("/api/meet/**", "PUT", ""),
+        RoutePermission::new("/api/meet/**", "DELETE", ""),
+
+        // Research
+        RoutePermission::new("/api/research/**", "GET", ""),
+        RoutePermission::new("/api/research/**", "POST", ""),
+        RoutePermission::new("/api/research/**", "PUT", ""),
+        RoutePermission::new("/api/research/**", "DELETE", ""),
+
+        // Sources
+        RoutePermission::new("/api/sources/**", "GET", ""),
+        RoutePermission::new("/api/sources/**", "POST", ""),
+        RoutePermission::new("/api/sources/**", "PUT", ""),
+        RoutePermission::new("/api/sources/**", "DELETE", ""),
+
+        // Canvas
+        RoutePermission::new("/api/canvas/**", "GET", ""),
+        RoutePermission::new("/api/canvas/**", "POST", ""),
+        RoutePermission::new("/api/canvas/**", "PUT", ""),
+        RoutePermission::new("/api/canvas/**", "DELETE", ""),
+
+        // Video / Player
+        RoutePermission::new("/api/video/**", "GET", ""),
+        RoutePermission::new("/api/video/**", "POST", ""),
+        RoutePermission::new("/api/player/**", "GET", ""),
+        RoutePermission::new("/api/player/**", "POST", ""),
+
+        // Workspaces
+        RoutePermission::new("/api/workspaces/**", "GET", ""),
+        RoutePermission::new("/api/workspaces/**", "POST", ""),
+        RoutePermission::new("/api/workspaces/**", "PUT", ""),
+        RoutePermission::new("/api/workspaces/**", "DELETE", ""),
+
+        // Projects
+        RoutePermission::new("/api/projects/**", "GET", ""),
+        RoutePermission::new("/api/projects/**", "POST", ""),
+        RoutePermission::new("/api/projects/**", "PUT", ""),
+        RoutePermission::new("/api/projects/**", "DELETE", ""),
+
+        // Goals
+        RoutePermission::new("/api/goals/**", "GET", ""),
+        RoutePermission::new("/api/goals/**", "POST", ""),
+        RoutePermission::new("/api/goals/**", "PUT", ""),
+        RoutePermission::new("/api/goals/**", "DELETE", ""),
+
+        // Settings (user's own settings)
+        RoutePermission::new("/api/settings/**", "GET", ""),
+        RoutePermission::new("/api/settings/**", "POST", ""),
+        RoutePermission::new("/api/settings/**", "PUT", ""),
+
+        // Bots (read for all authenticated users)
+        RoutePermission::new("/api/bots", "GET", ""),
+        RoutePermission::new("/api/bots/:id", "GET", ""),
+        RoutePermission::new("/api/bots/:id/**", "GET", ""),
+
+        // Autotask
+        RoutePermission::new("/api/autotask/**", "GET", ""),
+        RoutePermission::new("/api/autotask/**", "POST", ""),
+        RoutePermission::new("/api/autotask/**", "PUT", ""),
+        RoutePermission::new("/api/autotask/**", "DELETE", ""),
+
+        // Designer
+        RoutePermission::new("/api/designer/**", "GET", ""),
+        RoutePermission::new("/api/designer/**", "POST", ""),
+        RoutePermission::new("/api/designer/**", "PUT", ""),
+        RoutePermission::new("/api/designer/**", "DELETE", ""),
+
+        // Dashboards
+        RoutePermission::new("/api/dashboards/**", "GET", ""),
+        RoutePermission::new("/api/dashboards/**", "POST", ""),
+        RoutePermission::new("/api/dashboards/**", "PUT", ""),
+        RoutePermission::new("/api/dashboards/**", "DELETE", ""),
+
+        // DB/Table access
+        RoutePermission::new("/api/db/**", "GET", ""),
+        RoutePermission::new("/api/db/**", "POST", ""),
+        RoutePermission::new("/api/db/**", "PUT", ""),
+        RoutePermission::new("/api/db/**", "DELETE", ""),
+
+        // CRM / Contacts
+        RoutePermission::new("/api/crm/**", "GET", ""),
+        RoutePermission::new("/api/crm/**", "POST", ""),
+        RoutePermission::new("/api/crm/**", "PUT", ""),
+        RoutePermission::new("/api/crm/**", "DELETE", ""),
+        RoutePermission::new("/api/contacts/**", "GET", ""),
+        RoutePermission::new("/api/contacts/**", "POST", ""),
+        RoutePermission::new("/api/contacts/**", "PUT", ""),
+        RoutePermission::new("/api/contacts/**", "DELETE", ""),
+
+        // Billing / Products
+        RoutePermission::new("/api/billing/**", "GET", ""),
+        RoutePermission::new("/api/billing/**", "POST", ""),
+        RoutePermission::new("/api/products/**", "GET", ""),
+        RoutePermission::new("/api/products/**", "POST", ""),
+        RoutePermission::new("/api/products/**", "PUT", ""),
+        RoutePermission::new("/api/products/**", "DELETE", ""),
+
+        // Tickets
+        RoutePermission::new("/api/tickets/**", "GET", ""),
+        RoutePermission::new("/api/tickets/**", "POST", ""),
+        RoutePermission::new("/api/tickets/**", "PUT", ""),
+        RoutePermission::new("/api/tickets/**", "DELETE", ""),
+
+        // Learn
+        RoutePermission::new("/api/learn/**", "GET", ""),
+        RoutePermission::new("/api/learn/**", "POST", ""),
+
+        // Social
+        RoutePermission::new("/api/social/**", "GET", ""),
+        RoutePermission::new("/api/social/**", "POST", ""),
+
+        // LLM
+        RoutePermission::new("/api/llm/**", "GET", ""),
+        RoutePermission::new("/api/llm/**", "POST", ""),
+
+        // =====================================================================
+        // UI ROUTES (HTMX endpoints) - authenticated users
+        // =====================================================================
         RoutePermission::new("/api/ui/tasks/**", "GET", ""),
         RoutePermission::new("/api/ui/tasks/**", "POST", ""),
         RoutePermission::new("/api/ui/tasks/**", "PUT", ""),
         RoutePermission::new("/api/ui/tasks/**", "PATCH", ""),
         RoutePermission::new("/api/ui/tasks/**", "DELETE", ""),
         RoutePermission::new("/api/ui/calendar/**", "GET", ""),
+        RoutePermission::new("/api/ui/calendar/**", "POST", ""),
         RoutePermission::new("/api/ui/drive/**", "GET", ""),
+        RoutePermission::new("/api/ui/drive/**", "POST", ""),
         RoutePermission::new("/api/ui/mail/**", "GET", ""),
-        RoutePermission::new("/api/ui/monitoring/**", "GET", ""),
+        RoutePermission::new("/api/ui/mail/**", "POST", ""),
+        RoutePermission::new("/api/ui/docs/**", "GET", ""),
+        RoutePermission::new("/api/ui/docs/**", "POST", ""),
+        RoutePermission::new("/api/ui/paper/**", "GET", ""),
+        RoutePermission::new("/api/ui/paper/**", "POST", ""),
+        RoutePermission::new("/api/ui/sheet/**", "GET", ""),
+        RoutePermission::new("/api/ui/sheet/**", "POST", ""),
+        RoutePermission::new("/api/ui/slides/**", "GET", ""),
+        RoutePermission::new("/api/ui/slides/**", "POST", ""),
+        RoutePermission::new("/api/ui/meet/**", "GET", ""),
+        RoutePermission::new("/api/ui/meet/**", "POST", ""),
+        RoutePermission::new("/api/ui/research/**", "GET", ""),
+        RoutePermission::new("/api/ui/research/**", "POST", ""),
+        RoutePermission::new("/api/ui/sources/**", "GET", ""),
+        RoutePermission::new("/api/ui/sources/**", "POST", ""),
+        RoutePermission::new("/api/ui/canvas/**", "GET", ""),
+        RoutePermission::new("/api/ui/video/**", "GET", ""),
+        RoutePermission::new("/api/ui/player/**", "GET", ""),
+        RoutePermission::new("/api/ui/workspaces/**", "GET", ""),
+        RoutePermission::new("/api/ui/projects/**", "GET", ""),
+        RoutePermission::new("/api/ui/goals/**", "GET", ""),
+        RoutePermission::new("/api/ui/designer/**", "GET", ""),
+        RoutePermission::new("/api/ui/dashboards/**", "GET", ""),
+        RoutePermission::new("/api/ui/crm/**", "GET", ""),
+        RoutePermission::new("/api/ui/billing/**", "GET", ""),
+        RoutePermission::new("/api/ui/products/**", "GET", ""),
+        RoutePermission::new("/api/ui/tickets/**", "GET", ""),
+        RoutePermission::new("/api/ui/learn/**", "GET", ""),
+        RoutePermission::new("/api/ui/social/**", "GET", ""),
+        RoutePermission::new("/api/ui/settings/**", "GET", ""),
+        RoutePermission::new("/api/ui/autotask/**", "GET", ""),
+
+        // =====================================================================
+        // ADMIN ROUTES (requires Admin or SuperAdmin role)
+        // =====================================================================
+        RoutePermission::new("/api/users", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/users", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/users/:id", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/users/:id", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/users/:id", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/users/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/users/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/users/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/users/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // Groups management
+        RoutePermission::new("/api/groups/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/groups/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/groups/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/groups/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // Bot management (create/delete)
+        RoutePermission::new("/api/bots", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/bots/:id", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/bots/:id", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/bots/:id/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/bots/:id/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // Analytics (admin view)
+        RoutePermission::new("/api/analytics/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into(), "Moderator".into()]),
         RoutePermission::new("/api/ui/analytics/**", "GET", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into(), "Moderator".into()]),
+
+        // Monitoring
+        RoutePermission::new("/api/monitoring/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/ui/monitoring/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // Audit logs
+        RoutePermission::new("/api/audit/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/ui/audit/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // Security settings
+        RoutePermission::new("/api/security/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/security/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/security/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/ui/security/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // Admin panel
+        RoutePermission::new("/api/admin/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/admin/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/admin/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/admin/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/ui/admin/**", "GET", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/ui/**", "GET", ""),
+
+        // Attendant (customer service)
+        RoutePermission::new("/api/attendant/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into(), "Moderator".into()]),
+        RoutePermission::new("/api/attendant/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into(), "Moderator".into()]),
+        RoutePermission::new("/api/ui/attendant/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into(), "Moderator".into()]),
+
+        // =====================================================================
+        // SUPER ADMIN ONLY ROUTES
+        // =====================================================================
+        RoutePermission::new("/api/rbac/**", "GET", "")
+            .with_roles(vec!["SuperAdmin".into()]),
+        RoutePermission::new("/api/rbac/**", "POST", "")
+            .with_roles(vec!["SuperAdmin".into()]),
+        RoutePermission::new("/api/rbac/**", "PUT", "")
+            .with_roles(vec!["SuperAdmin".into()]),
+        RoutePermission::new("/api/rbac/**", "DELETE", "")
+            .with_roles(vec!["SuperAdmin".into()]),
     ]
 }
 
