@@ -232,6 +232,7 @@ async fn run_axum_server(
         .add_anonymous_path("/healthz")
         .add_anonymous_path("/api/health")
         .add_anonymous_path("/api/product")
+        .add_anonymous_path("/api/i18n")
         .add_anonymous_path("/ws")
         .add_anonymous_path("/auth")
         .add_public_path("/static")
