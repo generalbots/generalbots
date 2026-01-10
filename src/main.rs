@@ -235,7 +235,9 @@ async fn run_axum_server(
         .add_anonymous_path("/api/health")
         .add_anonymous_path("/api/product")
         .add_anonymous_path("/api/i18n")
-        .add_anonymous_path("/api/auth")
+        .add_anonymous_path("/api/auth/login")
+        .add_anonymous_path("/api/auth/refresh")
+        .add_anonymous_path("/api/auth/bootstrap")
         .add_anonymous_path("/ws")
         .add_anonymous_path("/auth")
         .add_public_path("/static")
@@ -494,25 +496,26 @@ async fn run_axum_server(
     let rbac_manager_for_middleware = Arc::clone(&rbac_manager);
 
     let app = app_with_ui
-        // Security middleware stack (order matters - first added is outermost)
+        // Security middleware stack (order matters - last added is outermost/runs first)
         .layer(middleware::from_fn(security_headers_middleware))
         .layer(security_headers_extension)
         .layer(rate_limit_extension)
         // Request ID tracking for all requests
         .layer(middleware::from_fn(request_id_middleware))
-        // Authentication middleware using provider registry
-        // NOTE: In Axum, layers are applied bottom-to-top, so this runs BEFORE RBAC
-        .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
-            let state = auth_middleware_state.clone();
-            async move {
-                botserver::security::auth_middleware_with_providers(req, next, state).await
-            }
-        }))
         // RBAC middleware - checks permissions AFTER authentication
+        // NOTE: In Axum, layers run in reverse order (last added = first to run)
+        // So RBAC is added BEFORE auth, meaning auth runs first, then RBAC
         .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
             let rbac = Arc::clone(&rbac_manager_for_middleware);
             async move {
                 botserver::security::rbac_middleware_fn(req, next, rbac).await
+            }
+        }))
+        // Authentication middleware - MUST run before RBAC (so added after)
+        .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+            let state = auth_middleware_state.clone();
+            async move {
+                botserver::security::auth_middleware_with_providers(req, next, state).await
             }
         }))
         // Panic handler catches panics and returns safe 500 responses
