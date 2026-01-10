@@ -1144,6 +1144,40 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/llm/**", "GET", ""),
         RoutePermission::new("/api/llm/**", "POST", ""),
 
+        // Email
+        RoutePermission::new("/api/email/**", "GET", ""),
+        RoutePermission::new("/api/email/**", "POST", ""),
+        RoutePermission::new("/api/email/**", "PUT", ""),
+        RoutePermission::new("/api/email/**", "DELETE", ""),
+
+        // Messaging channels
+        RoutePermission::new("/api/telegram/**", "GET", ""),
+        RoutePermission::new("/api/telegram/**", "POST", ""),
+        RoutePermission::new("/api/whatsapp/**", "GET", ""),
+        RoutePermission::new("/api/whatsapp/**", "POST", ""),
+        RoutePermission::new("/api/msteams/**", "GET", ""),
+        RoutePermission::new("/api/msteams/**", "POST", ""),
+        RoutePermission::new("/api/instagram/**", "GET", ""),
+        RoutePermission::new("/api/instagram/**", "POST", ""),
+
+        // Pages
+        RoutePermission::new("/api/pages/**", "GET", ""),
+        RoutePermission::new("/api/pages/**", "POST", ""),
+        RoutePermission::new("/api/pages/**", "PUT", ""),
+        RoutePermission::new("/api/pages/**", "DELETE", ""),
+
+        // Insights
+        RoutePermission::new("/api/insights/**", "GET", ""),
+        RoutePermission::new("/api/insights/**", "POST", ""),
+
+        // App logs
+        RoutePermission::new("/api/app-logs/**", "GET", ""),
+        RoutePermission::new("/api/app-logs/**", "POST", ""),
+
+        // User profile (own user)
+        RoutePermission::new("/api/user/**", "GET", ""),
+        RoutePermission::new("/api/user/**", "PUT", ""),
+
         // =====================================================================
         // UI ROUTES (HTMX endpoints) - authenticated users
         // =====================================================================
@@ -1188,6 +1222,8 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/ui/social/**", "GET", ""),
         RoutePermission::new("/api/ui/settings/**", "GET", ""),
         RoutePermission::new("/api/ui/autotask/**", "GET", ""),
+        RoutePermission::new("/api/ui/email/**", "GET", ""),
+        RoutePermission::new("/api/ui/email/**", "POST", ""),
 
         // =====================================================================
         // ADMIN ROUTES (requires Admin or SuperAdmin role)
