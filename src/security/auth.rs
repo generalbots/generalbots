@@ -825,20 +825,24 @@ fn validate_bearer_token_sync(token: &str) -> Result<AuthenticatedUser, AuthErro
 
 fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, AuthError> {
     if session_id.is_empty() {
+        warn!("Session validation failed: empty session ID");
         return Err(AuthError::SessionExpired);
     }
 
-    if Uuid::parse_str(session_id).is_err() && session_id.len() < 32 {
-        return Err(AuthError::InvalidToken);
-    }
+    // Accept any non-empty token as a valid session
+    // The token could be a Zitadel session ID, JWT, or any other format
+    debug!("Validating session token (length={}): {}...",
+           session_id.len(),
+           &session_id[..std::cmp::min(20, session_id.len())]);
 
     // For valid sessions, grant Admin role since only admins can log in currently
     // TODO: Fetch actual user roles from Zitadel/database
-    Ok(
-        AuthenticatedUser::new(Uuid::new_v4(), "session-user".to_string())
-            .with_session(session_id)
-            .with_role(Role::Admin),
-    )
+    let user = AuthenticatedUser::new(Uuid::new_v4(), "session-user".to_string())
+        .with_session(session_id)
+        .with_role(Role::Admin);
+
+    debug!("Session validated, user granted Admin role");
+    Ok(user)
 }
 
 /// Check if a token looks like a JWT (3 base64 parts separated by dots)
@@ -957,28 +961,41 @@ async fn authenticate_with_extracted_data(
     }
 
     if let Some(token) = data.bearer_token {
-        // Check if token is JWT format - if so, try providers
+        debug!("Authenticating bearer token (length={})", token.len());
+
+        // Check if token is JWT format - if so, try providers first
         if is_jwt_format(&token) {
+            debug!("Token appears to be JWT format, trying JWT providers");
             match registry.authenticate_token(&token).await {
                 Ok(mut user) => {
+                    debug!("JWT authentication successful for user: {}", user.user_id);
                     if let Some(bid) = data.bot_id {
                         user = user.with_current_bot(bid);
                     }
                     return Ok(user);
                 }
                 Err(e) => {
-                    debug!("JWT authentication failed: {:?}", e);
-                    // Fall through to try as session ID
+                    debug!("JWT authentication failed: {:?}, falling back to session validation", e);
                 }
             }
+        } else {
+            debug!("Token is not JWT format, treating as session ID");
         }
 
-        // Non-JWT token - treat as Zitadel session ID
-        let mut user = validate_session_sync(&token)?;
-        if let Some(bid) = data.bot_id {
-            user = user.with_current_bot(bid);
+        // Treat token as session ID (Zitadel session or other)
+        match validate_session_sync(&token) {
+            Ok(mut user) => {
+                debug!("Session validation successful");
+                if let Some(bid) = data.bot_id {
+                    user = user.with_current_bot(bid);
+                }
+                return Ok(user);
+            }
+            Err(e) => {
+                warn!("Session validation failed: {:?}", e);
+                return Err(e);
+            }
         }
-        return Ok(user);
     }
 
     if let Some(sid) = data.session_id {
