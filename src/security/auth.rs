@@ -920,12 +920,27 @@ impl ExtractedAuthData {
             .and_then(|v| v.to_str().ok())
             .map(|s| s.to_string());
 
-        let bearer_token = request
+        // Debug: log raw Authorization header
+        let raw_auth = request
             .headers()
             .get(header::AUTHORIZATION)
-            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.to_str().ok());
+
+        if let Some(auth) = raw_auth {
+            debug!("Raw Authorization header: {}", &auth[..std::cmp::min(50, auth.len())]);
+        } else {
+            warn!("No Authorization header found in request to {}", request.uri().path());
+        }
+
+        let bearer_token = raw_auth
             .and_then(|s| s.strip_prefix(&config.bearer_prefix))
             .map(|s| s.to_string());
+
+        if bearer_token.is_some() {
+            debug!("Bearer token extracted successfully");
+        } else if raw_auth.is_some() {
+            warn!("Authorization header present but failed to extract bearer token. Prefix expected: '{}'", config.bearer_prefix);
+        }
 
         let session_id = extract_session_from_cookies(request, &config.session_cookie_name);
 
