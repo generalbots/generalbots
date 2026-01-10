@@ -1279,7 +1279,7 @@ async fn process_qrcode(
         .map_err(|e| format!("Failed to fetch image: {e}"))?;
 
     let response = client
-        .post(format!("{botmodels_url}/api/v1/vision/qrcode"))
+        .post(format!("{botmodels_url}/api/vision/qrcode"))
         .header("Content-Type", "application/octet-stream")
         .body(image_data.to_vec())
         .send()
@@ -1327,7 +1327,7 @@ async fn process_audio_to_text(
         .map_err(|e| format!("Failed to read audio: {e}"))?;
 
     let response = client
-        .post(format!("{botmodels_url}/api/v1/speech/to-text"))
+        .post(format!("{botmodels_url}/api/speech/to-text"))
         .header("Content-Type", "application/octet-stream")
         .body(audio_data.to_vec())
         .send()
@@ -1376,7 +1376,7 @@ async fn process_video_description(
         .map_err(|e| format!("Failed to fetch video: {e}"))?;
 
     let response = client
-        .post(format!("{botmodels_url}/api/v1/vision/describe-video"))
+        .post(format!("{botmodels_url}/api/vision/describe-video"))
         .header("Content-Type", "application/octet-stream")
         .body(video_data.to_vec())
         .send()

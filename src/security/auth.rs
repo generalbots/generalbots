@@ -527,7 +527,6 @@ impl Default for AuthConfig {
                 "/health".to_string(),
                 "/healthz".to_string(),
                 "/api/health".to_string(),
-                "/api/v1/health".to_string(),
                 "/.well-known".to_string(),
                 "/metrics".to_string(),
                 "/api/auth/login".to_string(),
