@@ -9,7 +9,11 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
+use tracing::{debug, warn};
 use uuid::Uuid;
+
+use crate::security::auth_provider::AuthProviderRegistry;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Permission {
@@ -825,6 +829,155 @@ fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, AuthErro
         AuthenticatedUser::new(Uuid::new_v4(), "session-user".to_string())
             .with_session(session_id),
     )
+}
+
+#[derive(Clone)]
+pub struct AuthMiddlewareState {
+    pub config: Arc<AuthConfig>,
+    pub provider_registry: Arc<AuthProviderRegistry>,
+}
+
+impl AuthMiddlewareState {
+    pub fn new(config: Arc<AuthConfig>, provider_registry: Arc<AuthProviderRegistry>) -> Self {
+        Self {
+            config,
+            provider_registry,
+        }
+    }
+}
+
+pub async fn auth_middleware_with_providers(
+    mut request: Request<Body>,
+    next: Next,
+    state: AuthMiddlewareState,
+) -> Response {
+
+    let path = request.uri().path().to_string();
+
+    if state.config.is_public_path(&path) || state.config.is_anonymous_allowed(&path) {
+        request
+            .extensions_mut()
+            .insert(AuthenticatedUser::anonymous());
+        return next.run(request).await;
+    }
+
+    let extracted = ExtractedAuthData::from_request(&request, &state.config);
+    let user = authenticate_with_extracted_data(extracted, &state.config, &state.provider_registry).await;
+
+    match user {
+        Ok(authenticated_user) => {
+            debug!("Authenticated user: {} ({})", authenticated_user.username, authenticated_user.user_id);
+            request.extensions_mut().insert(authenticated_user);
+            next.run(request).await
+        }
+        Err(e) => {
+            if !state.config.require_auth {
+                warn!("Authentication failed but not required, allowing anonymous: {:?}", e);
+                request
+                    .extensions_mut()
+                    .insert(AuthenticatedUser::anonymous());
+                return next.run(request).await;
+            }
+            debug!("Authentication failed: {:?}", e);
+            e.into_response()
+        }
+    }
+}
+
+struct ExtractedAuthData {
+    api_key: Option<String>,
+    bearer_token: Option<String>,
+    session_id: Option<String>,
+    user_id_header: Option<Uuid>,
+    bot_id: Option<Uuid>,
+}
+
+impl ExtractedAuthData {
+    fn from_request(request: &Request<Body>, config: &AuthConfig) -> Self {
+        let api_key = request
+            .headers()
+            .get(&config.api_key_header)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
+
+        let bearer_token = request
+            .headers()
+            .get(header::AUTHORIZATION)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|s| s.strip_prefix(&config.bearer_prefix))
+            .map(|s| s.to_string());
+
+        let session_id = extract_session_from_cookies(request, &config.session_cookie_name);
+
+        let user_id_header = request
+            .headers()
+            .get("X-User-ID")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|s| Uuid::parse_str(s).ok());
+
+        let bot_id = extract_bot_id_from_request(request, config);
+
+        Self {
+            api_key,
+            bearer_token,
+            session_id,
+            user_id_header,
+            bot_id,
+        }
+    }
+}
+
+async fn authenticate_with_extracted_data(
+    data: ExtractedAuthData,
+    config: &AuthConfig,
+    registry: &AuthProviderRegistry,
+) -> Result<AuthenticatedUser, AuthError> {
+    if let Some(key) = data.api_key {
+        let mut user = registry.authenticate_api_key(&key).await?;
+        if let Some(bid) = data.bot_id {
+            user = user.with_current_bot(bid);
+        }
+        return Ok(user);
+    }
+
+    if let Some(token) = data.bearer_token {
+        let mut user = registry.authenticate_token(&token).await?;
+        if let Some(bid) = data.bot_id {
+            user = user.with_current_bot(bid);
+        }
+        return Ok(user);
+    }
+
+    if let Some(sid) = data.session_id {
+        let mut user = validate_session_sync(&sid)?;
+        if let Some(bid) = data.bot_id {
+            user = user.with_current_bot(bid);
+        }
+        return Ok(user);
+    }
+
+    if let Some(uid) = data.user_id_header {
+        let mut user = AuthenticatedUser::new(uid, "header-user".to_string());
+        if let Some(bid) = data.bot_id {
+            user = user.with_current_bot(bid);
+        }
+        return Ok(user);
+    }
+
+    if !config.require_auth {
+        return Ok(AuthenticatedUser::anonymous());
+    }
+
+    Err(AuthError::MissingToken)
+}
+
+pub async fn extract_user_with_providers(
+    request: &Request<Body>,
+    config: &AuthConfig,
+    registry: &AuthProviderRegistry,
+) -> Result<AuthenticatedUser, AuthError> {
+    let extracted = ExtractedAuthData::from_request(request, config);
+    authenticate_with_extracted_data(extracted, config, registry).await
 }
 
 pub async fn auth_middleware(

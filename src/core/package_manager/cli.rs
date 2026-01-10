@@ -1,6 +1,7 @@
 use crate::core::secrets::{SecretPaths, SecretsManager};
 use crate::package_manager::{get_all_components, InstallMode, PackageManager};
 use crate::security::command_guard::SafeCommand;
+use crate::security::protection::{ProtectionInstaller, VerifyResult};
 use anyhow::Result;
 use rand::Rng;
 use std::collections::HashMap;
@@ -87,6 +88,12 @@ pub async fn run() -> Result<()> {
                 return Ok(());
             }
             let component = &args[2];
+
+            if component == "protection" {
+                install_protection()?;
+                return Ok(());
+            }
+
             let mode = if args.contains(&"--container".to_string()) {
                 InstallMode::Container
             } else {
@@ -111,6 +118,12 @@ pub async fn run() -> Result<()> {
                 return Ok(());
             }
             let component = &args[2];
+
+            if component == "protection" {
+                remove_protection()?;
+                return Ok(());
+            }
+
             let mode = if args.contains(&"--container".to_string()) {
                 InstallMode::Container
             } else {
@@ -153,6 +166,13 @@ pub async fn run() -> Result<()> {
                 return Ok(());
             }
             let component = &args[2];
+
+            if component == "protection" {
+                let result = verify_protection();
+                result.print();
+                return Ok(());
+            }
+
             let mode = if args.contains(&"--container".to_string()) {
                 InstallMode::Container
             } else {
@@ -271,12 +291,66 @@ fn print_usage() {
     println!("  --container          Use container mode (LXC)");
     println!("  --tenant <name>      Specify tenant name");
     println!();
+    println!("Security Protection (requires root):");
+    println!("  sudo botserver install protection   Install security tools + sudoers");
+    println!("  sudo botserver remove protection    Remove sudoers configuration");
+    println!("  botserver status protection         Check protection tools status");
+    println!();
     println!("Vault subcommands:");
     println!("  vault migrate [.env] Migrate .env secrets to Vault");
     println!("  vault put <path> k=v Store secrets in Vault");
     println!("  vault get <path>     Get secrets from Vault");
     println!("  vault list           List all secret paths");
     println!("  vault health         Check Vault health");
+}
+
+fn install_protection() -> Result<()> {
+    let installer = ProtectionInstaller::new()?;
+
+    if !ProtectionInstaller::check_root() {
+        eprintln!("Error: This command requires root privileges.");
+        eprintln!();
+        eprintln!("Run with: sudo botserver install protection");
+        return Ok(());
+    }
+
+    println!("Installing Security Protection Tools...");
+    println!();
+    println!("This will:");
+    println!("  1. Install security packages (lynis, rkhunter, chkrootkit, suricata, clamav)");
+    println!("  2. Install Linux Malware Detect (LMD)");
+    println!("  3. Create sudoers configuration for runtime execution");
+    println!("  4. Update security databases");
+    println!();
+
+    let result = installer.install()?;
+    result.print();
+
+    Ok(())
+}
+
+fn remove_protection() -> Result<()> {
+    let installer = ProtectionInstaller::new()?;
+
+    if !ProtectionInstaller::check_root() {
+        eprintln!("Error: This command requires root privileges.");
+        eprintln!();
+        eprintln!("Run with: sudo botserver remove protection");
+        return Ok(());
+    }
+
+    println!("Removing Security Protection Configuration...");
+    println!();
+
+    let result = installer.uninstall()?;
+    result.print();
+
+    Ok(())
+}
+
+fn verify_protection() -> VerifyResult {
+    let installer = ProtectionInstaller::default();
+    installer.verify()
 }
 
 fn print_vault_usage() {

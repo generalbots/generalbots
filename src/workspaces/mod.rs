@@ -1,9 +1,18 @@
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{delete, get, post},
+    Json, Router,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+
+use crate::shared::state::AppState;
 
 pub mod blocks;
 pub mod pages;
@@ -1291,3 +1300,211 @@ impl std::fmt::Display for WorkspacesError {
 }
 
 impl std::error::Error for WorkspacesError {}
+
+impl IntoResponse for WorkspacesError {
+    fn into_response(self) -> axum::response::Response {
+        let (status, message) = match &self {
+            Self::WorkspaceNotFound | Self::PageNotFound | Self::BlockNotFound
+            | Self::CommentNotFound | Self::VersionNotFound | Self::MemberNotFound => {
+                (StatusCode::NOT_FOUND, self.to_string())
+            }
+            Self::PermissionDenied => (StatusCode::FORBIDDEN, self.to_string()),
+            Self::MemberAlreadyExists | Self::CannotRemoveLastOwner | Self::InvalidOperation(_) => {
+                (StatusCode::BAD_REQUEST, self.to_string())
+            }
+        };
+        (status, Json(serde_json::json!({"error": message}))).into_response()
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateWorkspaceRequest {
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateWorkspaceRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub icon: Option<WorkspaceIcon>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePageRequest {
+    pub title: String,
+    pub parent_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdatePageRequest {
+    pub title: Option<String>,
+    pub icon: Option<WorkspaceIcon>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AddMemberRequest {
+    pub user_id: Uuid,
+    pub role: WorkspaceRole,
+}
+
+async fn list_workspaces(
+    State(_state): State<Arc<AppState>>,
+) -> Json<Vec<Workspace>> {
+    let service = WorkspacesService::new();
+    let org_id = Uuid::nil();
+    let workspaces = service.list_workspaces(org_id).await;
+    Json(workspaces)
+}
+
+async fn create_workspace(
+    State(_state): State<Arc<AppState>>,
+    Json(req): Json<CreateWorkspaceRequest>,
+) -> Result<Json<Workspace>, WorkspacesError> {
+    let service = WorkspacesService::new();
+    let org_id = Uuid::nil();
+    let user_id = Uuid::nil();
+    let workspace = service.create_workspace(org_id, &req.name, user_id).await?;
+    Ok(Json(workspace))
+}
+
+async fn get_workspace(
+    State(_state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+) -> Result<Json<Workspace>, WorkspacesError> {
+    let service = WorkspacesService::new();
+    let workspace = service.get_workspace(workspace_id).await.ok_or(WorkspacesError::WorkspaceNotFound)?;
+    Ok(Json(workspace))
+}
+
+async fn update_workspace(
+    State(_state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    Json(req): Json<UpdateWorkspaceRequest>,
+) -> Result<Json<Workspace>, WorkspacesError> {
+    let service = WorkspacesService::new();
+    let workspace = service.update_workspace(workspace_id, req.name, req.description, req.icon).await?;
+    Ok(Json(workspace))
+}
+
+async fn delete_workspace(
+    State(_state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+) -> Result<StatusCode, WorkspacesError> {
+    let service = WorkspacesService::new();
+    service.delete_workspace(workspace_id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_pages(
+    State(_state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+) -> Json<Vec<PageTreeNode>> {
+    let service = WorkspacesService::new();
+    let pages = service.get_page_tree(workspace_id).await;
+    Json(pages)
+}
+
+async fn create_page(
+    State(_state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    Json(req): Json<CreatePageRequest>,
+) -> Result<Json<Page>, WorkspacesError> {
+    let service = WorkspacesService::new();
+    let user_id = Uuid::nil();
+    let page = service.create_page(workspace_id, req.parent_id, &req.title, user_id).await?;
+    Ok(Json(page))
+}
+
+async fn get_page(
+    State(_state): State<Arc<AppState>>,
+    Path(page_id): Path<Uuid>,
+) -> Result<Json<Page>, WorkspacesError> {
+    let service = WorkspacesService::new();
+    let page = service.get_page(page_id).await.ok_or(WorkspacesError::PageNotFound)?;
+    Ok(Json(page))
+}
+
+async fn update_page(
+    State(_state): State<Arc<AppState>>,
+    Path(page_id): Path<Uuid>,
+    Json(req): Json<UpdatePageRequest>,
+) -> Result<Json<Page>, WorkspacesError> {
+    let service = WorkspacesService::new();
+    let user_id = Uuid::nil();
+    let page = service.update_page(page_id, req.title, req.icon, None, user_id).await?;
+    Ok(Json(page))
+}
+
+async fn delete_page(
+    State(_state): State<Arc<AppState>>,
+    Path(page_id): Path<Uuid>,
+) -> Result<StatusCode, WorkspacesError> {
+    let service = WorkspacesService::new();
+    service.delete_page(page_id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn add_member(
+    State(_state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    Json(req): Json<AddMemberRequest>,
+) -> Result<StatusCode, WorkspacesError> {
+    let service = WorkspacesService::new();
+    let inviter_id = Uuid::nil();
+    service.add_member(workspace_id, req.user_id, req.role, inviter_id).await?;
+    Ok(StatusCode::CREATED)
+}
+
+async fn remove_member(
+    State(_state): State<Arc<AppState>>,
+    Path((workspace_id, user_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, WorkspacesError> {
+    let service = WorkspacesService::new();
+    service.remove_member(workspace_id, user_id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn search_pages(
+    State(_state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
+) -> Json<Vec<PageSearchResult>> {
+    let service = WorkspacesService::new();
+    let query = params.get("q").cloned().unwrap_or_default();
+    let results = service.search_pages(workspace_id, &query).await;
+    Json(results)
+}
+
+async fn get_slash_commands_handler(
+    State(_state): State<Arc<AppState>>,
+) -> Json<Vec<SlashCommand>> {
+    Json(get_slash_commands())
+}
+
+pub fn configure_workspaces_routes() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/api/workspaces", get(list_workspaces).post(create_workspace))
+        .route(
+            "/api/workspaces/:workspace_id",
+            get(get_workspace).put(update_workspace).delete(delete_workspace),
+        )
+        .route(
+            "/api/workspaces/:workspace_id/pages",
+            get(list_pages).post(create_page),
+        )
+        .route(
+            "/api/workspaces/:workspace_id/members",
+            post(add_member),
+        )
+        .route(
+            "/api/workspaces/:workspace_id/members/:user_id",
+            delete(remove_member),
+        )
+        .route(
+            "/api/workspaces/:workspace_id/search",
+            get(search_pages),
+        )
+        .route("/api/pages/:page_id", get(get_page).put(update_page).delete(delete_page))
+        .route("/api/workspaces/commands", get(get_slash_commands_handler))
+}

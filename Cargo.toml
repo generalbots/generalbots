@@ -63,7 +63,7 @@ msteams = []
 
 # ===== PRODUCTIVITY FEATURES =====
 chat = []
-drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:pdf-extract", "dep:zip", "dep:downloader", "dep:mime_guess", "dep:flate2", "dep:tar"]
+drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:pdf-extract", "dep:zip", "dep:downloader", "dep:flate2", "dep:tar"]
 tasks = ["dep:cron"]
 calendar = []
 meet = ["dep:livekit"]
@@ -183,7 +183,7 @@ pdf-extract = { version = "0.10.0", optional = true }
 quick-xml = { version = "0.37", features = ["serialize"] }
 zip = { version = "2.2", optional = true }
 downloader = { version = "0.2", optional = true }
-mime_guess = { version = "2.0", optional = true }
+
 flate2 = { version = "1.0", optional = true }
 tar = { version = "0.4", optional = true }
 
@@ -247,6 +247,10 @@ rss = "2.0"
 # HTML parsing/web scraping
 scraper = "0.25"
 walkdir = "2.5.0"
+
+# Embedded static files (UI fallback when no external folder)
+rust-embed = "8.5"
+mime_guess = "2.0"
 hyper-util = { version = "0.1.19", features = ["client-legacy", "tokio"] }
 http-body-util = "0.1.3"
 

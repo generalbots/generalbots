@@ -1,7 +1,7 @@
 use axum::{
     body::Body,
     extract::State,
-    http::{Request, StatusCode},
+    http::{header::HeaderValue, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
     Json,
@@ -89,14 +89,14 @@ pub async fn quota_middleware(
             let headers = response.headers_mut();
             headers.insert(
                 "X-Quota-Warning",
-                message.parse().unwrap_or_else(|_| "quota warning".parse().unwrap()),
+                message.parse().unwrap_or_else(|_| HeaderValue::from_static("quota warning")),
             );
             headers.insert(
                 "X-Quota-Usage-Percent",
                 percentage
                     .to_string()
                     .parse()
-                    .unwrap_or_else(|_| "0".parse().unwrap()),
+                    .unwrap_or_else(|_| HeaderValue::from_static("0")),
             );
 
             response
@@ -148,14 +148,14 @@ pub async fn api_rate_limit_middleware(
             let headers = response.headers_mut();
             headers.insert(
                 "X-RateLimit-Warning",
-                message.parse().unwrap_or_else(|_| "rate limit warning".parse().unwrap()),
+                message.parse().unwrap_or_else(|_| HeaderValue::from_static("rate limit warning")),
             );
             headers.insert(
                 "X-RateLimit-Usage-Percent",
                 percentage
                     .to_string()
                     .parse()
-                    .unwrap_or_else(|_| "0".parse().unwrap()),
+                    .unwrap_or_else(|_| HeaderValue::from_static("0")),
             );
             response
         }
@@ -212,14 +212,14 @@ pub async fn message_quota_middleware(
             let headers = response.headers_mut();
             headers.insert(
                 "X-Message-Quota-Warning",
-                message.parse().unwrap_or_else(|_| "message quota warning".parse().unwrap()),
+                message.parse().unwrap_or_else(|_| HeaderValue::from_static("message quota warning")),
             );
             headers.insert(
                 "X-Message-Quota-Usage-Percent",
                 percentage
                     .to_string()
                     .parse()
-                    .unwrap_or_else(|_| "0".parse().unwrap()),
+                    .unwrap_or_else(|_| HeaderValue::from_static("0")),
             );
             response
         }

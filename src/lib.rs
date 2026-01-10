@@ -1,12 +1,15 @@
 pub mod auto_task;
 pub mod basic;
 pub mod billing;
+pub mod canvas;
 pub mod channels;
 pub mod contacts;
 pub mod core;
 pub mod dashboards;
+pub mod embedded_ui;
 pub mod maintenance;
 pub mod multimodal;
+pub mod player;
 pub mod search;
 pub mod security;
 

@@ -1178,10 +1178,40 @@ body {{ font-family: system-ui, sans-serif; background: var(--bg); color: var(--
     )
 }
 
+async fn handle_get_suggested_communities_html() -> Html<String> {
+    Html(r#"
+        <div class="community-suggestion">
+            <div class="community-avatar">🌐</div>
+            <div class="community-info">
+                <span class="community-name">General Discussion</span>
+                <span class="community-members">128 members</span>
+            </div>
+            <button class="btn-join" hx-post="/api/social/communities/general/join" hx-swap="outerHTML">Join</button>
+        </div>
+        <div class="community-suggestion">
+            <div class="community-avatar">💡</div>
+            <div class="community-info">
+                <span class="community-name">Ideas & Feedback</span>
+                <span class="community-members">64 members</span>
+            </div>
+            <button class="btn-join" hx-post="/api/social/communities/ideas/join" hx-swap="outerHTML">Join</button>
+        </div>
+        <div class="community-suggestion">
+            <div class="community-avatar">🎉</div>
+            <div class="community-info">
+                <span class="community-name">Announcements</span>
+                <span class="community-members">256 members</span>
+            </div>
+            <button class="btn-join" hx-post="/api/social/communities/announcements/join" hx-swap="outerHTML">Join</button>
+        </div>
+    "#.to_string())
+}
+
 pub fn configure_social_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/social/feed", get(handle_get_feed))
         .route("/api/ui/social/feed", get(handle_get_feed_html))
+        .route("/api/ui/social/suggested", get(handle_get_suggested_communities_html))
         .route("/api/social/posts", post(handle_create_post))
         .route("/api/social/posts/:id", get(handle_get_post))
         .route("/api/social/posts/:id", put(handle_update_post))
