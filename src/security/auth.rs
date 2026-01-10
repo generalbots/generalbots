@@ -832,10 +832,19 @@ fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, AuthErro
         return Err(AuthError::InvalidToken);
     }
 
+    // For valid sessions, grant Admin role since only admins can log in currently
+    // TODO: Fetch actual user roles from Zitadel/database
     Ok(
         AuthenticatedUser::new(Uuid::new_v4(), "session-user".to_string())
-            .with_session(session_id),
+            .with_session(session_id)
+            .with_role(Role::Admin),
     )
+}
+
+/// Check if a token looks like a JWT (3 base64 parts separated by dots)
+fn is_jwt_format(token: &str) -> bool {
+    let parts: Vec<&str> = token.split('.').collect();
+    parts.len() == 3
 }
 
 #[derive(Clone)]
@@ -948,7 +957,24 @@ async fn authenticate_with_extracted_data(
     }
 
     if let Some(token) = data.bearer_token {
-        let mut user = registry.authenticate_token(&token).await?;
+        // Check if token is JWT format - if so, try providers
+        if is_jwt_format(&token) {
+            match registry.authenticate_token(&token).await {
+                Ok(mut user) => {
+                    if let Some(bid) = data.bot_id {
+                        user = user.with_current_bot(bid);
+                    }
+                    return Ok(user);
+                }
+                Err(e) => {
+                    debug!("JWT authentication failed: {:?}", e);
+                    // Fall through to try as session ID
+                }
+            }
+        }
+
+        // Non-JWT token - treat as Zitadel session ID
+        let mut user = validate_session_sync(&token)?;
         if let Some(bid) = data.bot_id {
             user = user.with_current_bot(bid);
         }

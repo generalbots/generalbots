@@ -879,6 +879,11 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
     vec![
         RoutePermission::new("/api/health", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/version", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/product", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/i18n/**", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/auth/login", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/auth/me", "GET", ""),
         RoutePermission::new("/api/users", "GET", "users.read")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/users", "POST", "users.create")
@@ -908,6 +913,21 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/bots/:id", "DELETE", "bots.delete"),
         RoutePermission::new("/api/bots/:id/**", "GET", "bots.read"),
         RoutePermission::new("/api/bots/:id/**", "PUT", "bots.update"),
+        // UI routes (HTMX endpoints) - allow authenticated users
+        RoutePermission::new("/api/ui/tasks/**", "GET", ""),
+        RoutePermission::new("/api/ui/tasks/**", "POST", ""),
+        RoutePermission::new("/api/ui/tasks/**", "PUT", ""),
+        RoutePermission::new("/api/ui/tasks/**", "PATCH", ""),
+        RoutePermission::new("/api/ui/tasks/**", "DELETE", ""),
+        RoutePermission::new("/api/ui/calendar/**", "GET", ""),
+        RoutePermission::new("/api/ui/drive/**", "GET", ""),
+        RoutePermission::new("/api/ui/mail/**", "GET", ""),
+        RoutePermission::new("/api/ui/monitoring/**", "GET", ""),
+        RoutePermission::new("/api/ui/analytics/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into(), "Moderator".into()]),
+        RoutePermission::new("/api/ui/admin/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/ui/**", "GET", ""),
     ]
 }
 
