@@ -227,6 +227,8 @@ async fn run_axum_server(
     let cors = create_cors_layer();
 
     // Create auth config for protected routes
+    // Session-based auth from Zitadel uses session tokens (not JWTs)
+    // The auth middleware in auth.rs handles both JWT and session token validation
     let auth_config = Arc::new(AuthConfig::from_env()
         .add_anonymous_path("/health")
         .add_anonymous_path("/healthz")
@@ -488,6 +490,9 @@ async fn run_axum_server(
         base_router
     };
 
+    // Clone rbac_manager for use in middleware
+    let rbac_manager_for_middleware = Arc::clone(&rbac_manager);
+
     let app = app_with_ui
         // Security middleware stack (order matters - first added is outermost)
         .layer(middleware::from_fn(security_headers_middleware))
@@ -495,6 +500,13 @@ async fn run_axum_server(
         .layer(rate_limit_extension)
         // Request ID tracking for all requests
         .layer(middleware::from_fn(request_id_middleware))
+        // RBAC middleware - checks permissions AFTER authentication
+        .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+            let rbac = Arc::clone(&rbac_manager_for_middleware);
+            async move {
+                botserver::security::rbac_middleware_fn(req, next, rbac).await
+            }
+        }))
         // Authentication middleware using provider registry
         .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
             let state = auth_middleware_state.clone();
