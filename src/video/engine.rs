@@ -590,7 +590,7 @@ impl VideoEngine {
 
         let client = reqwest::Client::new();
         let response = client
-            .post(format!("{}/api/v1/audio/transcribe", botmodels_url))
+            .post(format!("{}/api/audio/transcribe", botmodels_url))
             .json(&serde_json::json!({
                 "audio_url": &clip.source_url,
                 "language": language.unwrap_or_else(|| "auto".to_string()),
@@ -695,7 +695,7 @@ impl VideoEngine {
 
         let client = reqwest::Client::new();
         let response = client
-            .post(format!("{}/api/v1/audio/tts", botmodels_url))
+            .post(format!("{}/api/audio/tts", botmodels_url))
             .json(&serde_json::json!({
                 "text": text,
                 "voice": voice,
@@ -1026,7 +1026,7 @@ impl VideoEngine {
 
         let client = reqwest::Client::new();
         let response = client
-            .post(format!("{}/api/v1/video/remove-background", botmodels_url))
+            .post(format!("{}/api/video/remove-background", botmodels_url))
             .json(&serde_json::json!({
                 "video_url": &clip.source_url,
                 "replacement": replacement,
@@ -1060,7 +1060,7 @@ impl VideoEngine {
 
         let client = reqwest::Client::new();
         let response = client
-            .post(format!("{}/api/v1/video/enhance", botmodels_url))
+            .post(format!("{}/api/video/enhance", botmodels_url))
             .json(&serde_json::json!({
                 "video_url": &clip.source_url,
                 "upscale_factor": req.upscale_factor,
@@ -1101,7 +1101,7 @@ impl VideoEngine {
 
         let client = reqwest::Client::new();
         let response = client
-            .post(format!("{}/api/v1/audio/detect-beats", botmodels_url))
+            .post(format!("{}/api/audio/detect-beats", botmodels_url))
             .json(&serde_json::json!({
                 "audio_url": &track.source_url,
                 "sensitivity": sensitivity.unwrap_or(0.5),
@@ -1147,7 +1147,7 @@ impl VideoEngine {
 
         let client = reqwest::Client::new();
         let response = client
-            .post(format!("{}/api/v1/audio/waveform", botmodels_url))
+            .post(format!("{}/api/audio/waveform", botmodels_url))
             .json(&serde_json::json!({
                 "audio_url": &track.source_url,
                 "samples_per_second": samples_per_second.unwrap_or(10),

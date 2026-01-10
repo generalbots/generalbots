@@ -266,7 +266,7 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
     }
 
     if let Ok(response) = client
-        .get("https://localhost:3000/api/v1/version")
+        .get("https://localhost:3000/api/version")
         .send()
         .await
     {
