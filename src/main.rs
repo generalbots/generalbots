@@ -500,18 +500,19 @@ async fn run_axum_server(
         .layer(rate_limit_extension)
         // Request ID tracking for all requests
         .layer(middleware::from_fn(request_id_middleware))
+        // Authentication middleware using provider registry
+        // NOTE: In Axum, layers are applied bottom-to-top, so this runs BEFORE RBAC
+        .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+            let state = auth_middleware_state.clone();
+            async move {
+                botserver::security::auth_middleware_with_providers(req, next, state).await
+            }
+        }))
         // RBAC middleware - checks permissions AFTER authentication
         .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
             let rbac = Arc::clone(&rbac_manager_for_middleware);
             async move {
                 botserver::security::rbac_middleware_fn(req, next, rbac).await
-            }
-        }))
-        // Authentication middleware using provider registry
-        .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
-            let state = auth_middleware_state.clone();
-            async move {
-                botserver::security::auth_middleware_with_providers(req, next, state).await
             }
         }))
         // Panic handler catches panics and returns safe 500 responses
