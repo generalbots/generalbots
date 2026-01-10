@@ -60,10 +60,12 @@ async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
 }
 
 use botserver::security::{
-    auth_middleware, create_cors_layer, create_rate_limit_layer, create_security_headers_layer,
+    create_cors_layer, create_rate_limit_layer, create_security_headers_layer,
     request_id_middleware, security_headers_middleware, set_cors_allowed_origins,
     set_global_panic_hook, AuthConfig, HttpRateLimitConfig, PanicHandlerConfig,
-    SecurityHeadersConfig,
+    SecurityHeadersConfig, AuthProviderBuilder, ApiKeyAuthProvider, JwtConfig, JwtKey,
+    JwtManager, RbacManager, RbacConfig, AuthMiddlewareState,
+    build_default_route_permissions,
 };
 use botlib::SystemLimits;
 
@@ -225,16 +227,87 @@ async fn run_axum_server(
     let cors = create_cors_layer();
 
     // Create auth config for protected routes
-    // TODO: Re-enable auth for production - currently disabled for development
-    let auth_config = Arc::new(AuthConfig::default()
+    let auth_config = Arc::new(AuthConfig::from_env()
         .add_anonymous_path("/health")
         .add_anonymous_path("/healthz")
-        .add_anonymous_path("/api")  // Disable auth for all API routes during development
+        .add_anonymous_path("/api/health")
+        .add_anonymous_path("/api/product")
         .add_anonymous_path("/ws")
         .add_anonymous_path("/auth")
         .add_public_path("/static")
         .add_public_path("/favicon.ico")
-        .add_public_path("/apps"));  // Apps are public - no auth required
+        .add_public_path("/suite")
+        .add_public_path("/themes"));
+
+    // Initialize JWT Manager for token validation
+    let jwt_secret = std::env::var("JWT_SECRET")
+        .unwrap_or_else(|_| {
+            warn!("JWT_SECRET not set, using default development secret - DO NOT USE IN PRODUCTION");
+            "dev-secret-key-change-in-production-minimum-32-chars".to_string()
+        });
+
+    let jwt_config = JwtConfig::default();
+    let jwt_key = JwtKey::from_secret(&jwt_secret);
+    let jwt_manager = match JwtManager::new(jwt_config, jwt_key) {
+        Ok(manager) => {
+            info!("JWT Manager initialized successfully");
+            Some(Arc::new(manager))
+        }
+        Err(e) => {
+            error!("Failed to initialize JWT Manager: {e}");
+            None
+        }
+    };
+
+    // Initialize RBAC Manager for permission enforcement
+    let rbac_config = RbacConfig::default();
+    let rbac_manager = Arc::new(RbacManager::new(rbac_config));
+
+    // Register default route permissions
+    let default_permissions = build_default_route_permissions();
+    rbac_manager.register_routes(default_permissions).await;
+    info!("RBAC Manager initialized with {} default route permissions",
+        rbac_manager.config().cache_ttl_seconds);
+
+    // Build authentication provider registry
+    let auth_provider_registry = {
+        let mut builder = AuthProviderBuilder::new()
+            .with_api_key_provider(Arc::new(ApiKeyAuthProvider::new()))
+            .with_auth_config(Arc::clone(&auth_config));
+
+        if let Some(ref manager) = jwt_manager {
+            builder = builder.with_jwt_manager(Arc::clone(manager));
+        }
+
+        // Check for Zitadel configuration
+        let zitadel_configured = std::env::var("ZITADEL_ISSUER_URL").is_ok()
+            && std::env::var("ZITADEL_CLIENT_ID").is_ok();
+
+        if zitadel_configured {
+            info!("Zitadel environment variables detected - external IdP authentication available");
+        }
+
+        // In development mode, allow fallback to anonymous
+        let is_dev = std::env::var("BOTSERVER_ENV")
+            .map(|v| v == "development" || v == "dev")
+            .unwrap_or(true);
+
+        if is_dev {
+            builder = builder.with_fallback(true);
+            warn!("Authentication fallback enabled (development mode) - disable in production");
+        }
+
+        Arc::new(builder.build().await)
+    };
+
+    info!("Auth provider registry initialized with {} providers",
+        auth_provider_registry.provider_count().await);
+
+    // Create auth middleware state for the new provider-based authentication
+    let auth_middleware_state = AuthMiddlewareState::new(
+        Arc::clone(&auth_config),
+        Arc::clone(&auth_provider_registry),
+    );
 
     use crate::core::urls::ApiUrls;
     use crate::core::product::{PRODUCT_CONFIG, get_product_config_json};
@@ -387,13 +460,15 @@ async fn run_axum_server(
         warn!("No UI available: folder '{}' not found and no embedded UI", ui_path);
     }
 
+    // Update app_state with auth components
+    let mut app_state_with_auth = (*app_state).clone();
+    app_state_with_auth.jwt_manager = jwt_manager;
+    app_state_with_auth.auth_provider_registry = Some(Arc::clone(&auth_provider_registry));
+    app_state_with_auth.rbac_manager = Some(Arc::clone(&rbac_manager));
+    let app_state = Arc::new(app_state_with_auth);
+
     let base_router = Router::new()
         .merge(api_router.with_state(app_state.clone()))
-        // Authentication middleware for protected routes
-        .layer(middleware::from_fn_with_state(
-            auth_config.clone(),
-            auth_middleware,
-        ))
         // Static files fallback for legacy /apps/* paths
         .nest_service("/static", ServeDir::new(&site_path));
 
@@ -418,6 +493,13 @@ async fn run_axum_server(
         .layer(rate_limit_extension)
         // Request ID tracking for all requests
         .layer(middleware::from_fn(request_id_middleware))
+        // Authentication middleware using provider registry
+        .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+            let state = auth_middleware_state.clone();
+            async move {
+                botserver::security::auth_middleware_with_providers(req, next, state).await
+            }
+        }))
         // Panic handler catches panics and returns safe 500 responses
         .layer(middleware::from_fn(move |req, next| {
             let config = panic_config.clone();
@@ -1086,6 +1168,9 @@ async fn main() -> std::io::Result<()> {
         task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
         project_service: Arc::new(tokio::sync::RwLock::new(botserver::project::ProjectService::new())),
         legal_service: Arc::new(tokio::sync::RwLock::new(botserver::legal::LegalService::new())),
+        jwt_manager: None,
+        auth_provider_registry: None,
+        rbac_manager: None,
     });
 
     let task_scheduler = Arc::new(botserver::tasks::scheduler::TaskScheduler::new(

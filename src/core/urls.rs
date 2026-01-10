@@ -392,6 +392,66 @@ impl ApiUrls {
     pub const SOURCES_KB_REINDEX: &'static str = "/api/ui/sources/kb/reindex";
     pub const SOURCES_KB_STATS: &'static str = "/api/ui/sources/kb/stats";
 
+    // Workspaces - JSON APIs
+    pub const WORKSPACES: &'static str = "/api/workspaces";
+    pub const WORKSPACE_BY_ID: &'static str = "/api/workspaces/:workspace_id";
+    pub const WORKSPACE_PAGES: &'static str = "/api/workspaces/:workspace_id/pages";
+    pub const WORKSPACE_MEMBERS: &'static str = "/api/workspaces/:workspace_id/members";
+    pub const WORKSPACE_MEMBER: &'static str = "/api/workspaces/:workspace_id/members/:user_id";
+    pub const WORKSPACE_SEARCH: &'static str = "/api/workspaces/:workspace_id/search";
+    pub const WORKSPACE_COMMANDS: &'static str = "/api/workspaces/commands";
+    pub const PAGE_BY_ID: &'static str = "/api/pages/:page_id";
+
+    // Project - JSON APIs
+    pub const PROJECTS: &'static str = "/projects";
+    pub const PROJECT_BY_ID: &'static str = "/projects/:project_id";
+    pub const PROJECT_TASKS: &'static str = "/projects/:project_id/tasks";
+    pub const PROJECT_GANTT: &'static str = "/projects/:project_id/gantt";
+    pub const PROJECT_TIMELINE: &'static str = "/projects/:project_id/timeline";
+    pub const PROJECT_CRITICAL_PATH: &'static str = "/projects/:project_id/critical-path";
+    pub const PROJECT_TASK_PROGRESS: &'static str = "/tasks/:task_id/progress";
+    pub const PROJECT_TASK_DEPENDENCIES: &'static str = "/tasks/:task_id/dependencies";
+    pub const PROJECT_TASK: &'static str = "/tasks/:task_id";
+
+    // Goals (OKR) - JSON APIs
+    pub const GOALS_OBJECTIVES: &'static str = "/api/goals/objectives";
+    pub const GOALS_OBJECTIVE_BY_ID: &'static str = "/api/goals/objectives/:id";
+    pub const GOALS_KEY_RESULTS: &'static str = "/api/goals/objectives/:id/key-results";
+    pub const GOALS_KEY_RESULT_BY_ID: &'static str = "/api/goals/key-results/:id";
+    pub const GOALS_CHECK_IN: &'static str = "/api/goals/key-results/:id/check-in";
+    pub const GOALS_HISTORY: &'static str = "/api/goals/key-results/:id/history";
+    pub const GOALS_DASHBOARD: &'static str = "/api/goals/dashboard";
+    pub const GOALS_ALIGNMENT: &'static str = "/api/goals/alignment";
+    pub const GOALS_AI_SUGGEST: &'static str = "/api/goals/ai/suggest";
+
+    // Security Admin - JSON APIs
+    pub const SECURITY_OVERVIEW: &'static str = "/api/security/overview";
+    pub const SECURITY_SCAN: &'static str = "/api/security/scan";
+    pub const SECURITY_TLS: &'static str = "/api/security/tls";
+    pub const SECURITY_RATE_LIMIT: &'static str = "/api/security/rate-limit";
+    pub const SECURITY_CORS: &'static str = "/api/security/cors";
+    pub const SECURITY_AUDIT: &'static str = "/api/security/audit";
+    pub const SECURITY_API_KEYS: &'static str = "/api/security/api-keys";
+    pub const SECURITY_API_KEY_BY_ID: &'static str = "/api/security/api-keys/:key_id";
+    pub const SECURITY_MFA: &'static str = "/api/security/mfa";
+    pub const SECURITY_SESSIONS: &'static str = "/api/security/sessions";
+    pub const SECURITY_SESSION_BY_ID: &'static str = "/api/security/sessions/:session_id";
+    pub const SECURITY_USER_SESSIONS: &'static str = "/api/security/users/:user_id/sessions";
+    pub const SECURITY_PASSWORD_POLICY: &'static str = "/api/security/password-policy";
+
+    // Player - JSON APIs
+    pub const PLAYER_FILE: &'static str = "/api/player/:bot_id/file/*path";
+    pub const PLAYER_STREAM: &'static str = "/api/player/:bot_id/stream/*path";
+    pub const PLAYER_THUMBNAIL: &'static str = "/api/player/:bot_id/thumbnail/*path";
+
+    // Canvas - JSON APIs
+    pub const CANVAS_LIST: &'static str = "/api/canvas";
+    pub const CANVAS_BY_ID: &'static str = "/api/canvas/:id";
+    pub const CANVAS_ELEMENTS: &'static str = "/api/canvas/:id/elements";
+    pub const CANVAS_ELEMENT_BY_ID: &'static str = "/api/canvas/:id/elements/:element_id";
+    pub const CANVAS_EXPORT: &'static str = "/api/canvas/:id/export";
+    pub const CANVAS_COLLABORATE: &'static str = "/api/canvas/:id/collaborate";
+
     // WebSocket endpoints
     pub const WS: &'static str = "/ws";
     pub const WS_MEET: &'static str = "/ws/meet";

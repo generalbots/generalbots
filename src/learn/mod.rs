@@ -2252,8 +2252,6 @@ pub fn configure_learn_routes() -> Router<Arc<AppState>> {
         // Statistics
         .route("/api/learn/stats", get(get_statistics))
         .route("/api/learn/stats/user", get(get_user_stats))
-        // UI
-        .route("/suite/learn/learn.html", get(learn_ui))
 }
 
 /// Simplified configure function for module registration

@@ -7,6 +7,9 @@ use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
 use crate::project::ProjectService;
 use crate::legal::LegalService;
+use crate::security::auth_provider::AuthProviderRegistry;
+use crate::security::jwt::JwtManager;
+use crate::security::rbac_middleware::RbacManager;
 #[cfg(all(test, feature = "directory"))]
 use crate::core::shared::test_utils::create_mock_auth_service;
 #[cfg(all(test, feature = "llm"))]
@@ -351,6 +354,9 @@ pub struct AppState {
     pub task_manifests: Arc<std::sync::RwLock<HashMap<String, TaskManifest>>>,
     pub project_service: Arc<RwLock<ProjectService>>,
     pub legal_service: Arc<RwLock<LegalService>>,
+    pub jwt_manager: Option<Arc<JwtManager>>,
+    pub auth_provider_registry: Option<Arc<AuthProviderRegistry>>,
+    pub rbac_manager: Option<Arc<RbacManager>>,
 }
 
 impl Clone for AppState {
@@ -385,6 +391,9 @@ impl Clone for AppState {
             task_manifests: Arc::clone(&self.task_manifests),
             project_service: Arc::clone(&self.project_service),
             legal_service: Arc::clone(&self.legal_service),
+            jwt_manager: self.jwt_manager.clone(),
+            auth_provider_registry: self.auth_provider_registry.clone(),
+            rbac_manager: self.rbac_manager.clone(),
         }
     }
 }
@@ -427,6 +436,9 @@ impl std::fmt::Debug for AppState {
             .field("extensions", &self.extensions)
             .field("attendant_broadcast", &self.attendant_broadcast.is_some())
             .field("task_progress_broadcast", &self.task_progress_broadcast.is_some())
+            .field("jwt_manager", &self.jwt_manager.is_some())
+            .field("auth_provider_registry", &self.auth_provider_registry.is_some())
+            .field("rbac_manager", &self.rbac_manager.is_some())
             .finish()
     }
 }
@@ -575,6 +587,9 @@ impl Default for AppState {
             task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
             project_service: Arc::new(RwLock::new(crate::project::ProjectService::new())),
             legal_service: Arc::new(RwLock::new(crate::legal::LegalService::new())),
+            jwt_manager: None,
+            auth_provider_registry: None,
+            rbac_manager: None,
         }
     }
 }

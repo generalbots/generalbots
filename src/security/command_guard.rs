@@ -64,6 +64,16 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "pg_ctl",
         "createdb",
         "psql",
+        // Security protection tools
+        "lynis",
+        "rkhunter",
+        "chkrootkit",
+        "suricata",
+        "suricata-update",
+        "maldet",
+        "systemctl",
+        "sudo",
+        "visudo",
     ])
 });
 
