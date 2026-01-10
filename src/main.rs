@@ -394,6 +394,7 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
     api_router = api_router.merge(botserver::dashboards::configure_dashboards_routes());
     api_router = api_router.merge(botserver::monitoring::configure());
+    api_router = api_router.merge(crate::security::configure_protection_routes());
     api_router = api_router.merge(botserver::settings::configure_settings_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_db_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_app_server_routes());

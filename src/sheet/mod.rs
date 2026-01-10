@@ -9,7 +9,9 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use calamine::{open_workbook_auto, Reader, Data};
 use chrono::{DateTime, Datelike, Local, NaiveDate, Utc};
+use rust_xlsxwriter::{Workbook, Format, Color, FormatAlign, FormatBorder};
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -248,6 +250,12 @@ pub struct LoadQuery {
     pub id: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct LoadFromDriveRequest {
+    pub bucket: String,
+    pub path: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQuery {
     pub q: Option<String>,
@@ -447,6 +455,7 @@ pub fn configure_sheet_routes() -> Router<Arc<AppState>> {
         .route("/api/sheet/list", get(handle_list_sheets))
         .route("/api/sheet/search", get(handle_search_sheets))
         .route("/api/sheet/load", get(handle_load_sheet))
+        .route("/api/sheet/load-from-drive", post(handle_load_from_drive))
         .route("/api/sheet/save", post(handle_save_sheet))
         .route("/api/sheet/delete", post(handle_delete_sheet))
         .route("/api/sheet/cell", post(handle_update_cell))
@@ -698,6 +707,175 @@ pub async fn handle_load_sheet(
             Json(serde_json::json!({ "error": e })),
         )),
     }
+}
+
+pub async fn handle_load_from_drive(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<LoadFromDriveRequest>,
+) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
+    let drive = state.drive.as_ref().ok_or_else(|| {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Drive not available" })))
+    })?;
+
+    let result = drive
+        .get_object()
+        .bucket(&req.bucket)
+        .key(&req.path)
+        .send()
+        .await
+        .map_err(|e| {
+            (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": format!("File not found: {e}") })))
+        })?;
+
+    let bytes = result.body.collect().await
+        .map_err(|e| {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": format!("Failed to read file: {e}") })))
+        })?
+        .into_bytes();
+
+    let ext = req.path.rsplit('.').next().unwrap_or("").to_lowercase();
+    let file_name = req.path.rsplit('/').next().unwrap_or("Spreadsheet");
+    let sheet_name = file_name.rsplit('.').last().unwrap_or("Spreadsheet").to_string();
+
+    let worksheets = match ext.as_str() {
+        "csv" | "tsv" => {
+            let delimiter = if ext == "tsv" { b'\t' } else { b',' };
+            parse_csv_to_worksheets(&bytes, delimiter, &sheet_name)?
+        }
+        "xlsx" | "xls" | "ods" | "xlsb" | "xlsm" => {
+            parse_excel_to_worksheets(&bytes, &ext)?
+        }
+        _ => {
+            return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": format!("Unsupported format: .{ext}") }))));
+        }
+    };
+
+    let user_id = get_current_user_id();
+    let sheet = Spreadsheet {
+        id: Uuid::new_v4().to_string(),
+        name: sheet_name,
+        owner_id: user_id,
+        worksheets,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    };
+
+    Ok(Json(sheet))
+}
+
+fn parse_csv_to_worksheets(
+    bytes: &[u8],
+    delimiter: u8,
+    sheet_name: &str,
+) -> Result<Vec<Worksheet>, (StatusCode, Json<serde_json::Value>)> {
+    let content = String::from_utf8_lossy(bytes);
+    let mut data: HashMap<String, CellData> = HashMap::new();
+
+    for (row_idx, line) in content.lines().enumerate() {
+        let cols: Vec<&str> = if delimiter == b'\t' {
+            line.split('\t').collect()
+        } else {
+            line.split(',').collect()
+        };
+
+        for (col_idx, value) in cols.iter().enumerate() {
+            let clean_value = value.trim().trim_matches('"').to_string();
+            if !clean_value.is_empty() {
+                let key = format!("{row_idx},{col_idx}");
+                data.insert(key, CellData {
+                    value: Some(clean_value),
+                    formula: None,
+                    style: None,
+                    format: None,
+                    note: None,
+                });
+            }
+        }
+    }
+
+    Ok(vec![Worksheet {
+        name: sheet_name.to_string(),
+        data,
+        column_widths: None,
+        row_heights: None,
+        frozen_rows: None,
+        frozen_cols: None,
+        merged_cells: None,
+        filters: None,
+        hidden_rows: None,
+        validations: None,
+        conditional_formats: None,
+        charts: None,
+    }])
+}
+
+fn parse_excel_to_worksheets(
+    bytes: &[u8],
+    _ext: &str,
+) -> Result<Vec<Worksheet>, (StatusCode, Json<serde_json::Value>)> {
+    use std::io::Cursor;
+
+    let cursor = Cursor::new(bytes);
+    let mut workbook = open_workbook_auto(cursor).map_err(|e| {
+        (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": format!("Failed to parse spreadsheet: {e}") })))
+    })?;
+
+    let sheet_names: Vec<String> = workbook.sheet_names().to_vec();
+    let mut worksheets = Vec::new();
+
+    for sheet_name in sheet_names {
+        let range = workbook.worksheet_range(&sheet_name).map_err(|e| {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": format!("Failed to read sheet {sheet_name}: {e}") })))
+        })?;
+
+        let mut data: HashMap<String, CellData> = HashMap::new();
+
+        for (row_idx, row) in range.rows().enumerate() {
+            for (col_idx, cell) in row.iter().enumerate() {
+                let value = match cell {
+                    Data::Empty => continue,
+                    Data::String(s) => s.clone(),
+                    Data::Int(i) => i.to_string(),
+                    Data::Float(f) => f.to_string(),
+                    Data::Bool(b) => b.to_string(),
+                    Data::DateTime(dt) => dt.to_string(),
+                    Data::Error(e) => format!("#ERR:{e:?}"),
+                    Data::DateTimeIso(s) => s.clone(),
+                    Data::DurationIso(s) => s.clone(),
+                };
+
+                let key = format!("{row_idx},{col_idx}");
+                data.insert(key, CellData {
+                    value: Some(value),
+                    formula: None,
+                    style: None,
+                    format: None,
+                    note: None,
+                });
+            }
+        }
+
+        worksheets.push(Worksheet {
+            name: sheet_name,
+            data,
+            column_widths: None,
+            row_heights: None,
+            frozen_rows: None,
+            frozen_cols: None,
+            merged_cells: None,
+            filters: None,
+            hidden_rows: None,
+            validations: None,
+            conditional_formats: None,
+            charts: None,
+        });
+    }
+
+    if worksheets.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "Spreadsheet has no sheets" }))));
+    }
+
+    Ok(worksheets)
 }
 
 pub async fn handle_save_sheet(
@@ -1967,11 +2145,136 @@ pub async fn handle_export_sheet(
             let csv = export_to_csv(&sheet);
             Ok(([(axum::http::header::CONTENT_TYPE, "text/csv")], csv))
         }
+        "xlsx" => {
+            let xlsx = export_to_xlsx(&sheet).map_err(|e| {
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))
+            })?;
+            Ok(([(axum::http::header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")], xlsx))
+        }
         "json" => {
             let json = serde_json::to_string_pretty(&sheet).unwrap_or_default();
             Ok(([(axum::http::header::CONTENT_TYPE, "application/json")], json))
         }
         _ => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "Unsupported format" })))),
+    }
+}
+
+fn export_to_xlsx(sheet: &Spreadsheet) -> Result<String, String> {
+    let mut workbook = Workbook::new();
+
+    for ws in &sheet.worksheets {
+        let worksheet = workbook.add_worksheet();
+        worksheet.set_name(&ws.name).map_err(|e| e.to_string())?;
+
+        let mut max_row: u32 = 0;
+        let mut max_col: u16 = 0;
+
+        for key in ws.data.keys() {
+            let parts: Vec<&str> = key.split(',').collect();
+            if parts.len() == 2 {
+                if let (Ok(row), Ok(col)) = (parts[0].parse::<u32>(), parts[1].parse::<u16>()) {
+                    max_row = max_row.max(row);
+                    max_col = max_col.max(col);
+                }
+            }
+        }
+
+        for (key, cell) in &ws.data {
+            let parts: Vec<&str> = key.split(',').collect();
+            if parts.len() != 2 {
+                continue;
+            }
+            let (row, col) = match (parts[0].parse::<u32>(), parts[1].parse::<u16>()) {
+                (Ok(r), Ok(c)) => (r, c),
+                _ => continue,
+            };
+
+            let value = cell.value.as_deref().unwrap_or("");
+
+            let mut format = Format::new();
+
+            if let Some(ref style) = cell.style {
+                if let Some(ref bg) = style.background {
+                    if let Some(color) = parse_color(bg) {
+                        format = format.set_background_color(color);
+                    }
+                }
+                if let Some(ref fg) = style.color {
+                    if let Some(color) = parse_color(fg) {
+                        format = format.set_font_color(color);
+                    }
+                }
+                if let Some(ref weight) = style.font_weight {
+                    if weight == "bold" {
+                        format = format.set_bold();
+                    }
+                }
+                if let Some(ref style_val) = style.font_style {
+                    if style_val == "italic" {
+                        format = format.set_italic();
+                    }
+                }
+                if let Some(ref align) = style.text_align {
+                    format = match align.as_str() {
+                        "center" => format.set_align(FormatAlign::Center),
+                        "right" => format.set_align(FormatAlign::Right),
+                        _ => format.set_align(FormatAlign::Left),
+                    };
+                }
+                if let Some(ref size) = style.font_size {
+                    format = format.set_font_size(*size as f64);
+                }
+            }
+
+            if let Some(ref formula) = cell.formula {
+                worksheet.write_formula_with_format(row, col, formula, &format)
+                    .map_err(|e| e.to_string())?;
+            } else if let Ok(num) = value.parse::<f64>() {
+                worksheet.write_number_with_format(row, col, num, &format)
+                    .map_err(|e| e.to_string())?;
+            } else {
+                worksheet.write_string_with_format(row, col, value, &format)
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+
+        if let Some(ref widths) = ws.column_widths {
+            for (col_str, width) in widths {
+                if let Ok(col) = col_str.parse::<u16>() {
+                    worksheet.set_column_width(col, *width).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+
+        if let Some(ref heights) = ws.row_heights {
+            for (row_str, height) in heights {
+                if let Ok(row) = row_str.parse::<u32>() {
+                    worksheet.set_row_height(row, *height).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+
+        if let Some(frozen_rows) = ws.frozen_rows {
+            if let Some(frozen_cols) = ws.frozen_cols {
+                worksheet.set_freeze_panes(frozen_rows, frozen_cols as u16)
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
+    let buffer = workbook.save_to_buffer().map_err(|e| e.to_string())?;
+    Ok(base64::engine::general_purpose::STANDARD.encode(&buffer))
+}
+
+fn parse_color(color_str: &str) -> Option<Color> {
+    let hex = color_str.trim_start_matches('#');
+    if hex.len() == 6 {
+        let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+        let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+        let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+        Some(Color::RGB(((r as u32) << 16) | ((g as u32) << 8) | (b as u32)))
+    } else {
+        None
     }
 }
 

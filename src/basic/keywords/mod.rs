@@ -55,6 +55,7 @@ pub mod procedures;
 pub mod qrcode;
 pub mod remember;
 pub mod save_from_unstructured;
+pub mod security_protection;
 pub mod send_mail;
 pub mod send_template;
 pub mod set;
@@ -85,6 +86,12 @@ pub mod webhook;
 pub use app_server::configure_app_server_routes;
 pub use db_api::configure_db_routes;
 pub use mcp_client::{McpClient, McpRequest, McpResponse, McpServer, McpTool};
+pub use security_protection::{
+    security_get_report, security_hardening_score, security_install_tool, security_run_scan,
+    security_service_is_running, security_start_service, security_stop_service,
+    security_tool_is_installed, security_tool_status, security_update_definitions,
+    SecurityScanResult, SecurityToolResult,
+};
 pub use mcp_directory::{McpDirectoryScanResult, McpDirectoryScanner, McpServerConfig};
 pub use table_access::{
     check_field_write_access, check_table_access, filter_fields_by_role, load_table_access_info,
@@ -201,6 +208,14 @@ pub fn get_all_keywords() -> Vec<String> {
         "OPTION A OR B".to_string(),
         "DECIDE".to_string(),
         "ESCALATE".to_string(),
+        "SECURITY TOOL STATUS".to_string(),
+        "SECURITY RUN SCAN".to_string(),
+        "SECURITY GET REPORT".to_string(),
+        "SECURITY UPDATE DEFINITIONS".to_string(),
+        "SECURITY START SERVICE".to_string(),
+        "SECURITY STOP SERVICE".to_string(),
+        "SECURITY INSTALL TOOL".to_string(),
+        "SECURITY HARDENING SCORE".to_string(),
     ]
 }
 
@@ -322,6 +337,20 @@ pub fn get_keyword_categories() -> std::collections::HashMap<String, Vec<String>
             "ON CHANGE".to_string(),
             "SET SCHEDULE".to_string(),
             "WEBHOOK".to_string(),
+        ],
+    );
+
+    categories.insert(
+        "Security Protection".to_string(),
+        vec![
+            "SECURITY TOOL STATUS".to_string(),
+            "SECURITY RUN SCAN".to_string(),
+            "SECURITY GET REPORT".to_string(),
+            "SECURITY UPDATE DEFINITIONS".to_string(),
+            "SECURITY START SERVICE".to_string(),
+            "SECURITY STOP SERVICE".to_string(),
+            "SECURITY INSTALL TOOL".to_string(),
+            "SECURITY HARDENING SCORE".to_string(),
         ],
     );
 
