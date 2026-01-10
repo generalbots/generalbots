@@ -3,6 +3,7 @@ pub mod menu_config;
 pub mod permission_inheritance;
 pub mod rbac;
 pub mod rbac_ui;
+pub mod security_admin;
 
 use axum::{
     extract::State,
@@ -28,6 +29,7 @@ pub fn configure_settings_routes() -> Router<Arc<AppState>> {
         )
         .route("/api/user/security/devices", get(get_trusted_devices))
         .merge(rbac::configure_rbac_routes())
+        .merge(security_admin::configure_security_admin_routes())
 }
 
 async fn get_storage_info(State(_state): State<Arc<AppState>>) -> Html<String> {

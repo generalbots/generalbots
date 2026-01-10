@@ -2,6 +2,7 @@ pub mod antivirus;
 pub mod api_keys;
 pub mod audit;
 pub mod auth;
+pub mod auth_provider;
 pub mod ca;
 pub mod cert_pinning;
 pub mod command_guard;
@@ -20,6 +21,7 @@ pub mod passkey;
 pub mod password;
 pub mod path_guard;
 pub mod prompt_security;
+pub mod protection;
 pub mod rate_limiter;
 pub mod rbac_middleware;
 pub mod request_id;
@@ -32,6 +34,12 @@ pub mod validation;
 pub mod webhook;
 pub mod zitadel_auth;
 
+pub use protection::{configure_protection_routes, ProtectionManager, ProtectionTool, ToolStatus};
+
+pub use auth_provider::{
+    ApiKeyAuthProvider, ApiKeyInfo, AuthProvider, AuthProviderBuilder, AuthProviderRegistry,
+    LocalJwtAuthProvider, ZitadelAuthProviderAdapter, create_default_registry,
+};
 pub use antivirus::{
     AntivirusConfig, AntivirusManager, ProtectionStatus, ScanResult, ScanStatus, ScanType, Threat,
     ThreatSeverity, ThreatStatus, Vulnerability,
@@ -47,10 +55,11 @@ pub use audit::{
     AuditStore, InMemoryAuditStore,
 };
 pub use auth::{
-    admin_only_middleware, auth_middleware, bot_operator_middleware, bot_owner_middleware,
-    bot_scope_middleware, extract_user_from_request, require_auth_middleware, require_bot_access,
-    require_bot_permission, require_permission, require_permission_middleware, require_role,
-    require_role_middleware, AuthConfig, AuthError, AuthenticatedUser, BotAccess, Permission, Role,
+    admin_only_middleware, auth_middleware, auth_middleware_with_providers, bot_operator_middleware,
+    bot_owner_middleware, bot_scope_middleware, extract_user_from_request, extract_user_with_providers,
+    require_auth_middleware, require_bot_access, require_bot_permission, require_permission,
+    require_permission_middleware, require_role, require_role_middleware, AuthConfig, AuthError,
+    AuthenticatedUser, AuthMiddlewareState, BotAccess, Permission, Role,
 };
 pub use zitadel_auth::{ZitadelAuthConfig, ZitadelAuthProvider, ZitadelUser};
 pub use jwt::{
@@ -67,9 +76,10 @@ pub use password::{
     validate_password, verify_password,
 };
 pub use rbac_middleware::{
-    AccessDecision, AccessDecisionResult, RbacConfig, RbacManager, RequirePermission,
-    RequireResourceAccess, RequireRole, ResourceAcl, ResourcePermission, RoutePermission,
-    build_default_route_permissions, rbac_middleware,
+    AccessDecision, AccessDecisionResult, RbacConfig, RbacError, RbacManager, RbacMiddlewareState,
+    RequirePermission, RequireResourceAccess, RequireRole, ResourceAcl, ResourcePermission,
+    RoutePermission, build_default_route_permissions, create_admin_layer, create_permission_layer,
+    create_role_layer, rbac_middleware, require_admin_middleware, require_super_admin_middleware,
 };
 pub use session::{
     DeviceInfo, InMemorySessionStore, SameSite, Session, SessionConfig, SessionManager,

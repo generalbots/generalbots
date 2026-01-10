@@ -99,7 +99,6 @@ pub fn configure_video_routes() -> Router<Arc<AppState>> {
         )
         .route("/api/video/analytics/view", post(record_view_handler))
         .route("/api/video/ws/export/:id", get(export_progress_websocket))
-        .route("/video", get(video_ui))
 }
 
 pub fn configure(router: Router<Arc<AppState>>) -> Router<Arc<AppState>> {
