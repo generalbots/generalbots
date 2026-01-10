@@ -18,6 +18,56 @@ pub struct VendorFilePath {
     pub file_path: String,
 }
 
+#[derive(Debug, serde::Deserialize)]
+pub struct SuiteJsFilePath {
+    pub file_path: String,
+}
+
+pub async fn serve_suite_js_file(
+    State(state): State<Arc<AppState>>,
+    Path(params): Path<SuiteJsFilePath>,
+) -> Response {
+    let file_path = sanitize_file_path(&params.file_path);
+
+    if file_path.is_empty() {
+        return (StatusCode::BAD_REQUEST, "Invalid path").into_response();
+    }
+
+    if file_path.starts_with("vendor/") || file_path.starts_with("vendor\\") {
+        return serve_vendor_file(State(state), Path(VendorFilePath {
+            file_path: file_path.strip_prefix("vendor/").unwrap_or(&file_path).to_string()
+        })).await;
+    }
+
+    if !file_path.ends_with(".js") {
+        return (StatusCode::BAD_REQUEST, "Only JS files allowed").into_response();
+    }
+
+    let content_type = get_content_type(&file_path);
+
+    let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| "./botui/ui/suite".to_string());
+    let local_path = format!("{}/js/{}", ui_path, file_path);
+
+    match tokio::fs::read(&local_path).await {
+        Ok(content) => {
+            trace!("Serving suite JS file from: {}", local_path);
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, content_type)
+                .header(header::CACHE_CONTROL, "public, max-age=3600")
+                .body(Body::from(content))
+                .unwrap_or_else(|_| {
+                    (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
+                        .into_response()
+                })
+        }
+        Err(e) => {
+            warn!("Suite JS file not found: {} - {}", local_path, e);
+            (StatusCode::NOT_FOUND, "JS file not found").into_response()
+        }
+    }
+}
+
 pub async fn serve_vendor_file(
     State(state): State<Arc<AppState>>,
     Path(params): Path<VendorFilePath>,
@@ -117,6 +167,8 @@ pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
     Router::new()
         // Serve shared vendor files from MinIO: /js/vendor/*
         .route("/js/vendor/*file_path", get(serve_vendor_file))
+        // Serve suite JS files (i18n.js, theme-manager.js, etc.)
+        .route("/js/*file_path", get(serve_suite_js_file))
         // Serve app files: /apps/{app_name}/* (clean URLs)
         .route("/apps/:app_name", get(serve_app_index))
         .route("/apps/:app_name/", get(serve_app_index))
