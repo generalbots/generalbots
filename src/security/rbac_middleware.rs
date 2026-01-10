@@ -635,17 +635,24 @@ pub async fn rbac_middleware_fn(
         .cloned()
         .unwrap_or_else(AuthenticatedUser::anonymous);
 
+    debug!(
+        "RBAC check: {} {} | user_id={} authenticated={} roles={:?}",
+        method, path, user.user_id, user.is_authenticated(), user.roles
+    );
+
     let decision = rbac.check_route_access(&path, &method, &user).await;
 
-    if rbac.config.audit_all_decisions {
-        debug!(
-            "RBAC decision for {} {} by user {}: {:?} - {}",
-            method, path, user.user_id, decision.decision, decision.reason
-        );
-    }
+    debug!(
+        "RBAC decision for {} {}: {:?} - {}",
+        method, path, decision.decision, decision.reason
+    );
 
     if !decision.is_allowed() {
         if !user.is_authenticated() {
+            warn!(
+                "RBAC: Unauthorized access attempt to {} {} (no auth)",
+                method, path
+            );
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
@@ -656,6 +663,10 @@ pub async fn rbac_middleware_fn(
                 .into_response();
         }
 
+        warn!(
+            "RBAC: Forbidden access to {} {} for user {} with roles {:?}",
+            method, path, user.user_id, user.roles
+        );
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({
