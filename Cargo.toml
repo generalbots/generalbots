@@ -207,6 +207,11 @@ qrcode = { version = "0.14", default-features = false }
 # Excel/Spreadsheet Support
 calamine = "0.26"
 rust_xlsxwriter = "0.79"
+spreadsheet-ods = "1.0"
+
+# Word/PowerPoint Support
+docx-rs = "0.4"
+ppt-rs = { version = "0.2", default-features = false }
 
 # Error handling
 thiserror = "2.0"
