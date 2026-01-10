@@ -174,10 +174,24 @@ pub struct BucketInfo {
     pub is_gbai: bool,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct OpenRequest {
+    pub bucket: String,
+    pub path: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenResponse {
+    pub app: String,
+    pub url: String,
+    pub content_type: String,
+}
+
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/files/buckets", get(list_buckets))
         .route("/api/files/list", get(list_files))
+        .route("/api/files/open", post(open_file))
         .route("/api/files/read", post(read_file))
         .route("/api/files/write", post(write_file))
         .route("/api/files/save", post(write_file))
@@ -207,6 +221,88 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/docs/fill", post(document_processing::fill_document))
         .route("/api/docs/export", post(document_processing::export_document))
         .route("/api/docs/import", post(document_processing::import_document))
+}
+
+pub async fn open_file(
+    Json(req): Json<OpenRequest>,
+) -> Result<Json<OpenResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let ext = req.path
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_lowercase();
+
+    let params = format!("bucket={}&path={}",
+        urlencoding::encode(&req.bucket),
+        urlencoding::encode(&req.path));
+
+    let (app, url, content_type) = match ext.as_str() {
+        // Designer - BASIC dialogs
+        "bas" => ("designer", format!("/suite/designer.html?{params}"), "text/x-basic"),
+
+        // Sheet - Spreadsheets
+        "csv" => ("sheet", format!("/suite/sheet/sheet.html?{params}"), "text/csv"),
+        "tsv" => ("sheet", format!("/suite/sheet/sheet.html?{params}"), "text/tab-separated-values"),
+        "xlsx" => ("sheet", format!("/suite/sheet/sheet.html?{params}"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        "xls" => ("sheet", format!("/suite/sheet/sheet.html?{params}"), "application/vnd.ms-excel"),
+        "ods" => ("sheet", format!("/suite/sheet/sheet.html?{params}"), "application/vnd.oasis.opendocument.spreadsheet"),
+        "numbers" => ("sheet", format!("/suite/sheet/sheet.html?{params}"), "application/vnd.apple.numbers"),
+
+        // Docs - Documents
+        "docx" => ("docs", format!("/suite/docs/docs.html?{params}"), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        "doc" => ("docs", format!("/suite/docs/docs.html?{params}"), "application/msword"),
+        "odt" => ("docs", format!("/suite/docs/docs.html?{params}"), "application/vnd.oasis.opendocument.text"),
+        "rtf" => ("docs", format!("/suite/docs/docs.html?{params}"), "application/rtf"),
+        "pdf" => ("docs", format!("/suite/docs/docs.html?{params}"), "application/pdf"),
+        "md" => ("docs", format!("/suite/docs/docs.html?{params}"), "text/markdown"),
+        "markdown" => ("docs", format!("/suite/docs/docs.html?{params}"), "text/markdown"),
+        "txt" => ("docs", format!("/suite/docs/docs.html?{params}"), "text/plain"),
+        "tex" => ("docs", format!("/suite/docs/docs.html?{params}"), "application/x-tex"),
+        "latex" => ("docs", format!("/suite/docs/docs.html?{params}"), "application/x-latex"),
+        "epub" => ("docs", format!("/suite/docs/docs.html?{params}"), "application/epub+zip"),
+        "pages" => ("docs", format!("/suite/docs/docs.html?{params}"), "application/vnd.apple.pages"),
+
+        // Slides - Presentations
+        "pptx" => ("slides", format!("/suite/slides/slides.html?{params}"), "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+        "ppt" => ("slides", format!("/suite/slides/slides.html?{params}"), "application/vnd.ms-powerpoint"),
+        "odp" => ("slides", format!("/suite/slides/slides.html?{params}"), "application/vnd.oasis.opendocument.presentation"),
+        "key" => ("slides", format!("/suite/slides/slides.html?{params}"), "application/vnd.apple.keynote"),
+
+        // Images - use video player (supports images too)
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" | "bmp" | "ico" | "tiff" | "tif" | "heic" | "heif" =>
+            ("video", format!("/suite/video/video.html?{params}"), "image/*"),
+
+        // Video
+        "mp4" | "webm" | "mov" | "avi" | "mkv" | "wmv" | "flv" | "m4v" =>
+            ("video", format!("/suite/video/video.html?{params}"), "video/*"),
+
+        // Audio - use player
+        "mp3" | "wav" | "ogg" | "oga" | "flac" | "aac" | "m4a" | "wma" | "aiff" | "aif" =>
+            ("player", format!("/suite/player/player.html?{params}"), "audio/*"),
+
+        // Archives - direct download
+        "zip" | "rar" | "7z" | "tar" | "gz" | "bz2" | "xz" =>
+            ("download", format!("/api/files/download?{params}"), "application/octet-stream"),
+
+        // Code/Config - Editor
+        "json" | "xml" | "yaml" | "yml" | "toml" | "ini" | "conf" | "config" |
+        "js" | "ts" | "jsx" | "tsx" | "css" | "scss" | "sass" | "less" |
+        "html" | "htm" | "vue" | "svelte" |
+        "py" | "rb" | "php" | "java" | "c" | "cpp" | "h" | "hpp" | "cs" |
+        "rs" | "go" | "swift" | "kt" | "scala" | "r" | "lua" | "pl" | "sh" | "bash" |
+        "sql" | "graphql" | "proto" |
+        "dockerfile" | "makefile" | "gitignore" | "env" | "log" =>
+            ("editor", format!("/suite/editor/editor.html?{params}"), "text/plain"),
+
+        // Default - Editor for unknown text files
+        _ => ("editor", format!("/suite/editor/editor.html?{params}"), "application/octet-stream"),
+    };
+
+    Ok(Json(OpenResponse {
+        app: app.to_string(),
+        url,
+        content_type: content_type.to_string(),
+    }))
 }
 
 pub async fn list_buckets(

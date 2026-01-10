@@ -12,6 +12,7 @@ use axum::{
 use chrono::{DateTime, Utc};
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
+use ppt_rs::{Pptx, Slide as PptSlide, TextBox, Shape, ShapeType};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -1159,8 +1160,87 @@ pub async fn handle_export_presentation(
             let html = export_to_html(&presentation);
             Ok(([(axum::http::header::CONTENT_TYPE, "text/html")], html))
         }
+        "pptx" => {
+            match export_to_pptx(&presentation) {
+                Ok(bytes) => {
+                    let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                    Ok(([(axum::http::header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.presentationml.presentation")], encoded))
+                }
+                Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
+            }
+        }
         _ => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "Unsupported format" })))),
     }
+}
+
+fn export_to_pptx(presentation: &Presentation) -> Result<Vec<u8>, String> {
+    let mut pptx = Pptx::new();
+
+    for slide in &presentation.slides {
+        let mut ppt_slide = PptSlide::new();
+
+        for element in &slide.elements {
+            match element.element_type.as_str() {
+                "text" => {
+                    let content = element.content.as_deref().unwrap_or("");
+                    let x = element.x as f64;
+                    let y = element.y as f64;
+                    let width = element.width as f64;
+                    let height = element.height as f64;
+
+                    let mut text_box = TextBox::new(content)
+                        .position(x, y)
+                        .size(width, height);
+
+                    if let Some(ref style) = element.style {
+                        if let Some(size) = style.font_size {
+                            text_box = text_box.font_size(size as f64);
+                        }
+                        if let Some(ref weight) = style.font_weight {
+                            if weight == "bold" {
+                                text_box = text_box.bold(true);
+                            }
+                        }
+                        if let Some(ref color) = style.color {
+                            text_box = text_box.font_color(color);
+                        }
+                    }
+
+                    ppt_slide = ppt_slide.add_text_box(text_box);
+                }
+                "shape" => {
+                    let shape_type = element.shape_type.as_deref().unwrap_or("rectangle");
+                    let x = element.x as f64;
+                    let y = element.y as f64;
+                    let width = element.width as f64;
+                    let height = element.height as f64;
+
+                    let ppt_shape_type = match shape_type {
+                        "ellipse" | "circle" => ShapeType::Ellipse,
+                        "triangle" => ShapeType::Triangle,
+                        _ => ShapeType::Rectangle,
+                    };
+
+                    let mut shape = Shape::new(ppt_shape_type)
+                        .position(x, y)
+                        .size(width, height);
+
+                    if let Some(ref style) = element.style {
+                        if let Some(ref fill) = style.background {
+                            shape = shape.fill_color(fill);
+                        }
+                    }
+
+                    ppt_slide = ppt_slide.add_shape(shape);
+                }
+                _ => {}
+            }
+        }
+
+        pptx = pptx.add_slide(ppt_slide);
+    }
+
+    pptx.save_to_buffer().map_err(|e| format!("Failed to generate PPTX: {}", e))
 }
 
 fn export_to_html(presentation: &Presentation) -> String {

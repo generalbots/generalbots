@@ -7,7 +7,6 @@
 //! - AI-powered writing assistance
 //! - Export to multiple formats (PDF, DOCX, HTML, TXT, MD)
 
-
 use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 use aws_sdk_s3::primitives::ByteStream;
@@ -31,6 +30,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use uuid::Uuid;
+use docx_rs::{
+    Docx, Paragraph, Run, Table, TableRow, TableCell,
+    AlignmentType, BreakType, RunFonts, TableBorders, BorderType,
+    WidthType, TableCellWidth,
+};
 
 // =============================================================================
 // COLLABORATION TYPES
@@ -1129,11 +1133,110 @@ pub async fn handle_export_pdf(
 }
 
 pub async fn handle_export_docx(
-    State(_state): State<Arc<AppState>>,
-    Query(_params): Query<ExportQuery>,
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    // DOCX export would require a library like docx-rs
-    Html("<p>DOCX export coming soon</p>".to_string())
+    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
+        Ok(u) => u,
+        Err(_) => return (
+            axum::http::StatusCode::UNAUTHORIZED,
+            [(axum::http::header::CONTENT_TYPE, "text/plain")],
+            Vec::new(),
+        ),
+    };
+
+    let doc_id = match params.id {
+        Some(id) => id,
+        None => return (
+            axum::http::StatusCode::BAD_REQUEST,
+            [(axum::http::header::CONTENT_TYPE, "text/plain")],
+            Vec::new(),
+        ),
+    };
+
+    match load_document_from_drive(&state, &user_identifier, &doc_id).await {
+        Ok(Some(doc)) => {
+            match html_to_docx(&doc.title, &doc.content) {
+                Ok(bytes) => (
+                    axum::http::StatusCode::OK,
+                    [(axum::http::header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")],
+                    bytes,
+                ),
+                Err(_) => (
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    [(axum::http::header::CONTENT_TYPE, "text/plain")],
+                    Vec::new(),
+                ),
+            }
+        }
+        _ => (
+            axum::http::StatusCode::NOT_FOUND,
+            [(axum::http::header::CONTENT_TYPE, "text/plain")],
+            Vec::new(),
+        ),
+    }
+}
+
+fn html_to_docx(title: &str, html_content: &str) -> Result<Vec<u8>, String> {
+    let mut docx = Docx::new();
+
+    let title_para = Paragraph::new()
+        .add_run(
+            Run::new()
+                .add_text(title)
+                .size(48)
+                .bold()
+                .fonts(RunFonts::new().ascii("Calibri"))
+        )
+        .align(AlignmentType::Center);
+    docx = docx.add_paragraph(title_para);
+
+    docx = docx.add_paragraph(Paragraph::new());
+
+    let plain_text = strip_html(html_content);
+    let paragraphs: Vec<&str> = plain_text.split("\n\n").collect();
+
+    for para_text in paragraphs {
+        let trimmed = para_text.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        let is_heading = trimmed.starts_with('#');
+        let (text, size, bold) = if is_heading {
+            let level = trimmed.chars().take_while(|c| *c == '#').count();
+            let heading_text = trimmed.trim_start_matches('#').trim();
+            let heading_size = match level {
+                1 => 36,
+                2 => 28,
+                3 => 24,
+                _ => 22,
+            };
+            (heading_text, heading_size, true)
+        } else {
+            (trimmed, 22, false)
+        };
+
+        let mut run = Run::new()
+            .add_text(text)
+            .size(size)
+            .fonts(RunFonts::new().ascii("Calibri"));
+
+        if bold {
+            run = run.bold();
+        }
+
+        let para = Paragraph::new().add_run(run);
+        docx = docx.add_paragraph(para);
+    }
+
+    let mut buffer = Vec::new();
+    docx.build()
+        .pack(&mut std::io::Cursor::new(&mut buffer))
+        .map_err(|e| format!("Failed to generate DOCX: {}", e))?;
+
+    Ok(buffer)
 }
 
 pub async fn handle_export_md(
