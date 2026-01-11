@@ -598,7 +598,7 @@ async fn main() -> std::io::Result<()> {
         trace!("Bootstrap not complete - skipping early SecretsManager init");
     }
 
-    let rust_log = {
+    let noise_filters =
         "vaultrs=off,rustify=off,rustify_derive=off,\
          aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
          aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_sdk_s3=off,aws_config=off,\
@@ -619,8 +619,11 @@ async fn main() -> std::io::Result<()> {
          base64=off,bytes=off,encoding_rs=off,\
          url=off,percent_encoding=off,\
          ring=off,webpki=off,\
-         hickory_resolver=off,hickory_proto=off"
-            .to_string()
+         hickory_resolver=off,hickory_proto=off";
+
+    let rust_log = match std::env::var("RUST_LOG") {
+        Ok(existing) if !existing.is_empty() => format!("{},{}", existing, noise_filters),
+        _ => noise_filters.to_string(),
     };
 
     std::env::set_var("RUST_LOG", &rust_log);
