@@ -5,6 +5,7 @@ use crate::slides::storage::{
     get_current_user_id, list_presentations_from_drive, load_presentation_by_id,
     load_presentation_from_drive, save_presentation_to_drive,
 };
+use crate::slides::utils::slides_from_markdown;
 use crate::slides::types::{
     AddElementRequest, AddMediaRequest, AddSlideRequest, ApplyThemeRequest,
     ApplyTransitionToAllRequest, CollaborationCursor, CollaborationSelection, DeleteElementRequest,
@@ -16,7 +17,7 @@ use crate::slides::types::{
     SlidesAiResponse, StartPresenterRequest, UpdateCursorRequest, UpdateElementRequest,
     UpdateMediaRequest, UpdatePresenterRequest, UpdateSelectionRequest, UpdateSlideNotesRequest,
 };
-use crate::slides::utils::export_to_html;
+use crate::slides::utils::{create_default_theme, export_to_html, export_to_json, export_to_markdown, export_to_odp_content, export_to_svg, slides_from_markdown};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -611,8 +612,34 @@ pub async fn handle_export_presentation(
             Ok(([(axum::http::header::CONTENT_TYPE, "text/html")], html))
         }
         "json" => {
-            let json = serde_json::to_string_pretty(&presentation).unwrap_or_default();
+            let json = export_to_json(&presentation);
             Ok(([(axum::http::header::CONTENT_TYPE, "application/json")], json))
+        }
+        "svg" => {
+            let slide_idx = 0;
+            if slide_idx < presentation.slides.len() {
+                let svg = export_to_svg(&presentation.slides[slide_idx], 960, 540);
+                Ok(([(axum::http::header::CONTENT_TYPE, "image/svg+xml")], svg))
+            } else {
+                Err((
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({ "error": "No slides to export" })),
+                ))
+            }
+        }
+        "md" | "markdown" => {
+            let md = export_to_markdown(&presentation);
+            Ok(([(axum::http::header::CONTENT_TYPE, "text/markdown")], md))
+        }
+        "odp" => {
+            let odp = export_to_odp_content(&presentation);
+            Ok((
+                [(
+                    axum::http::header::CONTENT_TYPE,
+                    "application/vnd.oasis.opendocument.presentation",
+                )],
+                odp,
+            ))
         }
         "pptx" => {
             Ok((
@@ -1106,4 +1133,80 @@ pub async fn handle_get_presenter_notes(
         next_slide_notes,
         next_slide_thumbnail: None,
     }))
+}
+
+pub async fn handle_import_presentation(
+    State(state): State<Arc<AppState>>,
+    mut multipart: axum::extract::Multipart,
+) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
+    let mut file_bytes: Option<Vec<u8>> = None;
+    let mut filename = "import.pptx".to_string();
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        if field.name() == Some("file") {
+            filename = field.file_name().unwrap_or("import.pptx").to_string();
+            if let Ok(bytes) = field.bytes().await {
+                file_bytes = Some(bytes.to_vec());
+            }
+        }
+    }
+
+    let bytes = file_bytes.ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "No file uploaded" })),
+        )
+    })?;
+
+    let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
+    let theme = create_default_theme();
+
+    let slides = match ext.as_str() {
+        "md" | "markdown" => {
+            let content = String::from_utf8_lossy(&bytes);
+            slides_from_markdown(&content)
+        }
+        "json" => {
+            let pres: Result<Presentation, _> = serde_json::from_slice(&bytes);
+            match pres {
+                Ok(p) => p.slides,
+                Err(e) => {
+                    return Err((
+                        StatusCode::BAD_REQUEST,
+                        Json(serde_json::json!({ "error": format!("Invalid JSON: {}", e) })),
+                    ))
+                }
+            }
+        }
+        _ => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": format!("Unsupported format: {}", ext) })),
+            ))
+        }
+    };
+
+    let name = filename.rsplit('/').next().unwrap_or(&filename)
+        .rsplit('.').last().unwrap_or(&filename)
+        .to_string();
+
+    let user_id = get_current_user_id();
+    let presentation = Presentation {
+        id: Uuid::new_v4().to_string(),
+        name,
+        owner_id: user_id.clone(),
+        slides,
+        theme,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    };
+
+    if let Err(e) = save_presentation_to_drive(&state, &user_id, &presentation).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(presentation))
 }

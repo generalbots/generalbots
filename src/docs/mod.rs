@@ -21,12 +21,12 @@ pub use handlers::{
     handle_delete_endnote, handle_delete_footnote, handle_delete_style, handle_docs_ai,
     handle_docs_get_by_id, handle_docs_save, handle_enable_track_changes, handle_export_docx,
     handle_export_html, handle_export_md, handle_export_pdf, handle_export_txt,
-    handle_generate_toc, handle_get_document, handle_get_outline, handle_list_comments,
-    handle_list_documents, handle_list_endnotes, handle_list_footnotes, handle_list_styles,
-    handle_list_track_changes, handle_new_document, handle_reply_comment, handle_resolve_comment,
-    handle_save_document, handle_search_documents, handle_template_blank, handle_template_letter,
-    handle_template_meeting, handle_template_report, handle_update_endnote, handle_update_footnote,
-    handle_update_style, handle_update_toc,
+    handle_generate_toc, handle_get_document, handle_get_outline, handle_import_document,
+    handle_list_comments, handle_list_documents, handle_list_endnotes, handle_list_footnotes,
+    handle_list_styles, handle_list_track_changes, handle_new_document, handle_reply_comment,
+    handle_resolve_comment, handle_save_document, handle_search_documents, handle_template_blank,
+    handle_template_letter, handle_template_meeting, handle_template_report, handle_update_endnote,
+    handle_update_footnote, handle_update_style, handle_update_toc,
 };
 pub use types::{
     AiRequest, AiResponse, Collaborator, CollabMessage, CommentReply, ComparisonSummary, Document,
@@ -61,6 +61,7 @@ pub fn configure_docs_routes() -> Router<Arc<AppState>> {
         .route("/api/docs/export/md", get(handle_export_md))
         .route("/api/docs/export/html", get(handle_export_html))
         .route("/api/docs/export/txt", get(handle_export_txt))
+        .route("/api/docs/import", post(handle_import_document))
         .route("/api/docs/comment", post(handle_add_comment))
         .route("/api/docs/comment/reply", post(handle_reply_comment))
         .route("/api/docs/comment/resolve", post(handle_resolve_comment))
