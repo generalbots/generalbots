@@ -3,6 +3,104 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CellComment {
+    pub id: String,
+    pub author_id: String,
+    pub author_name: String,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    #[serde(default)]
+    pub replies: Vec<CommentReply>,
+    #[serde(default)]
+    pub resolved: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommentReply {
+    pub id: String,
+    pub author_id: String,
+    pub author_name: String,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SheetProtection {
+    pub protected: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password_hash: Option<String>,
+    #[serde(default)]
+    pub locked_cells: Vec<String>,
+    #[serde(default)]
+    pub allow_select_locked: bool,
+    #[serde(default)]
+    pub allow_select_unlocked: bool,
+    #[serde(default)]
+    pub allow_format_cells: bool,
+    #[serde(default)]
+    pub allow_format_columns: bool,
+    #[serde(default)]
+    pub allow_format_rows: bool,
+    #[serde(default)]
+    pub allow_insert_columns: bool,
+    #[serde(default)]
+    pub allow_insert_rows: bool,
+    #[serde(default)]
+    pub allow_insert_hyperlinks: bool,
+    #[serde(default)]
+    pub allow_delete_columns: bool,
+    #[serde(default)]
+    pub allow_delete_rows: bool,
+    #[serde(default)]
+    pub allow_sort: bool,
+    #[serde(default)]
+    pub allow_filter: bool,
+    #[serde(default)]
+    pub allow_pivot_tables: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExternalLink {
+    pub id: String,
+    pub source_path: String,
+    pub link_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_sheet: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_range: Option<String>,
+    pub status: String,
+    pub last_updated: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArrayFormula {
+    pub id: String,
+    pub formula: String,
+    pub start_row: u32,
+    pub start_col: u32,
+    pub end_row: u32,
+    pub end_col: u32,
+    #[serde(default)]
+    pub is_dynamic: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NamedRange {
+    pub id: String,
+    pub name: String,
+    pub scope: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub worksheet_index: Option<usize>,
+    pub start_row: u32,
+    pub start_col: u32,
+    pub end_row: u32,
+    pub end_col: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CollabMessage {
     pub msg_type: String,
     pub sheet_id: String,
@@ -38,6 +136,10 @@ pub struct Spreadsheet {
     pub worksheets: Vec<Worksheet>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub named_ranges: Option<Vec<NamedRange>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_links: Option<Vec<ExternalLink>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +166,12 @@ pub struct Worksheet {
     pub conditional_formats: Option<Vec<ConditionalFormatRule>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub charts: Option<Vec<ChartConfig>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comments: Option<HashMap<String, CellComment>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub protection: Option<SheetProtection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub array_formulas: Option<Vec<ArrayFormula>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,6 +186,12 @@ pub struct CellData {
     pub format: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub locked: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub has_comment: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub array_formula_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -421,6 +535,185 @@ pub struct AddNoteRequest {
     pub row: u32,
     pub col: u32,
     pub note: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddCommentRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub row: u32,
+    pub col: u32,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReplyCommentRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub row: u32,
+    pub col: u32,
+    pub comment_id: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResolveCommentRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub row: u32,
+    pub col: u32,
+    pub comment_id: String,
+    pub resolved: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeleteCommentRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub row: u32,
+    pub col: u32,
+    pub comment_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProtectSheetRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub protection: SheetProtection,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnprotectSheetRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockCellsRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub start_row: u32,
+    pub start_col: u32,
+    pub end_row: u32,
+    pub end_col: u32,
+    pub locked: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddExternalLinkRequest {
+    pub sheet_id: String,
+    pub source_path: String,
+    pub link_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_sheet: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_range: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefreshExternalLinkRequest {
+    pub sheet_id: String,
+    pub link_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemoveExternalLinkRequest {
+    pub sheet_id: String,
+    pub link_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArrayFormulaRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub formula: String,
+    pub start_row: u32,
+    pub start_col: u32,
+    pub end_row: u32,
+    pub end_col: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeleteArrayFormulaRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub array_formula_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateNamedRangeRequest {
+    pub sheet_id: String,
+    pub name: String,
+    pub scope: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub worksheet_index: Option<usize>,
+    pub start_row: u32,
+    pub start_col: u32,
+    pub end_row: u32,
+    pub end_col: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateNamedRangeRequest {
+    pub sheet_id: String,
+    pub range_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_row: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_col: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_row: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_col: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeleteNamedRangeRequest {
+    pub sheet_id: String,
+    pub range_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListNamedRangesRequest {
+    pub sheet_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListNamedRangesResponse {
+    pub ranges: Vec<NamedRange>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListExternalLinksResponse {
+    pub links: Vec<ExternalLink>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListCommentsRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListCommentsResponse {
+    pub comments: Vec<CommentWithLocation>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommentWithLocation {
+    pub row: u32,
+    pub col: u32,
+    pub comment: CellComment,
 }
 
 #[derive(Debug, Deserialize)]
