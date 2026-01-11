@@ -11,6 +11,7 @@ use tokio::sync::RwLock;
 use tracing::warn;
 
 use super::manager::{ProtectionConfig, ProtectionManager, ProtectionTool, ScanResult, ToolStatus};
+use crate::shared::state::AppState;
 
 static PROTECTION_MANAGER: OnceLock<Arc<RwLock<ProtectionManager>>> = OnceLock::new();
 
@@ -64,7 +65,7 @@ struct ActionResponse {
     message: String,
 }
 
-pub fn configure_protection_routes() -> Router {
+pub fn configure_protection_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/security/protection/status", get(get_all_status))
         .route(

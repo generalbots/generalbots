@@ -1,18 +1,9 @@
-use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::Json,
-    routing::{get, post, put},
-    Router,
-};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-
-use crate::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum IncidentSeverity {
@@ -941,6 +932,21 @@ impl IncidentResponseService {
         }
     }
 
+    async fn trigger_hooks(&self, trigger: HookTrigger, incident: &Incident) {
+        let hooks = self.hooks.read().await;
+        for hook in hooks.iter() {
+            if hook.enabled && hook.trigger == trigger {
+                log::info!(
+                    "Triggered hook '{}' for incident {}",
+                    hook.name,
+                    incident.incident_number
+                );
+            }
+        }
+    }
+
     pub async fn register_hook(&self, hook: AutomationHook) {
         let mut hooks = self.hooks.write().await;
         hooks.push(hook);
+    }
+}

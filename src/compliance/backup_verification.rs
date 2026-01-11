@@ -373,6 +373,33 @@ pub struct HealthRecommendation {
     pub impact: String,
 }
 
+#[derive(Debug, Clone)]
+pub enum BackupError {
+    NotFound(String),
+    VerificationFailed(String),
+    StorageError(String),
+    EncryptionError(String),
+    PolicyViolation(String),
+    RestoreFailed(String),
+    InvalidConfiguration(String),
+}
+
+impl std::fmt::Display for BackupError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotFound(msg) => write!(f, "Not found: {msg}"),
+            Self::VerificationFailed(msg) => write!(f, "Verification failed: {msg}"),
+            Self::StorageError(msg) => write!(f, "Storage error: {msg}"),
+            Self::EncryptionError(msg) => write!(f, "Encryption error: {msg}"),
+            Self::PolicyViolation(msg) => write!(f, "Policy violation: {msg}"),
+            Self::RestoreFailed(msg) => write!(f, "Restore failed: {msg}"),
+            Self::InvalidConfiguration(msg) => write!(f, "Invalid configuration: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for BackupError {}
+
 pub struct BackupVerificationService {
     backups: Arc<RwLock<HashMap<Uuid, BackupRecord>>>,
     policies: Arc<RwLock<HashMap<Uuid, BackupPolicy>>>,
@@ -800,7 +827,7 @@ impl BackupVerificationService {
         let restore_target = format!("test_restore_{}", test_id);
 
         let mut integrity_checks = Vec::new();
-        let mut errors = Vec::new();
+        let errors = Vec::new();
 
         if let Some(table_count) = backup.metadata.table_count {
             for i in 0..table_count.min(5) {

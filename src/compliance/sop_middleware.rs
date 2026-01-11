@@ -907,4 +907,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test
+    async fn test_sanitize_operation() {
+        let result = sanitize_for_logging("test/operation");
+        assert_eq!(result, "test_operation");
+    }
+}

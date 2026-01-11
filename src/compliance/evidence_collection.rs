@@ -378,6 +378,31 @@ pub struct CollectionMetrics {
     pub collection_success_rate: f32,
 }
 
+#[derive(Debug, Clone)]
+pub enum CollectionError {
+    NotFound(String),
+    NotAutomated(String),
+    ValidationFailed(String),
+    StorageError(String),
+    SourceError(String),
+    InvalidInput(String),
+}
+
+impl std::fmt::Display for CollectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotFound(msg) => write!(f, "Not found: {msg}"),
+            Self::NotAutomated(msg) => write!(f, "Not automated: {msg}"),
+            Self::ValidationFailed(msg) => write!(f, "Validation failed: {msg}"),
+            Self::StorageError(msg) => write!(f, "Storage error: {msg}"),
+            Self::SourceError(msg) => write!(f, "Source error: {msg}"),
+            Self::InvalidInput(msg) => write!(f, "Invalid input: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for CollectionError {}
+
 pub struct EvidenceCollectionService {
     evidence: Arc<RwLock<HashMap<Uuid, EvidenceItem>>>,
     control_mappings: Arc<RwLock<HashMap<String, ControlMapping>>>,
@@ -793,4 +818,46 @@ impl EvidenceCollectionService {
                 .required_evidence_types
                 .first()
                 .cloned()
-                .unwrap
+                .unwrap_or(EvidenceType::Log),
+            status: EvidenceStatus::PendingReview,
+            frameworks: vec![mapping.framework.clone()],
+            control_ids: vec![control_id.to_string()],
+            tsc_categories: mapping.tsc_category.iter().cloned().collect(),
+            collection_method: CollectionMethod::Automated,
+            collected_at: Utc::now(),
+            collected_by: None,
+            reviewed_at: None,
+            reviewed_by: None,
+            valid_from: Utc::now(),
+            valid_until: Utc::now() + Duration::days(i64::from(mapping.collection_frequency_days)),
+            file_path: None,
+            file_hash: None,
+            file_size_bytes: None,
+            content_type: Some("application/json".to_string()),
+            source_system: Some("automated_collection".to_string()),
+            source_query: None,
+            metadata: collected_data,
+            tags: vec!["automated".to_string(), control_id.to_string()],
+            version: 1,
+            previous_version_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let mut evidence_store = self.evidence.write().await;
+        evidence_store.insert(evidence.id, evidence.clone());
+
+        Ok(evidence)
+    }
+
+    async fn collect_from_source(
+        &self,
+        source: &CollectionSource,
+    ) -> Result<HashMap<String, String>, CollectionError> {
+        let mut data = HashMap::new();
+        data.insert("source_name".to_string(), source.source_name.clone());
+        data.insert("source_type".to_string(), format!("{:?}", source.source_type));
+        data.insert("collected_at".to_string(), Utc::now().to_rfc3339());
+        Ok(data)
+    }
+}
