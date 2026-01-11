@@ -204,6 +204,8 @@ png = "0.18"
 qrcode = { version = "0.14", default-features = false }
 
 # Excel/Spreadsheet Support - MS Office 100% Compatibility
+# umya-spreadsheet preserves: Charts, styles, images, formulas, macros, comments
+umya-spreadsheet = "2.3"
 calamine = "0.26"
 rust_xlsxwriter = "0.79"
 spreadsheet-ods = "1.0"
