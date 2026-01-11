@@ -6,10 +6,15 @@ use crate::slides::storage::{
     load_presentation_from_drive, save_presentation_to_drive,
 };
 use crate::slides::types::{
-    AddElementRequest, AddSlideRequest, ApplyThemeRequest, DeleteElementRequest,
-    DeleteSlideRequest, DuplicateSlideRequest, ExportRequest, LoadQuery, Presentation,
-    PresentationMetadata, ReorderSlidesRequest, SavePresentationRequest, SaveResponse, SearchQuery,
-    SlidesAiRequest, SlidesAiResponse, UpdateElementRequest, UpdateSlideNotesRequest,
+    AddElementRequest, AddMediaRequest, AddSlideRequest, ApplyThemeRequest,
+    ApplyTransitionToAllRequest, CollaborationCursor, CollaborationSelection, DeleteElementRequest,
+    DeleteMediaRequest, DeleteSlideRequest, DuplicateSlideRequest, EndPresenterRequest,
+    ExportRequest, ListCursorsResponse, ListMediaResponse, ListSelectionsResponse, LoadQuery,
+    Presentation, PresentationMetadata, PresenterNotesResponse, PresenterSession,
+    PresenterSessionResponse, RemoveTransitionRequest, ReorderSlidesRequest,
+    SavePresentationRequest, SaveResponse, SearchQuery, SetTransitionRequest, SlidesAiRequest,
+    SlidesAiResponse, StartPresenterRequest, UpdateCursorRequest, UpdateElementRequest,
+    UpdateMediaRequest, UpdatePresenterRequest, UpdateSelectionRequest, UpdateSlideNotesRequest,
 };
 use crate::slides::utils::export_to_html;
 use axum::{
@@ -20,7 +25,8 @@ use axum::{
 };
 use chrono::Utc;
 use log::error;
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, LazyLock, RwLock};
 use uuid::Uuid;
 
 pub async fn handle_slides_ai(
@@ -622,4 +628,482 @@ pub async fn handle_export_presentation(
             Json(serde_json::json!({ "error": "Unsupported format" })),
         )),
     }
+}
+
+static CURSORS: LazyLock<RwLock<HashMap<String, Vec<CollaborationCursor>>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
+
+static SELECTIONS: LazyLock<RwLock<HashMap<String, Vec<CollaborationSelection>>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
+
+static PRESENTER_SESSIONS: LazyLock<RwLock<HashMap<String, PresenterSession>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
+
+pub async fn handle_update_cursor(
+    State(_state): State<Arc<AppState>>,
+    Json(req): Json<UpdateCursorRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+
+    let cursor = CollaborationCursor {
+        user_id: user_id.clone(),
+        user_name: "User".to_string(),
+        user_color: "#4285f4".to_string(),
+        slide_index: req.slide_index,
+        element_id: req.element_id,
+        x: req.x,
+        y: req.y,
+        last_activity: Utc::now(),
+    };
+
+    if let Ok(mut cursors) = CURSORS.write() {
+        let presentation_cursors = cursors.entry(req.presentation_id.clone()).or_default();
+        presentation_cursors.retain(|c| c.user_id != user_id);
+        presentation_cursors.push(cursor);
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_update_selection(
+    State(_state): State<Arc<AppState>>,
+    Json(req): Json<UpdateSelectionRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+
+    let selection = CollaborationSelection {
+        user_id: user_id.clone(),
+        user_name: "User".to_string(),
+        user_color: "#4285f4".to_string(),
+        slide_index: req.slide_index,
+        element_ids: req.element_ids,
+    };
+
+    if let Ok(mut selections) = SELECTIONS.write() {
+        let presentation_selections = selections.entry(req.presentation_id.clone()).or_default();
+        presentation_selections.retain(|s| s.user_id != user_id);
+        presentation_selections.push(selection);
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_list_cursors(
+    State(_state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<ListCursorsResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
+
+    let cursors = if let Ok(cursors_map) = CURSORS.read() {
+        cursors_map.get(&presentation_id).cloned().unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    Ok(Json(ListCursorsResponse { cursors }))
+}
+
+pub async fn handle_list_selections(
+    State(_state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<ListSelectionsResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
+
+    let selections = if let Ok(selections_map) = SELECTIONS.read() {
+        selections_map.get(&presentation_id).cloned().unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    Ok(Json(ListSelectionsResponse { selections }))
+}
+
+pub async fn handle_set_transition(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<SetTransitionRequest>,
+) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut presentation = match load_presentation_by_id(&state, &user_id, &req.presentation_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if req.slide_index >= presentation.slides.len() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Invalid slide index" })),
+        ));
+    }
+
+    presentation.slides[req.slide_index].transition_config = Some(req.transition);
+    presentation.updated_at = Utc::now();
+
+    if let Err(e) = save_presentation_to_drive(&state, &user_id, &presentation).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(SaveResponse {
+        id: req.presentation_id,
+        success: true,
+        message: Some("Transition set".to_string()),
+    }))
+}
+
+pub async fn handle_apply_transition_to_all(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ApplyTransitionToAllRequest>,
+) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut presentation = match load_presentation_by_id(&state, &user_id, &req.presentation_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    for slide in presentation.slides.iter_mut() {
+        slide.transition_config = Some(req.transition.clone());
+    }
+    presentation.updated_at = Utc::now();
+
+    if let Err(e) = save_presentation_to_drive(&state, &user_id, &presentation).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(SaveResponse {
+        id: req.presentation_id,
+        success: true,
+        message: Some("Transition applied to all slides".to_string()),
+    }))
+}
+
+pub async fn handle_remove_transition(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<RemoveTransitionRequest>,
+) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut presentation = match load_presentation_by_id(&state, &user_id, &req.presentation_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if req.slide_index >= presentation.slides.len() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Invalid slide index" })),
+        ));
+    }
+
+    presentation.slides[req.slide_index].transition_config = None;
+    presentation.slides[req.slide_index].transition = None;
+    presentation.updated_at = Utc::now();
+
+    if let Err(e) = save_presentation_to_drive(&state, &user_id, &presentation).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(SaveResponse {
+        id: req.presentation_id,
+        success: true,
+        message: Some("Transition removed".to_string()),
+    }))
+}
+
+pub async fn handle_add_media(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<AddMediaRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut presentation = match load_presentation_by_id(&state, &user_id, &req.presentation_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if req.slide_index >= presentation.slides.len() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Invalid slide index" })),
+        ));
+    }
+
+    let media_list = presentation.slides[req.slide_index].media.get_or_insert_with(Vec::new);
+    media_list.push(req.media.clone());
+    presentation.updated_at = Utc::now();
+
+    if let Err(e) = save_presentation_to_drive(&state, &user_id, &presentation).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true, "media": req.media })))
+}
+
+pub async fn handle_update_media(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateMediaRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut presentation = match load_presentation_by_id(&state, &user_id, &req.presentation_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if req.slide_index >= presentation.slides.len() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Invalid slide index" })),
+        ));
+    }
+
+    if let Some(media_list) = &mut presentation.slides[req.slide_index].media {
+        for media in media_list.iter_mut() {
+            if media.id == req.media_id {
+                if let Some(autoplay) = req.autoplay {
+                    media.autoplay = autoplay;
+                }
+                if let Some(loop_playback) = req.loop_playback {
+                    media.loop_playback = loop_playback;
+                }
+                if let Some(muted) = req.muted {
+                    media.muted = muted;
+                }
+                if let Some(volume) = req.volume {
+                    media.volume = Some(volume);
+                }
+                if let Some(start_time) = req.start_time {
+                    media.start_time = Some(start_time);
+                }
+                if let Some(end_time) = req.end_time {
+                    media.end_time = Some(end_time);
+                }
+                break;
+            }
+        }
+    }
+
+    presentation.updated_at = Utc::now();
+    if let Err(e) = save_presentation_to_drive(&state, &user_id, &presentation).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_delete_media(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<DeleteMediaRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut presentation = match load_presentation_by_id(&state, &user_id, &req.presentation_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if req.slide_index >= presentation.slides.len() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Invalid slide index" })),
+        ));
+    }
+
+    if let Some(media_list) = &mut presentation.slides[req.slide_index].media {
+        media_list.retain(|m| m.id != req.media_id);
+    }
+
+    presentation.updated_at = Utc::now();
+    if let Err(e) = save_presentation_to_drive(&state, &user_id, &presentation).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_list_media(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<ListMediaResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
+    let slide_index: usize = params.get("slide_index").and_then(|s| s.parse().ok()).unwrap_or(0);
+    let user_id = get_current_user_id();
+
+    let presentation = match load_presentation_by_id(&state, &user_id, &presentation_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if slide_index >= presentation.slides.len() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Invalid slide index" })),
+        ));
+    }
+
+    let media = presentation.slides[slide_index].media.clone().unwrap_or_default();
+    Ok(Json(ListMediaResponse { media }))
+}
+
+pub async fn handle_start_presenter(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<StartPresenterRequest>,
+) -> Result<Json<PresenterSessionResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+
+    let _presentation = match load_presentation_by_id(&state, &user_id, &req.presentation_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let session = PresenterSession {
+        id: uuid::Uuid::new_v4().to_string(),
+        presentation_id: req.presentation_id,
+        current_slide: 0,
+        started_at: Utc::now(),
+        elapsed_time: Some(0),
+        is_paused: false,
+        settings: req.settings,
+    };
+
+    if let Ok(mut sessions) = PRESENTER_SESSIONS.write() {
+        sessions.insert(session.id.clone(), session.clone());
+    }
+
+    Ok(Json(PresenterSessionResponse { session }))
+}
+
+pub async fn handle_update_presenter(
+    State(_state): State<Arc<AppState>>,
+    Json(req): Json<UpdatePresenterRequest>,
+) -> Result<Json<PresenterSessionResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let session = if let Ok(mut sessions) = PRESENTER_SESSIONS.write() {
+        if let Some(session) = sessions.get_mut(&req.session_id) {
+            if let Some(current_slide) = req.current_slide {
+                session.current_slide = current_slide;
+            }
+            if let Some(is_paused) = req.is_paused {
+                session.is_paused = is_paused;
+            }
+            if let Some(settings) = req.settings {
+                session.settings = settings;
+            }
+            session.clone()
+        } else {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Session not found" })),
+            ));
+        }
+    } else {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": "Failed to access sessions" })),
+        ));
+    };
+
+    Ok(Json(PresenterSessionResponse { session }))
+}
+
+pub async fn handle_end_presenter(
+    State(_state): State<Arc<AppState>>,
+    Json(req): Json<EndPresenterRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    if let Ok(mut sessions) = PRESENTER_SESSIONS.write() {
+        sessions.remove(&req.session_id);
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_get_presenter_notes(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<PresenterNotesResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
+    let slide_index: usize = params.get("slide_index").and_then(|s| s.parse().ok()).unwrap_or(0);
+    let user_id = get_current_user_id();
+
+    let presentation = match load_presentation_by_id(&state, &user_id, &presentation_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if slide_index >= presentation.slides.len() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Invalid slide index" })),
+        ));
+    }
+
+    let notes = presentation.slides[slide_index].notes.clone();
+    let next_slide_notes = if slide_index + 1 < presentation.slides.len() {
+        presentation.slides[slide_index + 1].notes.clone()
+    } else {
+        None
+    };
+
+    Ok(Json(PresenterNotesResponse {
+        slide_index,
+        notes,
+        next_slide_notes,
+        next_slide_thumbnail: None,
+    }))
 }

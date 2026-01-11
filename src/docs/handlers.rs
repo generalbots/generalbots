@@ -7,6 +7,17 @@ use crate::docs::types::{
     SearchQuery, TemplateResponse,
 };
 use crate::docs::utils::{html_to_markdown, strip_html};
+use crate::docs::types::{
+    AcceptRejectAllRequest, AcceptRejectChangeRequest, AddCommentRequest, AddEndnoteRequest,
+    AddFootnoteRequest, ApplyStyleRequest, CompareDocumentsRequest, CompareDocumentsResponse,
+    CommentReply, ComparisonSummary, CreateStyleRequest, DeleteCommentRequest, DeleteEndnoteRequest,
+    DeleteFootnoteRequest, DeleteStyleRequest, DocumentComment, DocumentComparison, DocumentDiff,
+    DocumentStyle, EnableTrackChangesRequest, Endnote, Footnote, GenerateTocRequest,
+    GetOutlineRequest, ListCommentsResponse, ListEndnotesResponse, ListFootnotesResponse,
+    ListStylesResponse, ListTrackChangesResponse, OutlineItem, OutlineResponse, ReplyCommentRequest,
+    ResolveCommentRequest, TableOfContents, TocEntry, TocResponse, TrackChange, UpdateEndnoteRequest,
+    UpdateFootnoteRequest, UpdateStyleRequest, UpdateTocRequest,
+};
 use crate::shared::state::AppState;
 use axum::{
     extract::{Path, Query, State},
@@ -550,4 +561,1126 @@ pub async fn handle_export_txt(
     let plain_text = strip_html(&doc.content);
 
     Ok(([(axum::http::header::CONTENT_TYPE, "text/plain")], plain_text))
+}
+
+pub async fn handle_add_comment(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<AddCommentRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let comment = DocumentComment {
+        id: uuid::Uuid::new_v4().to_string(),
+        author_id: user_id.clone(),
+        author_name: "User".to_string(),
+        content: req.content,
+        position: req.position,
+        length: req.length,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        replies: vec![],
+        resolved: false,
+    };
+
+    let comments = doc.comments.get_or_insert_with(Vec::new);
+    comments.push(comment.clone());
+    doc.updated_at = Utc::now();
+
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true, "comment": comment })))
+}
+
+pub async fn handle_reply_comment(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ReplyCommentRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(comments) = &mut doc.comments {
+        for comment in comments.iter_mut() {
+            if comment.id == req.comment_id {
+                let reply = CommentReply {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    author_id: user_id.clone(),
+                    author_name: "User".to_string(),
+                    content: req.content.clone(),
+                    created_at: Utc::now(),
+                };
+                comment.replies.push(reply);
+                comment.updated_at = Utc::now();
+                break;
+            }
+        }
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_resolve_comment(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ResolveCommentRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(comments) = &mut doc.comments {
+        for comment in comments.iter_mut() {
+            if comment.id == req.comment_id {
+                comment.resolved = req.resolved;
+                comment.updated_at = Utc::now();
+                break;
+            }
+        }
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_delete_comment(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<DeleteCommentRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(comments) = &mut doc.comments {
+        comments.retain(|c| c.id != req.comment_id);
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_list_comments(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ListCommentsResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let doc_id = params.get("doc_id").cloned().unwrap_or_default();
+    let user_id = get_current_user_id();
+    let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let comments = doc.comments.unwrap_or_default();
+    Ok(Json(ListCommentsResponse { comments }))
+}
+
+pub async fn handle_enable_track_changes(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<EnableTrackChangesRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    doc.track_changes_enabled = req.enabled;
+    doc.updated_at = Utc::now();
+
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true, "enabled": req.enabled })))
+}
+
+pub async fn handle_accept_reject_change(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<AcceptRejectChangeRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(changes) = &mut doc.track_changes {
+        for change in changes.iter_mut() {
+            if change.id == req.change_id {
+                change.accepted = Some(req.accept);
+                break;
+            }
+        }
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_accept_reject_all(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<AcceptRejectAllRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(changes) = &mut doc.track_changes {
+        for change in changes.iter_mut() {
+            change.accepted = Some(req.accept);
+        }
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_list_track_changes(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ListTrackChangesResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let doc_id = params.get("doc_id").cloned().unwrap_or_default();
+    let user_id = get_current_user_id();
+    let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let changes = doc.track_changes.unwrap_or_default();
+    Ok(Json(ListTrackChangesResponse {
+        changes,
+        enabled: doc.track_changes_enabled,
+    }))
+}
+
+pub async fn handle_generate_toc(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<GenerateTocRequest>,
+) -> Result<Json<TocResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let mut entries = Vec::new();
+    let content = &doc.content;
+    let mut position = 0;
+
+    for level in 1..=req.max_level {
+        let tag = format!("<h{level}>");
+        let end_tag = format!("</h{level}>");
+        let mut search_pos = 0;
+
+        while let Some(start) = content[search_pos..].find(&tag) {
+            let abs_start = search_pos + start;
+            if let Some(end) = content[abs_start..].find(&end_tag) {
+                let text_start = abs_start + tag.len();
+                let text_end = abs_start + end;
+                let text = strip_html(&content[text_start..text_end]);
+
+                entries.push(TocEntry {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    text,
+                    level,
+                    page_number: None,
+                    position: abs_start,
+                });
+                search_pos = text_end + end_tag.len();
+            } else {
+                break;
+            }
+        }
+        position = search_pos;
+    }
+
+    entries.sort_by_key(|e| e.position);
+
+    let toc = TableOfContents {
+        id: uuid::Uuid::new_v4().to_string(),
+        title: "Table of Contents".to_string(),
+        entries,
+        max_level: req.max_level,
+        show_page_numbers: req.show_page_numbers,
+        use_hyperlinks: req.use_hyperlinks,
+    };
+
+    doc.toc = Some(toc.clone());
+    doc.updated_at = Utc::now();
+
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(TocResponse { toc }))
+}
+
+pub async fn handle_update_toc(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateTocRequest>,
+) -> Result<Json<TocResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let existing_toc = doc.toc.unwrap_or_else(|| TableOfContents {
+        id: uuid::Uuid::new_v4().to_string(),
+        title: "Table of Contents".to_string(),
+        entries: vec![],
+        max_level: 3,
+        show_page_numbers: true,
+        use_hyperlinks: true,
+    });
+
+    let gen_req = GenerateTocRequest {
+        doc_id: req.doc_id,
+        max_level: existing_toc.max_level,
+        show_page_numbers: existing_toc.show_page_numbers,
+        use_hyperlinks: existing_toc.use_hyperlinks,
+    };
+
+    handle_generate_toc(State(state), Json(gen_req)).await
+}
+
+pub async fn handle_add_footnote(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<AddFootnoteRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let footnotes = doc.footnotes.get_or_insert_with(Vec::new);
+    let reference_mark = format!("{}", footnotes.len() + 1);
+
+    let footnote = Footnote {
+        id: uuid::Uuid::new_v4().to_string(),
+        reference_mark,
+        content: req.content,
+        position: req.position,
+    };
+
+    footnotes.push(footnote.clone());
+    doc.updated_at = Utc::now();
+
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true, "footnote": footnote })))
+}
+
+pub async fn handle_update_footnote(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateFootnoteRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(footnotes) = &mut doc.footnotes {
+        for footnote in footnotes.iter_mut() {
+            if footnote.id == req.footnote_id {
+                footnote.content = req.content.clone();
+                break;
+            }
+        }
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_delete_footnote(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<DeleteFootnoteRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(footnotes) = &mut doc.footnotes {
+        footnotes.retain(|f| f.id != req.footnote_id);
+        for (i, footnote) in footnotes.iter_mut().enumerate() {
+            footnote.reference_mark = format!("{}", i + 1);
+        }
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_list_footnotes(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ListFootnotesResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let doc_id = params.get("doc_id").cloned().unwrap_or_default();
+    let user_id = get_current_user_id();
+    let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let footnotes = doc.footnotes.unwrap_or_default();
+    Ok(Json(ListFootnotesResponse { footnotes }))
+}
+
+pub async fn handle_add_endnote(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<AddEndnoteRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let endnotes = doc.endnotes.get_or_insert_with(Vec::new);
+    let reference_mark = to_roman_numeral(endnotes.len() + 1);
+
+    let endnote = Endnote {
+        id: uuid::Uuid::new_v4().to_string(),
+        reference_mark,
+        content: req.content,
+        position: req.position,
+    };
+
+    endnotes.push(endnote.clone());
+    doc.updated_at = Utc::now();
+
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true, "endnote": endnote })))
+}
+
+fn to_roman_numeral(num: usize) -> String {
+    let numerals = [
+        (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+        (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+        (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+    ];
+    let mut result = String::new();
+    let mut n = num;
+    for (value, numeral) in numerals {
+        while n >= value {
+            result.push_str(numeral);
+            n -= value;
+        }
+    }
+    result
+}
+
+pub async fn handle_update_endnote(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateEndnoteRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(endnotes) = &mut doc.endnotes {
+        for endnote in endnotes.iter_mut() {
+            if endnote.id == req.endnote_id {
+                endnote.content = req.content.clone();
+                break;
+            }
+        }
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_delete_endnote(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<DeleteEndnoteRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(endnotes) = &mut doc.endnotes {
+        endnotes.retain(|e| e.id != req.endnote_id);
+        for (i, endnote) in endnotes.iter_mut().enumerate() {
+            endnote.reference_mark = to_roman_numeral(i + 1);
+        }
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_list_endnotes(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ListEndnotesResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let doc_id = params.get("doc_id").cloned().unwrap_or_default();
+    let user_id = get_current_user_id();
+    let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let endnotes = doc.endnotes.unwrap_or_default();
+    Ok(Json(ListEndnotesResponse { endnotes }))
+}
+
+pub async fn handle_create_style(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateStyleRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let styles = doc.styles.get_or_insert_with(Vec::new);
+    styles.push(req.style.clone());
+    doc.updated_at = Utc::now();
+
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true, "style": req.style })))
+}
+
+pub async fn handle_update_style(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateStyleRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(styles) = &mut doc.styles {
+        for style in styles.iter_mut() {
+            if style.id == req.style.id {
+                *style = req.style.clone();
+                break;
+            }
+        }
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_delete_style(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<DeleteStyleRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    if let Some(styles) = &mut doc.styles {
+        styles.retain(|s| s.id != req.style_id);
+    }
+
+    doc.updated_at = Utc::now();
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_list_styles(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ListStylesResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let doc_id = params.get("doc_id").cloned().unwrap_or_default();
+    let user_id = get_current_user_id();
+    let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let styles = doc.styles.unwrap_or_default();
+    Ok(Json(ListStylesResponse { styles }))
+}
+
+pub async fn handle_apply_style(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ApplyStyleRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let style = doc.styles
+        .as_ref()
+        .and_then(|styles| styles.iter().find(|s| s.id == req.style_id))
+        .cloned();
+
+    if style.is_none() {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Style not found" })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "style": style,
+        "position": req.position,
+        "length": req.length
+    })))
+}
+
+pub async fn handle_get_outline(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<GetOutlineRequest>,
+) -> Result<Json<OutlineResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+    let doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let mut items = Vec::new();
+    let content = &doc.content;
+
+    for level in 1..=6u32 {
+        let tag = format!("<h{level}>");
+        let end_tag = format!("</h{level}>");
+        let mut search_pos = 0;
+
+        while let Some(start) = content[search_pos..].find(&tag) {
+            let abs_start = search_pos + start;
+            if let Some(end) = content[abs_start..].find(&end_tag) {
+                let text_start = abs_start + tag.len();
+                let text_end = abs_start + end;
+                let text = strip_html(&content[text_start..text_end]);
+                let length = text_end - text_start;
+
+                items.push(OutlineItem {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    text,
+                    level,
+                    position: abs_start,
+                    length,
+                    style_name: format!("Heading {level}"),
+                });
+                search_pos = text_end + end_tag.len();
+            } else {
+                break;
+            }
+        }
+    }
+
+    items.sort_by_key(|i| i.position);
+
+    Ok(Json(OutlineResponse { items }))
+}
+
+pub async fn handle_compare_documents(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CompareDocumentsRequest>,
+) -> Result<Json<CompareDocumentsResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = get_current_user_id();
+
+    let original = match load_document_from_drive(&state, &user_id, &req.original_doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Original document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let modified = match load_document_from_drive(&state, &user_id, &req.modified_doc_id).await {
+        Ok(Some(d)) => d,
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Modified document not found" })),
+            ))
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ))
+        }
+    };
+
+    let original_text = strip_html(&original.content);
+    let modified_text = strip_html(&modified.content);
+
+    let mut differences = Vec::new();
+    let mut insertions = 0u32;
+    let mut deletions = 0u32;
+    let mut modifications = 0u32;
+
+    let original_words: Vec<&str> = original_text.split_whitespace().collect();
+    let modified_words: Vec<&str> = modified_text.split_whitespace().collect();
+
+    let mut i = 0;
+    let mut j = 0;
+    let mut position = 0;
+
+    while i < original_words.len() || j < modified_words.len() {
+        if i >= original_words.len() {
+            differences.push(DocumentDiff {
+                diff_type: "insertion".to_string(),
+                position,
+                original_text: None,
+                modified_text: Some(modified_words[j].to_string()),
+                length: modified_words[j].len(),
+            });
+            insertions += 1;
+            j += 1;
+        } else if j >= modified_words.len() {
+            differences.push(DocumentDiff {
+                diff_type: "deletion".to_string(),
+                position,
+                original_text: Some(original_words[i].to_string()),
+                modified_text: None,
+                length: original_words[i].len(),
+            });
+            deletions += 1;
+            i += 1;
+        } else if original_words[i] == modified_words[j] {
+            position += original_words[i].len() + 1;
+            i += 1;
+            j += 1;
+        } else {
+            differences.push(DocumentDiff {
+                diff_type: "modification".to_string(),
+                position,
+                original_text: Some(original_words[i].to_string()),
+                modified_text: Some(modified_words[j].to_string()),
+                length: original_words[i].len().max(modified_words[j].len()),
+            });
+            modifications += 1;
+            position += modified_words[j].len() + 1;
+            i += 1;
+            j += 1;
+        }
+    }
+
+    let comparison = DocumentComparison {
+        id: uuid::Uuid::new_v4().to_string(),
+        original_doc_id: req.original_doc_id,
+        modified_doc_id: req.modified_doc_id,
+        created_at: Utc::now(),
+        differences,
+        summary: ComparisonSummary {
+            insertions,
+            deletions,
+            modifications,
+            total_changes: insertions + deletions + modifications,
+        },
+    };
+
+    Ok(Json(CompareDocumentsResponse { comparison }))
 }
