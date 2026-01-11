@@ -222,13 +222,8 @@ async fn run_axum_server(
         }
     }
 
-    // Use hardened CORS configuration
-    // Origins configured via config.csv cors-allowed-origins or Vault
     let cors = create_cors_layer();
 
-    // Create auth config for protected routes
-    // Session-based auth from Zitadel uses session tokens (not JWTs)
-    // The auth middleware in auth.rs handles both JWT and session token validation
     let auth_config = Arc::new(AuthConfig::from_env()
         .add_anonymous_path("/health")
         .add_anonymous_path("/healthz")
@@ -245,7 +240,6 @@ async fn run_axum_server(
         .add_public_path("/suite")
         .add_public_path("/themes"));
 
-    // Initialize JWT Manager for token validation
     let jwt_secret = std::env::var("JWT_SECRET")
         .unwrap_or_else(|_| {
             warn!("JWT_SECRET not set, using default development secret - DO NOT USE IN PRODUCTION");
@@ -265,17 +259,14 @@ async fn run_axum_server(
         }
     };
 
-    // Initialize RBAC Manager for permission enforcement
     let rbac_config = RbacConfig::default();
     let rbac_manager = Arc::new(RbacManager::new(rbac_config));
 
-    // Register default route permissions
     let default_permissions = build_default_route_permissions();
     rbac_manager.register_routes(default_permissions).await;
     info!("RBAC Manager initialized with {} default route permissions",
         rbac_manager.config().cache_ttl_seconds);
 
-    // Build authentication provider registry
     let auth_provider_registry = {
         let mut builder = AuthProviderBuilder::new()
             .with_api_key_provider(Arc::new(ApiKeyAuthProvider::new()))
@@ -285,7 +276,6 @@ async fn run_axum_server(
             builder = builder.with_jwt_manager(Arc::clone(manager));
         }
 
-        // Check for Zitadel configuration
         let zitadel_configured = std::env::var("ZITADEL_ISSUER_URL").is_ok()
             && std::env::var("ZITADEL_CLIENT_ID").is_ok();
 
@@ -293,15 +283,6 @@ async fn run_axum_server(
             info!("Zitadel environment variables detected - external IdP authentication available");
         }
 
-        // In development mode, allow fallback to anonymous
-        let is_dev = std::env::var("BOTSERVER_ENV")
-            .map(|v| v == "development" || v == "dev")
-            .unwrap_or(true);
-
-        if is_dev {
-            builder = builder.with_fallback(true);
-            warn!("Authentication fallback enabled (development mode) - disable in production");
-        }
 
         Arc::new(builder.build().await)
     };
@@ -309,7 +290,6 @@ async fn run_axum_server(
     info!("Auth provider registry initialized with {} providers",
         auth_provider_registry.provider_count().await);
 
-    // Create auth middleware state for the new provider-based authentication
     let auth_middleware_state = AuthMiddlewareState::new(
         Arc::clone(&auth_config),
         Arc::clone(&auth_provider_registry),
@@ -318,14 +298,12 @@ async fn run_axum_server(
     use crate::core::urls::ApiUrls;
     use crate::core::product::{PRODUCT_CONFIG, get_product_config_json};
 
-    // Initialize product configuration
     {
         let config = PRODUCT_CONFIG.read().expect("Failed to read product config");
         info!("Product: {} | Theme: {} | Apps: {:?}",
             config.name, config.theme, config.get_enabled_apps());
     }
 
-    // Product config endpoint
     async fn get_product_config() -> Json<serde_json::Value> {
         Json(get_product_config_json())
     }
@@ -394,7 +372,7 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
     api_router = api_router.merge(botserver::dashboards::configure_dashboards_routes());
     api_router = api_router.merge(botserver::monitoring::configure());
-    api_router = api_router.merge(crate::security::configure_protection_routes());
+    api_router = api_router.merge(botserver::security::configure_protection_routes());
     api_router = api_router.merge(botserver::settings::configure_settings_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_db_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_app_server_routes());
@@ -621,8 +599,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     let rust_log = {
-        "info,botserver=info,\
-         vaultrs=off,rustify=off,rustify_derive=off,\
+        "vaultrs=off,rustify=off,rustify_derive=off,\
          aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
          aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_sdk_s3=off,aws_config=off,\
          aws_credential_types=off,aws_http=off,aws_sig_auth=off,aws_types=off,\
@@ -1272,9 +1249,8 @@ async fn main() -> std::io::Result<()> {
         record_thread_activity("llm-server-init");
     });
     trace!("Initial data setup task spawned");
-    trace!("All background tasks spawned, starting HTTP server...");
+    trace!("All system threads started, starting HTTP server...");
 
-    trace!("Starting HTTP server on port {}...", config.server.port);
     info!("Starting HTTP server on port {}...", config.server.port);
     if let Err(e) = run_axum_server(app_state, config.server.port, worker_count).await {
         error!("Failed to start HTTP server: {}", e);
