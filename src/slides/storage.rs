@@ -1,18 +1,26 @@
 use crate::shared::state::AppState;
+use crate::slides::ooxml::{load_pptx_preserving, update_pptx_text};
 use crate::slides::types::{
     ElementContent, ElementStyle, Presentation, PresentationMetadata, Slide,
     SlideBackground, SlideElement,
 };
 use crate::slides::utils::{create_content_slide, create_default_theme, create_title_slide};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
+use std::collections::HashMap;
 use std::io::{Cursor, Read, Write};
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::{ZipArchive, ZipWriter};
 
+static PRESENTATION_CACHE: once_cell::sync::Lazy<RwLock<HashMap<String, (Vec<u8>, DateTime<Utc>)>>> =
+    once_cell::sync::Lazy::new(|| RwLock::new(HashMap::new()));
+
+const CACHE_TTL_SECS: i64 = 3600;
+
 pub fn get_user_presentations_path(user_id: &str) -> String {
-    format!("users/{}/presentations", user_id)
+    format!("users/{user_id}/presentations")
 }
 
 pub fn get_current_user_id() -> String {
@@ -23,10 +31,28 @@ pub fn generate_presentation_id() -> String {
     Uuid::new_v4().to_string()
 }
 
+pub async fn cache_presentation_bytes(pres_id: &str, bytes: Vec<u8>) {
+    let mut cache = PRESENTATION_CACHE.write().await;
+    cache.insert(pres_id.to_string(), (bytes, Utc::now()));
+
+    let now = Utc::now();
+    cache.retain(|_, (_, modified)| (now - *modified).num_seconds() < CACHE_TTL_SECS);
+}
+
+pub async fn get_cached_presentation_bytes(pres_id: &str) -> Option<Vec<u8>> {
+    let cache = PRESENTATION_CACHE.read().await;
+    cache.get(pres_id).map(|(bytes, _)| bytes.clone())
+}
+
+pub async fn remove_from_cache(pres_id: &str) {
+    let mut cache = PRESENTATION_CACHE.write().await;
+    cache.remove(pres_id);
+}
+
 fn extract_id_from_path(path: &str) -> String {
     path.split('/')
         .last()
-        .unwrap_or("")
+        .unwrap_or_default()
         .trim_end_matches(".json")
         .trim_end_matches(".pptx")
         .to_string()
@@ -68,7 +94,22 @@ pub async fn save_presentation_as_pptx(
     user_id: &str,
     presentation: &Presentation,
 ) -> Result<Vec<u8>, String> {
-    let pptx_bytes = convert_to_pptx(presentation)?;
+    let pptx_bytes = if let Some(original_bytes) = get_cached_presentation_bytes(&presentation.id).await {
+        let slide_texts: Vec<Vec<String>> = presentation.slides.iter().map(|slide| {
+            slide.elements.iter().filter_map(|el| {
+                if let ElementContent::Text { text, .. } = &el.content {
+                    Some(text.clone())
+                } else {
+                    None
+                }
+            }).collect()
+        }).collect();
+        update_pptx_text(&original_bytes, &slide_texts).unwrap_or_else(|_| {
+            convert_to_pptx(presentation).unwrap_or_default()
+        })
+    } else {
+        convert_to_pptx(presentation)?
+    };
 
     let drive = state
         .drive
@@ -484,12 +525,13 @@ pub async fn load_pptx_from_drive(
         .collect()
         .await
         .map_err(|e| format!("Failed to read PPTX: {e}"))?
-        .into_bytes();
+        .into_bytes()
+        .to_vec();
 
-    load_pptx_from_bytes(&bytes, user_id, file_path)
+    load_pptx_from_bytes(&bytes, user_id, file_path).await
 }
 
-pub fn load_pptx_from_bytes(
+pub async fn load_pptx_from_bytes(
     bytes: &[u8],
     user_id: &str,
     file_path: &str,
@@ -504,6 +546,10 @@ pub fn load_pptx_from_bytes(
         .unwrap_or("Untitled")
         .trim_end_matches(".pptx")
         .trim_end_matches(".ppt");
+
+    let pres_id = generate_presentation_id();
+
+    cache_presentation_bytes(&pres_id, bytes.to_vec()).await;
 
     let mut slides = Vec::new();
     let mut slide_num = 1;
@@ -528,7 +574,7 @@ pub fn load_pptx_from_bytes(
     }
 
     Ok(Presentation {
-        id: generate_presentation_id(),
+        id: pres_id,
         name: file_name.to_string(),
         owner_id: user_id.to_string(),
         slides,
