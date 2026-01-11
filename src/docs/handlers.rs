@@ -6,7 +6,7 @@ use crate::docs::types::{
     DocsSaveRequest, DocsSaveResponse, DocsAiRequest, DocsAiResponse, Document, DocumentMetadata,
     SearchQuery, TemplateResponse,
 };
-use crate::docs::utils::{html_to_markdown, strip_html};
+use crate::docs::utils::{convert_to_html, detect_document_format, html_to_markdown, markdown_to_html, rtf_to_html, strip_html};
 use crate::docs::types::{
     AcceptRejectAllRequest, AcceptRejectChangeRequest, AddCommentRequest, AddEndnoteRequest,
     AddFootnoteRequest, ApplyStyleRequest, CompareDocumentsRequest, CompareDocumentsResponse,
@@ -1573,6 +1573,65 @@ pub async fn handle_get_outline(
     items.sort_by_key(|i| i.position);
 
     Ok(Json(OutlineResponse { items }))
+}
+
+pub async fn handle_import_document(
+    State(state): State<Arc<AppState>>,
+    mut multipart: axum::extract::Multipart,
+) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
+    let mut file_bytes: Option<Vec<u8>> = None;
+    let mut filename = "import.docx".to_string();
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        if field.name() == Some("file") {
+            filename = field.file_name().unwrap_or("import.docx").to_string();
+            if let Ok(bytes) = field.bytes().await {
+                file_bytes = Some(bytes.to_vec());
+            }
+        }
+    }
+
+    let bytes = file_bytes.ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "No file uploaded" })),
+        )
+    })?;
+
+    let format = detect_document_format(&bytes);
+    let content = match format {
+        "rtf" => rtf_to_html(&String::from_utf8_lossy(&bytes)),
+        "html" => String::from_utf8_lossy(&bytes).to_string(),
+        "markdown" => markdown_to_html(&String::from_utf8_lossy(&bytes)),
+        "txt" => {
+            let text = String::from_utf8_lossy(&bytes);
+            format!("<p>{}</p>", text.replace('\n', "</p><p>"))
+        }
+        _ => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": format!("Unsupported format: {}", format) })),
+            ))
+        }
+    };
+
+    let title = filename.rsplit('/').next().unwrap_or(&filename)
+        .rsplit('.').last().unwrap_or(&filename)
+        .to_string();
+
+    let user_id = get_current_user_id();
+    let mut doc = create_new_document(&title);
+    doc.content = content;
+    doc.owner_id = user_id.clone();
+
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(doc))
 }
 
 pub async fn handle_compare_documents(
