@@ -211,8 +211,9 @@ rust_xlsxwriter = "0.79"
 spreadsheet-ods = "1.0"
 
 # Word/PowerPoint Support - MS Office 100% Compatibility
+# ooxmlsdk preserves: Full document structure at XML level (100% round-trip)
 docx-rs = "0.4"
-ooxmlsdk = { version = "0.3", features = ["docx", "pptx"] }
+ooxmlsdk = { version = "0.3", features = ["docx", "pptx", "parts", "office2021"] }
 # ppt-rs disabled due to version conflict - using ooxmlsdk for PPTX support instead
 # ppt-rs = { version = "0.2", default-features = false }
 

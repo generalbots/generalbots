@@ -1,16 +1,24 @@
+use crate::docs::ooxml::{load_docx_preserving, update_docx_text};
 use crate::docs::types::{Document, DocumentMetadata};
 use crate::shared::state::AppState;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
+use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
+
+static DOCUMENT_CACHE: once_cell::sync::Lazy<RwLock<HashMap<String, (Vec<u8>, DateTime<Utc>)>>> =
+    once_cell::sync::Lazy::new(|| RwLock::new(HashMap::new()));
+
+const CACHE_TTL_SECS: i64 = 3600;
 
 pub fn get_user_docs_path(user_identifier: &str) -> String {
     let safe_id = user_identifier
         .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
         .to_lowercase();
-    format!("users/{}/docs", safe_id)
+    format!("users/{safe_id}/docs")
 }
 
 pub fn get_current_user_id() -> String {
@@ -21,287 +29,22 @@ pub fn generate_doc_id() -> String {
     Uuid::new_v4().to_string()
 }
 
-pub async fn save_document_to_drive(
-    state: &Arc<AppState>,
-    user_identifier: &str,
-    doc_id: &str,
-    title: &str,
-    content: &str,
-) -> Result<String, String> {
-    let s3_client = state.drive.as_ref().ok_or("S3 service not available")?;
+pub async fn cache_document_bytes(doc_id: &str, bytes: Vec<u8>) {
+    let mut cache = DOCUMENT_CACHE.write().await;
+    cache.insert(doc_id.to_string(), (bytes, Utc::now()));
 
-    let base_path = get_user_docs_path(user_identifier);
-    let doc_path = format!("{}/{}.html", base_path, doc_id);
-    let meta_path = format!("{}/{}.meta.json", base_path, doc_id);
-
-    s3_client
-        .put_object()
-        .bucket(&state.bucket_name)
-        .key(&doc_path)
-        .body(ByteStream::from(content.as_bytes().to_vec()))
-        .content_type("text/html")
-        .send()
-        .await
-        .map_err(|e| format!("Failed to save document: {e}"))?;
-
-    let word_count = content
-        .split_whitespace()
-        .filter(|w| !w.starts_with('<') && !w.ends_with('>'))
-        .count();
-
-    let metadata = serde_json::json!({
-        "id": doc_id,
-        "title": title,
-        "created_at": Utc::now().to_rfc3339(),
-        "updated_at": Utc::now().to_rfc3339(),
-        "word_count": word_count,
-        "version": 1
-    });
-
-    s3_client
-        .put_object()
-        .bucket(&state.bucket_name)
-        .key(&meta_path)
-        .body(ByteStream::from(metadata.to_string().into_bytes()))
-        .content_type("application/json")
-        .send()
-        .await
-        .map_err(|e| format!("Failed to save metadata: {e}"))?;
-
-    Ok(doc_path)
+    let now = Utc::now();
+    cache.retain(|_, (_, modified)| (now - *modified).num_seconds() < CACHE_TTL_SECS);
 }
 
-pub async fn save_document_as_docx(
-    state: &Arc<AppState>,
-    user_identifier: &str,
-    doc_id: &str,
-    title: &str,
-    content: &str,
-) -> Result<Vec<u8>, String> {
-    let docx_bytes = convert_html_to_docx(title, content)?;
-
-    let s3_client = state.drive.as_ref().ok_or("S3 service not available")?;
-    let base_path = get_user_docs_path(user_identifier);
-    let docx_path = format!("{}/{}.docx", base_path, doc_id);
-
-    s3_client
-        .put_object()
-        .bucket(&state.bucket_name)
-        .key(&docx_path)
-        .body(ByteStream::from(docx_bytes.clone()))
-        .content_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-        .send()
-        .await
-        .map_err(|e| format!("Failed to save DOCX: {e}"))?;
-
-    Ok(docx_bytes)
+pub async fn get_cached_document_bytes(doc_id: &str) -> Option<Vec<u8>> {
+    let cache = DOCUMENT_CACHE.read().await;
+    cache.get(doc_id).map(|(bytes, _)| bytes.clone())
 }
 
-pub fn convert_html_to_docx(title: &str, html_content: &str) -> Result<Vec<u8>, String> {
-    use docx_rs::*;
-
-    let mut docx = Docx::new();
-
-    if !title.is_empty() {
-        let title_para = Paragraph::new()
-            .add_run(Run::new().add_text(title).bold().size(48));
-        docx = docx.add_paragraph(title_para);
-        docx = docx.add_paragraph(Paragraph::new());
-    }
-
-    let paragraphs = parse_html_to_paragraphs(html_content);
-    for para_data in paragraphs {
-        let mut paragraph = Paragraph::new();
-
-        match para_data.style.as_str() {
-            "h1" => {
-                paragraph = paragraph.add_run(
-                    Run::new()
-                        .add_text(&para_data.text)
-                        .bold()
-                        .size(32)
-                );
-            }
-            "h2" => {
-                paragraph = paragraph.add_run(
-                    Run::new()
-                        .add_text(&para_data.text)
-                        .bold()
-                        .size(28)
-                );
-            }
-            "h3" => {
-                paragraph = paragraph.add_run(
-                    Run::new()
-                        .add_text(&para_data.text)
-                        .bold()
-                        .size(24)
-                );
-            }
-            "li" => {
-                paragraph = paragraph
-                    .add_run(Run::new().add_text("• "))
-                    .add_run(Run::new().add_text(&para_data.text));
-            }
-            "blockquote" => {
-                paragraph = paragraph
-                    .indent(Some(720), None, None, None)
-                    .add_run(Run::new().add_text(&para_data.text).italic());
-            }
-            "code" => {
-                paragraph = paragraph.add_run(
-                    Run::new()
-                        .add_text(&para_data.text)
-                        .fonts(RunFonts::new().ascii("Courier New"))
-                );
-            }
-            _ => {
-                let mut run = Run::new().add_text(&para_data.text);
-                if para_data.bold {
-                    run = run.bold();
-                }
-                if para_data.italic {
-                    run = run.italic();
-                }
-                if para_data.underline {
-                    run = run.underline("single");
-                }
-                paragraph = paragraph.add_run(run);
-            }
-        }
-
-        docx = docx.add_paragraph(paragraph);
-    }
-
-    let mut buf = Cursor::new(Vec::new());
-    docx.build()
-        .pack(&mut buf)
-        .map_err(|e| format!("Failed to build DOCX: {e}"))?;
-
-    Ok(buf.into_inner())
-}
-
-#[derive(Default)]
-struct ParagraphData {
-    text: String,
-    style: String,
-    bold: bool,
-    italic: bool,
-    underline: bool,
-}
-
-fn parse_html_to_paragraphs(html: &str) -> Vec<ParagraphData> {
-    let mut paragraphs = Vec::new();
-    let mut current = ParagraphData::default();
-    let mut in_tag = false;
-    let mut tag_name = String::new();
-    let mut is_closing = false;
-    let mut text_buffer = String::new();
-
-    let mut bold_stack: i32 = 0;
-    let mut italic_stack: i32 = 0;
-    let mut underline_stack: i32 = 0;
-
-    for ch in html.chars() {
-        match ch {
-            '<' => {
-                in_tag = true;
-                tag_name.clear();
-                is_closing = false;
-            }
-            '>' => {
-                in_tag = false;
-                let tag = tag_name.to_lowercase();
-                let tag_trimmed = tag.split_whitespace().next().unwrap_or("");
-
-                if is_closing {
-                    match tag_trimmed {
-                        "p" | "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "li" | "blockquote" | "pre" => {
-                            if !text_buffer.is_empty() || !current.text.is_empty() {
-                                current.text = format!("{}{}", current.text, decode_html_entities(&text_buffer));
-                                if !current.text.trim().is_empty() {
-                                    paragraphs.push(current);
-                                }
-                                current = ParagraphData::default();
-                                text_buffer.clear();
-                            }
-                        }
-                        "b" | "strong" => bold_stack = bold_stack.saturating_sub(1),
-                        "i" | "em" => italic_stack = italic_stack.saturating_sub(1),
-                        "u" => underline_stack = underline_stack.saturating_sub(1),
-                        _ => {}
-                    }
-                } else {
-                    match tag_trimmed {
-                        "br" => {
-                            text_buffer.push('\n');
-                        }
-                        "p" | "div" => {
-                            if !text_buffer.is_empty() {
-                                current.text = format!("{}{}", current.text, decode_html_entities(&text_buffer));
-                                text_buffer.clear();
-                            }
-                            current.style = "p".to_string();
-                            current.bold = bold_stack > 0;
-                            current.italic = italic_stack > 0;
-                            current.underline = underline_stack > 0;
-                        }
-                        "h1" => {
-                            current.style = "h1".to_string();
-                        }
-                        "h2" => {
-                            current.style = "h2".to_string();
-                        }
-                        "h3" => {
-                            current.style = "h3".to_string();
-                        }
-                        "li" => {
-                            current.style = "li".to_string();
-                        }
-                        "blockquote" => {
-                            current.style = "blockquote".to_string();
-                        }
-                        "pre" | "code" => {
-                            current.style = "code".to_string();
-                        }
-                        "b" | "strong" => bold_stack += 1,
-                        "i" | "em" => italic_stack += 1,
-                        "u" => underline_stack += 1,
-                        _ => {}
-                    }
-                }
-                tag_name.clear();
-            }
-            '/' if in_tag && tag_name.is_empty() => {
-                is_closing = true;
-            }
-            _ if in_tag => {
-                tag_name.push(ch);
-            }
-            _ => {
-                text_buffer.push(ch);
-            }
-        }
-    }
-
-    if !text_buffer.is_empty() {
-        current.text = format!("{}{}", current.text, decode_html_entities(&text_buffer));
-    }
-    if !current.text.trim().is_empty() {
-        paragraphs.push(current);
-    }
-
-    paragraphs
-}
-
-fn decode_html_entities(text: &str) -> String {
-    text.replace("&nbsp;", " ")
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&apos;", "'")
+pub async fn remove_from_cache(doc_id: &str) {
+    let mut cache = DOCUMENT_CACHE.write().await;
+    cache.remove(doc_id);
 }
 
 pub async fn load_docx_from_drive(
@@ -324,12 +67,13 @@ pub async fn load_docx_from_drive(
         .collect()
         .await
         .map_err(|e| format!("Failed to read DOCX: {e}"))?
-        .into_bytes();
+        .into_bytes()
+        .to_vec();
 
-    load_docx_from_bytes(&bytes, user_identifier, file_path)
+    load_docx_from_bytes(&bytes, user_identifier, file_path).await
 }
 
-pub fn load_docx_from_bytes(
+pub async fn load_docx_from_bytes(
     bytes: &[u8],
     user_identifier: &str,
     file_path: &str,
@@ -341,11 +85,20 @@ pub fn load_docx_from_bytes(
         .trim_end_matches(".docx")
         .trim_end_matches(".doc");
 
-    let html_content = convert_docx_to_html(bytes)?;
-    let word_count = count_words(&html_content);
+    let doc_id = generate_doc_id();
+
+    cache_document_bytes(&doc_id, bytes.to_vec()).await;
+
+    let html_content = match load_docx_preserving(bytes) {
+        Ok(ooxml_doc) => {
+            let texts: Vec<String> = ooxml_doc.paragraphs.iter().map(|p| p.text.clone()).collect();
+            paragraphs_to_html(&texts)
+        }
+        Err(_) => convert_docx_to_html(bytes)?,
+    };
 
     Ok(Document {
-        id: generate_doc_id(),
+        id: doc_id,
         title: file_name.to_string(),
         content: html_content,
         owner_id: user_identifier.to_string(),
@@ -358,8 +111,7 @@ pub fn load_docx_from_bytes(
 }
 
 pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
-    let docx = docx_rs::read_docx(bytes)
-        .map_err(|e| format!("Failed to parse DOCX: {e}"))?;
+    let docx = docx_rs::read_docx(bytes).map_err(|e| format!("Failed to parse DOCX: {e}"))?;
 
     let mut html = String::new();
 
@@ -389,13 +141,9 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
                 for content in &para.children {
                     if let docx_rs::ParagraphChild::Run(run) = content {
                         let mut run_text = String::new();
-                        let mut is_bold = false;
-                        let mut is_italic = false;
-                        let mut is_underline = false;
-
-                        is_bold = run.run_property.bold.is_some();
-                        is_italic = run.run_property.italic.is_some();
-                        is_underline = run.run_property.underline.is_some();
+                        let is_bold = run.run_property.bold.is_some();
+                        let is_italic = run.run_property.italic.is_some();
+                        let is_underline = run.run_property.underline.is_some();
 
                         for child in &run.children {
                             match child {
@@ -473,12 +221,157 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
     Ok(html)
 }
 
-fn escape_html(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#39;")
+pub async fn save_document_as_docx(
+    state: &Arc<AppState>,
+    user_identifier: &str,
+    doc_id: &str,
+    title: &str,
+    content: &str,
+) -> Result<Vec<u8>, String> {
+    let docx_bytes = if let Some(original_bytes) = get_cached_document_bytes(doc_id).await {
+        let paragraphs = html_to_paragraphs(content);
+        update_docx_text(&original_bytes, &paragraphs).unwrap_or_else(|_| {
+            convert_html_to_docx(title, content).unwrap_or_default()
+        })
+    } else {
+        convert_html_to_docx(title, content)?
+    };
+
+    let s3_client = state.drive.as_ref().ok_or("S3 service not available")?;
+    let base_path = get_user_docs_path(user_identifier);
+    let docx_path = format!("{base_path}/{doc_id}.docx");
+
+    s3_client
+        .put_object()
+        .bucket(&state.bucket_name)
+        .key(&docx_path)
+        .body(ByteStream::from(docx_bytes.clone()))
+        .content_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to save DOCX: {e}"))?;
+
+    cache_document_bytes(doc_id, docx_bytes.clone()).await;
+
+    Ok(docx_bytes)
+}
+
+pub fn convert_html_to_docx(title: &str, html_content: &str) -> Result<Vec<u8>, String> {
+    use docx_rs::*;
+
+    let mut docx = Docx::new();
+
+    if !title.is_empty() {
+        let title_para = Paragraph::new().add_run(Run::new().add_text(title).bold().size(48));
+        docx = docx.add_paragraph(title_para);
+        docx = docx.add_paragraph(Paragraph::new());
+    }
+
+    let paragraphs = parse_html_to_paragraphs(html_content);
+    for para_data in paragraphs {
+        let mut paragraph = Paragraph::new();
+
+        match para_data.style.as_str() {
+            "h1" => {
+                paragraph =
+                    paragraph.add_run(Run::new().add_text(&para_data.text).bold().size(32));
+            }
+            "h2" => {
+                paragraph =
+                    paragraph.add_run(Run::new().add_text(&para_data.text).bold().size(28));
+            }
+            "h3" => {
+                paragraph =
+                    paragraph.add_run(Run::new().add_text(&para_data.text).bold().size(24));
+            }
+            "li" => {
+                paragraph = paragraph
+                    .add_run(Run::new().add_text("• "))
+                    .add_run(Run::new().add_text(&para_data.text));
+            }
+            "blockquote" => {
+                paragraph = paragraph
+                    .indent(Some(720), None, None, None)
+                    .add_run(Run::new().add_text(&para_data.text).italic());
+            }
+            "code" => {
+                paragraph = paragraph.add_run(
+                    Run::new()
+                        .add_text(&para_data.text)
+                        .fonts(RunFonts::new().ascii("Courier New")),
+                );
+            }
+            _ => {
+                let mut run = Run::new().add_text(&para_data.text);
+                if para_data.bold {
+                    run = run.bold();
+                }
+                if para_data.italic {
+                    run = run.italic();
+                }
+                if para_data.underline {
+                    run = run.underline("single");
+                }
+                paragraph = paragraph.add_run(run);
+            }
+        }
+
+        docx = docx.add_paragraph(paragraph);
+    }
+
+    let mut buf = Cursor::new(Vec::new());
+    docx.build()
+        .pack(&mut buf)
+        .map_err(|e| format!("Failed to build DOCX: {e}"))?;
+
+    Ok(buf.into_inner())
+}
+
+pub async fn save_document_to_drive(
+    state: &Arc<AppState>,
+    user_identifier: &str,
+    doc_id: &str,
+    title: &str,
+    content: &str,
+) -> Result<String, String> {
+    let s3_client = state.drive.as_ref().ok_or("S3 service not available")?;
+
+    let base_path = get_user_docs_path(user_identifier);
+    let doc_path = format!("{base_path}/{doc_id}.html");
+    let meta_path = format!("{base_path}/{doc_id}.meta.json");
+
+    s3_client
+        .put_object()
+        .bucket(&state.bucket_name)
+        .key(&doc_path)
+        .body(ByteStream::from(content.as_bytes().to_vec()))
+        .content_type("text/html")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to save document: {e}"))?;
+
+    let word_count = count_words(content);
+
+    let metadata = serde_json::json!({
+        "id": doc_id,
+        "title": title,
+        "created_at": Utc::now().to_rfc3339(),
+        "updated_at": Utc::now().to_rfc3339(),
+        "word_count": word_count,
+        "version": 1
+    });
+
+    s3_client
+        .put_object()
+        .bucket(&state.bucket_name)
+        .key(&meta_path)
+        .body(ByteStream::from(metadata.to_string().into_bytes()))
+        .content_type("application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to save metadata: {e}"))?;
+
+    Ok(doc_path)
 }
 
 pub async fn load_document_from_drive(
@@ -489,8 +382,8 @@ pub async fn load_document_from_drive(
     let s3_client = state.drive.as_ref().ok_or("S3 service not available")?;
 
     let base_path = get_user_docs_path(user_identifier);
-    let doc_path = format!("{}/{}.html", base_path, doc_id);
-    let meta_path = format!("{}/{}.meta.json", base_path, doc_id);
+    let doc_path = format!("{base_path}/{doc_id}.html");
+    let meta_path = format!("{base_path}/{doc_id}.meta.json");
 
     let content = match s3_client
         .get_object()
@@ -564,7 +457,7 @@ pub async fn list_documents_from_drive(
     let s3_client = state.drive.as_ref().ok_or("S3 service not available")?;
 
     let base_path = get_user_docs_path(user_identifier);
-    let prefix = format!("{}/", base_path);
+    let prefix = format!("{base_path}/");
     let mut documents = Vec::new();
 
     if let Ok(result) = s3_client
@@ -590,10 +483,7 @@ pub async fn list_documents_from_drive(
                                     serde_json::from_str::<serde_json::Value>(&meta_str)
                                 {
                                     let doc_meta = DocumentMetadata {
-                                        id: meta["id"]
-                                            .as_str()
-                                            .unwrap_or_default()
-                                            .to_string(),
+                                        id: meta["id"].as_str().unwrap_or_default().to_string(),
                                         title: meta["title"]
                                             .as_str()
                                             .unwrap_or("Untitled")
@@ -611,7 +501,7 @@ pub async fn list_documents_from_drive(
                                             .unwrap_or_else(Utc::now),
                                         word_count: meta["word_count"].as_u64().unwrap_or(0)
                                             as usize,
-                                        storage_type: "drive".to_string(),
+                                        storage_type: "html".to_string(),
                                     };
                                     documents.push(doc_meta);
                                 }
@@ -635,40 +525,28 @@ pub async fn delete_document_from_drive(
     let s3_client = state.drive.as_ref().ok_or("S3 service not available")?;
 
     let base_path = get_user_docs_path(user_identifier);
-    let doc_path = format!("{}/{}.html", base_path, doc_id);
-    let meta_path = format!("{}/{}.meta.json", base_path, doc_id);
-    let docx_path = format!("{}/{}.docx", base_path, doc_id);
 
-    let _ = s3_client
-        .delete_object()
-        .bucket(&state.bucket_name)
-        .key(&doc_path)
-        .send()
-        .await;
+    for ext in &[".html", ".docx", ".meta.json"] {
+        let path = format!("{base_path}/{doc_id}{ext}");
+        let _ = s3_client
+            .delete_object()
+            .bucket(&state.bucket_name)
+            .key(&path)
+            .send()
+            .await;
+    }
 
-    let _ = s3_client
-        .delete_object()
-        .bucket(&state.bucket_name)
-        .key(&meta_path)
-        .send()
-        .await;
-
-    let _ = s3_client
-        .delete_object()
-        .bucket(&state.bucket_name)
-        .key(&docx_path)
-        .send()
-        .await;
+    remove_from_cache(doc_id).await;
 
     Ok(())
 }
 
 pub fn create_new_document() -> Document {
-    let id = generate_doc_id();
+    let doc_id = generate_doc_id();
     Document {
-        id: id.clone(),
+        id: doc_id,
         title: "Untitled Document".to_string(),
-        content: String::new(),
+        content: "<p><br></p>".to_string(),
         owner_id: get_current_user_id(),
         storage_path: String::new(),
         created_at: Utc::now(),
@@ -705,4 +583,147 @@ fn strip_html(html: &str) -> String {
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
+}
+
+fn escape_html(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+}
+
+fn paragraphs_to_html(paragraphs: &[String]) -> String {
+    paragraphs
+        .iter()
+        .map(|p| format!("<p>{}</p>", escape_html(p)))
+        .collect::<Vec<_>>()
+        .join("")
+}
+
+fn html_to_paragraphs(html: &str) -> Vec<String> {
+    parse_html_to_paragraphs(html)
+        .into_iter()
+        .map(|p| p.text)
+        .collect()
+}
+
+#[derive(Default, Clone)]
+struct ParagraphData {
+    text: String,
+    style: String,
+    bold: bool,
+    italic: bool,
+    underline: bool,
+}
+
+fn parse_html_to_paragraphs(html: &str) -> Vec<ParagraphData> {
+    let mut paragraphs = Vec::new();
+    let mut current = ParagraphData::default();
+    let mut in_tag = false;
+    let mut tag_name = String::new();
+    let mut is_closing = false;
+    let mut text_buffer = String::new();
+
+    let mut bold_stack: i32 = 0;
+    let mut italic_stack: i32 = 0;
+    let mut underline_stack: i32 = 0;
+
+    for ch in html.chars() {
+        match ch {
+            '<' => {
+                in_tag = true;
+                tag_name.clear();
+                is_closing = false;
+            }
+            '>' => {
+                in_tag = false;
+                let tag = tag_name.to_lowercase();
+                let tag_trimmed = tag.split_whitespace().next().unwrap_or("");
+
+                if is_closing {
+                    match tag_trimmed {
+                        "p" | "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "li"
+                        | "blockquote" | "pre" => {
+                            if !text_buffer.is_empty() || !current.text.is_empty() {
+                                current.text = format!(
+                                    "{}{}",
+                                    current.text,
+                                    decode_html_entities(&text_buffer)
+                                );
+                                if !current.text.trim().is_empty() {
+                                    paragraphs.push(current);
+                                }
+                                current = ParagraphData::default();
+                                text_buffer.clear();
+                            }
+                        }
+                        "b" | "strong" => bold_stack = bold_stack.saturating_sub(1),
+                        "i" | "em" => italic_stack = italic_stack.saturating_sub(1),
+                        "u" => underline_stack = underline_stack.saturating_sub(1),
+                        _ => {}
+                    }
+                } else {
+                    match tag_trimmed {
+                        "br" => {
+                            text_buffer.push('\n');
+                        }
+                        "p" | "div" => {
+                            if !text_buffer.is_empty() {
+                                current.text = format!(
+                                    "{}{}",
+                                    current.text,
+                                    decode_html_entities(&text_buffer)
+                                );
+                                text_buffer.clear();
+                            }
+                            current.style = "p".to_string();
+                            current.bold = bold_stack > 0;
+                            current.italic = italic_stack > 0;
+                            current.underline = underline_stack > 0;
+                        }
+                        "h1" => current.style = "h1".to_string(),
+                        "h2" => current.style = "h2".to_string(),
+                        "h3" => current.style = "h3".to_string(),
+                        "li" => current.style = "li".to_string(),
+                        "blockquote" => current.style = "blockquote".to_string(),
+                        "pre" | "code" => current.style = "code".to_string(),
+                        "b" | "strong" => bold_stack += 1,
+                        "i" | "em" => italic_stack += 1,
+                        "u" => underline_stack += 1,
+                        _ => {}
+                    }
+                }
+                tag_name.clear();
+            }
+            '/' if in_tag && tag_name.is_empty() => {
+                is_closing = true;
+            }
+            _ if in_tag => {
+                tag_name.push(ch);
+            }
+            _ => {
+                text_buffer.push(ch);
+            }
+        }
+    }
+
+    if !text_buffer.is_empty() {
+        current.text = format!("{}{}", current.text, decode_html_entities(&text_buffer));
+    }
+    if !current.text.trim().is_empty() {
+        paragraphs.push(current);
+    }
+
+    paragraphs
+}
+
+fn decode_html_entities(text: &str) -> String {
+    text.replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&apos;", "'")
 }
