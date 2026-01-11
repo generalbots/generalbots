@@ -1,5 +1,6 @@
 pub mod collaboration;
 pub mod handlers;
+pub mod ooxml;
 pub mod storage;
 pub mod types;
 pub mod utils;
