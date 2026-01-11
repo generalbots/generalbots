@@ -1,21 +1,21 @@
 use crate::docs::storage::{
     create_new_document, delete_document_from_drive, get_current_user_id,
-    list_documents_from_drive, load_document_from_drive, save_document_to_drive,
+    list_documents_from_drive, load_document_from_drive, save_document, save_document_to_drive,
 };
 use crate::docs::types::{
     DocsSaveRequest, DocsSaveResponse, DocsAiRequest, DocsAiResponse, Document, DocumentMetadata,
     SearchQuery, TemplateResponse,
 };
-use crate::docs::utils::{convert_to_html, detect_document_format, html_to_markdown, markdown_to_html, rtf_to_html, strip_html};
+use crate::docs::utils::{detect_document_format, html_to_markdown, markdown_to_html, rtf_to_html, strip_html};
 use crate::docs::types::{
     AcceptRejectAllRequest, AcceptRejectChangeRequest, AddCommentRequest, AddEndnoteRequest,
     AddFootnoteRequest, ApplyStyleRequest, CompareDocumentsRequest, CompareDocumentsResponse,
     CommentReply, ComparisonSummary, CreateStyleRequest, DeleteCommentRequest, DeleteEndnoteRequest,
     DeleteFootnoteRequest, DeleteStyleRequest, DocumentComment, DocumentComparison, DocumentDiff,
-    DocumentStyle, EnableTrackChangesRequest, Endnote, Footnote, GenerateTocRequest,
+    EnableTrackChangesRequest, Endnote, Footnote, GenerateTocRequest,
     GetOutlineRequest, ListCommentsResponse, ListEndnotesResponse, ListFootnotesResponse,
     ListStylesResponse, ListTrackChangesResponse, OutlineItem, OutlineResponse, ReplyCommentRequest,
-    ResolveCommentRequest, TableOfContents, TocEntry, TocResponse, TrackChange, UpdateEndnoteRequest,
+    ResolveCommentRequest, TableOfContents, TocEntry, TocResponse, UpdateEndnoteRequest,
     UpdateFootnoteRequest, UpdateStyleRequest, UpdateTocRequest,
 };
 use crate::shared::state::AppState;
@@ -25,6 +25,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use chrono::Utc;
 use docx_rs::{AlignmentType, Docx, Paragraph, Run};
 use log::error;
 use std::sync::Arc;
@@ -601,7 +602,7 @@ pub async fn handle_add_comment(
     comments.push(comment.clone());
     doc.updated_at = Utc::now();
 
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -650,7 +651,7 @@ pub async fn handle_reply_comment(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -692,7 +693,7 @@ pub async fn handle_resolve_comment(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -728,7 +729,7 @@ pub async fn handle_delete_comment(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -788,7 +789,7 @@ pub async fn handle_enable_track_changes(
     doc.track_changes_enabled = req.enabled;
     doc.updated_at = Utc::now();
 
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -829,7 +830,7 @@ pub async fn handle_accept_reject_change(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -867,7 +868,7 @@ pub async fn handle_accept_reject_all(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -929,7 +930,7 @@ pub async fn handle_generate_toc(
 
     let mut entries = Vec::new();
     let content = &doc.content;
-    let mut position = 0;
+
 
     for level in 1..=req.max_level {
         let tag = format!("<h{level}>");
@@ -955,7 +956,7 @@ pub async fn handle_generate_toc(
                 break;
             }
         }
-        position = search_pos;
+
     }
 
     entries.sort_by_key(|e| e.position);
@@ -972,7 +973,7 @@ pub async fn handle_generate_toc(
     doc.toc = Some(toc.clone());
     doc.updated_at = Utc::now();
 
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1056,7 +1057,7 @@ pub async fn handle_add_footnote(
     footnotes.push(footnote.clone());
     doc.updated_at = Utc::now();
 
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1097,7 +1098,7 @@ pub async fn handle_update_footnote(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1136,7 +1137,7 @@ pub async fn handle_delete_footnote(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1206,7 +1207,7 @@ pub async fn handle_add_endnote(
     endnotes.push(endnote.clone());
     doc.updated_at = Utc::now();
 
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1264,7 +1265,7 @@ pub async fn handle_update_endnote(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1303,7 +1304,7 @@ pub async fn handle_delete_endnote(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1364,7 +1365,7 @@ pub async fn handle_create_style(
     styles.push(req.style.clone());
     doc.updated_at = Utc::now();
 
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1405,7 +1406,7 @@ pub async fn handle_update_style(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1441,7 +1442,7 @@ pub async fn handle_delete_style(
     }
 
     doc.updated_at = Utc::now();
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),
@@ -1620,11 +1621,12 @@ pub async fn handle_import_document(
         .to_string();
 
     let user_id = get_current_user_id();
-    let mut doc = create_new_document(&title);
+    let mut doc = create_new_document();
+    doc.title = title;
     doc.content = content;
     doc.owner_id = user_id.clone();
 
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc).await {
+    if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e })),

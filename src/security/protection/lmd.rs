@@ -4,7 +4,6 @@ use tracing::info;
 use crate::security::command_guard::SafeCommand;
 use super::manager::{Finding, FindingSeverity, ScanResultStatus};
 
-const LMD_LOG_DIR: &str = "/usr/local/maldetect/logs";
 const LMD_QUARANTINE_DIR: &str = "/usr/local/maldetect/quarantine";
 
 pub async fn run_scan(path: Option<&str>) -> Result<(ScanResultStatus, Vec<Finding>, String)> {
