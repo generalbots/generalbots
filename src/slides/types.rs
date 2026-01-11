@@ -2,6 +2,105 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CollaborationCursor {
+    pub user_id: String,
+    pub user_name: String,
+    pub user_color: String,
+    pub slide_index: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub element_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y: Option<f64>,
+    pub last_activity: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CollaborationSelection {
+    pub user_id: String,
+    pub user_name: String,
+    pub user_color: String,
+    pub slide_index: usize,
+    pub element_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransitionConfig {
+    pub transition_type: String,
+    pub duration: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub direction: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub easing: Option<String>,
+    #[serde(default)]
+    pub advance_on_click: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub advance_after_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sound: Option<TransitionSound>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransitionSound {
+    pub src: String,
+    pub name: String,
+    #[serde(default)]
+    pub loop_until_next: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MediaElement {
+    pub id: String,
+    pub media_type: String,
+    pub src: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poster: Option<String>,
+    #[serde(default)]
+    pub autoplay: bool,
+    #[serde(default)]
+    pub loop_playback: bool,
+    #[serde(default)]
+    pub muted: bool,
+    #[serde(default)]
+    pub controls: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume: Option<f64>,
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresenterViewSettings {
+    pub show_notes: bool,
+    pub show_next_slide: bool,
+    pub show_timer: bool,
+    pub show_clock: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notes_font_size: Option<f64>,
+    #[serde(default)]
+    pub zoom_level: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresenterSession {
+    pub id: String,
+    pub presentation_id: String,
+    pub current_slide: usize,
+    pub started_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elapsed_time: Option<u64>,
+    pub is_paused: bool,
+    pub settings: PresenterViewSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SlideMessage {
     pub msg_type: String,
     pub presentation_id: String,
@@ -47,6 +146,10 @@ pub struct Slide {
     pub notes: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transition: Option<SlideTransition>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transition_config: Option<TransitionConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media: Option<Vec<MediaElement>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -356,4 +459,125 @@ pub struct SlidesAiResponse {
 pub struct LoadFromDriveRequest {
     pub bucket: String,
     pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateCursorRequest {
+    pub presentation_id: String,
+    pub slide_index: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub element_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSelectionRequest {
+    pub presentation_id: String,
+    pub slide_index: usize,
+    pub element_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListCursorsResponse {
+    pub cursors: Vec<CollaborationCursor>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListSelectionsResponse {
+    pub selections: Vec<CollaborationSelection>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetTransitionRequest {
+    pub presentation_id: String,
+    pub slide_index: usize,
+    pub transition: TransitionConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApplyTransitionToAllRequest {
+    pub presentation_id: String,
+    pub transition: TransitionConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemoveTransitionRequest {
+    pub presentation_id: String,
+    pub slide_index: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddMediaRequest {
+    pub presentation_id: String,
+    pub slide_index: usize,
+    pub media: MediaElement,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateMediaRequest {
+    pub presentation_id: String,
+    pub slide_index: usize,
+    pub media_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub autoplay: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loop_playback: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub muted: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeleteMediaRequest {
+    pub presentation_id: String,
+    pub slide_index: usize,
+    pub media_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListMediaResponse {
+    pub media: Vec<MediaElement>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StartPresenterRequest {
+    pub presentation_id: String,
+    pub settings: PresenterViewSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdatePresenterRequest {
+    pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_slide: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_paused: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub settings: Option<PresenterViewSettings>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EndPresenterRequest {
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresenterSessionResponse {
+    pub session: PresenterSession,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresenterNotesResponse {
+    pub slide_index: usize,
+    pub notes: Option<String>,
+    pub next_slide_notes: Option<String>,
+    pub next_slide_thumbnail: Option<String>,
 }
