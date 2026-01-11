@@ -1,11 +1,11 @@
 use crate::shared::state::AppState;
 use crate::sheet::collaboration::broadcast_sheet_change;
-use crate::sheet::export::{export_to_csv, export_to_json, export_to_xlsx};
+use crate::sheet::export::{export_to_csv, export_to_html, export_to_json, export_to_markdown, export_to_ods, export_to_xlsx};
 use crate::sheet::formulas::evaluate_formula;
 use crate::sheet::storage::{
-    create_new_spreadsheet, delete_sheet_from_drive, get_current_user_id, list_sheets_from_drive,
-    load_sheet_by_id, load_sheet_from_drive, parse_csv_to_worksheets, parse_excel_to_worksheets,
-    save_sheet_to_drive,
+    create_new_spreadsheet, delete_sheet_from_drive, get_current_user_id, import_spreadsheet_bytes,
+    list_sheets_from_drive, load_sheet_by_id, load_sheet_from_drive, parse_csv_to_worksheets,
+    parse_excel_to_worksheets, save_sheet_to_drive,
 };
 use crate::sheet::types::{
     AddCommentRequest, AddExternalLinkRequest, AddNoteRequest, ArrayFormula, ArrayFormulaRequest,
@@ -471,6 +471,29 @@ pub async fn handle_export_sheet(
         "json" => {
             let json = export_to_json(&sheet);
             Ok(([(axum::http::header::CONTENT_TYPE, "application/json")], json))
+        }
+        "html" => {
+            let html = export_to_html(&sheet);
+            Ok(([(axum::http::header::CONTENT_TYPE, "text/html")], html))
+        }
+        "ods" => {
+            let ods = export_to_ods(&sheet).map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": e })),
+                )
+            })?;
+            Ok((
+                [(
+                    axum::http::header::CONTENT_TYPE,
+                    "application/vnd.oasis.opendocument.spreadsheet",
+                )],
+                ods,
+            ))
+        }
+        "md" | "markdown" => {
+            let md = export_to_markdown(&sheet);
+            Ok(([(axum::http::header::CONTENT_TYPE, "text/markdown")], md))
         }
         _ => Err((
             StatusCode::BAD_REQUEST,
@@ -1158,10 +1181,46 @@ pub async fn handle_add_note(
 }
 
 pub async fn handle_import_sheet(
-    State(_state): State<Arc<AppState>>,
-    mut _multipart: axum::extract::Multipart,
+    State(state): State<Arc<AppState>>,
+    mut multipart: axum::extract::Multipart,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
-    Ok(Json(create_new_spreadsheet()))
+    let mut file_bytes: Option<Vec<u8>> = None;
+    let mut filename = "import.xlsx".to_string();
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        if field.name() == Some("file") {
+            filename = field.file_name().unwrap_or("import.xlsx").to_string();
+            if let Ok(bytes) = field.bytes().await {
+                file_bytes = Some(bytes.to_vec());
+            }
+        }
+    }
+
+    let bytes = file_bytes.ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "No file uploaded" })),
+        )
+    })?;
+
+    let mut sheet = import_spreadsheet_bytes(&bytes, &filename).map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": e })),
+        )
+    })?;
+
+    let user_id = get_current_user_id();
+    sheet.owner_id = user_id.clone();
+
+    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        ));
+    }
+
+    Ok(Json(sheet))
 }
 
 pub async fn handle_add_comment(

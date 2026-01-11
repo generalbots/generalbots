@@ -18,7 +18,7 @@ pub use handlers::{
     handle_apply_transition_to_all, handle_delete_element, handle_delete_media,
     handle_delete_presentation, handle_delete_slide, handle_duplicate_slide,
     handle_end_presenter, handle_export_presentation, handle_get_presentation_by_id,
-    handle_get_presenter_notes, handle_list_cursors, handle_list_media,
+    handle_get_presenter_notes, handle_import_presentation, handle_list_cursors, handle_list_media,
     handle_list_presentations, handle_list_selections, handle_load_presentation,
     handle_new_presentation, handle_remove_transition, handle_reorder_slides,
     handle_save_presentation, handle_search_presentations, handle_set_transition,
@@ -56,6 +56,7 @@ pub fn configure_slides_routes() -> Router<Arc<AppState>> {
         .route("/api/slides/element/delete", post(handle_delete_element))
         .route("/api/slides/theme", post(handle_apply_theme))
         .route("/api/slides/export", post(handle_export_presentation))
+        .route("/api/slides/import", post(handle_import_presentation))
         .route("/api/slides/cursor", post(handle_update_cursor))
         .route("/api/slides/selection", post(handle_update_selection))
         .route("/api/slides/cursors", get(handle_list_cursors))
