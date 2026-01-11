@@ -12,7 +12,10 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub use collaboration::{handle_get_collaborators, handle_sheet_websocket};
+pub use collaboration::{
+    handle_get_collaborators, handle_get_mentions, handle_get_presence, handle_get_selections,
+    handle_get_typing, handle_sheet_websocket,
+};
 pub use handlers::{
     handle_add_comment, handle_add_external_link, handle_add_note, handle_array_formula,
     handle_clear_filter, handle_conditional_format, handle_create_chart, handle_create_named_range,
@@ -82,5 +85,9 @@ pub fn configure_sheet_routes() -> Router<Arc<AppState>> {
         .route("/api/sheet/named-range/update", post(handle_update_named_range))
         .route("/api/sheet/named-range/delete", post(handle_delete_named_range))
         .route("/api/sheet/named-ranges", get(handle_list_named_ranges))
+        .route("/api/sheet/:sheet_id/presence", get(handle_get_presence))
+        .route("/api/sheet/:sheet_id/typing", get(handle_get_typing))
+        .route("/api/sheet/:sheet_id/selections", get(handle_get_selections))
+        .route("/api/sheet/mentions/:user_id", get(handle_get_mentions))
         .route("/ws/sheet/:sheet_id", get(handle_sheet_websocket))
 }

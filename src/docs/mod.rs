@@ -12,7 +12,10 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub use collaboration::handle_docs_websocket;
+pub use collaboration::{
+    handle_docs_websocket, handle_get_collaborators, handle_get_mentions, handle_get_presence,
+    handle_get_selections, handle_get_typing,
+};
 pub use handlers::{
     handle_accept_reject_all, handle_accept_reject_change, handle_add_comment, handle_add_endnote,
     handle_add_footnote, handle_ai_custom, handle_ai_expand, handle_ai_improve, handle_ai_simplify,
@@ -88,5 +91,10 @@ pub fn configure_docs_routes() -> Router<Arc<AppState>> {
         .route("/api/docs/styles", get(handle_list_styles))
         .route("/api/docs/outline", post(handle_get_outline))
         .route("/api/docs/compare", post(handle_compare_documents))
+        .route("/api/docs/:doc_id/collaborators", get(handle_get_collaborators))
+        .route("/api/docs/:doc_id/presence", get(handle_get_presence))
+        .route("/api/docs/:doc_id/typing", get(handle_get_typing))
+        .route("/api/docs/:doc_id/selections", get(handle_get_selections))
+        .route("/api/docs/mentions/:user_id", get(handle_get_mentions))
         .route("/ws/docs/:doc_id", get(handle_docs_websocket))
 }

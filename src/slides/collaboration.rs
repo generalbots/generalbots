@@ -11,6 +11,7 @@ use axum::{
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -19,17 +20,134 @@ pub type SlideChannels = Arc<tokio::sync::RwLock<HashMap<String, broadcast::Send
 
 static SLIDE_CHANNELS: std::sync::OnceLock<SlideChannels> = std::sync::OnceLock::new();
 
+pub type PresenceMap = Arc<tokio::sync::RwLock<HashMap<String, Vec<UserPresence>>>>;
+
+static PRESENCE: std::sync::OnceLock<PresenceMap> = std::sync::OnceLock::new();
+
+pub type TypingMap = Arc<tokio::sync::RwLock<HashMap<String, Vec<TypingIndicator>>>>;
+
+static TYPING: std::sync::OnceLock<TypingMap> = std::sync::OnceLock::new();
+
+pub type SelectionMap = Arc<tokio::sync::RwLock<HashMap<String, Vec<SelectionInfo>>>>;
+
+static SELECTIONS: std::sync::OnceLock<SelectionMap> = std::sync::OnceLock::new();
+
+pub type MentionMap = Arc<tokio::sync::RwLock<HashMap<String, Vec<MentionNotification>>>>;
+
+static MENTIONS: std::sync::OnceLock<MentionMap> = std::sync::OnceLock::new();
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserPresence {
+    pub user_id: String,
+    pub user_name: String,
+    pub user_color: String,
+    pub current_slide: Option<usize>,
+    pub current_element: Option<String>,
+    pub last_active: chrono::DateTime<Utc>,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TypingIndicator {
+    pub user_id: String,
+    pub user_name: String,
+    pub slide_index: usize,
+    pub element_id: String,
+    pub started_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SelectionInfo {
+    pub user_id: String,
+    pub user_name: String,
+    pub user_color: String,
+    pub slide_index: usize,
+    pub element_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MentionNotification {
+    pub id: String,
+    pub presentation_id: String,
+    pub from_user_id: String,
+    pub from_user_name: String,
+    pub to_user_id: String,
+    pub slide_index: usize,
+    pub message: String,
+    pub created_at: chrono::DateTime<Utc>,
+    pub read: bool,
+}
+
 pub fn get_slide_channels() -> &'static SlideChannels {
     SLIDE_CHANNELS.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
 }
 
+pub fn get_presence() -> &'static PresenceMap {
+    PRESENCE.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
+}
+
+pub fn get_typing() -> &'static TypingMap {
+    TYPING.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
+}
+
+pub fn get_selections() -> &'static SelectionMap {
+    SELECTIONS.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
+}
+
+pub fn get_mentions() -> &'static MentionMap {
+    MENTIONS.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
+}
+
 pub async fn handle_get_collaborators(Path(presentation_id): Path<String>) -> impl IntoResponse {
-    let channels = get_slide_channels().read().await;
-    let count = channels
+    let presence = get_presence().read().await;
+    let users: Vec<&UserPresence> = presence
         .get(&presentation_id)
-        .map(|s| s.receiver_count())
-        .unwrap_or(0);
-    Json(serde_json::json!({ "count": count }))
+        .map(|v| v.iter().collect())
+        .unwrap_or_default();
+
+    Json(serde_json::json!({
+        "count": users.len(),
+        "users": users
+    }))
+}
+
+pub async fn handle_get_presence(
+    Path(presentation_id): Path<String>,
+) -> impl IntoResponse {
+    let presence = get_presence().read().await;
+    let users = presence.get(&presentation_id).cloned().unwrap_or_default();
+    Json(serde_json::json!({ "users": users }))
+}
+
+pub async fn handle_get_typing(
+    Path(presentation_id): Path<String>,
+) -> impl IntoResponse {
+    let typing = get_typing().read().await;
+    let indicators = typing.get(&presentation_id).cloned().unwrap_or_default();
+
+    let now = Utc::now();
+    let active: Vec<&TypingIndicator> = indicators
+        .iter()
+        .filter(|t| (now - t.started_at).num_seconds() < 5)
+        .collect();
+
+    Json(serde_json::json!({ "typing": active }))
+}
+
+pub async fn handle_get_selections(
+    Path(presentation_id): Path<String>,
+) -> impl IntoResponse {
+    let selections = get_selections().read().await;
+    let sels = selections.get(&presentation_id).cloned().unwrap_or_default();
+    Json(serde_json::json!({ "selections": sels }))
+}
+
+pub async fn handle_get_mentions(
+    Path(user_id): Path<String>,
+) -> impl IntoResponse {
+    let mentions = get_mentions().read().await;
+    let user_mentions = mentions.get(&user_id).cloned().unwrap_or_default();
+    Json(serde_json::json!({ "mentions": user_mentions }))
 }
 
 pub async fn handle_slides_websocket(
@@ -58,6 +176,20 @@ async fn handle_slides_connection(socket: WebSocket, presentation_id: String) {
     let user_id_for_send = user_id.clone();
     let user_name = format!("User {}", &user_id[..8]);
     let user_color = get_random_color();
+
+    {
+        let mut presence = get_presence().write().await;
+        let users = presence.entry(presentation_id.clone()).or_default();
+        users.push(UserPresence {
+            user_id: user_id.clone(),
+            user_name: user_name.clone(),
+            user_color: user_color.clone(),
+            current_slide: Some(0),
+            current_element: None,
+            last_active: Utc::now(),
+            status: "active".to_string(),
+        });
+    }
 
     let join_msg = SlideMessage {
         msg_type: "join".to_string(),
@@ -92,6 +224,90 @@ async fn handle_slides_connection(socket: WebSocket, presentation_id: String) {
                         slide_msg.presentation_id = presentation_id_clone.clone();
                         slide_msg.timestamp = Utc::now();
 
+                        match slide_msg.msg_type.as_str() {
+                            "slide_change" | "cursor" => {
+                                let mut presence = get_presence().write().await;
+                                if let Some(users) = presence.get_mut(&presentation_id_clone) {
+                                    for user in users.iter_mut() {
+                                        if user.user_id == user_id_clone {
+                                            user.current_slide = slide_msg.slide_index;
+                                            user.current_element = slide_msg.element_id.clone();
+                                            user.last_active = Utc::now();
+                                        }
+                                    }
+                                }
+                            }
+                            "typing_start" => {
+                                if let (Some(slide_idx), Some(element_id)) =
+                                    (slide_msg.slide_index, &slide_msg.element_id) {
+                                    let mut typing = get_typing().write().await;
+                                    let indicators = typing.entry(presentation_id_clone.clone()).or_default();
+                                    indicators.retain(|t| t.user_id != user_id_clone);
+                                    indicators.push(TypingIndicator {
+                                        user_id: user_id_clone.clone(),
+                                        user_name: user_name_clone.clone(),
+                                        slide_index: slide_idx,
+                                        element_id: element_id.clone(),
+                                        started_at: Utc::now(),
+                                    });
+                                }
+                            }
+                            "typing_stop" => {
+                                let mut typing = get_typing().write().await;
+                                if let Some(indicators) = typing.get_mut(&presentation_id_clone) {
+                                    indicators.retain(|t| t.user_id != user_id_clone);
+                                }
+                            }
+                            "selection" => {
+                                if let Some(data) = &slide_msg.data {
+                                    let mut selections = get_selections().write().await;
+                                    let sels = selections.entry(presentation_id_clone.clone()).or_default();
+                                    sels.retain(|s| s.user_id != user_id_clone);
+
+                                    if let (Some(slide_idx), Some(element_ids)) = (
+                                        data.get("slide_index").and_then(|v| v.as_u64()),
+                                        data.get("element_ids").and_then(|v| v.as_array()),
+                                    ) {
+                                        let ids: Vec<String> = element_ids
+                                            .iter()
+                                            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                                            .collect();
+                                        sels.push(SelectionInfo {
+                                            user_id: user_id_clone.clone(),
+                                            user_name: user_name_clone.clone(),
+                                            user_color: user_color_clone.clone(),
+                                            slide_index: slide_idx as usize,
+                                            element_ids: ids,
+                                        });
+                                    }
+                                }
+                            }
+                            "mention" => {
+                                if let Some(data) = &slide_msg.data {
+                                    if let (Some(to_user), Some(message), Some(slide_idx)) = (
+                                        data.get("to_user_id").and_then(|v| v.as_str()),
+                                        data.get("message").and_then(|v| v.as_str()),
+                                        data.get("slide_index").and_then(|v| v.as_u64()),
+                                    ) {
+                                        let mut mentions = get_mentions().write().await;
+                                        let user_mentions = mentions.entry(to_user.to_string()).or_default();
+                                        user_mentions.push(MentionNotification {
+                                            id: uuid::Uuid::new_v4().to_string(),
+                                            presentation_id: presentation_id_clone.clone(),
+                                            from_user_id: user_id_clone.clone(),
+                                            from_user_name: user_name_clone.clone(),
+                                            to_user_id: to_user.to_string(),
+                                            slide_index: slide_idx as usize,
+                                            message: message.to_string(),
+                                            created_at: Utc::now(),
+                                            read: false,
+                                        });
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+
                         if let Err(e) = broadcast_tx_clone.send(slide_msg) {
                             error!("Failed to broadcast message: {}", e);
                         }
@@ -120,6 +336,9 @@ async fn handle_slides_connection(socket: WebSocket, presentation_id: String) {
         }
     });
 
+    let presentation_id_leave = presentation_id.clone();
+    let user_id_leave = user_id.clone();
+
     let leave_msg = SlideMessage {
         msg_type: "leave".to_string(),
         presentation_id: presentation_id.clone(),
@@ -135,6 +354,27 @@ async fn handle_slides_connection(socket: WebSocket, presentation_id: String) {
     tokio::select! {
         _ = receive_task => {}
         _ = send_task => {}
+    }
+
+    {
+        let mut presence = get_presence().write().await;
+        if let Some(users) = presence.get_mut(&presentation_id_leave) {
+            users.retain(|u| u.user_id != user_id_leave);
+        }
+    }
+
+    {
+        let mut typing = get_typing().write().await;
+        if let Some(indicators) = typing.get_mut(&presentation_id_leave) {
+            indicators.retain(|t| t.user_id != user_id_leave);
+        }
+    }
+
+    {
+        let mut selections = get_selections().write().await;
+        if let Some(sels) = selections.get_mut(&presentation_id_leave) {
+            sels.retain(|s| s.user_id != user_id_leave);
+        }
     }
 
     if let Err(e) = broadcast_tx.send(leave_msg) {
@@ -168,11 +408,27 @@ pub async fn broadcast_slide_change(
     }
 }
 
+pub async fn mark_mention_read(user_id: &str, mention_id: &str) {
+    let mut mentions = get_mentions().write().await;
+    if let Some(user_mentions) = mentions.get_mut(user_id) {
+        for mention in user_mentions.iter_mut() {
+            if mention.id == mention_id {
+                mention.read = true;
+            }
+        }
+    }
+}
+
+pub async fn clear_user_mentions(user_id: &str) {
+    let mut mentions = get_mentions().write().await;
+    mentions.remove(user_id);
+}
+
 fn get_random_color() -> String {
     use rand::Rng;
     let colors = [
         "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
-        "#BB8FCE", "#85C1E9",
+        "#BB8FCE", "#85C1E9", "#F1948A", "#82E0AA", "#F8C471", "#AED6F1", "#D7BDE2",
     ];
     let idx = rand::rng().random_range(0..colors.len());
     colors[idx].to_string()
