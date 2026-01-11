@@ -107,6 +107,13 @@ pub async fn load_docx_from_bytes(
         updated_at: Utc::now(),
         collaborators: Vec::new(),
         version: 1,
+        track_changes: None,
+        comments: None,
+        footnotes: None,
+        endnotes: None,
+        styles: None,
+        toc: None,
+        track_changes_enabled: false,
     })
 }
 
@@ -188,29 +195,27 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
             docx_rs::DocumentChild::Table(table) => {
                 html.push_str("<table style=\"border-collapse:collapse;width:100%\">");
                 for row in &table.rows {
-                    if let docx_rs::TableChild::TableRow(tr) = row {
-                        html.push_str("<tr>");
-                        for cell in &tr.cells {
-                            if let docx_rs::TableRowChild::TableCell(tc) = cell {
-                                html.push_str("<td style=\"border:1px solid #ccc;padding:8px\">");
-                                for para in &tc.children {
-                                    if let docx_rs::TableCellContent::Paragraph(p) = para {
-                                        for content in &p.children {
-                                            if let docx_rs::ParagraphChild::Run(run) = content {
-                                                for child in &run.children {
-                                                    if let docx_rs::RunChild::Text(text) = child {
-                                                        html.push_str(&escape_html(&text.text));
-                                                    }
-                                                }
+                    let docx_rs::TableChild::TableRow(tr) = row;
+                    html.push_str("<tr>");
+                    for cell in &tr.cells {
+                        let docx_rs::TableRowChild::TableCell(tc) = cell;
+                        html.push_str("<td style=\"border:1px solid #ccc;padding:8px\">");
+                        for para in &tc.children {
+                            if let docx_rs::TableCellContent::Paragraph(p) = para {
+                                for content in &p.children {
+                                    if let docx_rs::ParagraphChild::Run(run) = content {
+                                        for child in &run.children {
+                                            if let docx_rs::RunChild::Text(text) = child {
+                                                html.push_str(&escape_html(&text.text));
                                             }
                                         }
                                     }
                                 }
-                                html.push_str("</td>");
                             }
                         }
-                        html.push_str("</tr>");
+                        html.push_str("</td>");
                     }
+                    html.push_str("</tr>");
                 }
                 html.push_str("</table>");
             }
@@ -374,6 +379,14 @@ pub async fn save_document_to_drive(
     Ok(doc_path)
 }
 
+pub async fn save_document(
+    state: &Arc<AppState>,
+    user_identifier: &str,
+    doc: &Document,
+) -> Result<String, String> {
+    save_document_to_drive(state, user_identifier, &doc.id, &doc.title, &doc.content).await
+}
+
 pub async fn load_document_from_drive(
     state: &Arc<AppState>,
     user_identifier: &str,
@@ -447,6 +460,13 @@ pub async fn load_document_from_drive(
         updated_at,
         collaborators: Vec::new(),
         version: 1,
+        track_changes: None,
+        comments: None,
+        footnotes: None,
+        endnotes: None,
+        styles: None,
+        toc: None,
+        track_changes_enabled: false,
     }))
 }
 
@@ -553,6 +573,13 @@ pub fn create_new_document() -> Document {
         updated_at: Utc::now(),
         collaborators: Vec::new(),
         version: 1,
+        track_changes: None,
+        comments: None,
+        footnotes: None,
+        endnotes: None,
+        styles: None,
+        toc: None,
+        track_changes_enabled: false,
     }
 }
 

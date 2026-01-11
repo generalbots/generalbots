@@ -1,5 +1,5 @@
 use crate::shared::state::AppState;
-use crate::slides::ooxml::{load_pptx_preserving, update_pptx_text};
+use crate::slides::ooxml::update_pptx_text;
 use crate::slides::types::{
     ElementContent, ElementStyle, Presentation, PresentationMetadata, Slide,
     SlideBackground, SlideElement,
@@ -97,11 +97,7 @@ pub async fn save_presentation_as_pptx(
     let pptx_bytes = if let Some(original_bytes) = get_cached_presentation_bytes(&presentation.id).await {
         let slide_texts: Vec<Vec<String>> = presentation.slides.iter().map(|slide| {
             slide.elements.iter().filter_map(|el| {
-                if let ElementContent::Text { text, .. } = &el.content {
-                    Some(text.clone())
-                } else {
-                    None
-                }
+                el.content.text.clone()
             }).collect()
         }).collect();
         update_pptx_text(&original_bytes, &slide_texts).unwrap_or_else(|_| {
@@ -697,6 +693,8 @@ fn parse_slide_xml(xml_content: &str, slide_num: usize) -> Slide {
         },
         notes: None,
         transition: None,
+        transition_config: None,
+        media: None,
     }
 }
 

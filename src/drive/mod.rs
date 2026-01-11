@@ -220,7 +220,6 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/docs/convert", post(document_processing::convert_document))
         .route("/api/docs/fill", post(document_processing::fill_document))
         .route("/api/docs/export", post(document_processing::export_document))
-        .route("/api/docs/import", post(document_processing::import_document))
 }
 
 pub async fn open_file(

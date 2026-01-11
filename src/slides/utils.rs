@@ -2,7 +2,6 @@ use crate::slides::types::{
     ElementContent, ElementStyle, Presentation, PresentationTheme, Slide, SlideBackground,
     SlideElement, ThemeColors, ThemeFonts,
 };
-use base64::Engine;
 use uuid::Uuid;
 
 pub fn create_default_theme() -> PresentationTheme {
@@ -110,6 +109,8 @@ pub fn create_title_slide(theme: &PresentationTheme) -> Slide {
         },
         notes: None,
         transition: None,
+        transition_config: None,
+        media: None,
     }
 }
 
@@ -200,6 +201,8 @@ pub fn create_content_slide(theme: &PresentationTheme) -> Slide {
         },
         notes: None,
         transition: None,
+        transition_config: None,
+        media: None,
     }
 }
 
@@ -217,6 +220,8 @@ pub fn create_blank_slide(theme: &PresentationTheme) -> Slide {
         },
         notes: None,
         transition: None,
+        transition_config: None,
+        media: None,
     }
 }
 

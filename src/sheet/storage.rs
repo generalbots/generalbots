@@ -130,17 +130,15 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
         if let Some(ref widths) = worksheet.column_widths {
             for (col_idx, width) in widths {
                 let col_letter = get_col_letter(*col_idx);
-                if let Some(col_dim) = umya_sheet.get_column_dimension_mut(&col_letter) {
-                    col_dim.set_width(*width as f64);
-                }
+                let col_dim = umya_sheet.get_column_dimension_mut(&col_letter);
+                col_dim.set_width(*width as f64);
             }
         }
 
         if let Some(ref heights) = worksheet.row_heights {
             for (row_idx, height) in heights {
-                if let Some(row_dim) = umya_sheet.get_row_dimension_mut(row_idx) {
-                    row_dim.set_height(*height as f64);
-                }
+                let row_dim = umya_sheet.get_row_dimension_mut(row_idx);
+                row_dim.set_height(*height as f64);
             }
         }
 
@@ -157,9 +155,10 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
             if frozen_rows > 0 {
                 let sheet_views = umya_sheet.get_sheet_views_mut();
                 if let Some(view) = sheet_views.get_sheet_view_list_mut().first_mut() {
-                    let pane = view.get_pane_mut();
-                    pane.set_y_split(frozen_rows as f64);
-                    pane.set_state(umya_spreadsheet::structs::PaneStateValues::Frozen);
+                    if let Some(pane) = view.get_pane_mut() {
+                        pane.set_vertical_split(frozen_rows as f64);
+                        pane.set_state(umya_spreadsheet::structs::PaneStateValues::Frozen);
+                    }
                 }
             }
         }
@@ -168,9 +167,10 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
             if frozen_cols > 0 {
                 let sheet_views = umya_sheet.get_sheet_views_mut();
                 if let Some(view) = sheet_views.get_sheet_view_list_mut().first_mut() {
-                    let pane = view.get_pane_mut();
-                    pane.set_x_split(frozen_cols as f64);
-                    pane.set_state(umya_spreadsheet::structs::PaneStateValues::Frozen);
+                    if let Some(pane) = view.get_pane_mut() {
+                        pane.set_horizontal_split(frozen_cols as f64);
+                        pane.set_state(umya_spreadsheet::structs::PaneStateValues::Frozen);
+                    }
                 }
             }
         }
@@ -337,16 +337,21 @@ pub fn load_xlsx_from_bytes(
                             let coord = c.get_coordinate();
                             coord.get_col_num() == &col && coord.get_row_num() == &row
                         })
-                        .map(|c| c.get_text().get_value().to_string());
+                        .and_then(|c| c.get_text().get_rich_text().map(|rt| rt.get_text().to_string()));
 
+                    let cell_value = value.clone();
+                    let has_comment = note.is_some();
                     data.insert(
                         key,
                         CellData {
-                            value: if value.is_empty() { None } else { Some(value) },
+                            value: Some(cell_value),
                             formula,
                             style,
                             format: None,
                             note,
+                            locked: None,
+                            has_comment: has_comment.then_some(true),
+                            array_formula_id: None,
                         },
                     );
                 }
@@ -356,7 +361,8 @@ pub fn load_xlsx_from_bytes(
         for col in 1..=max_col {
             let col_letter = get_col_letter(col);
             if let Some(dim) = sheet.get_column_dimension(&col_letter) {
-                if let Some(width) = dim.get_width() {
+                let width = *dim.get_width();
+                if width > 0.0 {
                     column_widths.insert(col, width.round() as u32);
                 }
             }
@@ -364,7 +370,8 @@ pub fn load_xlsx_from_bytes(
 
         for row in 1..=max_row {
             if let Some(dim) = sheet.get_row_dimension(&row) {
-                if let Some(height) = dim.get_height() {
+                let height = *dim.get_height();
+                if height > 0.0 {
                     row_heights.insert(row, height.round() as u32);
                 }
             }
@@ -373,25 +380,28 @@ pub fn load_xlsx_from_bytes(
         let merged_cells: Vec<MergedCell> = sheet.get_merge_cells()
             .iter()
             .filter_map(|mc| {
-                let range = mc.get_range().get_range();
+                let range = mc.get_range().to_string();
                 parse_merge_range(&range)
             })
             .collect();
 
-        let frozen_rows = sheet.get_sheet_views()
+        let frozen_rows = sheet.get_sheets_views()
             .get_sheet_view_list()
             .first()
-            .and_then(|v| v.get_pane().get_y_split())
-            .map(|y| y as u32);
+            .and_then(|v| v.get_pane())
+            .map(|p| *p.get_vertical_split() as u32)
+            .filter(|&v| v > 0);
 
-        let frozen_cols = sheet.get_sheet_views()
+        let frozen_cols = sheet.get_sheets_views()
             .get_sheet_view_list()
             .first()
-            .and_then(|v| v.get_pane().get_x_split())
-            .map(|x| x as u32);
+            .and_then(|v| v.get_pane())
+            .map(|p| *p.get_horizontal_split() as u32)
+            .filter(|&v| v > 0);
 
+        let sheet_name = sheet.get_name().to_string();
         worksheets.push(Worksheet {
-            name: sheet.get_name().to_string(),
+            name: sheet_name,
             data,
             column_widths: if column_widths.is_empty() { None } else { Some(column_widths) },
             row_heights: if row_heights.is_empty() { None } else { Some(row_heights) },
@@ -403,10 +413,15 @@ pub fn load_xlsx_from_bytes(
             validations: None,
             conditional_formats: None,
             charts: None,
+            comments: None,
+            protection: None,
+            array_formulas: None,
         });
     }
 
     let spreadsheet = Spreadsheet {
+        named_ranges: None,
+        external_links: None,
         id: Uuid::new_v4().to_string(),
         name: file_name.to_string(),
         owner_id: user_id.to_string(),
@@ -424,58 +439,72 @@ fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
     let fill = style.get_fill();
     let alignment = style.get_alignment();
 
-    let font_weight = if font.get_bold() { Some("bold".to_string()) } else { None };
-    let font_style = if font.get_italic() { Some("italic".to_string()) } else { None };
+    let font_weight = font.as_ref().and_then(|f| if *f.get_bold() { Some("bold".to_string()) } else { None });
+    let font_style = font.as_ref().and_then(|f| if *f.get_italic() { Some("italic".to_string()) } else { None });
 
-    let underline = font.get_underline();
-    let strikethrough = font.get_strikethrough();
-    let text_decoration = if underline != "none" || strikethrough {
+    let underline_str = font.as_ref().map(|f| f.get_underline().to_string()).unwrap_or_default();
+    let has_strikethrough = font.as_ref().map(|f| *f.get_strikethrough()).unwrap_or(false);
+    let text_decoration = {
         let mut dec = Vec::new();
-        if underline != "none" {
+        if underline_str != "none" && !underline_str.is_empty() {
             dec.push("underline");
         }
-        if strikethrough {
+        if has_strikethrough {
             dec.push("line-through");
         }
-        Some(dec.join(" "))
-    } else {
-        None
-    };
-
-    let font_size = Some(font.get_size().round() as u32);
-    let font_family = Some(font.get_name().to_string());
-
-    let color = font.get_color().get_argb().map(|c| {
-        let s = c.to_string();
-        if s.len() >= 8 {
-            format!("#{}", &s[2..])
+        if dec.is_empty() {
+            None
         } else {
-            format!("#{s}")
+            Some(dec.join(" "))
         }
-    });
+    };
 
-    let background = fill.get_pattern_fill().get_foreground_color().get_argb().map(|c| {
-        let s = c.to_string();
-        if s.len() >= 8 {
-            format!("#{}", &s[2..])
+    let font_size = font.as_ref().map(|f| f.get_size().round() as u32);
+    let font_family = font.as_ref().map(|f| f.get_name().to_string());
+
+    let color = font.as_ref().map(|f| {
+        let argb = f.get_color().get_argb();
+        if argb.len() == 8 {
+            format!("#{}", &argb[2..])
+        } else if argb.is_empty() {
+            "#000000".to_string()
         } else {
-            format!("#{s}")
+            format!("#{argb}")
         }
-    });
+    }).filter(|c| c != "#000000");
 
-    let text_align = match alignment.get_horizontal().to_string().as_str() {
-        "left" => Some("left".to_string()),
-        "center" => Some("center".to_string()),
-        "right" => Some("right".to_string()),
-        _ => None,
-    };
+    let background = fill.and_then(|f| f.get_pattern_fill()).and_then(|pf| {
+        pf.get_foreground_color().map(|color| {
+            let argb = color.get_argb();
+            if argb.len() >= 8 {
+                format!("#{}", &argb[2..])
+            } else if argb.is_empty() {
+                "#FFFFFF".to_string()
+            } else {
+                format!("#{argb}")
+            }
+        })
+    }).filter(|c| c != "#FFFFFF");
 
-    let vertical_align = match alignment.get_vertical().to_string().as_str() {
-        "top" => Some("top".to_string()),
-        "center" => Some("middle".to_string()),
-        "bottom" => Some("bottom".to_string()),
-        _ => None,
-    };
+    let text_align = alignment.map(|a| {
+        use umya_spreadsheet::structs::HorizontalAlignmentValues;
+        match a.get_horizontal() {
+            HorizontalAlignmentValues::Left => Some("left".to_string()),
+            HorizontalAlignmentValues::Center => Some("center".to_string()),
+            HorizontalAlignmentValues::Right => Some("right".to_string()),
+            _ => None,
+        }
+    }).flatten();
+
+    let vertical_align = alignment.map(|a| {
+        use umya_spreadsheet::structs::VerticalAlignmentValues;
+        match a.get_vertical() {
+            VerticalAlignmentValues::Top => Some("top".to_string()),
+            VerticalAlignmentValues::Center => Some("middle".to_string()),
+            VerticalAlignmentValues::Bottom => Some("bottom".to_string()),
+            _ => None,
+        }
+    }).flatten();
 
     if font_weight.is_some() || font_style.is_some() || text_decoration.is_some()
         || color.is_some() || background.is_some() || text_align.is_some() {
@@ -886,7 +915,7 @@ pub fn parse_ods_to_worksheets(bytes: &[u8]) -> Result<Vec<Worksheet>, String> {
     let mut row_idx = 0u32;
 
     let mut in_table = false;
-    let mut in_row = false;
+
     let mut col_idx = 0u32;
 
     let chars: Vec<char> = content.chars().collect();
@@ -933,10 +962,10 @@ pub fn parse_ods_to_worksheets(bytes: &[u8]) -> Result<Vec<Worksheet>, String> {
                 }
                 in_table = false;
             } else if tag.starts_with("table:table-row") && !tag.ends_with('/') {
-                in_row = true;
+
                 col_idx = 0;
             } else if tag == "/table:table-row" {
-                in_row = false;
+
                 row_idx += 1;
             } else if tag.starts_with("table:table-cell") {
                 let mut cell_value = String::new();
