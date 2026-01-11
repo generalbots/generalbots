@@ -143,8 +143,7 @@ tokio-stream = "0.1"
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
-askama = "0.12"
-askama_axum = "0.4"
+
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 urlencoding = "2.1"
 uuid = { version = "1.11", features = ["serde", "v4", "v5"] }
@@ -204,14 +203,16 @@ ratatui = { version = "0.29", optional = true }
 png = "0.18"
 qrcode = { version = "0.14", default-features = false }
 
-# Excel/Spreadsheet Support
+# Excel/Spreadsheet Support - MS Office 100% Compatibility
 calamine = "0.26"
 rust_xlsxwriter = "0.79"
 spreadsheet-ods = "1.0"
 
-# Word/PowerPoint Support
+# Word/PowerPoint Support - MS Office 100% Compatibility
 docx-rs = "0.4"
-ppt-rs = { version = "0.2", default-features = false }
+ooxmlsdk = { version = "0.3", features = ["docx", "pptx"] }
+# ppt-rs disabled due to version conflict - using ooxmlsdk for PPTX support instead
+# ppt-rs = { version = "0.2", default-features = false }
 
 # Error handling
 thiserror = "2.0"
