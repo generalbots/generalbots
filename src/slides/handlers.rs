@@ -5,7 +5,6 @@ use crate::slides::storage::{
     get_current_user_id, list_presentations_from_drive, load_presentation_by_id,
     load_presentation_from_drive, save_presentation_to_drive,
 };
-use crate::slides::utils::slides_from_markdown;
 use crate::slides::types::{
     AddElementRequest, AddMediaRequest, AddSlideRequest, ApplyThemeRequest,
     ApplyTransitionToAllRequest, CollaborationCursor, CollaborationSelection, DeleteElementRequest,

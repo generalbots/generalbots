@@ -7,7 +7,6 @@ use crate::security::command_guard::SafeCommand;
 use super::manager::{Finding, FindingSeverity, ScanResultStatus};
 
 const SURICATA_EVE_LOG: &str = "/var/log/suricata/eve.json";
-const SURICATA_FAST_LOG: &str = "/var/log/suricata/fast.log";
 const SURICATA_RULES_DIR: &str = "/var/lib/suricata/rules";
 
 pub async fn get_alerts() -> Result<(ScanResultStatus, Vec<Finding>, String)> {

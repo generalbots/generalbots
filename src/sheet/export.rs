@@ -1,7 +1,6 @@
 use base64::Engine;
 use crate::sheet::types::{CellStyle, Spreadsheet};
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
-use std::io::Cursor;
 
 pub fn export_to_xlsx(sheet: &Spreadsheet) -> Result<String, String> {
     let mut workbook = Workbook::new();
@@ -186,7 +185,7 @@ pub fn export_to_html(sheet: &Spreadsheet) -> String {
 <body>
 "#);
 
-    for (ws_idx, ws) in sheet.worksheets.iter().enumerate() {
+    for ws in &sheet.worksheets {
         html.push_str(&format!("<h2>{}</h2>\n", ws.name));
         html.push_str("<table>\n");
 

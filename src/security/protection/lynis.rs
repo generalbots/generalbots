@@ -5,7 +5,6 @@ use crate::security::command_guard::SafeCommand;
 use super::manager::{Finding, FindingSeverity, ScanResultStatus};
 
 const LYNIS_REPORT_PATH: &str = "/var/log/lynis-report.dat";
-const LYNIS_LOG_PATH: &str = "/var/log/lynis.log";
 
 pub async fn run_scan() -> Result<(ScanResultStatus, Vec<Finding>, String)> {
     info!("Running Lynis security audit");

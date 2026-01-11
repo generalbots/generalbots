@@ -1,5 +1,4 @@
 use chrono::{DateTime, Duration, Utc};
-use std::collections::HashMap;
 
 pub fn format_document_list_item(
     id: &str,
@@ -378,8 +377,6 @@ pub fn html_to_rtf(html: &str) -> String {
     let mut rtf = String::from("{\\rtf1\\ansi\\deff0\n");
     rtf.push_str("{\\fonttbl{\\f0 Arial;}}\n");
     rtf.push_str("\\f0\\fs24\n");
-
-    let plain = strip_html(html);
 
     let mut result = html.to_string();
     result = result.replace("<strong>", "\\b ");
