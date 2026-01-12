@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Form, Path, Query, State},
     response::{Html, IntoResponse},
     routing::{delete, get, post, put},
     Json, Router,
@@ -291,6 +291,13 @@ pub struct CreatePostRequest {
     pub hashtags: Option<Vec<String>>,
     pub attachments: Option<Vec<AttachmentRequest>>,
     pub poll: Option<CreatePollRequest>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePostForm {
+    pub content: String,
+    pub visibility: Option<String>,
+    pub community_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -855,13 +862,53 @@ pub async fn handle_get_feed_html(
 
 pub async fn handle_create_post(
     State(_state): State<Arc<AppState>>,
-    Json(req): Json<CreatePostRequest>,
-) -> Result<Json<Post>, SocialError> {
+    Form(form): Form<CreatePostForm>,
+) -> Result<Html<String>, SocialError> {
     let service = SocialService::new();
     let org_id = Uuid::nil();
     let user_id = Uuid::nil();
+
+    let visibility = form.visibility.as_deref().and_then(|v| match v {
+        "public" => Some(PostVisibility::Public),
+        "organization" => Some(PostVisibility::Organization),
+        "community" => Some(PostVisibility::Community),
+        _ => None,
+    });
+
+    let community_id = form
+        .community_id
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .and_then(|s| Uuid::parse_str(s).ok());
+
+    let req = CreatePostRequest {
+        content: form.content,
+        content_type: None,
+        community_id,
+        visibility,
+        mentions: None,
+        hashtags: None,
+        attachments: None,
+        poll: None,
+    };
+
     let post = service.create_post(org_id, user_id, req).await?;
-    Ok(Json(post))
+
+    let post_with_author = PostWithAuthor {
+        post,
+        author: UserSummary {
+            id: user_id,
+            name: "You".to_string(),
+            avatar_url: None,
+            title: None,
+            is_leader: false,
+        },
+        community: None,
+        user_reaction: None,
+        is_bookmarked: false,
+    };
+
+    Ok(Html(render_post_card_html(&post_with_author)))
 }
 
 pub async fn handle_get_post(
