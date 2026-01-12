@@ -10,6 +10,7 @@ pub mod embedded_ui;
 pub mod maintenance;
 pub mod multimodal;
 pub mod player;
+pub mod products;
 pub mod search;
 pub mod security;
 
