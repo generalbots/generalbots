@@ -383,6 +383,7 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::analytics::goals::configure_goals_routes());
     api_router = api_router.merge(botserver::player::configure_player_routes());
     api_router = api_router.merge(botserver::canvas::configure_canvas_routes());
+    api_router = api_router.merge(botserver::social::configure_social_routes());
 
     #[cfg(feature = "whatsapp")]
     {
