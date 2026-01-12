@@ -1,4 +1,5 @@
 pub mod calendar_integration;
+pub mod crm_ui;
 pub mod external_sync;
 pub mod tasks_integration;
 
