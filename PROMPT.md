@@ -172,14 +172,6 @@ date.with_hour(9).and_then(|d| d.with_minute(0)).unwrap_or(date)
 
 ---
 
-## BUILD RULES
-
-- Development: `cargo build` (debug only)
-- NEVER run `cargo clippy` manually - use diagnostics tool
-- Version: 6.1.0 - do not change
-
----
-
 ## DATABASE STANDARDS
 
 - TABLES AND INDEXES ONLY (no views, triggers, functions)
@@ -207,6 +199,34 @@ date.with_hour(9).and_then(|d| d.with_minute(0)).unwrap_or(date)
 | reqwest | 0.12 | HTTP client |
 | serde | 1.0 | Serialization |
 | askama | 0.12 | HTML Templates |
+
+---
+
+## COMPILATION POLICY - CRITICAL
+
+**NEVER compile during development. NEVER run `cargo build`. Use static analysis only.**
+
+### Workflow
+
+1. Make all code changes
+2. Use `diagnostics` tool for static analysis (NOT compilation)
+3. Fix any errors found by diagnostics
+4. **At the end**, inform user what needs restart
+
+### After All Changes Complete
+
+| Change Type | User Action Required |
+|-------------|----------------------|
+| Rust code (`.rs` files) | "Recompile and restart **botserver**" |
+| HTML templates (`.html` in botui) | "Browser refresh only" |
+| CSS/JS files | "Browser refresh only" |
+| Askama templates (`.html` in botserver) | "Recompile and restart **botserver**" |
+| Database migrations | "Run migration, then restart **botserver**" |
+| Cargo.toml changes | "Recompile and restart **botserver**" |
+
+**Format:** At the end of your response, always state:
+- ✅ **No restart needed** - browser refresh only
+- 🔄 **Restart botserver** - recompile required
 
 ---
 
