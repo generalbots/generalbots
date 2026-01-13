@@ -358,6 +358,7 @@ async fn run_axum_server(
     #[cfg(feature = "calendar")]
     {
         api_router = api_router.merge(crate::calendar::configure_calendar_routes());
+        api_router = api_router.merge(crate::calendar::ui::configure_calendar_ui_routes());
     }
 
     api_router = api_router.merge(botserver::analytics::configure_analytics_routes());
@@ -371,6 +372,8 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::sources::configure_sources_routes());
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
     api_router = api_router.merge(botserver::dashboards::configure_dashboards_routes());
+    api_router = api_router.merge(botserver::legal::configure_legal_routes());
+    api_router = api_router.merge(botserver::compliance::configure_compliance_routes());
     api_router = api_router.merge(botserver::monitoring::configure());
     api_router = api_router.merge(botserver::security::configure_protection_routes());
     api_router = api_router.merge(botserver::settings::configure_settings_routes());
@@ -379,14 +382,26 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::auto_task::configure_autotask_routes());
     api_router = api_router.merge(crate::core::shared::admin::configure());
     api_router = api_router.merge(botserver::workspaces::configure_workspaces_routes());
+    api_router = api_router.merge(botserver::workspaces::ui::configure_workspaces_ui_routes());
     api_router = api_router.merge(botserver::project::configure());
     api_router = api_router.merge(botserver::analytics::goals::configure_goals_routes());
+    api_router = api_router.merge(botserver::analytics::goals_ui::configure_goals_ui_routes());
     api_router = api_router.merge(botserver::player::configure_player_routes());
     api_router = api_router.merge(botserver::canvas::configure_canvas_routes());
+    api_router = api_router.merge(botserver::canvas::ui::configure_canvas_ui_routes());
     api_router = api_router.merge(botserver::social::configure_social_routes());
     api_router = api_router.merge(botserver::contacts::crm_ui::configure_crm_routes());
+    api_router = api_router.merge(botserver::contacts::crm::configure_crm_api_routes());
     api_router = api_router.merge(botserver::billing::billing_ui::configure_billing_routes());
+    api_router = api_router.merge(botserver::billing::api::configure_billing_api_routes());
     api_router = api_router.merge(botserver::products::configure_products_routes());
+    api_router = api_router.merge(botserver::products::api::configure_products_api_routes());
+    api_router = api_router.merge(botserver::tickets::configure_tickets_routes());
+    api_router = api_router.merge(botserver::tickets::ui::configure_tickets_ui_routes());
+    api_router = api_router.merge(botserver::people::configure_people_routes());
+    api_router = api_router.merge(botserver::people::ui::configure_people_ui_routes());
+    api_router = api_router.merge(botserver::attendant::configure_attendant_routes());
+    api_router = api_router.merge(botserver::attendant::ui::configure_attendant_ui_routes());
 
     #[cfg(feature = "whatsapp")]
     {

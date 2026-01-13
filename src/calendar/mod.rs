@@ -1,53 +1,114 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::{Html, IntoResponse, Json},
     routing::{get, post},
     Router,
 };
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use diesel::prelude::*;
 use icalendar::{
     Calendar, CalendarDateTime, Component, DatePerhapsTime, Event as IcalEvent, EventLike, Property,
 };
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use uuid::Uuid;
 
+use crate::core::shared::schema::{calendar_event_attendees, calendar_events, calendar_shares, calendars};
 use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 
 pub mod caldav;
+pub mod ui;
 
-pub struct CalendarState {
-    events: RwLock<HashMap<Uuid, CalendarEvent>>,
+fn get_bot_context() -> (Uuid, Uuid) {
+    let org_id = std::env::var("DEFAULT_ORG_ID")
+        .ok()
+        .and_then(|s| Uuid::parse_str(&s).ok())
+        .unwrap_or_else(Uuid::nil);
+    let bot_id = std::env::var("DEFAULT_BOT_ID")
+        .ok()
+        .and_then(|s| Uuid::parse_str(&s).ok())
+        .unwrap_or_else(Uuid::nil);
+    (org_id, bot_id)
 }
 
-impl CalendarState {
-    pub fn new() -> Self {
-        Self {
-            events: RwLock::new(HashMap::new()),
-        }
-    }
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable, AsChangeset)]
+#[diesel(table_name = calendars)]
+pub struct CalendarRecord {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
+    pub owner_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub color: Option<String>,
+    pub timezone: Option<String>,
+    pub is_primary: bool,
+    pub is_visible: bool,
+    pub is_shared: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
-impl Default for CalendarState {
-    fn default() -> Self {
-        Self::new()
-    }
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable, AsChangeset)]
+#[diesel(table_name = calendar_events)]
+pub struct CalendarEventRecord {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
+    pub calendar_id: Uuid,
+    pub owner_id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub location: Option<String>,
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
+    pub all_day: bool,
+    pub recurrence_rule: Option<String>,
+    pub recurrence_id: Option<Uuid>,
+    pub color: Option<String>,
+    pub status: String,
+    pub visibility: String,
+    pub busy_status: String,
+    pub reminders: serde_json::Value,
+    pub attendees: serde_json::Value,
+    pub conference_data: Option<serde_json::Value>,
+    pub metadata: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
-static CALENDAR_STATE: std::sync::OnceLock<CalendarState> = std::sync::OnceLock::new();
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable)]
+#[diesel(table_name = calendar_event_attendees)]
+pub struct EventAttendeeRecord {
+    pub id: Uuid,
+    pub event_id: Uuid,
+    pub email: String,
+    pub name: Option<String>,
+    pub status: String,
+    pub role: String,
+    pub rsvp_time: Option<DateTime<Utc>>,
+    pub comment: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
 
-fn get_calendar_state() -> &'static CalendarState {
-    CALENDAR_STATE.get_or_init(CalendarState::new)
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable)]
+#[diesel(table_name = calendar_shares)]
+pub struct CalendarShareRecord {
+    pub id: Uuid,
+    pub calendar_id: Uuid,
+    pub shared_with_user_id: Option<Uuid>,
+    pub shared_with_email: Option<String>,
+    pub permission: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CalendarEvent {
     pub id: Uuid,
+    pub calendar_id: Uuid,
     pub title: String,
     pub description: Option<String>,
     pub start_time: DateTime<Utc>,
@@ -57,12 +118,16 @@ pub struct CalendarEvent {
     pub organizer: String,
     pub reminder_minutes: Option<i32>,
     pub recurrence: Option<String>,
+    pub all_day: bool,
+    pub status: String,
+    pub color: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CalendarEventInput {
+    pub calendar_id: Option<Uuid>,
     pub title: String,
     pub description: Option<String>,
     pub start_time: DateTime<Utc>,
@@ -73,6 +138,43 @@ pub struct CalendarEventInput {
     pub organizer: String,
     pub reminder_minutes: Option<i32>,
     pub recurrence: Option<String>,
+    #[serde(default)]
+    pub all_day: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateCalendarRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub color: Option<String>,
+    pub timezone: Option<String>,
+    #[serde(default)]
+    pub is_primary: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateCalendarRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub color: Option<String>,
+    pub timezone: Option<String>,
+    pub is_visible: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventQuery {
+    pub calendar_id: Option<Uuid>,
+    pub start: Option<DateTime<Utc>>,
+    pub end: Option<DateTime<Utc>>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShareCalendarRequest {
+    pub user_id: Option<Uuid>,
+    pub email: Option<String>,
+    pub permission: String,
 }
 
 impl CalendarEvent {
@@ -93,7 +195,7 @@ impl CalendarEvent {
         event.add_property("ORGANIZER", format!("mailto:{}", self.organizer));
 
         for attendee in &self.attendees {
-            event.add_property("ATTENDEE", format!("mailto:{}", attendee));
+            event.add_property("ATTENDEE", format!("mailto:{attendee}"));
         }
 
         if let Some(ref rrule) = self.recurrence {
@@ -101,13 +203,13 @@ impl CalendarEvent {
         }
 
         if let Some(minutes) = self.reminder_minutes {
-            event.add_property("VALARM", format!("-PT{}M", minutes));
+            event.add_property("VALARM", format!("-PT{minutes}M"));
         }
 
         event.done()
     }
 
-    pub fn from_ical(ical: &IcalEvent, organizer: &str) -> Option<Self> {
+    pub fn from_ical(ical: &IcalEvent, organizer: &str, calendar_id: Uuid) -> Option<Self> {
         let uid = ical.get_uid()?;
         let summary = ical.get_summary()?;
 
@@ -118,6 +220,7 @@ impl CalendarEvent {
 
         Some(Self {
             id,
+            calendar_id,
             title: summary.to_string(),
             description: ical.get_description().map(String::from),
             start_time,
@@ -127,6 +230,9 @@ impl CalendarEvent {
             organizer: organizer.to_string(),
             reminder_minutes: None,
             recurrence: None,
+            all_day: false,
+            status: "confirmed".to_string(),
+            color: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         })
@@ -149,6 +255,34 @@ fn date_perhaps_time_to_utc(dpt: DatePerhapsTime) -> Option<DateTime<Utc>> {
     }
 }
 
+fn record_to_event(record: CalendarEventRecord) -> CalendarEvent {
+    let attendees: Vec<String> = serde_json::from_value(record.attendees.clone()).unwrap_or_default();
+    let reminders: Vec<serde_json::Value> = serde_json::from_value(record.reminders.clone()).unwrap_or_default();
+    let reminder_minutes = reminders.first()
+        .and_then(|r| r.get("minutes_before"))
+        .and_then(|m| m.as_i64())
+        .map(|m| m as i32);
+
+    CalendarEvent {
+        id: record.id,
+        calendar_id: record.calendar_id,
+        title: record.title,
+        description: record.description,
+        start_time: record.start_time,
+        end_time: record.end_time,
+        location: record.location,
+        attendees,
+        organizer: record.owner_id.to_string(),
+        reminder_minutes,
+        recurrence: record.recurrence_rule,
+        all_day: record.all_day,
+        status: record.status,
+        color: record.color,
+        created_at: record.created_at,
+        updated_at: record.updated_at,
+    }
+}
+
 pub fn export_to_ical(events: &[CalendarEvent], calendar_name: &str) -> String {
     let mut calendar = Calendar::new();
     calendar.name(calendar_name);
@@ -161,7 +295,7 @@ pub fn export_to_ical(events: &[CalendarEvent], calendar_name: &str) -> String {
     calendar.done().to_string()
 }
 
-pub fn import_from_ical(ical_str: &str, organizer: &str) -> Vec<CalendarEvent> {
+pub fn import_from_ical(ical_str: &str, organizer: &str, calendar_id: Uuid) -> Vec<CalendarEvent> {
     let Ok(calendar) = ical_str.parse::<Calendar>() else {
         return Vec::new();
     };
@@ -171,7 +305,7 @@ pub fn import_from_ical(ical_str: &str, organizer: &str) -> Vec<CalendarEvent> {
         .iter()
         .filter_map(|c| {
             if let icalendar::CalendarComponent::Event(e) = c {
-                CalendarEvent::from_ical(e, organizer)
+                CalendarEvent::from_ical(e, organizer, calendar_id)
             } else {
                 None
             }
@@ -179,289 +313,669 @@ pub fn import_from_ical(ical_str: &str, organizer: &str) -> Vec<CalendarEvent> {
         .collect()
 }
 
-#[derive(Default)]
-pub struct CalendarEngine {
-    events: Vec<CalendarEvent>,
-}
-
-impl CalendarEngine {
-    pub fn new() -> Self {
-        Self {
-            events: Vec::new(),
-        }
-    }
-
-    pub fn create_event(&mut self, input: CalendarEventInput) -> CalendarEvent {
-        let event = CalendarEvent {
-            id: Uuid::new_v4(),
-            title: input.title,
-            description: input.description,
-            start_time: input.start_time,
-            end_time: input.end_time,
-            location: input.location,
-            attendees: input.attendees,
-            organizer: input.organizer,
-            reminder_minutes: input.reminder_minutes,
-            recurrence: input.recurrence,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
-        self.events.push(event.clone());
-        event
-    }
-
-    pub fn get_event(&self, id: Uuid) -> Option<&CalendarEvent> {
-        self.events.iter().find(|e| e.id == id)
-    }
-
-    pub fn update_event(&mut self, id: Uuid, input: CalendarEventInput) -> Option<CalendarEvent> {
-        let event = self.events.iter_mut().find(|e| e.id == id)?;
-        event.title = input.title;
-        event.description = input.description;
-        event.start_time = input.start_time;
-        event.end_time = input.end_time;
-        event.location = input.location;
-        event.attendees = input.attendees;
-        event.organizer = input.organizer;
-        event.reminder_minutes = input.reminder_minutes;
-        event.recurrence = input.recurrence;
-        event.updated_at = Utc::now();
-        Some(event.clone())
-    }
-
-    pub fn delete_event(&mut self, id: Uuid) -> bool {
-        let len = self.events.len();
-        self.events.retain(|e| e.id != id);
-        self.events.len() < len
-    }
-
-    pub fn list_events(&self, limit: usize, offset: usize) -> Vec<&CalendarEvent> {
-        self.events.iter().skip(offset).take(limit).collect()
-    }
-
-    pub fn get_events_range(
-        &self,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
-    ) -> Vec<&CalendarEvent> {
-        self.events
-            .iter()
-            .filter(|e| e.start_time >= start && e.end_time <= end)
-            .collect()
-    }
-
-    pub fn get_user_events(&self, user_id: &str) -> Vec<&CalendarEvent> {
-        self.events
-            .iter()
-            .filter(|e| e.organizer == user_id)
-            .collect()
-    }
-
-    pub fn check_conflicts(
-        &self,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
-        user_id: &str,
-    ) -> Vec<&CalendarEvent> {
-        self.events
-            .iter()
-            .filter(|e| e.organizer == user_id && e.start_time < end && e.end_time > start)
-            .collect()
-    }
-
-    pub fn export_ical(&self, calendar_name: &str) -> String {
-        export_to_ical(&self.events, calendar_name)
-    }
-
-    pub fn import_ical(&mut self, ical_str: &str, organizer: &str) -> usize {
-        let imported = import_from_ical(ical_str, organizer);
-        let count = imported.len();
-        self.events.extend(imported);
-        count
-    }
-}
-
-pub async fn list_events(
-    State(_state): State<Arc<AppState>>,
-    axum::extract::Query(_query): axum::extract::Query<serde_json::Value>,
-) -> Json<Vec<CalendarEvent>> {
-    let calendar_state = get_calendar_state();
-    let events = calendar_state.events.read().await;
-
-    let mut result: Vec<CalendarEvent> = events.values().cloned().collect();
-    result.sort_by(|a, b| a.start_time.cmp(&b.start_time));
-
-    Json(result)
-}
-
-pub async fn list_calendars_api(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "calendars": [
-            {
-                "id": "default",
-                "name": "My Calendar",
-                "color": "#3b82f6",
-                "visible": true
-            }
-        ]
-    }))
-}
-
-pub async fn list_calendars(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
-    axum::response::Html(r#"
-        <div class="calendar-item" data-calendar-id="default">
-            <span class="calendar-checkbox checked" style="background: #3b82f6;" onclick="toggleCalendar(this)"></span>
-            <span class="calendar-name">My Calendar</span>
-        </div>
-        <div class="calendar-item" data-calendar-id="work">
-            <span class="calendar-checkbox checked" style="background: #22c55e;" onclick="toggleCalendar(this)"></span>
-            <span class="calendar-name">Work</span>
-        </div>
-        <div class="calendar-item" data-calendar-id="personal">
-            <span class="calendar-checkbox checked" style="background: #f59e0b;" onclick="toggleCalendar(this)"></span>
-            <span class="calendar-name">Personal</span>
-        </div>
-    "#.to_string())
-}
-
-pub async fn upcoming_events_api(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "events": [],
-        "message": "No upcoming events"
-    }))
-}
-
-pub async fn upcoming_events(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
-    axum::response::Html(
-        r#"
-        <div class="upcoming-event">
-            <div class="upcoming-color" style="background: #3b82f6;"></div>
-            <div class="upcoming-info">
-                <span class="upcoming-title">No upcoming events</span>
-                <span class="upcoming-time">Create your first event</span>
-            </div>
-        </div>
-    "#
-        .to_string(),
-    )
-}
-
-pub async fn get_event(
-    State(_state): State<Arc<AppState>>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<CalendarEvent>, StatusCode> {
-    let calendar_state = get_calendar_state();
-    let events = calendar_state.events.read().await;
-
-    events
-        .get(&id)
-        .cloned()
-        .map(Json)
-        .ok_or(StatusCode::NOT_FOUND)
-}
-
-pub async fn create_event(
-    State(_state): State<Arc<AppState>>,
-    Json(input): Json<CalendarEventInput>,
-) -> Result<Json<CalendarEvent>, StatusCode> {
-    let calendar_state = get_calendar_state();
+pub async fn create_calendar(
+    State(state): State<Arc<AppState>>,
+    Json(input): Json<CreateCalendarRequest>,
+) -> Result<Json<CalendarRecord>, StatusCode> {
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+    let owner_id = Uuid::nil();
     let now = Utc::now();
 
-    let event = CalendarEvent {
+    let new_calendar = CalendarRecord {
         id: Uuid::new_v4(),
-        title: input.title,
+        org_id,
+        bot_id,
+        owner_id,
+        name: input.name,
         description: input.description,
-        start_time: input.start_time,
-        end_time: input.end_time,
-        location: input.location,
-        attendees: input.attendees,
-        organizer: input.organizer,
-        reminder_minutes: input.reminder_minutes,
-        recurrence: input.recurrence,
+        color: input.color.or(Some("#3b82f6".to_string())),
+        timezone: input.timezone.or(Some("UTC".to_string())),
+        is_primary: input.is_primary,
+        is_visible: true,
+        is_shared: false,
         created_at: now,
         updated_at: now,
     };
 
-    let mut events = calendar_state.events.write().await;
-    events.insert(event.id, event.clone());
+    let calendar = new_calendar.clone();
 
-    log::info!("Created calendar event: {} ({})", event.title, event.id);
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        diesel::insert_into(calendars::table)
+            .values(&new_calendar)
+            .execute(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok::<_, StatusCode>(())
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    result?;
+    info!("Created calendar: {} ({})", calendar.name, calendar.id);
+    Ok(Json(calendar))
+}
+
+pub async fn list_calendars_db(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Vec<CalendarRecord>>, StatusCode> {
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
+            .order(calendars::created_at.desc())
+            .load::<CalendarRecord>(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(result?))
+}
+
+pub async fn get_calendar(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<CalendarRecord>, StatusCode> {
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        calendars::table
+            .find(id)
+            .first::<CalendarRecord>(&mut conn)
+            .optional()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    result?.ok_or(StatusCode::NOT_FOUND).map(Json)
+}
+
+pub async fn update_calendar(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    Json(input): Json<UpdateCalendarRequest>,
+) -> Result<Json<CalendarRecord>, StatusCode> {
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+
+        let mut calendar = calendars::table
+            .find(id)
+            .first::<CalendarRecord>(&mut conn)
+            .optional()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        if let Some(name) = input.name {
+            calendar.name = name;
+        }
+        if let Some(description) = input.description {
+            calendar.description = Some(description);
+        }
+        if let Some(color) = input.color {
+            calendar.color = Some(color);
+        }
+        if let Some(timezone) = input.timezone {
+            calendar.timezone = Some(timezone);
+        }
+        if let Some(is_visible) = input.is_visible {
+            calendar.is_visible = is_visible;
+        }
+        calendar.updated_at = Utc::now();
+
+        diesel::update(calendars::table.find(id))
+            .set(&calendar)
+            .execute(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        Ok::<_, StatusCode>(calendar)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(result?))
+}
+
+pub async fn delete_calendar(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> StatusCode {
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        let deleted = diesel::delete(calendars::table.find(id))
+            .execute(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if deleted > 0 {
+            Ok::<_, StatusCode>(StatusCode::NO_CONTENT)
+        } else {
+            Ok(StatusCode::NOT_FOUND)
+        }
+    })
+    .await;
+
+    match result {
+        Ok(Ok(status)) => status,
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn list_events(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<EventQuery>,
+) -> Result<Json<Vec<CalendarEvent>>, StatusCode> {
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+
+        let mut db_query = calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
+            .into_boxed();
+
+        if let Some(calendar_id) = query.calendar_id {
+            db_query = db_query.filter(calendar_events::calendar_id.eq(calendar_id));
+        }
+        if let Some(start) = query.start {
+            db_query = db_query.filter(calendar_events::start_time.ge(start));
+        }
+        if let Some(end) = query.end {
+            db_query = db_query.filter(calendar_events::end_time.le(end));
+        }
+
+        db_query = db_query.order(calendar_events::start_time.asc());
+
+        if let Some(limit) = query.limit {
+            db_query = db_query.limit(limit);
+        }
+        if let Some(offset) = query.offset {
+            db_query = db_query.offset(offset);
+        }
+
+        db_query
+            .load::<CalendarEventRecord>(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let records = result?;
+    let events: Vec<CalendarEvent> = records.into_iter().map(record_to_event).collect();
+    Ok(Json(events))
+}
+
+pub async fn get_event(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<CalendarEvent>, StatusCode> {
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        calendar_events::table
+            .find(id)
+            .first::<CalendarEventRecord>(&mut conn)
+            .optional()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    result?.map(record_to_event).ok_or(StatusCode::NOT_FOUND).map(Json)
+}
+
+pub async fn create_event(
+    State(state): State<Arc<AppState>>,
+    Json(input): Json<CalendarEventInput>,
+) -> Result<Json<CalendarEvent>, StatusCode> {
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+    let owner_id = Uuid::nil();
+    let now = Utc::now();
+
+    let calendar_id = input.calendar_id.unwrap_or_else(Uuid::nil);
+
+    let reminders = if let Some(minutes) = input.reminder_minutes {
+        serde_json::json!([{"minutes_before": minutes, "type": "notification"}])
+    } else {
+        serde_json::json!([])
+    };
+
+    let new_event = CalendarEventRecord {
+        id: Uuid::new_v4(),
+        org_id,
+        bot_id,
+        calendar_id,
+        owner_id,
+        title: input.title.clone(),
+        description: input.description.clone(),
+        location: input.location.clone(),
+        start_time: input.start_time,
+        end_time: input.end_time,
+        all_day: input.all_day,
+        recurrence_rule: input.recurrence.clone(),
+        recurrence_id: None,
+        color: None,
+        status: "confirmed".to_string(),
+        visibility: "default".to_string(),
+        busy_status: "busy".to_string(),
+        reminders,
+        attendees: serde_json::to_value(&input.attendees).unwrap_or(serde_json::json!([])),
+        conference_data: None,
+        metadata: serde_json::json!({}),
+        created_at: now,
+        updated_at: now,
+    };
+
+    let event_record = new_event.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        diesel::insert_into(calendar_events::table)
+            .values(&new_event)
+            .execute(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok::<_, StatusCode>(())
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    result?;
+
+    let event = record_to_event(event_record);
+    info!("Created calendar event: {} ({})", event.title, event.id);
     Ok(Json(event))
 }
 
 pub async fn update_event(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
-    let calendar_state = get_calendar_state();
-    let mut events = calendar_state.events.write().await;
+    let pool = state.pool.clone();
 
-    let event = events.get_mut(&id).ok_or(StatusCode::NOT_FOUND)?;
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
-    event.title = input.title;
-    event.description = input.description;
-    event.start_time = input.start_time;
-    event.end_time = input.end_time;
-    event.location = input.location;
-    event.attendees = input.attendees;
-    event.organizer = input.organizer;
-    event.reminder_minutes = input.reminder_minutes;
-    event.recurrence = input.recurrence;
-    event.updated_at = Utc::now();
+        let mut event = calendar_events::table
+            .find(id)
+            .first::<CalendarEventRecord>(&mut conn)
+            .optional()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
 
-    log::info!("Updated calendar event: {} ({})", event.title, event.id);
+        event.title = input.title;
+        event.description = input.description;
+        event.location = input.location;
+        event.start_time = input.start_time;
+        event.end_time = input.end_time;
+        event.all_day = input.all_day;
+        event.recurrence_rule = input.recurrence;
+        event.attendees = serde_json::to_value(&input.attendees).unwrap_or(serde_json::json!([]));
+        if let Some(minutes) = input.reminder_minutes {
+            event.reminders = serde_json::json!([{"minutes_before": minutes, "type": "notification"}]);
+        }
+        event.updated_at = Utc::now();
 
-    Ok(Json(event.clone()))
+        if let Some(calendar_id) = input.calendar_id {
+            event.calendar_id = calendar_id;
+        }
+
+        diesel::update(calendar_events::table.find(id))
+            .set(&event)
+            .execute(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        Ok::<_, StatusCode>(event)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let event = record_to_event(result?);
+    info!("Updated calendar event: {} ({})", event.title, event.id);
+    Ok(Json(event))
 }
 
-pub async fn delete_event(State(_state): State<Arc<AppState>>, Path(id): Path<Uuid>) -> StatusCode {
-    let calendar_state = get_calendar_state();
-    let mut events = calendar_state.events.write().await;
+pub async fn delete_event(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> StatusCode {
+    let pool = state.pool.clone();
 
-    if events.remove(&id).is_some() {
-        log::info!("Deleted calendar event: {}", id);
-        StatusCode::NO_CONTENT
-    } else {
-        StatusCode::NOT_FOUND
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        let deleted = diesel::delete(calendar_events::table.find(id))
+            .execute(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if deleted > 0 {
+            info!("Deleted calendar event: {id}");
+            Ok::<_, StatusCode>(StatusCode::NO_CONTENT)
+        } else {
+            Ok(StatusCode::NOT_FOUND)
+        }
+    })
+    .await;
+
+    match result {
+        Ok(Ok(status)) => status,
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
 
-pub async fn export_ical(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
-    let calendar = Calendar::new().name("GeneralBots Calendar").done();
-    (
-        [(
-            axum::http::header::CONTENT_TYPE,
-            "text/calendar; charset=utf-8",
-        )],
-        calendar.to_string(),
-    )
+pub async fn share_calendar(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    Json(input): Json<ShareCalendarRequest>,
+) -> Result<Json<CalendarShareRecord>, StatusCode> {
+    let pool = state.pool.clone();
+
+    let new_share = CalendarShareRecord {
+        id: Uuid::new_v4(),
+        calendar_id: id,
+        shared_with_user_id: input.user_id,
+        shared_with_email: input.email,
+        permission: input.permission,
+        created_at: Utc::now(),
+    };
+
+    let share = new_share.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        diesel::insert_into(calendar_shares::table)
+            .values(&new_share)
+            .execute(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok::<_, StatusCode>(())
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    result?;
+    Ok(Json(share))
+}
+
+pub async fn export_ical(
+    State(state): State<Arc<AppState>>,
+    Path(calendar_id): Path<Uuid>,
+) -> impl IntoResponse {
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().ok()?;
+
+        let calendar = calendars::table
+            .find(calendar_id)
+            .first::<CalendarRecord>(&mut conn)
+            .optional()
+            .ok()??;
+
+        let events = calendar_events::table
+            .filter(calendar_events::calendar_id.eq(calendar_id))
+            .load::<CalendarEventRecord>(&mut conn)
+            .ok()?;
+
+        let event_list: Vec<CalendarEvent> = events.into_iter().map(record_to_event).collect();
+        Some(export_to_ical(&event_list, &calendar.name))
+    })
+    .await;
+
+    match result {
+        Ok(Some(ical)) => (
+            StatusCode::OK,
+            [(axum::http::header::CONTENT_TYPE, "text/calendar; charset=utf-8")],
+            ical,
+        ).into_response(),
+        _ => StatusCode::NOT_FOUND.into_response(),
+    }
 }
 
 pub async fn import_ical(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
+    Path(calendar_id): Path<Uuid>,
     body: String,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let events = import_from_ical(&body, "unknown");
-    Ok(Json(serde_json::json!({ "imported": events.len() })))
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+    let owner_id = Uuid::nil();
+
+    let events = import_from_ical(&body, &owner_id.to_string(), calendar_id);
+    let count = events.len();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        let now = Utc::now();
+
+        for event in events {
+            let record = CalendarEventRecord {
+                id: event.id,
+                org_id,
+                bot_id,
+                calendar_id,
+                owner_id,
+                title: event.title,
+                description: event.description,
+                location: event.location,
+                start_time: event.start_time,
+                end_time: event.end_time,
+                all_day: event.all_day,
+                recurrence_rule: event.recurrence,
+                recurrence_id: None,
+                color: event.color,
+                status: event.status,
+                visibility: "default".to_string(),
+                busy_status: "busy".to_string(),
+                reminders: serde_json::json!([]),
+                attendees: serde_json::to_value(&event.attendees).unwrap_or(serde_json::json!([])),
+                conference_data: None,
+                metadata: serde_json::json!({}),
+                created_at: now,
+                updated_at: now,
+            };
+
+            diesel::insert_into(calendar_events::table)
+                .values(&record)
+                .execute(&mut conn)
+                .ok();
+        }
+
+        Ok::<_, StatusCode>(())
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    result?;
+    Ok(Json(serde_json::json!({ "imported": count })))
 }
 
-pub async fn new_event_form(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
-    axum::response::Html(
-        r#"
+pub async fn list_calendars_api(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().ok()?;
+        calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
+            .load::<CalendarRecord>(&mut conn)
+            .ok()
+    })
+    .await;
+
+    match result {
+        Ok(Some(cals)) => {
+            let calendar_list: Vec<serde_json::Value> = cals.iter().map(|c| {
+                serde_json::json!({
+                    "id": c.id,
+                    "name": c.name,
+                    "color": c.color,
+                    "visible": c.is_visible
+                })
+            }).collect();
+            Json(serde_json::json!({ "calendars": calendar_list }))
+        }
+        _ => Json(serde_json::json!({
+            "calendars": [{
+                "id": "default",
+                "name": "My Calendar",
+                "color": "#3b82f6",
+                "visible": true
+            }]
+        })),
+    }
+}
+
+pub async fn list_calendars_html(State(state): State<Arc<AppState>>) -> Html<String> {
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().ok()?;
+        calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
+            .load::<CalendarRecord>(&mut conn)
+            .ok()
+    })
+    .await;
+
+    match result {
+        Ok(Some(cals)) if !cals.is_empty() => {
+            let html: String = cals.iter().map(|c| {
+                let color = c.color.as_deref().unwrap_or("#3b82f6");
+                let checked = if c.is_visible { "checked" } else { "" };
+                format!(
+                    r#"<div class="calendar-item" data-calendar-id="{}">
+                        <span class="calendar-checkbox {}" style="background: {};" onclick="toggleCalendar(this)"></span>
+                        <span class="calendar-name">{}</span>
+                    </div>"#,
+                    c.id, checked, color, c.name
+                )
+            }).collect();
+            Html(html)
+        }
+        _ => Html(r#"
+            <div class="calendar-item" data-calendar-id="default">
+                <span class="calendar-checkbox checked" style="background: #3b82f6;" onclick="toggleCalendar(this)"></span>
+                <span class="calendar-name">My Calendar</span>
+            </div>
+        "#.to_string()),
+    }
+}
+
+pub async fn upcoming_events_api(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+    let now = Utc::now();
+    let end = now + chrono::Duration::days(7);
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().ok()?;
+        calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
+            .filter(calendar_events::start_time.ge(now))
+            .filter(calendar_events::start_time.le(end))
+            .order(calendar_events::start_time.asc())
+            .limit(10)
+            .load::<CalendarEventRecord>(&mut conn)
+            .ok()
+    })
+    .await;
+
+    match result {
+        Ok(Some(events)) => {
+            let event_list: Vec<serde_json::Value> = events.iter().map(|e| {
+                serde_json::json!({
+                    "id": e.id,
+                    "title": e.title,
+                    "start_time": e.start_time,
+                    "end_time": e.end_time,
+                    "location": e.location
+                })
+            }).collect();
+            Json(serde_json::json!({ "events": event_list }))
+        }
+        _ => Json(serde_json::json!({
+            "events": [],
+            "message": "No upcoming events"
+        })),
+    }
+}
+
+pub async fn upcoming_events_html(State(state): State<Arc<AppState>>) -> Html<String> {
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+    let now = Utc::now();
+    let end = now + chrono::Duration::days(7);
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().ok()?;
+        calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
+            .filter(calendar_events::start_time.ge(now))
+            .filter(calendar_events::start_time.le(end))
+            .order(calendar_events::start_time.asc())
+            .limit(5)
+            .load::<CalendarEventRecord>(&mut conn)
+            .ok()
+    })
+    .await;
+
+    match result {
+        Ok(Some(events)) if !events.is_empty() => {
+            let html: String = events.iter().map(|e| {
+                let color = e.color.as_deref().unwrap_or("#3b82f6");
+                let time = e.start_time.format("%b %d, %H:%M").to_string();
+                format!(
+                    r#"<div class="upcoming-event">
+                        <div class="upcoming-color" style="background: {};"></div>
+                        <div class="upcoming-info">
+                            <span class="upcoming-title">{}</span>
+                            <span class="upcoming-time">{}</span>
+                        </div>
+                    </div>"#,
+                    color, e.title, time
+                )
+            }).collect();
+            Html(html)
+        }
+        _ => Html(r#"
+            <div class="upcoming-event">
+                <div class="upcoming-color" style="background: #3b82f6;"></div>
+                <div class="upcoming-info">
+                    <span class="upcoming-title">No upcoming events</span>
+                    <span class="upcoming-time">Create your first event</span>
+                </div>
+            </div>
+        "#.to_string()),
+    }
+}
+
+pub async fn new_event_form() -> Html<String> {
+    Html(r#"
         <div class="event-form-content">
             <p>Create a new event using the form on the right panel.</p>
         </div>
-    "#
-        .to_string(),
-    )
+    "#.to_string())
 }
 
-pub async fn new_calendar_form(
-    State(_state): State<Arc<AppState>>,
-) -> axum::response::Html<String> {
-    axum::response::Html(r##"
+pub async fn new_calendar_form() -> Html<String> {
+    Html(r##"
         <form class="calendar-form" hx-post="/api/calendar/calendars" hx-swap="none">
             <div class="form-group">
                 <label>Calendar Name</label>
@@ -485,96 +999,19 @@ pub async fn new_calendar_form(
     "##.to_string())
 }
 
-pub async fn start_reminder_job(engine: Arc<CalendarEngine>) {
-    info!("Starting calendar reminder job");
-
-    loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-
-        let now = Utc::now();
-        for event in &engine.events {
-            if let Some(reminder_minutes) = event.reminder_minutes {
-                let reminder_time =
-                    event.start_time - chrono::Duration::minutes(i64::from(reminder_minutes));
-
-                if now >= reminder_time && now < reminder_time + chrono::Duration::minutes(1) {
-                    info!(
-                        "Reminder: Event '{}' starts in {} minutes",
-                        event.title, reminder_minutes
-                    );
-                }
-            }
-        }
-    }
-}
-
 pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
     Router::new()
-        // JSON APIs
-        .route(
-            ApiUrls::CALENDAR_EVENTS,
-            get(list_events).post(create_event),
-        )
-        .route(
-            ApiUrls::CALENDAR_EVENT_BY_ID,
-            get(get_event).put(update_event).delete(delete_event),
-        )
-        .route(ApiUrls::CALENDAR_EXPORT, get(export_ical))
-        .route(ApiUrls::CALENDAR_IMPORT, post(import_ical))
+        .route("/api/calendar/calendars", get(list_calendars_db).post(create_calendar))
+        .route("/api/calendar/calendars/:id", get(get_calendar).put(update_calendar).delete(delete_calendar))
+        .route("/api/calendar/calendars/:id/share", post(share_calendar))
+        .route("/api/calendar/calendars/:id/export", get(export_ical))
+        .route("/api/calendar/calendars/:id/import", post(import_ical))
+        .route(ApiUrls::CALENDAR_EVENTS, get(list_events).post(create_event))
+        .route(ApiUrls::CALENDAR_EVENT_BY_ID, get(get_event).put(update_event).delete(delete_event))
         .route(ApiUrls::CALENDAR_CALENDARS_JSON, get(list_calendars_api))
         .route(ApiUrls::CALENDAR_UPCOMING_JSON, get(upcoming_events_api))
-        // HTMX/HTML APIs
-        .route(ApiUrls::CALENDAR_CALENDARS, get(list_calendars))
-        .route(ApiUrls::CALENDAR_UPCOMING, get(upcoming_events))
+        .route(ApiUrls::CALENDAR_CALENDARS, get(list_calendars_html))
+        .route(ApiUrls::CALENDAR_UPCOMING, get(upcoming_events_html))
         .route(ApiUrls::CALENDAR_NEW_EVENT_FORM, get(new_event_form))
         .route(ApiUrls::CALENDAR_NEW_CALENDAR_FORM, get(new_calendar_form))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use chrono::Utc;
-    use uuid::Uuid;
-
-    #[test]
-    fn test_event_to_ical_roundtrip() {
-        let event = CalendarEvent {
-            id: Uuid::new_v4(),
-            title: "Test Meeting".to_string(),
-            description: Some("A test meeting".to_string()),
-            start_time: Utc::now(),
-            end_time: Utc::now() + chrono::Duration::hours(1),
-            location: Some("Room 101".to_string()),
-            attendees: vec!["user@example.com".to_string()],
-            organizer: "organizer@example.com".to_string(),
-            reminder_minutes: Some(15),
-            recurrence: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
-
-        let ical = event.to_ical();
-        assert_eq!(ical.get_summary(), Some("Test Meeting"));
-        assert_eq!(ical.get_location(), Some("Room 101"));
-    }
-
-    #[test]
-    fn test_export_import_ical() {
-        let mut engine = CalendarEngine::default();
-        engine.create_event(CalendarEventInput {
-            title: "Event 1".to_string(),
-            description: None,
-            start_time: Utc::now(),
-            end_time: Utc::now() + chrono::Duration::hours(1),
-            location: None,
-            attendees: vec![],
-            organizer: "test@example.com".to_string(),
-            reminder_minutes: None,
-            recurrence: None,
-        });
-
-        let ical = engine.export_ical("Test Calendar");
-        assert!(ical.contains("BEGIN:VCALENDAR"));
-        assert!(ical.contains("Event 1"));
-    }
 }

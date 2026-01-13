@@ -404,7 +404,7 @@ fn count_blocks_stats(blocks: &[Block], stats: &mut PageStats) {
             _ => {}
         }
 
-        if let BlockContent::Text(rich_text) = &block.content {
+        if let BlockContent::Text { text: rich_text } = &block.content {
             for segment in &rich_text.segments {
                 stats.total_characters += segment.text.len();
                 stats.total_words += segment.text.split_whitespace().count();
