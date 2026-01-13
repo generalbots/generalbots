@@ -1,3 +1,4 @@
+pub mod ui;
 pub mod web_search;
 
 use crate::shared::state::AppState;

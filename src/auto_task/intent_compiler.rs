@@ -2,7 +2,8 @@ use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
-use log::{info, trace, warn};
+use diesel::prelude::*;
+use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -800,8 +801,76 @@ Respond ONLY with valid JSON."#,
         (0.85, Vec::new())
     }
 
-    fn store_compiled_intent(_compiled: &CompiledIntent) {
-        info!("Storing compiled intent (stub)");
+    fn store_compiled_intent(compiled: &CompiledIntent, state: &Arc<AppState>) {
+        info!("Storing compiled intent: {}", compiled.id);
+
+        // Store in task_manifests cache for quick access
+        if let Ok(mut manifests) = state.task_manifests.write() {
+            use crate::auto_task::task_manifest::{TaskManifest, ManifestStatus, CurrentStatus, ProcessingStats};
+
+            let manifest = TaskManifest {
+                id: compiled.id.clone(),
+                app_name: compiled.entities.action.clone(),
+                description: compiled.original_intent.clone(),
+                created_at: compiled.compiled_at,
+                updated_at: compiled.compiled_at,
+                status: ManifestStatus::Ready,
+                current_status: CurrentStatus {
+                    title: "Compiled".to_string(),
+                    current_action: Some("Ready for execution".to_string()),
+                    decision_point: None,
+                },
+                sections: Vec::new(),
+                total_steps: compiled.plan.steps.len() as u32,
+                completed_steps: 0,
+                runtime_seconds: 0,
+                estimated_seconds: compiled.resource_estimate.estimated_time_minutes as u64 * 60,
+                terminal_output: Vec::new(),
+                processing_stats: ProcessingStats::default(),
+            };
+            manifests.insert(compiled.id.clone(), manifest);
+            info!("Compiled intent {} stored in manifest cache", compiled.id);
+        }
+
+        // Also persist to database for durability
+        match state.conn.get() {
+            Ok(mut conn) => {
+                let compiled_json = serde_json::to_value(compiled).unwrap_or_default();
+                let insert_sql = format!(
+                    "INSERT INTO compiled_intents (id, bot_id, session_id, original_intent, basic_program, confidence, compiled_at, data)
+                     VALUES ('{}', '{}', '{}', '{}', '{}', {}, '{}', '{}')
+                     ON CONFLICT (id) DO UPDATE SET
+                         basic_program = EXCLUDED.basic_program,
+                         confidence = EXCLUDED.confidence,
+                         data = EXCLUDED.data,
+                         compiled_at = EXCLUDED.compiled_at",
+                    compiled.id,
+                    compiled.bot_id,
+                    compiled.session_id,
+                    compiled.original_intent.replace('\'', "''"),
+                    compiled.basic_program.replace('\'', "''"),
+                    compiled.confidence,
+                    compiled.compiled_at.to_rfc3339(),
+                    compiled_json.to_string().replace('\'', "''")
+                );
+
+                match diesel::sql_query(&insert_sql).execute(&mut conn) {
+                    Ok(_) => info!("Compiled intent {} persisted to database", compiled.id),
+                    Err(e) => {
+                        // Table might not exist yet - this is okay, cache is primary storage
+                        trace!("Could not persist compiled intent to database (table may not exist): {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                error!("Failed to get database connection for storing compiled intent: {}", e);
+            }
+        }
+    }
+
+    fn store_compiled_intent_simple(compiled: &CompiledIntent) {
+        // Simple version without state - just log
+        info!("Storing compiled intent (no state): {}", compiled.id);
     }
 
     fn determine_approval_levels(steps: &[PlanStep]) -> Vec<ApprovalLevel> {

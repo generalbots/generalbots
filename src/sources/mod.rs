@@ -1,5 +1,6 @@
 pub mod knowledge_base;
 pub mod mcp;
+pub mod ui;
 
 use crate::basic::keywords::mcp_directory::{generate_example_configs, McpCsvLoader, McpCsvRow};
 use crate::shared::state::AppState;

@@ -2474,6 +2474,260 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    billing_usage_alerts (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        metric -> Varchar,
+        severity -> Varchar,
+        current_usage -> Int8,
+        usage_limit -> Int8,
+        percentage -> Numeric,
+        threshold -> Numeric,
+        message -> Text,
+        acknowledged_at -> Nullable<Timestamptz>,
+        acknowledged_by -> Nullable<Uuid>,
+        notification_sent -> Bool,
+        notification_channels -> Jsonb,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    billing_alert_history (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        alert_id -> Uuid,
+        metric -> Varchar,
+        severity -> Varchar,
+        current_usage -> Int8,
+        usage_limit -> Int8,
+        percentage -> Numeric,
+        message -> Text,
+        acknowledged_at -> Nullable<Timestamptz>,
+        acknowledged_by -> Nullable<Uuid>,
+        resolved_at -> Nullable<Timestamptz>,
+        resolution_type -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    billing_notification_preferences (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        enabled -> Bool,
+        channels -> Jsonb,
+        email_recipients -> Jsonb,
+        webhook_url -> Nullable<Text>,
+        webhook_secret -> Nullable<Text>,
+        slack_webhook_url -> Nullable<Text>,
+        teams_webhook_url -> Nullable<Text>,
+        sms_numbers -> Jsonb,
+        min_severity -> Varchar,
+        quiet_hours_start -> Nullable<Int4>,
+        quiet_hours_end -> Nullable<Int4>,
+        quiet_hours_timezone -> Nullable<Varchar>,
+        quiet_hours_days -> Nullable<Jsonb>,
+        metric_overrides -> Jsonb,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    billing_grace_periods (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        metric -> Varchar,
+        started_at -> Timestamptz,
+        expires_at -> Timestamptz,
+        overage_at_start -> Numeric,
+        current_overage -> Numeric,
+        max_allowed_overage -> Numeric,
+        is_active -> Bool,
+        ended_at -> Nullable<Timestamptz>,
+        end_reason -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    meeting_rooms (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        room_code -> Varchar,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        created_by -> Uuid,
+        max_participants -> Int4,
+        is_recording -> Bool,
+        is_transcribing -> Bool,
+        status -> Varchar,
+        settings -> Jsonb,
+        started_at -> Nullable<Timestamptz>,
+        ended_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    meeting_participants (id) {
+        id -> Uuid,
+        room_id -> Uuid,
+        user_id -> Nullable<Uuid>,
+        participant_name -> Varchar,
+        email -> Nullable<Varchar>,
+        role -> Varchar,
+        is_bot -> Bool,
+        is_active -> Bool,
+        has_video -> Bool,
+        has_audio -> Bool,
+        joined_at -> Timestamptz,
+        left_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    meeting_recordings (id) {
+        id -> Uuid,
+        room_id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        recording_type -> Varchar,
+        file_url -> Nullable<Text>,
+        file_size -> Nullable<Int8>,
+        duration_seconds -> Nullable<Int4>,
+        status -> Varchar,
+        started_at -> Timestamptz,
+        stopped_at -> Nullable<Timestamptz>,
+        processed_at -> Nullable<Timestamptz>,
+        metadata -> Jsonb,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    meeting_transcriptions (id) {
+        id -> Uuid,
+        room_id -> Uuid,
+        recording_id -> Nullable<Uuid>,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        participant_id -> Nullable<Uuid>,
+        speaker_name -> Nullable<Varchar>,
+        content -> Text,
+        start_time -> Numeric,
+        end_time -> Numeric,
+        confidence -> Nullable<Numeric>,
+        language -> Nullable<Varchar>,
+        is_final -> Bool,
+        metadata -> Jsonb,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    meeting_whiteboards (id) {
+        id -> Uuid,
+        room_id -> Nullable<Uuid>,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        background_color -> Nullable<Varchar>,
+        grid_enabled -> Bool,
+        grid_size -> Nullable<Int4>,
+        elements -> Jsonb,
+        version -> Int4,
+        created_by -> Uuid,
+        last_modified_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    whiteboard_elements (id) {
+        id -> Uuid,
+        whiteboard_id -> Uuid,
+        element_type -> Varchar,
+        position_x -> Numeric,
+        position_y -> Numeric,
+        width -> Nullable<Numeric>,
+        height -> Nullable<Numeric>,
+        rotation -> Nullable<Numeric>,
+        z_index -> Int4,
+        properties -> Jsonb,
+        created_by -> Uuid,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    whiteboard_exports (id) {
+        id -> Uuid,
+        whiteboard_id -> Uuid,
+        org_id -> Uuid,
+        export_format -> Varchar,
+        file_url -> Nullable<Text>,
+        file_size -> Nullable<Int8>,
+        status -> Varchar,
+        error_message -> Nullable<Text>,
+        requested_by -> Uuid,
+        created_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    meeting_chat_messages (id) {
+        id -> Uuid,
+        room_id -> Uuid,
+        participant_id -> Nullable<Uuid>,
+        sender_name -> Varchar,
+        message_type -> Varchar,
+        content -> Text,
+        reply_to_id -> Nullable<Uuid>,
+        is_system_message -> Bool,
+        metadata -> Jsonb,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    scheduled_meetings (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        room_id -> Nullable<Uuid>,
+        title -> Varchar,
+        description -> Nullable<Text>,
+        organizer_id -> Uuid,
+        scheduled_start -> Timestamptz,
+        scheduled_end -> Timestamptz,
+        timezone -> Varchar,
+        recurrence_rule -> Nullable<Text>,
+        attendees -> Jsonb,
+        settings -> Jsonb,
+        status -> Varchar,
+        reminder_sent -> Bool,
+        calendar_event_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
 diesel::joinable!(attendant_queues -> organizations (org_id));
 diesel::joinable!(attendant_queues -> bots (bot_id));
 diesel::joinable!(attendant_sessions -> organizations (org_id));
@@ -2606,6 +2860,36 @@ diesel::joinable!(compliance_training_records -> organizations (org_id));
 diesel::joinable!(compliance_training_records -> bots (bot_id));
 diesel::joinable!(compliance_access_reviews -> organizations (org_id));
 diesel::joinable!(compliance_access_reviews -> bots (bot_id));
+
+diesel::joinable!(billing_usage_alerts -> organizations (org_id));
+diesel::joinable!(billing_usage_alerts -> bots (bot_id));
+diesel::joinable!(billing_alert_history -> organizations (org_id));
+diesel::joinable!(billing_alert_history -> bots (bot_id));
+diesel::joinable!(billing_notification_preferences -> organizations (org_id));
+diesel::joinable!(billing_notification_preferences -> bots (bot_id));
+diesel::joinable!(billing_grace_periods -> organizations (org_id));
+diesel::joinable!(billing_grace_periods -> bots (bot_id));
+
+diesel::joinable!(meeting_rooms -> organizations (org_id));
+diesel::joinable!(meeting_rooms -> bots (bot_id));
+diesel::joinable!(meeting_participants -> meeting_rooms (room_id));
+diesel::joinable!(meeting_recordings -> meeting_rooms (room_id));
+diesel::joinable!(meeting_recordings -> organizations (org_id));
+diesel::joinable!(meeting_recordings -> bots (bot_id));
+diesel::joinable!(meeting_transcriptions -> meeting_rooms (room_id));
+diesel::joinable!(meeting_transcriptions -> meeting_recordings (recording_id));
+diesel::joinable!(meeting_transcriptions -> meeting_participants (participant_id));
+diesel::joinable!(meeting_whiteboards -> meeting_rooms (room_id));
+diesel::joinable!(meeting_whiteboards -> organizations (org_id));
+diesel::joinable!(meeting_whiteboards -> bots (bot_id));
+diesel::joinable!(whiteboard_elements -> meeting_whiteboards (whiteboard_id));
+diesel::joinable!(whiteboard_exports -> meeting_whiteboards (whiteboard_id));
+diesel::joinable!(whiteboard_exports -> organizations (org_id));
+diesel::joinable!(meeting_chat_messages -> meeting_rooms (room_id));
+diesel::joinable!(meeting_chat_messages -> meeting_participants (participant_id));
+diesel::joinable!(scheduled_meetings -> organizations (org_id));
+diesel::joinable!(scheduled_meetings -> bots (bot_id));
+diesel::joinable!(scheduled_meetings -> meeting_rooms (room_id));
 
 diesel::joinable!(products -> organizations (org_id));
 diesel::joinable!(products -> bots (bot_id));
@@ -2814,4 +3098,17 @@ diesel::allow_tables_to_appear_in_same_query!(
     compliance_risks,
     compliance_training_records,
     compliance_access_reviews,
+    billing_usage_alerts,
+    billing_alert_history,
+    billing_notification_preferences,
+    billing_grace_periods,
+    meeting_rooms,
+    meeting_participants,
+    meeting_recordings,
+    meeting_transcriptions,
+    meeting_whiteboards,
+    whiteboard_elements,
+    whiteboard_exports,
+    meeting_chat_messages,
+    scheduled_meetings,
 );

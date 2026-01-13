@@ -193,6 +193,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/files/list", get(list_files))
         .route("/api/files/open", post(open_file))
         .route("/api/files/read", post(read_file))
+        .route("/api/drive/content", post(read_file))
         .route("/api/files/write", post(write_file))
         .route("/api/files/save", post(write_file))
         .route("/api/files/getContents", post(read_file))

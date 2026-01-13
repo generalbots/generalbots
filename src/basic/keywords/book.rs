@@ -1,3 +1,4 @@
+use crate::core::shared::schema::calendar_events;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Duration, Timelike, Utc};
@@ -61,19 +62,109 @@ impl CalendarEngine {
 
     pub fn check_conflicts(
         &self,
-        _start: DateTime<Utc>,
-        _end: DateTime<Utc>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
         _user: &str,
     ) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
-        Ok(vec![])
+        let mut conn = self._db.get()?;
+
+        // Find events that overlap with the given time range
+        // Overlap condition: event.start < query.end AND event.end > query.start
+        let rows: Vec<(Uuid, String, Option<String>, DateTime<Utc>, DateTime<Utc>, Option<String>, String)> = calendar_events::table
+            .filter(calendar_events::start_time.lt(end))
+            .filter(calendar_events::end_time.gt(start))
+            .filter(calendar_events::status.ne("cancelled"))
+            .select((
+                calendar_events::id,
+                calendar_events::title,
+                calendar_events::description,
+                calendar_events::start_time,
+                calendar_events::end_time,
+                calendar_events::location,
+                calendar_events::status,
+            ))
+            .limit(50)
+            .load(&mut conn)?;
+
+        let events = rows.into_iter().map(|row| {
+            let status = match row.6.as_str() {
+                "confirmed" => EventStatus::Confirmed,
+                "tentative" => EventStatus::Tentative,
+                "cancelled" => EventStatus::Cancelled,
+                _ => EventStatus::Confirmed,
+            };
+
+            CalendarEvent {
+                id: row.0,
+                title: row.1,
+                description: row.2,
+                start_time: row.3,
+                end_time: row.4,
+                location: row.5,
+                organizer: String::new(),
+                attendees: vec![],
+                reminder_minutes: None,
+                recurrence_rule: None,
+                status,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            }
+        }).collect();
+
+        Ok(events)
     }
 
     pub fn get_events_range(
         &self,
-        _start: DateTime<Utc>,
-        _end: DateTime<Utc>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
     ) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
-        Ok(vec![])
+        let mut conn = self._db.get()?;
+
+        // Get all events within the time range
+        let rows: Vec<(Uuid, String, Option<String>, DateTime<Utc>, DateTime<Utc>, Option<String>, String)> = calendar_events::table
+            .filter(calendar_events::start_time.ge(start))
+            .filter(calendar_events::start_time.le(end))
+            .filter(calendar_events::status.ne("cancelled"))
+            .order(calendar_events::start_time.asc())
+            .select((
+                calendar_events::id,
+                calendar_events::title,
+                calendar_events::description,
+                calendar_events::start_time,
+                calendar_events::end_time,
+                calendar_events::location,
+                calendar_events::status,
+            ))
+            .limit(100)
+            .load(&mut conn)?;
+
+        let events = rows.into_iter().map(|row| {
+            let status = match row.6.as_str() {
+                "confirmed" => EventStatus::Confirmed,
+                "tentative" => EventStatus::Tentative,
+                "cancelled" => EventStatus::Cancelled,
+                _ => EventStatus::Confirmed,
+            };
+
+            CalendarEvent {
+                id: row.0,
+                title: row.1,
+                description: row.2,
+                start_time: row.3,
+                end_time: row.4,
+                location: row.5,
+                organizer: String::new(),
+                attendees: vec![],
+                reminder_minutes: None,
+                recurrence_rule: None,
+                status,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            }
+        }).collect();
+
+        Ok(events)
     }
 }
 

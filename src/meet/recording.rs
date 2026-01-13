@@ -1,11 +1,13 @@
 
 use chrono::{DateTime, Utc};
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use uuid::Uuid;
 
+use crate::core::shared::schema::meeting_recordings;
 use crate::shared::utils::DbPool;
 use crate::shared::{format_timestamp_plain, format_timestamp_srt, format_timestamp_vtt};
 
@@ -886,47 +888,250 @@ impl RecordingService {
         self.delete_recording_from_db(recording_id).await
     }
 
-    // Database helper methods (stubs - implement with actual queries)
+    // Database helper methods
 
-    async fn get_recording_from_db(&self, _recording_id: Uuid) -> Result<WebinarRecording, RecordingError> {
-        Err(RecordingError::NotFound)
+    async fn get_recording_from_db(&self, recording_id: Uuid) -> Result<WebinarRecording, RecordingError> {
+        let pool = self.pool.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            let row: (Uuid, Uuid, String, Option<String>, Option<i64>, Option<i32>, String, DateTime<Utc>, Option<DateTime<Utc>>, Option<DateTime<Utc>>) = meeting_recordings::table
+                .filter(meeting_recordings::id.eq(recording_id))
+                .select((
+                    meeting_recordings::id,
+                    meeting_recordings::room_id,
+                    meeting_recordings::recording_type,
+                    meeting_recordings::file_url,
+                    meeting_recordings::file_size,
+                    meeting_recordings::duration_seconds,
+                    meeting_recordings::status,
+                    meeting_recordings::started_at,
+                    meeting_recordings::stopped_at,
+                    meeting_recordings::processed_at,
+                ))
+                .first(&mut conn)
+                .map_err(|_| RecordingError::NotFound)?;
+
+            let status = match row.6.as_str() {
+                "recording" => RecordingStatus::Recording,
+                "processing" => RecordingStatus::Processing,
+                "ready" => RecordingStatus::Ready,
+                "failed" => RecordingStatus::Failed,
+                "deleted" => RecordingStatus::Deleted,
+                _ => RecordingStatus::Failed,
+            };
+
+            let quality = match row.2.as_str() {
+                "high" | "hd" => RecordingQuality::High,
+                "low" | "audio" => RecordingQuality::Low,
+                _ => RecordingQuality::Standard,
+            };
+
+            Ok(WebinarRecording {
+                id: row.0,
+                webinar_id: row.1,
+                status,
+                duration_seconds: row.5.unwrap_or(0) as u64,
+                file_size_bytes: row.4.unwrap_or(0) as u64,
+                file_url: row.3.clone(),
+                download_url: row.3,
+                quality,
+                started_at: row.7,
+                ended_at: row.8,
+                processed_at: row.9,
+                expires_at: None,
+                view_count: 0,
+                download_count: 0,
+            })
+        })
+        .await
+        .map_err(|e| RecordingError::DatabaseError(e.to_string()))?
     }
 
-    async fn delete_recording_from_db(&self, _recording_id: Uuid) -> Result<(), RecordingError> {
-        Ok(())
+    async fn delete_recording_from_db(&self, recording_id: Uuid) -> Result<(), RecordingError> {
+        let pool = self.pool.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            diesel::update(meeting_recordings::table.filter(meeting_recordings::id.eq(recording_id)))
+                .set((
+                    meeting_recordings::status.eq("deleted"),
+                    meeting_recordings::updated_at.eq(Utc::now()),
+                ))
+                .execute(&mut conn)
+                .map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            Ok(())
+        })
+        .await
+        .map_err(|e| RecordingError::DatabaseError(e.to_string()))?
     }
 
-    async fn list_recordings_from_db(&self, _room_id: Uuid) -> Result<Vec<WebinarRecording>, RecordingError> {
-        Ok(vec![])
+    async fn list_recordings_from_db(&self, room_id: Uuid) -> Result<Vec<WebinarRecording>, RecordingError> {
+        let pool = self.pool.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            let rows: Vec<(Uuid, Uuid, String, Option<String>, Option<i64>, Option<i32>, String, DateTime<Utc>, Option<DateTime<Utc>>, Option<DateTime<Utc>>)> = meeting_recordings::table
+                .filter(meeting_recordings::room_id.eq(room_id))
+                .filter(meeting_recordings::status.ne("deleted"))
+                .order(meeting_recordings::started_at.desc())
+                .select((
+                    meeting_recordings::id,
+                    meeting_recordings::room_id,
+                    meeting_recordings::recording_type,
+                    meeting_recordings::file_url,
+                    meeting_recordings::file_size,
+                    meeting_recordings::duration_seconds,
+                    meeting_recordings::status,
+                    meeting_recordings::started_at,
+                    meeting_recordings::stopped_at,
+                    meeting_recordings::processed_at,
+                ))
+                .load(&mut conn)
+                .map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            let recordings = rows.into_iter().map(|row| {
+                let status = match row.6.as_str() {
+                    "recording" => RecordingStatus::Recording,
+                    "processing" => RecordingStatus::Processing,
+                    "ready" => RecordingStatus::Ready,
+                    "failed" => RecordingStatus::Failed,
+                    "deleted" => RecordingStatus::Deleted,
+                    _ => RecordingStatus::Failed,
+                };
+
+                let quality = match row.2.as_str() {
+                    "high" | "hd" => RecordingQuality::High,
+                    "low" | "audio" => RecordingQuality::Low,
+                    _ => RecordingQuality::Standard,
+                };
+
+                WebinarRecording {
+                    id: row.0,
+                    webinar_id: row.1,
+                    status,
+                    duration_seconds: row.5.unwrap_or(0) as u64,
+                    file_size_bytes: row.4.unwrap_or(0) as u64,
+                    file_url: row.3.clone(),
+                    download_url: row.3,
+                    quality,
+                    started_at: row.7,
+                    ended_at: row.8,
+                    processed_at: row.9,
+                    expires_at: None,
+                    view_count: 0,
+                    download_count: 0,
+                }
+            }).collect();
+
+            Ok(recordings)
+        })
+        .await
+        .map_err(|e| RecordingError::DatabaseError(e.to_string()))?
     }
 
     async fn create_recording_record(
         &self,
-        _recording_id: Uuid,
-        _webinar_id: Uuid,
-        _quality: &RecordingQuality,
-        _started_at: DateTime<Utc>,
+        recording_id: Uuid,
+        webinar_id: Uuid,
+        quality: &RecordingQuality,
+        started_at: DateTime<Utc>,
     ) -> Result<(), RecordingError> {
-        Ok(())
+        let pool = self.pool.clone();
+        let quality_str = match quality {
+            RecordingQuality::Low => "low",
+            RecordingQuality::Standard => "standard",
+            RecordingQuality::High => "high",
+        }.to_string();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            // Get org_id and bot_id from room - for now use defaults
+            let org_id = Uuid::nil();
+            let bot_id = Uuid::nil();
+
+            diesel::insert_into(meeting_recordings::table)
+                .values((
+                    meeting_recordings::id.eq(recording_id),
+                    meeting_recordings::room_id.eq(webinar_id),
+                    meeting_recordings::org_id.eq(org_id),
+                    meeting_recordings::bot_id.eq(bot_id),
+                    meeting_recordings::recording_type.eq(&quality_str),
+                    meeting_recordings::status.eq("recording"),
+                    meeting_recordings::started_at.eq(started_at),
+                    meeting_recordings::metadata.eq(serde_json::json!({})),
+                    meeting_recordings::created_at.eq(Utc::now()),
+                    meeting_recordings::updated_at.eq(Utc::now()),
+                ))
+                .execute(&mut conn)
+                .map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            Ok(())
+        })
+        .await
+        .map_err(|e| RecordingError::DatabaseError(e.to_string()))?
     }
 
     async fn update_recording_stopped(
         &self,
-        _recording_id: Uuid,
-        _ended_at: DateTime<Utc>,
-        _duration_seconds: u64,
-        _file_size_bytes: u64,
+        recording_id: Uuid,
+        ended_at: DateTime<Utc>,
+        duration_seconds: u64,
+        file_size_bytes: u64,
     ) -> Result<(), RecordingError> {
-        Ok(())
+        let pool = self.pool.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            diesel::update(meeting_recordings::table.filter(meeting_recordings::id.eq(recording_id)))
+                .set((
+                    meeting_recordings::status.eq("processing"),
+                    meeting_recordings::stopped_at.eq(ended_at),
+                    meeting_recordings::duration_seconds.eq(duration_seconds as i32),
+                    meeting_recordings::file_size.eq(file_size_bytes as i64),
+                    meeting_recordings::updated_at.eq(Utc::now()),
+                ))
+                .execute(&mut conn)
+                .map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            Ok(())
+        })
+        .await
+        .map_err(|e| RecordingError::DatabaseError(e.to_string()))?
     }
 
     async fn update_recording_processed(
         &self,
-        _recording_id: Uuid,
-        _file_url: &str,
+        recording_id: Uuid,
+        file_url: &str,
         _download_url: &str,
     ) -> Result<(), RecordingError> {
-        Ok(())
+        let pool = self.pool.clone();
+        let file_url = file_url.to_string();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            diesel::update(meeting_recordings::table.filter(meeting_recordings::id.eq(recording_id)))
+                .set((
+                    meeting_recordings::status.eq("ready"),
+                    meeting_recordings::file_url.eq(&file_url),
+                    meeting_recordings::processed_at.eq(Utc::now()),
+                    meeting_recordings::updated_at.eq(Utc::now()),
+                ))
+                .execute(&mut conn)
+                .map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
+
+            Ok(())
+        })
+        .await
+        .map_err(|e| RecordingError::DatabaseError(e.to_string()))?
     }
 
     async fn create_transcription_record(
@@ -935,6 +1140,7 @@ impl RecordingService {
         _recording_id: Uuid,
         _language: &str,
     ) -> Result<(), RecordingError> {
+        // Transcription records use a separate table - implement when needed
         Ok(())
     }
 

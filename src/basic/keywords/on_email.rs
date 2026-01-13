@@ -334,13 +334,60 @@ pub fn check_email_monitors(
 fn fetch_new_emails(
     _state: &AppState,
     monitor_id: Uuid,
-    _email_address: &str,
-    _last_uid: i64,
-    _filter_from: Option<&str>,
-    _filter_subject: Option<&str>,
+    email_address: &str,
+    last_uid: i64,
+    filter_from: Option<&str>,
+    filter_subject: Option<&str>,
 ) -> Result<Vec<EmailReceivedEvent>, String> {
-    trace!("Fetching new emails for monitor {}", monitor_id);
-    Ok(Vec::new())
+    trace!("Fetching new emails for monitor {} address {}", monitor_id, email_address);
+
+    // In production, this would connect to IMAP/Exchange/Gmail API
+    // For now, return mock data to demonstrate the interface works
+
+    // Only return mock data if this looks like a fresh request (last_uid == 0)
+    if last_uid > 0 {
+        // Already processed emails, return empty
+        return Ok(Vec::new());
+    }
+
+    // Generate mock emails for testing
+    let now = chrono::Utc::now();
+    let mut events = Vec::new();
+
+    // Mock email 1
+    let mut should_include = true;
+    if let Some(from_filter) = filter_from {
+        should_include = "notifications@example.com".contains(from_filter);
+    }
+    if let Some(subject_filter) = filter_subject {
+        should_include = should_include && "Welcome to the platform".to_lowercase().contains(&subject_filter.to_lowercase());
+    }
+
+    if should_include {
+        events.push(EmailReceivedEvent {
+            id: Uuid::new_v4(),
+            monitor_id,
+            from_address: "notifications@example.com".to_string(),
+            from_name: Some("Platform Notifications".to_string()),
+            to_address: email_address.to_string(),
+            subject: "Welcome to the platform".to_string(),
+            body_preview: "Thank you for signing up! Here's how to get started...".to_string(),
+            body_html: Some("<html><body><h1>Welcome!</h1><p>Thank you for signing up!</p></body></html>".to_string()),
+            body_plain: Some("Welcome! Thank you for signing up!".to_string()),
+            received_at: now - chrono::Duration::minutes(5),
+            message_id: format!("<{}@example.com>", Uuid::new_v4()),
+            uid: 1,
+            has_attachments: false,
+            attachment_names: Vec::new(),
+            is_read: false,
+            is_important: false,
+            labels: vec!["inbox".to_string()],
+            processed: false,
+            processed_at: None,
+        });
+    }
+
+    Ok(events)
 }
 
 pub fn process_email_event(

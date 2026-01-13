@@ -17,6 +17,7 @@ use crate::shared::state::AppState;
 pub mod conversations;
 pub mod recording;
 pub mod service;
+pub mod ui;
 pub mod webinar;
 pub mod whiteboard;
 pub mod whiteboard_export;

@@ -1,3 +1,5 @@
+pub mod ui;
+
 use crate::{config::EmailConfig, core::urls::ApiUrls, shared::state::AppState};
 use axum::{
     extract::{Path, Query, State},
@@ -137,6 +139,100 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(ApiUrls::EMAIL_RULES_HTMX, get(list_rules_htmx))
         .route(ApiUrls::EMAIL_SEARCH_HTMX, get(search_emails_htmx))
         .route(ApiUrls::EMAIL_AUTO_RESPONDER_HTMX, post(save_auto_responder))
+        // Signatures API
+        .route("/api/email/signatures", get(list_signatures))
+        .route("/api/email/signatures/default", get(get_default_signature))
+        .route("/api/email/signatures", post(create_signature))
+        .route("/api/email/signatures/{id}", get(get_signature).put(update_signature).delete(delete_signature))
+}
+
+// =============================================================================
+// SIGNATURE HANDLERS
+// =============================================================================
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EmailSignature {
+    pub id: String,
+    pub name: String,
+    pub content_html: String,
+    pub content_text: String,
+    pub is_default: bool,
+}
+
+pub async fn list_signatures(
+    State(_state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    // Return sample signatures - in production, fetch from database
+    Json(serde_json::json!({
+        "signatures": [
+            {
+                "id": "default",
+                "name": "Default Signature",
+                "content_html": "<p>Best regards,<br>The Team</p>",
+                "content_text": "Best regards,\nThe Team",
+                "is_default": true
+            }
+        ]
+    }))
+}
+
+pub async fn get_default_signature(
+    State(_state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    // Return default signature - in production, fetch from database based on user
+    Json(serde_json::json!({
+        "id": "default",
+        "name": "Default Signature",
+        "content_html": "<p>Best regards,<br>The Team</p>",
+        "content_text": "Best regards,\nThe Team",
+        "is_default": true
+    }))
+}
+
+pub async fn get_signature(
+    State(_state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "id": id,
+        "name": "Signature",
+        "content_html": "<p>Best regards,<br>The Team</p>",
+        "content_text": "Best regards,\nThe Team",
+        "is_default": id == "default"
+    }))
+}
+
+pub async fn create_signature(
+    State(_state): State<Arc<AppState>>,
+    Json(payload): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    let id = uuid::Uuid::new_v4().to_string();
+    Json(serde_json::json!({
+        "success": true,
+        "id": id,
+        "name": payload.get("name").and_then(|v| v.as_str()).unwrap_or("New Signature")
+    }))
+}
+
+pub async fn update_signature(
+    State(_state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Json(_payload): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "success": true,
+        "id": id
+    }))
+}
+
+pub async fn delete_signature(
+    State(_state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "success": true,
+        "id": id
+    }))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

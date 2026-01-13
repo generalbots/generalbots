@@ -832,13 +832,53 @@ fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, AuthErro
            session_id.len(),
            &session_id[..std::cmp::min(20, session_id.len())]);
 
-    // For valid sessions, grant Admin role since only admins can log in currently
-    // TODO: Fetch actual user roles from Zitadel/database
+    // Try to get user data from session cache first
+    if let Some(cache) = crate::directory::auth_routes::SESSION_CACHE.get() {
+        if let Ok(cache_guard) = cache.read() {
+            if let Some(user_data) = cache_guard.get(session_id) {
+                debug!("Found user in session cache: {}", user_data.email);
+
+                // Parse user_id from cached data
+                let user_id = Uuid::parse_str(&user_data.user_id)
+                    .unwrap_or_else(|_| Uuid::new_v4());
+
+                // Build user with actual roles from cache
+                let mut user = AuthenticatedUser::new(user_id, user_data.email.clone())
+                    .with_session(session_id);
+
+                // Add roles from cached user data
+                for role_str in &user_data.roles {
+                    let role = match role_str.to_lowercase().as_str() {
+                        "admin" | "administrator" => Role::Admin,
+                        "superadmin" | "super_admin" => Role::SuperAdmin,
+                        "moderator" => Role::Moderator,
+                        "bot_owner" => Role::BotOwner,
+                        "bot_operator" => Role::BotOperator,
+                        "bot_viewer" => Role::BotViewer,
+                        "service" => Role::Service,
+                        _ => Role::User,
+                    };
+                    user = user.with_role(role);
+                }
+
+                // If no roles were added, default to User role
+                if user_data.roles.is_empty() {
+                    user = user.with_role(Role::User);
+                }
+
+                debug!("Session validated from cache, user has {} roles", user_data.roles.len());
+                return Ok(user);
+            }
+        }
+    }
+
+    // Fallback: grant basic User role for valid but uncached sessions
+    // This handles edge cases where session exists but cache was cleared
     let user = AuthenticatedUser::new(Uuid::new_v4(), "session-user".to_string())
         .with_session(session_id)
-        .with_role(Role::Admin);
+        .with_role(Role::User);
 
-    debug!("Session validated, user granted Admin role");
+    debug!("Session validated (uncached), user granted User role");
     Ok(user)
 }
 

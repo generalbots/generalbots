@@ -17,6 +17,8 @@
 //! - Serde for JSON serialization
 //! - UUID for unique identifiers
 
+pub mod ui;
+
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -24,6 +26,7 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
+use crate::core::middleware::AuthenticatedUser;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -1833,9 +1836,11 @@ pub async fn delete_lesson(
 }
 
 /// Get quiz for a course
-pub async fn get_quiz(
+pub async fn submit_quiz(
     State(state): State<Arc<AppState>>,
-    Path(course_id): Path<Uuid>,
+    user: AuthenticatedUser,
+    Path(quiz_id): Path<Uuid>,
+    Json(answers): Json<Vec<QuizAnswer>>,
 ) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
@@ -1897,8 +1902,8 @@ pub async fn submit_quiz(
         }
     };
 
-    // TODO: Get user_id from session
-    let user_id = Uuid::new_v4();
+    // Get user_id from authenticated session
+    let user_id = user.user_id;
 
     match engine.submit_quiz(user_id, quiz.id, submission).await {
         Ok(result) => Json(serde_json::json!({
@@ -1920,12 +1925,13 @@ pub async fn submit_quiz(
 /// Get user progress
 pub async fn get_progress(
     State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
     Query(filters): Query<ProgressFilters>,
 ) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
-    // TODO: Get user_id from session
-    let user_id = Uuid::new_v4();
+    // Get user_id from authenticated session
+    let user_id = user.user_id;
 
     match engine.get_user_progress(user_id, filters.course_id).await {
         Ok(progress) => Json(serde_json::json!({
@@ -1947,12 +1953,13 @@ pub async fn get_progress(
 /// Start a course
 pub async fn start_course(
     State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
     Path(course_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
-    // TODO: Get user_id from session
-    let user_id = Uuid::new_v4();
+    // Get user_id from authenticated session
+    let user_id = user.user_id;
 
     match engine.start_course(user_id, course_id).await {
         Ok(progress) => Json(serde_json::json!({
@@ -1974,12 +1981,13 @@ pub async fn start_course(
 /// Complete a lesson
 pub async fn complete_lesson_handler(
     State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
     Path(lesson_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
-    // TODO: Get user_id from session
-    let user_id = Uuid::new_v4();
+    // Get user_id from authenticated session
+    let user_id = user.user_id;
 
     match engine.complete_lesson(user_id, lesson_id).await {
         Ok(()) => Json(serde_json::json!({
@@ -1999,14 +2007,16 @@ pub async fn complete_lesson_handler(
 }
 
 /// Create course assignment
+/// Create a learning assignment
 pub async fn create_assignment(
     State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
     Json(req): Json<CreateAssignmentRequest>,
 ) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
-    // TODO: Get assigner user_id from session
-    let assigned_by = None;
+    // Get assigner user_id from authenticated session
+    let assigned_by = Some(user.user_id);
 
     match engine.create_assignment(req, assigned_by).await {
         Ok(assignments) => (
@@ -2029,11 +2039,15 @@ pub async fn create_assignment(
 }
 
 /// Get pending assignments
-pub async fn get_pending_assignments(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+/// Get pending assignments for current user
+pub async fn get_pending_assignments(
+    State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
+) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
-    // TODO: Get user_id from session
-    let user_id = Uuid::new_v4();
+    // Get user_id from authenticated session
+    let user_id = user.user_id;
 
     match engine.get_pending_assignments(user_id).await {
         Ok(assignments) => Json(serde_json::json!({
@@ -2077,11 +2091,14 @@ pub async fn delete_assignment(
 }
 
 /// Get user certificates
-pub async fn get_certificates(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn get_certificates(
+    State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
+) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
-    // TODO: Get user_id from session
-    let user_id = Uuid::new_v4();
+    // Get user_id from authenticated session
+    let user_id = user.user_id;
 
     match engine.get_certificates(user_id).await {
         Ok(certificates) => Json(serde_json::json!({
@@ -2135,11 +2152,15 @@ pub async fn get_categories(State(state): State<Arc<AppState>>) -> impl IntoResp
 }
 
 /// Get AI recommendations
-pub async fn get_recommendations(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+/// Get AI-powered course recommendations
+pub async fn get_recommendations(
+    State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
+) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
-    // TODO: Get user_id from session
-    let user_id = Uuid::new_v4();
+    // Get user_id from authenticated session
+    let user_id = user.user_id;
 
     match engine.get_recommendations(user_id).await {
         Ok(courses) => Json(serde_json::json!({
@@ -2180,11 +2201,15 @@ pub async fn get_statistics(State(state): State<Arc<AppState>>) -> impl IntoResp
 }
 
 /// Get user stats
-pub async fn get_user_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+/// Get user learning stats
+pub async fn get_user_stats(
+    State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
+) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
-    // TODO: Get user_id from session
-    let user_id = Uuid::new_v4();
+    // Get user_id from authenticated session
+    let user_id = user.user_id;
 
     match engine.get_user_stats(user_id).await {
         Ok(stats) => Json(serde_json::json!({

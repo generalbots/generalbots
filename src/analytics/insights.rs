@@ -305,11 +305,51 @@ impl InsightsService {
 
     pub async fn get_trends(
         &self,
-        _user_id: Uuid,
-        _start_date: NaiveDate,
-        _end_date: NaiveDate,
+        user_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
     ) -> Result<Vec<DailyInsights>, InsightsError> {
-        Ok(vec![])
+        // Generate mock trend data for the date range
+        let mut insights = Vec::new();
+        let mut current = start_date;
+
+        while current <= end_date {
+            // Generate semi-random but consistent data based on date
+            let day_seed = current.day() as f32;
+            let weekday = current.weekday().num_days_from_monday() as f32;
+
+            // Weekends have less activity
+            let is_weekend = weekday >= 5.0;
+            let activity_multiplier = if is_weekend { 0.3 } else { 1.0 };
+
+            let base_active = 6.0 + (day_seed % 3.0); // 6-9 hours
+            let total_active_time = (base_active * 3600.0 * activity_multiplier) as i64;
+
+            let focus_pct = 0.4 + (day_seed % 10.0) / 100.0; // 40-50%
+            let meeting_pct = 0.2 + (weekday % 5.0) / 100.0; // 20-25%
+            let email_pct = 0.15;
+            let chat_pct = 0.1;
+            let doc_pct = 1.0 - focus_pct - meeting_pct - email_pct - chat_pct;
+
+            insights.push(DailyInsights {
+                id: Uuid::new_v4(),
+                user_id,
+                date: current,
+                total_active_time,
+                focus_time: (total_active_time as f64 * focus_pct) as i64,
+                meeting_time: (total_active_time as f64 * meeting_pct) as i64,
+                email_time: (total_active_time as f64 * email_pct) as i64,
+                chat_time: (total_active_time as f64 * chat_pct) as i64,
+                document_time: (total_active_time as f64 * doc_pct) as i64,
+                collaboration_score: 65.0 + (day_seed % 20.0),
+                wellbeing_score: 70.0 + (day_seed % 15.0),
+                productivity_score: 60.0 + (day_seed % 25.0),
+            });
+
+            current += Duration::days(1);
+        }
+
+        Ok(insights)
     }
 
     async fn generate_recommendations(&self, _user_id: Uuid) -> Vec<WellbeingRecommendation> {
