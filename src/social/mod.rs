@@ -1,3 +1,5 @@
+pub mod ui;
+
 use axum::{
     extract::{Form, Path, Query, State},
     response::{Html, IntoResponse},

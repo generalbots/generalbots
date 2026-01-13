@@ -1,9 +1,10 @@
 pub mod account_deletion;
+pub mod ui;
 
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
-    routing::{delete, get, post, put},
+    routing::{get, post, put},
     Json, Router,
 };
 use chrono::{DateTime, Utc};

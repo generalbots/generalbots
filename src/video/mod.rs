@@ -4,6 +4,7 @@ mod handlers;
 mod models;
 mod render;
 mod schema;
+pub mod ui;
 mod websocket;
 
 pub mod mcp_tools;

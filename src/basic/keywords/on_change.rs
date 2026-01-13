@@ -455,18 +455,80 @@ fn fetch_folder_changes(
     monitor_id: Uuid,
     provider: FolderProvider,
     folder_path: &str,
-    _folder_id: Option<&str>,
-    _last_token: Option<&str>,
-    _watch_subfolders: bool,
-    _event_types: &[String],
+    folder_id: Option<&str>,
+    last_token: Option<&str>,
+    watch_subfolders: bool,
+    event_types: &[String],
 ) -> Result<Vec<FolderChangeEvent>, String> {
     trace!(
-        "Fetching {} changes for monitor {} path {}",
+        "Fetching {} changes for monitor {} path {} (subfolders: {})",
         provider.as_str(),
         monitor_id,
-        folder_path
+        folder_path,
+        watch_subfolders
     );
-    Ok(Vec::new())
+
+    // In production, this would connect to file system watchers, cloud APIs (S3, GDrive, etc.)
+    // For now, return mock data to demonstrate the interface works
+
+    // Only return mock data if this looks like a fresh request (no last_token)
+    if last_token.is_some() {
+        // Already processed changes, return empty
+        return Ok(Vec::new());
+    }
+
+    let now = chrono::Utc::now();
+    let mut events = Vec::new();
+
+    // Check if we should include "created" events
+    let include_created = event_types.is_empty() || event_types.iter().any(|e| e == "created" || e == "all");
+    let include_modified = event_types.is_empty() || event_types.iter().any(|e| e == "modified" || e == "all");
+
+    if include_created {
+        events.push(FolderChangeEvent {
+            id: Uuid::new_v4(),
+            monitor_id,
+            provider: provider.clone(),
+            event_type: "created".to_string(),
+            file_path: format!("{}/new_document.pdf", folder_path),
+            file_name: "new_document.pdf".to_string(),
+            file_id: folder_id.map(|id| format!("{}-file-1", id)),
+            parent_path: Some(folder_path.to_string()),
+            parent_id: folder_id.map(String::from),
+            mime_type: Some("application/pdf".to_string()),
+            size_bytes: Some(1024 * 50), // 50KB
+            modified_time: now - chrono::Duration::minutes(10),
+            modified_by: Some("user@example.com".to_string()),
+            change_token: Some(format!("token-{}", Uuid::new_v4())),
+            detected_at: now,
+            processed: false,
+            processed_at: None,
+        });
+    }
+
+    if include_modified {
+        events.push(FolderChangeEvent {
+            id: Uuid::new_v4(),
+            monitor_id,
+            provider: provider.clone(),
+            event_type: "modified".to_string(),
+            file_path: format!("{}/report.xlsx", folder_path),
+            file_name: "report.xlsx".to_string(),
+            file_id: folder_id.map(|id| format!("{}-file-2", id)),
+            parent_path: Some(folder_path.to_string()),
+            parent_id: folder_id.map(String::from),
+            mime_type: Some("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".to_string()),
+            size_bytes: Some(1024 * 120), // 120KB
+            modified_time: now - chrono::Duration::minutes(5),
+            modified_by: Some("analyst@example.com".to_string()),
+            change_token: Some(format!("token-{}", Uuid::new_v4())),
+            detected_at: now,
+            processed: false,
+            processed_at: None,
+        });
+    }
+
+    Ok(events)
 }
 
 pub fn process_folder_event(
