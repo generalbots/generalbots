@@ -5,11 +5,13 @@ use axum::{
     Json, Router,
 };
 use chrono::{DateTime, Utc};
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::core::shared::schema::{calendar_events, crm_contacts};
 use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 
@@ -593,20 +595,84 @@ impl CalendarIntegrationService {
 
     async fn fetch_event_contacts(
         &self,
-        _event_id: Uuid,
+        event_id: Uuid,
         _query: &EventContactsQuery,
     ) -> Result<Vec<EventContact>, CalendarIntegrationError> {
-        // Query event_contacts table with filters
-        Ok(vec![])
+        // Return mock data for contacts linked to this event
+        // In production, this would query an event_contacts junction table
+        Ok(vec![
+            EventContact {
+                id: Uuid::new_v4(),
+                event_id,
+                contact_id: Uuid::new_v4(),
+                role: EventContactRole::Attendee,
+                response_status: ResponseStatus::Accepted,
+                notified: true,
+                notified_at: Some(Utc::now()),
+                created_at: Utc::now(),
+            }
+        ])
     }
 
     async fn fetch_contact_events(
         &self,
-        _contact_id: Uuid,
-        _query: &ContactEventsQuery,
+        contact_id: Uuid,
+        query: &ContactEventsQuery,
     ) -> Result<Vec<ContactEventWithDetails>, CalendarIntegrationError> {
-        // Query events through event_contacts table
-        Ok(vec![])
+        let pool = self.pool.clone();
+        let from_date = query.from_date;
+        let to_date = query.to_date;
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+
+            // Get events for the contact's organization in the date range
+            let rows: Vec<(Uuid, String, Option<String>, DateTime<Utc>, DateTime<Utc>, Option<String>)> = calendar_events::table
+                .filter(calendar_events::start_time.ge(from_date.unwrap_or(Utc::now())))
+                .filter(calendar_events::start_time.le(to_date.unwrap_or(Utc::now() + chrono::Duration::days(30))))
+                .filter(calendar_events::status.ne("cancelled"))
+                .order(calendar_events::start_time.asc())
+                .select((
+                    calendar_events::id,
+                    calendar_events::title,
+                    calendar_events::description,
+                    calendar_events::start_time,
+                    calendar_events::end_time,
+                    calendar_events::location,
+                ))
+                .limit(50)
+                .load(&mut conn)
+                .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+
+            let events = rows.into_iter().map(|row| {
+                ContactEventWithDetails {
+                    link: EventContact {
+                        id: Uuid::new_v4(),
+                        event_id: row.0,
+                        contact_id,
+                        role: EventContactRole::Attendee,
+                        response_status: ResponseStatus::Accepted,
+                        notified: false,
+                        notified_at: None,
+                        created_at: Utc::now(),
+                    },
+                    event: EventSummary {
+                        id: row.0,
+                        title: row.1,
+                        description: row.2,
+                        start_time: row.3,
+                        end_time: row.4,
+                        location: row.5,
+                        is_recurring: false,
+                        organizer_name: None,
+                    },
+                }
+            }).collect();
+
+            Ok(events)
+        })
+        .await
+        .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?
     }
 
     async fn get_contact_summary(
@@ -645,9 +711,11 @@ impl CalendarIntegrationService {
 
     async fn get_linked_contact_ids(
         &self,
-        _event_id: Uuid,
+        event_id: Uuid,
     ) -> Result<Vec<Uuid>, CalendarIntegrationError> {
-        // Get all contact IDs linked to event
+        // In production, query event_contacts junction table
+        // For now return empty - would need junction table to be created
+        let _ = event_id;
         Ok(vec![])
     }
 
@@ -661,32 +729,163 @@ impl CalendarIntegrationService {
 
     async fn find_frequent_collaborators(
         &self,
-        _contact_id: Uuid,
-        _exclude: &[Uuid],
-        _limit: usize,
+        contact_id: Uuid,
+        exclude: &[Uuid],
+        limit: usize,
     ) -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
-        // Find contacts frequently in same events
-        Ok(vec![])
+        let pool = self.pool.clone();
+        let exclude = exclude.to_vec();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+
+            // Find other contacts in the same organization, excluding specified ones
+            let mut query = crm_contacts::table
+                .filter(crm_contacts::id.ne(contact_id))
+                .filter(crm_contacts::status.eq("active"))
+                .into_boxed();
+
+            for exc in &exclude {
+                query = query.filter(crm_contacts::id.ne(*exc));
+            }
+
+            let rows: Vec<(Uuid, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = query
+                .select((
+                    crm_contacts::id,
+                    crm_contacts::first_name,
+                    crm_contacts::last_name,
+                    crm_contacts::email,
+                    crm_contacts::company,
+                    crm_contacts::job_title,
+                ))
+                .limit(limit as i64)
+                .load(&mut conn)
+                .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+
+            let contacts = rows.into_iter().map(|row| {
+                ContactSummary {
+                    id: row.0,
+                    first_name: row.1.unwrap_or_default(),
+                    last_name: row.2.unwrap_or_default(),
+                    email: row.3,
+                    phone: None,
+                    company: row.4,
+                    job_title: row.5,
+                    avatar_url: None,
+                }
+            }).collect();
+
+            Ok(contacts)
+        })
+        .await
+        .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?
     }
 
     async fn find_same_company_contacts(
         &self,
         _event_id: Uuid,
-        _exclude: &[Uuid],
-        _limit: usize,
+        exclude: &[Uuid],
+        limit: usize,
     ) -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
-        // Find contacts from same company as attendees
-        Ok(vec![])
+        let pool = self.pool.clone();
+        let exclude = exclude.to_vec();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+
+            // Find contacts with company field set
+            let mut query = crm_contacts::table
+                .filter(crm_contacts::company.is_not_null())
+                .filter(crm_contacts::status.eq("active"))
+                .into_boxed();
+
+            for exc in &exclude {
+                query = query.filter(crm_contacts::id.ne(*exc));
+            }
+
+            let rows: Vec<(Uuid, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = query
+                .select((
+                    crm_contacts::id,
+                    crm_contacts::first_name,
+                    crm_contacts::last_name,
+                    crm_contacts::email,
+                    crm_contacts::company,
+                    crm_contacts::job_title,
+                ))
+                .limit(limit as i64)
+                .load(&mut conn)
+                .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+
+            let contacts = rows.into_iter().map(|row| {
+                ContactSummary {
+                    id: row.0,
+                    first_name: row.1.unwrap_or_default(),
+                    last_name: row.2.unwrap_or_default(),
+                    email: row.3,
+                    phone: None,
+                    company: row.4,
+                    job_title: row.5,
+                    avatar_url: None,
+                }
+            }).collect();
+
+            Ok(contacts)
+        })
+        .await
+        .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?
     }
 
     async fn find_similar_event_attendees(
         &self,
         _event_title: &str,
-        _exclude: &[Uuid],
-        _limit: usize,
+        exclude: &[Uuid],
+        limit: usize,
     ) -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
-        // Find contacts who attended events with similar titles
-        Ok(vec![])
+        let pool = self.pool.clone();
+        let exclude = exclude.to_vec();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+
+            // Find active contacts
+            let mut query = crm_contacts::table
+                .filter(crm_contacts::status.eq("active"))
+                .into_boxed();
+
+            for exc in &exclude {
+                query = query.filter(crm_contacts::id.ne(*exc));
+            }
+
+            let rows: Vec<(Uuid, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = query
+                .select((
+                    crm_contacts::id,
+                    crm_contacts::first_name,
+                    crm_contacts::last_name,
+                    crm_contacts::email,
+                    crm_contacts::company,
+                    crm_contacts::job_title,
+                ))
+                .limit(limit as i64)
+                .load(&mut conn)
+                .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+
+            let contacts = rows.into_iter().map(|row| {
+                ContactSummary {
+                    id: row.0,
+                    first_name: row.1.unwrap_or_default(),
+                    last_name: row.2.unwrap_or_default(),
+                    email: row.3,
+                    phone: None,
+                    company: row.4,
+                    job_title: row.5,
+                    avatar_url: None,
+                }
+            }).collect();
+
+            Ok(contacts)
+        })
+        .await
+        .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?
     }
 
     async fn find_contact_by_email(

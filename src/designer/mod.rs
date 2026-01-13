@@ -1,4 +1,5 @@
 pub mod canvas;
+pub mod ui;
 
 use crate::auto_task::get_designer_error_context;
 use crate::core::shared::get_content_type;
