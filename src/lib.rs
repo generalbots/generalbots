@@ -1,3 +1,5 @@
+#![recursion_limit = "512"]
+
 pub mod auto_task;
 pub mod basic;
 pub mod billing;
@@ -10,9 +12,12 @@ pub mod embedded_ui;
 pub mod maintenance;
 pub mod multimodal;
 pub mod player;
+pub mod people;
 pub mod products;
 pub mod search;
 pub mod security;
+pub mod tickets;
+pub mod attendant;
 
 pub mod analytics;
 pub mod designer;

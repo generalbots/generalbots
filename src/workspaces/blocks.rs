@@ -3,10 +3,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{
-    Block, BlockContent, BlockProperties, BlockType, CalloutContent, ChecklistContent,
-    ChecklistItem, CodeContent, EmbedContent, EmbedType, GbComponentContent, GbComponentType,
-    MediaContent, RichText, TableCell, TableContent, TableRow, TextAnnotations, TextSegment,
-    ToggleContent, WorkspaceIcon,
+    Block, BlockContent, BlockProperties, BlockType, ChecklistItem, RichText, TableCell, TableRow,
+    TextAnnotations, TextSegment,
 };
 
 pub struct BlockBuilder {
@@ -29,19 +27,21 @@ impl BlockBuilder {
     }
 
     pub fn with_text(mut self, text: &str) -> Self {
-        self.content = BlockContent::Text(RichText {
-            segments: vec![TextSegment {
-                text: text.to_string(),
-                annotations: TextAnnotations::default(),
-                link: None,
-                mention: None,
-            }],
-        });
+        self.content = BlockContent::Text {
+            text: RichText {
+                segments: vec![TextSegment {
+                    text: text.to_string(),
+                    annotations: TextAnnotations::default(),
+                    link: None,
+                    mention: None,
+                }],
+            },
+        };
         self
     }
 
     pub fn with_rich_text(mut self, rich_text: RichText) -> Self {
-        self.content = BlockContent::Text(rich_text);
+        self.content = BlockContent::Text { text: rich_text };
         self
     }
 
@@ -55,7 +55,7 @@ impl BlockBuilder {
         self
     }
 
-    pub fn with_indent(mut self, level: u8) -> Self {
+    pub fn with_indent(mut self, level: u32) -> Self {
         self.properties.indent_level = level;
         self
     }
@@ -144,9 +144,9 @@ pub fn create_checklist(items: Vec<(&str, bool)>, created_by: Uuid) -> Block {
     Block {
         id: Uuid::new_v4(),
         block_type: BlockType::Checklist,
-        content: BlockContent::Checklist(ChecklistContent {
+        content: BlockContent::Checklist {
             items: checklist_items,
-        }),
+        },
         properties: BlockProperties::default(),
         children: Vec::new(),
         created_at: now,
@@ -155,12 +155,12 @@ pub fn create_checklist(items: Vec<(&str, bool)>, created_by: Uuid) -> Block {
     }
 }
 
-pub fn create_toggle(title: &str, expanded: bool, children: Vec<Block>, created_by: Uuid) -> Block {
+pub fn create_toggle(title: &str, expanded: bool, created_by: Uuid) -> Block {
     let now = Utc::now();
     Block {
         id: Uuid::new_v4(),
         block_type: BlockType::Toggle,
-        content: BlockContent::Toggle(ToggleContent {
+        content: BlockContent::Toggle {
             title: RichText {
                 segments: vec![TextSegment {
                     text: title.to_string(),
@@ -170,9 +170,9 @@ pub fn create_toggle(title: &str, expanded: bool, children: Vec<Block>, created_
                 }],
             },
             expanded,
-        }),
+        },
         properties: BlockProperties::default(),
-        children,
+        children: Vec::new(),
         created_at: now,
         updated_at: now,
         created_by,
@@ -190,11 +190,8 @@ pub fn create_callout(icon: &str, text: &str, background: &str, created_by: Uuid
     Block {
         id: Uuid::new_v4(),
         block_type: BlockType::Callout,
-        content: BlockContent::Callout(CalloutContent {
-            icon: WorkspaceIcon {
-                icon_type: super::IconType::Emoji,
-                value: icon.to_string(),
-            },
+        content: BlockContent::Callout {
+            icon: Some(icon.to_string()),
             text: RichText {
                 segments: vec![TextSegment {
                     text: text.to_string(),
@@ -203,9 +200,11 @@ pub fn create_callout(icon: &str, text: &str, background: &str, created_by: Uuid
                     mention: None,
                 }],
             },
-            background_color: background.to_string(),
-        }),
-        properties: BlockProperties::default(),
+        },
+        properties: BlockProperties {
+            background_color: Some(background.to_string()),
+            ..Default::default()
+        },
         children: Vec::new(),
         created_at: now,
         updated_at: now,
@@ -232,43 +231,10 @@ pub fn create_code(code: &str, language: &str, created_by: Uuid) -> Block {
     Block {
         id: Uuid::new_v4(),
         block_type: BlockType::Code,
-        content: BlockContent::Code(CodeContent {
+        content: BlockContent::Code {
             code: code.to_string(),
-            language: language.to_string(),
-            caption: None,
-            wrap: false,
-        }),
-        properties: BlockProperties::default(),
-        children: Vec::new(),
-        created_at: now,
-        updated_at: now,
-        created_by,
-    }
-}
-
-pub fn create_table(rows: usize, cols: usize, has_header: bool, created_by: Uuid) -> Block {
-    let table_rows: Vec<TableRow> = (0..rows)
-        .map(|_| TableRow {
-            id: Uuid::new_v4(),
-            cells: (0..cols)
-                .map(|_| TableCell {
-                    content: RichText { segments: Vec::new() },
-                    background_color: None,
-                })
-                .collect(),
-        })
-        .collect();
-
-    let now = Utc::now();
-    Block {
-        id: Uuid::new_v4(),
-        block_type: BlockType::Table,
-        content: BlockContent::Table(TableContent {
-            rows: table_rows,
-            has_header_row: has_header,
-            has_header_column: false,
-            column_widths: vec![200; cols],
-        }),
+            language: Some(language.to_string()),
+        },
         properties: BlockProperties::default(),
         children: Vec::new(),
         created_at: now,
@@ -282,20 +248,10 @@ pub fn create_image(url: &str, caption: Option<&str>, created_by: Uuid) -> Block
     Block {
         id: Uuid::new_v4(),
         block_type: BlockType::Image,
-        content: BlockContent::Media(MediaContent {
+        content: BlockContent::Media {
             url: url.to_string(),
-            caption: caption.map(|c| RichText {
-                segments: vec![TextSegment {
-                    text: c.to_string(),
-                    annotations: TextAnnotations::default(),
-                    link: None,
-                    mention: None,
-                }],
-            }),
-            alt_text: None,
-            width: None,
-            height: None,
-        }),
+            caption: caption.map(|s| s.to_string()),
+        },
         properties: BlockProperties::default(),
         children: Vec::new(),
         created_at: now,
@@ -304,16 +260,58 @@ pub fn create_image(url: &str, caption: Option<&str>, created_by: Uuid) -> Block
     }
 }
 
-pub fn create_embed(url: &str, embed_type: EmbedType, created_by: Uuid) -> Block {
+pub fn create_video(url: &str, caption: Option<&str>, created_by: Uuid) -> Block {
+    let now = Utc::now();
+    Block {
+        id: Uuid::new_v4(),
+        block_type: BlockType::Video,
+        content: BlockContent::Media {
+            url: url.to_string(),
+            caption: caption.map(|s| s.to_string()),
+        },
+        properties: BlockProperties::default(),
+        children: Vec::new(),
+        created_at: now,
+        updated_at: now,
+        created_by,
+    }
+}
+
+pub fn create_embed(url: &str, embed_type: &str, created_by: Uuid) -> Block {
     let now = Utc::now();
     Block {
         id: Uuid::new_v4(),
         block_type: BlockType::Embed,
-        content: BlockContent::Embed(EmbedContent {
+        content: BlockContent::Embed {
             url: url.to_string(),
-            embed_type,
-            caption: None,
-        }),
+            embed_type: Some(embed_type.to_string()),
+        },
+        properties: BlockProperties::default(),
+        children: Vec::new(),
+        created_at: now,
+        updated_at: now,
+        created_by,
+    }
+}
+
+pub fn create_table(rows: usize, cols: usize, created_by: Uuid) -> Block {
+    let now = Utc::now();
+    let table_rows: Vec<TableRow> = (0..rows)
+        .map(|_| TableRow {
+            id: Uuid::new_v4(),
+            cells: (0..cols)
+                .map(|_| TableCell {
+                    content: RichText { segments: vec![] },
+                    background_color: None,
+                })
+                .collect(),
+        })
+        .collect();
+
+    Block {
+        id: Uuid::new_v4(),
+        block_type: BlockType::Table,
+        content: BlockContent::Table { rows: table_rows },
         properties: BlockProperties::default(),
         children: Vec::new(),
         created_at: now,
@@ -323,19 +321,18 @@ pub fn create_embed(url: &str, embed_type: EmbedType, created_by: Uuid) -> Block
 }
 
 pub fn create_gb_component(
-    component_type: GbComponentType,
-    bot_id: Option<Uuid>,
+    component_type: &str,
+    config: serde_json::Value,
     created_by: Uuid,
 ) -> Block {
     let now = Utc::now();
     Block {
         id: Uuid::new_v4(),
         block_type: BlockType::GbComponent,
-        content: BlockContent::GbComponent(GbComponentContent {
-            component_type,
-            bot_id,
-            config: std::collections::HashMap::new(),
-        }),
+        content: BlockContent::GbComponent {
+            component_type: component_type.to_string(),
+            config,
+        },
         properties: BlockProperties::default(),
         children: Vec::new(),
         created_at: now,
@@ -347,9 +344,9 @@ pub fn create_gb_component(
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockOperation {
     pub operation_type: BlockOperationType,
-    pub block_id: Uuid,
+    pub block_id: Option<Uuid>,
     pub parent_id: Option<Uuid>,
-    pub index: Option<usize>,
+    pub position: Option<usize>,
     pub block: Option<Block>,
     pub properties: Option<BlockProperties>,
     pub content: Option<BlockContent>,
@@ -362,181 +359,98 @@ pub enum BlockOperationType {
     Update,
     Delete,
     Move,
-    UpdateProperties,
-    UpdateContent,
+    Duplicate,
 }
 
-pub fn apply_block_operation(blocks: &mut Vec<Block>, operation: BlockOperation) -> Result<(), String> {
-    match operation.operation_type {
-        BlockOperationType::Insert => {
-            let block = operation.block.ok_or("Block required for insert")?;
-            let index = operation.index.unwrap_or(blocks.len());
-            if index > blocks.len() {
-                blocks.push(block);
-            } else {
-                blocks.insert(index, block);
-            }
-        }
-        BlockOperationType::Update => {
-            let new_block = operation.block.ok_or("Block required for update")?;
-            if let Some(block) = blocks.iter_mut().find(|b| b.id == operation.block_id) {
-                *block = new_block;
-            } else {
-                return Err("Block not found".to_string());
-            }
-        }
-        BlockOperationType::Delete => {
-            blocks.retain(|b| b.id != operation.block_id);
-        }
-        BlockOperationType::Move => {
-            let index = operation.index.ok_or("Index required for move")?;
-            if let Some(pos) = blocks.iter().position(|b| b.id == operation.block_id) {
-                let block = blocks.remove(pos);
-                let new_index = if index > pos { index - 1 } else { index };
-                if new_index >= blocks.len() {
-                    blocks.push(block);
-                } else {
-                    blocks.insert(new_index, block);
-                }
-            } else {
-                return Err("Block not found".to_string());
-            }
-        }
-        BlockOperationType::UpdateProperties => {
-            let props = operation.properties.ok_or("Properties required")?;
-            if let Some(block) = blocks.iter_mut().find(|b| b.id == operation.block_id) {
-                block.properties = props;
-                block.updated_at = Utc::now();
-            } else {
-                return Err("Block not found".to_string());
-            }
-        }
-        BlockOperationType::UpdateContent => {
-            let content = operation.content.ok_or("Content required")?;
-            if let Some(block) = blocks.iter_mut().find(|b| b.id == operation.block_id) {
-                block.content = content;
-                block.updated_at = Utc::now();
-            } else {
-                return Err("Block not found".to_string());
-            }
-        }
-    }
-    Ok(())
-}
-
-pub fn blocks_to_plain_text(blocks: &[Block]) -> String {
-    let mut result = String::new();
-    for block in blocks {
-        if let BlockContent::Text(rich_text) = &block.content {
-            for segment in &rich_text.segments {
-                result.push_str(&segment.text);
-            }
-            result.push('\n');
-        }
-        if !block.children.is_empty() {
-            result.push_str(&blocks_to_plain_text(&block.children));
-        }
-    }
-    result
-}
-
-pub fn blocks_to_markdown(blocks: &[Block], indent: usize) -> String {
-    let mut result = String::new();
-    let prefix = "  ".repeat(indent);
-
-    for block in blocks {
-        match block.block_type {
-            BlockType::Heading1 => {
-                if let BlockContent::Text(rt) = &block.content {
-                    result.push_str(&format!("{}# {}\n\n", prefix, rich_text_to_string(rt)));
-                }
-            }
-            BlockType::Heading2 => {
-                if let BlockContent::Text(rt) = &block.content {
-                    result.push_str(&format!("{}## {}\n\n", prefix, rich_text_to_string(rt)));
-                }
-            }
-            BlockType::Heading3 => {
-                if let BlockContent::Text(rt) = &block.content {
-                    result.push_str(&format!("{}### {}\n\n", prefix, rich_text_to_string(rt)));
-                }
-            }
-            BlockType::Paragraph => {
-                if let BlockContent::Text(rt) = &block.content {
-                    result.push_str(&format!("{}{}\n\n", prefix, rich_text_to_string(rt)));
-                }
-            }
-            BlockType::BulletedList => {
-                if let BlockContent::Text(rt) = &block.content {
-                    result.push_str(&format!("{}- {}\n", prefix, rich_text_to_string(rt)));
-                }
-            }
-            BlockType::NumberedList => {
-                if let BlockContent::Text(rt) = &block.content {
-                    result.push_str(&format!("{}1. {}\n", prefix, rich_text_to_string(rt)));
-                }
-            }
-            BlockType::Quote => {
-                if let BlockContent::Text(rt) = &block.content {
-                    result.push_str(&format!("{}> {}\n\n", prefix, rich_text_to_string(rt)));
-                }
-            }
-            BlockType::Code => {
-                if let BlockContent::Code(code) = &block.content {
-                    result.push_str(&format!("{}```{}\n{}\n{}```\n\n", prefix, code.language, code.code, prefix));
-                }
-            }
-            BlockType::Divider => {
-                result.push_str(&format!("{}---\n\n", prefix));
-            }
-            BlockType::Checklist => {
-                if let BlockContent::Checklist(cl) = &block.content {
-                    for item in &cl.items {
-                        let checkbox = if item.checked { "[x]" } else { "[ ]" };
-                        result.push_str(&format!("{}- {} {}\n", prefix, checkbox, rich_text_to_string(&item.text)));
+pub fn apply_block_operations(blocks: &mut Vec<Block>, operations: Vec<BlockOperation>) {
+    for op in operations {
+        match op.operation_type {
+            BlockOperationType::Insert => {
+                if let Some(block) = op.block {
+                    let position = op.position.unwrap_or(blocks.len());
+                    if position <= blocks.len() {
+                        blocks.insert(position, block);
                     }
-                    result.push('\n');
                 }
             }
-            _ => {
-                if let BlockContent::Text(rt) = &block.content {
-                    result.push_str(&format!("{}{}\n", prefix, rich_text_to_string(rt)));
+            BlockOperationType::Update => {
+                if let Some(block_id) = op.block_id {
+                    if let Some(block) = find_block_mut(blocks, block_id) {
+                        if let Some(content) = op.content {
+                            block.content = content;
+                        }
+                        if let Some(props) = op.properties {
+                            block.properties = props;
+                        }
+                        block.updated_at = Utc::now();
+                    }
                 }
             }
-        }
-
-        if !block.children.is_empty() {
-            result.push_str(&blocks_to_markdown(&block.children, indent + 1));
+            BlockOperationType::Delete => {
+                if let Some(block_id) = op.block_id {
+                    remove_block(blocks, block_id);
+                }
+            }
+            BlockOperationType::Move => {
+                if let Some(block_id) = op.block_id {
+                    if let Some(position) = op.position {
+                        if let Some(block) = remove_block(blocks, block_id) {
+                            let insert_pos = position.min(blocks.len());
+                            blocks.insert(insert_pos, block);
+                        }
+                    }
+                }
+            }
+            BlockOperationType::Duplicate => {
+                if let Some(block_id) = op.block_id {
+                    if let Some(block) = find_block(blocks, block_id) {
+                        let mut new_block = block.clone();
+                        new_block.id = Uuid::new_v4();
+                        new_block.created_at = Utc::now();
+                        new_block.updated_at = Utc::now();
+                        let position = op.position.unwrap_or(blocks.len());
+                        blocks.insert(position.min(blocks.len()), new_block);
+                    }
+                }
+            }
         }
     }
-
-    result
 }
 
-fn rich_text_to_string(rich_text: &RichText) -> String {
-    rich_text.segments.iter().map(|s| s.text.as_str()).collect()
-}
-
-pub fn find_block_by_id(blocks: &[Block], block_id: Uuid) -> Option<&Block> {
+fn find_block(blocks: &[Block], block_id: Uuid) -> Option<&Block> {
     for block in blocks {
         if block.id == block_id {
             return Some(block);
         }
-        if let Some(found) = find_block_by_id(&block.children, block_id) {
+        if let Some(found) = find_block(&block.children, block_id) {
             return Some(found);
         }
     }
     None
 }
 
-pub fn find_block_by_id_mut(blocks: &mut [Block], block_id: Uuid) -> Option<&mut Block> {
-    for block in blocks {
+fn find_block_mut(blocks: &mut [Block], block_id: Uuid) -> Option<&mut Block> {
+    for block in blocks.iter_mut() {
         if block.id == block_id {
             return Some(block);
         }
-        if let Some(found) = find_block_by_id_mut(&mut block.children, block_id) {
+        if let Some(found) = find_block_mut(&mut block.children, block_id) {
             return Some(found);
         }
     }
+    None
+}
+
+fn remove_block(blocks: &mut Vec<Block>, block_id: Uuid) -> Option<Block> {
+    if let Some(pos) = blocks.iter().position(|b| b.id == block_id) {
+        return Some(blocks.remove(pos));
+    }
+
+    for block in blocks.iter_mut() {
+        if let Some(removed) = remove_block(&mut block.children, block_id) {
+            return Some(removed);
+        }
+    }
+
     None
 }

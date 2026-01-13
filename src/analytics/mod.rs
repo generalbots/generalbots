@@ -1,4 +1,5 @@
 pub mod goals;
+pub mod goals_ui;
 pub mod insights;
 
 use crate::core::urls::ApiUrls;

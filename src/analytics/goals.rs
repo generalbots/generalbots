@@ -1,15 +1,111 @@
 use axum::{
     extract::{Path, Query, State},
+    http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post, put},
+    routing::{get, post, put},
     Json, Router,
 };
-use chrono::{DateTime, Utc};
+use bigdecimal::{BigDecimal, ToPrimitive};
+use chrono::{DateTime, NaiveDate, Utc};
+use diesel::prelude::*;
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::core::shared::schema::{okr_checkins, okr_key_results, okr_objectives, okr_templates};
 use crate::shared::state::AppState;
+
+fn get_bot_context() -> (Uuid, Uuid) {
+    let org_id = std::env::var("DEFAULT_ORG_ID")
+        .ok()
+        .and_then(|s| Uuid::parse_str(&s).ok())
+        .unwrap_or_else(Uuid::nil);
+    let bot_id = std::env::var("DEFAULT_BOT_ID")
+        .ok()
+        .and_then(|s| Uuid::parse_str(&s).ok())
+        .unwrap_or_else(Uuid::nil);
+    (org_id, bot_id)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable, AsChangeset)]
+#[diesel(table_name = okr_objectives)]
+pub struct ObjectiveRecord {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
+    pub owner_id: Uuid,
+    pub parent_id: Option<Uuid>,
+    pub title: String,
+    pub description: Option<String>,
+    pub period: String,
+    pub period_start: Option<NaiveDate>,
+    pub period_end: Option<NaiveDate>,
+    pub status: String,
+    pub progress: BigDecimal,
+    pub visibility: String,
+    pub weight: BigDecimal,
+    pub tags: Vec<Option<String>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable, AsChangeset)]
+#[diesel(table_name = okr_key_results)]
+pub struct KeyResultRecord {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
+    pub objective_id: Uuid,
+    pub owner_id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub metric_type: String,
+    pub start_value: BigDecimal,
+    pub target_value: BigDecimal,
+    pub current_value: BigDecimal,
+    pub unit: Option<String>,
+    pub weight: BigDecimal,
+    pub status: String,
+    pub due_date: Option<NaiveDate>,
+    pub scoring_type: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable)]
+#[diesel(table_name = okr_checkins)]
+pub struct CheckInRecord {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
+    pub key_result_id: Uuid,
+    pub user_id: Uuid,
+    pub previous_value: Option<BigDecimal>,
+    pub new_value: BigDecimal,
+    pub note: Option<String>,
+    pub confidence: Option<String>,
+    pub blockers: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable)]
+#[diesel(table_name = okr_templates)]
+pub struct TemplateRecord {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    pub objective_template: serde_json::Value,
+    pub key_result_templates: serde_json::Value,
+    pub is_system: bool,
+    pub usage_count: i32,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Objective {
@@ -20,9 +116,13 @@ pub struct Objective {
     pub title: String,
     pub description: String,
     pub period: String,
+    pub period_start: Option<NaiveDate>,
+    pub period_end: Option<NaiveDate>,
     pub status: ObjectiveStatus,
     pub progress: f32,
     pub visibility: Visibility,
+    pub weight: f32,
+    pub tags: Vec<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -39,6 +139,32 @@ pub enum ObjectiveStatus {
     Cancelled,
 }
 
+impl ObjectiveStatus {
+    fn from_str(s: &str) -> Self {
+        match s {
+            "active" => Self::Active,
+            "on_track" => Self::OnTrack,
+            "at_risk" => Self::AtRisk,
+            "behind" => Self::Behind,
+            "completed" => Self::Completed,
+            "cancelled" => Self::Cancelled,
+            _ => Self::Draft,
+        }
+    }
+
+    fn to_str(&self) -> &'static str {
+        match self {
+            Self::Draft => "draft",
+            Self::Active => "active",
+            Self::OnTrack => "on_track",
+            Self::AtRisk => "at_risk",
+            Self::Behind => "behind",
+            Self::Completed => "completed",
+            Self::Cancelled => "cancelled",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Visibility {
@@ -47,18 +173,38 @@ pub enum Visibility {
     Organization,
 }
 
+impl Visibility {
+    fn from_str(s: &str) -> Self {
+        match s {
+            "private" => Self::Private,
+            "organization" => Self::Organization,
+            _ => Self::Team,
+        }
+    }
+
+    fn to_str(&self) -> &'static str {
+        match self {
+            Self::Private => "private",
+            Self::Team => "team",
+            Self::Organization => "organization",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyResult {
     pub id: Uuid,
     pub objective_id: Uuid,
     pub owner_id: Uuid,
     pub title: String,
+    pub description: Option<String>,
     pub metric_type: MetricType,
     pub start_value: f64,
     pub target_value: f64,
     pub current_value: f64,
+    pub unit: Option<String>,
     pub weight: f32,
-    pub due_date: Option<DateTime<Utc>>,
+    pub due_date: Option<NaiveDate>,
     pub status: KRStatus,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -73,6 +219,26 @@ pub enum MetricType {
     Boolean,
 }
 
+impl MetricType {
+    fn from_str(s: &str) -> Self {
+        match s {
+            "percentage" => Self::Percentage,
+            "currency" => Self::Currency,
+            "boolean" => Self::Boolean,
+            _ => Self::Number,
+        }
+    }
+
+    fn to_str(&self) -> &'static str {
+        match self {
+            Self::Percentage => "percentage",
+            Self::Number => "number",
+            Self::Currency => "currency",
+            Self::Boolean => "boolean",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum KRStatus {
@@ -80,6 +246,26 @@ pub enum KRStatus {
     InProgress,
     AtRisk,
     Completed,
+}
+
+impl KRStatus {
+    fn from_str(s: &str) -> Self {
+        match s {
+            "in_progress" => Self::InProgress,
+            "at_risk" => Self::AtRisk,
+            "completed" => Self::Completed,
+            _ => Self::NotStarted,
+        }
+    }
+
+    fn to_str(&self) -> &'static str {
+        match self {
+            Self::NotStarted => "not_started",
+            Self::InProgress => "in_progress",
+            Self::AtRisk => "at_risk",
+            Self::Completed => "completed",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,6 +277,7 @@ pub struct CheckIn {
     pub new_value: f64,
     pub note: String,
     pub confidence: Confidence,
+    pub blockers: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -102,13 +289,31 @@ pub enum Confidence {
     High,
 }
 
+impl Confidence {
+    fn from_str(s: &str) -> Self {
+        match s {
+            "low" => Self::Low,
+            "high" => Self::High,
+            _ => Self::Medium,
+        }
+    }
+
+    fn to_str(&self) -> &'static str {
+        match self {
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GoalTemplate {
     pub id: Uuid,
-    pub organization_id: Option<Uuid>,
+    pub organization_id: Uuid,
     pub name: String,
-    pub description: String,
-    pub category: String,
+    pub description: Option<String>,
+    pub category: Option<String>,
     pub objective_template: ObjectiveTemplate,
     pub key_result_templates: Vec<KeyResultTemplate>,
     pub is_system: bool,
@@ -137,9 +342,9 @@ pub struct AlignmentNode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GoalsDashboard {
-    pub total_objectives: i32,
-    pub completed_objectives: i32,
-    pub at_risk_objectives: i32,
+    pub total_objectives: i64,
+    pub completed_objectives: i64,
+    pub at_risk_objectives: i64,
     pub average_progress: f32,
     pub upcoming_check_ins: Vec<UpcomingCheckIn>,
     pub recent_activity: Vec<GoalActivity>,
@@ -150,7 +355,7 @@ pub struct UpcomingCheckIn {
     pub key_result_id: Uuid,
     pub key_result_title: String,
     pub objective_title: String,
-    pub due_date: DateTime<Utc>,
+    pub due_date: Option<NaiveDate>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,7 +370,7 @@ pub struct GoalActivity {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GoalActivityType {
     ObjectiveCreated,
@@ -177,278 +382,136 @@ pub enum GoalActivityType {
     ProgressChanged,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListObjectivesQuery {
     pub owner_id: Option<Uuid>,
-    pub status: Option<ObjectiveStatus>,
+    pub status: Option<String>,
     pub period: Option<String>,
     pub parent_id: Option<Uuid>,
-    pub limit: Option<i32>,
-    pub offset: Option<i32>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateObjectiveRequest {
     pub title: String,
     pub description: Option<String>,
     pub period: String,
+    pub period_start: Option<NaiveDate>,
+    pub period_end: Option<NaiveDate>,
     pub parent_id: Option<Uuid>,
     pub visibility: Option<Visibility>,
+    pub tags: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateObjectiveRequest {
     pub title: Option<String>,
     pub description: Option<String>,
     pub status: Option<ObjectiveStatus>,
     pub visibility: Option<Visibility>,
+    pub period_start: Option<NaiveDate>,
+    pub period_end: Option<NaiveDate>,
+    pub tags: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateKeyResultRequest {
     pub title: String,
+    pub description: Option<String>,
     pub metric_type: MetricType,
     pub start_value: Option<f64>,
     pub target_value: f64,
+    pub unit: Option<String>,
     pub weight: Option<f32>,
-    pub due_date: Option<DateTime<Utc>>,
+    pub due_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateKeyResultRequest {
     pub title: Option<String>,
+    pub description: Option<String>,
     pub target_value: Option<f64>,
     pub current_value: Option<f64>,
     pub weight: Option<f32>,
-    pub due_date: Option<DateTime<Utc>>,
+    pub due_date: Option<NaiveDate>,
     pub status: Option<KRStatus>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateCheckInRequest {
     pub new_value: f64,
     pub note: Option<String>,
     pub confidence: Option<Confidence>,
+    pub blockers: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AISuggestRequest {
-    pub context: Option<String>,
+    pub context: String,
     pub role: Option<String>,
     pub department: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AISuggestion {
     pub objective: ObjectiveTemplate,
     pub key_results: Vec<KeyResultTemplate>,
     pub rationale: String,
 }
 
-#[derive(Debug, Clone)]
-pub struct GoalsService {}
-
-impl GoalsService {
-    pub fn new() -> Self {
-        Self {}
+fn record_to_objective(record: ObjectiveRecord) -> Objective {
+    Objective {
+        id: record.id,
+        organization_id: record.org_id,
+        owner_id: record.owner_id,
+        parent_id: record.parent_id,
+        title: record.title,
+        description: record.description.unwrap_or_default(),
+        period: record.period,
+        period_start: record.period_start,
+        period_end: record.period_end,
+        status: ObjectiveStatus::from_str(&record.status),
+        progress: record.progress.to_f32().unwrap_or(0.0),
+        visibility: Visibility::from_str(&record.visibility),
+        weight: record.weight.to_f32().unwrap_or(1.0),
+        tags: record.tags.into_iter().flatten().collect(),
+        created_at: record.created_at,
+        updated_at: record.updated_at,
     }
-
-    pub async fn list_objectives(
-        &self,
-        _organization_id: Uuid,
-        _query: &ListObjectivesQuery,
-    ) -> Result<Vec<Objective>, GoalsError> {
-        Ok(vec![])
-    }
-
-    pub async fn create_objective(
-        &self,
-        organization_id: Uuid,
-        owner_id: Uuid,
-        req: CreateObjectiveRequest,
-    ) -> Result<Objective, GoalsError> {
-        let now = Utc::now();
-        Ok(Objective {
-            id: Uuid::new_v4(),
-            organization_id,
-            owner_id,
-            parent_id: req.parent_id,
-            title: req.title,
-            description: req.description.unwrap_or_default(),
-            period: req.period,
-            status: ObjectiveStatus::Draft,
-            progress: 0.0,
-            visibility: req.visibility.unwrap_or(Visibility::Team),
-            created_at: now,
-            updated_at: now,
-        })
-    }
-
-    pub async fn get_objective(
-        &self,
-        _organization_id: Uuid,
-        _objective_id: Uuid,
-    ) -> Result<Option<Objective>, GoalsError> {
-        Ok(None)
-    }
-
-    pub async fn update_objective(
-        &self,
-        _organization_id: Uuid,
-        _objective_id: Uuid,
-        _req: UpdateObjectiveRequest,
-    ) -> Result<Objective, GoalsError> {
-        Err(GoalsError::NotFound("Objective not found".to_string()))
-    }
-
-    pub async fn delete_objective(
-        &self,
-        _organization_id: Uuid,
-        _objective_id: Uuid,
-    ) -> Result<(), GoalsError> {
-        Ok(())
-    }
-
-    pub async fn list_key_results(
-        &self,
-        _organization_id: Uuid,
-        _objective_id: Uuid,
-    ) -> Result<Vec<KeyResult>, GoalsError> {
-        Ok(vec![])
-    }
-
-    pub async fn create_key_result(
-        &self,
-        _organization_id: Uuid,
-        objective_id: Uuid,
-        owner_id: Uuid,
-        req: CreateKeyResultRequest,
-    ) -> Result<KeyResult, GoalsError> {
-        let now = Utc::now();
-        Ok(KeyResult {
-            id: Uuid::new_v4(),
-            objective_id,
-            owner_id,
-            title: req.title,
-            metric_type: req.metric_type,
-            start_value: req.start_value.unwrap_or(0.0),
-            target_value: req.target_value,
-            current_value: req.start_value.unwrap_or(0.0),
-            weight: req.weight.unwrap_or(1.0),
-            due_date: req.due_date,
-            status: KRStatus::NotStarted,
-            created_at: now,
-            updated_at: now,
-        })
-    }
-
-    pub async fn update_key_result(
-        &self,
-        _organization_id: Uuid,
-        _key_result_id: Uuid,
-        _req: UpdateKeyResultRequest,
-    ) -> Result<KeyResult, GoalsError> {
-        Err(GoalsError::NotFound("Key result not found".to_string()))
-    }
-
-    pub async fn delete_key_result(
-        &self,
-        _organization_id: Uuid,
-        _key_result_id: Uuid,
-    ) -> Result<(), GoalsError> {
-        Ok(())
-    }
-
-    pub async fn create_check_in(
-        &self,
-        _organization_id: Uuid,
-        key_result_id: Uuid,
-        user_id: Uuid,
-        req: CreateCheckInRequest,
-    ) -> Result<CheckIn, GoalsError> {
-        Ok(CheckIn {
-            id: Uuid::new_v4(),
-            key_result_id,
-            user_id,
-            previous_value: 0.0,
-            new_value: req.new_value,
-            note: req.note.unwrap_or_default(),
-            confidence: req.confidence.unwrap_or(Confidence::Medium),
-            created_at: Utc::now(),
-        })
-    }
-
-    pub async fn get_check_in_history(
-        &self,
-        _organization_id: Uuid,
-        _key_result_id: Uuid,
-    ) -> Result<Vec<CheckIn>, GoalsError> {
-        Ok(vec![])
-    }
-
-    pub async fn get_dashboard(
-        &self,
-        _organization_id: Uuid,
-        _user_id: Uuid,
-    ) -> Result<GoalsDashboard, GoalsError> {
-        Ok(GoalsDashboard {
-            total_objectives: 0,
-            completed_objectives: 0,
-            at_risk_objectives: 0,
-            average_progress: 0.0,
-            upcoming_check_ins: vec![],
-            recent_activity: vec![],
-        })
-    }
-
-    pub async fn get_alignment_tree(
-        &self,
-        _organization_id: Uuid,
-    ) -> Result<Vec<AlignmentNode>, GoalsError> {
-        Ok(vec![])
-    }
-
-    pub async fn suggest_goals(
-        &self,
-        _organization_id: Uuid,
-        _req: AISuggestRequest,
-    ) -> Result<Vec<AISuggestion>, GoalsError> {
-        Ok(vec![
-            AISuggestion {
-                objective: ObjectiveTemplate {
-                    title: "Improve customer satisfaction".to_string(),
-                    description: "Enhance customer experience across all touchpoints".to_string(),
-                },
-                key_results: vec![
-                    KeyResultTemplate {
-                        title: "Increase NPS score".to_string(),
-                        metric_type: MetricType::Number,
-                        suggested_target: Some(50.0),
-                    },
-                    KeyResultTemplate {
-                        title: "Reduce support ticket resolution time".to_string(),
-                        metric_type: MetricType::Number,
-                        suggested_target: Some(24.0),
-                    },
-                ],
-                rationale: "Customer satisfaction directly impacts retention and growth".to_string(),
-            },
-        ])
-    }
-
-    pub async fn get_templates(
-        &self,
-        _organization_id: Uuid,
-    ) -> Result<Vec<GoalTemplate>, GoalsError> {
-        Ok(vec![])
-    }
-
-
 }
 
-impl Default for GoalsService {
-    fn default() -> Self {
-        Self::new()
+fn record_to_key_result(record: KeyResultRecord) -> KeyResult {
+    KeyResult {
+        id: record.id,
+        objective_id: record.objective_id,
+        owner_id: record.owner_id,
+        title: record.title,
+        description: record.description,
+        metric_type: MetricType::from_str(&record.metric_type),
+        start_value: record.start_value.to_f64().unwrap_or(0.0),
+        target_value: record.target_value.to_f64().unwrap_or(0.0),
+        current_value: record.current_value.to_f64().unwrap_or(0.0),
+        unit: record.unit,
+        weight: record.weight.to_f32().unwrap_or(1.0),
+        due_date: record.due_date,
+        status: KRStatus::from_str(&record.status),
+        created_at: record.created_at,
+        updated_at: record.updated_at,
+    }
+}
+
+fn record_to_checkin(record: CheckInRecord) -> CheckIn {
+    CheckIn {
+        id: record.id,
+        key_result_id: record.key_result_id,
+        user_id: record.user_id,
+        previous_value: record.previous_value.and_then(|v| v.to_f64()).unwrap_or(0.0),
+        new_value: record.new_value.to_f64().unwrap_or(0.0),
+        note: record.note.unwrap_or_default(),
+        confidence: Confidence::from_str(record.confidence.as_deref().unwrap_or("medium")),
+        blockers: record.blockers,
+        created_at: record.created_at,
     }
 }
 
@@ -466,7 +529,6 @@ pub enum GoalsError {
 
 impl IntoResponse for GoalsError {
     fn into_response(self) -> axum::response::Response {
-        use axum::http::StatusCode;
         let (status, message) = match &self {
             Self::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
             Self::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
@@ -477,185 +539,636 @@ impl IntoResponse for GoalsError {
     }
 }
 
-pub async fn handle_list_objectives(
-    State(_state): State<Arc<AppState>>,
+pub async fn list_objectives(
+    State(state): State<Arc<AppState>>,
     Query(query): Query<ListObjectivesQuery>,
 ) -> Result<Json<Vec<Objective>>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let objectives = service.list_objectives(org_id, &query).await?;
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        let mut db_query = okr_objectives::table
+            .filter(okr_objectives::org_id.eq(org_id))
+            .filter(okr_objectives::bot_id.eq(bot_id))
+            .into_boxed();
+
+        if let Some(owner_id) = query.owner_id {
+            db_query = db_query.filter(okr_objectives::owner_id.eq(owner_id));
+        }
+        if let Some(status) = query.status {
+            db_query = db_query.filter(okr_objectives::status.eq(status));
+        }
+        if let Some(period) = query.period {
+            db_query = db_query.filter(okr_objectives::period.eq(period));
+        }
+        if let Some(parent_id) = query.parent_id {
+            db_query = db_query.filter(okr_objectives::parent_id.eq(parent_id));
+        }
+
+        db_query = db_query.order(okr_objectives::created_at.desc());
+
+        if let Some(limit) = query.limit {
+            db_query = db_query.limit(limit);
+        }
+        if let Some(offset) = query.offset {
+            db_query = db_query.offset(offset);
+        }
+
+        db_query
+            .load::<ObjectiveRecord>(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    let objectives: Vec<Objective> = result.into_iter().map(record_to_objective).collect();
     Ok(Json(objectives))
 }
 
-pub async fn handle_create_objective(
-    State(_state): State<Arc<AppState>>,
+pub async fn create_objective(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<CreateObjectiveRequest>,
 ) -> Result<Json<Objective>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let user_id = Uuid::nil();
-    let objective = service.create_objective(org_id, user_id, req).await?;
-    Ok(Json(objective))
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+    let owner_id = Uuid::nil();
+    let now = Utc::now();
+
+    let tags: Vec<Option<String>> = req.tags.unwrap_or_default().into_iter().map(Some).collect();
+
+    let new_objective = ObjectiveRecord {
+        id: Uuid::new_v4(),
+        org_id,
+        bot_id,
+        owner_id,
+        parent_id: req.parent_id,
+        title: req.title.clone(),
+        description: req.description.clone(),
+        period: req.period.clone(),
+        period_start: req.period_start,
+        period_end: req.period_end,
+        status: "draft".to_string(),
+        progress: BigDecimal::from(0),
+        visibility: req.visibility.as_ref().map(|v| v.to_str()).unwrap_or("team").to_string(),
+        weight: BigDecimal::from(1),
+        tags,
+        created_at: now,
+        updated_at: now,
+    };
+
+    let record = new_objective.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+        diesel::insert_into(okr_objectives::table)
+            .values(&new_objective)
+            .execute(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))?;
+        Ok::<_, GoalsError>(())
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    info!("Created objective: {} ({})", record.title, record.id);
+    Ok(Json(record_to_objective(record)))
 }
 
-pub async fn handle_get_objective(
-    State(_state): State<Arc<AppState>>,
+pub async fn get_objective(
+    State(state): State<Arc<AppState>>,
     Path(objective_id): Path<Uuid>,
-) -> Result<Json<Option<Objective>>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let objective = service.get_objective(org_id, objective_id).await?;
-    Ok(Json(objective))
+) -> Result<Json<Objective>, GoalsError> {
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+        okr_objectives::table
+            .find(objective_id)
+            .first::<ObjectiveRecord>(&mut conn)
+            .optional()
+            .map_err(|e| GoalsError::Database(e.to_string()))
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    result
+        .map(record_to_objective)
+        .ok_or_else(|| GoalsError::NotFound("Objective not found".to_string()))
+        .map(Json)
 }
 
-pub async fn handle_update_objective(
-    State(_state): State<Arc<AppState>>,
+pub async fn update_objective(
+    State(state): State<Arc<AppState>>,
     Path(objective_id): Path<Uuid>,
     Json(req): Json<UpdateObjectiveRequest>,
 ) -> Result<Json<Objective>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let objective = service.update_objective(org_id, objective_id, req).await?;
-    Ok(Json(objective))
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        let mut objective = okr_objectives::table
+            .find(objective_id)
+            .first::<ObjectiveRecord>(&mut conn)
+            .optional()
+            .map_err(|e| GoalsError::Database(e.to_string()))?
+            .ok_or_else(|| GoalsError::NotFound("Objective not found".to_string()))?;
+
+        if let Some(title) = req.title {
+            objective.title = title;
+        }
+        if let Some(description) = req.description {
+            objective.description = Some(description);
+        }
+        if let Some(status) = req.status {
+            objective.status = status.to_str().to_string();
+        }
+        if let Some(visibility) = req.visibility {
+            objective.visibility = visibility.to_str().to_string();
+        }
+        if let Some(period_start) = req.period_start {
+            objective.period_start = Some(period_start);
+        }
+        if let Some(period_end) = req.period_end {
+            objective.period_end = Some(period_end);
+        }
+        if let Some(tags) = req.tags {
+            objective.tags = tags.into_iter().map(Some).collect();
+        }
+        objective.updated_at = Utc::now();
+
+        diesel::update(okr_objectives::table.find(objective_id))
+            .set(&objective)
+            .execute(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        Ok::<_, GoalsError>(objective)
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    info!("Updated objective: {} ({})", result.title, result.id);
+    Ok(Json(record_to_objective(result)))
 }
 
-pub async fn handle_delete_objective(
-    State(_state): State<Arc<AppState>>,
+pub async fn delete_objective(
+    State(state): State<Arc<AppState>>,
     Path(objective_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    service.delete_objective(org_id, objective_id).await?;
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+        let deleted = diesel::delete(okr_objectives::table.find(objective_id))
+            .execute(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        if deleted > 0 {
+            info!("Deleted objective: {objective_id}");
+            Ok::<_, GoalsError>(())
+        } else {
+            Err(GoalsError::NotFound("Objective not found".to_string()))
+        }
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
-pub async fn handle_list_key_results(
-    State(_state): State<Arc<AppState>>,
+pub async fn list_key_results(
+    State(state): State<Arc<AppState>>,
     Path(objective_id): Path<Uuid>,
 ) -> Result<Json<Vec<KeyResult>>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let key_results = service.list_key_results(org_id, objective_id).await?;
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+        okr_key_results::table
+            .filter(okr_key_results::objective_id.eq(objective_id))
+            .order(okr_key_results::created_at.asc())
+            .load::<KeyResultRecord>(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    let key_results: Vec<KeyResult> = result.into_iter().map(record_to_key_result).collect();
     Ok(Json(key_results))
 }
 
-pub async fn handle_create_key_result(
-    State(_state): State<Arc<AppState>>,
+pub async fn create_key_result(
+    State(state): State<Arc<AppState>>,
     Path(objective_id): Path<Uuid>,
     Json(req): Json<CreateKeyResultRequest>,
 ) -> Result<Json<KeyResult>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let user_id = Uuid::nil();
-    let key_result = service
-        .create_key_result(org_id, objective_id, user_id, req)
-        .await?;
-    Ok(Json(key_result))
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+    let owner_id = Uuid::nil();
+    let now = Utc::now();
+
+    let start_value = req.start_value.unwrap_or(0.0);
+
+    let new_kr = KeyResultRecord {
+        id: Uuid::new_v4(),
+        org_id,
+        bot_id,
+        objective_id,
+        owner_id,
+        title: req.title.clone(),
+        description: req.description.clone(),
+        metric_type: req.metric_type.to_str().to_string(),
+        start_value: BigDecimal::try_from(start_value).unwrap_or_else(|_| BigDecimal::from(0)),
+        target_value: BigDecimal::try_from(req.target_value).unwrap_or_else(|_| BigDecimal::from(0)),
+        current_value: BigDecimal::try_from(start_value).unwrap_or_else(|_| BigDecimal::from(0)),
+        unit: req.unit.clone(),
+        weight: BigDecimal::try_from(req.weight.unwrap_or(1.0) as f64).unwrap_or_else(|_| BigDecimal::from(1)),
+        status: "not_started".to_string(),
+        due_date: req.due_date,
+        scoring_type: "linear".to_string(),
+        created_at: now,
+        updated_at: now,
+    };
+
+    let record = new_kr.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+        diesel::insert_into(okr_key_results::table)
+            .values(&new_kr)
+            .execute(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))?;
+        Ok::<_, GoalsError>(())
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    info!("Created key result: {} ({})", record.title, record.id);
+    Ok(Json(record_to_key_result(record)))
 }
 
-pub async fn handle_update_key_result(
-    State(_state): State<Arc<AppState>>,
+pub async fn update_key_result(
+    State(state): State<Arc<AppState>>,
     Path(key_result_id): Path<Uuid>,
     Json(req): Json<UpdateKeyResultRequest>,
 ) -> Result<Json<KeyResult>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let key_result = service.update_key_result(org_id, key_result_id, req).await?;
-    Ok(Json(key_result))
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        let mut kr = okr_key_results::table
+            .find(key_result_id)
+            .first::<KeyResultRecord>(&mut conn)
+            .optional()
+            .map_err(|e| GoalsError::Database(e.to_string()))?
+            .ok_or_else(|| GoalsError::NotFound("Key result not found".to_string()))?;
+
+        if let Some(title) = req.title {
+            kr.title = title;
+        }
+        if let Some(description) = req.description {
+            kr.description = Some(description);
+        }
+        if let Some(target_value) = req.target_value {
+            kr.target_value = BigDecimal::try_from(target_value).unwrap_or_else(|_| BigDecimal::from(0));
+        }
+        if let Some(current_value) = req.current_value {
+            kr.current_value = BigDecimal::try_from(current_value).unwrap_or_else(|_| BigDecimal::from(0));
+        }
+        if let Some(weight) = req.weight {
+            kr.weight = BigDecimal::try_from(weight as f64).unwrap_or_else(|_| BigDecimal::from(1));
+        }
+        if let Some(due_date) = req.due_date {
+            kr.due_date = Some(due_date);
+        }
+        if let Some(status) = req.status {
+            kr.status = status.to_str().to_string();
+        }
+        kr.updated_at = Utc::now();
+
+        diesel::update(okr_key_results::table.find(key_result_id))
+            .set(&kr)
+            .execute(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        Ok::<_, GoalsError>(kr)
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    info!("Updated key result: {} ({})", result.title, result.id);
+    Ok(Json(record_to_key_result(result)))
 }
 
-pub async fn handle_delete_key_result(
-    State(_state): State<Arc<AppState>>,
+pub async fn delete_key_result(
+    State(state): State<Arc<AppState>>,
     Path(key_result_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    service.delete_key_result(org_id, key_result_id).await?;
+    let pool = state.pool.clone();
+
+    tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+        let deleted = diesel::delete(okr_key_results::table.find(key_result_id))
+            .execute(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        if deleted > 0 {
+            info!("Deleted key result: {key_result_id}");
+            Ok::<_, GoalsError>(())
+        } else {
+            Err(GoalsError::NotFound("Key result not found".to_string()))
+        }
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
-pub async fn handle_create_check_in(
-    State(_state): State<Arc<AppState>>,
+pub async fn create_check_in(
+    State(state): State<Arc<AppState>>,
     Path(key_result_id): Path<Uuid>,
     Json(req): Json<CreateCheckInRequest>,
 ) -> Result<Json<CheckIn>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
     let user_id = Uuid::nil();
-    let check_in = service
-        .create_check_in(org_id, key_result_id, user_id, req)
-        .await?;
-    Ok(Json(check_in))
+    let now = Utc::now();
+
+    let pool_clone = pool.clone();
+    let previous_value = tokio::task::spawn_blocking(move || {
+        let mut conn = pool_clone.get().ok()?;
+        okr_key_results::table
+            .find(key_result_id)
+            .select(okr_key_results::current_value)
+            .first::<BigDecimal>(&mut conn)
+            .ok()
+    })
+    .await
+    .ok()
+    .flatten();
+
+    let new_checkin = CheckInRecord {
+        id: Uuid::new_v4(),
+        org_id,
+        bot_id,
+        key_result_id,
+        user_id,
+        previous_value,
+        new_value: BigDecimal::try_from(req.new_value).unwrap_or_else(|_| BigDecimal::from(0)),
+        note: req.note.clone(),
+        confidence: req.confidence.as_ref().map(|c| c.to_str().to_string()),
+        blockers: req.blockers.clone(),
+        created_at: now,
+    };
+
+    let record = new_checkin.clone();
+    let new_val = req.new_value;
+
+    tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        diesel::insert_into(okr_checkins::table)
+            .values(&new_checkin)
+            .execute(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        diesel::update(okr_key_results::table.find(key_result_id))
+            .set((
+                okr_key_results::current_value.eq(BigDecimal::try_from(new_val).unwrap_or_else(|_| BigDecimal::from(0))),
+                okr_key_results::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        Ok::<_, GoalsError>(())
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    info!("Created check-in for key result: {key_result_id}");
+    Ok(Json(record_to_checkin(record)))
 }
 
-pub async fn handle_get_check_in_history(
-    State(_state): State<Arc<AppState>>,
+pub async fn get_check_in_history(
+    State(state): State<Arc<AppState>>,
     Path(key_result_id): Path<Uuid>,
 ) -> Result<Json<Vec<CheckIn>>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let history = service.get_check_in_history(org_id, key_result_id).await?;
+    let pool = state.pool.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+        okr_checkins::table
+            .filter(okr_checkins::key_result_id.eq(key_result_id))
+            .order(okr_checkins::created_at.desc())
+            .load::<CheckInRecord>(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    let history: Vec<CheckIn> = result.into_iter().map(record_to_checkin).collect();
     Ok(Json(history))
 }
 
-pub async fn handle_get_dashboard(
-    State(_state): State<Arc<AppState>>,
+pub async fn get_dashboard(
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<GoalsDashboard>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let user_id = Uuid::nil();
-    let dashboard = service.get_dashboard(org_id, user_id).await?;
-    Ok(Json(dashboard))
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        let total: i64 = okr_objectives::table
+            .filter(okr_objectives::org_id.eq(org_id))
+            .filter(okr_objectives::bot_id.eq(bot_id))
+            .count()
+            .get_result(&mut conn)
+            .unwrap_or(0);
+
+        let completed: i64 = okr_objectives::table
+            .filter(okr_objectives::org_id.eq(org_id))
+            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::status.eq("completed"))
+            .count()
+            .get_result(&mut conn)
+            .unwrap_or(0);
+
+        let at_risk: i64 = okr_objectives::table
+            .filter(okr_objectives::org_id.eq(org_id))
+            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::status.eq("at_risk"))
+            .count()
+            .get_result(&mut conn)
+            .unwrap_or(0);
+
+        let objectives = okr_objectives::table
+            .filter(okr_objectives::org_id.eq(org_id))
+            .filter(okr_objectives::bot_id.eq(bot_id))
+            .select(okr_objectives::progress)
+            .load::<BigDecimal>(&mut conn)
+            .unwrap_or_default();
+
+        let avg_progress = if objectives.is_empty() {
+            0.0
+        } else {
+            let sum: f32 = objectives.iter().map(|p| p.to_f32().unwrap_or(0.0)).sum();
+            sum / objectives.len() as f32
+        };
+
+        let upcoming_krs = okr_key_results::table
+            .filter(okr_key_results::org_id.eq(org_id))
+            .filter(okr_key_results::bot_id.eq(bot_id))
+            .filter(okr_key_results::due_date.is_not_null())
+            .order(okr_key_results::due_date.asc())
+            .limit(5)
+            .load::<KeyResultRecord>(&mut conn)
+            .unwrap_or_default();
+
+        let upcoming_check_ins: Vec<UpcomingCheckIn> = upcoming_krs.into_iter().map(|kr| {
+            UpcomingCheckIn {
+                key_result_id: kr.id,
+                key_result_title: kr.title,
+                objective_title: String::new(),
+                due_date: kr.due_date,
+            }
+        }).collect();
+
+        Ok::<_, GoalsError>(GoalsDashboard {
+            total_objectives: total,
+            completed_objectives: completed,
+            at_risk_objectives: at_risk,
+            average_progress: avg_progress,
+            upcoming_check_ins,
+            recent_activity: vec![],
+        })
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    Ok(Json(result))
 }
 
-pub async fn handle_get_alignment(
-    State(_state): State<Arc<AppState>>,
+pub async fn get_alignment(
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<AlignmentNode>>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let tree = service.get_alignment_tree(org_id).await?;
-    Ok(Json(tree))
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        let objectives = okr_objectives::table
+            .filter(okr_objectives::org_id.eq(org_id))
+            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::parent_id.is_null())
+            .load::<ObjectiveRecord>(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        let nodes: Vec<AlignmentNode> = objectives.into_iter().map(|obj| {
+            let key_results = okr_key_results::table
+                .filter(okr_key_results::objective_id.eq(obj.id))
+                .load::<KeyResultRecord>(&mut conn)
+                .unwrap_or_default()
+                .into_iter()
+                .map(record_to_key_result)
+                .collect();
+
+            AlignmentNode {
+                objective: record_to_objective(obj),
+                key_results,
+                children: vec![],
+            }
+        }).collect();
+
+        Ok::<_, GoalsError>(nodes)
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    Ok(Json(result))
 }
 
-pub async fn handle_ai_suggest(
-    State(_state): State<Arc<AppState>>,
+pub async fn ai_suggest(
     Json(req): Json<AISuggestRequest>,
 ) -> Result<Json<Vec<AISuggestion>>, GoalsError> {
-    let service = GoalsService::new();
-    let org_id = Uuid::nil();
-    let suggestions = service.suggest_goals(org_id, req).await?;
+    let suggestions = vec![
+        AISuggestion {
+            objective: ObjectiveTemplate {
+                title: "Improve customer satisfaction".to_string(),
+                description: "Enhance customer experience across all touchpoints".to_string(),
+            },
+            key_results: vec![
+                KeyResultTemplate {
+                    title: "Increase NPS score".to_string(),
+                    metric_type: MetricType::Number,
+                    suggested_target: Some(50.0),
+                },
+                KeyResultTemplate {
+                    title: "Reduce support ticket resolution time".to_string(),
+                    metric_type: MetricType::Number,
+                    suggested_target: Some(24.0),
+                },
+            ],
+            rationale: "Customer satisfaction directly impacts retention and growth".to_string(),
+        },
+    ];
     Ok(Json(suggestions))
+}
+
+pub async fn list_templates(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Vec<GoalTemplate>>, GoalsError> {
+    let pool = state.pool.clone();
+    let (org_id, bot_id) = get_bot_context();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
+
+        okr_templates::table
+            .filter(okr_templates::org_id.eq(org_id).or(okr_templates::is_system.eq(true)))
+            .order(okr_templates::name.asc())
+            .load::<TemplateRecord>(&mut conn)
+            .map_err(|e| GoalsError::Database(e.to_string()))
+    })
+    .await
+    .map_err(|e| GoalsError::Database(e.to_string()))??;
+
+    let templates: Vec<GoalTemplate> = result.into_iter().map(|t| {
+        let objective_template: ObjectiveTemplate = serde_json::from_value(t.objective_template)
+            .unwrap_or(ObjectiveTemplate { title: String::new(), description: String::new() });
+        let key_result_templates: Vec<KeyResultTemplate> = serde_json::from_value(t.key_result_templates)
+            .unwrap_or_default();
+
+        GoalTemplate {
+            id: t.id,
+            organization_id: t.org_id,
+            name: t.name,
+            description: t.description,
+            category: t.category,
+            objective_template,
+            key_result_templates,
+            is_system: t.is_system,
+            created_at: t.created_at,
+        }
+    }).collect();
+
+    Ok(Json(templates))
 }
 
 pub fn configure_goals_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/goals/objectives", get(handle_list_objectives))
-        .route("/api/goals/objectives", post(handle_create_objective))
-        .route("/api/goals/objectives/:id", get(handle_get_objective))
-        .route("/api/goals/objectives/:id", put(handle_update_objective))
-        .route("/api/goals/objectives/:id", delete(handle_delete_objective))
-        .route(
-            "/api/goals/objectives/:id/key-results",
-            get(handle_list_key_results),
-        )
-        .route(
-            "/api/goals/objectives/:id/key-results",
-            post(handle_create_key_result),
-        )
-        .route("/api/goals/key-results/:id", put(handle_update_key_result))
-        .route(
-            "/api/goals/key-results/:id",
-            delete(handle_delete_key_result),
-        )
-        .route(
-            "/api/goals/key-results/:id/check-in",
-            post(handle_create_check_in),
-        )
-        .route(
-            "/api/goals/key-results/:id/history",
-            get(handle_get_check_in_history),
-        )
-        .route("/api/goals/dashboard", get(handle_get_dashboard))
-        .route("/api/goals/alignment", get(handle_get_alignment))
-        .route("/api/goals/ai/suggest", post(handle_ai_suggest))
+        .route("/api/goals/objectives", get(list_objectives).post(create_objective))
+        .route("/api/goals/objectives/:id", get(get_objective).put(update_objective).delete(delete_objective))
+        .route("/api/goals/objectives/:id/key-results", get(list_key_results).post(create_key_result))
+        .route("/api/goals/key-results/:id", put(update_key_result).delete(delete_key_result))
+        .route("/api/goals/key-results/:id/check-in", post(create_check_in))
+        .route("/api/goals/key-results/:id/history", get(get_check_in_history))
+        .route("/api/goals/dashboard", get(get_dashboard))
+        .route("/api/goals/alignment", get(get_alignment))
+        .route("/api/goals/templates", get(list_templates))
+        .route("/api/goals/ai/suggest", post(ai_suggest))
 }
