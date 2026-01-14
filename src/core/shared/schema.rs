@@ -983,6 +983,59 @@ diesel::table! {
         barcode -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        // Campos fiscais e tributários (Stone/Brasil)
+        ncm -> Nullable<Varchar>,
+        cest -> Nullable<Varchar>,
+        cfop -> Nullable<Varchar>,
+        origem -> Nullable<Int4>,
+        gtin -> Nullable<Varchar>,
+        gtin_tributavel -> Nullable<Varchar>,
+        // Dimensões detalhadas (frete)
+        peso_liquido -> Nullable<Numeric>,
+        peso_bruto -> Nullable<Numeric>,
+        largura -> Nullable<Numeric>,
+        altura -> Nullable<Numeric>,
+        comprimento -> Nullable<Numeric>,
+        volumes -> Nullable<Int4>,
+        // Informações tributárias
+        icms_cst -> Nullable<Varchar>,
+        icms_aliquota -> Nullable<Numeric>,
+        ipi_cst -> Nullable<Varchar>,
+        ipi_aliquota -> Nullable<Numeric>,
+        pis_cst -> Nullable<Varchar>,
+        pis_aliquota -> Nullable<Numeric>,
+        cofins_cst -> Nullable<Varchar>,
+        cofins_aliquota -> Nullable<Numeric>,
+        // Marketplace e e-commerce
+        marca -> Nullable<Varchar>,
+        modelo -> Nullable<Varchar>,
+        cor -> Nullable<Varchar>,
+        tamanho -> Nullable<Varchar>,
+        material -> Nullable<Varchar>,
+        genero -> Nullable<Varchar>,
+        // Controle de estoque avançado
+        localizacao_estoque -> Nullable<Varchar>,
+        lote -> Nullable<Varchar>,
+        data_validade -> Nullable<Date>,
+        data_fabricacao -> Nullable<Date>,
+        estoque_minimo -> Nullable<Int4>,
+        estoque_maximo -> Nullable<Int4>,
+        ponto_reposicao -> Nullable<Int4>,
+        // Preços e custos detalhados
+        preco_promocional -> Nullable<Numeric>,
+        promocao_inicio -> Nullable<Timestamptz>,
+        promocao_fim -> Nullable<Timestamptz>,
+        custo_frete -> Nullable<Numeric>,
+        margem_lucro -> Nullable<Numeric>,
+        // Campos Stone específicos
+        stone_item_id -> Nullable<Varchar>,
+        stone_category_id -> Nullable<Varchar>,
+        stone_metadata -> Nullable<Jsonb>,
+        // SEO e busca
+        slug -> Nullable<Varchar>,
+        meta_title -> Nullable<Varchar>,
+        meta_description -> Nullable<Text>,
+        tags -> Nullable<Array<Nullable<Text>>>,
     }
 }
 
@@ -1080,6 +1133,16 @@ diesel::table! {
         attributes -> Jsonb,
         is_active -> Bool,
         created_at -> Timestamptz,
+        // Stone/Brasil fields
+        gtin -> Nullable<Varchar>,
+        peso_liquido -> Nullable<Numeric>,
+        peso_bruto -> Nullable<Numeric>,
+        largura -> Nullable<Numeric>,
+        altura -> Nullable<Numeric>,
+        comprimento -> Nullable<Numeric>,
+        cor -> Nullable<Varchar>,
+        tamanho -> Nullable<Varchar>,
+        images -> Nullable<Jsonb>,
     }
 }
 
