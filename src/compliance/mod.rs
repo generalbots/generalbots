@@ -71,27 +71,12 @@ impl IntoResponse for ComplianceError {
 
 pub fn configure_compliance_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/compliance/checks", get(handlers::handle_list_checks))
-        .route("/api/compliance/checks", post(handlers::handle_run_check))
-        .route(
-            "/api/compliance/checks/:check_id",
-            get(handlers::handle_get_check),
-        )
-        .route("/api/compliance/issues", get(handlers::handle_list_issues))
-        .route("/api/compliance/issues", post(handlers::handle_create_issue))
-        .route(
-            "/api/compliance/issues/:issue_id",
-            put(handlers::handle_update_issue),
-        )
-        .route("/api/compliance/audit", get(handlers::handle_list_audit_logs))
-        .route(
-            "/api/compliance/audit",
-            post(handlers::handle_create_audit_log),
-        )
-        .route(
-            "/api/compliance/training",
-            post(handlers::handle_create_training),
-        )
+        .route("/api/compliance/checks", get(handlers::handle_list_checks).post(handlers::handle_run_check))
+        .route("/api/compliance/checks/:check_id", get(handlers::handle_get_check))
+        .route("/api/compliance/issues", get(handlers::handle_list_issues).post(handlers::handle_create_issue))
+        .route("/api/compliance/issues/:issue_id", put(handlers::handle_update_issue))
+        .route("/api/compliance/audit", get(handlers::handle_list_audit_logs).post(handlers::handle_create_audit_log))
+        .route("/api/compliance/training", post(handlers::handle_create_training))
         .route("/api/compliance/report", get(handlers::handle_get_report))
         .route("/api/compliance/evidence", post(handlers::handle_upload_evidence))
 }
