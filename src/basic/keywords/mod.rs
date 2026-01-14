@@ -26,6 +26,7 @@ pub mod face_api;
 pub mod file_operations;
 pub mod find;
 pub mod first;
+pub mod products;
 pub mod search;
 pub mod for_next;
 pub mod format;
@@ -125,6 +126,9 @@ pub fn get_all_keywords() -> Vec<String> {
         "FIND".to_string(),
         "FIRST".to_string(),
         "SEARCH".to_string(),
+        "SEARCH PRODUCTS".to_string(),
+        "PRODUCTS".to_string(),
+        "PRODUCT".to_string(),
         "AUTOCOMPLETE".to_string(),
         "GROUP BY".to_string(),
         "INSERT".to_string(),
