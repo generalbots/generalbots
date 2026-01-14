@@ -1,3 +1,5 @@
+#![recursion_limit = "512"]
+
 // Use jemalloc as the global allocator when the feature is enabled
 #[cfg(feature = "jemalloc")]
 use tikv_jemallocator::Jemalloc;
@@ -5,6 +7,120 @@ use tikv_jemallocator::Jemalloc;
 #[cfg(feature = "jemalloc")]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
+
+// Module declarations
+pub mod auto_task;
+pub mod basic;
+pub mod billing;
+pub mod canvas;
+pub mod channels;
+pub mod contacts;
+pub mod core;
+pub mod dashboards;
+pub mod embedded_ui;
+pub mod maintenance;
+pub mod multimodal;
+pub mod player;
+pub mod people;
+pub mod products;
+pub mod search;
+pub mod security;
+pub mod tickets;
+pub mod attendant;
+pub mod analytics;
+pub mod designer;
+pub mod docs;
+pub mod learn;
+pub mod paper;
+pub mod research;
+pub mod sheet;
+pub mod slides;
+pub mod social;
+pub mod sources;
+pub mod video;
+pub mod monitoring;
+pub mod project;
+pub mod workspaces;
+pub mod botmodels;
+pub mod legal;
+pub mod settings;
+
+#[cfg(feature = "attendance")]
+pub mod attendance;
+
+#[cfg(feature = "calendar")]
+pub mod calendar;
+
+#[cfg(feature = "compliance")]
+pub mod compliance;
+
+#[cfg(feature = "console")]
+pub mod console;
+
+#[cfg(feature = "directory")]
+pub mod directory;
+
+#[cfg(feature = "drive")]
+pub mod drive;
+
+#[cfg(feature = "email")]
+pub mod email;
+
+#[cfg(feature = "instagram")]
+pub mod instagram;
+
+#[cfg(feature = "llm")]
+pub mod llm;
+
+#[cfg(feature = "meet")]
+pub mod meet;
+
+#[cfg(feature = "msteams")]
+pub mod msteams;
+
+#[cfg(feature = "nvidia")]
+pub mod nvidia;
+
+#[cfg(feature = "tasks")]
+pub mod tasks;
+
+#[cfg(feature = "vectordb")]
+#[path = "vector-db/mod.rs"]
+pub mod vector_db;
+
+#[cfg(feature = "weba")]
+pub mod weba;
+
+#[cfg(feature = "whatsapp")]
+pub mod whatsapp;
+
+#[cfg(feature = "telegram")]
+pub mod telegram;
+
+pub use core::shared;
+
+#[derive(Debug, Clone)]
+pub enum BootstrapProgress {
+    StartingBootstrap,
+    InstallingComponent(String),
+    StartingComponent(String),
+    UploadingTemplates,
+    ConnectingDatabase,
+    StartingLLM,
+    BootstrapComplete,
+    BootstrapError(String),
+}
+
+#[cfg(feature = "drive")]
+pub use drive::drive_monitor::DriveMonitor;
+
+#[cfg(feature = "llm")]
+pub use llm::cache::{CacheConfig, CachedLLMProvider, CachedResponse, LocalEmbeddingService};
+#[cfg(feature = "llm")]
+pub use llm::DynamicLLMProvider;
+
+#[cfg(feature = "tasks")]
+pub use tasks::TaskEngine;
 
 use axum::extract::{Extension, State};
 use axum::http::StatusCode;
@@ -23,7 +139,7 @@ use std::sync::Arc;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
-use botserver::embedded_ui;
+use crate::embedded_ui;
 
 async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
     use aws_sdk_s3::primitives::ByteStream;
@@ -59,7 +175,7 @@ async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
     }
 }
 
-use botserver::security::{
+use crate::security::{
     create_cors_layer, create_rate_limit_layer, create_security_headers_layer,
     request_id_middleware, security_headers_middleware, set_cors_allowed_origins,
     set_global_panic_hook, AuthConfig, HttpRateLimitConfig, PanicHandlerConfig,
@@ -69,58 +185,35 @@ use botserver::security::{
 };
 use botlib::SystemLimits;
 
-use botserver::core;
-use botserver::shared;
-use botserver::core::shared::memory_monitor::{
+use crate::core::shared::memory_monitor::{
     start_memory_monitor, log_process_memory, MemoryStats,
     register_thread, record_thread_activity
 };
 
-use botserver::core::automation;
-use botserver::core::bootstrap;
-use botserver::core::bot;
-use botserver::core::package_manager;
-use botserver::core::session;
-
-#[cfg(feature = "attendance")]
-use botserver::attendance;
-
-#[cfg(feature = "calendar")]
-use botserver::calendar;
-
-#[cfg(feature = "directory")]
-use botserver::directory;
-
-#[cfg(feature = "email")]
-use botserver::email;
-
-#[cfg(feature = "llm")]
-use botserver::llm;
-
-#[cfg(feature = "meet")]
-use botserver::meet;
-
-#[cfg(feature = "whatsapp")]
-use botserver::whatsapp;
+use crate::core::automation;
+use crate::core::bootstrap;
+use crate::core::bot;
+use crate::core::package_manager;
+use crate::core::session;
 
 use automation::AutomationService;
 use bootstrap::BootstrapManager;
-use botserver::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
-use botserver::core::bot::websocket_handler;
-use botserver::core::bot::BotOrchestrator;
-use botserver::core::bot_database::BotDatabaseManager;
-use botserver::core::config::AppConfig;
+use crate::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
+use crate::core::bot::websocket_handler;
+use crate::core::bot::BotOrchestrator;
+use crate::core::bot_database::BotDatabaseManager;
+use crate::core::config::AppConfig;
 
 #[cfg(feature = "directory")]
-use directory::auth_handler;
+use crate::directory::auth_handler;
 
 use package_manager::InstallMode;
 use session::{create_session, get_session_history, get_sessions, start_session};
-use shared::state::AppState;
-use shared::utils::create_conn;
-use shared::utils::create_s3_operator;
+use crate::shared::state::AppState;
+use crate::shared::utils::create_conn;
+use crate::shared::utils::create_s3_operator;
 
-use botserver::BootstrapProgress;
+use crate::BootstrapProgress;
 
 async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
     let db_ok = state.conn.get().is_ok();
