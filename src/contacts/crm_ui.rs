@@ -35,17 +35,17 @@ fn get_bot_context(state: &AppState) -> (Uuid, Uuid) {
 
 pub fn configure_crm_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/crm/count", get(handle_crm_count))
-        .route("/api/crm/pipeline", get(handle_crm_pipeline))
-        .route("/api/crm/leads", get(handle_crm_leads))
-        .route("/api/crm/opportunities", get(handle_crm_opportunities))
-        .route("/api/crm/contacts", get(handle_crm_contacts))
-        .route("/api/crm/accounts", get(handle_crm_accounts))
-        .route("/api/crm/search", get(handle_crm_search))
-        .route("/api/crm/stats/conversion-rate", get(handle_conversion_rate))
-        .route("/api/crm/stats/pipeline-value", get(handle_pipeline_value))
-        .route("/api/crm/stats/avg-deal", get(handle_avg_deal))
-        .route("/api/crm/stats/won-month", get(handle_won_month))
+        .route("/api/ui/crm/count", get(handle_crm_count))
+        .route("/api/ui/crm/pipeline", get(handle_crm_pipeline))
+        .route("/api/ui/crm/leads", get(handle_crm_leads))
+        .route("/api/ui/crm/opportunities", get(handle_crm_opportunities))
+        .route("/api/ui/crm/contacts", get(handle_crm_contacts))
+        .route("/api/ui/crm/accounts", get(handle_crm_accounts))
+        .route("/api/ui/crm/search", get(handle_crm_search))
+        .route("/api/ui/crm/stats/conversion-rate", get(handle_conversion_rate))
+        .route("/api/ui/crm/stats/pipeline-value", get(handle_pipeline_value))
+        .route("/api/ui/crm/stats/avg-deal", get(handle_avg_deal))
+        .route("/api/ui/crm/stats/won-month", get(handle_won_month))
 }
 
 async fn handle_crm_count(
