@@ -235,9 +235,8 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(ApiUrls::EMAIL_SEARCH_HTMX, get(search_emails_htmx))
         .route(ApiUrls::EMAIL_AUTO_RESPONDER_HTMX, post(save_auto_responder))
         // Signatures API
-        .route("/api/email/signatures", get(list_signatures))
+        .route("/api/email/signatures", get(list_signatures).post(create_signature))
         .route("/api/email/signatures/default", get(get_default_signature))
-        .route("/api/email/signatures", post(create_signature))
         .route("/api/email/signatures/{id}", get(get_signature).put(update_signature).delete(delete_signature))
 }
 

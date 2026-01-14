@@ -51,14 +51,14 @@ fn format_currency(amount: f64, currency: &str) -> String {
 
 pub fn configure_products_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/products/items", get(handle_products_items))
-        .route("/api/products/services", get(handle_products_services))
-        .route("/api/products/pricelists", get(handle_products_pricelists))
-        .route("/api/products/stats/total-products", get(handle_total_products))
-        .route("/api/products/stats/total-services", get(handle_total_services))
-        .route("/api/products/stats/pricelists", get(handle_total_pricelists))
-        .route("/api/products/stats/active", get(handle_active_products))
-        .route("/api/products/search", get(handle_products_search))
+        .route("/api/ui/products/items", get(handle_products_items))
+        .route("/api/ui/products/services", get(handle_products_services))
+        .route("/api/ui/products/pricelists", get(handle_products_pricelists))
+        .route("/api/ui/products/stats/total-products", get(handle_total_products))
+        .route("/api/ui/products/stats/total-services", get(handle_total_services))
+        .route("/api/ui/products/stats/pricelists", get(handle_total_pricelists))
+        .route("/api/ui/products/stats/active", get(handle_active_products))
+        .route("/api/ui/products/search", get(handle_products_search))
 }
 
 async fn handle_products_items(

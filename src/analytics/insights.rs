@@ -807,8 +807,7 @@ pub fn configure_insights_routes() -> Router<Arc<AppState>> {
         .route("/api/insights/weekly", get(handle_get_weekly))
         .route("/api/insights/trends", get(handle_get_trends))
         .route("/api/insights/recommendations", get(handle_get_recommendations))
-        .route("/api/insights/settings", get(handle_get_settings))
-        .route("/api/insights/settings", put(handle_update_settings))
+        .route("/api/insights/settings", get(handle_get_settings).put(handle_update_settings))
         .route("/api/insights/focus-mode", put(handle_update_focus_mode))
         .route("/api/insights/apps", get(handle_get_app_breakdown))
 }
