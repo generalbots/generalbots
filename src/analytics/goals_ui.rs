@@ -27,11 +27,11 @@ pub async fn objectives_list(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ObjectivesQuery>,
 ) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = Some(get_default_bot(&mut conn))?;
 
         let mut db_query = okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -131,11 +131,11 @@ pub async fn objectives_list(
 }
 
 pub async fn objectives_count(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = Some(get_default_bot(&mut conn))?;
 
         okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -151,11 +151,11 @@ pub async fn objectives_count(State(state): State<Arc<AppState>>) -> Html<String
 }
 
 pub async fn active_objectives_count(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = Some(get_default_bot(&mut conn))?;
 
         okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -172,11 +172,11 @@ pub async fn active_objectives_count(State(state): State<Arc<AppState>>) -> Html
 }
 
 pub async fn at_risk_count(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = Some(get_default_bot(&mut conn))?;
 
         okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -193,11 +193,11 @@ pub async fn at_risk_count(State(state): State<Arc<AppState>>) -> Html<String> {
 }
 
 pub async fn average_progress(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = Some(get_default_bot(&mut conn))?;
 
         let objectives = okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -224,11 +224,11 @@ pub async fn average_progress(State(state): State<Arc<AppState>>) -> Html<String
 }
 
 pub async fn dashboard_stats(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = Some(get_default_bot(&mut conn))?;
 
         let total: i64 = okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -340,11 +340,11 @@ pub async fn new_objective_form() -> Html<String> {
 }
 
 pub async fn recent_checkins(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = Some(get_default_bot(&mut conn))?;
 
         okr_checkins::table
             .filter(okr_checkins::bot_id.eq(bot_id))

@@ -3,8 +3,11 @@
 //! Provides face detection, verification, and analysis capabilities through BASIC keywords.
 //! Supports Azure Face API, AWS Rekognition, and local OpenCV fallback.
 
+use crate::botmodels::{GlassesType, FaceLandmarks, Point2D};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::botmodels::{
@@ -113,6 +116,7 @@ pub enum ImageSource {
     FilePath(String),
     Variable(String),
     Binary(Vec<u8>),
+    Bytes(Vec<u8>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,17 +133,17 @@ pub struct DetectionOptions {
     #[serde(default = "default_true")]
     pub return_face_id: bool,
     #[serde(default)]
-    pub return_landmarks: bool,
+    pub return_landmarks: Option<bool>,
     #[serde(default)]
-    pub return_attributes: bool,
+    pub return_attributes: Option<bool>,
     #[serde(default)]
     pub return_embedding: bool,
     #[serde(default)]
     pub detection_model: Option<String>,
     #[serde(default)]
     pub recognition_model: Option<String>,
-    #[serde(default = "default_max_faces")]
-    pub max_faces: usize,
+    #[serde(default)]
+    pub max_faces: Option<usize>,
     #[serde(default = "default_min_face_size")]
     pub min_face_size: u32,
 }
@@ -148,7 +152,7 @@ fn default_true() -> bool {
     true
 }
 
-fn default_max_faces() -> usize {
+fn _default_max_faces() -> usize {
     100
 }
 
@@ -160,12 +164,12 @@ impl Default for DetectionOptions {
     fn default() -> Self {
         Self {
             return_face_id: true,
-            return_landmarks: false,
-            return_attributes: false,
+            return_landmarks: Some(false),
+            return_attributes: Some(false),
             return_embedding: false,
             detection_model: None,
             recognition_model: None,
-            max_faces: 100,
+            max_faces: Some(100),
             min_face_size: 36,
         }
     }
@@ -174,20 +178,23 @@ impl Default for DetectionOptions {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerificationOptions {
     #[serde(default = "default_confidence_threshold")]
-    pub confidence_threshold: f32,
+    pub confidence_threshold: f64,
     #[serde(default)]
     pub recognition_model: Option<String>,
+    #[serde(default)]
+    pub threshold: Option<f64>,
 }
 
-fn default_confidence_threshold() -> f32 {
+fn default_confidence_threshold() -> f64 {
     0.6
 }
 
 impl Default for VerificationOptions {
     fn default() -> Self {
         Self {
-            confidence_threshold: 0.6,
+            confidence_threshold: 0.8,
             recognition_model: None,
+            threshold: Some(0.8),
         }
     }
 }
@@ -417,12 +424,34 @@ pub struct FaceGroup {
 }
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/// Calculate cosine similarity between two embedding vectors
+fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+    if a.len() != b.len() || a.is_empty() {
+        return 0.0;
+    }
+
+    let dot_product: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+    let norm_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+    let norm_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+
+    if norm_a == 0.0 || norm_b == 0.0 {
+        return 0.0;
+    }
+
+    (dot_product / (norm_a * norm_b)).clamp(0.0, 1.0)
+}
+
+// ============================================================================
 // Face API Service
 // ============================================================================
 
 pub struct FaceApiService {
     config: FaceApiConfig,
     client: reqwest::Client,
+    face_cache: Arc<RwLock<HashMap<Uuid, DetectedFace>>>,
 }
 
 impl FaceApiService {
@@ -430,6 +459,7 @@ impl FaceApiService {
         Self {
             config,
             client: reqwest::Client::new(),
+            face_cache: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -534,12 +564,12 @@ impl FaceApiService {
             .ok_or(FaceApiError::ConfigError("Azure API key not configured".to_string()))?;
 
         let mut return_params = vec!["faceId"];
-        if options.return_landmarks {
+        if options.return_landmarks.unwrap_or(false) {
             return_params.push("faceLandmarks");
         }
 
         let mut attributes = Vec::new();
-        if options.return_attributes {
+        if options.return_attributes.unwrap_or(false) {
             attributes.extend_from_slice(&[
                 "age", "gender", "smile", "glasses", "emotion",
                 "facialHair", "headPose", "blur", "exposure", "noise", "occlusion"
@@ -550,7 +580,7 @@ impl FaceApiService {
             "{}/face/v1.0/detect?returnFaceId={}&returnFaceLandmarks={}&returnFaceAttributes={}",
             endpoint,
             options.return_face_id,
-            options.return_landmarks,
+            options.return_landmarks.unwrap_or(false),
             attributes.join(",")
         );
 
@@ -655,8 +685,8 @@ impl FaceApiService {
     ) -> Result<FaceAnalysisResult, FaceApiError> {
         let detect_options = DetectionOptions {
             return_face_id: true,
-            return_landmarks: options.return_landmarks,
-            return_attributes: !attributes.is_empty(),
+            return_landmarks: Some(options.return_landmarks),
+            return_attributes: Some(!attributes.is_empty()),
             ..Default::default()
         };
 
@@ -696,10 +726,17 @@ impl FaceApiService {
         let aws_region = std::env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".to_string());
         let _aws_key = std::env::var("AWS_ACCESS_KEY_ID")
             .map_err(|_| FaceApiError::ConfigError("AWS_ACCESS_KEY_ID not configured".to_string()))?;
+        let _aws_secret = std::env::var("AWS_SECRET_ACCESS_KEY")
+            .map_err(|_| FaceApiError::ConfigError("AWS_SECRET_ACCESS_KEY not configured".to_string()))?;
 
-        // In production, this would call AWS Rekognition API
-        // For now, return simulated detection based on image analysis
+        // Use simulation for face detection
+        // In production with aws-sdk-rekognition crate, this would call the real API
         let faces = self.simulate_face_detection(&image_bytes, options).await;
+
+        // Cache detected faces
+        for face in &faces {
+            self.face_cache.write().await.insert(face.id, face.clone());
+        }
 
         let processing_time = start.elapsed().as_millis() as u64;
 
@@ -717,7 +754,7 @@ impl FaceApiService {
         &self,
         face1: &FaceSource,
         face2: &FaceSource,
-        _options: &VerificationOptions,
+        options: &VerificationOptions,
     ) -> Result<FaceVerificationResult, FaceApiError> {
         use std::time::Instant;
         let start = Instant::now();
@@ -726,29 +763,38 @@ impl FaceApiService {
         let face1_id = self.get_or_detect_face_id(face1).await?;
         let face2_id = self.get_or_detect_face_id(face2).await?;
 
-        // Simulate verification - in production, call AWS Rekognition CompareFaces
-        let similarity = if face1_id == face2_id {
-            1.0
-        } else {
-            // Generate consistent similarity based on face IDs
-            let hash1 = face1_id.as_u128() % 100;
-            let hash2 = face2_id.as_u128() % 100;
-            let diff = (hash1 as i128 - hash2 as i128).unsigned_abs() as f32;
-            1.0 - (diff / 100.0).min(0.9)
-        };
+        // Get embeddings from cache
+        let cache = self.face_cache.read().await;
 
-        let is_match = similarity >= 0.8;
+        let embedding1 = cache.get(&face1_id)
+            .and_then(|f| f.embedding.clone())
+            .ok_or(FaceApiError::InvalidInput("No embedding for face 1".to_string()))?;
+
+        let embedding2 = cache.get(&face2_id)
+            .and_then(|f| f.embedding.clone())
+            .ok_or(FaceApiError::InvalidInput("No embedding for face 2".to_string()))?;
+
+        drop(cache);
+
+        // Calculate cosine similarity between embeddings
+        let similarity = cosine_similarity(&embedding1, &embedding2);
+        let threshold = options.threshold.unwrap_or(0.8) as f32;
+        let is_match = similarity >= threshold;
+
         let processing_time = start.elapsed().as_millis() as u64;
 
-        Ok(FaceVerificationResult {
-            is_match,
-            confidence: similarity,
-            similarity_score: similarity,
-            face1_id: Some(face1_id),
-            face2_id: Some(face2_id),
-            processing_time_ms: processing_time,
-            error: None,
-        })
+        log::info!(
+            "AWS Rekognition verify: similarity={:.3}, threshold={:.3}, match={}",
+            similarity,
+            threshold,
+            is_match
+        );
+
+        Ok(FaceVerificationResult::match_found(
+            similarity as f64,
+            threshold as f64,
+            processing_time,
+        ).with_face_ids(face1_id, face2_id))
     }
 
     async fn analyze_face_aws(
@@ -766,14 +812,15 @@ impl FaceApiService {
         let mut result_attributes = FaceAttributes {
             age: None,
             gender: None,
-            emotions: None,
+            emotion: None,
             smile: None,
             glasses: None,
             facial_hair: None,
-            makeup: None,
-            hair_color: None,
             head_pose: None,
-            eye_status: None,
+            blur: None,
+            exposure: None,
+            noise: None,
+            occlusion: None,
         };
 
         // Populate requested attributes with simulated data
@@ -790,7 +837,7 @@ impl FaceApiService {
                     });
                 }
                 FaceAttributeType::Emotion => {
-                    result_attributes.emotions = Some(EmotionScores {
+                    result_attributes.emotion = Some(EmotionScores {
                         neutral: 0.7,
                         happiness: 0.2,
                         sadness: 0.02,
@@ -805,7 +852,11 @@ impl FaceApiService {
                     result_attributes.smile = Some(0.3 + (face_id.as_u128() % 70) as f32 / 100.0);
                 }
                 FaceAttributeType::Glasses => {
-                    result_attributes.glasses = Some(face_id.as_u128() % 3 == 0);
+                    result_attributes.glasses = Some(if face_id.as_u128() % 3 == 0 {
+                        GlassesType::ReadingGlasses
+                    } else {
+                        GlassesType::NoGlasses
+                    });
                 }
                 _ => {}
             }
@@ -813,13 +864,21 @@ impl FaceApiService {
 
         let processing_time = start.elapsed().as_millis() as u64;
 
-        Ok(FaceAnalysisResult {
-            face_id,
-            attributes: result_attributes,
+        let detected_face = DetectedFace {
+            id: face_id,
+            bounding_box: BoundingBox {
+                left: 100.0,
+                top: 80.0,
+                width: 120.0,
+                height: 150.0,
+            },
             confidence: 0.95,
-            processing_time_ms: processing_time,
-            error: None,
-        })
+            landmarks: None,
+            attributes: Some(result_attributes.clone()),
+            embedding: None,
+        };
+
+        Ok(FaceAnalysisResult::success(detected_face, processing_time))
     }
 
     // ========================================================================
@@ -876,9 +935,10 @@ impl FaceApiService {
         let processing_time = start.elapsed().as_millis() as u64;
 
         Ok(FaceVerificationResult {
+            success: true,
             is_match,
-            confidence: similarity,
-            similarity_score: similarity,
+            confidence: similarity as f64,
+            threshold: 0.75,
             face1_id: Some(face1_id),
             face2_id: Some(face2_id),
             processing_time_ms: processing_time,
@@ -901,14 +961,15 @@ impl FaceApiService {
         let mut result_attributes = FaceAttributes {
             age: None,
             gender: None,
-            emotions: None,
+            emotion: None,
             smile: None,
             glasses: None,
             facial_hair: None,
-            makeup: None,
-            hair_color: None,
             head_pose: None,
-            eye_status: None,
+            blur: None,
+            exposure: None,
+            noise: None,
+            occlusion: None,
         };
 
         for attr in attributes {
@@ -932,13 +993,21 @@ impl FaceApiService {
 
         let processing_time = start.elapsed().as_millis() as u64;
 
-        Ok(FaceAnalysisResult {
-            face_id,
-            attributes: result_attributes,
-            confidence: 0.85, // Lower confidence for local processing
-            processing_time_ms: processing_time,
-            error: None,
-        })
+        let detected_face = DetectedFace {
+            id: face_id,
+            bounding_box: BoundingBox {
+                left: 100.0,
+                top: 80.0,
+                width: 120.0,
+                height: 150.0,
+            },
+            confidence: 0.85,
+            landmarks: None,
+            attributes: Some(result_attributes),
+            embedding: None,
+        };
+
+        Ok(FaceAnalysisResult::success(detected_face, processing_time))
     }
 
     // ========================================================================
@@ -994,9 +1063,10 @@ impl FaceApiService {
         let processing_time = start.elapsed().as_millis() as u64;
 
         Ok(FaceVerificationResult {
+            success: true,
             is_match,
-            confidence: similarity,
-            similarity_score: similarity,
+            confidence: similarity as f64,
+            threshold: 0.68,
             face1_id: Some(face1_id),
             face2_id: Some(face2_id),
             processing_time_ms: processing_time,
@@ -1019,14 +1089,15 @@ impl FaceApiService {
         let mut result_attributes = FaceAttributes {
             age: None,
             gender: None,
-            emotions: None,
+            emotion: None,
             smile: None,
             glasses: None,
             facial_hair: None,
-            makeup: None,
-            hair_color: None,
             head_pose: None,
-            eye_status: None,
+            blur: None,
+            exposure: None,
+            noise: None,
+            occlusion: None,
         };
 
         for attr in attributes {
@@ -1043,7 +1114,7 @@ impl FaceApiService {
                     });
                 }
                 FaceAttributeType::Emotion => {
-                    result_attributes.emotions = Some(EmotionScores {
+                    result_attributes.emotion = Some(EmotionScores {
                         neutral: 0.65,
                         happiness: 0.25,
                         sadness: 0.03,
@@ -1058,7 +1129,11 @@ impl FaceApiService {
                     result_attributes.smile = Some(0.4 + (face_id.as_u128() % 60) as f32 / 100.0);
                 }
                 FaceAttributeType::Glasses => {
-                    result_attributes.glasses = Some(face_id.as_u128() % 4 == 0);
+                    result_attributes.glasses = Some(if face_id.as_u128() % 4 == 0 {
+                        GlassesType::ReadingGlasses
+                    } else {
+                        GlassesType::NoGlasses
+                    });
                 }
                 _ => {}
             }
@@ -1066,13 +1141,21 @@ impl FaceApiService {
 
         let processing_time = start.elapsed().as_millis() as u64;
 
-        Ok(FaceAnalysisResult {
-            face_id,
-            attributes: result_attributes,
-            confidence: 0.92, // InsightFace has high accuracy
-            processing_time_ms: processing_time,
-            error: None,
-        })
+        let detected_face = DetectedFace {
+            id: face_id,
+            bounding_box: BoundingBox {
+                left: 100.0,
+                top: 80.0,
+                width: 120.0,
+                height: 150.0,
+            },
+            confidence: 0.92,
+            landmarks: None,
+            attributes: Some(result_attributes),
+            embedding: None,
+        };
+
+        Ok(FaceAnalysisResult::success(detected_face, processing_time))
     }
 
     // ========================================================================
@@ -1081,6 +1164,9 @@ impl FaceApiService {
 
     async fn get_image_bytes(&self, source: &ImageSource) -> Result<Vec<u8>, FaceApiError> {
         match source {
+            ImageSource::Variable(var) => {
+                Err(FaceApiError::InvalidInput(format!("Variable image source '{}' not supported in this context", var)))
+            }
             ImageSource::Url(url) => {
                 let client = reqwest::Client::new();
                 let response = client
@@ -1100,7 +1186,7 @@ impl FaceApiService {
                     .decode(data)
                     .map_err(|e| FaceApiError::ParseError(e.to_string()))
             }
-            ImageSource::Bytes(bytes) => Ok(bytes.clone()),
+            ImageSource::Bytes(bytes) | ImageSource::Binary(bytes) => Ok(bytes.clone()),
             ImageSource::FilePath(path) => {
                 std::fs::read(path).map_err(|e| FaceApiError::InvalidInput(e.to_string()))
             }
@@ -1120,7 +1206,7 @@ impl FaceApiService {
             1
         };
 
-        let max_faces = options.max_faces.unwrap_or(10) as usize;
+        let max_faces = options.max_faces.unwrap_or(10);
         let num_faces = num_faces.min(max_faces);
 
         (0..num_faces)
@@ -1134,9 +1220,19 @@ impl FaceApiService {
                         width: 120.0,
                         height: 150.0,
                     },
-                    confidence: 0.95 - (i as f32 * 0.05),
+                    confidence: 0.95 - (i as f64 * 0.05),
                     landmarks: if options.return_landmarks.unwrap_or(false) {
-                        Some(self.generate_landmarks())
+                        Some(FaceLandmarks {
+                            left_eye: Point2D { x: 140.0, y: 120.0 },
+                            right_eye: Point2D { x: 180.0, y: 120.0 },
+                            nose_tip: Point2D { x: 160.0, y: 150.0 },
+                            mouth_left: Point2D { x: 145.0, y: 175.0 },
+                            mouth_right: Point2D { x: 175.0, y: 175.0 },
+                            left_eyebrow_left: None,
+                            left_eyebrow_right: None,
+                            right_eyebrow_left: None,
+                            right_eyebrow_right: None,
+                        })
                     } else {
                         None
                     },
@@ -1148,14 +1244,15 @@ impl FaceApiService {
                             } else {
                                 Gender::Female
                             }),
-                            emotions: None,
+                            emotion: None,
                             smile: Some(0.5),
-                            glasses: Some(false),
+                            glasses: Some(GlassesType::NoGlasses),
                             facial_hair: None,
-                            makeup: None,
-                            hair_color: None,
                             head_pose: None,
-                            eye_status: None,
+                            blur: None,
+                            exposure: None,
+                            noise: None,
+                            occlusion: None,
                         })
                     } else {
                         None
@@ -1166,7 +1263,7 @@ impl FaceApiService {
             .collect()
     }
 
-    fn generate_landmarks(&self) -> HashMap<String, (f32, f32)> {
+    fn _generate_landmarks(&self) -> HashMap<String, (f32, f32)> {
         let mut landmarks = HashMap::new();
         landmarks.insert("left_eye".to_string(), (140.0, 120.0));
         landmarks.insert("right_eye".to_string(), (180.0, 120.0));

@@ -324,6 +324,20 @@ impl std::fmt::Debug for Extensions {
     }
 }
 
+/// Billing alert notification for WebSocket broadcast
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BillingAlertNotification {
+    pub alert_id: uuid::Uuid,
+    pub organization_id: uuid::Uuid,
+    pub severity: String,
+    pub alert_type: String,
+    pub title: String,
+    pub message: String,
+    pub metric: String,
+    pub percentage: f64,
+    pub triggered_at: chrono::DateTime<chrono::Utc>,
+}
+
 pub struct AppState {
     #[cfg(feature = "drive")]
     pub drive: Option<S3Client>,
@@ -351,6 +365,7 @@ pub struct AppState {
     pub extensions: Extensions,
     pub attendant_broadcast: Option<broadcast::Sender<AttendantNotification>>,
     pub task_progress_broadcast: Option<broadcast::Sender<TaskProgressEvent>>,
+    pub billing_alert_broadcast: Option<broadcast::Sender<BillingAlertNotification>>,
     pub task_manifests: Arc<std::sync::RwLock<HashMap<String, TaskManifest>>>,
     pub project_service: Arc<RwLock<ProjectService>>,
     pub legal_service: Arc<RwLock<LegalService>>,
@@ -388,6 +403,7 @@ impl Clone for AppState {
             extensions: self.extensions.clone(),
             attendant_broadcast: self.attendant_broadcast.clone(),
             task_progress_broadcast: self.task_progress_broadcast.clone(),
+            billing_alert_broadcast: self.billing_alert_broadcast.clone(),
             task_manifests: Arc::clone(&self.task_manifests),
             project_service: Arc::clone(&self.project_service),
             legal_service: Arc::clone(&self.legal_service),

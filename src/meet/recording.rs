@@ -924,7 +924,7 @@ impl RecordingService {
 
             let quality = match row.2.as_str() {
                 "high" | "hd" => RecordingQuality::High,
-                "low" | "audio" => RecordingQuality::Low,
+                "low" | "audio" => RecordingQuality::AudioOnly,
                 _ => RecordingQuality::Standard,
             };
 
@@ -1006,7 +1006,7 @@ impl RecordingService {
 
                 let quality = match row.2.as_str() {
                     "high" | "hd" => RecordingQuality::High,
-                    "low" | "audio" => RecordingQuality::Low,
+                    "low" | "audio" => RecordingQuality::AudioOnly,
                     _ => RecordingQuality::Standard,
                 };
 
@@ -1043,9 +1043,10 @@ impl RecordingService {
     ) -> Result<(), RecordingError> {
         let pool = self.pool.clone();
         let quality_str = match quality {
-            RecordingQuality::Low => "low",
+            RecordingQuality::AudioOnly => "audio_only",
             RecordingQuality::Standard => "standard",
             RecordingQuality::High => "high",
+            RecordingQuality::Ultra => "ultra",
         }.to_string();
 
         tokio::task::spawn_blocking(move || {

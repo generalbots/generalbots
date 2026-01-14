@@ -6,6 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -703,33 +704,80 @@ async fn extract_and_validate_user(
     })
 }
 
-/// Validate JWT token and extract claims
-fn validate_jwt(token: &str, _secret: &str) -> Result<TokenClaims, AuthError> {
-    // In production, use proper JWT validation with jsonwebtoken crate
-    // This is a placeholder that shows the structure
+/// Validate JWT token and extract claims using jsonwebtoken crate
+fn validate_jwt(token: &str, secret: &str) -> Result<TokenClaims, AuthError> {
+    // Configure validation rules
+    let mut validation = Validation::new(Algorithm::HS256);
+    validation.validate_exp = true;
+    validation.validate_nbf = false;
+    validation.set_required_spec_claims(&["sub", "exp"]);
 
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return Err(AuthError::InvalidToken("Malformed token".to_string()));
+    // Also accept RS256 tokens (common with OIDC providers like Zitadel)
+    // Try HS256 first, then RS256 if that fails
+    let decoding_key = DecodingKey::from_secret(secret.as_bytes());
+
+    match decode::<TokenClaims>(token, &decoding_key, &validation) {
+        Ok(token_data) => Ok(token_data.claims),
+        Err(e) => {
+            // If HS256 fails, try decoding without signature verification
+            // This handles cases where the token is from an external OIDC provider
+            // and we just need to read the claims (signature already verified upstream)
+            match e.kind() {
+                jsonwebtoken::errors::ErrorKind::InvalidSignature => {
+                    // Try RS256 with the secret as a PEM key
+                    let mut rs_validation = Validation::new(Algorithm::RS256);
+                    rs_validation.validate_exp = true;
+                    rs_validation.validate_nbf = false;
+                    rs_validation.set_required_spec_claims(&["sub", "exp"]);
+
+                    // If secret looks like a PEM key, try to decode with it
+                    if secret.contains("-----BEGIN") {
+                        if let Ok(rsa_key) = DecodingKey::from_rsa_pem(secret.as_bytes()) {
+                            if let Ok(token_data) = decode::<TokenClaims>(token, &rsa_key, &rs_validation) {
+                                return Ok(token_data.claims);
+                            }
+                        }
+                    }
+
+                    // Fallback: decode without validation for trusted internal tokens
+                    // Only do this if JWT_SKIP_VALIDATION env var is set
+                    if std::env::var("JWT_SKIP_VALIDATION").is_ok() {
+                        let mut insecure_validation = Validation::new(Algorithm::HS256);
+                        insecure_validation.insecure_disable_signature_validation();
+                        insecure_validation.validate_exp = true;
+                        insecure_validation.set_required_spec_claims(&["sub", "exp"]);
+
+                        if let Ok(token_data) = decode::<TokenClaims>(token, &DecodingKey::from_secret(&[]), &insecure_validation) {
+                            return Ok(token_data.claims);
+                        }
+                    }
+
+                    Err(AuthError::InvalidToken(format!("Invalid signature: {}", e)))
+                }
+                jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
+                    Err(AuthError::TokenExpired)
+                }
+                jsonwebtoken::errors::ErrorKind::InvalidToken => {
+                    Err(AuthError::InvalidToken("Malformed token".to_string()))
+                }
+                jsonwebtoken::errors::ErrorKind::InvalidIssuer => {
+                    Err(AuthError::InvalidToken("Invalid issuer".to_string()))
+                }
+                jsonwebtoken::errors::ErrorKind::InvalidAudience => {
+                    Err(AuthError::InvalidToken("Invalid audience".to_string()))
+                }
+                jsonwebtoken::errors::ErrorKind::InvalidSubject => {
+                    Err(AuthError::InvalidToken("Invalid subject".to_string()))
+                }
+                jsonwebtoken::errors::ErrorKind::MissingRequiredClaim(claim) => {
+                    Err(AuthError::InvalidToken(format!("Missing required claim: {}", claim)))
+                }
+                _ => {
+                    Err(AuthError::InvalidToken(format!("Token validation failed: {}", e)))
+                }
+            }
+        }
     }
-
-    // Decode payload (middle part)
-    let payload = base64::Engine::decode(
-        &base64::engine::general_purpose::URL_SAFE_NO_PAD,
-        parts[1],
-    )
-    .map_err(|_| AuthError::InvalidToken("Failed to decode payload".to_string()))?;
-
-    let claims: TokenClaims =
-        serde_json::from_slice(&payload).map_err(|_| AuthError::InvalidToken("Invalid claims".to_string()))?;
-
-    // Check expiration
-    let now = chrono::Utc::now().timestamp();
-    if claims.exp < now {
-        return Err(AuthError::TokenExpired);
-    }
-
-    Ok(claims)
 }
 
 #[derive(Debug)]

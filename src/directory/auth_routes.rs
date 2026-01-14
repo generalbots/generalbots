@@ -27,7 +27,7 @@ pub struct SessionUserData {
     pub created_at: i64,
 }
 
-static SESSION_CACHE: Lazy<RwLock<HashMap<String, SessionUserData>>> =
+pub static SESSION_CACHE: Lazy<RwLock<HashMap<String, SessionUserData>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
 const BOOTSTRAP_SECRET_ENV: &str = "GB_BOOTSTRAP_SECRET";

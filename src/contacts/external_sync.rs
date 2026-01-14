@@ -1,4 +1,6 @@
 use chrono::{DateTime, Utc};
+use log::{debug, error, warn};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -20,11 +22,15 @@ pub struct MicrosoftConfig {
 
 pub struct GoogleContactsClient {
     config: GoogleConfig,
+    client: Client,
 }
 
 impl GoogleContactsClient {
     pub fn new(config: GoogleConfig) -> Self {
-        Self { config }
+        Self {
+            config,
+            client: Client::new(),
+        }
     }
 
     pub fn get_auth_url(&self, redirect_uri: &str, state: &str) -> String {
@@ -34,56 +40,319 @@ impl GoogleContactsClient {
         )
     }
 
-    pub async fn exchange_code(&self, _code: &str, _redirect_uri: &str) -> Result<TokenResponse, ExternalSyncError> {
+    pub async fn exchange_code(&self, code: &str, redirect_uri: &str) -> Result<TokenResponse, ExternalSyncError> {
+        let response = self.client
+            .post("https://oauth2.googleapis.com/token")
+            .form(&[
+                ("client_id", self.config.client_id.as_str()),
+                ("client_secret", self.config.client_secret.as_str()),
+                ("code", code),
+                ("redirect_uri", redirect_uri),
+                ("grant_type", "authorization_code"),
+            ])
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            error!("Google token exchange failed: {} - {}", status, body);
+            return Err(ExternalSyncError::AuthError(format!("Token exchange failed: {}", status)));
+        }
+
+        #[derive(Deserialize)]
+        struct GoogleTokenResponse {
+            access_token: String,
+            refresh_token: Option<String>,
+            expires_in: i64,
+            scope: Option<String>,
+        }
+
+        let token_data: GoogleTokenResponse = response.json().await
+            .map_err(|e| ExternalSyncError::ParseError(e.to_string()))?;
+
         Ok(TokenResponse {
-            access_token: "mock_access_token".to_string(),
-            refresh_token: Some("mock_refresh_token".to_string()),
-            expires_in: 3600,
-            expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
-            scopes: vec!["https://www.googleapis.com/auth/contacts".to_string()],
+            access_token: token_data.access_token,
+            refresh_token: token_data.refresh_token,
+            expires_in: token_data.expires_in,
+            expires_at: Some(Utc::now() + chrono::Duration::seconds(token_data.expires_in)),
+            scopes: token_data.scope.map(|s| s.split(' ').map(String::from).collect()).unwrap_or_default(),
         })
     }
 
-    pub async fn get_user_info(&self, _access_token: &str) -> Result<UserInfo, ExternalSyncError> {
+    pub async fn get_user_info(&self, access_token: &str) -> Result<UserInfo, ExternalSyncError> {
+        let response = self.client
+            .get("https://www.googleapis.com/oauth2/v2/userinfo")
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            return Err(ExternalSyncError::AuthError("Failed to get user info".to_string()));
+        }
+
+        #[derive(Deserialize)]
+        struct GoogleUserInfo {
+            id: String,
+            email: String,
+            name: Option<String>,
+        }
+
+        let user_data: GoogleUserInfo = response.json().await
+            .map_err(|e| ExternalSyncError::ParseError(e.to_string()))?;
+
         Ok(UserInfo {
-            id: Uuid::new_v4().to_string(),
-            email: "user@example.com".to_string(),
-            name: Some("Test User".to_string()),
+            id: user_data.id,
+            email: user_data.email,
+            name: user_data.name,
         })
     }
 
-    pub async fn revoke_token(&self, _access_token: &str) -> Result<(), ExternalSyncError> {
+    pub async fn revoke_token(&self, access_token: &str) -> Result<(), ExternalSyncError> {
+        let response = self.client
+            .post("https://oauth2.googleapis.com/revoke")
+            .form(&[("token", access_token)])
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            warn!("Token revocation may have failed: {}", response.status());
+        }
         Ok(())
     }
 
-    pub async fn list_contacts(&self, _access_token: &str, _cursor: Option<&str>) -> Result<(Vec<ExternalContact>, Option<String>), ExternalSyncError> {
-        Ok((Vec::new(), None))
+    pub async fn list_contacts(&self, access_token: &str, cursor: Option<&str>) -> Result<(Vec<ExternalContact>, Option<String>), ExternalSyncError> {
+        let mut url = "https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations&pageSize=100".to_string();
+
+        if let Some(page_token) = cursor {
+            url.push_str(&format!("&pageToken={}", page_token));
+        }
+
+        let response = self.client
+            .get(&url)
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            error!("Google contacts list failed: {} - {}", status, body);
+            return Err(ExternalSyncError::ApiError(format!("List contacts failed: {}", status)));
+        }
+
+        #[derive(Deserialize)]
+        struct GoogleConnectionsResponse {
+            connections: Option<Vec<GooglePerson>>,
+            #[serde(rename = "nextPageToken")]
+            next_page_token: Option<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct GooglePerson {
+            #[serde(rename = "resourceName")]
+            resource_name: String,
+            names: Option<Vec<GoogleName>>,
+            #[serde(rename = "emailAddresses")]
+            email_addresses: Option<Vec<GoogleEmail>>,
+            #[serde(rename = "phoneNumbers")]
+            phone_numbers: Option<Vec<GooglePhone>>,
+            organizations: Option<Vec<GoogleOrg>>,
+        }
+
+        #[derive(Deserialize)]
+        struct GoogleName {
+            #[serde(rename = "displayName")]
+            display_name: Option<String>,
+            #[serde(rename = "givenName")]
+            given_name: Option<String>,
+            #[serde(rename = "familyName")]
+            family_name: Option<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct GoogleEmail {
+            value: String,
+        }
+
+        #[derive(Deserialize)]
+        struct GooglePhone {
+            value: String,
+        }
+
+        #[derive(Deserialize)]
+        struct GoogleOrg {
+            name: Option<String>,
+            title: Option<String>,
+        }
+
+        let data: GoogleConnectionsResponse = response.json().await
+            .map_err(|e| ExternalSyncError::ParseError(e.to_string()))?;
+
+        let contacts = data.connections.unwrap_or_default().into_iter().map(|person| {
+            let name = person.names.as_ref().and_then(|n| n.first());
+            let email = person.email_addresses.as_ref().and_then(|e| e.first());
+            let phone = person.phone_numbers.as_ref().and_then(|p| p.first());
+            let org = person.organizations.as_ref().and_then(|o| o.first());
+
+            ExternalContact {
+                id: person.resource_name,
+                etag: None,
+                first_name: name.and_then(|n| n.given_name.clone()),
+                last_name: name.and_then(|n| n.family_name.clone()),
+                display_name: name.and_then(|n| n.display_name.clone()),
+                email_addresses: email.map(|e| vec![ExternalEmail {
+                    address: e.value.clone(),
+                    label: None,
+                    primary: true,
+                }]).unwrap_or_default(),
+                phone_numbers: phone.map(|p| vec![ExternalPhone {
+                    number: p.value.clone(),
+                    label: None,
+                    primary: true,
+                }]).unwrap_or_default(),
+                addresses: Vec::new(),
+                company: org.and_then(|o| o.name.clone()),
+                job_title: org.and_then(|o| o.title.clone()),
+                department: None,
+                notes: None,
+                birthday: None,
+                photo_url: None,
+                groups: Vec::new(),
+                custom_fields: HashMap::new(),
+                created_at: None,
+                updated_at: None,
+            }
+        }).collect();
+
+        Ok((contacts, data.next_page_token))
     }
 
-    pub async fn fetch_contacts(&self, _access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
-        Ok(Vec::new())
+    pub async fn fetch_contacts(&self, access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
+        let mut all_contacts = Vec::new();
+        let mut cursor: Option<String> = None;
+
+        loop {
+            let (contacts, next_cursor) = self.list_contacts(access_token, cursor.as_deref()).await?;
+            all_contacts.extend(contacts);
+
+            if next_cursor.is_none() {
+                break;
+            }
+            cursor = next_cursor;
+
+            // Safety limit
+            if all_contacts.len() > 10000 {
+                warn!("Reached contact fetch limit");
+                break;
+            }
+        }
+
+        Ok(all_contacts)
     }
 
-    pub async fn create_contact(&self, _access_token: &str, _contact: &ExternalContact) -> Result<String, ExternalSyncError> {
-        Ok(Uuid::new_v4().to_string())
+    pub async fn create_contact(&self, access_token: &str, contact: &ExternalContact) -> Result<String, ExternalSyncError> {
+        let body = serde_json::json!({
+            "names": [{
+                "givenName": contact.first_name,
+                "familyName": contact.last_name
+            }],
+            "emailAddresses": if contact.email_addresses.is_empty() { None } else { Some(contact.email_addresses.iter().map(|e| serde_json::json!({"value": e.address})).collect::<Vec<_>>()) },
+            "phoneNumbers": if contact.phone_numbers.is_empty() { None } else { Some(contact.phone_numbers.iter().map(|p| serde_json::json!({"value": p.number})).collect::<Vec<_>>()) },
+            "organizations": contact.company.as_ref().map(|c| vec![serde_json::json!({
+                "name": c,
+                "title": contact.job_title
+            })])
+        });
+
+        let response = self.client
+            .post("https://people.googleapis.com/v1/people:createContact")
+            .bearer_auth(access_token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(ExternalSyncError::ApiError(format!("Create contact failed: {} - {}", status, body)));
+        }
+
+        #[derive(Deserialize)]
+        struct CreateResponse {
+            #[serde(rename = "resourceName")]
+            resource_name: String,
+        }
+
+        let data: CreateResponse = response.json().await
+            .map_err(|e| ExternalSyncError::ParseError(e.to_string()))?;
+
+        Ok(data.resource_name)
     }
 
-    pub async fn update_contact(&self, _access_token: &str, _contact_id: &str, _contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+    pub async fn update_contact(&self, access_token: &str, contact_id: &str, contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+        let body = serde_json::json!({
+            "names": [{
+                "givenName": contact.first_name,
+                "familyName": contact.last_name
+            }],
+            "emailAddresses": if contact.email_addresses.is_empty() { None } else { Some(contact.email_addresses.iter().map(|e| serde_json::json!({"value": e.address})).collect::<Vec<_>>()) },
+            "phoneNumbers": if contact.phone_numbers.is_empty() { None } else { Some(contact.phone_numbers.iter().map(|p| serde_json::json!({"value": p.number})).collect::<Vec<_>>()) }
+        });
+
+        let url = format!("https://people.googleapis.com/v1/{}:updateContact?updatePersonFields=names,emailAddresses,phoneNumbers", contact_id);
+
+        let response = self.client
+            .patch(&url)
+            .bearer_auth(access_token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            return Err(ExternalSyncError::ApiError(format!("Update contact failed: {}", status)));
+        }
+
         Ok(())
     }
 
-    pub async fn delete_contact(&self, _access_token: &str, _contact_id: &str) -> Result<(), ExternalSyncError> {
+    pub async fn delete_contact(&self, access_token: &str, contact_id: &str) -> Result<(), ExternalSyncError> {
+        let url = format!("https://people.googleapis.com/v1/{}:deleteContact", contact_id);
+
+        let response = self.client
+            .delete(&url)
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            return Err(ExternalSyncError::ApiError(format!("Delete contact failed: {}", status)));
+        }
+
         Ok(())
     }
 }
 
 pub struct MicrosoftPeopleClient {
     config: MicrosoftConfig,
+    client: Client,
 }
 
 impl MicrosoftPeopleClient {
     pub fn new(config: MicrosoftConfig) -> Self {
-        Self { config }
+        Self {
+            config,
+            client: Client::new(),
+        }
     }
 
     pub fn get_auth_url(&self, redirect_uri: &str, state: &str) -> String {
@@ -93,45 +362,299 @@ impl MicrosoftPeopleClient {
         )
     }
 
-    pub async fn exchange_code(&self, _code: &str, _redirect_uri: &str) -> Result<TokenResponse, ExternalSyncError> {
+    pub async fn exchange_code(&self, code: &str, redirect_uri: &str) -> Result<TokenResponse, ExternalSyncError> {
+        let url = format!(
+            "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
+            self.config.tenant_id
+        );
+
+        let response = self.client
+            .post(&url)
+            .form(&[
+                ("client_id", self.config.client_id.as_str()),
+                ("client_secret", self.config.client_secret.as_str()),
+                ("code", code),
+                ("redirect_uri", redirect_uri),
+                ("grant_type", "authorization_code"),
+            ])
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            error!("Microsoft token exchange failed: {} - {}", status, body);
+            return Err(ExternalSyncError::AuthError(format!("Token exchange failed: {}", status)));
+        }
+
+        #[derive(Deserialize)]
+        struct MsTokenResponse {
+            access_token: String,
+            refresh_token: Option<String>,
+            expires_in: i64,
+            scope: Option<String>,
+        }
+
+        let token_data: MsTokenResponse = response.json().await
+            .map_err(|e| ExternalSyncError::ParseError(e.to_string()))?;
+
         Ok(TokenResponse {
-            access_token: "mock_access_token".to_string(),
-            refresh_token: Some("mock_refresh_token".to_string()),
-            expires_in: 3600,
-            expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
-            scopes: vec!["Contacts.ReadWrite".to_string()],
+            access_token: token_data.access_token,
+            refresh_token: token_data.refresh_token,
+            expires_in: token_data.expires_in,
+            expires_at: Some(Utc::now() + chrono::Duration::seconds(token_data.expires_in)),
+            scopes: token_data.scope.map(|s| s.split(' ').map(String::from).collect()).unwrap_or_default(),
         })
     }
 
-    pub async fn get_user_info(&self, _access_token: &str) -> Result<UserInfo, ExternalSyncError> {
+    pub async fn get_user_info(&self, access_token: &str) -> Result<UserInfo, ExternalSyncError> {
+        let response = self.client
+            .get("https://graph.microsoft.com/v1.0/me")
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            return Err(ExternalSyncError::AuthError("Failed to get user info".to_string()));
+        }
+
+        #[derive(Deserialize)]
+        struct MsUserInfo {
+            id: String,
+            mail: Option<String>,
+            #[serde(rename = "userPrincipalName")]
+            user_principal_name: String,
+            #[serde(rename = "displayName")]
+            display_name: Option<String>,
+        }
+
+        let user_data: MsUserInfo = response.json().await
+            .map_err(|e| ExternalSyncError::ParseError(e.to_string()))?;
+
         Ok(UserInfo {
-            id: Uuid::new_v4().to_string(),
-            email: "user@example.com".to_string(),
-            name: Some("Test User".to_string()),
+            id: user_data.id,
+            email: user_data.mail.unwrap_or(user_data.user_principal_name),
+            name: user_data.display_name,
         })
     }
 
     pub async fn revoke_token(&self, _access_token: &str) -> Result<(), ExternalSyncError> {
+        // Microsoft doesn't have a simple revoke endpoint - tokens expire naturally
+        // For enterprise, you'd use the admin API to revoke refresh tokens
+        debug!("Microsoft token revocation requested - tokens will expire naturally");
         Ok(())
     }
 
-    pub async fn list_contacts(&self, _access_token: &str, _cursor: Option<&str>) -> Result<(Vec<ExternalContact>, Option<String>), ExternalSyncError> {
-        Ok((Vec::new(), None))
+    pub async fn list_contacts(&self, access_token: &str, cursor: Option<&str>) -> Result<(Vec<ExternalContact>, Option<String>), ExternalSyncError> {
+        let url = cursor.map(String::from).unwrap_or_else(|| {
+            "https://graph.microsoft.com/v1.0/me/contacts?$top=100&$select=id,givenName,surname,displayName,emailAddresses,mobilePhone,businessPhones,companyName,jobTitle".to_string()
+        });
+
+        let response = self.client
+            .get(&url)
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            error!("Microsoft contacts list failed: {} - {}", status, body);
+            return Err(ExternalSyncError::ApiError(format!("List contacts failed: {}", status)));
+        }
+
+        #[derive(Deserialize)]
+        struct MsContactsResponse {
+            value: Vec<MsContact>,
+            #[serde(rename = "@odata.nextLink")]
+            next_link: Option<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct MsContact {
+            id: String,
+            #[serde(rename = "givenName")]
+            given_name: Option<String>,
+            surname: Option<String>,
+            #[serde(rename = "displayName")]
+            display_name: Option<String>,
+            #[serde(rename = "emailAddresses")]
+            email_addresses: Option<Vec<MsEmailAddress>>,
+            #[serde(rename = "mobilePhone")]
+            mobile_phone: Option<String>,
+            #[serde(rename = "businessPhones")]
+            business_phones: Option<Vec<String>>,
+            #[serde(rename = "companyName")]
+            company_name: Option<String>,
+            #[serde(rename = "jobTitle")]
+            job_title: Option<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct MsEmailAddress {
+            address: Option<String>,
+        }
+
+        let data: MsContactsResponse = response.json().await
+            .map_err(|e| ExternalSyncError::ParseError(e.to_string()))?;
+
+        let contacts = data.value.into_iter().map(|contact| {
+            let email = contact.email_addresses
+                .as_ref()
+                .and_then(|emails| emails.first())
+                .and_then(|e| e.address.clone());
+
+            let phone = contact.mobile_phone
+                .or_else(|| contact.business_phones.as_ref().and_then(|p| p.first().cloned()));
+
+            let first_name = contact.given_name.clone();
+            let last_name = contact.surname.clone();
+
+        ExternalContact {
+            id: contact.id,
+            etag: None,
+            first_name,
+            last_name,
+            display_name: contact.display_name,
+            email_addresses: email.map(|e| vec![ExternalEmail {
+                address: e,
+                label: None,
+                primary: true,
+            }]).unwrap_or_default(),
+            phone_numbers: phone.map(|p| vec![ExternalPhone {
+                number: p,
+                label: None,
+                primary: true,
+            }]).unwrap_or_default(),
+            addresses: Vec::new(),
+            company: contact.company_name,
+            job_title: contact.job_title,
+            department: None,
+            notes: None,
+            birthday: None,
+            photo_url: None,
+            groups: Vec::new(),
+            custom_fields: HashMap::new(),
+            created_at: None,
+            updated_at: None,
+        }
+        }).collect();
+
+        Ok((contacts, data.next_link))
     }
 
-    pub async fn fetch_contacts(&self, _access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
-        Ok(Vec::new())
+    pub async fn fetch_contacts(&self, access_token: &str) -> Result<Vec<ExternalContact>, ExternalSyncError> {
+        let mut all_contacts = Vec::new();
+        let mut cursor: Option<String> = None;
+
+        loop {
+            let (contacts, next_cursor) = self.list_contacts(access_token, cursor.as_deref()).await?;
+            all_contacts.extend(contacts);
+
+            if next_cursor.is_none() {
+                break;
+            }
+            cursor = next_cursor;
+
+            // Safety limit
+            if all_contacts.len() > 10000 {
+                warn!("Reached contact fetch limit");
+                break;
+            }
+        }
+
+        Ok(all_contacts)
     }
 
-    pub async fn create_contact(&self, _access_token: &str, _contact: &ExternalContact) -> Result<String, ExternalSyncError> {
-        Ok(Uuid::new_v4().to_string())
+    pub async fn create_contact(&self, access_token: &str, contact: &ExternalContact) -> Result<String, ExternalSyncError> {
+        let body = serde_json::json!({
+            "givenName": contact.first_name,
+            "surname": contact.last_name,
+            "displayName": contact.display_name,
+            "emailAddresses": if contact.email_addresses.is_empty() { None } else { Some(contact.email_addresses.iter().map(|e| serde_json::json!({
+                "address": e.address,
+                "name": contact.display_name
+            })).collect::<Vec<_>>()) },
+            "mobilePhone": contact.phone_numbers.first().map(|p| &p.number),
+            "companyName": contact.company,
+            "jobTitle": contact.job_title
+        });
+
+        let response = self.client
+            .post("https://graph.microsoft.com/v1.0/me/contacts")
+            .bearer_auth(access_token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(ExternalSyncError::ApiError(format!("Create contact failed: {} - {}", status, body)));
+        }
+
+        #[derive(Deserialize)]
+        struct CreateResponse {
+            id: String,
+        }
+
+        let data: CreateResponse = response.json().await
+            .map_err(|e| ExternalSyncError::ParseError(e.to_string()))?;
+
+        Ok(data.id)
     }
 
-    pub async fn update_contact(&self, _access_token: &str, _contact_id: &str, _contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+    pub async fn update_contact(&self, access_token: &str, contact_id: &str, contact: &ExternalContact) -> Result<(), ExternalSyncError> {
+        let body = serde_json::json!({
+            "givenName": contact.first_name,
+            "surname": contact.last_name,
+            "displayName": contact.display_name,
+            "emailAddresses": if contact.email_addresses.is_empty() { None } else { Some(contact.email_addresses.iter().map(|e| serde_json::json!({
+                "address": e.address,
+                "name": contact.display_name
+            })).collect::<Vec<_>>()) },
+            "mobilePhone": contact.phone_numbers.first().map(|p| &p.number),
+            "companyName": contact.company,
+            "jobTitle": contact.job_title
+        });
+
+        let url = format!("https://graph.microsoft.com/v1.0/me/contacts/{}", contact_id);
+
+        let response = self.client
+            .patch(&url)
+            .bearer_auth(access_token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            return Err(ExternalSyncError::ApiError(format!("Update contact failed: {}", status)));
+        }
+
         Ok(())
     }
 
-    pub async fn delete_contact(&self, _access_token: &str, _contact_id: &str) -> Result<(), ExternalSyncError> {
+    pub async fn delete_contact(&self, access_token: &str, contact_id: &str) -> Result<(), ExternalSyncError> {
+        let url = format!("https://graph.microsoft.com/v1.0/me/contacts/{}", contact_id);
+
+        let response = self.client
+            .delete(&url)
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|e| ExternalSyncError::NetworkError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            return Err(ExternalSyncError::ApiError(format!("Delete contact failed: {}", status)));
+        }
+
         Ok(())
     }
 }
@@ -170,6 +693,9 @@ pub enum ExternalSyncError {
     SyncInProgress,
     ApiError(String),
     InvalidData(String),
+    NetworkError(String),
+    AuthError(String),
+    ParseError(String),
 }
 
 impl std::fmt::Display for ExternalSyncError {
@@ -182,6 +708,9 @@ impl std::fmt::Display for ExternalSyncError {
             Self::SyncInProgress => write!(f, "Sync already in progress"),
             Self::ApiError(e) => write!(f, "API error: {e}"),
             Self::InvalidData(e) => write!(f, "Invalid data: {e}"),
+            Self::NetworkError(e) => write!(f, "Network error: {e}"),
+            Self::AuthError(e) => write!(f, "Auth error: {e}"),
+            Self::ParseError(e) => write!(f, "Parse error: {e}"),
         }
     }
 }
