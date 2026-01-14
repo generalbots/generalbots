@@ -1008,7 +1008,6 @@ pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
         .route("/api/calendar/calendars/:id/import", post(import_ical))
         .route(ApiUrls::CALENDAR_EVENTS, get(list_events).post(create_event))
         .route(ApiUrls::CALENDAR_EVENT_BY_ID, get(get_event).put(update_event).delete(delete_event))
-        .route(ApiUrls::CALENDAR_CALENDARS_JSON, get(list_calendars_api))
         .route(ApiUrls::CALENDAR_UPCOMING_JSON, get(upcoming_events_api))
         .route(ApiUrls::CALENDAR_CALENDARS, get(list_calendars_html))
         .route(ApiUrls::CALENDAR_UPCOMING, get(upcoming_events_html))
