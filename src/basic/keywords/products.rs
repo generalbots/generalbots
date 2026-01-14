@@ -1,5 +1,6 @@
 use crate::bot::get_default_bot;
 use crate::core::shared::schema::products;
+use crate::multimodal::BotModelsClient;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use crate::shared::utils;
@@ -9,6 +10,7 @@ use log::{error, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::{json, Value};
 use std::sync::Arc;
+use std::time::Duration;
 
 #[derive(QueryableByName)]
 struct JsonRow {
@@ -186,6 +188,82 @@ pub fn products_keyword(state: &AppState, _user: UserSession, engine: &mut Engin
             }
         }
     });
+
+    let state_barcode = state.clone();
+    let user_barcode = _user.clone();
+    engine
+        .register_custom_syntax(["SCAN", "BARCODE", "$expr$"], false, {
+            move |context, inputs| {
+                let image_path = context.eval_expression_tree(&inputs[0])?.to_string();
+                trace!("SCAN BARCODE: {}", image_path);
+
+                let state_clone = state_barcode.clone();
+                let bot_id = user_barcode.bot_id;
+
+                let (tx, rx) = std::sync::mpsc::channel();
+
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(2)
+                        .enable_all()
+                        .build();
+
+                    let send_err = if let Ok(rt) = rt {
+                        let result = rt.block_on(async move {
+                            scan_barcode(&state_clone, &bot_id, &image_path).await
+                        });
+                        tx.send(result).err()
+                    } else {
+                        tx.send(Err("Failed to build runtime".into())).err()
+                    };
+
+                    if send_err.is_some() {
+                        error!("Failed to send SCAN BARCODE result");
+                    }
+                });
+
+                match rx.recv_timeout(Duration::from_secs(30)) {
+                    Ok(Ok(result)) => Ok(utils::json_value_to_dynamic(&result)),
+                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        e.to_string().into(),
+                        rhai::Position::NONE,
+                    ))),
+                    Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        "SCAN BARCODE timed out".into(),
+                        rhai::Position::NONE,
+                    ))),
+                }
+            }
+        })
+        .expect("valid syntax");
+
+    engine.register_fn("SCAN_BARCODE", {
+        let state_clone = state.clone();
+        let bot_id = _user.bot_id;
+        move |image_path: String| -> Dynamic {
+            let state_for_task = state_clone.clone();
+            let (tx, rx) = std::sync::mpsc::channel();
+
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Builder::new_multi_thread()
+                    .worker_threads(2)
+                    .enable_all()
+                    .build();
+
+                if let Ok(rt) = rt {
+                    let result = rt.block_on(async move {
+                        scan_barcode(&state_for_task, &bot_id, &image_path).await
+                    });
+                    let _ = tx.send(result);
+                }
+            });
+
+            match rx.recv_timeout(Duration::from_secs(30)) {
+                Ok(Ok(result)) => utils::json_value_to_dynamic(&result),
+                _ => Dynamic::UNIT,
+            }
+        }
+    });
 }
 
 fn get_all_products(conn: &mut diesel::PgConnection) -> Result<Value, String> {
@@ -235,6 +313,21 @@ fn get_product_by_id(conn: &mut diesel::PgConnection, id: i64) -> Result<Option<
         .into_iter()
         .next()
         .and_then(|row| serde_json::from_str(&row.row_data).ok()))
+}
+
+async fn scan_barcode(
+    state: &AppState,
+    bot_id: &uuid::Uuid,
+    image_path: &str,
+) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+    let client = BotModelsClient::from_state(state, bot_id);
+
+    if !client.is_enabled() {
+        return Err("BotModels not enabled".into());
+    }
+
+    let result = client.scan_barcode(image_path).await?;
+    Ok(serde_json::from_str(&result).unwrap_or(json!({"data": result})))
 }
 
 fn search_products(conn: &mut diesel::PgConnection, query: &str, limit: i32) -> Result<Value, String> {
