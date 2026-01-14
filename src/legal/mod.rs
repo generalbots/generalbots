@@ -926,14 +926,11 @@ impl Default for LegalService {
 pub fn configure_legal_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/legal/consent", post(handle_record_consent))
-        .route("/api/legal/consent/:consent_id", get(handle_get_consent))
-        .route("/api/legal/consent/:consent_id", put(handle_update_consent))
+        .route("/api/legal/consent/:consent_id", get(handle_get_consent).put(handle_update_consent))
         .route("/api/legal/consent/session", get(handle_get_consent_by_session))
         .route("/api/legal/cookies/policy", get(handle_get_cookie_policy))
-        .route("/api/legal/documents", get(handle_list_documents))
-        .route("/api/legal/documents", post(handle_create_document))
-        .route("/api/legal/documents/:slug", get(handle_get_document))
-        .route("/api/legal/documents/:slug", put(handle_update_document))
+        .route("/api/legal/documents", get(handle_list_documents).post(handle_create_document))
+        .route("/api/legal/documents/:slug", get(handle_get_document).put(handle_update_document))
         .route("/api/legal/gdpr/delete/:user_id", post(handle_request_data_deletion))
         .route("/api/legal/gdpr/export/:user_id", post(handle_export_user_data))
 }
