@@ -48,6 +48,59 @@ pub struct Product {
     pub barcode: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    // Campos fiscais e tributários (Stone/Brasil)
+    pub ncm: Option<String>,
+    pub cest: Option<String>,
+    pub cfop: Option<String>,
+    pub origem: Option<i32>,
+    pub gtin: Option<String>,
+    pub gtin_tributavel: Option<String>,
+    // Dimensões detalhadas (frete)
+    pub peso_liquido: Option<BigDecimal>,
+    pub peso_bruto: Option<BigDecimal>,
+    pub largura: Option<BigDecimal>,
+    pub altura: Option<BigDecimal>,
+    pub comprimento: Option<BigDecimal>,
+    pub volumes: Option<i32>,
+    // Informações tributárias
+    pub icms_cst: Option<String>,
+    pub icms_aliquota: Option<BigDecimal>,
+    pub ipi_cst: Option<String>,
+    pub ipi_aliquota: Option<BigDecimal>,
+    pub pis_cst: Option<String>,
+    pub pis_aliquota: Option<BigDecimal>,
+    pub cofins_cst: Option<String>,
+    pub cofins_aliquota: Option<BigDecimal>,
+    // Marketplace e e-commerce
+    pub marca: Option<String>,
+    pub modelo: Option<String>,
+    pub cor: Option<String>,
+    pub tamanho: Option<String>,
+    pub material: Option<String>,
+    pub genero: Option<String>,
+    // Controle de estoque avançado
+    pub localizacao_estoque: Option<String>,
+    pub lote: Option<String>,
+    pub data_validade: Option<chrono::NaiveDate>,
+    pub data_fabricacao: Option<chrono::NaiveDate>,
+    pub estoque_minimo: Option<i32>,
+    pub estoque_maximo: Option<i32>,
+    pub ponto_reposicao: Option<i32>,
+    // Preços e custos detalhados
+    pub preco_promocional: Option<BigDecimal>,
+    pub promocao_inicio: Option<DateTime<Utc>>,
+    pub promocao_fim: Option<DateTime<Utc>>,
+    pub custo_frete: Option<BigDecimal>,
+    pub margem_lucro: Option<BigDecimal>,
+    // Campos Stone específicos
+    pub stone_item_id: Option<String>,
+    pub stone_category_id: Option<String>,
+    pub stone_metadata: Option<serde_json::Value>,
+    // SEO e busca
+    pub slug: Option<String>,
+    pub meta_title: Option<String>,
+    pub meta_description: Option<String>,
+    pub tags: Option<Vec<Option<String>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
@@ -145,6 +198,16 @@ pub struct ProductVariant {
     pub attributes: serde_json::Value,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
+    // Stone/Brasil fields
+    pub gtin: Option<String>,
+    pub peso_liquido: Option<BigDecimal>,
+    pub peso_bruto: Option<BigDecimal>,
+    pub largura: Option<BigDecimal>,
+    pub altura: Option<BigDecimal>,
+    pub comprimento: Option<BigDecimal>,
+    pub cor: Option<String>,
+    pub tamanho: Option<String>,
+    pub images: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
