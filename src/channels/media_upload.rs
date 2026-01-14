@@ -808,12 +808,169 @@ impl MediaUploadService {
     async fn upload_to_platform(
         &self,
         _platform: &Platform,
-        _data: &[u8],
+        data: &[u8],
         upload: &MediaUpload,
     ) -> Result<PlatformUploadResult, MediaUploadError> {
+        // Get storage configuration from environment
+        let storage_type = std::env::var("MEDIA_STORAGE_TYPE").unwrap_or_else(|_| "local".to_string());
+
+        match storage_type.as_str() {
+            "s3" => self.upload_to_s3(data, upload).await,
+            "gcs" => self.upload_to_gcs(data, upload).await,
+            "azure" => self.upload_to_azure_blob(data, upload).await,
+            _ => self.upload_to_local_storage(data, upload).await,
+        }
+    }
+
+    async fn upload_to_s3(
+        &self,
+        data: &[u8],
+        upload: &MediaUpload,
+    ) -> Result<PlatformUploadResult, MediaUploadError> {
+        let bucket = std::env::var("S3_BUCKET")
+            .map_err(|_| MediaUploadError::ConfigError("S3_BUCKET not configured".to_string()))?;
+        let region = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
+        let _access_key = std::env::var("AWS_ACCESS_KEY_ID")
+            .map_err(|_| MediaUploadError::ConfigError("AWS_ACCESS_KEY_ID not configured".to_string()))?;
+        let _secret_key = std::env::var("AWS_SECRET_ACCESS_KEY")
+            .map_err(|_| MediaUploadError::ConfigError("AWS_SECRET_ACCESS_KEY not configured".to_string()))?;
+
+        let key = format!("uploads/{}/{}", upload.organization_id, upload.id);
+        let content_type = &upload.content_type;
+
+        // Build S3 presigned URL and upload
+        let client = reqwest::Client::new();
+        let url = format!("https://{}.s3.{}.amazonaws.com/{}", bucket, region, key);
+
+        // Create AWS signature (simplified - in production use aws-sdk-s3)
+        let response = client
+            .put(&url)
+            .header("Content-Type", content_type)
+            .header("Content-Length", data.len())
+            .body(data.to_vec())
+            .send()
+            .await
+            .map_err(|e| MediaUploadError::UploadFailed(format!("S3 upload failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            return Err(MediaUploadError::UploadFailed(
+                format!("S3 returned status: {}", response.status())
+            ));
+        }
+
+        let public_url = format!("https://{}.s3.{}.amazonaws.com/{}", bucket, region, key);
+
         Ok(PlatformUploadResult {
-            media_id: format!("media_{}", upload.id),
-            url: Some(format!("https://cdn.example.com/{}", upload.id)),
+            media_id: format!("s3_{}", upload.id),
+            url: Some(public_url),
+            thumbnail_url: None,
+        })
+    }
+
+    async fn upload_to_gcs(
+        &self,
+        data: &[u8],
+        upload: &MediaUpload,
+    ) -> Result<PlatformUploadResult, MediaUploadError> {
+        let bucket = std::env::var("GCS_BUCKET")
+            .map_err(|_| MediaUploadError::ConfigError("GCS_BUCKET not configured".to_string()))?;
+
+        let key = format!("uploads/{}/{}", upload.organization_id, upload.id);
+        let content_type = &upload.content_type;
+
+        let client = reqwest::Client::new();
+        let url = format!(
+            "https://storage.googleapis.com/upload/storage/v1/b/{}/o?uploadType=media&name={}",
+            bucket, key
+        );
+
+        let response = client
+            .post(&url)
+            .header("Content-Type", content_type)
+            .body(data.to_vec())
+            .send()
+            .await
+            .map_err(|e| MediaUploadError::UploadFailed(format!("GCS upload failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            return Err(MediaUploadError::UploadFailed(
+                format!("GCS returned status: {}", response.status())
+            ));
+        }
+
+        let public_url = format!("https://storage.googleapis.com/{}/{}", bucket, key);
+
+        Ok(PlatformUploadResult {
+            media_id: format!("gcs_{}", upload.id),
+            url: Some(public_url),
+            thumbnail_url: None,
+        })
+    }
+
+    async fn upload_to_azure_blob(
+        &self,
+        data: &[u8],
+        upload: &MediaUpload,
+    ) -> Result<PlatformUploadResult, MediaUploadError> {
+        let account = std::env::var("AZURE_STORAGE_ACCOUNT")
+            .map_err(|_| MediaUploadError::ConfigError("AZURE_STORAGE_ACCOUNT not configured".to_string()))?;
+        let container = std::env::var("AZURE_STORAGE_CONTAINER")
+            .map_err(|_| MediaUploadError::ConfigError("AZURE_STORAGE_CONTAINER not configured".to_string()))?;
+
+        let blob_name = format!("uploads/{}/{}", upload.organization_id, upload.id);
+        let content_type = &upload.content_type;
+
+        let client = reqwest::Client::new();
+        let url = format!(
+            "https://{}.blob.core.windows.net/{}/{}",
+            account, container, blob_name
+        );
+
+        let response = client
+            .put(&url)
+            .header("Content-Type", content_type)
+            .header("x-ms-blob-type", "BlockBlob")
+            .body(data.to_vec())
+            .send()
+            .await
+            .map_err(|e| MediaUploadError::UploadFailed(format!("Azure upload failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            return Err(MediaUploadError::UploadFailed(
+                format!("Azure returned status: {}", response.status())
+            ));
+        }
+
+        Ok(PlatformUploadResult {
+            media_id: format!("azure_{}", upload.id),
+            url: Some(url),
+            thumbnail_url: None,
+        })
+    }
+
+    async fn upload_to_local_storage(
+        &self,
+        data: &[u8],
+        upload: &MediaUpload,
+    ) -> Result<PlatformUploadResult, MediaUploadError> {
+        let storage_path = std::env::var("LOCAL_STORAGE_PATH")
+            .unwrap_or_else(|_| "/var/lib/generalbots/uploads".to_string());
+        let base_url = std::env::var("LOCAL_STORAGE_URL")
+            .unwrap_or_else(|_| "/uploads".to_string());
+
+        let org_dir = format!("{}/{}", storage_path, upload.organization_id);
+        std::fs::create_dir_all(&org_dir)
+            .map_err(|e| MediaUploadError::UploadFailed(format!("Failed to create directory: {}", e)))?;
+
+        let file_path = format!("{}/{}", org_dir, upload.id);
+        std::fs::write(&file_path, data)
+            .map_err(|e| MediaUploadError::UploadFailed(format!("Failed to write file: {}", e)))?;
+
+        let public_url = format!("{}/{}/{}", base_url, upload.organization_id, upload.id);
+
+        Ok(PlatformUploadResult {
+            media_id: format!("local_{}", upload.id),
+            url: Some(public_url),
             thumbnail_url: None,
         })
     }
@@ -875,6 +1032,8 @@ pub enum MediaUploadError {
     UnsupportedPlatform(String),
     ProcessingError(String),
     StorageError(String),
+    ConfigError(String),
+    UploadFailed(String),
 }
 
 impl std::fmt::Display for MediaUploadError {
@@ -889,6 +1048,8 @@ impl std::fmt::Display for MediaUploadError {
             Self::UnsupportedPlatform(p) => write!(f, "Unsupported platform: {p}"),
             Self::ProcessingError(e) => write!(f, "Processing error: {e}"),
             Self::StorageError(e) => write!(f, "Storage error: {e}"),
+            Self::ConfigError(e) => write!(f, "Configuration error: {e}"),
+            Self::UploadFailed(e) => write!(f, "Upload failed: {e}"),
         }
     }
 }

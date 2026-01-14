@@ -317,7 +317,7 @@ pub async fn create_calendar(
     State(state): State<Arc<AppState>>,
     Json(input): Json<CreateCalendarRequest>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
     let owner_id = Uuid::nil();
     let now = Utc::now();
@@ -359,7 +359,7 @@ pub async fn create_calendar(
 pub async fn list_calendars_db(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<CalendarRecord>>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -381,7 +381,7 @@ pub async fn get_calendar(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -402,7 +402,7 @@ pub async fn update_calendar(
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateCalendarRequest>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -448,7 +448,7 @@ pub async fn delete_calendar(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> StatusCode {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -474,7 +474,7 @@ pub async fn list_events(
     State(state): State<Arc<AppState>>,
     Query(query): Query<EventQuery>,
 ) -> Result<Json<Vec<CalendarEvent>>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -520,7 +520,7 @@ pub async fn get_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -540,7 +540,7 @@ pub async fn create_event(
     State(state): State<Arc<AppState>>,
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
     let owner_id = Uuid::nil();
     let now = Utc::now();
@@ -604,7 +604,7 @@ pub async fn update_event(
     Path(id): Path<Uuid>,
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -652,7 +652,7 @@ pub async fn delete_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> StatusCode {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -680,7 +680,7 @@ pub async fn share_calendar(
     Path(id): Path<Uuid>,
     Json(input): Json<ShareCalendarRequest>,
 ) -> Result<Json<CalendarShareRecord>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let new_share = CalendarShareRecord {
         id: Uuid::new_v4(),
@@ -712,7 +712,7 @@ pub async fn export_ical(
     State(state): State<Arc<AppState>>,
     Path(calendar_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -748,7 +748,7 @@ pub async fn import_ical(
     Path(calendar_id): Path<Uuid>,
     body: String,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
     let owner_id = Uuid::nil();
 
@@ -802,7 +802,7 @@ pub async fn import_ical(
 }
 
 pub async fn list_calendars_api(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -839,7 +839,7 @@ pub async fn list_calendars_api(State(state): State<Arc<AppState>>) -> Json<serd
 }
 
 pub async fn list_calendars_html(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -877,7 +877,7 @@ pub async fn list_calendars_html(State(state): State<Arc<AppState>>) -> Html<Str
 }
 
 pub async fn upcoming_events_api(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
     let now = Utc::now();
     let end = now + chrono::Duration::days(7);
@@ -917,7 +917,7 @@ pub async fn upcoming_events_api(State(state): State<Arc<AppState>>) -> Json<ser
 }
 
 pub async fn upcoming_events_html(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
     let now = Utc::now();
     let end = now + chrono::Duration::days(7);

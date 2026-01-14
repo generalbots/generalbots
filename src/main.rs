@@ -341,12 +341,7 @@ async fn run_axum_server(
     #[cfg(feature = "calendar")]
     {
         let calendar_engine =
-            Arc::new(crate::calendar::CalendarEngine::new());
-
-        let reminder_engine = Arc::clone(&calendar_engine);
-        tokio::spawn(async move {
-            crate::calendar::start_reminder_job(reminder_engine).await;
-        });
+            Arc::new(botserver::basic::keywords::book::CalendarEngine::new(app_state.conn.clone()));
 
         api_router = api_router.merge(crate::calendar::caldav::create_caldav_router(
             calendar_engine,
@@ -379,8 +374,11 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::dashboards::ui::configure_dashboards_ui_routes());
     api_router = api_router.merge(botserver::legal::configure_legal_routes());
     api_router = api_router.merge(botserver::legal::ui::configure_legal_ui_routes());
-    api_router = api_router.merge(botserver::compliance::configure_compliance_routes());
-    api_router = api_router.merge(botserver::compliance::ui::configure_compliance_ui_routes());
+    #[cfg(feature = "compliance")]
+    {
+        api_router = api_router.merge(botserver::compliance::configure_compliance_routes());
+        api_router = api_router.merge(botserver::compliance::ui::configure_compliance_ui_routes());
+    }
     api_router = api_router.merge(botserver::monitoring::configure());
     api_router = api_router.merge(botserver::security::configure_protection_routes());
     api_router = api_router.merge(botserver::settings::configure_settings_routes());
@@ -1194,6 +1192,7 @@ async fn main() -> std::io::Result<()> {
         },
         attendant_broadcast: Some(attendant_tx),
         task_progress_broadcast: Some(task_progress_tx),
+        billing_alert_broadcast: None,
         task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
         project_service: Arc::new(tokio::sync::RwLock::new(botserver::project::ProjectService::new())),
         legal_service: Arc::new(tokio::sync::RwLock::new(botserver::legal::LegalService::new())),

@@ -5,12 +5,16 @@ use axum::{
     Json, Router,
 };
 use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
+use diesel::prelude::*;
+use diesel::sql_types::{BigInt, Date, Double, Uuid as DieselUuid};
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
+use crate::shared::utils::DbPool;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppUsage {
@@ -221,11 +225,13 @@ pub struct UpdateFocusModeRequest {
 }
 
 #[derive(Debug, Clone)]
-pub struct InsightsService {}
+pub struct InsightsService {
+    pool: DbPool,
+}
 
 impl InsightsService {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(pool: DbPool) -> Self {
+        Self { pool }
     }
 
     pub async fn track_usage(
@@ -309,51 +315,191 @@ impl InsightsService {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<DailyInsights>, InsightsError> {
-        // Generate mock trend data for the date range
-        let mut insights = Vec::new();
-        let mut current = start_date;
+        let pool = self.pool.clone();
 
-        while current <= end_date {
-            // Generate semi-random but consistent data based on date
-            let day_seed = current.day() as f32;
-            let weekday = current.weekday().num_days_from_monday() as f32;
+        let result = tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| InsightsError::Database(e.to_string()))?;
 
-            // Weekends have less activity
-            let is_weekend = weekday >= 5.0;
-            let activity_multiplier = if is_weekend { 0.3 } else { 1.0 };
+            // Query daily insights from database
+            let rows: Vec<DailyInsightsRow> = diesel::sql_query(
+                "SELECT id, user_id, date, total_active_time, focus_time, meeting_time,
+                        email_time, chat_time, document_time, collaboration_score,
+                        wellbeing_score, productivity_score
+                 FROM user_daily_insights
+                 WHERE user_id = $1 AND date >= $2 AND date <= $3
+                 ORDER BY date ASC"
+            )
+            .bind::<DieselUuid, _>(user_id)
+            .bind::<Date, _>(start_date)
+            .bind::<Date, _>(end_date)
+            .load(&mut conn)
+            .map_err(|e| InsightsError::Database(e.to_string()))?;
 
-            let base_active = 6.0 + (day_seed % 3.0); // 6-9 hours
-            let total_active_time = (base_active * 3600.0 * activity_multiplier) as i64;
+            if !rows.is_empty() {
+                // Return real data from database
+                return Ok(rows.into_iter().map(|r| DailyInsights {
+                    id: r.id,
+                    user_id: r.user_id,
+                    date: r.date,
+                    total_active_time: r.total_active_time,
+                    focus_time: r.focus_time,
+                    meeting_time: r.meeting_time,
+                    email_time: r.email_time,
+                    chat_time: r.chat_time,
+                    document_time: r.document_time,
+                    collaboration_score: r.collaboration_score as f32,
+                    wellbeing_score: r.wellbeing_score as f32,
+                    productivity_score: r.productivity_score as f32,
+                }).collect());
+            }
 
-            let focus_pct = 0.4 + (day_seed % 10.0) / 100.0; // 40-50%
-            let meeting_pct = 0.2 + (weekday % 5.0) / 100.0; // 20-25%
-            let email_pct = 0.15;
-            let chat_pct = 0.1;
-            let doc_pct = 1.0 - focus_pct - meeting_pct - email_pct - chat_pct;
+            // If no data exists, compute from activity logs
+            let activity_rows: Vec<ActivityAggRow> = diesel::sql_query(
+                "SELECT DATE(created_at) as activity_date,
+                        SUM(CASE WHEN activity_type = 'focus' THEN duration_seconds ELSE 0 END) as focus_time,
+                        SUM(CASE WHEN activity_type = 'meeting' THEN duration_seconds ELSE 0 END) as meeting_time,
+                        SUM(CASE WHEN activity_type = 'email' THEN duration_seconds ELSE 0 END) as email_time,
+                        SUM(CASE WHEN activity_type = 'chat' THEN duration_seconds ELSE 0 END) as chat_time,
+                        SUM(CASE WHEN activity_type = 'document' THEN duration_seconds ELSE 0 END) as document_time,
+                        SUM(duration_seconds) as total_time
+                 FROM user_activity_logs
+                 WHERE user_id = $1 AND DATE(created_at) >= $2 AND DATE(created_at) <= $3
+                 GROUP BY DATE(created_at)
+                 ORDER BY activity_date ASC"
+            )
+            .bind::<DieselUuid, _>(user_id)
+            .bind::<Date, _>(start_date)
+            .bind::<Date, _>(end_date)
+            .load(&mut conn)
+            .unwrap_or_default();
 
-            insights.push(DailyInsights {
-                id: Uuid::new_v4(),
-                user_id,
-                date: current,
-                total_active_time,
-                focus_time: (total_active_time as f64 * focus_pct) as i64,
-                meeting_time: (total_active_time as f64 * meeting_pct) as i64,
-                email_time: (total_active_time as f64 * email_pct) as i64,
-                chat_time: (total_active_time as f64 * chat_pct) as i64,
-                document_time: (total_active_time as f64 * doc_pct) as i64,
-                collaboration_score: 65.0 + (day_seed % 20.0),
-                wellbeing_score: 70.0 + (day_seed % 15.0),
-                productivity_score: 60.0 + (day_seed % 25.0),
-            });
+            let mut insights = Vec::new();
 
-            current += Duration::days(1);
-        }
+            if !activity_rows.is_empty() {
+                for row in activity_rows {
+                    let total = row.total_time.max(1);
+                    let collab_score = ((row.meeting_time + row.chat_time) as f64 / total as f64 * 100.0).min(100.0);
+                    let focus_score = (row.focus_time as f64 / total as f64 * 100.0).min(100.0);
 
-        Ok(insights)
+                    insights.push(DailyInsights {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        date: row.activity_date,
+                        total_active_time: row.total_time,
+                        focus_time: row.focus_time,
+                        meeting_time: row.meeting_time,
+                        email_time: row.email_time,
+                        chat_time: row.chat_time,
+                        document_time: row.document_time,
+                        collaboration_score: collab_score as f32,
+                        wellbeing_score: 75.0, // Default baseline
+                        productivity_score: focus_score as f32,
+                    });
+                }
+            } else {
+                // Generate minimal placeholder for date range when no activity data exists
+                debug!("No activity data found for user {}, returning empty insights", user_id);
+            }
+
+            Ok(insights)
+        })
+        .await
+        .map_err(|e| InsightsError::Database(e.to_string()))??;
+
+        Ok(result)
     }
 
-    async fn generate_recommendations(&self, _user_id: Uuid) -> Vec<WellbeingRecommendation> {
-        vec![
+    async fn generate_recommendations(&self, user_id: Uuid) -> Vec<WellbeingRecommendation> {
+        let pool = self.pool.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = match pool.get() {
+                Ok(c) => c,
+                Err(_) => return Vec::new(),
+            };
+
+            let mut recommendations = Vec::new();
+
+            // Get user's recent activity patterns
+            let stats: Result<ActivityStatsRow, _> = diesel::sql_query(
+                "SELECT
+                    AVG(focus_time) as avg_focus,
+                    AVG(meeting_time) as avg_meeting,
+                    AVG(total_active_time) as avg_active,
+                    COUNT(*) as days_tracked
+                 FROM user_daily_insights
+                 WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '14 days'"
+            )
+            .bind::<DieselUuid, _>(user_id)
+            .get_result(&mut conn);
+
+            if let Ok(stats) = stats {
+                let avg_focus_hours = stats.avg_focus.unwrap_or(0.0) / 3600.0;
+                let avg_meeting_hours = stats.avg_meeting.unwrap_or(0.0) / 3600.0;
+                let avg_active_hours = stats.avg_active.unwrap_or(0.0) / 3600.0;
+
+                // Recommend more focus time if low
+                if avg_focus_hours < 2.0 {
+                    recommendations.push(WellbeingRecommendation {
+                        id: Uuid::new_v4(),
+                        category: RecommendationCategory::FocusTime,
+                        title: "Increase focus time".to_string(),
+                        description: format!(
+                            "You're averaging {:.1} hours of focus time. Try blocking 2+ hours for deep work.",
+                            avg_focus_hours
+                        ),
+                        priority: RecommendationPriority::High,
+                        action_url: Some("/calendar/focus".to_string()),
+                    });
+                }
+
+                // Warn about too many meetings
+                if avg_meeting_hours > 5.0 {
+                    recommendations.push(WellbeingRecommendation {
+                        id: Uuid::new_v4(),
+                        category: RecommendationCategory::MeetingLoad,
+                        title: "Reduce meeting load".to_string(),
+                        description: format!(
+                            "You're averaging {:.1} hours in meetings. Consider declining some or making them shorter.",
+                            avg_meeting_hours
+                        ),
+                        priority: RecommendationPriority::High,
+                        action_url: Some("/calendar".to_string()),
+                    });
+                }
+
+                // Recommend breaks if working long hours
+                if avg_active_hours > 9.0 {
+                    recommendations.push(WellbeingRecommendation {
+                        id: Uuid::new_v4(),
+                        category: RecommendationCategory::Breaks,
+                        title: "Take more breaks".to_string(),
+                        description: format!(
+                            "You're averaging {:.1} active hours. Remember to take regular breaks.",
+                            avg_active_hours
+                        ),
+                        priority: RecommendationPriority::Medium,
+                        action_url: None,
+                    });
+                }
+            }
+
+            // Default recommendations if no data or few generated
+            if recommendations.is_empty() {
+                recommendations.push(WellbeingRecommendation {
+                    id: Uuid::new_v4(),
+                    category: RecommendationCategory::FocusTime,
+                    title: "Schedule focus time".to_string(),
+                    description: "Block 2 hours daily for deep work without interruptions".to_string(),
+                    priority: RecommendationPriority::Medium,
+                    action_url: Some("/calendar/focus".to_string()),
+                });
+            }
+
+            recommendations
+        })
+        .await
+        .unwrap_or_else(|_| vec![
             WellbeingRecommendation {
                 id: Uuid::new_v4(),
                 category: RecommendationCategory::FocusTime,
@@ -362,15 +508,7 @@ impl InsightsService {
                 priority: RecommendationPriority::Medium,
                 action_url: Some("/calendar/focus".to_string()),
             },
-            WellbeingRecommendation {
-                id: Uuid::new_v4(),
-                category: RecommendationCategory::Breaks,
-                title: "Take regular breaks".to_string(),
-                description: "Consider a 5-minute break every hour".to_string(),
-                priority: RecommendationPriority::Low,
-                action_url: None,
-            },
-        ]
+        ])
     }
 
     pub async fn get_settings(
@@ -394,6 +532,68 @@ impl InsightsService {
         })
     }
 
+}
+
+// QueryableByName structs for database queries
+#[derive(diesel::QueryableByName)]
+struct DailyInsightsRow {
+    #[diesel(sql_type = DieselUuid)]
+    id: Uuid,
+    #[diesel(sql_type = DieselUuid)]
+    user_id: Uuid,
+    #[diesel(sql_type = Date)]
+    date: NaiveDate,
+    #[diesel(sql_type = BigInt)]
+    total_active_time: i64,
+    #[diesel(sql_type = BigInt)]
+    focus_time: i64,
+    #[diesel(sql_type = BigInt)]
+    meeting_time: i64,
+    #[diesel(sql_type = BigInt)]
+    email_time: i64,
+    #[diesel(sql_type = BigInt)]
+    chat_time: i64,
+    #[diesel(sql_type = BigInt)]
+    document_time: i64,
+    #[diesel(sql_type = Double)]
+    collaboration_score: f64,
+    #[diesel(sql_type = Double)]
+    wellbeing_score: f64,
+    #[diesel(sql_type = Double)]
+    productivity_score: f64,
+}
+
+#[derive(diesel::QueryableByName)]
+struct ActivityAggRow {
+    #[diesel(sql_type = Date)]
+    activity_date: NaiveDate,
+    #[diesel(sql_type = BigInt)]
+    focus_time: i64,
+    #[diesel(sql_type = BigInt)]
+    meeting_time: i64,
+    #[diesel(sql_type = BigInt)]
+    email_time: i64,
+    #[diesel(sql_type = BigInt)]
+    chat_time: i64,
+    #[diesel(sql_type = BigInt)]
+    document_time: i64,
+    #[diesel(sql_type = BigInt)]
+    total_time: i64,
+}
+
+#[derive(diesel::QueryableByName)]
+struct ActivityStatsRow {
+    #[diesel(sql_type = diesel::sql_types::Nullable<Double>)]
+    avg_focus: Option<f64>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<Double>)]
+    avg_meeting: Option<f64>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<Double>)]
+    avg_active: Option<f64>,
+    #[diesel(sql_type = BigInt)]
+    _days_tracked: i64,
+}
+
+impl InsightsService {
     pub async fn update_settings(
         &self,
         user_id: Uuid,
@@ -478,7 +678,7 @@ impl InsightsService {
 
 impl Default for InsightsService {
     fn default() -> Self {
-        Self::new()
+        panic!("InsightsService requires a database pool - use InsightsService::new(pool) instead")
     }
 }
 
@@ -511,7 +711,7 @@ pub async fn handle_track_usage(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<TrackUsageRequest>,
 ) -> Result<Json<AppUsage>, InsightsError> {
-    let service = InsightsService::new();
+    let service = InsightsService::new(_state.conn.clone());
     let user_id = Uuid::nil();
     let usage = service.track_usage(user_id, req).await?;
     Ok(Json(usage))
@@ -521,7 +721,7 @@ pub async fn handle_get_daily(
     State(_state): State<Arc<AppState>>,
     Query(query): Query<InsightsQuery>,
 ) -> Result<Json<DailyInsights>, InsightsError> {
-    let service = InsightsService::new();
+    let service = InsightsService::new(_state.conn.clone());
     let user_id = Uuid::nil();
     let date = query.start_date.unwrap_or_else(|| Utc::now().date_naive());
     let insights = service.get_daily_insights(user_id, date).await?;
@@ -532,7 +732,7 @@ pub async fn handle_get_weekly(
     State(_state): State<Arc<AppState>>,
     Query(query): Query<InsightsQuery>,
 ) -> Result<Json<WeeklyInsights>, InsightsError> {
-    let service = InsightsService::new();
+    let service = InsightsService::new(_state.conn.clone());
     let user_id = Uuid::nil();
     let date = query.start_date.unwrap_or_else(|| Utc::now().date_naive());
     let insights = service.get_weekly_insights(user_id, date).await?;
@@ -543,7 +743,7 @@ pub async fn handle_get_trends(
     State(_state): State<Arc<AppState>>,
     Query(query): Query<InsightsQuery>,
 ) -> Result<Json<Vec<DailyInsights>>, InsightsError> {
-    let service = InsightsService::new();
+    let service = InsightsService::new(_state.conn.clone());
     let user_id = Uuid::nil();
     let end_date = query.end_date.unwrap_or_else(|| Utc::now().date_naive());
     let start_date = query.start_date.unwrap_or_else(|| end_date - Duration::days(30));
@@ -554,7 +754,7 @@ pub async fn handle_get_trends(
 pub async fn handle_get_recommendations(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<WellbeingRecommendation>>, InsightsError> {
-    let service = InsightsService::new();
+    let service = InsightsService::new(_state.conn.clone());
     let user_id = Uuid::nil();
     let recommendations = service.generate_recommendations(user_id).await;
     Ok(Json(recommendations))
@@ -563,7 +763,7 @@ pub async fn handle_get_recommendations(
 pub async fn handle_get_settings(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<InsightsSettings>, InsightsError> {
-    let service = InsightsService::new();
+    let service = InsightsService::new(_state.conn.clone());
     let user_id = Uuid::nil();
     let settings = service.get_settings(user_id).await?;
     Ok(Json(settings))
@@ -573,7 +773,7 @@ pub async fn handle_update_settings(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<UpdateSettingsRequest>,
 ) -> Result<Json<InsightsSettings>, InsightsError> {
-    let service = InsightsService::new();
+    let service = InsightsService::new(_state.conn.clone());
     let user_id = Uuid::nil();
     let settings = service.update_settings(user_id, req).await?;
     Ok(Json(settings))
@@ -583,7 +783,7 @@ pub async fn handle_update_focus_mode(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<UpdateFocusModeRequest>,
 ) -> Result<Json<FocusMode>, InsightsError> {
-    let service = InsightsService::new();
+    let service = InsightsService::new(_state.conn.clone());
     let user_id = Uuid::nil();
     let focus_mode = service.update_focus_mode(user_id, req).await?;
     Ok(Json(focus_mode))
@@ -593,7 +793,7 @@ pub async fn handle_get_app_breakdown(
     State(_state): State<Arc<AppState>>,
     Query(query): Query<InsightsQuery>,
 ) -> Result<Json<Vec<AppUsageSummary>>, InsightsError> {
-    let service = InsightsService::new();
+    let service = InsightsService::new(_state.conn.clone());
     let user_id = Uuid::nil();
     let date = query.start_date.unwrap_or_else(|| Utc::now().date_naive());
     let breakdown = service.get_app_breakdown(user_id, date).await?;

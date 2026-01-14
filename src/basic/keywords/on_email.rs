@@ -335,60 +335,75 @@ fn fetch_new_emails(
     _state: &AppState,
     monitor_id: Uuid,
     email_address: &str,
-    last_uid: i64,
+    _last_uid: i64,
     filter_from: Option<&str>,
     filter_subject: Option<&str>,
 ) -> Result<Vec<EmailReceivedEvent>, String> {
-    trace!("Fetching new emails for monitor {} address {}", monitor_id, email_address);
+    // Simulation: IMAP requires proper server setup
+    // Returns simulated email events for testing
+    info!(
+        "Email monitoring for {}: returning simulated events (requires IMAP setup for real emails)",
+        email_address
+    );
 
-    // In production, this would connect to IMAP/Exchange/Gmail API
-    // For now, return mock data to demonstrate the interface works
-
-    // Only return mock data if this looks like a fresh request (last_uid == 0)
-    if last_uid > 0 {
-        // Already processed emails, return empty
-        return Ok(Vec::new());
-    }
-
-    // Generate mock emails for testing
-    let now = chrono::Utc::now();
+    let _now = chrono::Utc::now();
     let mut events = Vec::new();
 
-    // Mock email 1
-    let mut should_include = true;
-    if let Some(from_filter) = filter_from {
-        should_include = "notifications@example.com".contains(from_filter);
-    }
-    if let Some(subject_filter) = filter_subject {
-        should_include = should_include && "Welcome to the platform".to_lowercase().contains(&subject_filter.to_lowercase());
-    }
+    // Simulated email 1
+    let from1 = "sender@example.com";
+    let subject1 = "Weekly Report";
 
-    if should_include {
+    let matches_from = filter_from.map(|f| from1.to_lowercase().contains(&f.to_lowercase())).unwrap_or(true);
+    let matches_subject = filter_subject.map(|s| subject1.to_lowercase().contains(&s.to_lowercase())).unwrap_or(true);
+
+    if matches_from && matches_subject {
         events.push(EmailReceivedEvent {
             id: Uuid::new_v4(),
             monitor_id,
-            from_address: "notifications@example.com".to_string(),
-            from_name: Some("Platform Notifications".to_string()),
-            to_address: email_address.to_string(),
-            subject: "Welcome to the platform".to_string(),
-            body_preview: "Thank you for signing up! Here's how to get started...".to_string(),
-            body_html: Some("<html><body><h1>Welcome!</h1><p>Thank you for signing up!</p></body></html>".to_string()),
-            body_plain: Some("Welcome! Thank you for signing up!".to_string()),
-            received_at: now - chrono::Duration::minutes(5),
-            message_id: format!("<{}@example.com>", Uuid::new_v4()),
-            uid: 1,
+            message_uid: 1001,
+            message_id: Some(format!("<{}@example.com>", Uuid::new_v4())),
+            from_address: from1.to_string(),
+            to_addresses: vec![email_address.to_string()],
+            subject: Some(subject1.to_string()),
+            has_attachments: true,
+            attachments: vec![EmailAttachment {
+                filename: "report.pdf".to_string(),
+                mime_type: "application/pdf".to_string(),
+                size: 1024,
+            }],
+        });
+    }
+
+    // Simulated email 2
+    let from2 = "notifications@service.com";
+    let subject2 = "New notification";
+
+    let matches_from2 = filter_from.map(|f| from2.to_lowercase().contains(&f.to_lowercase())).unwrap_or(true);
+    let matches_subject2 = filter_subject.map(|s| subject2.to_lowercase().contains(&s.to_lowercase())).unwrap_or(true);
+
+    if matches_from2 && matches_subject2 {
+        events.push(EmailReceivedEvent {
+            id: Uuid::new_v4(),
+            monitor_id,
+            message_uid: 1002,
+            message_id: Some(format!("<{}@service.com>", Uuid::new_v4())),
+            from_address: from2.to_string(),
+            to_addresses: vec![email_address.to_string()],
+            subject: Some(subject2.to_string()),
             has_attachments: false,
-            attachment_names: Vec::new(),
-            is_read: false,
-            is_important: false,
-            labels: vec!["inbox".to_string()],
-            processed: false,
-            processed_at: None,
+            attachments: vec![],
         });
     }
 
     Ok(events)
 }
+
+fn _decrypt_password(_encrypted: &str) -> Option<String> {
+    // Simulation: password decryption placeholder
+    None
+}
+
+
 
 pub fn process_email_event(
     state: &AppState,

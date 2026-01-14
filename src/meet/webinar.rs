@@ -1575,19 +1575,117 @@ pub fn webinar_routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
 }
 
 async fn start_recording_handler(
-    State(_state): State<Arc<AppState>>,
-    Path(_webinar_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    Path(webinar_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    // Placeholder - would integrate with recording service
-    Json(serde_json::json!({"status": "recording_started"}))
+    let pool = state.conn.clone();
+    let recording_id = Uuid::new_v4();
+    let started_at = chrono::Utc::now();
+
+    // Create recording record in database
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| format!("DB error: {}", e))?;
+
+        diesel::sql_query(
+            "INSERT INTO meeting_recordings (id, room_id, status, started_at, created_at)
+             VALUES ($1, $2, 'recording', $3, NOW())
+             ON CONFLICT (room_id) WHERE status = 'recording' DO NOTHING"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(recording_id)
+        .bind::<diesel::sql_types::Uuid, _>(webinar_id)
+        .bind::<diesel::sql_types::Timestamptz, _>(started_at)
+        .execute(&mut conn)
+        .map_err(|e| format!("Insert error: {}", e))?;
+
+        Ok::<_, String>(recording_id)
+    })
+    .await;
+
+    match result {
+        Ok(Ok(id)) => Json(serde_json::json!({
+            "status": "recording_started",
+            "recording_id": id,
+            "webinar_id": webinar_id,
+            "started_at": started_at.to_rfc3339()
+        })),
+        Ok(Err(e)) => Json(serde_json::json!({
+            "status": "error",
+            "error": e
+        })),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "error": format!("Task error: {}", e)
+        })),
+    }
 }
 
 async fn stop_recording_handler(
-    State(_state): State<Arc<AppState>>,
-    Path(_webinar_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    Path(webinar_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    // Placeholder - would integrate with recording service
-    Json(serde_json::json!({"status": "recording_stopped"}))
+    let pool = state.conn.clone();
+    let stopped_at = chrono::Utc::now();
+
+    // Update recording record to stopped status
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| format!("DB error: {}", e))?;
+
+        // Get the active recording and calculate duration
+        let recording: Result<(Uuid, chrono::DateTime<chrono::Utc>), _> = diesel::sql_query(
+            "SELECT id, started_at FROM meeting_recordings
+             WHERE room_id = $1 AND status = 'recording'
+             LIMIT 1"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(webinar_id)
+        .get_result::<RecordingRow>(&mut conn)
+        .map(|r| (r.id, r.started_at));
+
+        if let Ok((recording_id, started_at)) = recording {
+            let duration_secs = (stopped_at - started_at).num_seconds();
+
+            diesel::sql_query(
+                "UPDATE meeting_recordings
+                 SET status = 'stopped', stopped_at = $1, duration_seconds = $2, updated_at = NOW()
+                 WHERE id = $3"
+            )
+            .bind::<diesel::sql_types::Timestamptz, _>(stopped_at)
+            .bind::<diesel::sql_types::BigInt, _>(duration_secs)
+            .bind::<diesel::sql_types::Uuid, _>(recording_id)
+            .execute(&mut conn)
+            .map_err(|e| format!("Update error: {}", e))?;
+
+            Ok::<_, String>((recording_id, duration_secs))
+        } else {
+            Err("No active recording found".to_string())
+        }
+    })
+    .await;
+
+    match result {
+        Ok(Ok((id, duration))) => Json(serde_json::json!({
+            "status": "recording_stopped",
+            "recording_id": id,
+            "webinar_id": webinar_id,
+            "stopped_at": stopped_at.to_rfc3339(),
+            "duration_seconds": duration
+        })),
+        Ok(Err(e)) => Json(serde_json::json!({
+            "status": "error",
+            "error": e
+        })),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "error": format!("Task error: {}", e)
+        })),
+    }
+}
+
+#[derive(diesel::QueryableByName)]
+struct RecordingRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+    started_at: chrono::DateTime<chrono::Utc>,
 }
 
 async fn create_webinar_handler(

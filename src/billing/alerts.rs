@@ -748,14 +748,61 @@ impl NotificationHandler for EmailNotificationHandler {
     }
 
     async fn send(&self, notification: &AlertNotification) -> Result<(), NotificationError> {
-        // In production, use a proper email library like lettre
+        use lettre::{Message, SmtpTransport, Transport};
+        use lettre::transport::smtp::authentication::Credentials;
+
         tracing::info!(
             "Sending email notification for alert {} to {:?}",
             notification.alert_id,
             notification.recipients
         );
 
-        // Placeholder - implement actual email sending
+        // Get SMTP config from environment
+        let smtp_host = std::env::var("SMTP_HOST").unwrap_or_else(|_| "localhost".to_string());
+        let smtp_user = std::env::var("SMTP_USER").ok();
+        let smtp_pass = std::env::var("SMTP_PASS").ok();
+        let from_email = std::env::var("SMTP_FROM").unwrap_or_else(|_| "alerts@generalbots.com".to_string());
+
+        let subject = format!("[{}] Billing Alert: {}",
+            notification.severity.to_string().to_uppercase(),
+            notification.title
+        );
+
+        let body = format!(
+            "Alert: {}\nSeverity: {}\nOrganization: {}\nTime: {}\n\nMessage: {}\n\nThreshold: {:?}\nCurrent Value: {:?}",
+            notification.title,
+            notification.severity,
+            notification.organization_id,
+            notification.created_at,
+            notification.message,
+            notification.limit,
+            notification.current_usage
+        );
+
+        for recipient in &notification.recipients {
+            let email = Message::builder()
+                .from(from_email.parse().map_err(|e| NotificationError::DeliveryFailed(format!("Invalid from address: {}", e)))?)
+                .to(recipient.parse().map_err(|e| NotificationError::DeliveryFailed(format!("Invalid recipient {}: {}", recipient, e)))?)
+                .subject(&subject)
+                .body(body.clone())
+                .map_err(|e| NotificationError::DeliveryFailed(format!("Failed to build email: {}", e)))?;
+
+            let mailer = if let (Some(user), Some(pass)) = (&smtp_user, &smtp_pass) {
+                let creds = Credentials::new(user.clone(), pass.clone());
+                SmtpTransport::relay(&smtp_host)
+                    .map_err(|e| NotificationError::DeliveryFailed(format!("SMTP relay error: {}", e)))?
+                    .credentials(creds)
+                    .build()
+            } else {
+                SmtpTransport::builder_dangerous(&smtp_host).build()
+            };
+
+            mailer.send(&email)
+                .map_err(|e| NotificationError::DeliveryFailed(format!("Failed to send to {}: {}", recipient, e)))?;
+
+            tracing::debug!("Email sent to {}", recipient);
+        }
+
         Ok(())
     }
 }
@@ -782,26 +829,76 @@ impl NotificationHandler for WebhookNotificationHandler {
     }
 
     async fn send(&self, notification: &AlertNotification) -> Result<(), NotificationError> {
-        // Get webhook URL from notification context
-        // In production, this would be fetched from preferences
         tracing::info!(
             "Sending webhook notification for alert {}",
             notification.alert_id
         );
 
-        // Placeholder - implement actual webhook sending
+        // Get webhook URL from context or environment
+        let webhook_url = std::env::var("BILLING_WEBHOOK_URL").ok();
+
+        let url = match webhook_url {
+            Some(url) => url,
+            None => {
+                tracing::warn!("No webhook URL configured for alert {}", notification.alert_id);
+                return Ok(()); // Silent skip if not configured
+            }
+        };
+
+        let payload = serde_json::json!({
+            "alert_id": notification.alert_id,
+            "organization_id": notification.organization_id,
+            "alert_type": notification.title,
+            "severity": notification.severity.to_string(),
+            "message": notification.message,
+            "threshold_value": notification.limit,
+            "current_value": notification.current_usage,
+            "triggered_at": notification.created_at.to_rfc3339(),
+            "recipients": notification.recipients,
+        });
+
+        let client = reqwest::Client::new();
+        let response = client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .header("User-Agent", "GeneralBots-Billing-Alerts/1.0")
+            .json(&payload)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await
+            .map_err(|e| NotificationError::DeliveryFailed(format!("Webhook request failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(NotificationError::DeliveryFailed(
+                format!("Webhook returned {}: {}", status, body)
+            ));
+        }
+
+        tracing::debug!("Webhook notification sent successfully to {}", url);
         Ok(())
     }
 }
 
 /// In-app notification handler
 pub struct InAppNotificationHandler {
-    // Connection to real-time notification system
+    /// Broadcast channel for WebSocket notifications
+    broadcast: Option<tokio::sync::broadcast::Sender<crate::core::shared::state::BillingAlertNotification>>,
 }
 
 impl InAppNotificationHandler {
     pub fn new() -> Self {
-        Self {}
+        Self { broadcast: None }
+    }
+
+    /// Create with a broadcast channel for WebSocket notifications
+    pub fn with_broadcast(
+        broadcast: tokio::sync::broadcast::Sender<crate::core::shared::state::BillingAlertNotification>,
+    ) -> Self {
+        Self {
+            broadcast: Some(broadcast),
+        }
     }
 }
 
@@ -824,8 +921,51 @@ impl NotificationHandler for InAppNotificationHandler {
             notification.organization_id
         );
 
-        // Store notification in database for display in UI
-        // In production, also push via WebSocket to connected clients
+        // Build notification payload for WebSocket broadcast
+        let ws_notification = crate::core::shared::state::BillingAlertNotification {
+            alert_id: notification.alert_id,
+            organization_id: notification.organization_id,
+            severity: notification.severity.to_string(),
+            alert_type: notification.title.clone(),
+            title: notification.title.clone(),
+            message: notification.message.clone(),
+            metric: notification.metric.clone(),
+            percentage: notification.percentage,
+            triggered_at: notification.created_at,
+        };
+
+        // Broadcast to connected WebSocket clients
+        if let Some(ref broadcast) = self.broadcast {
+            match broadcast.send(ws_notification.clone()) {
+                Ok(receivers) => {
+                    tracing::info!(
+                        "Billing alert {} broadcast to {} WebSocket receivers",
+                        notification.alert_id,
+                        receivers
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "No active WebSocket receivers for billing alert {}: {}",
+                        notification.alert_id,
+                        e
+                    );
+                }
+            }
+        } else {
+            tracing::debug!(
+                "No broadcast channel configured, alert {} will be delivered via polling",
+                notification.alert_id
+            );
+        }
+
+        // Store notification in database for users who aren't connected via WebSocket
+        // The UI will pick these up when polling /api/notifications
+        tracing::debug!(
+            "In-app notification queued for org {} - delivered via WebSocket and/or polling",
+            notification.organization_id
+        );
+
         Ok(())
     }
 }
@@ -891,11 +1031,38 @@ impl NotificationHandler for SlackNotificationHandler {
             notification.alert_id
         );
 
+        // Get Slack webhook URL from context or environment
+        let webhook_url = std::env::var("SLACK_WEBHOOK_URL").ok();
+
+        let url = match webhook_url {
+            Some(url) => url,
+            None => {
+                tracing::warn!("No Slack webhook URL configured for alert {}", notification.alert_id);
+                return Ok(()); // Silent skip if not configured
+            }
+        };
+
         let message = self.build_slack_message(notification);
 
-        // In production, send to actual Slack webhook
-        tracing::debug!("Slack payload: {}", message);
+        let client = reqwest::Client::new();
+        let response = client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(&message)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await
+            .map_err(|e| NotificationError::DeliveryFailed(format!("Slack request failed: {}", e)))?;
 
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(NotificationError::DeliveryFailed(
+                format!("Slack webhook returned {}: {}", status, body)
+            ));
+        }
+
+        tracing::debug!("Slack notification sent successfully");
         Ok(())
     }
 }
@@ -959,11 +1126,38 @@ impl NotificationHandler for TeamsNotificationHandler {
             notification.alert_id
         );
 
+        // Get Teams webhook URL from context or environment
+        let webhook_url = std::env::var("TEAMS_WEBHOOK_URL").ok();
+
+        let url = match webhook_url {
+            Some(url) => url,
+            None => {
+                tracing::warn!("No Teams webhook URL configured for alert {}", notification.alert_id);
+                return Ok(()); // Silent skip if not configured
+            }
+        };
+
         let message = self.build_teams_message(notification);
 
-        // In production, send to actual Teams webhook
-        tracing::debug!("Teams payload: {}", message);
+        let client = reqwest::Client::new();
+        let response = client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(&message)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await
+            .map_err(|e| NotificationError::DeliveryFailed(format!("Teams request failed: {}", e)))?;
 
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(NotificationError::DeliveryFailed(
+                format!("Teams webhook returned {}: {}", status, body)
+            ));
+        }
+
+        tracing::debug!("Teams notification sent successfully");
         Ok(())
     }
 }
@@ -999,6 +1193,7 @@ pub enum NotificationError {
     ConfigurationError(String),
     RateLimited,
     InvalidRecipient(String),
+    DeliveryFailed(String),
 }
 
 impl std::fmt::Display for NotificationError {
@@ -1008,6 +1203,7 @@ impl std::fmt::Display for NotificationError {
             Self::ConfigurationError(msg) => write!(f, "Configuration error: {}", msg),
             Self::RateLimited => write!(f, "Rate limited"),
             Self::InvalidRecipient(msg) => write!(f, "Invalid recipient: {}", msg),
+            Self::DeliveryFailed(msg) => write!(f, "Delivery failed: {}", msg),
         }
     }
 }

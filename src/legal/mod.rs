@@ -450,7 +450,8 @@ pub async fn handle_record_consent(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
 
         let mut consents = req.consents;
@@ -694,7 +695,8 @@ pub async fn handle_create_document(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
 
         let db_doc = DbLegalDocument {
@@ -797,7 +799,8 @@ pub async fn handle_request_data_deletion(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
         let token = Uuid::new_v4().to_string();
 
@@ -855,7 +858,8 @@ pub async fn handle_export_user_data(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
 
         let format = req.format.unwrap_or_else(|| "json".to_string());

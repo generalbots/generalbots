@@ -588,7 +588,8 @@ pub async fn handle_create_post(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| SocialError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
 
         let db_post = DbPost {
@@ -778,7 +779,8 @@ pub async fn handle_create_community(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| SocialError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
 
         let slug = req
@@ -1079,7 +1081,8 @@ pub async fn handle_send_praise(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| SocialError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
 
         let db_praise = DbPraise {

@@ -376,7 +376,7 @@ impl IntentCompiler {
             bot_id: session.bot_id.to_string(),
         };
 
-        Self::store_compiled_intent(&compiled);
+        Self::store_compiled_intent(&compiled, &self.state);
 
         Ok(compiled)
     }
@@ -824,7 +824,7 @@ Respond ONLY with valid JSON."#,
                 total_steps: compiled.plan.steps.len() as u32,
                 completed_steps: 0,
                 runtime_seconds: 0,
-                estimated_seconds: compiled.resource_estimate.estimated_time_minutes as u64 * 60,
+                estimated_seconds: (compiled.resource_estimate.compute_hours * 3600.0) as u64,
                 terminal_output: Vec::new(),
                 processing_stats: ProcessingStats::default(),
             };
@@ -868,7 +868,7 @@ Respond ONLY with valid JSON."#,
         }
     }
 
-    fn store_compiled_intent_simple(compiled: &CompiledIntent) {
+    fn _store_compiled_intent_simple(compiled: &CompiledIntent) {
         // Simple version without state - just log
         info!("Storing compiled intent (no state): {}", compiled.id);
     }
