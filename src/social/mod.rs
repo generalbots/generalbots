@@ -3,7 +3,7 @@ pub mod ui;
 use axum::{
     extract::{Form, Path, Query, State},
     response::{Html, IntoResponse},
-    routing::{delete, get, post, put},
+    routing::{delete, get, post},
     Json, Router,
 };
 use chrono::{DateTime, Utc};
