@@ -4,7 +4,7 @@ pub mod ui;
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
-    routing::{get, post, put},
+    routing::{get, post},
     Json, Router,
 };
 use chrono::{DateTime, Utc};
