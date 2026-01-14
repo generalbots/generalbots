@@ -35,6 +35,7 @@ use self::keywords::data_operations::register_data_operations;
 use self::keywords::file_operations::register_file_operations;
 use self::keywords::find::find_keyword;
 use self::keywords::search::search_keyword;
+use self::keywords::products::products_keyword;
 use self::keywords::first::first_keyword;
 use self::keywords::for_next::for_keyword;
 use self::keywords::format::format_keyword;
@@ -88,6 +89,7 @@ impl ScriptService {
         create_site_keyword(&state, user.clone(), &mut engine);
         find_keyword(&state, user.clone(), &mut engine);
         search_keyword(&state, user.clone(), &mut engine);
+        products_keyword(&state, user.clone(), &mut engine);
         for_keyword(&state, user.clone(), &mut engine);
         let _ = register_use_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
         let _ = register_clear_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
