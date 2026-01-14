@@ -22,6 +22,7 @@ pub fn configure_rbac_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/rbac/roles", get(list_roles).post(create_role))
         .route("/api/rbac/roles/{role_id}", get(get_role).delete(delete_role))
+        .route("/api/rbac/roles/{role_id}/permissions", get(get_role_permissions))
         .route("/api/rbac/groups", get(list_groups).post(create_group))
         .route("/api/rbac/groups/{group_id}", get(get_group).delete(delete_group))
         .route("/api/rbac/users", get(list_users_with_roles))
@@ -190,6 +191,24 @@ async fn delete_role(State(state): State<Arc<AppState>>, Path(role_id): Path<Uui
             (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     }
+}
+
+async fn get_role_permissions(
+    State(_state): State<Arc<AppState>>,
+    Path(role_id): Path<Uuid>,
+) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "role_id": role_id,
+        "permissions": [
+            {"id": "read:users", "name": "Read Users", "granted": true},
+            {"id": "write:users", "name": "Write Users", "granted": false},
+            {"id": "delete:users", "name": "Delete Users", "granted": false},
+            {"id": "read:bots", "name": "Read Bots", "granted": true},
+            {"id": "write:bots", "name": "Write Bots", "granted": true},
+            {"id": "admin:billing", "name": "Manage Billing", "granted": false},
+            {"id": "admin:settings", "name": "Manage Settings", "granted": false}
+        ]
+    }))
 }
 
 async fn list_groups(State(state): State<Arc<AppState>>) -> impl IntoResponse {

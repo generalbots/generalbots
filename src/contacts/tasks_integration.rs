@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::core::shared::schema::{crm_contacts, tasks};
+use crate::core::shared::schema::{crm_contacts, people, tasks};
 use crate::shared::utils::DbPool;
 
 #[derive(Debug, Clone)]
@@ -331,11 +331,13 @@ pub struct CreateTaskForContactRequest {
     pub send_notification: Option<bool>,
 }
 
-pub struct TasksIntegrationService {}
+pub struct TasksIntegrationService {
+    db_pool: DbPool,
+}
 
 impl TasksIntegrationService {
-    pub fn new(_pool: DbPool) -> Self {
-        Self {}
+    pub fn new(pool: DbPool) -> Self {
+        Self { db_pool: pool }
     }
 
     pub async fn assign_contact_to_task(
@@ -799,10 +801,49 @@ impl TasksIntegrationService {
 
     async fn update_task_contact_in_db(
         &self,
-        _task_contact: &TaskContact,
+        task_contact: &TaskContact,
     ) -> Result<(), TasksIntegrationError> {
-        // Update task_contacts table
-        Ok(())
+        let pool = self.db_pool.clone();
+        let task_id = task_contact.task_id;
+        let contact_id = task_contact.contact_id;
+        let role = task_contact.role.to_string();
+        let _notes = task_contact.notes.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
+
+            // Get the contact's email to find the corresponding person
+            let contact_email: Option<String> = crm_contacts::table
+                .filter(crm_contacts::id.eq(contact_id))
+                .select(crm_contacts::email)
+                .first(&mut conn)
+                .map_err(|e| TasksIntegrationError::DatabaseError(format!("Contact not found: {}", e)))?;
+
+            let contact_email = match contact_email {
+                Some(email) => email,
+                None => return Ok(()), // No email, can't link to person
+            };
+
+            // Find the person with this email
+            let person_id: Result<uuid::Uuid, _> = people::table
+                .filter(people::email.eq(&contact_email))
+                .select(people::id)
+                .first(&mut conn);
+
+            if let Ok(pid) = person_id {
+                // Update the task's assigned_to field if this is an assignee
+                if role == "assignee" {
+                    diesel::update(tasks::table.filter(tasks::id.eq(task_id)))
+                        .set(tasks::assignee_id.eq(Some(pid)))
+                        .execute(&mut conn)
+                        .map_err(|e| TasksIntegrationError::DatabaseError(format!("Failed to update task: {}", e)))?;
+                }
+            }
+
+            Ok(())
+        })
+        .await
+        .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?
     }
 
     async fn fetch_task_contacts(
@@ -810,19 +851,55 @@ impl TasksIntegrationService {
         task_id: Uuid,
         _query: &TaskContactsQuery,
     ) -> Result<Vec<TaskContact>, TasksIntegrationError> {
-        // Return mock data for contacts linked to this task
-        // In production, this would query a task_contacts junction table
-        Ok(vec![
-            TaskContact {
-                id: Uuid::new_v4(),
-                task_id,
-                contact_id: Uuid::new_v4(),
-                role: TaskContactRole::Assignee,
-                assigned_at: Utc::now(),
-                assigned_by: None,
-                notes: None,
+        let pool = self.db_pool.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
+
+            // Get task assignees from tasks table and look up corresponding contacts
+            let task_row: Result<(Uuid, Option<Uuid>, DateTime<Utc>), _> = tasks::table
+                .filter(tasks::id.eq(task_id))
+                .select((tasks::id, tasks::assignee_id, tasks::created_at))
+                .first(&mut conn);
+
+            let mut task_contacts = Vec::new();
+
+            if let Ok((tid, assigned_to, created_at)) = task_row {
+                if let Some(assignee_id) = assigned_to {
+                    // Look up person -> email -> contact
+                    let person_email: Result<Option<String>, _> = people::table
+                        .filter(people::id.eq(assignee_id))
+                        .select(people::email)
+                        .first(&mut conn);
+
+                    if let Ok(Some(email)) = person_email {
+                        // Find contact with this email
+                        let contact_result: Result<Uuid, _> = crm_contacts::table
+                            .filter(crm_contacts::email.eq(&email))
+                            .select(crm_contacts::id)
+                            .first(&mut conn);
+
+                        if let Ok(contact_id) = contact_result {
+                            task_contacts.push(TaskContact {
+                                id: Uuid::new_v4(),
+                                task_id: tid,
+                                contact_id,
+                                role: TaskContactRole::Assignee,
+                                assigned_at: created_at,
+                                assigned_by: Uuid::nil(),
+                                notified: false,
+                                notified_at: None,
+                                notes: None,
+                            });
+                        }
+                    }
+                }
             }
-        ])
+
+            Ok(task_contacts)
+        })
+        .await
+        .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?
     }
 
     async fn fetch_contact_tasks(
@@ -830,7 +907,7 @@ impl TasksIntegrationService {
         contact_id: Uuid,
         query: &ContactTasksQuery,
     ) -> Result<Vec<ContactTaskWithDetails>, TasksIntegrationError> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
         let status_filter = query.status.clone();
 
         tokio::task::spawn_blocking(move || {
@@ -864,13 +941,15 @@ impl TasksIntegrationService {
 
             let tasks_list = rows.into_iter().map(|row| {
                 ContactTaskWithDetails {
-                    link: TaskContact {
+                    task_contact: TaskContact {
                         id: Uuid::new_v4(),
                         task_id: row.0,
                         contact_id,
                         role: TaskContactRole::Assignee,
                         assigned_at: Utc::now(),
-                        assigned_by: None,
+                        assigned_by: Uuid::nil(),
+                        notified: false,
+                        notified_at: None,
                         notes: None,
                     },
                     task: TaskSummary {
@@ -882,7 +961,7 @@ impl TasksIntegrationService {
                         due_date: row.5,
                         project_id: row.6,
                         project_name: None,
-                        progress: row.7,
+                        progress: row.7 as u8,
                         created_at: row.8,
                         updated_at: row.9,
                     },
@@ -933,10 +1012,43 @@ impl TasksIntegrationService {
         &self,
         task_id: Uuid,
     ) -> Result<Vec<Uuid>, TasksIntegrationError> {
-        // In production, query task_contacts junction table
-        // For now return empty - would need junction table
-        let _ = task_id;
-        Ok(vec![])
+        let pool = self.db_pool.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
+
+            let assignee_id: Option<Uuid> = tasks::table
+                .filter(tasks::id.eq(task_id))
+                .select(tasks::assignee_id)
+                .first(&mut conn)
+                .optional()
+                .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?
+                .flatten();
+
+            if let Some(user_id) = assignee_id {
+                let person_email: Option<String> = people::table
+                    .filter(people::user_id.eq(user_id))
+                    .select(people::email)
+                    .first(&mut conn)
+                    .optional()
+                    .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?
+                    .flatten();
+
+                if let Some(email) = person_email {
+                    let contact_ids: Vec<Uuid> = crm_contacts::table
+                        .filter(crm_contacts::email.eq(&email))
+                        .select(crm_contacts::id)
+                        .load(&mut conn)
+                        .unwrap_or_default();
+
+                    return Ok(contact_ids);
+                }
+            }
+
+            Ok(vec![])
+        })
+        .await
+        .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?
     }
 
     async fn calculate_contact_task_stats(
@@ -977,7 +1089,7 @@ impl TasksIntegrationService {
         exclude: &[Uuid],
         limit: usize,
     ) -> Result<Vec<(ContactSummary, ContactWorkload)>, TasksIntegrationError> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
 
         tokio::task::spawn_blocking(move || {
@@ -1037,7 +1149,7 @@ impl TasksIntegrationService {
         exclude: &[Uuid],
         limit: usize,
     ) -> Result<Vec<(ContactSummary, ContactWorkload)>, TasksIntegrationError> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
 
         tokio::task::spawn_blocking(move || {
@@ -1097,7 +1209,7 @@ impl TasksIntegrationService {
         exclude: &[Uuid],
         limit: usize,
     ) -> Result<Vec<(ContactSummary, ContactWorkload)>, TasksIntegrationError> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
 
         tokio::task::spawn_blocking(move || {

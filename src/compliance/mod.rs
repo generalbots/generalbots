@@ -93,4 +93,5 @@ pub fn configure_compliance_routes() -> Router<Arc<AppState>> {
             post(handlers::handle_create_training),
         )
         .route("/api/compliance/report", get(handlers::handle_get_report))
+        .route("/api/compliance/evidence", post(handlers::handle_upload_evidence))
 }

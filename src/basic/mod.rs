@@ -61,7 +61,7 @@ use self::keywords::webhook::webhook_keyword;
 
 use self::keywords::llm_keyword::llm_keyword;
 use self::keywords::on::on_keyword;
-use self::keywords::on_change::on_change_keyword;
+
 use self::keywords::on_email::on_email_keyword;
 use self::keywords::print::print_keyword;
 use self::keywords::set::set_keyword;
@@ -99,7 +99,6 @@ impl ScriptService {
         print_keyword(&state, user.clone(), &mut engine);
         on_keyword(&state, user.clone(), &mut engine);
         on_email_keyword(&state, user.clone(), &mut engine);
-        on_change_keyword(&state, user.clone(), &mut engine);
         hear_keyword(state.clone(), user.clone(), &mut engine);
         talk_keyword(state.clone(), user.clone(), &mut engine);
         set_context_keyword(state.clone(), user.clone(), &mut engine);

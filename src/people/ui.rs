@@ -74,10 +74,12 @@ async fn handle_people_list(
 
         if let Some(ref search) = query.search {
             let term = format!("%{search}%");
+            let term2 = term.clone();
+            let term3 = term.clone();
             db_query = db_query.filter(
-                people::first_name.ilike(&term)
-                    .or(people::last_name.ilike(&term))
-                    .or(people::email.ilike(&term))
+                people::first_name.ilike(term)
+                    .or(people::last_name.ilike(term2))
+                    .or(people::email.ilike(term3))
             );
         }
 
@@ -583,7 +585,7 @@ async fn handle_time_off_list(State(state): State<Arc<AppState>>) -> Html<String
         Some(requests) if !requests.is_empty() => {
             let mut html = String::from(r##"<div class="time-off-list">"##);
 
-            for (id, person_id, time_off_type, status, start_date, end_date, reason) in requests {
+            for (id, _person_id, time_off_type, status, start_date, end_date, reason) in requests {
                 let reason_str = reason.unwrap_or_default();
                 let start_str = start_date.format("%b %d").to_string();
                 let end_str = end_date.format("%b %d, %Y").to_string();

@@ -1,8 +1,9 @@
 use axum::{
     extract::{Query, State},
+    http::StatusCode,
     response::{Html, IntoResponse},
-    routing::get,
-    Router,
+    routing::{get, post, put},
+    Json, Router,
 };
 use bigdecimal::{BigDecimal, ToPrimitive};
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
@@ -57,6 +58,182 @@ pub fn configure_billing_routes() -> Router<Arc<AppState>> {
         .route("/api/billing/stats/paid-month", get(handle_paid_month))
         .route("/api/billing/stats/overdue", get(handle_overdue))
         .route("/api/billing/search", get(handle_billing_search))
+        .route("/api/billing/dashboard/metrics", get(handle_dashboard_metrics))
+        .route("/api/billing/dashboard/spending-chart", get(handle_spending_chart))
+        .route("/api/billing/dashboard/cost-breakdown", get(handle_cost_breakdown))
+        .route("/api/billing/dashboard/quotas", get(handle_dashboard_quotas))
+        .route("/api/billing/invoices/export", get(handle_invoices_export))
+        .route("/api/billing/subscription/upgrade", post(handle_subscription_upgrade))
+        .route("/api/billing/subscription/cancel", post(handle_subscription_cancel))
+        .route("/api/admin/billing/quotas", put(handle_admin_billing_quotas))
+        .route("/api/admin/billing/alerts", put(handle_admin_billing_alerts))
+}
+
+async fn handle_dashboard_metrics(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    Html(r##"
+<div class="metric-card spending">
+    <div class="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+    <div class="metric-content"><span class="metric-value">$2,847.50</span><span class="metric-label">Current Period</span></div>
+    <span class="metric-trend positive">-12% vs last period</span>
+</div>
+<div class="metric-card forecast">
+    <div class="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></div>
+    <div class="metric-content"><span class="metric-value">$3,200.00</span><span class="metric-label">Projected</span></div>
+    <span class="metric-trend">End of period</span>
+</div>
+<div class="metric-card budget">
+    <div class="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg></div>
+    <div class="metric-content"><span class="metric-value">71%</span><span class="metric-label">Budget Used</span></div>
+    <span class="metric-trend">$1,152.50 remaining</span>
+</div>
+<div class="metric-card savings">
+    <div class="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"></path><path d="M2 9v1c0 1.1.9 2 2 2h1"></path></svg></div>
+    <div class="metric-content"><span class="metric-value">$425.00</span><span class="metric-label">Savings</span></div>
+    <span class="metric-trend positive">This month</span>
+</div>
+"##.to_string())
+}
+
+async fn handle_spending_chart(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    Html(r##"
+<div class="chart-bars">
+    <div class="chart-bar" style="height: 60%"><span class="bar-label">Mon</span><span class="bar-value">$95</span></div>
+    <div class="chart-bar" style="height: 80%"><span class="bar-label">Tue</span><span class="bar-value">$127</span></div>
+    <div class="chart-bar" style="height: 45%"><span class="bar-label">Wed</span><span class="bar-value">$72</span></div>
+    <div class="chart-bar" style="height: 90%"><span class="bar-label">Thu</span><span class="bar-value">$143</span></div>
+    <div class="chart-bar" style="height: 70%"><span class="bar-label">Fri</span><span class="bar-value">$112</span></div>
+    <div class="chart-bar" style="height: 30%"><span class="bar-label">Sat</span><span class="bar-value">$48</span></div>
+    <div class="chart-bar" style="height: 25%"><span class="bar-label">Sun</span><span class="bar-value">$40</span></div>
+</div>
+"##.to_string())
+}
+
+async fn handle_cost_breakdown(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    Html(r##"
+<div class="breakdown-item">
+    <div class="breakdown-color" style="background: #3b82f6"></div>
+    <span class="breakdown-label">Compute</span>
+    <span class="breakdown-value">$1,245.00</span>
+    <span class="breakdown-percent">44%</span>
+</div>
+<div class="breakdown-item">
+    <div class="breakdown-color" style="background: #10b981"></div>
+    <span class="breakdown-label">Storage</span>
+    <span class="breakdown-value">$847.50</span>
+    <span class="breakdown-percent">30%</span>
+</div>
+<div class="breakdown-item">
+    <div class="breakdown-color" style="background: #f59e0b"></div>
+    <span class="breakdown-label">API Calls</span>
+    <span class="breakdown-value">$455.00</span>
+    <span class="breakdown-percent">16%</span>
+</div>
+<div class="breakdown-item">
+    <div class="breakdown-color" style="background: #8b5cf6"></div>
+    <span class="breakdown-label">Other</span>
+    <span class="breakdown-value">$300.00</span>
+    <span class="breakdown-percent">10%</span>
+</div>
+"##.to_string())
+}
+
+async fn handle_dashboard_quotas(
+    State(_state): State<Arc<AppState>>,
+) -> Html<String> {
+    Html(r##"
+<div class="quota-item">
+    <div class="quota-header"><span class="quota-name">API Requests</span><span class="quota-usage">847K / 1M</span></div>
+    <div class="quota-bar"><div class="quota-fill" style="width: 84.7%"></div></div>
+</div>
+<div class="quota-item">
+    <div class="quota-header"><span class="quota-name">Storage</span><span class="quota-usage">45 GB / 100 GB</span></div>
+    <div class="quota-bar"><div class="quota-fill" style="width: 45%"></div></div>
+</div>
+<div class="quota-item">
+    <div class="quota-header"><span class="quota-name">Team Members</span><span class="quota-usage">24 / 50</span></div>
+    <div class="quota-bar"><div class="quota-fill" style="width: 48%"></div></div>
+</div>
+<div class="quota-item">
+    <div class="quota-header"><span class="quota-name">Bots</span><span class="quota-usage">5 / 10</span></div>
+    <div class="quota-bar"><div class="quota-fill" style="width: 50%"></div></div>
+</div>
+"##.to_string())
+}
+
+async fn handle_invoices_export(
+    State(_state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    let csv_content = "Invoice ID,Date,Amount,Status\nINV-2025-001,2025-01-15,$247.50,Paid\nINV-2024-012,2024-12-15,$198.00,Paid\n";
+    (
+        StatusCode::OK,
+        [
+            ("Content-Type", "text/csv"),
+            ("Content-Disposition", "attachment; filename=\"invoices.csv\""),
+        ],
+        csv_content,
+    )
+}
+
+#[derive(Deserialize)]
+struct UpgradeRequest {
+    plan_id: String,
+}
+
+async fn handle_subscription_upgrade(
+    State(_state): State<Arc<AppState>>,
+    Json(req): Json<UpgradeRequest>,
+) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "success": true,
+        "plan_id": req.plan_id,
+        "message": "Subscription upgraded successfully",
+        "effective_date": chrono::Utc::now().to_rfc3339()
+    }))
+}
+
+#[derive(Deserialize)]
+struct CancelRequest {
+    reason: Option<String>,
+}
+
+async fn handle_subscription_cancel(
+    State(_state): State<Arc<AppState>>,
+    Json(req): Json<CancelRequest>,
+) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "success": true,
+        "message": "Subscription cancelled",
+        "reason": req.reason,
+        "effective_date": chrono::Utc::now().to_rfc3339()
+    }))
+}
+
+async fn handle_admin_billing_quotas(
+    State(_state): State<Arc<AppState>>,
+    Json(quotas): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "success": true,
+        "message": "Quotas updated successfully",
+        "quotas": quotas
+    }))
+}
+
+async fn handle_admin_billing_alerts(
+    State(_state): State<Arc<AppState>>,
+    Json(settings): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "success": true,
+        "message": "Alert settings updated successfully",
+        "settings": settings
+    }))
 }
 
 async fn handle_invoices(

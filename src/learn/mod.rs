@@ -1836,11 +1836,9 @@ pub async fn delete_lesson(
 }
 
 /// Get quiz for a course
-pub async fn submit_quiz(
+pub async fn get_quiz_handler(
     State(state): State<Arc<AppState>>,
-    user: AuthenticatedUser,
-    Path(quiz_id): Path<Uuid>,
-    Json(answers): Json<Vec<QuizAnswer>>,
+    Path(course_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let engine = LearnEngine::new(state.conn.clone());
 
@@ -1872,6 +1870,7 @@ pub async fn submit_quiz(
 /// Submit quiz answers
 pub async fn submit_quiz(
     State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
     Path(course_id): Path<Uuid>,
     Json(submission): Json<QuizSubmission>,
 ) -> impl IntoResponse {
@@ -2256,7 +2255,7 @@ pub fn configure_learn_routes() -> Router<Arc<AppState>> {
             put(update_lesson).delete(delete_lesson),
         )
         // Quiz routes
-        .route("/api/learn/courses/:id/quiz", get(get_quiz).post(submit_quiz))
+        .route("/api/learn/courses/:id/quiz", get(get_quiz_handler).post(submit_quiz))
         // Progress routes
         .route("/api/learn/progress", get(get_progress))
         .route("/api/learn/progress/:id/start", post(start_course))

@@ -543,7 +543,7 @@ pub async fn list_objectives(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ListObjectivesQuery>,
 ) -> Result<Json<Vec<Objective>>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -591,7 +591,7 @@ pub async fn create_objective(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateObjectiveRequest>,
 ) -> Result<Json<Objective>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
     let owner_id = Uuid::nil();
     let now = Utc::now();
@@ -620,7 +620,7 @@ pub async fn create_objective(
 
     let record = new_objective.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let _result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
         diesel::insert_into(okr_objectives::table)
             .values(&new_objective)
@@ -639,7 +639,7 @@ pub async fn get_objective(
     State(state): State<Arc<AppState>>,
     Path(objective_id): Path<Uuid>,
 ) -> Result<Json<Objective>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
@@ -663,7 +663,7 @@ pub async fn update_objective(
     Path(objective_id): Path<Uuid>,
     Json(req): Json<UpdateObjectiveRequest>,
 ) -> Result<Json<Objective>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
@@ -716,9 +716,9 @@ pub async fn delete_objective(
     State(state): State<Arc<AppState>>,
     Path(objective_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let _result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
         let deleted = diesel::delete(okr_objectives::table.find(objective_id))
             .execute(&mut conn)
@@ -741,7 +741,7 @@ pub async fn list_key_results(
     State(state): State<Arc<AppState>>,
     Path(objective_id): Path<Uuid>,
 ) -> Result<Json<Vec<KeyResult>>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
@@ -763,7 +763,7 @@ pub async fn create_key_result(
     Path(objective_id): Path<Uuid>,
     Json(req): Json<CreateKeyResultRequest>,
 ) -> Result<Json<KeyResult>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
     let owner_id = Uuid::nil();
     let now = Utc::now();
@@ -793,7 +793,7 @@ pub async fn create_key_result(
 
     let record = new_kr.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let _result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
         diesel::insert_into(okr_key_results::table)
             .values(&new_kr)
@@ -813,7 +813,7 @@ pub async fn update_key_result(
     Path(key_result_id): Path<Uuid>,
     Json(req): Json<UpdateKeyResultRequest>,
 ) -> Result<Json<KeyResult>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
@@ -866,7 +866,7 @@ pub async fn delete_key_result(
     State(state): State<Arc<AppState>>,
     Path(key_result_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
@@ -892,7 +892,7 @@ pub async fn create_check_in(
     Path(key_result_id): Path<Uuid>,
     Json(req): Json<CreateCheckInRequest>,
 ) -> Result<Json<CheckIn>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
     let user_id = Uuid::nil();
     let now = Utc::now();
@@ -956,7 +956,7 @@ pub async fn get_check_in_history(
     State(state): State<Arc<AppState>>,
     Path(key_result_id): Path<Uuid>,
 ) -> Result<Json<Vec<CheckIn>>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
@@ -976,7 +976,7 @@ pub async fn get_check_in_history(
 pub async fn get_dashboard(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<GoalsDashboard>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -1055,7 +1055,7 @@ pub async fn get_dashboard(
 pub async fn get_alignment(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<AlignmentNode>>, GoalsError> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -1093,7 +1093,7 @@ pub async fn get_alignment(
 }
 
 pub async fn ai_suggest(
-    Json(req): Json<AISuggestRequest>,
+    Json(_req): Json<AISuggestRequest>,
 ) -> Result<Json<Vec<AISuggestion>>, GoalsError> {
     let suggestions = vec![
         AISuggestion {
@@ -1122,8 +1122,8 @@ pub async fn ai_suggest(
 pub async fn list_templates(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<GoalTemplate>>, GoalsError> {
-    let pool = state.pool.clone();
-    let (org_id, bot_id) = get_bot_context();
+    let pool = state.conn.clone();
+    let (org_id, _bot_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;

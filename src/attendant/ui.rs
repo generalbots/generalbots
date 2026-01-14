@@ -28,11 +28,11 @@ pub async fn sessions_table(
     State(state): State<Arc<AppState>>,
     Query(query): Query<SessionListQuery>,
 ) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         let mut db_query = attendant_sessions::table
             .filter(attendant_sessions::bot_id.eq(bot_id))
@@ -138,11 +138,11 @@ pub async fn sessions_table(
 }
 
 pub async fn sessions_count(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         attendant_sessions::table
             .filter(attendant_sessions::bot_id.eq(bot_id))
@@ -158,11 +158,11 @@ pub async fn sessions_count(State(state): State<Arc<AppState>>) -> Html<String> 
 }
 
 pub async fn waiting_count(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         attendant_sessions::table
             .filter(attendant_sessions::bot_id.eq(bot_id))
@@ -179,11 +179,11 @@ pub async fn waiting_count(State(state): State<Arc<AppState>>) -> Html<String> {
 }
 
 pub async fn active_count(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         attendant_sessions::table
             .filter(attendant_sessions::bot_id.eq(bot_id))
@@ -200,11 +200,11 @@ pub async fn active_count(State(state): State<Arc<AppState>>) -> Html<String> {
 }
 
 pub async fn agents_online_count(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         attendant_agent_status::table
             .filter(attendant_agent_status::bot_id.eq(bot_id))
@@ -224,7 +224,7 @@ pub async fn session_detail(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -372,11 +372,11 @@ pub async fn session_detail(
 }
 
 pub async fn queues_list(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         attendant_queues::table
             .filter(attendant_queues::bot_id.eq(bot_id))
@@ -430,7 +430,7 @@ pub async fn queue_stats(
     State(state): State<Arc<AppState>>,
     Path(queue_id): Path<Uuid>,
 ) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -466,11 +466,11 @@ pub async fn queue_stats(
 }
 
 pub async fn agent_status_list(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         attendant_agent_status::table
             .filter(attendant_agent_status::bot_id.eq(bot_id))
@@ -534,11 +534,11 @@ pub async fn agent_status_list(State(state): State<Arc<AppState>>) -> Html<Strin
 }
 
 pub async fn dashboard_stats(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         let today = Utc::now().date_naive();
         let today_start = today.and_hms_opt(0, 0, 0)?;

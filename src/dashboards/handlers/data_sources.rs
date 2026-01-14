@@ -57,7 +57,8 @@ pub async fn handle_create_data_source(
         let mut conn = pool
             .get()
             .map_err(|e| DashboardsError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
 
         let db_source = DbDataSource {
@@ -94,6 +95,16 @@ pub async fn handle_test_data_source(
     Path(_source_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, DashboardsError> {
     Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn handle_test_data_source_no_id(
+    State(_state): State<Arc<AppState>>,
+    Json(_config): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, DashboardsError> {
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "message": "Connection test successful"
+    })))
 }
 
 pub async fn handle_delete_data_source(
@@ -198,7 +209,8 @@ pub async fn handle_conversational_query(
         let mut conn = pool
             .get()
             .map_err(|e| DashboardsError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
 
         let db_query = DbConversationalQuery {

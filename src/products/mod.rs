@@ -214,7 +214,7 @@ async fn handle_products_services(
         Some(items) if !items.is_empty() => {
             let mut html = String::new();
             for (id, name, desc, category, svc_type, hourly, fixed, currency, duration, is_active) in items {
-                let desc_str = desc.unwrap_or_default();
+                let _desc_str = desc.unwrap_or_default();
                 let cat_str = category.unwrap_or_else(|| "General".to_string());
                 let type_str = svc_type;
                 let price_str = if let Some(ref h) = hourly {
@@ -308,7 +308,7 @@ async fn handle_products_pricelists(
     match result {
         Some(items) if !items.is_empty() => {
             let mut html = String::new();
-            for (id, name, desc, currency, is_default, discount, customer_group, is_active) in items {
+            for (id, name, _desc, currency, is_default, discount, customer_group, is_active) in items {
                 let discount_pct = bd_to_f64(&discount);
                 let discount_str = if discount_pct > 0.0 { format!("{:.1}%", discount_pct) } else { "-".to_string() };
                 let group_str = customer_group.unwrap_or_else(|| "All".to_string());

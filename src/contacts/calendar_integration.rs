@@ -184,11 +184,13 @@ impl std::fmt::Display for SuggestionReason {
     }
 }
 
-pub struct CalendarIntegrationService {}
+pub struct CalendarIntegrationService {
+    db_pool: DbPool,
+}
 
 impl CalendarIntegrationService {
-    pub fn new(_pool: DbPool) -> Self {
-        Self {}
+    pub fn new(pool: DbPool) -> Self {
+        Self { db_pool: pool }
     }
 
     pub async fn link_contact_to_event(
@@ -619,12 +621,12 @@ impl CalendarIntegrationService {
         contact_id: Uuid,
         query: &ContactEventsQuery,
     ) -> Result<Vec<ContactEventWithDetails>, CalendarIntegrationError> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
         let from_date = query.from_date;
         let to_date = query.to_date;
 
         tokio::task::spawn_blocking(move || {
-            let mut conn = pool.get().map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+            let mut conn = pool.get().map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             // Get events for the contact's organization in the date range
             let rows: Vec<(Uuid, String, Option<String>, DateTime<Utc>, DateTime<Utc>, Option<String>)> = calendar_events::table
@@ -642,11 +644,11 @@ impl CalendarIntegrationService {
                 ))
                 .limit(50)
                 .load(&mut conn)
-                .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+                .map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             let events = rows.into_iter().map(|row| {
                 ContactEventWithDetails {
-                    link: EventContact {
+                    event_contact: EventContact {
                         id: Uuid::new_v4(),
                         event_id: row.0,
                         contact_id,
@@ -672,7 +674,7 @@ impl CalendarIntegrationService {
             Ok(events)
         })
         .await
-        .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?
+        .map_err(|_| CalendarIntegrationError::DatabaseError)?
     }
 
     async fn get_contact_summary(
@@ -733,11 +735,11 @@ impl CalendarIntegrationService {
         exclude: &[Uuid],
         limit: usize,
     ) -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
 
         tokio::task::spawn_blocking(move || {
-            let mut conn = pool.get().map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+            let mut conn = pool.get().map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             // Find other contacts in the same organization, excluding specified ones
             let mut query = crm_contacts::table
@@ -760,7 +762,7 @@ impl CalendarIntegrationService {
                 ))
                 .limit(limit as i64)
                 .load(&mut conn)
-                .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+                .map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             let contacts = rows.into_iter().map(|row| {
                 ContactSummary {
@@ -778,7 +780,7 @@ impl CalendarIntegrationService {
             Ok(contacts)
         })
         .await
-        .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?
+        .map_err(|_| CalendarIntegrationError::DatabaseError)?
     }
 
     async fn find_same_company_contacts(
@@ -787,11 +789,11 @@ impl CalendarIntegrationService {
         exclude: &[Uuid],
         limit: usize,
     ) -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
 
         tokio::task::spawn_blocking(move || {
-            let mut conn = pool.get().map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+            let mut conn = pool.get().map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             // Find contacts with company field set
             let mut query = crm_contacts::table
@@ -814,7 +816,7 @@ impl CalendarIntegrationService {
                 ))
                 .limit(limit as i64)
                 .load(&mut conn)
-                .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+                .map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             let contacts = rows.into_iter().map(|row| {
                 ContactSummary {
@@ -832,7 +834,7 @@ impl CalendarIntegrationService {
             Ok(contacts)
         })
         .await
-        .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?
+        .map_err(|_| CalendarIntegrationError::DatabaseError)?
     }
 
     async fn find_similar_event_attendees(
@@ -841,11 +843,11 @@ impl CalendarIntegrationService {
         exclude: &[Uuid],
         limit: usize,
     ) -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
 
         tokio::task::spawn_blocking(move || {
-            let mut conn = pool.get().map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+            let mut conn = pool.get().map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             // Find active contacts
             let mut query = crm_contacts::table
@@ -867,7 +869,7 @@ impl CalendarIntegrationService {
                 ))
                 .limit(limit as i64)
                 .load(&mut conn)
-                .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?;
+                .map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             let contacts = rows.into_iter().map(|row| {
                 ContactSummary {
@@ -885,7 +887,7 @@ impl CalendarIntegrationService {
             Ok(contacts)
         })
         .await
-        .map_err(|e| CalendarIntegrationError::DatabaseError(e.to_string()))?
+        .map_err(|_| CalendarIntegrationError::DatabaseError)?
     }
 
     async fn find_contact_by_email(

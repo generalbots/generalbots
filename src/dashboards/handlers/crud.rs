@@ -97,7 +97,8 @@ pub async fn handle_create_dashboard(
         let mut conn = pool
             .get()
             .map_err(|e| DashboardsError::Database(e.to_string()))?;
-        let (bot_id, org_id) = get_default_bot(&mut conn);
+        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let org_id = Uuid::nil();
         let now = Utc::now();
 
         let layout = req.layout.unwrap_or_default();

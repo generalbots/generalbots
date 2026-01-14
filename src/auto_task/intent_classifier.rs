@@ -1,5 +1,6 @@
 use crate::auto_task::app_generator::AppGenerator;
 use crate::auto_task::intent_compiler::IntentCompiler;
+use crate::basic::ScriptService;
 use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -729,24 +730,112 @@ END ON
             });
         }
 
-        // Execute low-risk actions immediately
-        // In production, this would run the BASIC program
-        Ok(IntentResult {
-            success: true,
-            intent_type: IntentType::Action,
-            message: format!(
-                "Executing: {}\nSteps: {}",
-                compiled.plan.name,
-                compiled.plan.steps.len()
-            ),
-            created_resources: Vec::new(),
-            app_url: None,
-            task_id: Some(compiled.id),
-            schedule_id: None,
-            tool_triggers: Vec::new(),
-            next_steps: vec!["Action is being executed".to_string()],
-            error: None,
-        })
+        // Execute low-risk actions immediately using the BASIC interpreter
+        let basic_program = &compiled.basic_program;
+
+        if basic_program.is_empty() {
+            return Ok(IntentResult {
+                success: true,
+                intent_type: IntentType::Action,
+                message: format!(
+                    "Plan created: {}\nSteps: {} (no BASIC code to execute)",
+                    compiled.plan.name,
+                    compiled.plan.steps.len()
+                ),
+                created_resources: Vec::new(),
+                app_url: None,
+                task_id: Some(compiled.id),
+                schedule_id: None,
+                tool_triggers: Vec::new(),
+                next_steps: vec!["Plan ready for manual execution".to_string()],
+                error: None,
+            });
+        }
+
+        // Create ScriptService and execute the BASIC program
+        let mut script_service = ScriptService::new(self.state.clone(), session.clone());
+
+        // Load bot config parameters if available
+        script_service.load_bot_config_params(&self.state, session.bot_id);
+
+        // Inject task context variables
+        let mut context_vars = std::collections::HashMap::new();
+        context_vars.insert("task_id".to_string(), compiled.id.clone());
+        context_vars.insert("task_name".to_string(), compiled.plan.name.clone());
+        context_vars.insert("original_intent".to_string(), compiled.original_intent.clone());
+        script_service.inject_config_variables(context_vars);
+
+        // Compile and execute the BASIC program
+        let ast = match script_service.compile(basic_program) {
+            Ok(ast) => ast,
+            Err(e) => {
+                let error_msg = format!("Failed to compile BASIC program: {}", e);
+                warn!("BASIC compilation failed for task {}: {}", compiled.id, error_msg);
+                return Ok(IntentResult {
+                    success: false,
+                    intent_type: IntentType::Action,
+                    message: format!(
+                        "Failed to compile: {}\nError: {}",
+                        compiled.plan.name,
+                        error_msg
+                    ),
+                    created_resources: Vec::new(),
+                    app_url: None,
+                    task_id: Some(compiled.id),
+                    schedule_id: None,
+                    tool_triggers: Vec::new(),
+                    next_steps: vec!["Fix the BASIC program syntax and try again".to_string()],
+                    error: Some(error_msg),
+                });
+            }
+        };
+
+        let execution_result = script_service.run(&ast);
+
+        match execution_result {
+            Ok(result) => {
+                let output = result.to_string();
+                info!("BASIC execution completed for task {}: {}", compiled.id, &output[..output.len().min(200)]);
+
+                Ok(IntentResult {
+                    success: true,
+                    intent_type: IntentType::Action,
+                    message: format!(
+                        "Executed: {}\nResult: {}",
+                        compiled.plan.name,
+                        if output.is_empty() { "Success".to_string() } else { output }
+                    ),
+                    created_resources: Vec::new(),
+                    app_url: None,
+                    task_id: Some(compiled.id),
+                    schedule_id: None,
+                    tool_triggers: Vec::new(),
+                    next_steps: vec!["Action completed successfully".to_string()],
+                    error: None,
+                })
+            }
+            Err(e) => {
+                let error_msg = format!("{}", e);
+                warn!("BASIC execution failed for task {}: {}", compiled.id, error_msg);
+
+                Ok(IntentResult {
+                    success: false,
+                    intent_type: IntentType::Action,
+                    message: format!(
+                        "Failed to execute: {}\nError: {}",
+                        compiled.plan.name,
+                        error_msg
+                    ),
+                    created_resources: Vec::new(),
+                    app_url: None,
+                    task_id: Some(compiled.id),
+                    schedule_id: None,
+                    tool_triggers: Vec::new(),
+                    next_steps: vec!["Review the error and try again".to_string()],
+                    error: Some(error_msg),
+                })
+            }
+        }
     }
 
     fn handle_schedule(

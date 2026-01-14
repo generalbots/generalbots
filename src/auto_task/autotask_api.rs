@@ -1,4 +1,4 @@
-use crate::auto_task::task_manifest::TaskManifest;
+use crate::auto_task::task_manifest::{TaskManifest, ManifestStatus};
 use crate::auto_task::task_types::{
     AutoTask, AutoTaskStatus, ExecutionMode, PendingApproval, PendingDecision, TaskPriority,
 };
@@ -1825,12 +1825,12 @@ fn get_pending_decisions(
 
     // Check if task has pending decisions in manifest
     if let Some(manifest) = get_task_manifest(state, task_id) {
-        if manifest.status == "pending_decision" || manifest.status == "waiting_input" {
+        if manifest.status == ManifestStatus::Paused {
             return Ok(vec![
                 PendingDecision {
                     id: format!("{}-decision-1", task_id),
                     decision_type: DecisionType::RiskConfirmation,
-                    title: format!("Confirm action for: {}", manifest.name),
+                    title: format!("Confirm action for: {}", manifest.app_name),
                     description: "Please confirm you want to proceed with this task.".to_string(),
                     options: vec![
                         DecisionOption {
@@ -1868,8 +1868,8 @@ fn get_pending_decisions(
                     timeout_seconds: Some(86400),
                     timeout_action: TimeoutAction::Pause,
                     context: serde_json::json!({
-                        "task_name": manifest.name,
-                        "task_type": manifest.task_type
+                        "task_name": manifest.app_name,
+                        "description": manifest.description
                     }),
                     created_at: Utc::now(),
                     expires_at: Some(Utc::now() + chrono::Duration::hours(24)),
@@ -1903,17 +1903,17 @@ fn get_pending_approvals(
 
     // Check if task requires approval based on manifest
     if let Some(manifest) = get_task_manifest(state, task_id) {
-        if manifest.status == "pending_approval" || manifest.status == "needs_review" {
+        if manifest.status == ManifestStatus::Paused {
             return Ok(vec![
                 PendingApproval {
                     id: format!("{}-approval-1", task_id),
                     approval_type: ApprovalType::PlanApproval,
-                    title: format!("Approval required for: {}", manifest.name),
+                    title: format!("Approval required for: {}", manifest.app_name),
                     description: "This task requires your approval before execution.".to_string(),
                     risk_level: RiskLevel::Low,
                     approver: "system".to_string(),
                     step_id: None,
-                    impact_summary: format!("Execute task: {}", manifest.name),
+                    impact_summary: format!("Execute task: {}", manifest.app_name),
                     simulation_result: None,
                     timeout_seconds: 172800, // 48 hours
                     default_action: ApprovalDefault::Reject,
@@ -2099,69 +2099,46 @@ fn get_task_logs(state: &Arc<AppState>, task_id: &str) -> Vec<serde_json::Value>
         logs.push(serde_json::json!({
             "timestamp": manifest.created_at.to_rfc3339(),
             "level": "info",
-            "message": format!("Task '{}' created", manifest.name),
-            "task_type": manifest.task_type
+            "message": format!("Task '{}' created", manifest.app_name),
+            "description": manifest.description
         }));
 
         // Add status-based logs
-        match manifest.status.as_str() {
-            "pending" | "queued" => {
+        match manifest.status {
+            ManifestStatus::Planning | ManifestStatus::Ready => {
                 logs.push(serde_json::json!({
                     "timestamp": now.to_rfc3339(),
                     "level": "info",
                     "message": "Task queued for execution"
                 }));
             }
-            "running" | "executing" => {
+            ManifestStatus::Running => {
                 logs.push(serde_json::json!({
                     "timestamp": now.to_rfc3339(),
                     "level": "info",
                     "message": "Task execution in progress"
                 }));
             }
-            "completed" | "done" => {
+            ManifestStatus::Completed => {
                 logs.push(serde_json::json!({
                     "timestamp": manifest.updated_at.to_rfc3339(),
                     "level": "info",
                     "message": "Task completed successfully"
                 }));
             }
-            "failed" | "error" => {
+            ManifestStatus::Failed => {
                 logs.push(serde_json::json!({
                     "timestamp": manifest.updated_at.to_rfc3339(),
                     "level": "error",
-                    "message": format!("Task failed: {}", manifest.error_message.unwrap_or_default())
+                    "message": "Task failed"
                 }));
             }
-            "pending_approval" | "pending_decision" => {
+            ManifestStatus::Paused => {
                 logs.push(serde_json::json!({
                     "timestamp": now.to_rfc3339(),
                     "level": "warn",
                     "message": "Task waiting for user input"
                 }));
-            }
-            _ => {
-                logs.push(serde_json::json!({
-                    "timestamp": now.to_rfc3339(),
-                    "level": "info",
-                    "message": format!("Task status: {}", manifest.status)
-                }));
-            }
-        }
-
-        // Add step results as logs if available
-        if let Some(steps) = &manifest.step_results {
-            for (i, step) in steps.iter().enumerate() {
-                if let Some(step_obj) = step.as_object() {
-                    let status = step_obj.get("status").and_then(|s| s.as_str()).unwrap_or("unknown");
-                    let name = step_obj.get("name").and_then(|s| s.as_str()).unwrap_or(&format!("Step {}", i + 1));
-                    logs.push(serde_json::json!({
-                        "timestamp": now.to_rfc3339(),
-                        "level": if status == "completed" { "info" } else if status == "failed" { "error" } else { "debug" },
-                        "message": format!("{}: {}", name, status),
-                        "step_index": i
-                    }));
-                }
             }
         }
     } else {
@@ -2182,7 +2159,7 @@ fn get_task_logs(state: &Arc<AppState>, task_id: &str) -> Vec<serde_json::Value>
 }
 
 fn apply_recommendation(
-    state: &Arc<AppState>,
+    _state: &Arc<AppState>,
     rec_id: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("Applying recommendation: {}", rec_id);

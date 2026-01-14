@@ -1,6 +1,7 @@
 pub mod ui;
 
 use crate::{config::EmailConfig, core::urls::ApiUrls, shared::state::AppState};
+use crate::core::middleware::AuthenticatedUser;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -14,7 +15,7 @@ use axum::{
 use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use diesel::sql_types::{Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid};
+use diesel::sql_types::{Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid, Varchar};
 use imap::types::Seq;
 use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use log::{debug, info, warn};
@@ -77,6 +78,100 @@ pub struct EmailSearchRow {
     pub body_text: Option<String>,
     #[diesel(sql_type = Timestamptz)]
     pub received_at: DateTime<Utc>,
+}
+
+/// Strip HTML tags from a string to create plain text version
+fn strip_html_tags(html: &str) -> String {
+    // Replace common HTML entities
+    let text = html
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'");
+
+    // Replace <br> and </p> with newlines
+    let text = text
+        .replace("<br>", "\n")
+        .replace("<br/>", "\n")
+        .replace("<br />", "\n")
+        .replace("</p>", "\n")
+        .replace("</div>", "\n")
+        .replace("</li>", "\n");
+
+    // Remove all remaining HTML tags
+    let mut result = String::with_capacity(text.len());
+    let mut in_tag = false;
+
+    for c in text.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => result.push(c),
+            _ => {}
+        }
+    }
+
+    // Clean up multiple consecutive newlines and trim
+    let mut cleaned = String::new();
+    let mut prev_newline = false;
+    for c in result.chars() {
+        if c == '\n' {
+            if !prev_newline {
+                cleaned.push(c);
+            }
+            prev_newline = true;
+        } else {
+            cleaned.push(c);
+            prev_newline = false;
+        }
+    }
+
+    cleaned.trim().to_string()
+}
+
+#[derive(Debug, QueryableByName, Serialize)]
+pub struct EmailSignatureRow {
+    #[diesel(sql_type = DieselUuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = DieselUuid)]
+    pub user_id: Uuid,
+    #[diesel(sql_type = Nullable<DieselUuid>)]
+    pub bot_id: Option<Uuid>,
+    #[diesel(sql_type = Varchar)]
+    pub name: String,
+    #[diesel(sql_type = Text)]
+    pub content_html: String,
+    #[diesel(sql_type = Text)]
+    pub content_plain: String,
+    #[diesel(sql_type = Bool)]
+    pub is_default: bool,
+    #[diesel(sql_type = Bool)]
+    pub is_active: bool,
+    #[diesel(sql_type = Timestamptz)]
+    pub created_at: DateTime<Utc>,
+    #[diesel(sql_type = Timestamptz)]
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateSignatureRequest {
+    pub name: String,
+    pub content_html: String,
+    #[serde(default)]
+    pub content_plain: Option<String>,
+    #[serde(default)]
+    pub is_default: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateSignatureRequest {
+    pub name: Option<String>,
+    pub content_html: Option<String>,
+    pub content_plain: Option<String>,
+    pub is_default: Option<bool>,
+    pub is_active: Option<bool>,
 }
 
 pub mod stalwart_client;
@@ -160,79 +255,338 @@ pub struct EmailSignature {
 }
 
 pub async fn list_signatures(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
 ) -> impl IntoResponse {
-    // Return sample signatures - in production, fetch from database
-    Json(serde_json::json!({
-        "signatures": [
-            {
-                "id": "default",
-                "name": "Default Signature",
-                "content_html": "<p>Best regards,<br>The Team</p>",
-                "content_text": "Best regards,\nThe Team",
-                "is_default": true
-            }
-        ]
-    }))
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            return Json(serde_json::json!({
+                "error": format!("Database connection error: {}", e),
+                "signatures": []
+            }));
+        }
+    };
+
+    let user_id = user.user_id;
+    let result: Result<Vec<EmailSignatureRow>, _> = diesel::sql_query(
+        "SELECT id, user_id, bot_id, name, content_html, content_plain, is_default, is_active, created_at, updated_at
+         FROM email_signatures
+         WHERE user_id = $1 AND is_active = true
+         ORDER BY is_default DESC, name ASC"
+    )
+    .bind::<DieselUuid, _>(user_id)
+    .load(&mut conn);
+
+    match result {
+        Ok(signatures) => Json(serde_json::json!({
+            "signatures": signatures
+        })),
+        Err(e) => {
+            warn!("Failed to list signatures: {}", e);
+            // Return empty list with default signature as fallback
+            Json(serde_json::json!({
+                "signatures": [{
+                    "id": "default",
+                    "name": "Default Signature",
+                    "content_html": "<p>Best regards,<br>The Team</p>",
+                    "content_plain": "Best regards,\nThe Team",
+                    "is_default": true
+                }]
+            }))
+        }
+    }
 }
 
 pub async fn get_default_signature(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
 ) -> impl IntoResponse {
-    // Return default signature - in production, fetch from database based on user
-    Json(serde_json::json!({
-        "id": "default",
-        "name": "Default Signature",
-        "content_html": "<p>Best regards,<br>The Team</p>",
-        "content_text": "Best regards,\nThe Team",
-        "is_default": true
-    }))
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            return Json(serde_json::json!({
+                "id": "default",
+                "name": "Default Signature",
+                "content_html": "<p>Best regards,<br>The Team</p>",
+                "content_plain": "Best regards,\nThe Team",
+                "is_default": true,
+                "_error": format!("Database connection error: {}", e)
+            }));
+        }
+    };
+
+    let user_id = user.user_id;
+    let result: Result<EmailSignatureRow, _> = diesel::sql_query(
+        "SELECT id, user_id, bot_id, name, content_html, content_plain, is_default, is_active, created_at, updated_at
+         FROM email_signatures
+         WHERE user_id = $1 AND is_default = true AND is_active = true
+         LIMIT 1"
+    )
+    .bind::<DieselUuid, _>(user_id)
+    .get_result(&mut conn);
+
+    match result {
+        Ok(signature) => Json(serde_json::json!({
+            "id": signature.id,
+            "name": signature.name,
+            "content_html": signature.content_html,
+            "content_plain": signature.content_plain,
+            "is_default": signature.is_default
+        })),
+        Err(_) => {
+            // Return default signature as fallback
+            Json(serde_json::json!({
+                "id": "default",
+                "name": "Default Signature",
+                "content_html": "<p>Best regards,<br>The Team</p>",
+                "content_plain": "Best regards,\nThe Team",
+                "is_default": true
+            }))
+        }
+    }
 }
 
 pub async fn get_signature(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
+    user: AuthenticatedUser,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({
-        "id": id,
-        "name": "Signature",
-        "content_html": "<p>Best regards,<br>The Team</p>",
-        "content_text": "Best regards,\nThe Team",
-        "is_default": id == "default"
-    }))
+    let signature_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
+                "error": "Invalid signature ID"
+            }))).into_response();
+        }
+    };
+
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "error": format!("Database connection error: {}", e)
+            }))).into_response();
+        }
+    };
+
+    let user_id = user.user_id;
+    let result: Result<EmailSignatureRow, _> = diesel::sql_query(
+        "SELECT id, user_id, bot_id, name, content_html, content_plain, is_default, is_active, created_at, updated_at
+         FROM email_signatures
+         WHERE id = $1 AND user_id = $2"
+    )
+    .bind::<DieselUuid, _>(signature_id)
+    .bind::<DieselUuid, _>(user_id)
+    .get_result(&mut conn);
+
+    match result {
+        Ok(signature) => Json(serde_json::json!(signature)).into_response(),
+        Err(_) => (StatusCode::NOT_FOUND, Json(serde_json::json!({
+            "error": "Signature not found"
+        }))).into_response()
+    }
 }
 
 pub async fn create_signature(
-    State(_state): State<Arc<AppState>>,
-    Json(payload): Json<serde_json::Value>,
+    State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
+    Json(payload): Json<CreateSignatureRequest>,
 ) -> impl IntoResponse {
-    let id = uuid::Uuid::new_v4().to_string();
-    Json(serde_json::json!({
-        "success": true,
-        "id": id,
-        "name": payload.get("name").and_then(|v| v.as_str()).unwrap_or("New Signature")
-    }))
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "success": false,
+                "error": format!("Database connection error: {}", e)
+            }))).into_response();
+        }
+    };
+
+    let new_id = Uuid::new_v4();
+    let user_id = user.user_id;
+    let content_plain = payload.content_plain.unwrap_or_else(|| {
+        // Strip HTML tags for plain text version using simple regex
+        strip_html_tags(&payload.content_html)
+    });
+
+    // If this is set as default, unset other defaults first
+    if payload.is_default {
+        let _ = diesel::sql_query(
+            "UPDATE email_signatures SET is_default = false WHERE user_id = $1 AND is_default = true"
+        )
+        .bind::<DieselUuid, _>(user_id)
+        .execute(&mut conn);
+    }
+
+    let result = diesel::sql_query(
+        "INSERT INTO email_signatures (id, user_id, name, content_html, content_plain, is_default, is_active, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, true, NOW(), NOW())
+         RETURNING id"
+    )
+    .bind::<DieselUuid, _>(new_id)
+    .bind::<DieselUuid, _>(user_id)
+    .bind::<Varchar, _>(&payload.name)
+    .bind::<Text, _>(&payload.content_html)
+    .bind::<Text, _>(&content_plain)
+    .bind::<Bool, _>(payload.is_default)
+    .execute(&mut conn);
+
+    match result {
+        Ok(_) => Json(serde_json::json!({
+            "success": true,
+            "id": new_id,
+            "name": payload.name
+        })).into_response(),
+        Err(e) => {
+            warn!("Failed to create signature: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to create signature: {}", e)
+            }))).into_response()
+        }
+    }
 }
 
 pub async fn update_signature(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Json(_payload): Json<serde_json::Value>,
+    user: AuthenticatedUser,
+    Json(payload): Json<UpdateSignatureRequest>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({
-        "success": true,
-        "id": id
-    }))
+    let signature_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
+                "success": false,
+                "error": "Invalid signature ID"
+            }))).into_response();
+        }
+    };
+
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "success": false,
+                "error": format!("Database connection error: {}", e)
+            }))).into_response();
+        }
+    };
+
+    let user_id = user.user_id;
+
+    // Build dynamic update query
+    let mut updates = vec!["updated_at = NOW()".to_string()];
+    if payload.name.is_some() {
+        updates.push("name = $3".to_string());
+    }
+    if payload.content_html.is_some() {
+        updates.push("content_html = $4".to_string());
+    }
+    if payload.content_plain.is_some() {
+        updates.push("content_plain = $5".to_string());
+    }
+    if let Some(is_default) = payload.is_default {
+        if is_default {
+            // Unset other defaults first
+            let _ = diesel::sql_query(
+                "UPDATE email_signatures SET is_default = false WHERE user_id = $1 AND is_default = true AND id != $2"
+            )
+            .bind::<DieselUuid, _>(user_id)
+            .bind::<DieselUuid, _>(signature_id)
+            .execute(&mut conn);
+        }
+        updates.push("is_default = $6".to_string());
+    }
+    if payload.is_active.is_some() {
+        updates.push("is_active = $7".to_string());
+    }
+
+    let result = diesel::sql_query(format!(
+        "UPDATE email_signatures SET {} WHERE id = $1 AND user_id = $2",
+        updates.join(", ")
+    ))
+    .bind::<DieselUuid, _>(signature_id)
+    .bind::<DieselUuid, _>(user_id)
+    .bind::<Varchar, _>(payload.name.unwrap_or_default())
+    .bind::<Text, _>(payload.content_html.unwrap_or_default())
+    .bind::<Text, _>(payload.content_plain.unwrap_or_default())
+    .bind::<Bool, _>(payload.is_default.unwrap_or(false))
+    .bind::<Bool, _>(payload.is_active.unwrap_or(true))
+    .execute(&mut conn);
+
+    match result {
+        Ok(rows) if rows > 0 => Json(serde_json::json!({
+            "success": true,
+            "id": id
+        })).into_response(),
+        Ok(_) => (StatusCode::NOT_FOUND, Json(serde_json::json!({
+            "success": false,
+            "error": "Signature not found"
+        }))).into_response(),
+        Err(e) => {
+            warn!("Failed to update signature: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to update signature: {}", e)
+            }))).into_response()
+        }
+    }
 }
 
 pub async fn delete_signature(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
+    user: AuthenticatedUser,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({
-        "success": true,
-        "id": id
-    }))
+    let signature_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
+                "success": false,
+                "error": "Invalid signature ID"
+            }))).into_response();
+        }
+    };
+
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "success": false,
+                "error": format!("Database connection error: {}", e)
+            }))).into_response();
+        }
+    };
+
+    let user_id = user.user_id;
+
+    // Soft delete by setting is_active = false
+    let result = diesel::sql_query(
+        "UPDATE email_signatures SET is_active = false, updated_at = NOW() WHERE id = $1 AND user_id = $2"
+    )
+    .bind::<DieselUuid, _>(signature_id)
+    .bind::<DieselUuid, _>(user_id)
+    .execute(&mut conn);
+
+    match result {
+        Ok(rows) if rows > 0 => Json(serde_json::json!({
+            "success": true,
+            "id": id
+        })).into_response(),
+        Ok(_) => (StatusCode::NOT_FOUND, Json(serde_json::json!({
+            "success": false,
+            "error": "Signature not found"
+        }))).into_response(),
+        Err(e) => {
+            warn!("Failed to delete signature: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to delete signature: {}", e)
+            }))).into_response()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

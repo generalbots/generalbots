@@ -26,11 +26,11 @@ pub async fn events_list(
     State(state): State<Arc<AppState>>,
     Query(query): Query<EventsQuery>,
 ) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         let now = Utc::now();
         let start = query.start.unwrap_or(now);
@@ -81,7 +81,7 @@ pub async fn events_list(
         Some(events) if !events.is_empty() => {
             let items: String = events
                 .iter()
-                .map(|(id, title, desc, location, start, end, all_day, color, status)| {
+                .map(|(id, title, _desc, location, start, end, all_day, color, _status)| {
                     let event_color = color.clone().unwrap_or_else(|| "#3b82f6".to_string());
                     let location_text = location.clone().unwrap_or_default();
                     let time_str = if *all_day {
@@ -133,7 +133,7 @@ pub async fn event_detail(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -249,11 +249,11 @@ pub async fn event_detail(
 }
 
 pub async fn calendars_sidebar(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         calendars::table
             .filter(calendars::bot_id.eq(bot_id))
@@ -333,11 +333,11 @@ pub async fn calendars_sidebar(State(state): State<Arc<AppState>>) -> Html<Strin
 }
 
 pub async fn upcoming_events(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         let now = Utc::now();
         let end = now + Duration::days(7);
@@ -398,11 +398,11 @@ pub async fn upcoming_events(State(state): State<Arc<AppState>>) -> Html<String>
 }
 
 pub async fn events_count(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         calendar_events::table
             .filter(calendar_events::bot_id.eq(bot_id))
@@ -418,11 +418,11 @@ pub async fn events_count(State(state): State<Arc<AppState>>) -> Html<String> {
 }
 
 pub async fn today_events_count(State(state): State<Arc<AppState>>) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         let today = Utc::now().date_naive();
         let today_start = today.and_hms_opt(0, 0, 0)?;
@@ -453,14 +453,14 @@ pub async fn month_view(
     State(state): State<Arc<AppState>>,
     Query(query): Query<MonthQuery>,
 ) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let now = Utc::now();
     let year = query.year.unwrap_or(now.year());
     let month = query.month.unwrap_or(now.month());
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         let first_day = NaiveDate::from_ymd_opt(year, month, 1)?;
         let last_day = if month == 12 {
@@ -580,12 +580,12 @@ pub async fn day_events(
     State(state): State<Arc<AppState>>,
     Query(query): Query<DayQuery>,
 ) -> Html<String> {
-    let pool = state.pool.clone();
+    let pool = state.conn.clone();
     let date = query.date;
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (_, bot_id) = get_default_bot(&mut conn).ok()?;
+        let (bot_id, _) = get_default_bot(&mut conn);
 
         let start = date.and_hms_opt(0, 0, 0)?;
         let end = date.and_hms_opt(23, 59, 59)?;

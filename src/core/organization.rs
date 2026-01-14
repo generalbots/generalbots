@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+use crate::shared::utils::DbPool;
+
 // ============================================================================
 // Organization Types
 // ============================================================================
@@ -831,12 +833,20 @@ impl AccessCheckResult {
 
 /// Organization management service
 pub struct OrganizationService {
-    // In production, this would have database pool
+    /// Database connection pool for organization operations
+    _db_pool: DbPool,
 }
 
 impl OrganizationService {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(db_pool: DbPool) -> Self {
+        Self { _db_pool: db_pool }
+    }
+
+    /// Get a database connection from the pool
+    fn _get_conn(&self) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, OrganizationError> {
+        self._db_pool.get().map_err(|e| {
+            OrganizationError::DatabaseError(format!("Failed to get database connection: {}", e))
+        })
     }
 
     /// Create a new organization with default roles and groups
@@ -929,11 +939,7 @@ impl OrganizationService {
     }
 }
 
-impl Default for OrganizationService {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+
 
 /// Result of organization creation
 #[derive(Debug)]

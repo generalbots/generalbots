@@ -48,5 +48,11 @@ pub fn configure_dashboards_routes() -> Router<Arc<AppState>> {
             "/api/dashboards/sources/:id",
             delete(handle_delete_data_source),
         )
+        .route("/api/dashboards/data-sources", get(handle_list_data_sources))
+        .route("/api/dashboards/data-sources", post(handle_create_data_source))
+        .route(
+            "/api/dashboards/data-sources/test",
+            post(handle_test_data_source_no_id),
+        )
         .route("/api/dashboards/query", post(handle_conversational_query))
 }
