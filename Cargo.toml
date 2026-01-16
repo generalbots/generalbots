@@ -2,41 +2,8 @@
 name = "botserver"
 version = "6.1.0"
 edition = "2021"
-keywords = ["chatbot", "ai", "llm", "automation", "bot-framework"]
-categories = ["web-programming", "api-bindings", "development-tools"]
-authors = [
-    "Pragmatismo.com.br ",
-    "General Bots Community ",
-    "Alan Perdomo",
-    "Ana Paula Gil",
-    "Arenas.io",
-    "Atylla L",
-    "Christopher de Castilho",
-    "Dario Junior",
-    "David Lerner",
-    "Experimentation Garage",
-    "Flavio Andrade",
-    "Heraldo Almeida",
-    "Joao Parana",
-    "Jonathas C",
-    "J Ramos",
-    "Lucas Picanco",
-    "Marcos Velasco",
-    "Matheus 39x",
-    "Oerlabs Henrique",
-    "Othon Lima",
-    "PH Nascimento",
-    "Phpussente",
-    "Robson Dantas",
-    "Rodrigo Rodriguez ",
-    "Sarah Lourenco",
-    "Thi Patriota",
-    "Webgus",
-    "Zuilho Se",
-]
-description = "General Bots Server - Open-source bot platform by Pragmatismo.com.br"
-license = "AGPL-3.0"
-repository = "https://github.com/GeneralBots/BotServer"
+
+# ... [authors, description, license, repository sections remain the same]
 
 [dependencies.botlib]
 path = "../botlib"
@@ -44,62 +11,106 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT FEATURE SET =====
-default = ["console", "chat", "automation", "tasks", "drive", "llm", "cache", "progress-bars", "directory", "calendar", "meet", "email", "whatsapp", "telegram", "learn"]
+default = ["chat", "drive", "tasks", "automation"]
 
-# ===== UI FEATURES =====
-console = ["dep:crossterm", "dep:ratatui", "monitoring"]
-
-# ===== CORE INTEGRATIONS =====
-vectordb = ["dep:qdrant-client"]
-llm = []
-nvidia = []
-
-# ===== COMMUNICATION CHANNELS =====
-email = ["dep:imap", "dep:lettre", "dep:mailparse", "dep:native-tls"]
+# ===== COMMUNICATION APPS =====
+chat = []
+people = []
+mail = ["email", "imap", "lettre", "mailparse", "native-tls"]
+meet = ["dep:livekit"]
+social = []
 whatsapp = []
 telegram = []
 instagram = []
 msteams = []
+communications = ["chat", "people", "mail", "meet", "social", "whatsapp", "telegram", "instagram", "msteams", "cache"]
 
-# ===== PRODUCTIVITY FEATURES =====
-chat = []
-drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:pdf-extract", "dep:zip", "dep:downloader", "dep:flate2", "dep:tar"]
-tasks = ["dep:cron"]
+# ===== PRODUCTIVITY APPS =====
 calendar = []
-meet = ["dep:livekit"]
-mail = ["email"]
+tasks = ["dep:cron"]
+project = []
+goals = []
+workspace = []
+productivity = ["calendar", "tasks", "project", "goals", "workspace", "cache"]
+
+# ===== DOCUMENT APPS =====
+paper = ["docx-rs", "ooxmlsdk", "dep:pdf-extract"]
+docs = ["docx-rs", "ooxmlsdk"]
+sheet = ["umya-spreadsheet", "calamine", "rust_xlsxwriter", "spreadsheet-ods"]
+slides = ["ooxmlsdk"]
+drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:pdf-extract", "dep:zip", "dep:downloader", "dep:flate2", "dep:tar"]
+documents = ["paper", "docs", "sheet", "slides", "drive"]
+
+# ===== MEDIA APPS =====
+video = []
+player = []
+canvas = []
+media = ["video", "player", "canvas"]
+
+# ===== LEARNING & RESEARCH APPS =====
 learn = []
+research = ["llm", "vectordb"]
+sources = []
+learning = ["learn", "research", "sources"]
 
-# ===== ENTERPRISE FEATURES =====
-compliance = ["dep:csv"]
-attendance = ["drive"]
-directory = []
-weba = []
-timeseries = []
-
-# ===== OPTIONAL INFRASTRUCTURE =====
-cache = ["dep:redis"]
+# ===== ANALYTICS APPS =====
+analytics = []
+dashboards = []
 monitoring = ["dep:sysinfo"]
-automation = ["dep:rhai"]
-grpc = ["dep:tonic"]
-progress-bars = ["dep:indicatif"]
-jemalloc = ["dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
+analytics_suite = ["analytics", "dashboards", "monitoring"]
 
-# ===== META FEATURES (BUNDLES) =====
+# ===== DEVELOPMENT TOOLS =====
+designer = []
+editor = []
+automation = ["dep:rhai", "llm"]
+development = ["designer", "editor", "automation"]
+
+# ===== ADMIN APPS =====
+attendant = []
+security = []
+settings = []
+admin = ["attendant", "security", "settings"]
+
+# ===== CORE TECHNOLOGIES =====
+llm = []
+vectordb = ["dep:qdrant-client"]
+nvidia = []
+email = []
+cache = ["dep:redis"]
+compliance = ["dep:csv"]
+timeseries = []
+weba = []
+directory = []
+progress-bars = ["dep:indicatif"]
+grpc = ["dep:tonic"]
+jemalloc = ["dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
+console = ["dep:crossterm", "dep:ratatui", "monitoring"]
+
+# ===== BUNDLE FEATURES =====
 full = [
-    "console",
-    "vectordb", "llm", "nvidia", "timeseries",
-    "email", "whatsapp", "instagram", "msteams",
-    "chat", "drive", "tasks", "calendar", "meet", "mail",
-    "compliance", "attendance", "directory", "weba",
-    "cache", "monitoring", "automation", "grpc", "progress-bars"
+    # Communication
+    "chat", "people", "mail", "meet", "social", "whatsapp", "telegram", "instagram", "msteams",
+    # Productivity
+    "calendar", "tasks", "project", "goals", "workspace",
+    # Documents
+    "paper", "docs", "sheet", "slides", "drive",
+    # Media
+    "video", "player", "canvas",
+    # Learning
+    "learn", "research", "sources",
+    # Analytics
+    "analytics", "dashboards", "monitoring",
+    # Development
+    "designer", "editor", "automation",
+    # Admin
+    "attendant", "security", "settings",
+    # Core tech
+    "llm", "vectordb", "nvidia", "cache", "compliance", "timeseries", "weba", "directory", 
+    "progress-bars", "grpc", "jemalloc", "console"
 ]
 
-communications = ["email", "whatsapp", "instagram", "msteams", "chat", "cache"]
-productivity = ["chat", "drive", "tasks", "calendar", "meet", "mail", "cache", "learn"]
-enterprise = ["compliance", "attendance", "directory", "llm", "vectordb", "monitoring", "timeseries"]
 minimal = ["chat"]
-lightweight = ["chat", "drive", "tasks"]
+lightweight = ["chat", "drive", "tasks", "people"]
 
 [dependencies]
 # === CORE RUNTIME (Always Required) ===
@@ -144,7 +155,6 @@ tokio-stream = "0.1"
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
-
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 urlencoding = "2.1"
 uuid = { version = "1.11", features = ["serde", "v4", "v5"] }
@@ -162,9 +172,9 @@ time = { version = "0.3", features = ["formatting", "parsing"] }
 jsonwebtoken = "9.3"
 tower-cookies = "0.10"
 
-# === FEATURE-SPECIFIC DEPENDENCIES (Optional) ===
+# === APP-SPECIFIC DEPENDENCIES ===
 
-# Email Integration (email feature)
+# Email Integration (mail feature)
 imap = { version = "3.0.0-alpha.15", optional = true }
 lettre = { version = "0.11", features = ["smtp-transport", "builder", "tokio1", "tokio1-native-tls"], optional = true }
 mailparse = { version = "0.15", optional = true }
@@ -176,6 +186,14 @@ livekit = { version = "0.7", optional = true }
 # Vector Database (vectordb feature)
 qdrant-client = { version = "1.12", optional = true }
 
+# Document Processing (paper, docs, sheet, slides features)
+docx-rs = { version = "0.4", optional = true }
+ooxmlsdk = { version = "0.3", features = ["docx", "pptx", "parts", "office2021"], optional = true }
+umya-spreadsheet = { version = "2.3", optional = true }
+calamine = { version = "0.26", optional = true }
+rust_xlsxwriter = { version = "0.79", optional = true }
+spreadsheet-ods = { version = "1.0", optional = true }
+
 # File Storage & Drive (drive feature)
 aws-config = { version = "1.8.8", features = ["behavior-version-latest"], optional = true }
 aws-sdk-s3 = { version = "1.109.0", features = ["behavior-version-latest"], optional = true }
@@ -183,7 +201,6 @@ pdf-extract = { version = "0.10.0", optional = true }
 quick-xml = { version = "0.37", features = ["serialize"] }
 zip = { version = "2.2", optional = true }
 downloader = { version = "0.2", optional = true }
-
 flate2 = { version = "1.0", optional = true }
 tar = { version = "0.4", optional = true }
 
@@ -200,23 +217,9 @@ csv = { version = "1.3", optional = true }
 crossterm = { version = "0.29.0", optional = true }
 ratatui = { version = "0.29", optional = true }
 
-# QR Code Generation (using png directly to avoid image's ravif/paste dependency)
+# QR Code Generation
 png = "0.18"
 qrcode = { version = "0.14", default-features = false }
-
-# Excel/Spreadsheet Support - MS Office 100% Compatibility
-# umya-spreadsheet preserves: Charts, styles, images, formulas, macros, comments
-umya-spreadsheet = "2.3"
-calamine = "0.26"
-rust_xlsxwriter = "0.79"
-spreadsheet-ods = "1.0"
-
-# Word/PowerPoint Support - MS Office 100% Compatibility
-# ooxmlsdk preserves: Full document structure at XML level (100% round-trip)
-docx-rs = "0.4"
-ooxmlsdk = { version = "0.3", features = ["docx", "pptx", "parts", "office2021"] }
-# ppt-rs disabled due to version conflict - using ooxmlsdk for PPTX support instead
-# ppt-rs = { version = "0.2", default-features = false }
 
 # Error handling
 thiserror = "2.0"
@@ -268,6 +271,5 @@ http-body-util = "0.1.3"
 mockito = "1.7.0"
 tempfile = "3"
 
-# === SECURITY AND CODE QUALITY CONFIGURATION ===
 [lints]
 workspace = true

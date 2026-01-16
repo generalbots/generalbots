@@ -1,4 +1,4 @@
-use crate::config::AppConfig;
+use crate::core::config::AppConfig;
 use crate::package_manager::setup::{DirectorySetup, EmailSetup, VectorDbSetup};
 use crate::package_manager::{InstallMode, PackageManager};
 use crate::security::command_guard::SafeCommand;

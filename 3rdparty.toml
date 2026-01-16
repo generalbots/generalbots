@@ -218,7 +218,7 @@ sha256 = "f96935e7e385e3b2d0189239077c10fe8fd7e95690fea4afec455b1b6c7e3f18"
 
 # Optional larger models (uncomment to include)
 # [models.gpt_oss_20b]
-# name = "GPT-OSS 20B F16 (requires 16GB+ VRAM)"
+# name = "GPT-OSS 20B F16 (requires 16GB+ VRAM or MoE)"
 # url = "https://huggingface.co/unsloth/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-F16.gguf"
 # filename = "gpt-oss-20b-F16.gguf"
 # sha256 = ""

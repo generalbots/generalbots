@@ -1,6 +1,6 @@
 pub mod ui;
 
-use crate::{config::EmailConfig, core::urls::ApiUrls, shared::state::AppState};
+use crate::{core::config::EmailConfig, core::urls::ApiUrls, shared::state::AppState};
 use crate::core::middleware::AuthenticatedUser;
 use axum::{
     extract::{Path, Query, State},

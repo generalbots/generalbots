@@ -45,7 +45,7 @@ pub mod botmodels;
 pub mod legal;
 pub mod settings;
 
-#[cfg(feature = "attendance")]
+#[cfg(feature = "attendant")]
 pub mod attendance;
 
 #[cfg(feature = "calendar")]
@@ -139,8 +139,6 @@ use std::sync::Arc;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
-use crate::embedded_ui;
-
 async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
     use aws_sdk_s3::primitives::ByteStream;
 
@@ -213,7 +211,6 @@ use crate::shared::state::AppState;
 use crate::shared::utils::create_conn;
 use crate::shared::utils::create_s3_operator;
 
-use crate::BootstrapProgress;
 
 async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
     let db_ok = state.conn.get().is_ok();
@@ -410,7 +407,7 @@ async fn run_axum_server(
         .route(ApiUrls::SESSION_HISTORY, get(get_session_history))
         .route(ApiUrls::SESSION_START, post(start_session))
         .route(ApiUrls::WS, get(websocket_handler))
-        .merge(botserver::drive::configure());
+        .merge(crate::drive::configure());
 
     #[cfg(feature = "directory")]
     {
@@ -434,14 +431,14 @@ async fn run_axum_server(
     #[cfg(feature = "calendar")]
     {
         let calendar_engine =
-            Arc::new(botserver::basic::keywords::book::CalendarEngine::new(app_state.conn.clone()));
+            Arc::new(crate::basic::keywords::book::CalendarEngine::new(app_state.conn.clone()));
 
         api_router = api_router.merge(crate::calendar::caldav::create_caldav_router(
             calendar_engine,
         ));
     }
 
-    api_router = api_router.merge(botserver::tasks::configure_task_routes());
+    api_router = api_router.merge(crate::tasks::configure_task_routes());
 
     #[cfg(feature = "calendar")]
     {
@@ -449,61 +446,61 @@ async fn run_axum_server(
         api_router = api_router.merge(crate::calendar::ui::configure_calendar_ui_routes());
     }
 
-    api_router = api_router.merge(botserver::analytics::configure_analytics_routes());
+    api_router = api_router.merge(crate::analytics::configure_analytics_routes());
     api_router = api_router.merge(crate::core::i18n::configure_i18n_routes());
-    api_router = api_router.merge(botserver::docs::configure_docs_routes());
-    api_router = api_router.merge(botserver::paper::configure_paper_routes());
-    api_router = api_router.merge(botserver::sheet::configure_sheet_routes());
-    api_router = api_router.merge(botserver::slides::configure_slides_routes());
-    api_router = api_router.merge(botserver::video::configure_video_routes());
-    api_router = api_router.merge(botserver::video::ui::configure_video_ui_routes());
-    api_router = api_router.merge(botserver::research::configure_research_routes());
-    api_router = api_router.merge(botserver::research::ui::configure_research_ui_routes());
-    api_router = api_router.merge(botserver::sources::configure_sources_routes());
-    api_router = api_router.merge(botserver::sources::ui::configure_sources_ui_routes());
-    api_router = api_router.merge(botserver::designer::configure_designer_routes());
-    api_router = api_router.merge(botserver::designer::ui::configure_designer_ui_routes());
-    api_router = api_router.merge(botserver::dashboards::configure_dashboards_routes());
-    api_router = api_router.merge(botserver::dashboards::ui::configure_dashboards_ui_routes());
-    api_router = api_router.merge(botserver::legal::configure_legal_routes());
-    api_router = api_router.merge(botserver::legal::ui::configure_legal_ui_routes());
+    api_router = api_router.merge(crate::docs::configure_docs_routes());
+    api_router = api_router.merge(crate::paper::configure_paper_routes());
+    api_router = api_router.merge(crate::sheet::configure_sheet_routes());
+    api_router = api_router.merge(crate::slides::configure_slides_routes());
+    api_router = api_router.merge(crate::video::configure_video_routes());
+    api_router = api_router.merge(crate::video::ui::configure_video_ui_routes());
+    api_router = api_router.merge(crate::research::configure_research_routes());
+    api_router = api_router.merge(crate::research::ui::configure_research_ui_routes());
+    api_router = api_router.merge(crate::sources::configure_sources_routes());
+    api_router = api_router.merge(crate::sources::ui::configure_sources_ui_routes());
+    api_router = api_router.merge(crate::designer::configure_designer_routes());
+    api_router = api_router.merge(crate::designer::ui::configure_designer_ui_routes());
+    api_router = api_router.merge(crate::dashboards::configure_dashboards_routes());
+    api_router = api_router.merge(crate::dashboards::ui::configure_dashboards_ui_routes());
+    api_router = api_router.merge(crate::legal::configure_legal_routes());
+    api_router = api_router.merge(crate::legal::ui::configure_legal_ui_routes());
     #[cfg(feature = "compliance")]
     {
-        api_router = api_router.merge(botserver::compliance::configure_compliance_routes());
-        api_router = api_router.merge(botserver::compliance::ui::configure_compliance_ui_routes());
+        api_router = api_router.merge(crate::compliance::configure_compliance_routes());
+        api_router = api_router.merge(crate::compliance::ui::configure_compliance_ui_routes());
     }
-    api_router = api_router.merge(botserver::monitoring::configure());
-    api_router = api_router.merge(botserver::security::configure_protection_routes());
-    api_router = api_router.merge(botserver::settings::configure_settings_routes());
-    api_router = api_router.merge(botserver::basic::keywords::configure_db_routes());
-    api_router = api_router.merge(botserver::basic::keywords::configure_app_server_routes());
-    api_router = api_router.merge(botserver::auto_task::configure_autotask_routes());
+    api_router = api_router.merge(crate::monitoring::configure());
+    api_router = api_router.merge(crate::security::configure_protection_routes());
+    api_router = api_router.merge(crate::settings::configure_settings_routes());
+    api_router = api_router.merge(crate::basic::keywords::configure_db_routes());
+    api_router = api_router.merge(crate::basic::keywords::configure_app_server_routes());
+    api_router = api_router.merge(crate::auto_task::configure_autotask_routes());
     api_router = api_router.merge(crate::core::shared::admin::configure());
-    api_router = api_router.merge(botserver::workspaces::configure_workspaces_routes());
-    api_router = api_router.merge(botserver::workspaces::ui::configure_workspaces_ui_routes());
-    api_router = api_router.merge(botserver::project::configure());
-    api_router = api_router.merge(botserver::analytics::goals::configure_goals_routes());
-    api_router = api_router.merge(botserver::analytics::goals_ui::configure_goals_ui_routes());
-    api_router = api_router.merge(botserver::player::configure_player_routes());
-    api_router = api_router.merge(botserver::canvas::configure_canvas_routes());
-    api_router = api_router.merge(botserver::canvas::ui::configure_canvas_ui_routes());
-    api_router = api_router.merge(botserver::social::configure_social_routes());
-    api_router = api_router.merge(botserver::social::ui::configure_social_ui_routes());
-    api_router = api_router.merge(botserver::email::ui::configure_email_ui_routes());
-    api_router = api_router.merge(botserver::learn::ui::configure_learn_ui_routes());
-    api_router = api_router.merge(botserver::meet::ui::configure_meet_ui_routes());
-    api_router = api_router.merge(botserver::contacts::crm_ui::configure_crm_routes());
-    api_router = api_router.merge(botserver::contacts::crm::configure_crm_api_routes());
-    api_router = api_router.merge(botserver::billing::billing_ui::configure_billing_routes());
-    api_router = api_router.merge(botserver::billing::api::configure_billing_api_routes());
-    api_router = api_router.merge(botserver::products::configure_products_routes());
-    api_router = api_router.merge(botserver::products::api::configure_products_api_routes());
-    api_router = api_router.merge(botserver::tickets::configure_tickets_routes());
-    api_router = api_router.merge(botserver::tickets::ui::configure_tickets_ui_routes());
-    api_router = api_router.merge(botserver::people::configure_people_routes());
-    api_router = api_router.merge(botserver::people::ui::configure_people_ui_routes());
-    api_router = api_router.merge(botserver::attendant::configure_attendant_routes());
-    api_router = api_router.merge(botserver::attendant::ui::configure_attendant_ui_routes());
+    api_router = api_router.merge(crate::workspaces::configure_workspaces_routes());
+    api_router = api_router.merge(crate::workspaces::ui::configure_workspaces_ui_routes());
+    api_router = api_router.merge(crate::project::configure());
+    api_router = api_router.merge(crate::analytics::goals::configure_goals_routes());
+    api_router = api_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes());
+    api_router = api_router.merge(crate::player::configure_player_routes());
+    api_router = api_router.merge(crate::canvas::configure_canvas_routes());
+    api_router = api_router.merge(crate::canvas::ui::configure_canvas_ui_routes());
+    api_router = api_router.merge(crate::social::configure_social_routes());
+    api_router = api_router.merge(crate::social::ui::configure_social_ui_routes());
+    api_router = api_router.merge(crate::email::ui::configure_email_ui_routes());
+    api_router = api_router.merge(crate::learn::ui::configure_learn_ui_routes());
+    api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
+    api_router = api_router.merge(crate::contacts::crm_ui::configure_crm_routes());
+    api_router = api_router.merge(crate::contacts::crm::configure_crm_api_routes());
+    api_router = api_router.merge(crate::billing::billing_ui::configure_billing_routes());
+    api_router = api_router.merge(crate::billing::api::configure_billing_api_routes());
+    api_router = api_router.merge(crate::products::configure_products_routes());
+    api_router = api_router.merge(crate::products::api::configure_products_api_routes());
+    api_router = api_router.merge(crate::tickets::configure_tickets_routes());
+    api_router = api_router.merge(crate::tickets::ui::configure_tickets_ui_routes());
+    api_router = api_router.merge(crate::people::configure_people_routes());
+    api_router = api_router.merge(crate::people::ui::configure_people_ui_routes());
+    api_router = api_router.merge(crate::attendant::configure_attendant_routes());
+    api_router = api_router.merge(crate::attendant::ui::configure_attendant_ui_routes());
 
     #[cfg(feature = "whatsapp")]
     {
@@ -512,10 +509,10 @@ async fn run_axum_server(
 
     #[cfg(feature = "telegram")]
     {
-        api_router = api_router.merge(botserver::telegram::configure());
+        api_router = api_router.merge(crate::telegram::configure());
     }
 
-    #[cfg(feature = "attendance")]
+    #[cfg(feature = "attendant")]
     {
         api_router = api_router.merge(crate::attendance::configure_attendance_routes());
     }
@@ -608,21 +605,21 @@ async fn run_axum_server(
         .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
             let rbac = Arc::clone(&rbac_manager_for_middleware);
             async move {
-                botserver::security::rbac_middleware_fn(req, next, rbac).await
+               crate::security::rbac_middleware_fn(req, next, rbac).await
             }
         }))
         // Authentication middleware - MUST run before RBAC (so added after)
         .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
             let state = auth_middleware_state.clone();
             async move {
-                botserver::security::auth_middleware_with_providers(req, next, state).await
+               crate::security::auth_middleware_with_providers(req, next, state).await
             }
         }))
         // Panic handler catches panics and returns safe 500 responses
         .layer(middleware::from_fn(move |req, next| {
             let config = panic_config.clone();
             async move {
-                botserver::security::panic_handler_middleware_with_config(req, next, &config).await
+               crate::security::panic_handler_middleware_with_config(req, next, &config).await
             }
         }))
         .layer(Extension(app_state.clone()))
@@ -749,8 +746,8 @@ async fn main() -> std::io::Result<()> {
 
     std::env::set_var("RUST_LOG", &rust_log);
 
-    use crate::llm::local::ensure_llama_servers_running;
-    use botserver::config::ConfigManager;
+use crate::llm::local::ensure_llama_servers_running;
+use crate::core::config::ConfigManager;
 
     if no_console || no_ui {
         botlib::logging::init_compact_logger_with_style("info");
@@ -800,7 +797,7 @@ async fn main() -> std::io::Result<()> {
                 std::thread::Builder::new()
                     .name("ui-thread".to_string())
                     .spawn(move || {
-                        let mut ui = botserver::console::XtreeUI::new();
+                        let mut ui =crate::console::XtreeUI::new();
                         ui.set_progress_channel(progress_rx);
                         ui.set_state_channel(state_rx);
 
@@ -1063,7 +1060,7 @@ async fn main() -> std::io::Result<()> {
 
                 info!("Loaded Zitadel config from {}: url={}", config_path, base_url);
 
-                botserver::directory::client::ZitadelConfig {
+               crate::directory::client::ZitadelConfig {
                     issuer_url: base_url.to_string(),
                     issuer: base_url.to_string(),
                     client_id: client_id.to_string(),
@@ -1075,7 +1072,7 @@ async fn main() -> std::io::Result<()> {
                 }
             } else {
                 warn!("Failed to parse directory_config.json, using defaults");
-                botserver::directory::client::ZitadelConfig {
+               crate::directory::client::ZitadelConfig {
                     issuer_url: "http://localhost:8300".to_string(),
                     issuer: "http://localhost:8300".to_string(),
                     client_id: String::new(),
@@ -1088,7 +1085,7 @@ async fn main() -> std::io::Result<()> {
             }
         } else {
             warn!("directory_config.json not found, using default Zitadel config");
-            botserver::directory::client::ZitadelConfig {
+           crate::directory::client::ZitadelConfig {
                 issuer_url: "http://localhost:8300".to_string(),
                 issuer: "http://localhost:8300".to_string(),
                 client_id: String::new(),
@@ -1102,7 +1099,7 @@ async fn main() -> std::io::Result<()> {
     };
     #[cfg(feature = "directory")]
     let auth_service = Arc::new(tokio::sync::Mutex::new(
-        botserver::directory::AuthService::new(zitadel_config.clone()).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
+       crate::directory::AuthService::new(zitadel_config.clone()).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
     ));
 
     #[cfg(feature = "directory")]
@@ -1113,22 +1110,22 @@ async fn main() -> std::io::Result<()> {
                 Ok(pat_token) => {
                     let pat_token = pat_token.trim().to_string();
                     info!("Using admin PAT token for bootstrap authentication");
-                    botserver::directory::client::ZitadelClient::with_pat_token(zitadel_config, pat_token)
+                   crate::directory::client::ZitadelClient::with_pat_token(zitadel_config, pat_token)
                         .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client with PAT: {}", e)))?
                 }
                 Err(e) => {
                     warn!("Failed to read admin PAT token: {}, falling back to OAuth2", e);
-                    botserver::directory::client::ZitadelClient::new(zitadel_config)
+                   crate::directory::client::ZitadelClient::new(zitadel_config)
                         .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
                 }
             }
         } else {
             info!("Admin PAT not found, using OAuth2 client credentials for bootstrap");
-            botserver::directory::client::ZitadelClient::new(zitadel_config)
+           crate::directory::client::ZitadelClient::new(zitadel_config)
                 .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
         };
 
-        match botserver::directory::bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
+        match crate::directory::bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
             Ok(Some(_)) => {
                 info!("Bootstrap completed - admin credentials displayed in console");
             }
@@ -1165,14 +1162,14 @@ async fn main() -> std::io::Result<()> {
         .get_config(&default_bot_id, "llm-key", Some(""))
         .unwrap_or_default();
 
-    let base_llm_provider = botserver::llm::create_llm_provider_from_url(
+    let base_llm_provider =crate::llm::create_llm_provider_from_url(
         &llm_url,
         if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
     );
 
-    let dynamic_llm_provider = Arc::new(botserver::llm::DynamicLLMProvider::new(base_llm_provider));
+    let dynamic_llm_provider = Arc::new(crate::llm::DynamicLLMProvider::new(base_llm_provider));
 
-    let llm_provider: Arc<dyn botserver::llm::LLMProvider> = if let Some(ref cache) = redis_client {
+    let llm_provider: Arc<dyn crate::llm::LLMProvider> = if let Some(ref cache) = redis_client {
         let embedding_url = config_manager
             .get_config(
                 &default_bot_id,
@@ -1186,13 +1183,13 @@ async fn main() -> std::io::Result<()> {
         info!("Embedding URL: {}", embedding_url);
         info!("Embedding Model: {}", embedding_model);
 
-        let embedding_service = Some(Arc::new(botserver::llm::cache::LocalEmbeddingService::new(
+        let embedding_service = Some(Arc::new(crate::llm::cache::LocalEmbeddingService::new(
             embedding_url,
             embedding_model,
         ))
-            as Arc<dyn botserver::llm::cache::EmbeddingService>);
+            as Arc<dyn crate::llm::cache::EmbeddingService>);
 
-        let cache_config = botserver::llm::cache::CacheConfig {
+        let cache_config =crate::llm::cache::CacheConfig {
             ttl: 3600,
             semantic_matching: true,
             similarity_threshold: 0.85,
@@ -1200,31 +1197,31 @@ async fn main() -> std::io::Result<()> {
             key_prefix: "llm_cache".to_string(),
         };
 
-        Arc::new(botserver::llm::cache::CachedLLMProvider::with_db_pool(
-            dynamic_llm_provider.clone() as Arc<dyn botserver::llm::LLMProvider>,
+        Arc::new(crate::llm::cache::CachedLLMProvider::with_db_pool(
+            dynamic_llm_provider.clone() as Arc<dyn crate::llm::LLMProvider>,
             cache.clone(),
             cache_config,
             embedding_service,
             pool.clone(),
         ))
     } else {
-        dynamic_llm_provider.clone() as Arc<dyn botserver::llm::LLMProvider>
+        dynamic_llm_provider.clone() as Arc<dyn crate::llm::LLMProvider>
     };
 
-    let kb_manager = Arc::new(botserver::core::kb::KnowledgeBaseManager::new("work"));
+    let kb_manager = Arc::new(crate::core::kb::KnowledgeBaseManager::new("work"));
 
-    let task_engine = Arc::new(botserver::tasks::TaskEngine::new(pool.clone()));
+    let task_engine = Arc::new(crate::tasks::TaskEngine::new(pool.clone()));
 
-    let metrics_collector = botserver::core::shared::analytics::MetricsCollector::new();
+    let metrics_collector =crate::core::shared::analytics::MetricsCollector::new();
 
     let task_scheduler = None;
 
     let (attendant_tx, _attendant_rx) = tokio::sync::broadcast::channel::<
-        botserver::core::shared::state::AttendantNotification,
+       crate::core::shared::state::AttendantNotification,
     >(1000);
 
     let (task_progress_tx, _task_progress_rx) = tokio::sync::broadcast::channel::<
-        botserver::core::shared::state::TaskProgressEvent,
+       crate::core::shared::state::TaskProgressEvent,
     >(1000);
 
     // Initialize BotDatabaseManager for per-bot database support
@@ -1269,7 +1266,7 @@ async fn main() -> std::io::Result<()> {
             let mut map = HashMap::new();
             map.insert(
                 "web".to_string(),
-                web_adapter.clone() as Arc<dyn botserver::core::bot::channels::ChannelAdapter>,
+                web_adapter.clone() as Arc<dyn crate::core::bot::channels::ChannelAdapter>,
             );
             map
         })),
@@ -1279,7 +1276,7 @@ async fn main() -> std::io::Result<()> {
         kb_manager: Some(kb_manager.clone()),
         task_engine,
         extensions: {
-            let ext = botserver::core::shared::state::Extensions::new();
+            let ext =crate::core::shared::state::Extensions::new();
             ext.insert_blocking(Arc::clone(&dynamic_llm_provider));
             ext
         },
@@ -1287,20 +1284,20 @@ async fn main() -> std::io::Result<()> {
         task_progress_broadcast: Some(task_progress_tx),
         billing_alert_broadcast: None,
         task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
-        project_service: Arc::new(tokio::sync::RwLock::new(botserver::project::ProjectService::new())),
-        legal_service: Arc::new(tokio::sync::RwLock::new(botserver::legal::LegalService::new())),
+        project_service: Arc::new(tokio::sync::RwLock::new(crate::project::ProjectService::new())),
+        legal_service: Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new())),
         jwt_manager: None,
         auth_provider_registry: None,
         rbac_manager: None,
     });
 
-    let task_scheduler = Arc::new(botserver::tasks::scheduler::TaskScheduler::new(
+    let task_scheduler = Arc::new(crate::tasks::scheduler::TaskScheduler::new(
         app_state.clone(),
     ));
 
     task_scheduler.start();
 
-    if let Err(e) = botserver::core::kb::ensure_crawler_service_running(app_state.clone()).await {
+    if let Err(e) =crate::core::kb::ensure_crawler_service_running(app_state.clone()).await {
         log::warn!("Failed to start website crawler service: {}", e);
     }
 
@@ -1334,7 +1331,7 @@ async fn main() -> std::io::Result<()> {
         tokio::spawn(async move {
             register_thread("drive-monitor", "drive");
             trace!("DriveMonitor::new starting...");
-            let monitor = botserver::DriveMonitor::new(
+            let monitor =crate::DriveMonitor::new(
                 drive_monitor_state,
                 bucket_name.clone(),
                 monitor_bot_id,

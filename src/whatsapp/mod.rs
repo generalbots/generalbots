@@ -318,7 +318,7 @@ async fn process_attendant_command(
 
     let current_session = get_attendant_active_session(state, phone).await;
 
-    #[cfg(feature = "attendance")]
+    #[cfg(feature = "attendant")]
     {
         match crate::attendance::llm_assist::process_attendant_command(
             state,
@@ -333,7 +333,7 @@ async fn process_attendant_command(
         }
     }
 
-    #[cfg(not(feature = "attendance"))]
+    #[cfg(not(feature = "attendant"))]
     {
         let _ = current_session;
         Some(format!(

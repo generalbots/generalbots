@@ -1,7 +1,6 @@
 use axum::{
-    extract::{Path, Query, State},
-    response::IntoResponse,
-    Json,
+extract::{Path, Query, State},
+Json,
 };
 use chrono::Utc;
 use diesel::prelude::*;
@@ -583,8 +582,8 @@ pub async fn handle_get_report(
 }
 
 pub async fn handle_upload_evidence(
-    State(_state): State<Arc<AppState>>,
-    axum::extract::Multipart(mut multipart): axum::extract::Multipart,
+State(_state): State<Arc<AppState>>,
+mut multipart: axum::extract::Multipart,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
     let mut file_name = String::new();
     let mut category = String::new();
