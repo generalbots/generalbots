@@ -141,7 +141,7 @@ async fn process_episodic_memory(
 
         let llm_provider = state.llm_provider.clone();
         let mut filtered = String::new();
-        let config_manager = crate::config::ConfigManager::new(state.conn.clone());
+        let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
         let model = config_manager
             .get_config(&Uuid::nil(), "llm-model", None)
             .unwrap_or_default();

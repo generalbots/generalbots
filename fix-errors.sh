@@ -13,8 +13,7 @@ command -v xclip >/dev/null 2>&1 || { echo "xclip is required but not installed"
 echo "Please, fix this consolidated LLM Context" > "$OUTPUT_FILE"
 
 prompts=(
-    "./prompts/dev/platform/fix-errors.md"
-    "./prompts/dev/platform/shared.md"
+    "./PROMPT.md"
     "./Cargo.toml"
 )
 
@@ -32,29 +31,7 @@ for file in "${prompts[@]}"; do
 done
 
 dirs=(
-    # "auth"
-    # "automation"
-     #"basic"
-    # "bot"
-     "bootstrap"
-    # "package_manager"
-    # "channels"
-    # "config"
-    # "context"
-    # "email"
-    # "file"
-    # "llm"
-    "drive_monitor"
-    # "llm_legacy"
-    # "org"
-    # "session"
-    "file"
-    "kb"
-    "shared"
-    #"tests"
-    # "tools"
-    # "web_automation"
-    # "whatsapp"
+
 )
 for dir in "${dirs[@]}"; do
     if [ -d "$PROJECT_ROOT/src/$dir" ]; then
@@ -72,12 +49,36 @@ done
 echo "$PROJECT_ROOT/src/main.rs" >> "$OUTPUT_FILE"
 cat "$PROJECT_ROOT/src/main.rs" >> "$OUTPUT_FILE"
 
-echo "$PROJECT_ROOT/src/basic/keywords/get.rs" >> "$OUTPUT_FILE"
-cat "$PROJECT_ROOT/src/basic/keywords/get.rs" >> "$OUTPUT_FILE"
+# Files with config import errors
+error_files=(
+    "src/main.rs"
+    "src/basic/keywords/kb_statistics.rs"
+    "src/core/bootstrap/mod.rs"
+    "src/core/kb/kb_indexer.rs"
+    "src/core/kb/website_crawler_service.rs"
+    "src/core/shared/utils.rs"
+    "src/multimodal/mod.rs"
+    "src/console/status_panel.rs"
+    "src/drive/drive_monitor/mod.rs"
+    "src/email/mod.rs"
+    "src/llm/cache.rs"
+    "src/llm/local.rs"
+    "src/llm/episodic_memory.rs"
+    "src/basic/keywords/create_site.rs"
+    "src/basic/keywords/save_from_unstructured.rs"
+)
+
+for file in "${error_files[@]}"; do
+    echo "$PROJECT_ROOT/$file" >> "$OUTPUT_FILE"
+    cat "$PROJECT_ROOT/$file" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+done
+
 
 echo "" >> "$OUTPUT_FILE"
 echo "Compiling..."
-cargo build --message-format=short 2>&1 | grep -E 'error' >> "$OUTPUT_FILE"
+ cargo build --message-format=short 2>&1 | grep -E 'error' >> "$OUTPUT_FILE"
 
 
 # Calculate and display token count (approximation: words * 1.3)

@@ -1,5 +1,4 @@
 use crate::bot::get_default_bot;
-use crate::core::shared::schema::products;
 use crate::multimodal::BotModelsClient;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -9,7 +8,6 @@ use diesel::sql_types::{Integer, Text};
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::{json, Value};
-use std::sync::Arc;
 use std::time::Duration;
 
 #[derive(QueryableByName)]

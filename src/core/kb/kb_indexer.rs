@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
-use crate::config::ConfigManager;
+use crate::core::config::ConfigManager;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::shared::utils::{create_tls_client, DbPool};
 
