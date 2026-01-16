@@ -260,7 +260,7 @@ Return ONLY the JSON object, no explanations or markdown formatting."#,
 }
 
 async fn call_llm_for_extraction(state: &AppState, prompt: &str) -> Result<Value, String> {
-    let config_manager = crate::config::ConfigManager::new(state.conn.clone());
+    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let model = config_manager
         .get_config(&Uuid::nil(), "llm-model", None)
         .unwrap_or_else(|_| "gpt-3.5-turbo".to_string());

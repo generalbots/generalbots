@@ -1,5 +1,5 @@
 use crate::basic::compiler::BasicCompiler;
-use crate::config::ConfigManager;
+use crate::core::config::ConfigManager;
 use crate::core::kb::embedding_generator::is_embedding_server_ready;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};

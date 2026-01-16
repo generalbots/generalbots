@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use super::LLMProvider;
-use crate::config::ConfigManager;
+use crate::core::config::ConfigManager;
 use crate::shared::utils::{estimate_token_count, DbPool};
 
 #[derive(Clone, Debug)]

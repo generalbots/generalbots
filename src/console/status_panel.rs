@@ -1,4 +1,4 @@
-use crate::config::ConfigManager;
+use crate::core::config::ConfigManager;
 #[cfg(feature = "nvidia")]
 use crate::nvidia::get_system_metrics;
 use crate::security::command_guard::SafeCommand;

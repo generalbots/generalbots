@@ -1,4 +1,4 @@
-use crate::config::ConfigManager;
+use crate::core::config::ConfigManager;
 use crate::core::kb::web_crawler::{WebCrawler, WebsiteCrawlConfig};
 use crate::core::kb::KnowledgeBaseManager;
 use crate::shared::state::AppState;

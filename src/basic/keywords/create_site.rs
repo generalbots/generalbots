@@ -57,7 +57,7 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
 }
 
 async fn create_site(
-    config: crate::config::AppConfig,
+    config: crate::core::config::AppConfig,
     s3: Option<std::sync::Arc<aws_sdk_s3::Client>>,
     bucket: String,
     bot_id: String,

@@ -27,6 +27,7 @@ General Bots is a **self-hosted AI automation platform** that provides:
 
 - **Rust** (1.75+) - [Install from rustup.rs](https://rustup.rs/)
 - **Git** - [Download from git-scm.com](https://git-scm.com/downloads)
+- Mold sudo apt-get install mold
 
 ### Installation
 

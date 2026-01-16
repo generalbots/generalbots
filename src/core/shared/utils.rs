@@ -1,4 +1,4 @@
-use crate::config::DriveConfig;
+use crate::core::config::DriveConfig;
 use crate::core::secrets::SecretsManager;
 use anyhow::{Context, Result};
 use aws_config::BehaviorVersion;
