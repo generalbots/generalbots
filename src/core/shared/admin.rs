@@ -8,9 +8,13 @@ use axum::{
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{Nullable, Text, Timestamptz, Uuid as DieselUuid, Varchar};
+#[cfg(feature = "mail")]
 use lettre::{Message, SmtpTransport, Transport};
+#[cfg(feature = "mail")]
 use lettre::transport::smtp::authentication::Credentials;
-use log::{info, warn};
+use log::warn;
+#[cfg(feature = "mail")]
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -20,11 +24,12 @@ use uuid::Uuid;
 // ============================================================================
 
 /// Send invitation email via SMTP
+#[cfg(feature = "mail")]
 async fn send_invitation_email(
-    to_email: &str,
-    role: &str,
-    custom_message: Option<&str>,
-    invitation_id: Uuid,
+to_email: &str,
+role: &str,
+custom_message: Option<&str>,
+invitation_id: Uuid,
 ) -> Result<(), String> {
     let smtp_host = std::env::var("SMTP_HOST").unwrap_or_else(|_| "localhost".to_string());
     let smtp_user = std::env::var("SMTP_USER").ok();
@@ -77,6 +82,7 @@ The General Bots Team"#,
 }
 
 /// Send invitation email by fetching details from database
+#[cfg(feature = "mail")]
 async fn send_invitation_email_by_id(invitation_id: Uuid) -> Result<(), String> {
     let smtp_host = std::env::var("SMTP_HOST").unwrap_or_else(|_| "localhost".to_string());
     let smtp_user = std::env::var("SMTP_USER").ok();

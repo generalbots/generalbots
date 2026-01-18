@@ -2,27 +2,28 @@
 name = "botserver"
 version = "6.1.0"
 edition = "2021"
-
-# ... [authors, description, license, repository sections remain the same]
+resolver = "2"  # Better feature resolution
 
 [dependencies.botlib]
 path = "../botlib"
-features = ["database", "i18n"]
+# Remove features here - control them in botlib's Cargo.toml
+# features = ["database", "i18n"]  # BAD - causes full recompile
 
 [features]
-# ===== DEFAULT FEATURE SET =====
-default = ["chat", "drive", "tasks", "automation"]
+# ===== SINGLE DEFAULT FEATURE SET =====
+default = ["chat", "drive", "tasks", "automation", "cache"]
 
 # ===== COMMUNICATION APPS =====
-chat = []
+chat = ["botlib/chat"]  # Delegate to botlib
 people = []
-mail = ["email", "imap", "lettre", "mailparse", "native-tls"]
+mail = ["botlib/mail"]  # Delegate optional deps to botlib
 meet = ["dep:livekit"]
 social = []
 whatsapp = []
 telegram = []
 instagram = []
 msteams = []
+# CONSIDER: Do you REALLY need this mega-feature?
 communications = ["chat", "people", "mail", "meet", "social", "whatsapp", "telegram", "instagram", "msteams", "cache"]
 
 # ===== PRODUCTIVITY APPS =====
@@ -34,11 +35,11 @@ workspace = []
 productivity = ["calendar", "tasks", "project", "goals", "workspace", "cache"]
 
 # ===== DOCUMENT APPS =====
-paper = ["docx-rs", "ooxmlsdk", "dep:pdf-extract"]
+paper = ["docs", "dep:pdf-extract"]  # Reuse docs
 docs = ["docx-rs", "ooxmlsdk"]
-sheet = ["umya-spreadsheet", "calamine", "rust_xlsxwriter", "spreadsheet-ods"]
+sheet = ["calamine", "spreadsheet-ods"]  # Reduced - pick one Excel lib
 slides = ["ooxmlsdk"]
-drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:pdf-extract", "dep:zip", "dep:downloader", "dep:flate2", "dep:tar"]
+drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:pdf-extract", "dep:flate2"]
 documents = ["paper", "docs", "sheet", "slides", "drive"]
 
 # ===== MEDIA APPS =====
@@ -87,88 +88,77 @@ jemalloc = ["dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
 console = ["dep:crossterm", "dep:ratatui", "monitoring"]
 
 # ===== BUNDLE FEATURES =====
+# REDUCED VERSION - Enable only what you actually use
 full = [
     # Communication
-    "chat", "people", "mail", "meet", "social", "whatsapp", "telegram", "instagram", "msteams",
+    "chat", "people", "mail",
     # Productivity
-    "calendar", "tasks", "project", "goals", "workspace",
+    "tasks", "calendar",
     # Documents
-    "paper", "docs", "sheet", "slides", "drive",
-    # Media
-    "video", "player", "canvas",
-    # Learning
-    "learn", "research", "sources",
-    # Analytics
-    "analytics", "dashboards", "monitoring",
-    # Development
-    "designer", "editor", "automation",
-    # Admin
-    "attendant", "security", "settings",
+    "drive", "docs",
     # Core tech
-    "llm", "vectordb", "nvidia", "cache", "compliance", "timeseries", "weba", "directory", 
-    "progress-bars", "grpc", "jemalloc", "console"
+    "llm", "cache", "compliance"
 ]
 
 minimal = ["chat"]
 lightweight = ["chat", "drive", "tasks", "people"]
 
 [dependencies]
-# === CORE RUNTIME (Always Required) ===
+# === CORE RUNTIME (Minimal) ===
 aes-gcm = "0.10"
 anyhow = "1.0"
 argon2 = "0.5"
 async-lock = "2.8.0"
 async-stream = "0.3"
 async-trait = "0.1"
-axum = { version = "0.7.5", features = ["ws", "multipart", "macros"] }
-axum-server = { version = "0.7", features = ["tls-rustls"] }
+axum = { version = "0.7.5", default-features = false, features = [] }  # NO defaults!
 base64 = "0.22"
 bytes = "1.8"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 color-eyre = "0.6.5"
-diesel = { version = "2.1", features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "128-column-tables"] }
-bigdecimal = { version = "0.4", features = ["serde"] }
+diesel = { version = "2.1", default-features = false, features = ["postgres", "r2d2"] }  # MINIMAL!
+bigdecimal = { version = "0.4", default-features = false }
 diesel_migrations = "2.1.0"
 dirs = "5.0"
 dotenvy = "0.15"
 env_logger = "0.11"
 futures = "0.3"
-futures-util = "0.3"
-tokio-util = { version = "0.7", features = ["io", "compat"] }
+futures-util = { version = "0.3", default-features = false }
+tokio-util = { version = "0.7", default-features = false, features = ["codec"] }
 hex = "0.4"
 hmac = "0.12.1"
-hyper = { version = "1.4", features = ["full"] }
-hyper-rustls = { version = "0.27", features = ["http2"] }
+hyper = { version = "1.4", default-features = false, features = ["client", "server", "http1", "http2"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http2"] }
 log = "0.4"
 num-format = "0.4"
 once_cell = "1.18.0"
 rand = "0.9.2"
 regex = "1.11"
-reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls", "rustls-tls-native-roots"] }
-serde = { version = "1.0", features = ["derive"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }  # Reduced
+serde = { version = "1.0", default-features = false, features = ["derive", "std"] }
 serde_json = "1.0"
 toml = "0.8"
 sha2 = "0.10.9"
 sha1 = "0.10.6"
-tokio = { version = "1.41", features = ["full"] }
+tokio = { version = "1.41", default-features = false, features = ["rt", "sync", "time", "macros", "net"] }
 tokio-stream = "0.1"
 tower = "0.4"
-tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
+tower-http = { version = "0.5", default-features = false, features = ["cors", "fs"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["fmt"] }
+tracing-subscriber = { version = "0.3", default-features = false }
 urlencoding = "2.1"
-uuid = { version = "1.11", features = ["serde", "v4", "v5"] }
+uuid = { version = "1.11", default-features = false, features = ["v4"] }
 
 # === TLS/SECURITY DEPENDENCIES ===
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 tokio-rustls = "0.26"
-rcgen = { version = "0.14", features = ["pem"] }
+rcgen = { version = "0.14", default-features = false }
 x509-parser = "0.15"
 rustls-native-certs = "0.8"
 webpki-roots = "0.25"
 ring = "0.17"
 ciborium = "0.2"
-time = { version = "0.3", features = ["formatting", "parsing"] }
+time = { version = "0.3", default-features = false, features = ["formatting"] }
 jsonwebtoken = "9.3"
 tower-cookies = "0.10"
 
@@ -176,7 +166,7 @@ tower-cookies = "0.10"
 
 # Email Integration (mail feature)
 imap = { version = "3.0.0-alpha.15", optional = true }
-lettre = { version = "0.11", features = ["smtp-transport", "builder", "tokio1", "tokio1-native-tls"], optional = true }
+lettre = { version = "0.11", default-features = false, optional = true }
 mailparse = { version = "0.15", optional = true }
 native-tls = { version = "0.2", optional = true }
 
@@ -186,29 +176,30 @@ livekit = { version = "0.7", optional = true }
 # Vector Database (vectordb feature)
 qdrant-client = { version = "1.12", optional = true }
 
-# Document Processing (paper, docs, sheet, slides features)
+# Document Processing - PICK ONE PER FORMAT!
 docx-rs = { version = "0.4", optional = true }
-ooxmlsdk = { version = "0.3", features = ["docx", "pptx", "parts", "office2021"], optional = true }
-umya-spreadsheet = { version = "2.3", optional = true }
+ooxmlsdk = { version = "0.3", default-features = false, optional = true }
+# umya-spreadsheet = { version = "2.3", optional = true }  # REMOVE - pick one
 calamine = { version = "0.26", optional = true }
-rust_xlsxwriter = { version = "0.79", optional = true }
+# rust_xlsxwriter = { version = "0.79", optional = true }  # REMOVE - pick one
 spreadsheet-ods = { version = "1.0", optional = true }
 
 # File Storage & Drive (drive feature)
-aws-config = { version = "1.8.8", features = ["behavior-version-latest"], optional = true }
-aws-sdk-s3 = { version = "1.109.0", features = ["behavior-version-latest"], optional = true }
+aws-config = { version = "1.8.8", default-features = false, optional = true }
+aws-sdk-s3 = { version = "1.109.0", default-features = false, optional = true }
 pdf-extract = { version = "0.10.0", optional = true }
-quick-xml = { version = "0.37", features = ["serialize"] }
-zip = { version = "2.2", optional = true }
-downloader = { version = "0.2", optional = true }
+quick-xml = { version = "0.37", default-features = false }
+# zip = { version = "2.2", optional = true }  # Only if needed
+# downloader = { version = "0.2", optional = true }  # Use reqwest instead
 flate2 = { version = "1.0", optional = true }
-tar = { version = "0.4", optional = true }
+# tar = { version = "0.4", optional = true }  # Only if needed
 
 # Task Management (tasks feature)
 cron = { version = "0.15.0", optional = true }
 
 # Automation & Scripting (automation feature)
-rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time", features = ["sync"], optional = true }
+# REPLACE git with version
+rhai = { version = "1.23", features = ["sync"], optional = true }
 
 # Compliance & Reporting (compliance feature)
 csv = { version = "1.3", optional = true }
@@ -225,13 +216,13 @@ qrcode = { version = "0.14", default-features = false }
 thiserror = "2.0"
 
 # Caching/Sessions (cache feature)
-redis = { version = "0.27", features = ["tokio-comp"], optional = true }
+redis = { version = "0.27", default-features = false, features = ["tokio-comp"], optional = true }
 
 # System Monitoring (monitoring feature)
 sysinfo = { version = "0.37.2", optional = true }
 
 # Networking/gRPC (grpc feature)
-tonic = { version = "0.14.2", features = ["transport"], optional = true }
+tonic = { version = "0.14.2", default-features = false, features = ["transport", "tls"], optional = true }
 
 # UI Enhancement (progress-bars feature)
 indicatif = { version = "0.18.0", optional = true }
@@ -239,7 +230,7 @@ smartstring = "1.0.1"
 
 # Memory allocator (jemalloc feature)
 tikv-jemallocator = { version = "0.6", optional = true }
-tikv-jemalloc-ctl = { version = "0.6", features = ["stats"], optional = true }
+tikv-jemalloc-ctl = { version = "0.6", default-features = false, optional = true }
 scopeguard = "1.2.0"
 
 # Vault secrets management
@@ -249,7 +240,7 @@ vaultrs = "0.7"
 icalendar = "0.17"
 
 # Layered configuration
-figment = { version = "0.10", features = ["toml", "env", "json"] }
+figment = { version = "0.10", default-features = false, features = ["toml"] }
 
 # Rate limiting
 governor = "0.10"
@@ -261,15 +252,26 @@ rss = "2.0"
 scraper = "0.25"
 walkdir = "2.5.0"
 
-# Embedded static files (UI fallback when no external folder)
+# Embedded static files
 rust-embed = "8.5"
 mime_guess = "2.0"
-hyper-util = { version = "0.1.19", features = ["client-legacy", "tokio"] }
+hyper-util = { version = "0.1.19", default-features = false, features = ["client-legacy"] }
 http-body-util = "0.1.3"
 
 [dev-dependencies]
 mockito = "1.7.0"
 tempfile = "3"
+
+[profile.dev]
+opt-level = 1  # Slightly optimized debug builds
+split-debuginfo = "unpacked"
+incremental = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
 
 [lints]
 workspace = true
