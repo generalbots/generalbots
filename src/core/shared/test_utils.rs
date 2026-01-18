@@ -5,9 +5,9 @@ use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
 use crate::core::shared::state::{AppState, Extensions};
 #[cfg(feature = "directory")]
-use crate::directory::client::ZitadelConfig;
+use crate::core::directory::client::ZitadelConfig;
 #[cfg(feature = "directory")]
-use crate::directory::AuthService;
+use crate::core::directory::AuthService;
 #[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
 use crate::shared::models::BotResponse;

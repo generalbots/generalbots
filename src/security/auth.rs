@@ -832,9 +832,10 @@ fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, AuthErro
            session_id.len(),
            &session_id[..std::cmp::min(20, session_id.len())]);
 
-    // Try to get user data from session cache first
-    if let Ok(cache_guard) = crate::directory::auth_routes::SESSION_CACHE.try_read() {
-        if let Some(user_data) = cache_guard.get(session_id) {
+// Try to get user data from session cache first
+#[cfg(feature = "directory")]
+if let Ok(cache_guard) = crate::directory::auth_routes::SESSION_CACHE.try_read() {
+if let Some(user_data) = cache_guard.get(session_id) {
                 debug!("Found user in session cache: {}", user_data.email);
 
                 // Parse user_id from cached data

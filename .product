@@ -12,7 +12,7 @@ name=General Bots
 # Available apps: chat, mail, calendar, drive, tasks, docs, paper, sheet, slides,
 #                 meet, research, sources, analytics, admin, monitoring, settings
 # Only listed apps will be visible in the UI and have their APIs enabled.
-apps=chat,mail,calendar,drive,tasks,docs,paper,sheet,slides,meet,research,sources,analytics,admin,monitoring,settings
+apps=chat,drive,tasks,sources,settings
 
 # Default theme
 # Available themes: dark, light, blue, purple, green, orange, sentient, cyberpunk,

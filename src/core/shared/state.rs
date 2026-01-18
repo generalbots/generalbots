@@ -15,7 +15,7 @@ use crate::core::shared::test_utils::create_mock_auth_service;
 #[cfg(all(test, feature = "llm"))]
 use crate::core::shared::test_utils::MockLLMProvider;
 #[cfg(feature = "directory")]
-use crate::directory::AuthService;
+use crate::core::directory::AuthService;
 #[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
 use crate::shared::models::BotResponse;
