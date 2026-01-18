@@ -1,33 +1,3 @@
-/*****************************************************************************\
-|  █████  █████ ██    █ █████ █████   ████  ██      ████   █████ █████  ███ ® |
-| ██      █     ███   █ █     ██  ██ ██  ██ ██      ██  █ ██   ██  █   █      |
-| ██  ███ ████  █ ██  █ ████  █████  ██████ ██      ████   █   █   █    ██    |
-| ██   ██ █     █  ██ █ █     ██  ██ ██  ██ ██      ██  █ ██   ██  █      █   |
-|  █████  █████ █   ███ █████ ██  ██ ██  ██ █████   ████   █████   █   ███    |
-|                                                                             |
-| General Bots Copyright (c) pragmatismo.com.br. All rights reserved.         |
-| Licensed under the AGPL-3.0.                                                |
-|                                                                             |
-| According to our dual licensing model, this program can be used either      |
-| under the terms of the GNU Affero General Public License, version 3,        |
-| or under a proprietary license.                                             |
-|                                                                             |
-| The texts of the GNU Affero General Public License with an additional       |
-| permission and of our proprietary license can be found at and               |
-| in the LICENSE file you have received along with this program.              |
-|                                                                             |
-| This program is distributed in the hope that it will be useful,             |
-| but WITHOUT ANY WARRANTY, without even the implied warranty of              |
-| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                |
-| GNU Affero General Public License for more details.                         |
-|                                                                             |
-| "General Bots" is a registered trademark of pragmatismo.com.br.             |
-| The licensing of the program under the AGPLv3 does not imply a              |
-| trademark license. Therefore any rights, title and interest in              |
-| our trademarks remain entirely with us.                                     |
-|                                                                             |
-\*****************************************************************************/
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{error, trace};
@@ -46,7 +16,6 @@ pub fn register_import_export(state: Arc<AppState>, user: UserSession, engine: &
 
 pub fn register_import_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-
     engine
         .register_custom_syntax(["IMPORT", "$expr$"], false, move |context, inputs| {
             let file_path = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -205,7 +174,16 @@ fn execute_import(
     match extension.as_str() {
         "csv" => import_csv(&full_path),
         "json" => import_json(&full_path),
-        "xlsx" | "xls" => import_excel(&full_path),
+        "xlsx" | "xls" => {
+            #[cfg(feature = "sheet")]
+            {
+                import_excel(&full_path)
+            }
+            #[cfg(not(feature = "sheet"))]
+            {
+                Err(format!("Excel import requires 'sheet' feature. File: {}", file_path).into())
+            }
+        }
         "tsv" => import_tsv(&full_path),
         _ => Err(format!("Unsupported file format: .{}", extension).into()),
     }
@@ -227,7 +205,16 @@ fn execute_export(
     match extension.as_str() {
         "csv" => export_csv(&full_path, data),
         "json" => export_json(&full_path, data),
-        "xlsx" => export_excel(&full_path, data),
+        "xlsx" => {
+            #[cfg(feature = "sheet")]
+            {
+                export_excel(&full_path, data)
+            }
+            #[cfg(not(feature = "sheet"))]
+            {
+                Err(format!("Excel export requires 'sheet' feature. File: {}", file_path).into())
+            }
+        }
         "tsv" => export_tsv(&full_path, data),
         _ => Err(format!("Unsupported export format: .{}", extension).into()),
     }
@@ -361,6 +348,7 @@ fn import_json(file_path: &str) -> Result<Dynamic, Box<dyn std::error::Error + S
     Ok(result)
 }
 
+#[cfg(feature = "sheet")]
 fn import_excel(file_path: &str) -> Result<Dynamic, Box<dyn std::error::Error + Send + Sync>> {
     use calamine::{open_workbook, Reader, Xlsx};
 
@@ -474,6 +462,7 @@ fn export_json(
     Ok(file_path.to_string())
 }
 
+#[cfg(feature = "sheet")]
 fn export_excel(
     file_path: &str,
     data: Dynamic,
@@ -534,7 +523,7 @@ fn parse_csv_line(line: &str) -> Vec<String> {
 
 fn escape_csv_value(value: &str) -> String {
     if value.contains(',') || value.contains('"') || value.contains('\n') {
-        format!("\"{}\"", value.replace('"', "\"\""))
+        format!("{}", value.replace('"', ""))
     } else {
         value.to_string()
     }

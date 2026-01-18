@@ -29,11 +29,15 @@ pub mod tickets;
 pub mod attendant;
 pub mod analytics;
 pub mod designer;
+#[cfg(feature = "docs")]
 pub mod docs;
 pub mod learn;
+#[cfg(feature = "paper")]
 pub mod paper;
 pub mod research;
+#[cfg(feature = "sheet")]
 pub mod sheet;
+#[cfg(feature = "slides")]
 pub mod slides;
 pub mod social;
 pub mod sources;
@@ -203,7 +207,7 @@ use crate::core::bot_database::BotDatabaseManager;
 use crate::core::config::AppConfig;
 
 #[cfg(feature = "directory")]
-use crate::directory::auth_handler;
+use crate::core::directory::auth_handler;
 
 use package_manager::InstallMode;
 use session::{create_session, get_session_history, get_sessions, start_session};
@@ -448,11 +452,23 @@ async fn run_axum_server(
 
     api_router = api_router.merge(crate::analytics::configure_analytics_routes());
     api_router = api_router.merge(crate::core::i18n::configure_i18n_routes());
-    api_router = api_router.merge(crate::docs::configure_docs_routes());
-    api_router = api_router.merge(crate::paper::configure_paper_routes());
-    api_router = api_router.merge(crate::sheet::configure_sheet_routes());
-    api_router = api_router.merge(crate::slides::configure_slides_routes());
-    api_router = api_router.merge(crate::video::configure_video_routes());
+#[cfg(feature = "docs")]
+{
+api_router = api_router.merge(crate::docs::configure_docs_routes());
+}
+#[cfg(feature = "paper")]
+{
+api_router = api_router.merge(crate::paper::configure_paper_routes());
+}
+#[cfg(feature = "sheet")]
+{
+api_router = api_router.merge(crate::sheet::configure_sheet_routes());
+}
+#[cfg(feature = "slides")]
+{
+api_router = api_router.merge(crate::slides::configure_slides_routes());
+}
+api_router = api_router.merge(crate::video::configure_video_routes());
     api_router = api_router.merge(crate::video::ui::configure_video_ui_routes());
     api_router = api_router.merge(crate::research::configure_research_routes());
     api_router = api_router.merge(crate::research::ui::configure_research_ui_routes());
@@ -484,12 +500,18 @@ async fn run_axum_server(
     api_router = api_router.merge(crate::player::configure_player_routes());
     api_router = api_router.merge(crate::canvas::configure_canvas_routes());
     api_router = api_router.merge(crate::canvas::ui::configure_canvas_ui_routes());
-    api_router = api_router.merge(crate::social::configure_social_routes());
-    api_router = api_router.merge(crate::social::ui::configure_social_ui_routes());
-    api_router = api_router.merge(crate::email::ui::configure_email_ui_routes());
-    api_router = api_router.merge(crate::learn::ui::configure_learn_ui_routes());
-    api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
-    api_router = api_router.merge(crate::contacts::crm_ui::configure_crm_routes());
+api_router = api_router.merge(crate::social::configure_social_routes());
+api_router = api_router.merge(crate::social::ui::configure_social_ui_routes());
+api_router = api_router.merge(crate::learn::ui::configure_learn_ui_routes());
+#[cfg(feature = "email")]
+{
+api_router = api_router.merge(crate::email::ui::configure_email_ui_routes());
+}
+#[cfg(feature = "meet")]
+{
+api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
+}
+api_router = api_router.merge(crate::contacts::crm_ui::configure_crm_routes());
     api_router = api_router.merge(crate::contacts::crm::configure_crm_api_routes());
     api_router = api_router.merge(crate::billing::billing_ui::configure_billing_routes());
     api_router = api_router.merge(crate::billing::api::configure_billing_api_routes());
@@ -1060,7 +1082,7 @@ use crate::core::config::ConfigManager;
 
                 info!("Loaded Zitadel config from {}: url={}", config_path, base_url);
 
-               crate::directory::client::ZitadelConfig {
+               crate::core::directory::client::ZitadelConfig {
                     issuer_url: base_url.to_string(),
                     issuer: base_url.to_string(),
                     client_id: client_id.to_string(),
@@ -1072,7 +1094,7 @@ use crate::core::config::ConfigManager;
                 }
             } else {
                 warn!("Failed to parse directory_config.json, using defaults");
-               crate::directory::client::ZitadelConfig {
+               crate::core::directory::client::ZitadelConfig {
                     issuer_url: "http://localhost:8300".to_string(),
                     issuer: "http://localhost:8300".to_string(),
                     client_id: String::new(),
@@ -1085,7 +1107,7 @@ use crate::core::config::ConfigManager;
             }
         } else {
             warn!("directory_config.json not found, using default Zitadel config");
-           crate::directory::client::ZitadelConfig {
+           crate::core::directory::client::ZitadelConfig {
                 issuer_url: "http://localhost:8300".to_string(),
                 issuer: "http://localhost:8300".to_string(),
                 client_id: String::new(),
@@ -1099,7 +1121,7 @@ use crate::core::config::ConfigManager;
     };
     #[cfg(feature = "directory")]
     let auth_service = Arc::new(tokio::sync::Mutex::new(
-       crate::directory::AuthService::new(zitadel_config.clone()).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
+       crate::core::directory::AuthService::new(zitadel_config.clone()).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
     ));
 
     #[cfg(feature = "directory")]
@@ -1110,22 +1132,22 @@ use crate::core::config::ConfigManager;
                 Ok(pat_token) => {
                     let pat_token = pat_token.trim().to_string();
                     info!("Using admin PAT token for bootstrap authentication");
-                   crate::directory::client::ZitadelClient::with_pat_token(zitadel_config, pat_token)
+                   crate::core::directory::client::ZitadelClient::with_pat_token(zitadel_config, pat_token)
                         .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client with PAT: {}", e)))?
                 }
                 Err(e) => {
                     warn!("Failed to read admin PAT token: {}, falling back to OAuth2", e);
-                   crate::directory::client::ZitadelClient::new(zitadel_config)
+                   crate::core::directory::client::ZitadelClient::new(zitadel_config)
                         .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
                 }
             }
         } else {
             info!("Admin PAT not found, using OAuth2 client credentials for bootstrap");
-           crate::directory::client::ZitadelClient::new(zitadel_config)
+           crate::core::directory::client::ZitadelClient::new(zitadel_config)
                 .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
         };
 
-        match crate::directory::bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
+        match crate::core::directory::bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
             Ok(Some(_)) => {
                 info!("Bootstrap completed - admin credentials displayed in console");
             }

@@ -36,6 +36,8 @@ git clone https://github.com/GeneralBots/botserver
 cd botserver
 cargo run
 ```
+cargo install sccache
+sudo apt-get install mold  # or build from source
 
 On first run, botserver automatically sets up PostgreSQL, S3 storage, Redis cache, and downloads AI models.
 
