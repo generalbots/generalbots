@@ -67,7 +67,7 @@ pub mod directory;
 #[cfg(feature = "drive")]
 pub mod drive;
 
-#[cfg(feature = "email")]
+#[cfg(feature = "mail")]
 pub mod email;
 
 #[cfg(feature = "instagram")]
@@ -427,7 +427,7 @@ async fn run_axum_server(
         api_router = api_router.merge(crate::meet::configure());
     }
 
-    #[cfg(feature = "email")]
+    #[cfg(feature = "mail")]
     {
         api_router = api_router.merge(crate::email::configure());
     }
@@ -503,7 +503,7 @@ api_router = api_router.merge(crate::video::configure_video_routes());
 api_router = api_router.merge(crate::social::configure_social_routes());
 api_router = api_router.merge(crate::social::ui::configure_social_ui_routes());
 api_router = api_router.merge(crate::learn::ui::configure_learn_ui_routes());
-#[cfg(feature = "email")]
+#[cfg(feature = "mail")]
 {
 api_router = api_router.merge(crate::email::ui::configure_email_ui_routes());
 }

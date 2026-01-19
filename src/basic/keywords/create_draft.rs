@@ -30,7 +30,7 @@ async fn execute_create_draft(
     subject: &str,
     reply_text: &str,
 ) -> Result<String, String> {
-    #[cfg(feature = "email")]
+    #[cfg(feature = "mail")]
     {
         use crate::email::{fetch_latest_sent_to, save_email_draft, SaveDraftRequest};
 
@@ -63,7 +63,7 @@ async fn execute_create_draft(
             .map(|()| "Draft saved successfully".to_string())
     }
 
-    #[cfg(not(feature = "email"))]
+    #[cfg(not(feature = "mail"))]
     {
         use chrono::Utc;
         use diesel::prelude::*;
