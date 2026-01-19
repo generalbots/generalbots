@@ -181,54 +181,100 @@ diesel::table! {
     }
 }
 
+
 diesel::table! {
-    user_email_accounts (id) {
+    rbac_roles (id) {
         id -> Uuid,
-        user_id -> Uuid,
-        email -> Varchar,
-        display_name -> Nullable<Varchar>,
-        imap_server -> Varchar,
-        imap_port -> Int4,
-        smtp_server -> Varchar,
-        smtp_port -> Int4,
-        username -> Varchar,
-        password_encrypted -> Text,
-        is_primary -> Bool,
+        name -> Varchar,
+        display_name -> Varchar,
+        description -> Nullable<Text>,
+        is_system -> Bool,
         is_active -> Bool,
+        created_by -> Nullable<Uuid>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
-    email_drafts (id) {
+    rbac_groups (id) {
+        id -> Uuid,
+        name -> Varchar,
+        display_name -> Varchar,
+        description -> Nullable<Text>,
+        parent_group_id -> Nullable<Uuid>,
+        is_active -> Bool,
+        created_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    rbac_permissions (id) {
+        id -> Uuid,
+        name -> Varchar,
+        display_name -> Varchar,
+        description -> Nullable<Text>,
+        resource_type -> Varchar,
+        action -> Varchar,
+        category -> Varchar,
+        is_system -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    rbac_role_permissions (id) {
+        id -> Uuid,
+        role_id -> Uuid,
+        permission_id -> Uuid,
+        granted_by -> Nullable<Uuid>,
+        granted_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    rbac_user_roles (id) {
         id -> Uuid,
         user_id -> Uuid,
-        account_id -> Uuid,
-        to_address -> Text,
-        cc_address -> Nullable<Text>,
-        bcc_address -> Nullable<Text>,
-        subject -> Nullable<Varchar>,
-        body -> Nullable<Text>,
-        attachments -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        role_id -> Uuid,
+        granted_by -> Nullable<Uuid>,
+        granted_at -> Timestamptz,
+        expires_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    email_folders (id) {
+    rbac_user_groups (id) {
         id -> Uuid,
-        account_id -> Uuid,
-        folder_name -> Varchar,
-        folder_path -> Varchar,
-        unread_count -> Int4,
-        total_count -> Int4,
-        last_synced -> Nullable<Timestamptz>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        user_id -> Uuid,
+        group_id -> Uuid,
+        added_by -> Nullable<Uuid>,
+        added_at -> Timestamptz,
     }
 }
+
+diesel::table! {
+    rbac_group_roles (id) {
+        id -> Uuid,
+        group_id -> Uuid,
+        role_id -> Uuid,
+        granted_by -> Nullable<Uuid>,
+        granted_at -> Timestamptz,
+    }
+}
+
+diesel::joinable!(rbac_role_permissions -> rbac_roles (role_id));
+diesel::joinable!(rbac_role_permissions -> rbac_permissions (permission_id));
+diesel::joinable!(rbac_user_roles -> users (user_id));
+diesel::joinable!(rbac_user_roles -> rbac_roles (role_id));
+diesel::joinable!(rbac_user_groups -> users (user_id));
+diesel::joinable!(rbac_user_groups -> rbac_groups (group_id));
+diesel::joinable!(rbac_group_roles -> rbac_groups (group_id));
+diesel::joinable!(rbac_group_roles -> rbac_roles (role_id));
+
+
 
 diesel::table! {
     user_preferences (id) {
@@ -292,6 +338,57 @@ diesel::table! {
         updated_at -> Timestamptz,
     }
 }
+
+
+diesel::table! {
+    user_email_accounts (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        email -> Varchar,
+        display_name -> Nullable<Varchar>,
+        imap_server -> Varchar,
+        imap_port -> Int4,
+        smtp_server -> Varchar,
+        smtp_port -> Int4,
+        username -> Varchar,
+        password_encrypted -> Text,
+        is_primary -> Bool,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    email_drafts (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        account_id -> Uuid,
+        to_address -> Text,
+        cc_address -> Nullable<Text>,
+        bcc_address -> Nullable<Text>,
+        subject -> Nullable<Varchar>,
+        body -> Nullable<Text>,
+        attachments -> Jsonb,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    email_folders (id) {
+        id -> Uuid,
+        account_id -> Uuid,
+        folder_name -> Varchar,
+        folder_path -> Varchar,
+        unread_count -> Int4,
+        total_count -> Int4,
+        last_synced -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
 
 diesel::table! {
     email_signatures (id) {
@@ -446,98 +543,6 @@ diesel::table! {
         added_at -> Timestamptz,
     }
 }
-
-diesel::table! {
-    rbac_roles (id) {
-        id -> Uuid,
-        name -> Varchar,
-        display_name -> Varchar,
-        description -> Nullable<Text>,
-        is_system -> Bool,
-        is_active -> Bool,
-        created_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    rbac_groups (id) {
-        id -> Uuid,
-        name -> Varchar,
-        display_name -> Varchar,
-        description -> Nullable<Text>,
-        parent_group_id -> Nullable<Uuid>,
-        is_active -> Bool,
-        created_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    rbac_permissions (id) {
-        id -> Uuid,
-        name -> Varchar,
-        display_name -> Varchar,
-        description -> Nullable<Text>,
-        resource_type -> Varchar,
-        action -> Varchar,
-        category -> Varchar,
-        is_system -> Bool,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    rbac_role_permissions (id) {
-        id -> Uuid,
-        role_id -> Uuid,
-        permission_id -> Uuid,
-        granted_by -> Nullable<Uuid>,
-        granted_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    rbac_user_roles (id) {
-        id -> Uuid,
-        user_id -> Uuid,
-        role_id -> Uuid,
-        granted_by -> Nullable<Uuid>,
-        granted_at -> Timestamptz,
-        expires_at -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    rbac_user_groups (id) {
-        id -> Uuid,
-        user_id -> Uuid,
-        group_id -> Uuid,
-        added_by -> Nullable<Uuid>,
-        added_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    rbac_group_roles (id) {
-        id -> Uuid,
-        group_id -> Uuid,
-        role_id -> Uuid,
-        granted_by -> Nullable<Uuid>,
-        granted_at -> Timestamptz,
-    }
-}
-
-diesel::joinable!(rbac_role_permissions -> rbac_roles (role_id));
-diesel::joinable!(rbac_role_permissions -> rbac_permissions (permission_id));
-diesel::joinable!(rbac_user_roles -> users (user_id));
-diesel::joinable!(rbac_user_roles -> rbac_roles (role_id));
-diesel::joinable!(rbac_user_groups -> users (user_id));
-diesel::joinable!(rbac_user_groups -> rbac_groups (group_id));
-diesel::joinable!(rbac_group_roles -> rbac_groups (group_id));
-diesel::joinable!(rbac_group_roles -> rbac_roles (role_id));
 
 diesel::table! {
     crm_contacts (id) {
@@ -983,59 +988,61 @@ diesel::table! {
         barcode -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
-        // Tax and fiscal identification
-        tax_code -> Nullable<Varchar>,
-        tax_class -> Nullable<Varchar>,
-        fiscal_code -> Nullable<Varchar>,
-        origin_code -> Nullable<Int4>,
-        global_trade_number -> Nullable<Varchar>,
-        tax_unit_code -> Nullable<Varchar>,
-        // Detailed dimensions (shipping)
-        net_weight -> Nullable<Numeric>,
-        gross_weight -> Nullable<Numeric>,
-        width -> Nullable<Numeric>,
-        height -> Nullable<Numeric>,
-        length -> Nullable<Numeric>,
-        package_count -> Nullable<Int4>,
-        // Tax rates by type
-        sales_tax_code -> Nullable<Varchar>,
-        sales_tax_rate -> Nullable<Numeric>,
-        excise_tax_code -> Nullable<Varchar>,
-        excise_tax_rate -> Nullable<Numeric>,
-        vat_code -> Nullable<Varchar>,
-        vat_rate -> Nullable<Numeric>,
-        service_tax_code -> Nullable<Varchar>,
-        service_tax_rate -> Nullable<Numeric>,
-        // Marketplace and e-commerce
-        brand -> Nullable<Varchar>,
-        model -> Nullable<Varchar>,
-        color -> Nullable<Varchar>,
-        size -> Nullable<Varchar>,
-        material -> Nullable<Varchar>,
-        gender -> Nullable<Varchar>,
-        // Advanced inventory control
-        warehouse_location -> Nullable<Varchar>,
-        batch_number -> Nullable<Varchar>,
-        expiration_date -> Nullable<Date>,
-        manufacture_date -> Nullable<Date>,
-        min_stock -> Nullable<Int4>,
-        max_stock -> Nullable<Int4>,
-        reorder_point -> Nullable<Int4>,
-        // Detailed pricing
-        sale_price -> Nullable<Numeric>,
-        sale_start -> Nullable<Timestamptz>,
-        sale_end -> Nullable<Timestamptz>,
-        shipping_cost -> Nullable<Numeric>,
-        profit_margin -> Nullable<Numeric>,
+        // // Tax and fiscal identification
+        // tax_code -> Nullable<Varchar>,
+        // tax_class -> Nullable<Varchar>,
+        // fiscal_code -> Nullable<Varchar>,
+        // origin_code -> Nullable<Int4>,
+        // global_trade_number -> Nullable<Varchar>,
+        // tax_unit_code -> Nullable<Varchar>,
+
+
+        // // Detailed dimensions (shipping)
+        // net_weight -> Nullable<Numeric>,
+        // gross_weight -> Nullable<Numeric>,
+        // width -> Nullable<Numeric>,
+        // height -> Nullable<Numeric>,
+        // length -> Nullable<Numeric>,
+        // package_count -> Nullable<Int4>,
+        // // Tax rates by type
+        // sales_tax_code -> Nullable<Varchar>,
+        // sales_tax_rate -> Nullable<Numeric>,
+        // excise_tax_code -> Nullable<Varchar>,
+        // excise_tax_rate -> Nullable<Numeric>,
+        // vat_code -> Nullable<Varchar>,
+        // vat_rate -> Nullable<Numeric>,
+        // service_tax_code -> Nullable<Varchar>,
+        // service_tax_rate -> Nullable<Numeric>,
+        // // Marketplace and e-commerce
+        // brand -> Nullable<Varchar>,
+        // model -> Nullable<Varchar>,
+        // color -> Nullable<Varchar>,
+        // size -> Nullable<Varchar>,
+        // material -> Nullable<Varchar>,
+        // gender -> Nullable<Varchar>,
+        // // Advanced inventory control
+        // warehouse_location -> Nullable<Varchar>,
+        // batch_number -> Nullable<Varchar>,
+        // expiration_date -> Nullable<Date>,
+        // manufacture_date -> Nullable<Date>,
+        // min_stock -> Nullable<Int4>,
+        // max_stock -> Nullable<Int4>,
+        // reorder_point -> Nullable<Int4>,
+        // // Detailed pricing
+        // sale_price -> Nullable<Numeric>,
+        // sale_start -> Nullable<Timestamptz>,
+        // sale_end -> Nullable<Timestamptz>,
+        // shipping_cost -> Nullable<Numeric>,
+        // profit_margin -> Nullable<Numeric>,
         // Payment gateway integration
-        external_id -> Nullable<Varchar>,
-        external_category_id -> Nullable<Varchar>,
-        external_metadata -> Nullable<Jsonb>,
-        // SEO and search
-        slug -> Nullable<Varchar>,
-        meta_title -> Nullable<Varchar>,
-        meta_description -> Nullable<Text>,
-        tags -> Nullable<Array<Nullable<Text>>>,
+        // external_id -> Nullable<Varchar>,
+        // external_category_id -> Nullable<Varchar>,
+        // external_metadata -> Nullable<Jsonb>,
+        // // SEO and search
+        // slug -> Nullable<Varchar>,
+        // meta_title -> Nullable<Varchar>,
+        // meta_description -> Nullable<Text>,
+        // tags -> Nullable<Array<Nullable<Text>>>,
     }
 }
 
