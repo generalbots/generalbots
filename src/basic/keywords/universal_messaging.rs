@@ -616,7 +616,7 @@ fn send_email(
     email: &str,
     message: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    #[cfg(feature = "email")]
+    #[cfg(feature = "mail")]
     {
         use crate::email::EmailService;
 
@@ -625,7 +625,7 @@ fn send_email(
         Ok(())
     }
 
-    #[cfg(not(feature = "email"))]
+    #[cfg(not(feature = "mail"))]
     {
         let _ = (state, email, message);
         error!("Email feature not enabled");
@@ -639,7 +639,7 @@ fn send_email_attachment(
     file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    #[cfg(feature = "email")]
+    #[cfg(feature = "mail")]
     {
         use crate::email::EmailService;
 
@@ -654,7 +654,7 @@ fn send_email_attachment(
         Ok(())
     }
 
-    #[cfg(not(feature = "email"))]
+    #[cfg(not(feature = "mail"))]
     {
         let _ = (state, email, file_data, caption);
         error!("Email feature not enabled for attachments");

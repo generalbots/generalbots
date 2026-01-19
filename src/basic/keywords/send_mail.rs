@@ -280,7 +280,7 @@ async fn execute_send_mail(
         return send_via_connected_account(state, &creds, to, subject, body, attachments).await;
     }
 
-    #[cfg(feature = "email")]
+    #[cfg(feature = "mail")]
     {
         use crate::email::EmailService;
 

@@ -12,9 +12,9 @@ use uuid::Uuid;
 use crate::drive::vectordb::UserDriveVectorDB;
 #[cfg(feature = "vectordb")]
 use crate::drive::vectordb::{FileContentExtractor, FileDocument};
-#[cfg(all(feature = "vectordb", feature = "email"))]
+#[cfg(all(feature = "vectordb", feature = "mail"))]
 use crate::email::vectordb::UserEmailVectorDB;
-#[cfg(all(feature = "vectordb", feature = "email"))]
+#[cfg(all(feature = "vectordb", feature = "mail"))]
 use crate::email::vectordb::{EmailDocument, EmailEmbeddingGenerator};
 use crate::shared::utils::DbPool;
 
@@ -71,7 +71,7 @@ struct UserIndexingJob {
     user_id: Uuid,
     bot_id: Uuid,
     workspace: UserWorkspace,
-    #[cfg(all(feature = "vectordb", feature = "email"))]
+    #[cfg(all(feature = "vectordb", feature = "mail"))]
     email_db: Option<UserEmailVectorDB>,
     #[cfg(feature = "vectordb")]
     drive_db: Option<UserDriveVectorDB>,
