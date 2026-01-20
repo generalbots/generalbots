@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "mail", allow(unused_imports))]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,

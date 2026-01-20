@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "mail", allow(unused_imports))]
 pub mod audit_log;
 pub mod menu_config;
 pub mod permission_inheritance;
@@ -204,7 +205,9 @@ async fn test_smtp_connection(
 State(_state): State<Arc<AppState>>,
 Json(config): Json<SmtpTestRequest>,
 ) -> Json<SmtpTestResponse> {
+#[cfg(feature = "mail")]
 use lettre::SmtpTransport;
+#[cfg(feature = "mail")]
 use lettre::transport::smtp::authentication::Credentials;
 
 
