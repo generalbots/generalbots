@@ -261,7 +261,7 @@ impl SafeCommand {
     }
 
     pub async fn execute_async(&self) -> Result<Output, CommandGuardError> {
-        let mut cmd = tokio::process::Command::new(&self.command);
+        let mut cmd = std::process::Command::new(&self.command);
         cmd.args(&self.args);
 
         if let Some(ref dir) = self.working_dir {

@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "mail", allow(unused_imports))]
 pub mod ui;
 
 use crate::{core::config::EmailConfig, core::urls::ApiUrls, shared::state::AppState};
@@ -16,6 +17,8 @@ use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid, Varchar};
+#[cfg(feature = "mail")]
+#[cfg(feature = "mail")]
 use imap::types::Seq;
 use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use log::{debug, info, warn};

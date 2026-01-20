@@ -592,7 +592,7 @@ impl MetricsCollector {
     async fn collect_disk_usage(&self) -> f64 {
         #[cfg(target_os = "linux")]
         {
-            if let Ok(output) = tokio::process::Command::new("df")
+            if let Ok(output) = std::process::Command::new("df")
                 .args(["-h", "/"])
                 .output()
                 .await
