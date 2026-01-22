@@ -198,3 +198,35 @@ diesel::joinable!(social_praises -> bots (bot_id));
 diesel::joinable!(social_bookmarks -> social_posts (post_id));
 diesel::joinable!(social_hashtags -> organizations (org_id));
 diesel::joinable!(social_hashtags -> bots (bot_id));
+
+diesel::table! {
+    social_channel_accounts (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        name -> Varchar,
+        channel_type -> Varchar,
+        credentials -> Jsonb,
+        settings -> Jsonb,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::joinable!(social_channel_accounts -> organizations (org_id));
+
+diesel::allow_tables_to_appear_in_same_query!(
+    social_communities,
+    social_community_members,
+    social_posts,
+    social_comments,
+    social_reactions,
+    social_polls,
+    social_poll_options,
+    social_poll_votes,
+    social_announcements,
+    social_praises,
+    social_bookmarks,
+    social_hashtags,
+    social_channel_accounts,
+);
