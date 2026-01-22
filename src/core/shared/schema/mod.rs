@@ -76,3 +76,13 @@ pub use self::meet::*;
 mod research;
 #[cfg(feature = "research")]
 pub use self::research::*;
+
+#[cfg(feature = "learn")]
+mod learn;
+#[cfg(feature = "learn")]
+pub use self::learn::*;
+
+#[cfg(feature = "project")]
+mod project;
+#[cfg(feature = "project")]
+pub use self::project::*;
