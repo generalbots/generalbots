@@ -950,6 +950,7 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
 
         // Auth routes - login must be anonymous
         RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),
+
         RoutePermission::new("/api/auth/login", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/auth/bootstrap", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/auth/refresh", "POST", "").with_anonymous(true),

@@ -1440,6 +1440,7 @@ pub async fn create_invitation(
             let invite_message = payload.message.clone();
             let invite_id = new_id;
 
+            #[cfg(feature = "mail")]
             tokio::spawn(async move {
                 if let Err(e) = send_invitation_email(&email_to, &invite_role, invite_message.as_deref(), invite_id).await {
                     warn!("Failed to send invitation email to {}: {}", email_to, e);
@@ -1648,12 +1649,15 @@ pub async fn resend_invitation(
     match result {
         Ok(rows) if rows > 0 => {
             // Trigger email resend
-            let resend_id = id;
-            tokio::spawn(async move {
-                if let Err(e) = send_invitation_email_by_id(resend_id).await {
-                    warn!("Failed to resend invitation email for {}: {}", resend_id, e);
-                }
-            });
+            #[cfg(feature = "mail")]
+            {
+                let resend_id = id;
+                tokio::spawn(async move {
+                    if let Err(e) = send_invitation_email_by_id(resend_id).await {
+                        warn!("Failed to resend invitation email for {}: {}", resend_id, e);
+                    }
+                });
+            }
 
             (StatusCode::OK, Json(serde_json::json!({
                 "success": true,

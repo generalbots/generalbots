@@ -179,6 +179,7 @@ impl UserProvisioningService {
         Ok(())
     }
 
+    #[cfg(feature = "mail")]
     fn setup_email_account(&self, account: &UserAccount) -> Result<()> {
         use crate::shared::models::schema::user_email_accounts;
         use diesel::prelude::*;
@@ -204,6 +205,12 @@ impl UserProvisioningService {
             .execute(&mut conn)?;
 
         log::info!("Setup email configuration for: {}", account.email);
+        Ok(())
+    }
+
+    #[cfg(not(feature = "mail"))]
+    fn setup_email_account(&self, _account: &UserAccount) -> Result<()> {
+        log::debug!("Email feature not enabled, skipping email account setup");
         Ok(())
     }
 
@@ -305,6 +312,7 @@ impl UserProvisioningService {
         Ok(())
     }
 
+    #[cfg(feature = "mail")]
     fn remove_email_config(&self, username: &str) -> Result<()> {
         use crate::shared::models::schema::user_email_accounts;
         use diesel::prelude::*;
@@ -318,6 +326,12 @@ impl UserProvisioningService {
         )
         .execute(&mut conn)?;
 
+        Ok(())
+    }
+
+    #[cfg(not(feature = "mail"))]
+    fn remove_email_config(&self, _username: &str) -> Result<()> {
+        log::debug!("Email feature not enabled, skipping email config removal");
         Ok(())
     }
 }

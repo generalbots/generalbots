@@ -1847,26 +1847,17 @@ VAULT_CACHE_TTL=300
             std::env::set_var("SSL_CERT_FILE", ca_cert_path);
         }
 
-        let timeout_config = aws_config::timeout::TimeoutConfig::builder()
-            .connect_timeout(std::time::Duration::from_secs(5))
-            .read_timeout(std::time::Duration::from_secs(30))
-            .operation_timeout(std::time::Duration::from_secs(30))
-            .operation_attempt_timeout(std::time::Duration::from_secs(15))
-            .build();
-
-        let retry_config = aws_config::retry::RetryConfig::standard()
-            .with_max_attempts(2);
-
-        let base_config = aws_config::defaults(BehaviorVersion::latest())
+        // Provide TokioSleep for retry/timeout configs
+        let base_config = aws_config::from_env()
             .endpoint_url(endpoint)
-            .region("auto")
+            .region(aws_config::Region::new("auto"))
             .credentials_provider(aws_sdk_s3::config::Credentials::new(
                 access_key, secret_key, None, None, "static",
             ))
-            .timeout_config(timeout_config)
-            .retry_config(retry_config)
+            .sleep_impl(std::sync::Arc::new(aws_smithy_async::rt::sleep::TokioSleep::new()))
             .load()
             .await;
+        
         let s3_config = aws_sdk_s3::config::Builder::from(&base_config)
             .force_path_style(true)
             .build();

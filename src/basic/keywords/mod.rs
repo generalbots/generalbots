@@ -27,6 +27,7 @@ pub mod hear_talk;
 pub mod http_operations;
 pub mod human_approval;
 pub mod last;
+#[cfg(feature = "llm")]
 pub mod llm_keyword;
 #[cfg(feature = "llm")]
 pub mod llm_macros;

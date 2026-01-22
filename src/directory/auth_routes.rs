@@ -36,7 +36,7 @@ const BOOTSTRAP_SECRET_ENV: &str = "GB_BOOTSTRAP_SECRET";
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
-    pub remember: Option<bool>,
+    pub remember: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -111,13 +111,14 @@ pub struct BootstrapResponse {
 
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/auth/login", post(login))
-        .route("/api/auth/logout", post(logout))
-        .route("/api/auth/me", get(get_current_user))
-        .route("/api/auth/refresh", post(refresh_token))
-        .route("/api/auth/2fa/verify", post(verify_2fa))
-        .route("/api/auth/2fa/resend", post(resend_2fa))
-        .route("/api/auth/bootstrap", post(bootstrap_admin))
+        .route("/", get(crate::directory::auth_handler))
+        .route("/login", post(login))
+        .route("/logout", post(logout))
+        .route("/me", get(get_current_user))
+        .route("/refresh", post(refresh_token))
+        .route("/2fa/verify", post(verify_2fa))
+        .route("/2fa/resend", post(resend_2fa))
+        .route("/bootstrap", post(bootstrap_admin))
 }
 
 pub async fn login(

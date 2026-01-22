@@ -9,7 +9,7 @@ use crate::auto_task::task_manifest::{
 use crate::basic::keywords::table_definition::{
     generate_create_table_sql, FieldDefinition, TableDefinition,
 };
-use crate::core::config::ConfigManager;
+
 use crate::core::shared::get_content_type;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::{AgentActivity, AppState};
@@ -20,7 +20,7 @@ use diesel::sql_query;
 use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::mpsc;
+
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

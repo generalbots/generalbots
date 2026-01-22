@@ -12,10 +12,12 @@ static GLOBAL: Jemalloc = Jemalloc;
 #[cfg(feature = "automation")]
 pub mod auto_task;
 pub mod basic;
+#[cfg(feature = "billing")]
 pub mod billing;
 #[cfg(feature = "canvas")]
 pub mod canvas;
 pub mod channels;
+#[cfg(feature = "people")]
 pub mod contacts;
 pub mod core;
 #[cfg(feature = "dashboards")]
@@ -27,9 +29,11 @@ pub mod multimodal;
 pub mod player;
 #[cfg(feature = "people")]
 pub mod people;
+#[cfg(feature = "billing")]
 pub mod products;
 pub mod search;
 pub mod security;
+#[cfg(feature = "tickets")]
 pub mod tickets;
 #[cfg(feature = "attendant")]
 pub mod attendant;
@@ -59,8 +63,10 @@ pub mod video;
 pub mod monitoring;
 #[cfg(feature = "project")]
 pub mod project;
+#[cfg(feature = "workspaces")]
 pub mod workspaces;
 pub mod botmodels;
+#[cfg(feature = "compliance")]
 pub mod legal;
 pub mod settings;
 
@@ -224,7 +230,7 @@ use crate::core::bot_database::BotDatabaseManager;
 use crate::core::config::AppConfig;
 
 #[cfg(feature = "directory")]
-use crate::core::directory::auth_handler;
+use crate::directory::auth_handler;
 
 use package_manager::InstallMode;
 use session::{create_session, get_session_history, get_sessions, start_session};
@@ -437,10 +443,9 @@ async fn run_axum_server(
     #[cfg(feature = "directory")]
     {
         api_router = api_router
-            .route(ApiUrls::AUTH, get(auth_handler))
             .merge(crate::core::directory::api::configure_user_routes())
             .merge(crate::directory::router::configure())
-            .merge(crate::directory::auth_routes::configure());
+            .nest(ApiUrls::AUTH, crate::directory::auth_routes::configure());
     }
 
     #[cfg(feature = "meet")]
@@ -520,8 +525,11 @@ api_router = api_router.merge(crate::slides::configure_slides_routes());
         api_router = api_router.merge(crate::dashboards::configure_dashboards_routes());
         api_router = api_router.merge(crate::dashboards::ui::configure_dashboards_ui_routes());
     }
-    api_router = api_router.merge(crate::legal::configure_legal_routes());
-    api_router = api_router.merge(crate::legal::ui::configure_legal_ui_routes());
+    #[cfg(feature = "compliance")]
+    {
+        api_router = api_router.merge(crate::legal::configure_legal_routes());
+        api_router = api_router.merge(crate::legal::ui::configure_legal_ui_routes());
+    }
     #[cfg(feature = "compliance")]
     {
         api_router = api_router.merge(crate::compliance::configure_compliance_routes());
@@ -540,8 +548,11 @@ api_router = api_router.merge(crate::slides::configure_slides_routes());
         api_router = api_router.merge(crate::auto_task::configure_autotask_routes());
     }
     api_router = api_router.merge(crate::core::shared::admin::configure());
-    api_router = api_router.merge(crate::workspaces::configure_workspaces_routes());
-    api_router = api_router.merge(crate::workspaces::ui::configure_workspaces_ui_routes());
+    #[cfg(feature = "workspaces")]
+    {
+        api_router = api_router.merge(crate::workspaces::configure_workspaces_routes());
+        api_router = api_router.merge(crate::workspaces::ui::configure_workspaces_ui_routes());
+    }
     #[cfg(feature = "project")]
     {
         api_router = api_router.merge(crate::project::configure());
@@ -577,14 +588,23 @@ api_router = api_router.merge(crate::email::ui::configure_email_ui_routes());
 {
 api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
 }
-api_router = api_router.merge(crate::contacts::crm_ui::configure_crm_routes());
-    api_router = api_router.merge(crate::contacts::crm::configure_crm_api_routes());
-    api_router = api_router.merge(crate::billing::billing_ui::configure_billing_routes());
-    api_router = api_router.merge(crate::billing::api::configure_billing_api_routes());
-    api_router = api_router.merge(crate::products::configure_products_routes());
-    api_router = api_router.merge(crate::products::api::configure_products_api_routes());
-    api_router = api_router.merge(crate::tickets::configure_tickets_routes());
-    api_router = api_router.merge(crate::tickets::ui::configure_tickets_ui_routes());
+    #[cfg(feature = "people")]
+    {
+        api_router = api_router.merge(crate::contacts::crm_ui::configure_crm_routes());
+        api_router = api_router.merge(crate::contacts::crm::configure_crm_api_routes());
+    }
+    #[cfg(feature = "billing")]
+    {
+        api_router = api_router.merge(crate::billing::billing_ui::configure_billing_routes());
+        api_router = api_router.merge(crate::billing::api::configure_billing_api_routes());
+        api_router = api_router.merge(crate::products::configure_products_routes());
+        api_router = api_router.merge(crate::products::api::configure_products_api_routes());
+    }
+    #[cfg(feature = "tickets")]
+    {
+        api_router = api_router.merge(crate::tickets::configure_tickets_routes());
+        api_router = api_router.merge(crate::tickets::ui::configure_tickets_ui_routes());
+    }
     #[cfg(feature = "people")]
     {
         api_router = api_router.merge(crate::people::configure_people_routes());
@@ -1155,7 +1175,7 @@ use crate::core::config::ConfigManager;
 
                 info!("Loaded Zitadel config from {}: url={}", config_path, base_url);
 
-               crate::core::directory::client::ZitadelConfig {
+                crate::directory::ZitadelConfig {
                     issuer_url: base_url.to_string(),
                     issuer: base_url.to_string(),
                     client_id: client_id.to_string(),
@@ -1167,7 +1187,7 @@ use crate::core::config::ConfigManager;
                 }
             } else {
                 warn!("Failed to parse directory_config.json, using defaults");
-               crate::core::directory::client::ZitadelConfig {
+                crate::directory::ZitadelConfig {
                     issuer_url: "http://localhost:8300".to_string(),
                     issuer: "http://localhost:8300".to_string(),
                     client_id: String::new(),
@@ -1180,7 +1200,7 @@ use crate::core::config::ConfigManager;
             }
         } else {
             warn!("directory_config.json not found, using default Zitadel config");
-           crate::core::directory::client::ZitadelConfig {
+            crate::directory::ZitadelConfig {
                 issuer_url: "http://localhost:8300".to_string(),
                 issuer: "http://localhost:8300".to_string(),
                 client_id: String::new(),
@@ -1194,7 +1214,7 @@ use crate::core::config::ConfigManager;
     };
     #[cfg(feature = "directory")]
     let auth_service = Arc::new(tokio::sync::Mutex::new(
-       crate::core::directory::AuthService::new(zitadel_config.clone()).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
+       crate::directory::AuthService::new(zitadel_config.clone()).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
     ));
 
     #[cfg(feature = "directory")]
@@ -1205,22 +1225,22 @@ use crate::core::config::ConfigManager;
                 Ok(pat_token) => {
                     let pat_token = pat_token.trim().to_string();
                     info!("Using admin PAT token for bootstrap authentication");
-                   crate::core::directory::client::ZitadelClient::with_pat_token(zitadel_config, pat_token)
+                   crate::directory::ZitadelClient::with_pat_token(zitadel_config, pat_token)
                         .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client with PAT: {}", e)))?
                 }
                 Err(e) => {
                     warn!("Failed to read admin PAT token: {}, falling back to OAuth2", e);
-                   crate::core::directory::client::ZitadelClient::new(zitadel_config)
+                   crate::directory::ZitadelClient::new(zitadel_config)
                         .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
                 }
             }
         } else {
             info!("Admin PAT not found, using OAuth2 client credentials for bootstrap");
-           crate::core::directory::client::ZitadelClient::new(zitadel_config)
+           crate::directory::ZitadelClient::new(zitadel_config)
                 .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
         };
 
-        match crate::core::directory::bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
+        match crate::directory::bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
             Ok(Some(_)) => {
                 info!("Bootstrap completed - admin credentials displayed in console");
             }
@@ -1257,13 +1277,16 @@ use crate::core::config::ConfigManager;
         .get_config(&default_bot_id, "llm-key", Some(""))
         .unwrap_or_default();
 
-    let base_llm_provider =crate::llm::create_llm_provider_from_url(
+    #[cfg(feature = "llm")]
+    let base_llm_provider = crate::llm::create_llm_provider_from_url(
         &llm_url,
         if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
     );
 
+    #[cfg(feature = "llm")]
     let dynamic_llm_provider = Arc::new(crate::llm::DynamicLLMProvider::new(base_llm_provider));
 
+    #[cfg(feature = "llm")]
     let llm_provider: Arc<dyn crate::llm::LLMProvider> = if let Some(ref cache) = redis_client {
         let embedding_url = config_manager
             .get_config(
@@ -1284,7 +1307,7 @@ use crate::core::config::ConfigManager;
         ))
             as Arc<dyn crate::llm::cache::EmbeddingService>);
 
-        let cache_config =crate::llm::cache::CacheConfig {
+        let cache_config = crate::llm::cache::CacheConfig {
             ttl: 3600,
             semantic_matching: true,
             similarity_threshold: 0.85,
@@ -1354,6 +1377,7 @@ use crate::core::config::ConfigManager;
         session_manager: session_manager.clone(),
         metrics_collector,
         task_scheduler,
+        #[cfg(feature = "llm")]
         llm_provider: llm_provider.clone(),
         #[cfg(feature = "directory")]
         auth_service: auth_service.clone(),
@@ -1371,7 +1395,8 @@ use crate::core::config::ConfigManager;
         kb_manager: Some(kb_manager.clone()),
         task_engine,
         extensions: {
-            let ext =crate::core::shared::state::Extensions::new();
+            let ext = crate::core::shared::state::Extensions::new();
+            #[cfg(feature = "llm")]
             ext.insert_blocking(Arc::clone(&dynamic_llm_provider));
             ext
         },
@@ -1379,7 +1404,9 @@ use crate::core::config::ConfigManager;
         task_progress_broadcast: Some(task_progress_tx),
         billing_alert_broadcast: None,
         task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
+        #[cfg(feature = "project")]
         project_service: Arc::new(tokio::sync::RwLock::new(crate::project::ProjectService::new())),
+        #[cfg(feature = "compliance")]
         legal_service: Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new())),
         jwt_manager: None,
         auth_provider_registry: None,

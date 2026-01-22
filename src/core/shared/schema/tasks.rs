@@ -19,3 +19,5 @@ diesel::table! {
         completed_at -> Nullable<Timestamptz>,
     }
 }
+
+pub use self::tasks::*;

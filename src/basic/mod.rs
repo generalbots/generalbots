@@ -45,6 +45,7 @@ use self::keywords::use_tool::use_tool_keyword;
 use self::keywords::use_website::{clear_websites_keyword, use_website_keyword};
 use self::keywords::web_data::register_web_data_keywords;
 use self::keywords::webhook::webhook_keyword;
+#[cfg(feature = "llm")]
 use self::keywords::llm_keyword::llm_keyword;
 use self::keywords::on::on_keyword;
 use self::keywords::print::print_keyword;
@@ -132,6 +133,7 @@ impl ScriptService {
         first_keyword(&mut engine);
         last_keyword(&mut engine);
         format_keyword(&mut engine);
+        #[cfg(feature = "llm")]
         llm_keyword(state.clone(), user.clone(), &mut engine);
         get_keyword(state.clone(), user.clone(), &mut engine);
         set_keyword(&state, user.clone(), &mut engine);
