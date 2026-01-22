@@ -1,6 +1,7 @@
-# botserver Development Prompt Guide
+# botserver Development Guide
 
-**Version:** 6.1.0
+**Version:** 6.2.0  
+**Purpose:** Main API server for General Bots (Axum + Diesel + Rhai BASIC + HTMX in botui)
 
 ---
 
@@ -10,7 +11,7 @@
 
 ---
 
-## ABSOLUTE PROHIBITIONS
+## ❌ ABSOLUTE PROHIBITIONS
 
 ```
 ❌ NEVER use #![allow()] or #[allow()] in source code
@@ -29,7 +30,7 @@
 
 ---
 
-## SECURITY REQUIREMENTS
+## 🔐 SECURITY REQUIREMENTS
 
 ### Error Handling
 
@@ -113,7 +114,7 @@ Command::new("/usr/bin/tool").arg(safe).output()?;
 
 ---
 
-## CODE PATTERNS
+## ✅ CODE PATTERNS
 
 ### Format Strings - Inline Variables
 
@@ -172,23 +173,39 @@ date.with_hour(9).and_then(|d| d.with_minute(0)).unwrap_or(date)
 
 ---
 
-## DATABASE STANDARDS
+## 📁 KEY DIRECTORIES
 
-- TABLES AND INDEXES ONLY (no views, triggers, functions)
-- JSON columns: use TEXT with `_json` suffix
-- Use diesel - no sqlx
+```
+src/
+├── core/           # Bootstrap, config, routes
+├── basic/          # Rhai BASIC interpreter
+│   └── keywords/   # BASIC keyword implementations
+├── security/       # Security modules
+├── shared/         # Shared types, models
+├── tasks/          # AutoTask system
+└── auto_task/      # App generator
+```
 
 ---
 
-## FRONTEND RULES
+## 🗄️ DATABASE STANDARDS
 
-- Use HTMX - minimize JavaScript
-- NO external CDN - all assets local
-- Server-side rendering with Askama templates
+- **TABLES AND INDEXES ONLY** (no views, triggers, functions)
+- **JSON columns:** use TEXT with `_json` suffix
+- **ORM:** Use diesel - no sqlx
+- **Migrations:** Located in `botserver/migrations/`
 
 ---
 
-## DEPENDENCIES
+## 🎨 FRONTEND RULES
+
+- **Use HTMX** - minimize JavaScript
+- **NO external CDN** - all assets local
+- **Server-side rendering** with Askama templates
+
+---
+
+## 📦 KEY DEPENDENCIES
 
 | Library | Version | Purpose |
 |---------|---------|---------|
@@ -202,35 +219,7 @@ date.with_hour(9).and_then(|d| d.with_minute(0)).unwrap_or(date)
 
 ---
 
-## COMPILATION POLICY - CRITICAL
-
-**NEVER compile during development. NEVER run `cargo build`. Use static analysis only.**
-
-### Workflow
-
-1. Make all code changes
-2. Use `diagnostics` tool for static analysis (NOT compilation)
-3. Fix any errors found by diagnostics
-4. **At the end**, inform user what needs restart
-
-### After All Changes Complete
-
-| Change Type | User Action Required |
-|-------------|----------------------|
-| Rust code (`.rs` files) | "Recompile and restart **botserver**" |
-| HTML templates (`.html` in botui) | "Browser refresh only" |
-| CSS/JS files | "Browser refresh only" |
-| Askama templates (`.html` in botserver) | "Recompile and restart **botserver**" |
-| Database migrations | "Run migration, then restart **botserver**" |
-| Cargo.toml changes | "Recompile and restart **botserver**" |
-
-**Format:** At the end of your response, always state:
-- ✅ **No restart needed** - browser refresh only
-- 🔄 **Restart botserver** - recompile required
-
----
-
-## KEY REMINDERS
+## 🔑 REMEMBER
 
 - **ZERO WARNINGS** - fix every clippy warning
 - **ZERO COMMENTS** - no comments, no doc comments
@@ -239,6 +228,6 @@ date.with_hour(9).and_then(|d| d.with_minute(0)).unwrap_or(date)
 - **NO UNWRAP/EXPECT** - use ? or combinators
 - **PARAMETERIZED SQL** - never format! for queries
 - **VALIDATE COMMANDS** - never pass raw user input
-- **USE DIAGNOSTICS** - never call cargo clippy directly
 - **INLINE FORMAT ARGS** - `format!("{name}")` not `format!("{}", name)`
 - **USE SELF** - in impl blocks, use Self not type name
+- **Version 6.2.0** - do not change without approval

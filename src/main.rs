@@ -346,6 +346,7 @@ async fn run_axum_server(
         .add_anonymous_path("/healthz")
         .add_anonymous_path("/api/health")
         .add_anonymous_path("/api/product")
+        .add_anonymous_path("/api/manifest")
         .add_anonymous_path("/api/i18n")
         .add_anonymous_path("/api/auth/login")
         .add_anonymous_path("/api/auth/refresh")
@@ -425,10 +426,16 @@ async fn run_axum_server(
         Json(get_product_config_json())
     }
 
+    async fn get_workspace_manifest() -> Json<serde_json::Value> {
+        use crate::core::product::get_workspace_manifest;
+        Json(get_workspace_manifest())
+    }
+
     let mut api_router = Router::new()
         .route("/health", get(health_check_simple))
         .route(ApiUrls::HEALTH, get(health_check))
         .route("/api/product", get(get_product_config))
+        .route("/api/manifest", get(get_workspace_manifest))
         .route(ApiUrls::SESSIONS, post(create_session))
         .route(ApiUrls::SESSIONS, get(get_sessions))
         .route(ApiUrls::SESSION_HISTORY, get(get_session_history))
