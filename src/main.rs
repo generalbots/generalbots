@@ -9,40 +9,55 @@ use tikv_jemallocator::Jemalloc;
 static GLOBAL: Jemalloc = Jemalloc;
 
 // Module declarations
+#[cfg(feature = "automation")]
 pub mod auto_task;
 pub mod basic;
 pub mod billing;
+#[cfg(feature = "canvas")]
 pub mod canvas;
 pub mod channels;
 pub mod contacts;
 pub mod core;
+#[cfg(feature = "dashboards")]
 pub mod dashboards;
 pub mod embedded_ui;
 pub mod maintenance;
 pub mod multimodal;
+#[cfg(feature = "player")]
 pub mod player;
+#[cfg(feature = "people")]
 pub mod people;
 pub mod products;
 pub mod search;
 pub mod security;
 pub mod tickets;
+#[cfg(feature = "attendant")]
 pub mod attendant;
+#[cfg(feature = "analytics")]
 pub mod analytics;
+#[cfg(feature = "designer")]
 pub mod designer;
 #[cfg(feature = "docs")]
 pub mod docs;
+#[cfg(feature = "learn")]
 pub mod learn;
 #[cfg(feature = "paper")]
 pub mod paper;
+#[cfg(feature = "research")]
 pub mod research;
 #[cfg(feature = "sheet")]
 pub mod sheet;
 #[cfg(feature = "slides")]
 pub mod slides;
+#[cfg(feature = "social")]
 pub mod social;
+#[cfg(feature = "sources")]
 pub mod sources;
+#[cfg(feature = "video")]
 pub mod video;
+#[cfg(feature = "monitoring")]
 pub mod monitoring;
+#[cfg(feature = "project")]
 pub mod project;
 pub mod workspaces;
 pub mod botmodels;
@@ -192,12 +207,14 @@ use crate::core::shared::memory_monitor::{
     register_thread, record_thread_activity
 };
 
+#[cfg(feature = "automation")]
 use crate::core::automation;
 use crate::core::bootstrap;
 use crate::core::bot;
 use crate::core::package_manager;
 use crate::core::session;
 
+#[cfg(feature = "automation")]
 use automation::AutomationService;
 use bootstrap::BootstrapManager;
 use crate::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
@@ -410,8 +427,12 @@ async fn run_axum_server(
         .route(ApiUrls::SESSIONS, get(get_sessions))
         .route(ApiUrls::SESSION_HISTORY, get(get_session_history))
         .route(ApiUrls::SESSION_START, post(start_session))
-        .route(ApiUrls::WS, get(websocket_handler))
-        .merge(crate::drive::configure());
+        .route(ApiUrls::WS, get(websocket_handler));
+
+    #[cfg(feature = "drive")]
+    {
+        api_router = api_router.merge(crate::drive::configure());
+    }
 
     #[cfg(feature = "directory")]
     {
@@ -442,7 +463,10 @@ async fn run_axum_server(
         ));
     }
 
-    api_router = api_router.merge(crate::tasks::configure_task_routes());
+    #[cfg(feature = "tasks")]
+    {
+        api_router = api_router.merge(crate::tasks::configure_task_routes());
+    }
 
     #[cfg(feature = "calendar")]
     {
@@ -450,7 +474,10 @@ async fn run_axum_server(
         api_router = api_router.merge(crate::calendar::ui::configure_calendar_ui_routes());
     }
 
-    api_router = api_router.merge(crate::analytics::configure_analytics_routes());
+    #[cfg(feature = "analytics")]
+    {
+        api_router = api_router.merge(crate::analytics::configure_analytics_routes());
+    }
     api_router = api_router.merge(crate::core::i18n::configure_i18n_routes());
 #[cfg(feature = "docs")]
 {
@@ -468,16 +495,31 @@ api_router = api_router.merge(crate::sheet::configure_sheet_routes());
 {
 api_router = api_router.merge(crate::slides::configure_slides_routes());
 }
-api_router = api_router.merge(crate::video::configure_video_routes());
-    api_router = api_router.merge(crate::video::ui::configure_video_ui_routes());
-    api_router = api_router.merge(crate::research::configure_research_routes());
-    api_router = api_router.merge(crate::research::ui::configure_research_ui_routes());
-    api_router = api_router.merge(crate::sources::configure_sources_routes());
-    api_router = api_router.merge(crate::sources::ui::configure_sources_ui_routes());
-    api_router = api_router.merge(crate::designer::configure_designer_routes());
-    api_router = api_router.merge(crate::designer::ui::configure_designer_ui_routes());
-    api_router = api_router.merge(crate::dashboards::configure_dashboards_routes());
-    api_router = api_router.merge(crate::dashboards::ui::configure_dashboards_ui_routes());
+    #[cfg(feature = "video")]
+    {
+        api_router = api_router.merge(crate::video::configure_video_routes());
+        api_router = api_router.merge(crate::video::ui::configure_video_ui_routes());
+    }
+    #[cfg(feature = "research")]
+    {
+        api_router = api_router.merge(crate::research::configure_research_routes());
+        api_router = api_router.merge(crate::research::ui::configure_research_ui_routes());
+    }
+    #[cfg(feature = "sources")]
+    {
+        api_router = api_router.merge(crate::sources::configure_sources_routes());
+        api_router = api_router.merge(crate::sources::ui::configure_sources_ui_routes());
+    }
+    #[cfg(feature = "designer")]
+    {
+        api_router = api_router.merge(crate::designer::configure_designer_routes());
+        api_router = api_router.merge(crate::designer::ui::configure_designer_ui_routes());
+    }
+    #[cfg(feature = "dashboards")]
+    {
+        api_router = api_router.merge(crate::dashboards::configure_dashboards_routes());
+        api_router = api_router.merge(crate::dashboards::ui::configure_dashboards_ui_routes());
+    }
     api_router = api_router.merge(crate::legal::configure_legal_routes());
     api_router = api_router.merge(crate::legal::ui::configure_legal_ui_routes());
     #[cfg(feature = "compliance")]
@@ -485,24 +527,48 @@ api_router = api_router.merge(crate::video::configure_video_routes());
         api_router = api_router.merge(crate::compliance::configure_compliance_routes());
         api_router = api_router.merge(crate::compliance::ui::configure_compliance_ui_routes());
     }
-    api_router = api_router.merge(crate::monitoring::configure());
+    #[cfg(feature = "monitoring")]
+    {
+        api_router = api_router.merge(crate::monitoring::configure());
+    }
     api_router = api_router.merge(crate::security::configure_protection_routes());
     api_router = api_router.merge(crate::settings::configure_settings_routes());
     api_router = api_router.merge(crate::basic::keywords::configure_db_routes());
     api_router = api_router.merge(crate::basic::keywords::configure_app_server_routes());
-    api_router = api_router.merge(crate::auto_task::configure_autotask_routes());
+    #[cfg(feature = "automation")]
+    {
+        api_router = api_router.merge(crate::auto_task::configure_autotask_routes());
+    }
     api_router = api_router.merge(crate::core::shared::admin::configure());
     api_router = api_router.merge(crate::workspaces::configure_workspaces_routes());
     api_router = api_router.merge(crate::workspaces::ui::configure_workspaces_ui_routes());
-    api_router = api_router.merge(crate::project::configure());
-    api_router = api_router.merge(crate::analytics::goals::configure_goals_routes());
-    api_router = api_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes());
-    api_router = api_router.merge(crate::player::configure_player_routes());
-    api_router = api_router.merge(crate::canvas::configure_canvas_routes());
-    api_router = api_router.merge(crate::canvas::ui::configure_canvas_ui_routes());
-api_router = api_router.merge(crate::social::configure_social_routes());
-api_router = api_router.merge(crate::social::ui::configure_social_ui_routes());
-api_router = api_router.merge(crate::learn::ui::configure_learn_ui_routes());
+    #[cfg(feature = "project")]
+    {
+        api_router = api_router.merge(crate::project::configure());
+    }
+    #[cfg(feature = "analytics")]
+    {
+        api_router = api_router.merge(crate::analytics::goals::configure_goals_routes());
+        api_router = api_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes());
+    }
+    #[cfg(feature = "player")]
+    {
+        api_router = api_router.merge(crate::player::configure_player_routes());
+    }
+    #[cfg(feature = "canvas")]
+    {
+        api_router = api_router.merge(crate::canvas::configure_canvas_routes());
+        api_router = api_router.merge(crate::canvas::ui::configure_canvas_ui_routes());
+    }
+    #[cfg(feature = "social")]
+    {
+        api_router = api_router.merge(crate::social::configure_social_routes());
+        api_router = api_router.merge(crate::social::ui::configure_social_ui_routes());
+    }
+    #[cfg(feature = "learn")]
+    {
+        api_router = api_router.merge(crate::learn::ui::configure_learn_ui_routes());
+    }
 #[cfg(feature = "mail")]
 {
 api_router = api_router.merge(crate::email::ui::configure_email_ui_routes());
@@ -519,10 +585,16 @@ api_router = api_router.merge(crate::contacts::crm_ui::configure_crm_routes());
     api_router = api_router.merge(crate::products::api::configure_products_api_routes());
     api_router = api_router.merge(crate::tickets::configure_tickets_routes());
     api_router = api_router.merge(crate::tickets::ui::configure_tickets_ui_routes());
-    api_router = api_router.merge(crate::people::configure_people_routes());
-    api_router = api_router.merge(crate::people::ui::configure_people_ui_routes());
-    api_router = api_router.merge(crate::attendant::configure_attendant_routes());
-    api_router = api_router.merge(crate::attendant::ui::configure_attendant_ui_routes());
+    #[cfg(feature = "people")]
+    {
+        api_router = api_router.merge(crate::people::configure_people_routes());
+        api_router = api_router.merge(crate::people::ui::configure_people_ui_routes());
+    }
+    #[cfg(feature = "attendant")]
+    {
+        api_router = api_router.merge(crate::attendant::configure_attendant_routes());
+        api_router = api_router.merge(crate::attendant::ui::configure_attendant_ui_routes());
+    }
 
     #[cfg(feature = "whatsapp")]
     {
@@ -768,6 +840,7 @@ async fn main() -> std::io::Result<()> {
 
     std::env::set_var("RUST_LOG", &rust_log);
 
+#[cfg(feature = "llm")]
 use crate::llm::local::ensure_llama_servers_running;
 use crate::core::config::ConfigManager;
 
@@ -1367,31 +1440,37 @@ use crate::core::config::ConfigManager;
         });
     }
 
-    let automation_state = app_state.clone();
-    tokio::spawn(async move {
-        register_thread("automation-service", "automation");
-        let automation = AutomationService::new(automation_state);
-        trace!("[TASK] AutomationService starting, RSS={}",
-              MemoryStats::format_bytes(MemoryStats::current().rss_bytes));
-        loop {
-            record_thread_activity("automation-service");
-            if let Err(e) = automation.check_scheduled_tasks().await {
-                error!("Error checking scheduled tasks: {}", e);
+    #[cfg(feature = "automation")]
+    {
+        let automation_state = app_state.clone();
+        tokio::spawn(async move {
+            register_thread("automation-service", "automation");
+            let automation = AutomationService::new(automation_state);
+            trace!("[TASK] AutomationService starting, RSS={}",
+                  MemoryStats::format_bytes(MemoryStats::current().rss_bytes));
+            loop {
+                record_thread_activity("automation-service");
+                if let Err(e) = automation.check_scheduled_tasks().await {
+                    error!("Error checking scheduled tasks: {}", e);
+                }
+                tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
             }
-            tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-        }
-    });
+        });
+    }
 
-    let app_state_for_llm = app_state.clone();
-    tokio::spawn(async move {
-        register_thread("llm-server-init", "llm");
-        trace!("ensure_llama_servers_running starting...");
-        if let Err(e) = ensure_llama_servers_running(app_state_for_llm).await {
-            error!("Failed to start LLM servers: {}", e);
-        }
-        trace!("ensure_llama_servers_running completed");
-        record_thread_activity("llm-server-init");
-    });
+    #[cfg(feature = "llm")]
+    {
+        let app_state_for_llm = app_state.clone();
+        tokio::spawn(async move {
+            register_thread("llm-server-init", "llm");
+            trace!("ensure_llama_servers_running starting...");
+            if let Err(e) = ensure_llama_servers_running(app_state_for_llm).await {
+                error!("Failed to start LLM servers: {}", e);
+            }
+            trace!("ensure_llama_servers_running completed");
+            record_thread_activity("llm-server-init");
+        });
+    }
     trace!("Initial data setup task spawned");
     trace!("All system threads started, starting HTTP server...");
 

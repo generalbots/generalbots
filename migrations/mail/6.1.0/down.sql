@@ -1,0 +1,20 @@
+DROP TABLE IF EXISTS email_received_events;
+DROP TABLE IF EXISTS email_monitors;
+DROP TABLE IF EXISTS sent_email_tracking;
+-- Remove active_email_account_id from user_sessions
+ALTER TABLE user_sessions DROP CONSTRAINT IF EXISTS user_sessions_email_account_id_fkey;
+ALTER TABLE user_sessions DROP COLUMN IF EXISTS active_email_account_id;
+DROP TABLE IF EXISTS email_folders;
+DROP TABLE IF EXISTS email_drafts;
+DROP TABLE IF EXISTS user_email_accounts;
+DROP TABLE IF EXISTS shared_mailbox_members;
+DROP TABLE IF EXISTS shared_mailboxes;
+DROP TABLE IF EXISTS distribution_lists;
+DROP TABLE IF EXISTS email_label_assignments;
+DROP TABLE IF EXISTS email_labels;
+DROP TABLE IF EXISTS email_rules;
+DROP TABLE IF EXISTS email_auto_responders;
+DROP TABLE IF EXISTS email_templates;
+DROP TABLE IF EXISTS scheduled_emails;
+DROP TABLE IF EXISTS email_signatures;
+DROP TABLE IF EXISTS global_email_signatures;

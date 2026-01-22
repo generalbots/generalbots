@@ -595,7 +595,6 @@ impl MetricsCollector {
             if let Ok(output) = std::process::Command::new("df")
                 .args(["-h", "/"])
                 .output()
-                .await
             {
                 if let Ok(stdout) = String::from_utf8(output.stdout) {
                     if let Some(line) = stdout.lines().nth(1) {

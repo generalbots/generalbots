@@ -1,16 +1,20 @@
 use crate::core::config::DriveConfig;
 use crate::core::secrets::SecretsManager;
 use anyhow::{Context, Result};
+#[cfg(feature = "drive")]
 use aws_config::BehaviorVersion;
+#[cfg(feature = "drive")]
 use aws_config::retry::RetryConfig;
+#[cfg(feature = "drive")]
 use aws_config::timeout::TimeoutConfig;
+#[cfg(feature = "drive")]
 use aws_sdk_s3::{config::Builder as S3ConfigBuilder, Client as S3Client};
 use diesel::Connection;
 use diesel::{
     r2d2::{ConnectionManager, Pool},
     PgConnection,
 };
-use futures_util::StreamExt;
+use futures_util::stream::StreamExt;
 #[cfg(feature = "progress-bars")]
 use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, warn};
@@ -73,6 +77,7 @@ pub async fn get_secrets_manager() -> Option<SecretsManager> {
     guard.clone()
 }
 
+#[cfg(feature = "drive")]
 pub async fn create_s3_operator(
     config: &DriveConfig,
 ) -> Result<S3Client, Box<dyn std::error::Error>> {
@@ -198,14 +203,9 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
                 .progress_chars("#>-"));
             pb.set_message(format!("Downloading {}", url));
             let mut file = TokioFile::create(&output_path).await?;
-            let mut downloaded: u64 = 0;
-            let mut stream = response.bytes_stream();
-            while let Some(chunk_result) = stream.next().await {
-                let chunk = chunk_result?;
-                file.write_all(&chunk).await?;
-                downloaded += chunk.len() as u64;
-                pb.set_position(downloaded);
-            }
+            let bytes = response.bytes().await?;
+            file.write_all(&bytes).await?;
+            pb.set_position(bytes.len() as u64);
             pb.finish_with_message(format!("Downloaded {}", output_path));
             Ok(())
         } else {
@@ -231,11 +231,8 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
         let response = client.get(&url).send().await?;
         if response.status().is_success() {
             let mut file = TokioFile::create(&output_path).await?;
-            let mut stream = response.bytes_stream();
-            while let Some(chunk_result) = stream.next().await {
-                let chunk = chunk_result?;
-                file.write_all(&chunk).await?;
-            }
+            let bytes = response.bytes().await?;
+            file.write_all(&bytes).await?;
             Ok(())
         } else {
             Err(anyhow::anyhow!("HTTP {}: {}", response.status(), url))
@@ -329,16 +326,151 @@ pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
 }
 
 pub fn run_migrations(pool: &DbPool) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = pool.get()?;
+    run_migrations_on_conn(&mut conn)
+}
+
+pub fn run_migrations_on_conn(conn: &mut diesel::PgConnection) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
-    const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+    // Core migrations (Always run)
+    const CORE_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/core");
+    conn.run_pending_migrations(CORE_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Core migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
 
-    let mut conn = pool.get()?;
-    conn.run_pending_migrations(MIGRATIONS).map_err(
-        |e| -> Box<dyn std::error::Error + Send + Sync> {
-            Box::new(std::io::Error::other(format!("Migration error: {}", e)))
-        },
-    )?;
+    // Calendar
+    #[cfg(feature = "calendar")]
+    {
+        const CALENDAR_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/calendar");
+        conn.run_pending_migrations(CALENDAR_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Calendar migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // People (CRM)
+    #[cfg(feature = "people")]
+    {
+        const PEOPLE_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/people");
+        conn.run_pending_migrations(PEOPLE_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("People migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Mail
+    #[cfg(feature = "mail")]
+    {
+        const MAIL_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/mail");
+        conn.run_pending_migrations(MAIL_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Mail migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Tasks
+    #[cfg(feature = "tasks")]
+    {
+        const TASKS_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/tasks");
+        conn.run_pending_migrations(TASKS_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Tasks migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Drive
+    #[cfg(feature = "drive")]
+    {
+        const DRIVE_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/drive");
+        conn.run_pending_migrations(DRIVE_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Drive migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Automation
+    #[cfg(feature = "automation")]
+    {
+        const AUTOMATION_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/automation");
+        conn.run_pending_migrations(AUTOMATION_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Automation migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Paper
+    #[cfg(feature = "paper")]
+    {
+        const PAPER_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/paper");
+        conn.run_pending_migrations(PAPER_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Paper migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Designer
+    #[cfg(feature = "designer")]
+    {
+        const DESIGNER_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/designer");
+        conn.run_pending_migrations(DESIGNER_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Designer migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // LLM
+    #[cfg(feature = "llm")]
+    {
+        const LLM_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/llm");
+        conn.run_pending_migrations(LLM_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("LLM migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Billing
+    const BILLING_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/billing");
+    conn.run_pending_migrations(BILLING_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Billing migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+
+    // Attendant
+    #[cfg(feature = "attendant")]
+    {
+        const ATTENDANT_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/attendant");
+        conn.run_pending_migrations(ATTENDANT_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Attendant migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Analytics
+    #[cfg(feature = "analytics")]
+    {
+        const ANALYTICS_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/analytics");
+        conn.run_pending_migrations(ANALYTICS_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Analytics migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Meet
+    #[cfg(feature = "meet")]
+    {
+        const MEET_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/meet");
+        conn.run_pending_migrations(MEET_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Meet migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Tickets (Feedback)
+    const TICKETS_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/tickets");
+    conn.run_pending_migrations(TICKETS_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Tickets migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+
+    // Compliance
+    #[cfg(feature = "compliance")]
+    {
+        const COMPLIANCE_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/compliance");
+        conn.run_pending_migrations(COMPLIANCE_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Compliance migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Canvas
+    #[cfg(feature = "canvas")]
+    {
+        const CANVAS_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/canvas");
+        conn.run_pending_migrations(CANVAS_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Canvas migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Social
+    #[cfg(feature = "social")]
+    {
+        const SOCIAL_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/social");
+        conn.run_pending_migrations(SOCIAL_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Social migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Workspaces
+    #[cfg(feature = "workspace")]
+    {
+        const WORKSPACE_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/workspaces");
+        conn.run_pending_migrations(WORKSPACE_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Workspace migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Goals
+    #[cfg(feature = "goals")]
+    {
+        const GOALS_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/goals");
+        conn.run_pending_migrations(GOALS_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Goals migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    // Research
+    #[cfg(feature = "research")]
+    {
+        const RESEARCH_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/research");
+        conn.run_pending_migrations(RESEARCH_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Research migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
     Ok(())
 }
 

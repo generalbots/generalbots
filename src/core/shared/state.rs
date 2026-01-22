@@ -5,6 +5,7 @@ use crate::core::config::AppConfig;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
+#[cfg(feature = "project")]
 use crate::project::ProjectService;
 use crate::legal::LegalService;
 use crate::security::auth_provider::AuthProviderRegistry;
@@ -20,6 +21,7 @@ use crate::core::directory::AuthService;
 use crate::llm::LLMProvider;
 use crate::shared::models::BotResponse;
 use crate::shared::utils::DbPool;
+#[cfg(feature = "tasks")]
 use crate::tasks::{TaskEngine, TaskScheduler};
 #[cfg(feature = "drive")]
 use aws_sdk_s3::Client as S3Client;
@@ -341,6 +343,7 @@ pub struct BillingAlertNotification {
 pub struct AppState {
     #[cfg(feature = "drive")]
     pub drive: Option<S3Client>,
+    #[cfg(feature = "drive")]
     pub s3_client: Option<S3Client>,
     #[cfg(feature = "cache")]
     pub cache: Option<Arc<RedisClient>>,
@@ -351,6 +354,7 @@ pub struct AppState {
     pub bot_database_manager: Arc<BotDatabaseManager>,
     pub session_manager: Arc<tokio::sync::Mutex<SessionManager>>,
     pub metrics_collector: MetricsCollector,
+    #[cfg(feature = "tasks")]
     pub task_scheduler: Option<Arc<TaskScheduler>>,
     #[cfg(feature = "llm")]
     pub llm_provider: Arc<dyn LLMProvider>,
@@ -361,12 +365,14 @@ pub struct AppState {
     pub web_adapter: Arc<WebChannelAdapter>,
     pub voice_adapter: Arc<VoiceAdapter>,
     pub kb_manager: Option<Arc<KnowledgeBaseManager>>,
+    #[cfg(feature = "tasks")]
     pub task_engine: Arc<TaskEngine>,
     pub extensions: Extensions,
     pub attendant_broadcast: Option<broadcast::Sender<AttendantNotification>>,
     pub task_progress_broadcast: Option<broadcast::Sender<TaskProgressEvent>>,
     pub billing_alert_broadcast: Option<broadcast::Sender<BillingAlertNotification>>,
     pub task_manifests: Arc<std::sync::RwLock<HashMap<String, TaskManifest>>>,
+    #[cfg(feature = "project")]
     pub project_service: Arc<RwLock<ProjectService>>,
     pub legal_service: Arc<RwLock<LegalService>>,
     pub jwt_manager: Option<Arc<JwtManager>>,
@@ -379,6 +385,7 @@ impl Clone for AppState {
         Self {
             #[cfg(feature = "drive")]
             drive: self.drive.clone(),
+            #[cfg(feature = "drive")]
             s3_client: self.s3_client.clone(),
             bucket_name: self.bucket_name.clone(),
             config: self.config.clone(),
@@ -389,6 +396,7 @@ impl Clone for AppState {
             cache: self.cache.clone(),
             session_manager: Arc::clone(&self.session_manager),
             metrics_collector: self.metrics_collector.clone(),
+            #[cfg(feature = "tasks")]
             task_scheduler: self.task_scheduler.clone(),
             #[cfg(feature = "llm")]
             llm_provider: Arc::clone(&self.llm_provider),
@@ -399,12 +407,14 @@ impl Clone for AppState {
             response_channels: Arc::clone(&self.response_channels),
             web_adapter: Arc::clone(&self.web_adapter),
             voice_adapter: Arc::clone(&self.voice_adapter),
+            #[cfg(feature = "tasks")]
             task_engine: Arc::clone(&self.task_engine),
             extensions: self.extensions.clone(),
             attendant_broadcast: self.attendant_broadcast.clone(),
             task_progress_broadcast: self.task_progress_broadcast.clone(),
             billing_alert_broadcast: self.billing_alert_broadcast.clone(),
             task_manifests: Arc::clone(&self.task_manifests),
+            #[cfg(feature = "project")]
             project_service: Arc::clone(&self.project_service),
             legal_service: Arc::clone(&self.legal_service),
             jwt_manager: self.jwt_manager.clone(),
@@ -421,6 +431,7 @@ impl std::fmt::Debug for AppState {
         #[cfg(feature = "drive")]
         debug.field("drive", &self.drive.is_some());
 
+        #[cfg(feature = "drive")]
         debug.field("s3_client", &self.s3_client.is_some());
 
         #[cfg(feature = "cache")]
@@ -433,8 +444,10 @@ impl std::fmt::Debug for AppState {
             .field("database_url", &"[REDACTED]")
             .field("bot_database_manager", &"Arc<BotDatabaseManager>")
             .field("session_manager", &"Arc<Mutex<SessionManager>>")
-            .field("metrics_collector", &"MetricsCollector")
-            .field("task_scheduler", &self.task_scheduler.is_some());
+            .field("metrics_collector", &"MetricsCollector");
+
+        #[cfg(feature = "tasks")]
+        debug.field("task_scheduler", &self.task_scheduler.is_some());
 
         #[cfg(feature = "llm")]
         debug.field("llm_provider", &"Arc<dyn LLMProvider>");
@@ -447,8 +460,12 @@ impl std::fmt::Debug for AppState {
             .field("response_channels", &"Arc<Mutex<HashMap>>")
             .field("web_adapter", &self.web_adapter)
             .field("voice_adapter", &self.voice_adapter)
-            .field("kb_manager", &self.kb_manager.is_some())
-            .field("task_engine", &"Arc<TaskEngine>")
+            .field("kb_manager", &self.kb_manager.is_some());
+
+        #[cfg(feature = "tasks")]
+        debug.field("task_engine", &"Arc<TaskEngine>");
+
+        debug
             .field("extensions", &self.extensions)
             .field("attendant_broadcast", &self.attendant_broadcast.is_some())
             .field("task_progress_broadcast", &self.task_progress_broadcast.is_some())
@@ -576,6 +593,7 @@ impl Default for AppState {
         Self {
             #[cfg(feature = "drive")]
             drive: None,
+            #[cfg(feature = "drive")]
             s3_client: None,
             #[cfg(feature = "cache")]
             cache: None,
@@ -586,6 +604,7 @@ impl Default for AppState {
             bot_database_manager,
             session_manager: Arc::new(tokio::sync::Mutex::new(session_manager)),
             metrics_collector: MetricsCollector::new(),
+            #[cfg(feature = "tasks")]
             task_scheduler: None,
             #[cfg(all(test, feature = "llm"))]
             llm_provider: Arc::new(MockLLMProvider::new()),
@@ -596,11 +615,13 @@ impl Default for AppState {
             web_adapter: Arc::new(WebChannelAdapter::new()),
             voice_adapter: Arc::new(VoiceAdapter::new()),
             kb_manager: None,
+            #[cfg(feature = "tasks")]
             task_engine: Arc::new(TaskEngine::new(pool)),
             extensions: Extensions::new(),
             attendant_broadcast: Some(attendant_tx),
             task_progress_broadcast: Some(task_progress_tx),
             task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
+            #[cfg(feature = "project")]
             project_service: Arc::new(RwLock::new(crate::project::ProjectService::new())),
             legal_service: Arc::new(RwLock::new(crate::legal::LegalService::new())),
             jwt_manager: None,
