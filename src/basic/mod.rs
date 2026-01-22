@@ -19,20 +19,16 @@ struct ParamConfigRow {
     #[diesel(sql_type = diesel::sql_types::Text)]
     config_value: String,
 }
+
+// ===== CORE KEYWORD IMPORTS (always available) =====
 use self::keywords::add_bot::register_bot_keywords;
 use self::keywords::add_member::add_member_keyword;
 use self::keywords::add_suggestion::add_suggestion_keyword;
 use self::keywords::ai_tools::register_ai_tools_keywords;
-use self::keywords::book::book_keyword;
 use self::keywords::bot_memory::{get_bot_memory_keyword, set_bot_memory_keyword};
-use self::keywords::clear_kb::register_clear_kb_keyword;
 use self::keywords::clear_tools::clear_tools_keyword;
 use self::keywords::core_functions::register_core_functions;
-use self::keywords::create_draft::create_draft_keyword;
-use self::keywords::create_site::create_site_keyword;
-use self::keywords::create_task::create_task_keyword;
 use self::keywords::data_operations::register_data_operations;
-use self::keywords::file_operations::register_file_operations;
 use self::keywords::find::find_keyword;
 use self::keywords::search::search_keyword;
 use self::keywords::products::products_keyword;
@@ -43,38 +39,81 @@ use self::keywords::get::get_keyword;
 use self::keywords::hear_talk::{hear_keyword, talk_keyword};
 use self::keywords::http_operations::register_http_operations;
 use self::keywords::last::last_keyword;
-use self::keywords::lead_scoring::register_lead_scoring_keywords;
-use self::keywords::model_routing::register_model_routing_keywords;
-use self::keywords::multimodal::register_multimodal_keywords;
 use self::keywords::on_form_submit::on_form_submit_keyword;
-use self::keywords::remember::remember_keyword;
-use self::keywords::save_from_unstructured::save_from_unstructured_keyword;
-use self::keywords::send_mail::send_mail_keyword;
-use self::keywords::send_template::register_send_template_keywords;
-use self::keywords::sms::register_sms_keywords;
-use self::keywords::social_media::register_social_media_keywords;
 use self::keywords::switch_case::preprocess_switch;
-use self::keywords::transfer_to_human::register_transfer_to_human_keyword;
-use self::keywords::use_kb::register_use_kb_keyword;
 use self::keywords::use_tool::use_tool_keyword;
 use self::keywords::use_website::{clear_websites_keyword, use_website_keyword};
 use self::keywords::web_data::register_web_data_keywords;
 use self::keywords::webhook::webhook_keyword;
-
 use self::keywords::llm_keyword::llm_keyword;
 use self::keywords::on::on_keyword;
-
-use self::keywords::on_email::on_email_keyword;
 use self::keywords::print::print_keyword;
 use self::keywords::set::set_keyword;
 use self::keywords::set_context::set_context_keyword;
-
 use self::keywords::wait::wait_keyword;
+
+// ===== CALENDAR FEATURE IMPORTS =====
+#[cfg(feature = "calendar")]
+use self::keywords::book::book_keyword;
+
+// ===== MAIL FEATURE IMPORTS =====
+#[cfg(feature = "mail")]
+use self::keywords::create_draft::create_draft_keyword;
+#[cfg(feature = "mail")]
+use self::keywords::on_email::on_email_keyword;
+#[cfg(feature = "mail")]
+use self::keywords::send_mail::send_mail_keyword;
+#[cfg(feature = "mail")]
+use self::keywords::send_template::register_send_template_keywords;
+
+// ===== TASKS FEATURE IMPORTS =====
+#[cfg(feature = "tasks")]
+use self::keywords::create_task::create_task_keyword;
+
+// ===== SOCIAL FEATURE IMPORTS =====
+#[cfg(feature = "social")]
+use self::keywords::social_media::register_social_media_keywords;
+
+// ===== LLM FEATURE IMPORTS =====
+#[cfg(feature = "llm")]
+use self::keywords::model_routing::register_model_routing_keywords;
+#[cfg(feature = "llm")]
+use self::keywords::multimodal::register_multimodal_keywords;
+#[cfg(feature = "llm")]
+use self::keywords::remember::remember_keyword;
+#[cfg(feature = "llm")]
+use self::keywords::save_from_unstructured::save_from_unstructured_keyword;
+
+// ===== VECTORDB FEATURE IMPORTS =====
+#[cfg(feature = "vectordb")]
+use self::keywords::clear_kb::register_clear_kb_keyword;
+#[cfg(feature = "vectordb")]
+use self::keywords::use_kb::register_use_kb_keyword;
+
+// ===== DRIVE FEATURE IMPORTS =====
+#[cfg(feature = "drive")]
+use self::keywords::file_operations::register_file_operations;
+#[cfg(feature = "drive")]
+use self::keywords::create_site::create_site_keyword;
+
+// ===== PEOPLE FEATURE IMPORTS =====
+#[cfg(feature = "people")]
+use self::keywords::lead_scoring::register_lead_scoring_keywords;
+
+// ===== COMMUNICATIONS FEATURE IMPORTS =====
+#[cfg(any(feature = "whatsapp", feature = "telegram", feature = "mail"))]
+use self::keywords::sms::register_sms_keywords;
+
+// ===== CHAT FEATURE IMPORTS =====
+#[cfg(feature = "chat")]
+use self::keywords::transfer_to_human::register_transfer_to_human_keyword;
+
 #[derive(Debug)]
 pub struct ScriptService {
     pub engine: Engine,
     pub scope: Scope<'static>,
 }
+
 impl ScriptService {
     #[must_use]
     pub fn new(state: Arc<AppState>, user: UserSession) -> Self {
@@ -83,16 +122,13 @@ impl ScriptService {
         engine.set_allow_anonymous_fn(true);
         engine.set_allow_looping(true);
 
-        create_draft_keyword(&state, user.clone(), &mut engine);
+        // ===== CORE KEYWORDS (always available) =====
         set_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
         get_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
-        create_site_keyword(&state, user.clone(), &mut engine);
         find_keyword(&state, user.clone(), &mut engine);
         search_keyword(&state, user.clone(), &mut engine);
         products_keyword(&state, user.clone(), &mut engine);
         for_keyword(&state, user.clone(), &mut engine);
-        let _ = register_use_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
-        let _ = register_clear_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
         first_keyword(&mut engine);
         last_keyword(&mut engine);
         format_keyword(&mut engine);
@@ -102,68 +138,103 @@ impl ScriptService {
         wait_keyword(&state, user.clone(), &mut engine);
         print_keyword(&state, user.clone(), &mut engine);
         on_keyword(&state, user.clone(), &mut engine);
-        on_email_keyword(&state, user.clone(), &mut engine);
         hear_keyword(state.clone(), user.clone(), &mut engine);
         talk_keyword(state.clone(), user.clone(), &mut engine);
         set_context_keyword(state.clone(), user.clone(), &mut engine);
         set_user_keyword(state.clone(), user.clone(), &mut engine);
         clear_suggestions_keyword(state.clone(), user.clone(), &mut engine);
-
         use_tool_keyword(state.clone(), user.clone(), &mut engine);
         clear_tools_keyword(state.clone(), user.clone(), &mut engine);
-
         use_website_keyword(state.clone(), user.clone(), &mut engine);
         clear_websites_keyword(state.clone(), user.clone(), &mut engine);
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
-
-        remember_keyword(state.clone(), user.clone(), &mut engine);
-        book_keyword(state.clone(), user.clone(), &mut engine);
-        send_mail_keyword(state.clone(), user.clone(), &mut engine);
-        save_from_unstructured_keyword(state.clone(), user.clone(), &mut engine);
-        create_task_keyword(state.clone(), user.clone(), &mut engine);
         add_member_keyword(state.clone(), user.clone(), &mut engine);
-
         register_bot_keywords(&state, &user, &mut engine);
-
-        register_model_routing_keywords(state.clone(), user.clone(), &mut engine);
-
         keywords::universal_messaging::register_universal_messaging(
             state.clone(),
             user.clone(),
             &mut engine,
         );
-
-        register_multimodal_keywords(state.clone(), user.clone(), &mut engine);
-
         register_string_functions(state.clone(), user.clone(), &mut engine);
-
         switch_keyword(&state, user.clone(), &mut engine);
-
         register_http_operations(state.clone(), user.clone(), &mut engine);
-
         register_data_operations(state.clone(), user.clone(), &mut engine);
-
-        register_file_operations(state.clone(), user.clone(), &mut engine);
-
         webhook_keyword(&state, user.clone(), &mut engine);
-
-        register_social_media_keywords(state.clone(), user.clone(), &mut engine);
-
-        register_send_template_keywords(state.clone(), user.clone(), &mut engine);
-
         on_form_submit_keyword(state.clone(), user.clone(), &mut engine);
-
-        register_lead_scoring_keywords(state.clone(), user.clone(), &mut engine);
-
-        register_transfer_to_human_keyword(state.clone(), user.clone(), &mut engine);
-
         register_ai_tools_keywords(state.clone(), user.clone(), &mut engine);
-
         register_web_data_keywords(state.clone(), user.clone(), &mut engine);
+        register_core_functions(state.clone(), user.clone(), &mut engine);
 
-        register_sms_keywords(state.clone(), user.clone(), &mut engine);
+        // ===== MAIL FEATURE KEYWORDS =====
+        #[cfg(feature = "mail")]
+        {
+            create_draft_keyword(&state, user.clone(), &mut engine);
+            on_email_keyword(&state, user.clone(), &mut engine);
+            send_mail_keyword(state.clone(), user.clone(), &mut engine);
+            register_send_template_keywords(state.clone(), user.clone(), &mut engine);
+        }
 
-        register_core_functions(state.clone(), user, &mut engine);
+        // ===== CALENDAR FEATURE KEYWORDS =====
+        #[cfg(feature = "calendar")]
+        {
+            book_keyword(state.clone(), user.clone(), &mut engine);
+        }
+
+        // ===== TASKS FEATURE KEYWORDS =====
+        #[cfg(feature = "tasks")]
+        {
+            create_task_keyword(state.clone(), user.clone(), &mut engine);
+        }
+
+        // ===== LLM FEATURE KEYWORDS =====
+        #[cfg(feature = "llm")]
+        {
+            register_model_routing_keywords(state.clone(), user.clone(), &mut engine);
+            register_multimodal_keywords(state.clone(), user.clone(), &mut engine);
+            remember_keyword(state.clone(), user.clone(), &mut engine);
+            save_from_unstructured_keyword(state.clone(), user.clone(), &mut engine);
+        }
+
+        // ===== VECTORDB FEATURE KEYWORDS =====
+        #[cfg(feature = "vectordb")]
+        {
+            let _ = register_use_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
+            let _ = register_clear_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
+        }
+
+        // ===== DRIVE FEATURE KEYWORDS =====
+        #[cfg(feature = "drive")]
+        {
+            create_site_keyword(&state, user.clone(), &mut engine);
+            register_file_operations(state.clone(), user.clone(), &mut engine);
+        }
+
+        // ===== SOCIAL FEATURE KEYWORDS =====
+        #[cfg(feature = "social")]
+        {
+            register_social_media_keywords(state.clone(), user.clone(), &mut engine);
+        }
+
+        // ===== PEOPLE FEATURE KEYWORDS =====
+        #[cfg(feature = "people")]
+        {
+            register_lead_scoring_keywords(state.clone(), user.clone(), &mut engine);
+        }
+
+        // ===== CHAT FEATURE KEYWORDS =====
+        #[cfg(feature = "chat")]
+        {
+            register_transfer_to_human_keyword(state.clone(), user.clone(), &mut engine);
+        }
+
+        // ===== COMMUNICATIONS FEATURE KEYWORDS =====
+        #[cfg(any(feature = "whatsapp", feature = "telegram", feature = "mail"))]
+        {
+            register_sms_keywords(state.clone(), user.clone(), &mut engine);
+        }
+
+        // Silence unused variable warning when features are disabled
+        let _ = user;
 
         Self { engine, scope }
     }

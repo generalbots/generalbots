@@ -435,7 +435,7 @@ sys.refresh_all();
 };
 
 #[cfg(not(feature = "monitoring"))]
-let (cpu_usage, memory_percent) = (0.0, 0.0);
+let (cpu_usage, memory_percent): (f32, f32) = (0.0, 0.0);
 
 Html(format!(
     r##"<g>
@@ -443,7 +443,7 @@ Html(format!(
 <rect x="40" y="-8" width="100" height="10" rx="2" fill="#1e293b"/>
 <rect x="40" y="-8" width="{cpu_width}" height="10" rx="2" fill="#3b82f6"/>
 <text x="150" y="0" fill="#f8fafc" font-family="system-ui" font-size="10">{cpu_usage:.0}%</text>
-</g> <g transform="translate(0, 20)"> <text x="0" y="0" fill="#94a3b8" font-family="system-ui" font-size="10">MEM</text> <rect x="40" y="-8" width="100" height="10" rx="2" fill="#1e293b"/> <rect x="40" y="-8" width="{mem_width}" height="10" rx="2" fill="#10b981"/> <text x="150" y="0" fill="#f8fafc" font-family="system-ui" font-size="10">{memory_percent:.0}%</text> </g>"##, cpu_width = cpu_usage.min(100.0), mem_width = memory_percent.min(100.0), )) }
+</g> <g transform="translate(0, 20)"> <text x="0" y="0" fill="#94a3b8" font-family="system-ui" font-size="10">MEM</text> <rect x="40" y="-8" width="100" height="10" rx="2" fill="#1e293b"/> <rect x="40" y="-8" width="{mem_width}" height="10" rx="2" fill="#10b981"/> <text x="150" y="0" fill="#f8fafc" font-family="system-ui" font-size="10">{memory_percent:.0}%</text> </g>"##, cpu_width = cpu_usage.min(100.0f32), mem_width = memory_percent.min(100.0f32), )) }
 
 async fn activity_latest(State(_state): State<Arc<AppState>>) -> Html<String> {
 Html("System monitoring active...".to_string())

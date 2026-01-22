@@ -618,7 +618,7 @@ pub struct QuietHours {
 pub start_hour: u8,
 pub end_hour: u8,
 pub timezone: String,
-pub days: Vecchrono::Weekday
+pub days: Vec<chrono::Weekday>,
 }
 
 impl QuietHours {

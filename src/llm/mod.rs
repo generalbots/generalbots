@@ -154,8 +154,8 @@ impl LLMProvider for OpenAIClient {
         let handler = get_handler(model);
         let mut stream = response.bytes_stream();
 
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
+        while let Some(chunk_result) = stream.next().await {
+            let chunk = chunk_result?;
             let chunk_str = String::from_utf8_lossy(&chunk);
             for line in chunk_str.lines() {
                 if line.starts_with("data: ") && !line.contains("[DONE]") {

@@ -1,3 +1,4 @@
+#[cfg(feature = "automation")]
 pub mod automation;
 pub mod bootstrap;
 pub mod bot;

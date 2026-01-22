@@ -2112,15 +2112,11 @@ VAULT_CACHE_TTL=300
         })
     }
     pub fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {
-        use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-
-        const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
-
-        if let Err(e) = conn.run_pending_migrations(MIGRATIONS) {
-            error!("Failed to apply migrations: {}", e);
-            return Err(anyhow::anyhow!("Migration error: {}", e));
+        info!("Applying migrations via shared utility...");
+        if let Err(e) = crate::core::shared::utils::run_migrations_on_conn(conn) {
+             error!("Failed to apply migrations: {}", e);
+             return Err(anyhow::anyhow!("Migration error: {}", e));
         }
-
         Ok(())
     }
 

@@ -274,7 +274,6 @@ impl SafeCommand {
         cmd.env("LANG", "C.UTF-8");
 
         cmd.output()
-            .await
             .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
     }
 
