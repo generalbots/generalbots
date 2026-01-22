@@ -1,3 +1,4 @@
+#[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -10,6 +11,10 @@ use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+// When llm feature is disabled, create a dummy trait for type compatibility
+#[cfg(not(feature = "llm"))]
+trait LLMProvider: Send + Sync {}
 
 pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
@@ -42,9 +47,9 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
                 let bot_id = user_clone.bot_id.to_string();
 
                 #[cfg(feature = "llm")]
-                let llm: Option<Arc<dyn LLMProvider>> = Some(state_clone.llm_provider.clone());
+                let llm = Some(state_clone.llm_provider.clone());
                 #[cfg(not(feature = "llm"))]
-                let llm: Option<Arc<dyn LLMProvider>> = None;
+                let llm: Option<()> = None;
 
                 let fut = create_site(config, s3, bucket, bot_id, llm, alias, template_dir, prompt);
                 let result =
@@ -56,6 +61,7 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
         .expect("valid syntax registration");
 }
 
+#[cfg(feature = "llm")]
 async fn create_site(
     config: crate::core::config::AppConfig,
     s3: Option<std::sync::Arc<aws_sdk_s3::Client>>,
@@ -81,6 +87,47 @@ async fn create_site(
     let combined_content = load_templates(&template_path)?;
 
     let generated_html = generate_html_from_prompt(llm, &combined_content, &prompt_str).await?;
+
+    let drive_path = format!("apps/{}", alias_str);
+    store_to_drive(s3.as_ref(), &bucket, &bot_id, &drive_path, &generated_html).await?;
+
+    let serve_path = base_path.join(&alias_str);
+    sync_to_serve_path(&serve_path, &generated_html, &template_path)?;
+
+    info!(
+        "CREATE SITE: {} completed, available at /apps/{}",
+        alias_str, alias_str
+    );
+
+    Ok(format!("/apps/{}", alias_str))
+}
+
+#[cfg(not(feature = "llm"))]
+async fn create_site(
+    config: crate::core::config::AppConfig,
+    s3: Option<std::sync::Arc<aws_sdk_s3::Client>>,
+    bucket: String,
+    bot_id: String,
+    _llm: Option<()>,
+    alias: Dynamic,
+    template_dir: Dynamic,
+    prompt: Dynamic,
+) -> Result<String, Box<dyn Error + Send + Sync>> {
+    let alias_str = alias.to_string();
+    let template_dir_str = template_dir.to_string();
+    let prompt_str = prompt.to_string();
+
+    info!(
+        "CREATE SITE: {} from template {}",
+        alias_str, template_dir_str
+    );
+
+    let base_path = PathBuf::from(&config.site_path);
+    let template_path = base_path.join(&template_dir_str);
+
+    let combined_content = load_templates(&template_path)?;
+
+    let generated_html = generate_html_from_prompt(_llm, &combined_content, &prompt_str).await?;
 
     let drive_path = format!("apps/{}", alias_str);
     store_to_drive(s3.as_ref(), &bucket, &bot_id, &drive_path, &generated_html).await?;
@@ -129,6 +176,7 @@ fn load_templates(template_path: &std::path::Path) -> Result<String, Box<dyn Err
     Ok(combined_content)
 }
 
+#[cfg(feature = "llm")]
 async fn generate_html_from_prompt(
     llm: Option<Arc<dyn LLMProvider>>,
     templates: &str,
@@ -194,6 +242,16 @@ OUTPUT: Complete index.html file only, no explanations."#,
 
     debug!("Generated HTML ({} bytes)", html.len());
     Ok(html)
+}
+
+#[cfg(not(feature = "llm"))]
+async fn generate_html_from_prompt(
+    _llm: Option<()>,
+    _templates: &str,
+    prompt: &str,
+) -> Result<String, Box<dyn Error + Send + Sync>> {
+    debug!("LLM feature not enabled, using placeholder HTML");
+    Ok(generate_placeholder_html(prompt))
 }
 
 fn extract_html_from_response(response: &str) -> String {

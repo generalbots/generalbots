@@ -99,7 +99,8 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
 }
 
 pub fn embedded_ui_router() -> Router {
-    Router::new().fallback(get(serve_embedded_file))
+    use axum::routing::any;
+    Router::new().fallback(any(serve_embedded_file))
 }
 
 pub fn has_embedded_ui() -> bool {

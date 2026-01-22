@@ -251,3 +251,14 @@ diesel::table! {
         is_active -> Bool,
     }
 }
+
+diesel::allow_tables_to_appear_in_same_query!(
+    rbac_roles,
+    rbac_groups,
+    rbac_permissions,
+    rbac_role_permissions,
+    rbac_user_roles,
+    rbac_user_groups,
+    rbac_group_roles,
+    users,
+);

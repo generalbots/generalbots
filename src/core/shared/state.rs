@@ -7,6 +7,7 @@ use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
 #[cfg(feature = "project")]
 use crate::project::ProjectService;
+#[cfg(feature = "compliance")]
 use crate::legal::LegalService;
 use crate::security::auth_provider::AuthProviderRegistry;
 use crate::security::jwt::JwtManager;
@@ -16,7 +17,7 @@ use crate::core::shared::test_utils::create_mock_auth_service;
 #[cfg(all(test, feature = "llm"))]
 use crate::core::shared::test_utils::MockLLMProvider;
 #[cfg(feature = "directory")]
-use crate::core::directory::AuthService;
+use crate::directory::AuthService;
 #[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
 use crate::shared::models::BotResponse;
@@ -374,6 +375,7 @@ pub struct AppState {
     pub task_manifests: Arc<std::sync::RwLock<HashMap<String, TaskManifest>>>,
     #[cfg(feature = "project")]
     pub project_service: Arc<RwLock<ProjectService>>,
+    #[cfg(feature = "compliance")]
     pub legal_service: Arc<RwLock<LegalService>>,
     pub jwt_manager: Option<Arc<JwtManager>>,
     pub auth_provider_registry: Option<Arc<AuthProviderRegistry>>,
@@ -416,6 +418,7 @@ impl Clone for AppState {
             task_manifests: Arc::clone(&self.task_manifests),
             #[cfg(feature = "project")]
             project_service: Arc::clone(&self.project_service),
+            #[cfg(feature = "compliance")]
             legal_service: Arc::clone(&self.legal_service),
             jwt_manager: self.jwt_manager.clone(),
             auth_provider_registry: self.auth_provider_registry.clone(),
@@ -623,6 +626,7 @@ impl Default for AppState {
             task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
             #[cfg(feature = "project")]
             project_service: Arc::new(RwLock::new(crate::project::ProjectService::new())),
+            #[cfg(feature = "compliance")]
             legal_service: Arc::new(RwLock::new(crate::legal::LegalService::new())),
             jwt_manager: None,
             auth_provider_registry: None,

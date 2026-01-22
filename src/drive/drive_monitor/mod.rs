@@ -397,7 +397,9 @@ impl DriveMonitor {
                         if llm_lines.is_empty() {
                             let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
                         } else {
+                            #[cfg(feature = "llm")]
                             use crate::llm::local::ensure_llama_servers_running;
+                            #[cfg(feature = "llm")]
                             use crate::llm::DynamicLLMProvider;
                             let mut restart_needed = false;
                             let mut llm_url_changed = false;
@@ -437,6 +439,7 @@ impl DriveMonitor {
                                 }
                             }
                             let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
+                            #[cfg(feature = "llm")]
                             if restart_needed {
                                 if let Err(e) =
                                     ensure_llama_servers_running(Arc::clone(&self.state)).await
@@ -444,6 +447,7 @@ impl DriveMonitor {
                                     log::error!("Failed to restart LLaMA servers after llm- config change: {}", e);
                                 }
                             }
+                            #[cfg(feature = "llm")]
                             if llm_url_changed {
                                 info!("check_gbot: LLM config changed, updating provider...");
                                 let effective_url = if new_llm_url.is_empty() {

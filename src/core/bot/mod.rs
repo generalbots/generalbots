@@ -3,7 +3,9 @@ use crate::core::config::ConfigManager;
 
 #[cfg(feature = "drive")]
 use crate::drive::drive_monitor::DriveMonitor;
+#[cfg(feature = "llm")]
 use crate::llm::llm_models;
+#[cfg(feature = "llm")]
 use crate::llm::OpenAIClient;
 #[cfg(feature = "nvidia")]
 use crate::nvidia::get_system_metrics;
@@ -70,6 +72,7 @@ impl BotOrchestrator {
         Ok(())
     }
 
+    #[cfg(feature = "llm")]
     pub async fn stream_response(
         &self,
         message: UserMessage,
@@ -302,6 +305,33 @@ impl BotOrchestrator {
         };
 
         response_tx.send(final_response).await?;
+        Ok(())
+    }
+
+    #[cfg(not(feature = "llm"))]
+    pub async fn stream_response(
+        &self,
+        message: UserMessage,
+        response_tx: mpsc::Sender<BotResponse>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        warn!("LLM feature not enabled, cannot stream response");
+        
+        let error_response = BotResponse {
+            bot_id: message.bot_id,
+            user_id: message.user_id,
+            session_id: message.session_id,
+            channel: message.channel,
+            content: "LLM feature is not enabled in this build".to_string(),
+            message_type: MessageType::BOT_RESPONSE,
+            stream_token: None,
+            is_complete: true,
+            suggestions: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
+        
+        response_tx.send(error_response).await?;
         Ok(())
     }
 
