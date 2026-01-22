@@ -293,12 +293,27 @@ pub fn replace_branding(text: &str) -> String {
 
 /// Helper function to get product config for serialization
 pub fn get_product_config_json() -> serde_json::Value {
+    // Get compiled features from our new module
+    let compiled = crate::core::features::COMPILED_FEATURES;
+    
+    // Get current config
     let config = PRODUCT_CONFIG.read().ok();
+
+    // Determine effective apps (intersection of enabled + compiled)
+    let effective_apps: Vec<String> = config
+        .as_ref()
+        .map(|c| c.get_enabled_apps())
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|app| compiled.contains(&app.as_str()) || app == "settings" || app == "auth") // Always allow settings/auth
+        .collect();
 
     match config {
         Some(c) => serde_json::json!({
             "name": c.name,
-            "apps": c.get_enabled_apps(),
+            "apps": effective_apps,
+            "compiled_features": compiled,
+            "version": env!("CARGO_PKG_VERSION"),
             "theme": c.theme,
             "logo": c.logo,
             "favicon": c.favicon,
@@ -308,11 +323,20 @@ pub fn get_product_config_json() -> serde_json::Value {
         }),
         None => serde_json::json!({
             "name": "General Bots",
-            "apps": [],
+            "apps": compiled, // If no config, show all compiled
+            "compiled_features": compiled,
+            "version": env!("CARGO_PKG_VERSION"),
             "theme": "sentient",
         })
     }
 }
+
+/// Get workspace manifest with detailed feature information
+pub fn get_workspace_manifest() -> serde_json::Value {
+    let manifest = crate::core::manifest::WorkspaceManifest::new();
+    serde_json::to_value(manifest).unwrap_or_else(|_| serde_json::json!({}))
+}
+
 
 /// Middleware to check if an app is enabled before allowing API access
 pub async fn app_gate_middleware(
@@ -361,6 +385,25 @@ pub async fn app_gate_middleware(
 
     // Check if the app is enabled
     if let Some(app) = app_name {
+        // First check: is it even compiled?
+        // Note: settings, auth, admin are core features usually, but we check anyway if they are in features list
+        // Some core apps like settings might not be in feature flags explicitly or always enabled.
+        // For simplicity, if it's not in compiled features but is a known core route, we might allow it,
+        // but here we enforce strict feature containment.
+        // Exception: 'settings' and 'auth' are often core. 
+        if app != "settings" && app != "auth" && !crate::core::features::is_feature_compiled(app) {
+             let error_response = serde_json::json!({
+                "error": "not_implemented",
+                "message": format!("The '{}' feature is not compiled in this build", app),
+                "code": 501
+            });
+
+            return (
+                StatusCode::NOT_IMPLEMENTED,
+                axum::Json(error_response)
+            ).into_response();
+        }
+
         if !is_app_enabled(app) {
             let error_response = serde_json::json!({
                 "error": "app_disabled",
