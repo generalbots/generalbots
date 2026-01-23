@@ -9,112 +9,82 @@ workspace = true
 features = ["database", "i18n"]
 
 [features]
-# ===== SINGLE DEFAULT FEATURE SET =====
-# Note: automation (Rhai scripting) is required for .gbot script execution
+# ===== DEFAULT =====
 default = ["chat", "automation", "drive", "tasks", "cache", "directory"]
 
-# ===== CORE CAPABILITIES (Internal Bundles) =====
-storage_core = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async"]
-automation_core = ["dep:rhai", "dep:cron"]
-cache_core = ["dep:redis"]
-mail_core = ["dep:lettre", "dep:mailparse", "dep:imap", "dep:native-tls"]
-realtime_core = ["dep:livekit"]
-pdf_core = ["dep:pdf-extract"]
+# ===== CORE INFRASTRUCTURE (Always needed) =====
+automation = ["dep:rhai", "dep:cron"]
+drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
+cache = ["dep:redis"]
+directory = []
 
-# ===== COMMUNICATION APPS =====
+# ===== APPS (Flat list - no dependencies between apps) =====
+# Communication
 chat = []
 people = []
-mail = ["mail_core"]
-meet = ["realtime_core"]
+mail = ["dep:lettre", "dep:mailparse", "dep:imap", "dep:native-tls"]
+meet = ["dep:livekit"]
 social = []
 whatsapp = []
 telegram = []
 instagram = []
 msteams = []
-communications = ["chat", "people", "mail", "meet", "social", "whatsapp", "telegram", "instagram", "msteams", "cache"]
 
-# ===== PRODUCTIVITY APPS =====
+# Productivity
 calendar = []
-# Tasks requires automation (scripts) and drive (attachments)
-tasks = ["automation", "drive", "monitoring"] 
+tasks = ["dep:cron"]
 project = ["quick-xml"]
 goals = []
-workspace = []
-workspaces = ["workspace"]
+workspaces = []
 tickets = []
 billing = []
-productivity = ["calendar", "tasks", "project", "goals", "workspaces", "cache"]
 
-# ===== DOCUMENT APPS =====
-paper = ["docs", "pdf"]
+# Documents
 docs = ["docx-rs", "ooxmlsdk"]
 sheet = ["calamine", "spreadsheet-ods"]
 slides = ["ooxmlsdk"]
-drive = ["storage_core", "pdf"]
-documents = ["paper", "docs", "sheet", "slides", "drive"]
+paper = []
 
-# ===== MEDIA APPS =====
+# Media
 video = []
 player = []
 canvas = []
-media = ["video", "player", "canvas"]
 
-# ===== LEARNING & RESEARCH APPS =====
+# Learning
 learn = []
-research = ["llm", "vectordb"]
+research = []
 sources = []
-learning = ["learn", "research", "sources"]
 
-# ===== ANALYTICS APPS =====
+# Analytics
 analytics = []
 dashboards = []
 monitoring = ["dep:sysinfo"]
-analytics_suite = ["analytics", "dashboards", "monitoring"]
 
-# ===== DEVELOPMENT TOOLS =====
+# Development
 designer = []
 editor = []
-automation = ["automation_core"]
-development = ["designer", "editor", "automation"]
 
-# ===== ADMIN APPS =====
+# Admin
 attendant = []
 security = []
 settings = []
-admin = ["attendant", "security", "settings"]
 
-# ===== COMPATIBILITY ALIASES =====
-# These ensure old feature names still work or map correctly
-pdf = ["pdf_core"]
-cache = ["cache_core"]
-
-
-
-# ===== CORE TECHNOLOGIES =====
+# Core Tech
 llm = []
 vectordb = ["dep:qdrant-client"]
 nvidia = []
 compliance = ["dep:csv"]
 timeseries = []
 weba = []
-directory = []
 progress-bars = ["dep:indicatif"]
 grpc = []
 jemalloc = ["dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
-console = ["dep:crossterm", "dep:ratatui", "monitoring"]
+console = ["dep:crossterm", "dep:ratatui"]
 
-# ===== BUNDLE FEATURES =====
-full = [
-    "chat", "people", "mail",
-    "tasks", "calendar",
-    "drive", "docs",
-    "llm", "cache", "compliance"
-]
-
-# Minimal build includes core infrastructure: automation (Rhai), drive (S3), cache (Redis)
-# These are deeply integrated and used throughout the codebase
+# ===== BUNDLES (Optional - for convenience) =====
 minimal = ["chat", "automation", "drive", "cache"]
-lightweight = ["chat", "drive", "tasks", "people"]
+lightweight = ["chat", "automation", "drive", "cache", "tasks", "people"]
+full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
 
 [dependencies]
 diesel_migrations = { workspace = true }
