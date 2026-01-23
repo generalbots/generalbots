@@ -1,4 +1,5 @@
 pub mod kb_context;
+#[cfg(feature = "llm")]
 use crate::core::config::ConfigManager;
 
 #[cfg(feature = "drive")]
@@ -20,7 +21,7 @@ use axum::{
 };
 use diesel::PgConnection;
 use futures::{sink::SinkExt, stream::StreamExt};
-use log::{error, info, trace, warn};
+use log::{error, info, warn};
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;

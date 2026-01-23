@@ -2226,11 +2226,13 @@ NO QUESTIONS. JUST BUILD."#
 
     async fn call_llm(
         &self,
-        prompt: &str,
-        bot_id: Uuid,
+        _prompt: &str,
+        _bot_id: Uuid,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         #[cfg(feature = "llm")]
         {
+            let prompt = _prompt;
+            let bot_id = _bot_id;
             let config_manager = ConfigManager::new(self.state.conn.clone());
             let model = config_manager
                 .get_config(&bot_id, "llm-model", None)

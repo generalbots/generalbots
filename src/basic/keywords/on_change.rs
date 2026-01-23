@@ -174,187 +174,8 @@ pub fn fetch_folder_changes(
     Ok(events)
 }
 
-fn _fetch_local_changes(
-    folder_path: &str,
-    _recursive: bool,
-    event_types: &[String],
-) -> Result<Vec<FolderChangeEvent>, String> {
-    let now = chrono::Utc::now();
-    let include_created = event_types.is_empty() || event_types.iter().any(|e| e == "created" || e == "all");
-    let include_modified = event_types.is_empty() || event_types.iter().any(|e| e == "modified" || e == "all");
-
-    let mut events = Vec::new();
-
-    if include_modified {
-        events.push(FolderChangeEvent {
-            path: format!("{}/example.txt", folder_path),
-            event_type: "modified".to_string(),
-            timestamp: now,
-            size: Some(1024),
-            is_directory: false,
-        });
-    }
-
-    if include_created {
-        events.push(FolderChangeEvent {
-            path: format!("{}/new_document.pdf", folder_path),
-            event_type: "created".to_string(),
-            timestamp: now,
-            size: Some(50000),
-            is_directory: false,
-        });
-    }
-
-    info!("Local folder monitoring: returning {} simulated events", events.len());
-    Ok(events)
-}
-
-fn _fetch_gdrive_changes(
-    _state: &AppState,
-    folder_id: Option<&str>,
-    _last_token: Option<&str>,
-    event_types: &[String],
-) -> Result<Vec<FolderChangeEvent>, String> {
-    let now = chrono::Utc::now();
-    let include_created = event_types.is_empty() || event_types.iter().any(|e| e == "created" || e == "all");
-    let include_modified = event_types.is_empty() || event_types.iter().any(|e| e == "modified" || e == "all");
-
-    let mut events = Vec::new();
-
-    if include_created {
-        events.push(FolderChangeEvent {
-            path: folder_id.map(|f| format!("{}/new_document.docx", f)).unwrap_or_else(|| "new_document.docx".to_string()),
-            event_type: "created".to_string(),
-            timestamp: now,
-            size: Some(15000),
-            is_directory: false,
-        });
-    }
-
-    if include_modified {
-        events.push(FolderChangeEvent {
-            path: folder_id.map(|f| format!("{}/report.pdf", f)).unwrap_or_else(|| "report.pdf".to_string()),
-            event_type: "modified".to_string(),
-            timestamp: now,
-            size: Some(250000),
-            is_directory: false,
-        });
-    }
-
-    info!("GDrive folder monitoring: returning {} simulated events (requires OAuth setup for real API)", events.len());
-    Ok(events)
-}
-
-fn _fetch_onedrive_changes(
-    _state: &AppState,
-    folder_id: Option<&str>,
-    _last_token: Option<&str>,
-    event_types: &[String],
-) -> Result<Vec<FolderChangeEvent>, String> {
-    let now = chrono::Utc::now();
-    let include_created = event_types.is_empty() || event_types.iter().any(|e| e == "created" || e == "all");
-    let include_modified = event_types.is_empty() || event_types.iter().any(|e| e == "modified" || e == "all");
-
-    let mut events = Vec::new();
-
-    if include_created {
-        events.push(FolderChangeEvent {
-            path: folder_id.map(|f| format!("{}/spreadsheet.xlsx", f)).unwrap_or_else(|| "spreadsheet.xlsx".to_string()),
-            event_type: "created".to_string(),
-            timestamp: now,
-            size: Some(35000),
-            is_directory: false,
-        });
-    }
-
-    if include_modified {
-        events.push(FolderChangeEvent {
-            path: folder_id.map(|f| format!("{}/presentation.pptx", f)).unwrap_or_else(|| "presentation.pptx".to_string()),
-            event_type: "modified".to_string(),
-            timestamp: now,
-            size: Some(500000),
-            is_directory: false,
-        });
-    }
-
-    info!("OneDrive folder monitoring: returning {} simulated events (requires OAuth setup for real API)", events.len());
-    Ok(events)
-}
-
-fn _fetch_dropbox_changes(
-    _state: &AppState,
-    folder_path: &str,
-    _last_token: Option<&str>,
-    event_types: &[String],
-) -> Result<Vec<FolderChangeEvent>, String> {
-    let now = chrono::Utc::now();
-    let include_created = event_types.is_empty() || event_types.iter().any(|e| e == "created" || e == "all");
-    let include_modified = event_types.is_empty() || event_types.iter().any(|e| e == "modified" || e == "all");
-
-    let mut events = Vec::new();
-
-    if include_created {
-        events.push(FolderChangeEvent {
-            path: format!("{}/backup.zip", folder_path),
-            event_type: "created".to_string(),
-            timestamp: now,
-            size: Some(1500000),
-            is_directory: false,
-        });
-    }
-
-    if include_modified {
-        events.push(FolderChangeEvent {
-            path: format!("{}/notes.md", folder_path),
-            event_type: "modified".to_string(),
-            timestamp: now,
-            size: Some(8000),
-            is_directory: false,
-        });
-    }
-
-    info!("Dropbox folder monitoring: returning {} simulated events (requires OAuth setup for real API)", events.len());
-    Ok(events)
-}
-
-pub fn process_folder_event(
-    _state: &AppState,
-    event: &FolderChangeEvent,
-    script_path: &str,
-) -> Result<(), String> {
-    info!(
-        "Processing folder event ({}) for {} with script {}",
-        event.event_type, event.path, script_path
-    );
-
-    Ok(())
-}
-
-pub fn register_folder_trigger(
-    _state: &AppState,
-    config: OnChangeConfig,
-    _callback_script: &str,
-) -> Result<Uuid, String> {
-    let monitor_id = Uuid::new_v4();
-
-    info!(
-        "Registered folder trigger {} for {:?} at {} (simulation mode)",
-        monitor_id, config.provider, config.folder_path
-    );
-
-    Ok(monitor_id)
-}
-
-pub fn unregister_folder_trigger(_state: &AppState, monitor_id: Uuid) -> Result<(), String> {
-    info!("Unregistered folder trigger {}", monitor_id);
-    Ok(())
-}
-
-pub fn list_folder_triggers(_state: &AppState, _user_id: Uuid) -> Result<Vec<FolderMonitor>, String> {
-    Ok(Vec::new())
-}
-
-fn _apply_filters(events: Vec<FolderChangeEvent>, filters: &Option<FileFilters>) -> Vec<FolderChangeEvent> {
+#[allow(dead_code)]
+fn apply_filters(events: Vec<FolderChangeEvent>, filters: &Option<FileFilters>) -> Vec<FolderChangeEvent> {
     let Some(filters) = filters else {
         return events;
     };
@@ -406,20 +227,20 @@ mod tests {
     #[test]
     fn test_folder_provider_from_str() {
         assert_eq!(
-            "gdrive".parse::<FolderProvider>().unwrap(),
-            FolderProvider::GDrive
+            "gdrive".parse::<FolderProvider>().ok(),
+            Some(FolderProvider::GDrive)
         );
         assert_eq!(
-            "onedrive".parse::<FolderProvider>().unwrap(),
-            FolderProvider::OneDrive
+            "onedrive".parse::<FolderProvider>().ok(),
+            Some(FolderProvider::OneDrive)
         );
         assert_eq!(
-            "dropbox".parse::<FolderProvider>().unwrap(),
-            FolderProvider::Dropbox
+            "dropbox".parse::<FolderProvider>().ok(),
+            Some(FolderProvider::Dropbox)
         );
         assert_eq!(
-            "local".parse::<FolderProvider>().unwrap(),
-            FolderProvider::Local
+            "local".parse::<FolderProvider>().ok(),
+            Some(FolderProvider::Local)
         );
     }
 

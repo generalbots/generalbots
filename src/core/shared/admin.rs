@@ -1434,18 +1434,19 @@ pub async fn create_invitation(
 
     match result {
         Ok(_) => {
-            // Send invitation email
-            let email_to = payload.email.clone();
-            let invite_role = payload.role.clone();
-            let invite_message = payload.message.clone();
-            let invite_id = new_id;
-
             #[cfg(feature = "mail")]
-            tokio::spawn(async move {
-                if let Err(e) = send_invitation_email(&email_to, &invite_role, invite_message.as_deref(), invite_id).await {
-                    warn!("Failed to send invitation email to {}: {}", email_to, e);
-                }
-            });
+            {
+                let email_to = payload.email.clone();
+                let invite_role = payload.role.clone();
+                let invite_message = payload.message.clone();
+                let invite_id = new_id;
+
+                tokio::spawn(async move {
+                    if let Err(e) = send_invitation_email(&email_to, &invite_role, invite_message.as_deref(), invite_id).await {
+                        warn!("Failed to send invitation email to {}: {}", email_to, e);
+                    }
+                });
+            }
 
             (StatusCode::OK, Json(InvitationResponse {
                 success: true,

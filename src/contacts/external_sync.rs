@@ -1410,7 +1410,7 @@ impl ExternalSyncService {
                     .get_user_info(&tokens.access_token)
                     .await?
             }
-            _ => unreachable!(),
+            _ => return Err(ExternalSyncError::UnsupportedProvider(request.provider.to_string())),
         };
 
         // Check if account already exists

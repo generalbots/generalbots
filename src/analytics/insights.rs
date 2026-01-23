@@ -676,11 +676,7 @@ impl InsightsService {
     }
 }
 
-impl Default for InsightsService {
-    fn default() -> Self {
-        panic!("InsightsService requires a database pool - use InsightsService::new(pool) instead")
-    }
-}
+
 
 #[derive(Debug, thiserror::Error)]
 pub enum InsightsError {

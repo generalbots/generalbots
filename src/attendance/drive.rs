@@ -205,9 +205,9 @@ impl AttendanceDriveService {
                     aws_sdk_s3::types::ObjectIdentifier::builder()
                         .key(self.get_record_key(id))
                         .build()
-                        .expect("valid object identifier")
+                        .map_err(|e| anyhow!("Failed to build object identifier: {}", e))
                 })
-                .collect();
+                .collect::<Result<Vec<_>>>()?;
 
             let delete = aws_sdk_s3::types::Delete::builder()
                 .set_objects(Some(objects))

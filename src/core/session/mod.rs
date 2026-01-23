@@ -14,6 +14,7 @@ use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
 use log::{error, trace, warn};
+#[cfg(feature = "cache")]
 use redis::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -32,6 +33,7 @@ pub struct SessionManager {
     conn: PooledConnection<ConnectionManager<PgConnection>>,
     sessions: HashMap<Uuid, SessionData>,
     waiting_for_input: HashSet<Uuid>,
+    #[cfg(feature = "cache")]
     redis: Option<Arc<Client>>,
 }
 
@@ -49,12 +51,14 @@ impl std::fmt::Debug for SessionManager {
 impl SessionManager {
     pub fn new(
         conn: PooledConnection<ConnectionManager<PgConnection>>,
+        #[cfg(feature = "cache")]
         redis_client: Option<Arc<Client>>,
     ) -> Self {
         Self {
             conn,
             sessions: HashMap::new(),
             waiting_for_input: HashSet::new(),
+            #[cfg(feature = "cache")]
             redis: redis_client,
         }
     }
@@ -234,13 +238,16 @@ impl SessionManager {
         user_id: &Uuid,
         context_data: String,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        use redis::Commands;
-        let redis_key = format!("context:{}:{}", user_id, session_id);
-        if let Some(redis_client) = &self.redis {
-            let mut conn = redis_client.get_connection()?;
-            conn.set::<_, _, ()>(&redis_key, &context_data)?;
-        } else {
-            warn!("No Redis client configured, context not persisted");
+        #[cfg(feature = "cache")]
+        {
+            use redis::Commands;
+            let redis_key = format!("context:{}:{}", user_id, session_id);
+            if let Some(redis_client) = &self.redis {
+                let mut conn = redis_client.get_connection()?;
+                conn.set::<_, _, ()>(&redis_key, &context_data)?;
+            } else {
+                warn!("No Redis client configured, context not persisted");
+            }
         }
         Ok(())
     }
@@ -250,43 +257,46 @@ impl SessionManager {
         session_id: &Uuid,
         user_id: &Uuid,
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
-        use redis::Commands;
-        let base_key = format!("context:{}:{}", user_id, session_id);
-        if let Some(redis_client) = &self.redis {
-            let conn_option = redis_client
-                .get_connection()
-                .map_err(|e| {
-                    warn!("Failed to get Cache connection: {}", e);
-                    e
-                })
-                .ok();
-            if let Some(mut connection) = conn_option {
-                match connection.get::<_, Option<String>>(&base_key) {
-                    Ok(Some(context_name)) => {
-                        let full_key =
-                            format!("context:{}:{}:{}", user_id, session_id, context_name);
-                        match connection.get::<_, Option<String>>(&full_key) {
-                            Ok(Some(context_value)) => {
-                                trace!(
-                                    "Retrieved context value from Cache for key {}: {} chars",
-                                    full_key,
-                                    context_value.len()
-                                );
-                                return Ok(context_value);
-                            }
-                            Ok(None) => {
-                                trace!("No context value found for key: {}", full_key);
-                            }
-                            Err(e) => {
-                                warn!("Failed to retrieve context value from Cache: {}", e);
+        #[cfg(feature = "cache")]
+        {
+            use redis::Commands;
+            let base_key = format!("context:{}:{}", user_id, session_id);
+            if let Some(redis_client) = &self.redis {
+                let conn_option = redis_client
+                    .get_connection()
+                    .map_err(|e| {
+                        warn!("Failed to get Cache connection: {}", e);
+                        e
+                    })
+                    .ok();
+                if let Some(mut connection) = conn_option {
+                    match connection.get::<_, Option<String>>(&base_key) {
+                        Ok(Some(context_name)) => {
+                            let full_key =
+                                format!("context:{}:{}:{}", user_id, session_id, context_name);
+                            match connection.get::<_, Option<String>>(&full_key) {
+                                Ok(Some(context_value)) => {
+                                    trace!(
+                                        "Retrieved context value from Cache for key {}: {} chars",
+                                        full_key,
+                                        context_value.len()
+                                    );
+                                    return Ok(context_value);
+                                }
+                                Ok(None) => {
+                                    trace!("No context value found for key: {}", full_key);
+                                }
+                                Err(e) => {
+                                    warn!("Failed to retrieve context value from Cache: {}", e);
+                                }
                             }
                         }
-                    }
-                    Ok(None) => {
-                        trace!("No context name found for key: {}", base_key);
-                    }
-                    Err(e) => {
-                        warn!("Failed to retrieve context name from Cache: {}", e);
+                        Ok(None) => {
+                            trace!("No context name found for key: {}", base_key);
+                        }
+                        Err(e) => {
+                            warn!("Failed to retrieve context name from Cache: {}", e);
+                        }
                     }
                 }
             }

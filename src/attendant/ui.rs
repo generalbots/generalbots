@@ -154,7 +154,7 @@ pub async fn sessions_count(State(state): State<Arc<AppState>>) -> Html<String> 
     .ok()
     .flatten();
 
-    Html(format!("{}", result.unwrap_or(0)))
+    Html(result.unwrap_or(0).to_string())
 }
 
 pub async fn waiting_count(State(state): State<Arc<AppState>>) -> Html<String> {
@@ -175,7 +175,7 @@ pub async fn waiting_count(State(state): State<Arc<AppState>>) -> Html<String> {
     .ok()
     .flatten();
 
-    Html(format!("{}", result.unwrap_or(0)))
+    Html(result.unwrap_or(0).to_string())
 }
 
 pub async fn active_count(State(state): State<Arc<AppState>>) -> Html<String> {
@@ -196,7 +196,7 @@ pub async fn active_count(State(state): State<Arc<AppState>>) -> Html<String> {
     .ok()
     .flatten();
 
-    Html(format!("{}", result.unwrap_or(0)))
+    Html(result.unwrap_or(0).to_string())
 }
 
 pub async fn agents_online_count(State(state): State<Arc<AppState>>) -> Html<String> {
@@ -217,7 +217,7 @@ pub async fn agents_online_count(State(state): State<Arc<AppState>>) -> Html<Str
     .ok()
     .flatten();
 
-    Html(format!("{}", result.unwrap_or(0)))
+    Html(result.unwrap_or(0).to_string())
 }
 
 pub async fn session_detail(

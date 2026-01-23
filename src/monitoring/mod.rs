@@ -456,7 +456,7 @@ let active_sessions = state
 .map(|sm| sm.active_count())
 .unwrap_or(0);
 
-Html(format!("{}", active_sessions))
+Html(active_sessions.to_string())
 
 }
 

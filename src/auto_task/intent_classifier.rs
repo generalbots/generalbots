@@ -1092,13 +1092,15 @@ END TRIGGER
     /// Call LLM for classification
     async fn call_llm(
         &self,
-        prompt: &str,
-        bot_id: Uuid,
+        _prompt: &str,
+        _bot_id: Uuid,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        trace!("Calling LLM for intent classification");
+        trace!("Calling LLM with prompt length: {}", _prompt.len());
 
         #[cfg(feature = "llm")]
         {
+            let prompt = _prompt;
+            let bot_id = _bot_id;
             // Get model and key from bot configuration
             let config_manager = ConfigManager::new(self.state.conn.clone());
             let model = config_manager

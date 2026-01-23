@@ -1435,7 +1435,6 @@ fn get_passkey_service(state: &AppState) -> Result<PasskeyService, PasskeyError>
 }
 
 #[cfg(test)]
-#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -1485,7 +1484,7 @@ mod tests {
         assert!(result.used_fallback);
     }
 
-    use super::*;
+
 
     #[test]
     fn test_passkey_error_display() {

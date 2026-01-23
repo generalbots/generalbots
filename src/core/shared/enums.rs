@@ -13,7 +13,7 @@ use diesel::deserialize::{self, FromSql};
 use diesel::pg::{Pg, PgValue};
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::SmallInt;
-use diesel::{AsExpression, FromSqlRow};
+// use diesel::{AsExpression, FromSqlRow}; // Removed to avoid conflict
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 
@@ -22,7 +22,7 @@ use std::io::Write;
 // ============================================================================
 
 /// Communication channel types for bot interactions
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -113,7 +113,7 @@ impl std::str::FromStr for ChannelType {
 // ============================================================================
 
 /// Role of a message in a conversation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -188,7 +188,7 @@ impl std::str::FromStr for MessageRole {
 // ============================================================================
 
 /// Type of message content
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -257,7 +257,7 @@ impl std::fmt::Display for MessageType {
 // ============================================================================
 
 /// Supported LLM providers
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -329,7 +329,7 @@ impl std::fmt::Display for LlmProvider {
 // ============================================================================
 
 /// Supported vector database providers
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -378,7 +378,7 @@ impl FromSql<SmallInt, Pg> for ContextProvider {
 // ============================================================================
 
 /// Status of a task (both regular tasks and auto-tasks)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -461,7 +461,7 @@ impl std::str::FromStr for TaskStatus {
 // ============================================================================
 
 /// Priority level for tasks
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -532,7 +532,7 @@ impl std::str::FromStr for TaskPriority {
 // ============================================================================
 
 /// Execution mode for autonomous tasks
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -583,7 +583,7 @@ impl std::fmt::Display for ExecutionMode {
 // ============================================================================
 
 /// Risk assessment level for actions
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -640,7 +640,7 @@ impl std::fmt::Display for RiskLevel {
 // ============================================================================
 
 /// Status of an approval request
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -697,7 +697,7 @@ impl std::fmt::Display for ApprovalStatus {
 // ============================================================================
 
 /// Decision made on an approval request
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
@@ -742,7 +742,7 @@ impl std::fmt::Display for ApprovalDecision {
 // ============================================================================
 
 /// Classified intent type from user requests
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, diesel::AsExpression, diesel::FromSqlRow)]
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[repr(i16)]
