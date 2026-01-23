@@ -12,78 +12,78 @@ features = ["database", "i18n"]
 # ===== DEFAULT =====
 default = ["chat", "automation", "drive", "tasks", "cache", "directory"]
 
-# ===== CORE INFRASTRUCTURE (Always needed) =====
+# ===== CORE INFRASTRUCTURE (Can be used standalone) =====
 automation = ["dep:rhai", "dep:cron"]
 drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
 cache = ["dep:redis"]
 directory = []
 
-# ===== APPS (Flat list - no dependencies between apps) =====
+# ===== APPS (Each includes what it needs from core) =====
 # Communication
-chat = []
-people = []
-mail = ["dep:lettre", "dep:mailparse", "dep:imap", "dep:native-tls"]
-meet = ["dep:livekit"]
-social = []
-whatsapp = []
-telegram = []
-instagram = []
-msteams = []
+chat = ["automation", "drive", "cache"]
+people = ["automation", "drive", "cache"]
+mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap", "dep:native-tls"]
+meet = ["automation", "drive", "cache", "dep:livekit"]
+social = ["automation", "drive", "cache"]
+whatsapp = ["automation", "drive", "cache"]
+telegram = ["automation", "drive", "cache"]
+instagram = ["automation", "drive", "cache"]
+msteams = ["automation", "drive", "cache"]
 
 # Productivity
-calendar = []
-tasks = ["dep:cron"]
-project = ["quick-xml"]
-goals = []
-workspaces = []
-tickets = []
-billing = []
+calendar = ["automation", "drive", "cache"]
+tasks = ["automation", "drive", "cache", "dep:cron"]
+project = ["automation", "drive", "cache", "quick-xml"]
+goals = ["automation", "drive", "cache"]
+workspaces = ["automation", "drive", "cache"]
+tickets = ["automation", "drive", "cache"]
+billing = ["automation", "drive", "cache"]
 
 # Documents
-docs = ["docx-rs", "ooxmlsdk"]
-sheet = ["calamine", "spreadsheet-ods"]
-slides = ["ooxmlsdk"]
-paper = []
+docs = ["automation", "drive", "cache", "docx-rs", "ooxmlsdk"]
+sheet = ["automation", "drive", "cache", "calamine", "spreadsheet-ods"]
+slides = ["automation", "drive", "cache", "ooxmlsdk"]
+paper = ["automation", "drive", "cache"]
 
 # Media
-video = []
-player = []
-canvas = []
+video = ["automation", "drive", "cache"]
+player = ["automation", "drive", "cache"]
+canvas = ["automation", "drive", "cache"]
 
 # Learning
-learn = []
-research = []
-sources = []
+learn = ["automation", "drive", "cache"]
+research = ["automation", "drive", "cache", "llm", "vectordb"]
+sources = ["automation", "drive", "cache"]
 
 # Analytics
-analytics = []
-dashboards = []
-monitoring = ["dep:sysinfo"]
+analytics = ["automation", "drive", "cache"]
+dashboards = ["automation", "drive", "cache"]
+monitoring = ["automation", "drive", "cache", "dep:sysinfo"]
 
 # Development
-designer = []
-editor = []
+designer = ["automation", "drive", "cache"]
+editor = ["automation", "drive", "cache"]
 
 # Admin
-attendant = []
-security = []
-settings = []
+attendant = ["automation", "drive", "cache"]
+security = ["automation", "drive", "cache"]
+settings = ["automation", "drive", "cache"]
 
 # Core Tech
-llm = []
-vectordb = ["dep:qdrant-client"]
-nvidia = []
-compliance = ["dep:csv"]
-timeseries = []
-weba = []
-progress-bars = ["dep:indicatif"]
-grpc = []
-jemalloc = ["dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
-console = ["dep:crossterm", "dep:ratatui"]
+llm = ["automation", "drive", "cache"]
+vectordb = ["automation", "drive", "cache", "dep:qdrant-client"]
+nvidia = ["automation", "drive", "cache"]
+compliance = ["automation", "drive", "cache", "dep:csv"]
+timeseries = ["automation", "drive", "cache"]
+weba = ["automation", "drive", "cache"]
+progress-bars = ["automation", "drive", "cache", "dep:indicatif"]
+grpc = ["automation", "drive", "cache"]
+jemalloc = ["automation", "drive", "cache", "dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
+console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
 
 # ===== BUNDLES (Optional - for convenience) =====
-minimal = ["chat", "automation", "drive", "cache"]
-lightweight = ["chat", "automation", "drive", "cache", "tasks", "people"]
+minimal = ["chat"]
+lightweight = ["chat", "tasks", "people"]
 full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
 
 [dependencies]
