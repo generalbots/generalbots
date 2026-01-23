@@ -1,3 +1,4 @@
+#[cfg(feature = "tasks")]
 use crate::basic::keywords::set_schedule::execute_set_schedule;
 use crate::basic::keywords::table_definition::process_table_definitions;
 use crate::basic::keywords::webhook::execute_webhook_registration;
@@ -359,12 +360,15 @@ impl BasicCompiler {
                         .conn
                         .get()
                         .map_err(|e| format!("Failed to get database connection: {e}"))?;
+                    #[cfg(feature = "tasks")]
                     if let Err(e) = execute_set_schedule(&mut conn, cron, &script_name, bot_id) {
                         log::error!(
                             "Failed to schedule SET SCHEDULE during preprocessing: {}",
                             e
                         );
                     }
+                    #[cfg(not(feature = "tasks"))]
+                    log::warn!("SET SCHEDULE requires 'tasks' feature - ignoring");
                 } else {
                     log::warn!("Malformed SET SCHEDULE line ignored: {}", trimmed);
                 }

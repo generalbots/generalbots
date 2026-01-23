@@ -414,7 +414,7 @@ pub async fn events_count(State(state): State<Arc<AppState>>) -> Html<String> {
     .ok()
     .flatten();
 
-    Html(format!("{}", result.unwrap_or(0)))
+    Html(result.unwrap_or(0).to_string())
 }
 
 pub async fn today_events_count(State(state): State<Arc<AppState>>) -> Html<String> {
@@ -440,7 +440,7 @@ pub async fn today_events_count(State(state): State<Arc<AppState>>) -> Html<Stri
     .ok()
     .flatten();
 
-    Html(format!("{}", result.unwrap_or(0)))
+    Html(result.unwrap_or(0).to_string())
 }
 
 #[derive(Debug, Deserialize, Default)]

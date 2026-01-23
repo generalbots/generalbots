@@ -10,13 +10,22 @@ features = ["database", "i18n"]
 
 [features]
 # ===== SINGLE DEFAULT FEATURE SET =====
-default = ["chat", "drive", "tasks", "automation", "cache", "directory"]
+# Note: automation (Rhai scripting) is required for .gbot script execution
+default = ["chat", "automation", "drive", "tasks", "cache", "directory"]
+
+# ===== CORE CAPABILITIES (Internal Bundles) =====
+storage_core = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async"]
+automation_core = ["dep:rhai", "dep:cron"]
+cache_core = ["dep:redis"]
+mail_core = ["dep:lettre", "dep:mailparse", "dep:imap", "dep:native-tls"]
+realtime_core = ["dep:livekit"]
+pdf_core = ["dep:pdf-extract"]
 
 # ===== COMMUNICATION APPS =====
 chat = []
 people = []
-mail = ["dep:lettre","dep:mailparse", "dep:imap", "dep:native-tls"]
-meet = ["dep:livekit"]
+mail = ["mail_core"]
+meet = ["realtime_core"]
 social = []
 whatsapp = []
 telegram = []
@@ -26,8 +35,9 @@ communications = ["chat", "people", "mail", "meet", "social", "whatsapp", "teleg
 
 # ===== PRODUCTIVITY APPS =====
 calendar = []
-tasks = ["dep:cron", "automation"]
-project=["quick-xml"]
+# Tasks requires automation (scripts) and drive (attachments)
+tasks = ["automation", "drive", "monitoring"] 
+project = ["quick-xml"]
 goals = []
 workspace = []
 workspaces = ["workspace"]
@@ -36,11 +46,11 @@ billing = []
 productivity = ["calendar", "tasks", "project", "goals", "workspaces", "cache"]
 
 # ===== DOCUMENT APPS =====
-paper = ["docs", "dep:pdf-extract"]
+paper = ["docs", "pdf"]
 docs = ["docx-rs", "ooxmlsdk"]
 sheet = ["calamine", "spreadsheet-ods"]
 slides = ["ooxmlsdk"]
-drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
+drive = ["storage_core", "pdf"]
 documents = ["paper", "docs", "sheet", "slides", "drive"]
 
 # ===== MEDIA APPS =====
@@ -64,7 +74,7 @@ analytics_suite = ["analytics", "dashboards", "monitoring"]
 # ===== DEVELOPMENT TOOLS =====
 designer = []
 editor = []
-automation = ["dep:rhai", "dep:cron"]
+automation = ["automation_core"]
 development = ["designer", "editor", "automation"]
 
 # ===== ADMIN APPS =====
@@ -73,11 +83,17 @@ security = []
 settings = []
 admin = ["attendant", "security", "settings"]
 
+# ===== COMPATIBILITY ALIASES =====
+# These ensure old feature names still work or map correctly
+pdf = ["pdf_core"]
+cache = ["cache_core"]
+
+
+
 # ===== CORE TECHNOLOGIES =====
 llm = []
 vectordb = ["dep:qdrant-client"]
 nvidia = []
-cache = ["dep:redis"]
 compliance = ["dep:csv"]
 timeseries = []
 weba = []
@@ -95,7 +111,9 @@ full = [
     "llm", "cache", "compliance"
 ]
 
-minimal = ["chat"]
+# Minimal build includes core infrastructure: automation (Rhai), drive (S3), cache (Redis)
+# These are deeply integrated and used throughout the codebase
+minimal = ["chat", "automation", "drive", "cache"]
 lightweight = ["chat", "drive", "tasks", "people"]
 
 [dependencies]
@@ -115,7 +133,7 @@ base64 = { workspace = true }
 bytes = { workspace = true }
 chrono = { workspace = true, features = ["clock", "std"] }
 color-eyre = { workspace = true }
-diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric"] }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
 dirs = { workspace = true }
 dotenvy = { workspace = true }
 env_logger = { workspace = true }

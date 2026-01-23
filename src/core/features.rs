@@ -5,7 +5,7 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "chat",
     #[cfg(feature = "mail")]
     "mail",
-    #[cfg(feature = "email")]
+    #[cfg(feature = "mail")]
     "email", // Alias for mail
     #[cfg(feature = "calendar")]
     "calendar",
@@ -52,7 +52,7 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "tickets",
     #[cfg(feature = "billing")]
     "billing",
-    #[cfg(feature = "products")]
+    #[cfg(feature = "billing")]
     "products",
     #[cfg(feature = "video")]
     "video",
@@ -72,7 +72,7 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "editor",
     #[cfg(feature = "attendant")]
     "attendant", 
-    #[cfg(feature = "tools")]
+    #[cfg(feature = "automation")]
     "tools",
 ];
 

@@ -340,15 +340,13 @@ pub async fn attendant_websocket_handler(
 ) -> impl IntoResponse {
     let attendant_id = params.get("attendant_id").cloned();
 
-    if attendant_id.is_none() {
+    let Some(attendant_id) = attendant_id else {
         return (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "error": "attendant_id is required" })),
         )
             .into_response();
-    }
-
-    let attendant_id = attendant_id.expect("attendant_id present");
+    };
     info!(
         "Attendant WebSocket connection request from: {}",
         attendant_id

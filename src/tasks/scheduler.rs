@@ -151,8 +151,7 @@ impl TaskScheduler {
                                     let _ = cmd.execute();
                                 }
 
-                                if state.s3_client.is_some() {
-                                    let s3 = state.s3_client.as_ref().expect("s3 client configured");
+                                if let Some(s3) = state.s3_client.as_ref() {
                                     let body = tokio::fs::read(&backup_file).await?;
                                     s3.put_object()
                                         .bucket("backups")

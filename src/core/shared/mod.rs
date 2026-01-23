@@ -2,7 +2,6 @@
 
 
 
-
 pub mod admin;
 pub mod analytics;
 pub mod enums;
@@ -42,9 +41,12 @@ pub use botlib::models::UserMessage;
 
 
 pub use models::{
-    Automation, Bot, BotConfiguration, BotMemory, Click, MessageHistory, NewTask, Organization,
-    Task, TriggerKind, User, UserLoginToken, UserPreference, UserSession,
+    Automation, Bot, BotConfiguration, BotMemory, Click, MessageHistory, Organization,
+    TriggerKind, User, UserLoginToken, UserPreference, UserSession,
 };
+
+#[cfg(feature = "tasks")]
+pub use models::{NewTask, Task};
 
 pub use utils::{
     create_conn, format_timestamp_plain, format_timestamp_srt, format_timestamp_vtt,
@@ -61,10 +63,13 @@ pub mod prelude {
     pub use super::schema::*;
     pub use super::{
         ApiResponse, Attachment, Automation, Bot, BotConfiguration, BotError, BotMemory,
-        BotResponse, BotResult, Click, DbPool, MessageHistory, MessageType, NewTask, Organization,
-        Session, Suggestion, Task, TriggerKind, User, UserLoginToken, UserMessage, UserPreference,
+        BotResponse, BotResult, Click, DbPool, MessageHistory, MessageType, Organization,
+        Session, Suggestion, TriggerKind, User, UserLoginToken, UserMessage, UserPreference,
         UserSession,
     };
+
+    #[cfg(feature = "tasks")]
+    pub use super::{NewTask, Task};
 
 
     pub use diesel::prelude::*;

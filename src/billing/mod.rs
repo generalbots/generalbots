@@ -472,14 +472,13 @@ mod tests {
         let config = test_product_config();
         let business = config.plans.get("business").unwrap();
 
-        match &business.price {
-            PlanPrice::Fixed { amount, currency, period } => {
-                assert_eq!(*amount, 4900);
-                assert_eq!(currency, "usd");
-                assert_eq!(*period, BillingPeriod::Monthly);
-            }
-            _ => panic!("Business plan should have fixed pricing"),
-        }
+        let PlanPrice::Fixed { amount, currency, period } = &business.price else {
+            assert!(false, "Business plan should have fixed pricing");
+            return;
+        };
+        assert_eq!(*amount, 4900);
+        assert_eq!(currency, "usd");
+        assert_eq!(*period, BillingPeriod::Monthly);
     }
 
     #[test]

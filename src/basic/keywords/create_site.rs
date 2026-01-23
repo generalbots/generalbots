@@ -2,18 +2,21 @@
 use crate::llm::LLMProvider;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{debug, info, warn};
+use log::{debug, info};
 use rhai::Dynamic;
 use rhai::Engine;
+#[cfg(feature = "llm")]
 use serde_json::json;
 use std::error::Error;
 use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
+#[cfg(feature = "llm")]
 use std::sync::Arc;
 
 // When llm feature is disabled, create a dummy trait for type compatibility
 #[cfg(not(feature = "llm"))]
+#[allow(dead_code)]
 trait LLMProvider: Send + Sync {}
 
 pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Engine) {
@@ -254,6 +257,7 @@ async fn generate_html_from_prompt(
     Ok(generate_placeholder_html(prompt))
 }
 
+#[cfg(feature = "llm")]
 fn extract_html_from_response(response: &str) -> String {
     let trimmed = response.trim();
 

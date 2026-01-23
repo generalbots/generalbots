@@ -642,7 +642,7 @@ impl TasksIntegrationService {
         }
 
         // Sort by score and limit
-        suggestions.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        suggestions.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
         suggestions.truncate(limit as usize);
 
         Ok(suggestions)

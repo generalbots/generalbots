@@ -4,7 +4,8 @@ use crate::package_manager::{InstallMode, PackageManager};
 use crate::security::command_guard::SafeCommand;
 use crate::shared::utils::{establish_pg_connection, init_secrets_manager};
 use anyhow::Result;
-use aws_config::BehaviorVersion;
+
+#[cfg(feature = "drive")]
 use aws_sdk_s3::Client;
 use diesel::{Connection, RunQueryDsl};
 use log::{debug, error, info, warn};
@@ -1805,6 +1806,7 @@ VAULT_CACHE_TTL=300
         Ok(())
     }
 
+    #[cfg(feature = "drive")]
     async fn get_drive_client(config: &AppConfig) -> Client {
         let endpoint = if config.drive.server.ends_with('/') {
             config.drive.server.clone()
@@ -1870,6 +1872,7 @@ VAULT_CACHE_TTL=300
         Ok(())
     }
 
+    #[cfg(feature = "drive")]
     pub async fn upload_templates_to_drive(&self, _config: &AppConfig) -> Result<()> {
         let possible_paths = [
             "../bottemplates",
@@ -1918,6 +1921,11 @@ VAULT_CACHE_TTL=300
                 }
             }
         }
+        Ok(())
+    }
+    #[cfg(not(feature = "drive"))]
+    pub async fn upload_templates_to_drive(&self, _config: &AppConfig) -> Result<()> {
+        debug!("Drive feature disabled, skipping template upload");
         Ok(())
     }
     fn create_bots_from_templates(conn: &mut diesel::PgConnection) -> Result<()> {
@@ -2065,6 +2073,7 @@ VAULT_CACHE_TTL=300
         }
         Ok(())
     }
+    #[cfg(feature = "drive")]
     fn upload_directory_recursive<'a>(
         client: &'a Client,
         local_path: &'a Path,

@@ -14,7 +14,7 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
     PgConnection,
 };
-use futures_util::stream::StreamExt;
+
 #[cfg(feature = "progress-bars")]
 use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, warn};

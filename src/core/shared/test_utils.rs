@@ -5,9 +5,9 @@ use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
 use crate::core::shared::state::{AppState, Extensions};
 #[cfg(feature = "directory")]
-use crate::core::directory::client::ZitadelConfig;
+use crate::directory::client::ZitadelConfig;
 #[cfg(feature = "directory")]
-use crate::core::directory::AuthService;
+use crate::directory::AuthService;
 #[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
 use crate::shared::models::BotResponse;
@@ -19,7 +19,7 @@ use diesel::PgConnection;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{broadcast, Mutex};
 
 #[cfg(feature = "llm")]
 #[derive(Debug)]
@@ -214,13 +214,20 @@ impl TestAppStateBuilder {
             web_adapter: Arc::new(WebChannelAdapter::new()),
             voice_adapter: Arc::new(VoiceAdapter::new()),
             kb_manager: None,
+            #[cfg(feature = "tasks")]
             task_engine: Arc::new(TaskEngine::new(pool)),
             extensions: Extensions::new(),
             attendant_broadcast: Some(attendant_tx),
             task_progress_broadcast: Some(task_progress_tx),
+            billing_alert_broadcast: None,
             task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
+            #[cfg(feature = "project")]
             project_service: Arc::new(tokio::sync::RwLock::new(crate::project::ProjectService::new())),
+            #[cfg(feature = "compliance")]
             legal_service: Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new())),
+            jwt_manager: None,
+            auth_provider_registry: None,
+            rbac_manager: None,
         })
     }
 }

@@ -229,9 +229,6 @@ use crate::core::bot::BotOrchestrator;
 use crate::core::bot_database::BotDatabaseManager;
 use crate::core::config::AppConfig;
 
-#[cfg(feature = "directory")]
-use crate::directory::auth_handler;
-
 use package_manager::InstallMode;
 use session::{create_session, get_session_history, get_sessions, start_session};
 use crate::shared::state::AppState;
@@ -1141,7 +1138,9 @@ use crate::core::config::ConfigManager;
         config.server.host, config.server.port
     );
 
+    #[cfg(feature = "cache")]
     let cache_url = "redis://localhost:6379".to_string();
+    #[cfg(feature = "cache")]
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
@@ -1149,18 +1148,23 @@ use crate::core::config::ConfigManager;
             None
         }
     };
+    #[cfg(not(feature = "cache"))]
+    let redis_client = None;
 
     let web_adapter = Arc::new(WebChannelAdapter::new());
     let voice_adapter = Arc::new(VoiceAdapter::new());
 
+    #[cfg(feature = "drive")]
     let drive = create_s3_operator(&config.drive)
         .await
         .map_err(|e| std::io::Error::other(format!("Failed to initialize Drive: {}", e)))?;
 
+    #[cfg(feature = "drive")]
     ensure_vendor_files_in_minio(&drive).await;
 
     let session_manager = Arc::new(tokio::sync::Mutex::new(session::SessionManager::new(
         pool.get().map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?,
+        #[cfg(feature = "cache")]
         redis_client.clone(),
     )));
 
@@ -1335,10 +1339,12 @@ use crate::core::config::ConfigManager;
 
     let kb_manager = Arc::new(crate::core::kb::KnowledgeBaseManager::new("work"));
 
+    #[cfg(feature = "tasks")]
     let task_engine = Arc::new(crate::tasks::TaskEngine::new(pool.clone()));
 
     let metrics_collector =crate::core::shared::analytics::MetricsCollector::new();
 
+    #[cfg(feature = "tasks")]
     let task_scheduler = None;
 
     let (attendant_tx, _attendant_rx) = tokio::sync::broadcast::channel::<
@@ -1373,16 +1379,20 @@ use crate::core::config::ConfigManager;
     }
 
     let app_state = Arc::new(AppState {
+        #[cfg(feature = "drive")]
         drive: Some(drive.clone()),
+        #[cfg(feature = "drive")]
         s3_client: Some(drive),
         config: Some(cfg.clone()),
         conn: pool.clone(),
         database_url: database_url.clone(),
         bot_database_manager: bot_database_manager.clone(),
         bucket_name: "default.gbai".to_string(),
+        #[cfg(feature = "cache")]
         cache: redis_client.clone(),
         session_manager: session_manager.clone(),
         metrics_collector,
+        #[cfg(feature = "tasks")]
         task_scheduler,
         #[cfg(feature = "llm")]
         llm_provider: llm_provider.clone(),
@@ -1400,6 +1410,7 @@ use crate::core::config::ConfigManager;
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
         kb_manager: Some(kb_manager.clone()),
+        #[cfg(feature = "tasks")]
         task_engine,
         extensions: {
             let ext = crate::core::shared::state::Extensions::new();
@@ -1420,10 +1431,12 @@ use crate::core::config::ConfigManager;
         rbac_manager: None,
     });
 
+    #[cfg(feature = "tasks")]
     let task_scheduler = Arc::new(crate::tasks::scheduler::TaskScheduler::new(
         app_state.clone(),
     ));
 
+    #[cfg(feature = "tasks")]
     task_scheduler.start();
 
     if let Err(e) =crate::core::kb::ensure_crawler_service_running(app_state.clone()).await {

@@ -395,6 +395,7 @@ pub async fn list_all_apps(State(state): State<Arc<AppState>>) -> impl IntoRespo
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::security::sanitize_path_component;
 
     #[test]
     fn test_sanitize_path_component() {
