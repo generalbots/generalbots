@@ -165,6 +165,17 @@ impl ScriptService {
         add_member_keyword(state.clone(), user.clone(), &mut engine);
         #[cfg(feature = "chat")]
         register_bot_keywords(&state, &user, &mut engine);
+        
+        // ===== WORKFLOW ORCHESTRATION KEYWORDS =====
+        keywords::orchestration::register_orchestrate_workflow(state.clone(), user.clone(), &mut engine);
+        keywords::orchestration::register_step_keyword(state.clone(), user.clone(), &mut engine);
+        keywords::events::register_on_event(state.clone(), user.clone(), &mut engine);
+        keywords::events::register_publish_event(state.clone(), user.clone(), &mut engine);
+        keywords::events::register_wait_for_event(state.clone(), user.clone(), &mut engine);
+        keywords::enhanced_memory::register_bot_share_memory(state.clone(), user.clone(), &mut engine);
+        keywords::enhanced_memory::register_bot_sync_memory(state.clone(), user.clone(), &mut engine);
+        keywords::enhanced_llm::register_enhanced_llm_keyword(state.clone(), user.clone(), &mut engine);
+        
         keywords::universal_messaging::register_universal_messaging(
             state.clone(),
             user.clone(),

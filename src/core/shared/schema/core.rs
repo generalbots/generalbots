@@ -51,6 +51,41 @@ diesel::table! {
 }
 
 diesel::table! {
+    workflow_executions (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        workflow_name -> Text,
+        current_step -> Int4,
+        state_json -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    workflow_events (id) {
+        id -> Uuid,
+        workflow_id -> Nullable<Uuid>,
+        event_name -> Text,
+        event_data_json -> Nullable<Text>,
+        processed -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    bot_shared_memory (id) {
+        id -> Uuid,
+        source_bot_id -> Uuid,
+        target_bot_id -> Uuid,
+        memory_key -> Text,
+        memory_value -> Text,
+        shared_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     message_history (id) {
         id -> Uuid,
         session_id -> Uuid,
