@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 env:
-  CARGO_BUILD_JOBS: 2
+  CARGO_BUILD_JOBS: 1
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
 
@@ -71,6 +71,7 @@ jobs:
           chmod +x $HOME/.cargo/bin/sccache
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_DIR=/opt/gbo/sccache" >> $GITHUB_ENV
+          $HOME/.cargo/bin/sccache --start-server || true
 
 
       - name: Setup environment
@@ -79,9 +80,10 @@ jobs:
       - name: Build debug
         working-directory: workspace
         run: |
-          cargo build -p botserver -p botui -j 2 2>&1 | tee /tmp/build.log
+          cargo build -p botserver -p botui -j 1 2>&1 | tee /tmp/build.log
           ls -lh target/debug/botserver
           ls -lh target/debug/botui
+          sccache --show-stats || true
 
       - name: Save build log
         if: always()
