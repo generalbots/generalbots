@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::core::shared::schema::{crm_contacts, people, tasks};
+use crate::core::shared::schema::people::{crm_contacts as crm_contacts_table, people as people_table};
+use crate::core::shared::schema::tasks::tasks as tasks_table;
 use crate::shared::utils::DbPool;
 
 #[derive(Debug, Clone)]
@@ -813,11 +814,11 @@ impl TasksIntegrationService {
             let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
 
             // Get the contact's email to find the corresponding person
-            let contact_email: Option<String> = crm_contacts::table
-                .filter(crm_contacts::id.eq(contact_id))
-                .select(crm_contacts::email)
+            let contact_email: Option<String> = crm_contacts_table::table
+                .filter(crm_contacts_table::id.eq(contact_id))
+                .select(crm_contacts_table::email)
                 .first(&mut conn)
-                .map_err(|e| TasksIntegrationError::DatabaseError(format!("Contact not found: {}", e)))?;
+                .map_err(|e: diesel::result::Error| TasksIntegrationError::DatabaseError(format!("Contact not found: {}", e)))?;
 
             let contact_email = match contact_email {
                 Some(email) => email,
@@ -825,18 +826,18 @@ impl TasksIntegrationService {
             };
 
             // Find the person with this email
-            let person_id: Result<uuid::Uuid, _> = people::table
-                .filter(people::email.eq(&contact_email))
-                .select(people::id)
+            let person_id: Result<uuid::Uuid, _> = people_table::table
+                .filter(people_table::email.eq(&contact_email))
+                .select(people_table::id)
                 .first(&mut conn);
 
             if let Ok(pid) = person_id {
                 // Update the task's assigned_to field if this is an assignee
                 if role == "assignee" {
-                    diesel::update(tasks::table.filter(tasks::id.eq(task_id)))
-                        .set(tasks::assignee_id.eq(Some(pid)))
+                    diesel::update(tasks_table::table.filter(tasks_table::id.eq(task_id)))
+                        .set(tasks_table::assignee_id.eq(Some(pid)))
                         .execute(&mut conn)
-                        .map_err(|e| TasksIntegrationError::DatabaseError(format!("Failed to update task: {}", e)))?;
+                        .map_err(|e: diesel::result::Error| TasksIntegrationError::DatabaseError(format!("Failed to update task: {}", e)))?;
                 }
             }
 
@@ -857,9 +858,9 @@ impl TasksIntegrationService {
             let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
 
             // Get task assignees from tasks table and look up corresponding contacts
-            let task_row: Result<(Uuid, Option<Uuid>, DateTime<Utc>), _> = tasks::table
-                .filter(tasks::id.eq(task_id))
-                .select((tasks::id, tasks::assignee_id, tasks::created_at))
+            let task_row: Result<(Uuid, Option<Uuid>, DateTime<Utc>), _> = tasks_table::table
+                .filter(tasks_table::id.eq(task_id))
+                .select((tasks_table::id, tasks_table::assignee_id, tasks_table::created_at))
                 .first(&mut conn);
 
             let mut task_contacts = Vec::new();
@@ -867,16 +868,16 @@ impl TasksIntegrationService {
             if let Ok((tid, assigned_to, created_at)) = task_row {
                 if let Some(assignee_id) = assigned_to {
                     // Look up person -> email -> contact
-                    let person_email: Result<Option<String>, _> = people::table
-                        .filter(people::id.eq(assignee_id))
-                        .select(people::email)
+                    let person_email: Result<Option<String>, _> = people_table::table
+                        .filter(people_table::id.eq(assignee_id))
+                        .select(people_table::email)
                         .first(&mut conn);
 
                     if let Ok(Some(email)) = person_email {
                         // Find contact with this email
-                        let contact_result: Result<Uuid, _> = crm_contacts::table
-                            .filter(crm_contacts::email.eq(&email))
-                            .select(crm_contacts::id)
+                        let contact_result: Result<Uuid, _> = crm_contacts_table::table
+                            .filter(crm_contacts_table::email.eq(&email))
+                            .select(crm_contacts_table::id)
                             .first(&mut conn);
 
                         if let Ok(contact_id) = contact_result {
@@ -910,34 +911,34 @@ impl TasksIntegrationService {
         let pool = self.db_pool.clone();
         let status_filter = query.status.clone();
 
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<Vec<ContactTaskWithDetails>, TasksIntegrationError> {
             let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
 
-            let mut db_query = tasks::table
-                .filter(tasks::status.ne("deleted"))
+            let mut db_query = tasks_table::table
+                .filter(tasks_table::status.ne("deleted"))
                 .into_boxed();
 
             if let Some(status) = status_filter {
-                db_query = db_query.filter(tasks::status.eq(status));
+                db_query = db_query.filter(tasks_table::status.eq(status));
             }
 
             let rows: Vec<(Uuid, String, Option<String>, String, String, Option<DateTime<Utc>>, Option<Uuid>, i32, DateTime<Utc>, DateTime<Utc>)> = db_query
-                .order(tasks::created_at.desc())
+                .order(tasks_table::created_at.desc())
                 .select((
-                    tasks::id,
-                    tasks::title,
-                    tasks::description,
-                    tasks::status,
-                    tasks::priority,
-                    tasks::due_date,
-                    tasks::project_id,
-                    tasks::progress,
-                    tasks::created_at,
-                    tasks::updated_at,
+                    tasks_table::id,
+                    tasks_table::title,
+                    tasks_table::description,
+                    tasks_table::status,
+                    tasks_table::priority,
+                    tasks_table::due_date,
+                    tasks_table::project_id,
+                    tasks_table::progress,
+                    tasks_table::created_at,
+                    tasks_table::updated_at,
                 ))
                 .limit(50)
                 .load(&mut conn)
-                .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
+                .map_err(|e: diesel::result::Error| TasksIntegrationError::DatabaseError(e.to_string()))?;
 
             let tasks_list = rows.into_iter().map(|row| {
                 ContactTaskWithDetails {
@@ -971,7 +972,7 @@ impl TasksIntegrationService {
             Ok(tasks_list)
         })
         .await
-        .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?
+        .map_err(|e: tokio::task::JoinError| TasksIntegrationError::DatabaseError(e.to_string()))?
     }
 
     async fn get_contact_summary(
@@ -1017,27 +1018,27 @@ impl TasksIntegrationService {
         tokio::task::spawn_blocking(move || {
             let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
 
-            let assignee_id: Option<Uuid> = tasks::table
-                .filter(tasks::id.eq(task_id))
-                .select(tasks::assignee_id)
+            let assignee_id: Option<Uuid> = tasks_table::table
+                .filter(tasks_table::id.eq(task_id))
+                .select(tasks_table::assignee_id)
                 .first(&mut conn)
                 .optional()
-                .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?
+                .map_err(|e: diesel::result::Error| TasksIntegrationError::DatabaseError(e.to_string()))?
                 .flatten();
 
             if let Some(user_id) = assignee_id {
-                let person_email: Option<String> = people::table
-                    .filter(people::user_id.eq(user_id))
-                    .select(people::email)
+                let person_email: Option<String> = people_table::table
+                    .filter(people_table::user_id.eq(user_id))
+                    .select(people_table::email)
                     .first(&mut conn)
                     .optional()
-                    .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?
+                    .map_err(|e: diesel::result::Error| TasksIntegrationError::DatabaseError(e.to_string()))?
                     .flatten();
 
                 if let Some(email) = person_email {
-                    let contact_ids: Vec<Uuid> = crm_contacts::table
-                        .filter(crm_contacts::email.eq(&email))
-                        .select(crm_contacts::id)
+                    let contact_ids: Vec<Uuid> = crm_contacts_table::table
+                        .filter(crm_contacts_table::email.eq(&email))
+                        .select(crm_contacts_table::id)
                         .load(&mut conn)
                         .unwrap_or_default();
 
@@ -1095,26 +1096,26 @@ impl TasksIntegrationService {
         tokio::task::spawn_blocking(move || {
             let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
 
-            let mut query = crm_contacts::table
-                .filter(crm_contacts::status.eq("active"))
+            let mut query = crm_contacts_table::table
+                .filter(crm_contacts_table::status.eq("active"))
                 .into_boxed();
 
             for exc in &exclude {
-                query = query.filter(crm_contacts::id.ne(*exc));
+                query = query.filter(crm_contacts_table::id.ne(*exc));
             }
 
             let rows: Vec<(Uuid, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = query
                 .select((
-                    crm_contacts::id,
-                    crm_contacts::first_name,
-                    crm_contacts::last_name,
-                    crm_contacts::email,
-                    crm_contacts::company,
-                    crm_contacts::job_title,
+                    crm_contacts_table::id,
+                    crm_contacts_table::first_name,
+                    crm_contacts_table::last_name,
+                    crm_contacts_table::email,
+                    crm_contacts_table::company,
+                    crm_contacts_table::job_title,
                 ))
                 .limit(limit as i64)
                 .load(&mut conn)
-                .map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
+                .map_err(|e: diesel::result::Error| TasksIntegrationError::DatabaseError(e.to_string()))?;
 
             let contacts = rows.into_iter().map(|row| {
                 let summary = ContactSummary {
@@ -1155,22 +1156,22 @@ impl TasksIntegrationService {
         tokio::task::spawn_blocking(move || {
             let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
 
-            let mut query = crm_contacts::table
-                .filter(crm_contacts::status.eq("active"))
+            let mut query = crm_contacts_table::table
+                .filter(crm_contacts_table::status.eq("active"))
                 .into_boxed();
 
             for exc in &exclude {
-                query = query.filter(crm_contacts::id.ne(*exc));
+                query = query.filter(crm_contacts_table::id.ne(*exc));
             }
 
             let rows: Vec<(Uuid, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = query
                 .select((
-                    crm_contacts::id,
-                    crm_contacts::first_name,
-                    crm_contacts::last_name,
-                    crm_contacts::email,
-                    crm_contacts::company,
-                    crm_contacts::job_title,
+                    crm_contacts_table::id,
+                    crm_contacts_table::first_name,
+                    crm_contacts_table::last_name,
+                    crm_contacts_table::email,
+                    crm_contacts_table::company,
+                    crm_contacts_table::job_title,
                 ))
                 .limit(limit as i64)
                 .load(&mut conn)
@@ -1215,22 +1216,22 @@ impl TasksIntegrationService {
         tokio::task::spawn_blocking(move || {
             let mut conn = pool.get().map_err(|e| TasksIntegrationError::DatabaseError(e.to_string()))?;
 
-            let mut query = crm_contacts::table
-                .filter(crm_contacts::status.eq("active"))
+            let mut query = crm_contacts_table::table
+                .filter(crm_contacts_table::status.eq("active"))
                 .into_boxed();
 
             for exc in &exclude {
-                query = query.filter(crm_contacts::id.ne(*exc));
+                query = query.filter(crm_contacts_table::id.ne(*exc));
             }
 
             let rows: Vec<(Uuid, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = query
                 .select((
-                    crm_contacts::id,
-                    crm_contacts::first_name,
-                    crm_contacts::last_name,
-                    crm_contacts::email,
-                    crm_contacts::company,
-                    crm_contacts::job_title,
+                    crm_contacts_table::id,
+                    crm_contacts_table::first_name,
+                    crm_contacts_table::last_name,
+                    crm_contacts_table::email,
+                    crm_contacts_table::company,
+                    crm_contacts_table::job_title,
                 ))
                 .limit(limit as i64)
                 .load(&mut conn)

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::bot::get_default_bot;
-use crate::core::shared::schema::{dashboard_filters, dashboard_widgets, dashboards};
+use crate::core::shared::schema::dashboards::{dashboard_filters, dashboard_widgets, dashboards};
 use crate::shared::state::AppState;
 
 use crate::dashboards::error::DashboardsError;
@@ -58,7 +58,7 @@ pub async fn handle_list_dashboards(
             .offset(offset)
             .limit(limit)
             .load(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         let mut result_dashboards = Vec::new();
         for db_dash in db_dashboards {
@@ -79,10 +79,10 @@ pub async fn handle_list_dashboards(
             result_dashboards.push(db_dashboard_to_dashboard(db_dash, widgets, filters));
         }
 
-        Ok::<_, DashboardsError>(result_dashboards)
+        Ok::<Vec<Dashboard>, DashboardsError>(result_dashboards)
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(result))
 }
@@ -123,12 +123,12 @@ pub async fn handle_create_dashboard(
         diesel::insert_into(dashboards::table)
             .values(&db_dashboard)
             .execute(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
-        Ok::<_, DashboardsError>(db_dashboard_to_dashboard(db_dashboard, vec![], vec![]))
+        Ok::<Dashboard, DashboardsError>(db_dashboard_to_dashboard(db_dashboard, vec![], vec![]))
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(result))
 }
@@ -148,7 +148,7 @@ pub async fn handle_get_dashboard(
             .find(dashboard_id)
             .first(&mut conn)
             .optional()
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         match db_dash {
             Some(db) => {
@@ -165,13 +165,13 @@ pub async fn handle_get_dashboard(
                 let filters: Vec<DashboardFilter> =
                     filters_db.into_iter().map(db_filter_to_filter).collect();
 
-                Ok::<_, DashboardsError>(Some(db_dashboard_to_dashboard(db, widgets, filters)))
+                Ok::<Option<Dashboard>, DashboardsError>(Some(db_dashboard_to_dashboard(db, widgets, filters)))
             }
             None => Ok(None),
         }
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(result))
 }
@@ -216,7 +216,7 @@ pub async fn handle_update_dashboard(
         diesel::update(dashboards::table.find(dashboard_id))
             .set(&db_dash)
             .execute(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         let widgets_db: Vec<DbWidget> = dashboard_widgets::table
             .filter(dashboard_widgets::dashboard_id.eq(dashboard_id))
@@ -231,10 +231,10 @@ pub async fn handle_update_dashboard(
         let filters: Vec<DashboardFilter> =
             filters_db.into_iter().map(db_filter_to_filter).collect();
 
-        Ok::<_, DashboardsError>(db_dashboard_to_dashboard(db_dash, widgets, filters))
+        Ok::<Dashboard, DashboardsError>(db_dashboard_to_dashboard(db_dash, widgets, filters))
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(result))
 }
@@ -252,16 +252,16 @@ pub async fn handle_delete_dashboard(
 
         let deleted = diesel::delete(dashboards::table.find(dashboard_id))
             .execute(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         if deleted == 0 {
             return Err(DashboardsError::NotFound("Dashboard not found".to_string()));
         }
 
-        Ok::<_, DashboardsError>(())
+        Ok::<(), DashboardsError>(())
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(serde_json::json!({ "success": true })))
 }
@@ -282,17 +282,17 @@ pub async fn handle_get_templates(
             .filter(dashboards::is_template.eq(true))
             .order(dashboards::created_at.desc())
             .load(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         let templates: Vec<Dashboard> = db_dashboards
             .into_iter()
             .map(|db| db_dashboard_to_dashboard(db, vec![], vec![]))
             .collect();
 
-        Ok::<_, DashboardsError>(templates)
+        Ok::<Vec<Dashboard>, DashboardsError>(templates)
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(result))
 }

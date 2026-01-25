@@ -7,8 +7,10 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum InsightFaceModel {
     #[serde(rename = "buffalo_l")]
+    #[default]
     BuffaloL,
     #[serde(rename = "buffalo_m")]
     BuffaloM,
@@ -26,11 +28,6 @@ pub enum InsightFaceModel {
     W600kMbf,
 }
 
-impl Default for InsightFaceModel {
-    fn default() -> Self {
-        Self::BuffaloL
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InsightFaceConfig {
@@ -235,17 +232,14 @@ pub struct FaceIndex {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum DistanceMetric {
+    #[default]
     Cosine,
     Euclidean,
     DotProduct,
 }
 
-impl Default for DistanceMetric {
-    fn default() -> Self {
-        Self::Cosine
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IndexedFace {

@@ -1,6 +1,8 @@
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
+#[cfg(feature = "llm")]
+use crate::core::config::ConfigManager;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
@@ -91,34 +93,28 @@ pub struct PlanStep {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum StepPriority {
     Critical,
     High,
+    #[default]
     Medium,
     Low,
     Optional,
 }
 
-impl Default for StepPriority {
-    fn default() -> Self {
-        Self::Medium
-    }
-}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default)]
 pub enum RiskLevel {
     None,
+    #[default]
     Low,
     Medium,
     High,
     Critical,
 }
 
-impl Default for RiskLevel {
-    fn default() -> Self {
-        Self::Low
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiCallSpec {
@@ -132,7 +128,9 @@ pub struct ApiCallSpec {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum AuthType {
+    #[default]
     None,
     ApiKey {
         header: String,
@@ -151,11 +149,6 @@ pub enum AuthType {
     },
 }
 
-impl Default for AuthType {
-    fn default() -> Self {
-        Self::None
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetryConfig {
@@ -184,18 +177,15 @@ pub struct ApprovalLevel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum DefaultApprovalAction {
     Approve,
     Reject,
     Escalate,
+    #[default]
     Pause,
 }
 
-impl Default for DefaultApprovalAction {
-    fn default() -> Self {
-        Self::Pause
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlternativeInterpretation {

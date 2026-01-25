@@ -13,7 +13,8 @@ features = ["database", "i18n"]
 default = ["chat", "automation", "drive", "tasks", "cache", "directory"]
 
 # ===== CORE INFRASTRUCTURE (Can be used standalone) =====
-automation = ["dep:rhai", "dep:cron"]
+scripting = ["dep:rhai"]
+automation = ["scripting", "dep:cron"]
 drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
 cache = ["dep:redis"]
 directory = []
@@ -25,10 +26,6 @@ people = ["automation", "drive", "cache"]
 mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap", "dep:native-tls"]
 meet = ["automation", "drive", "cache", "dep:livekit"]
 social = ["automation", "drive", "cache"]
-whatsapp = ["automation", "drive", "cache"]
-telegram = ["automation", "drive", "cache"]
-instagram = ["automation", "drive", "cache"]
-msteams = ["automation", "drive", "cache"]
 
 # Productivity
 calendar = ["automation", "drive", "cache"]
@@ -41,7 +38,7 @@ billing = ["automation", "drive", "cache"]
 
 # Documents
 docs = ["automation", "drive", "cache", "docx-rs", "ooxmlsdk"]
-sheet = ["automation", "drive", "cache", "calamine", "spreadsheet-ods"]
+sheet = ["automation", "drive", "cache", "calamine", "spreadsheet-ods", "dep:rust_xlsxwriter", "dep:umya-spreadsheet"]
 slides = ["automation", "drive", "cache", "ooxmlsdk"]
 paper = ["automation", "drive", "cache"]
 
@@ -69,6 +66,10 @@ attendant = ["automation", "drive", "cache"]
 security = ["automation", "drive", "cache"]
 settings = ["automation", "drive", "cache"]
 
+whatsapp = ["automation", "drive", "cache"]
+telegram = ["automation", "drive", "cache"]
+instagram = ["automation", "drive", "cache"]
+msteams = ["automation", "drive", "cache"]
 # Core Tech
 llm = ["automation", "drive", "cache"]
 vectordb = ["automation", "drive", "cache", "dep:qdrant-client"]
@@ -163,9 +164,11 @@ qdrant-client = { workspace = true, optional = true }
 
 # Document Processing
 docx-rs = { workspace = true, optional = true }
-ooxmlsdk = { workspace = true, optional = true }
+ooxmlsdk = { workspace = true, optional = true, features = ["parts"] }
 calamine = { workspace = true, optional = true }
 spreadsheet-ods = { workspace = true, optional = true }
+rust_xlsxwriter = { workspace = true, optional = true }
+umya-spreadsheet = { workspace = true, optional = true }
 
 # File Storage & Drive (drive feature)
 aws-config = { workspace = true, features = ["behavior-version-latest", "rt-tokio", "rustls"], optional = true }

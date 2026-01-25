@@ -9,7 +9,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum ReflectionType {
+    #[default]
     ConversationQuality,
     ResponseAccuracy,
     ToolUsage,
@@ -18,11 +20,6 @@ pub enum ReflectionType {
     Custom(String),
 }
 
-impl Default for ReflectionType {
-    fn default() -> Self {
-        Self::ConversationQuality
-    }
-}
 
 impl From<&str> for ReflectionType {
     fn from(s: &str) -> Self {

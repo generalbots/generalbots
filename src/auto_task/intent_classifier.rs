@@ -4,6 +4,8 @@ use crate::basic::ScriptService;
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
+#[cfg(feature = "llm")]
+use crate::core::config::ConfigManager;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_query;

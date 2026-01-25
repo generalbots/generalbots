@@ -32,18 +32,23 @@ impl std::fmt::Display for ProtectionTool {
     }
 }
 
-impl ProtectionTool {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for ProtectionTool {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "lynis" => Some(Self::Lynis),
-            "rkhunter" => Some(Self::RKHunter),
-            "chkrootkit" => Some(Self::Chkrootkit),
-            "suricata" => Some(Self::Suricata),
-            "lmd" | "maldet" => Some(Self::LMD),
-            "clamav" | "clamscan" => Some(Self::ClamAV),
-            _ => None,
+            "lynis" => Ok(Self::Lynis),
+            "rkhunter" => Ok(Self::RKHunter),
+            "chkrootkit" => Ok(Self::Chkrootkit),
+            "suricata" => Ok(Self::Suricata),
+            "lmd" | "maldet" => Ok(Self::LMD),
+            "clamav" | "clamscan" => Ok(Self::ClamAV),
+            _ => Err(()),
         }
     }
+}
+
+impl ProtectionTool {
 
     pub fn binary_name(&self) -> &'static str {
         match self {
@@ -324,7 +329,7 @@ impl ProtectionManager {
     }
 
     pub async fn get_tool_status_by_name(&self, name: &str) -> Option<ToolStatus> {
-        let tool = ProtectionTool::from_str(name)?;
+        let tool: ProtectionTool = name.parse().ok()?;
         self.tool_status.read().await.get(&tool).cloned()
     }
 
@@ -551,9 +556,7 @@ impl ProtectionManager {
     pub async fn get_report(&self, tool: ProtectionTool) -> Result<String> {
         let history = self.scan_history.read().await;
         let latest = history
-            .iter()
-            .filter(|s| s.tool == tool)
-            .last()
+            .iter().rfind(|s| s.tool == tool)
             .ok_or_else(|| anyhow::anyhow!("No scan results found for {tool}"))?;
 
         latest.raw_output.clone().ok_or_else(|| anyhow::anyhow!("No report available"))
@@ -566,13 +569,13 @@ mod tests {
 
     #[test]
     fn test_protection_tool_from_str() {
-        assert_eq!(ProtectionTool::from_str("lynis"), Some(ProtectionTool::Lynis));
-        assert_eq!(ProtectionTool::from_str("LYNIS"), Some(ProtectionTool::Lynis));
-        assert_eq!(ProtectionTool::from_str("rkhunter"), Some(ProtectionTool::RKHunter));
-        assert_eq!(ProtectionTool::from_str("clamav"), Some(ProtectionTool::ClamAV));
-        assert_eq!(ProtectionTool::from_str("clamscan"), Some(ProtectionTool::ClamAV));
-        assert_eq!(ProtectionTool::from_str("maldet"), Some(ProtectionTool::LMD));
-        assert_eq!(ProtectionTool::from_str("unknown"), None);
+        assert_eq!("lynis".parse::<ProtectionTool>(), Ok(ProtectionTool::Lynis));
+        assert_eq!("LYNIS".parse::<ProtectionTool>(), Ok(ProtectionTool::Lynis));
+        assert_eq!("rkhunter".parse::<ProtectionTool>(), Ok(ProtectionTool::RKHunter));
+        assert_eq!("clamav".parse::<ProtectionTool>(), Ok(ProtectionTool::ClamAV));
+        assert_eq!("clamscan".parse::<ProtectionTool>(), Ok(ProtectionTool::ClamAV));
+        assert_eq!("maldet".parse::<ProtectionTool>(), Ok(ProtectionTool::LMD));
+        assert!("unknown".parse::<ProtectionTool>().is_err());
     }
 
     #[test]

@@ -368,7 +368,7 @@ fn parse_due_date(due_date: &str) -> Result<Option<DateTime<Utc>>, String> {
         return Ok(Some(now + Duration::days(30)));
     }
 
-    if let Ok(date) = NaiveDate::parse_from_str(&due_date, "%Y-%m-%d") {
+    if let Ok(date) = NaiveDate::parse_from_str(due_date, "%Y-%m-%d") {
         if let Some(time) = date.and_hms_opt(0, 0, 0) {
             return Ok(Some(time.and_utc()));
         }

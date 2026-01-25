@@ -356,8 +356,8 @@ impl RbacManager {
     }
 
     pub fn with_defaults() -> Self {
-        let manager = Self::new(RbacConfig::default());
-        manager
+
+        Self::new(RbacConfig::default())
     }
 
     pub async fn register_route(&self, permission: RoutePermission) {
@@ -413,7 +413,7 @@ impl RbacManager {
 
             if !route.required_roles.is_empty() {
                 let has_role = route.required_roles.iter().any(|r| {
-                    let role = Role::from_str(r);
+                    let role = r.parse::<Role>().unwrap_or(Role::Anonymous);
                     user.has_role(&role)
                 });
 
@@ -534,7 +534,7 @@ impl RbacManager {
         let mut user_groups = self.user_groups.write().await;
         user_groups.insert(user_id, groups);
 
-        self.invalidate_cache_prefix(&format!("resource:")).await;
+        self.invalidate_cache_prefix("resource:").await;
     }
 
     pub async fn add_user_to_group(&self, user_id: Uuid, group: &str) {

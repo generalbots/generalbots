@@ -3,6 +3,8 @@ use crate::llm::LLMProvider;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{debug, info};
+#[cfg(feature = "llm")]
+use log::warn;
 use rhai::Dynamic;
 use rhai::Engine;
 #[cfg(feature = "llm")]

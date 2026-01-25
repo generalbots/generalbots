@@ -19,19 +19,19 @@ Router::new()
 .route(ApiUrls::MONITORING_LLM, get(llm_metrics))
 .route(ApiUrls::MONITORING_HEALTH, get(health))
 // Additional endpoints expected by the frontend
-.route("/api/ui/monitoring/timestamp", get(timestamp))
-.route("/api/ui/monitoring/bots", get(bots))
-.route("/api/ui/monitoring/services/status", get(services_status))
-.route("/api/ui/monitoring/resources/bars", get(resources_bars))
-.route("/api/ui/monitoring/activity/latest", get(activity_latest))
-.route("/api/ui/monitoring/metric/sessions", get(metric_sessions))
-.route("/api/ui/monitoring/metric/messages", get(metric_messages))
-.route("/api/ui/monitoring/metric/response_time", get(metric_response_time))
-.route("/api/ui/monitoring/trend/sessions", get(trend_sessions))
-.route("/api/ui/monitoring/rate/messages", get(rate_messages))
+.route(ApiUrls::MONITORING_TIMESTAMP, get(timestamp))
+.route(ApiUrls::MONITORING_BOTS, get(bots))
+.route(ApiUrls::MONITORING_SERVICES_STATUS, get(services_status))
+.route(ApiUrls::MONITORING_RESOURCES_BARS, get(resources_bars))
+.route(ApiUrls::MONITORING_ACTIVITY_LATEST, get(activity_latest))
+.route(ApiUrls::MONITORING_METRIC_SESSIONS, get(metric_sessions))
+.route(ApiUrls::MONITORING_METRIC_MESSAGES, get(metric_messages))
+.route(ApiUrls::MONITORING_METRIC_RESPONSE_TIME, get(metric_response_time))
+.route(ApiUrls::MONITORING_TREND_SESSIONS, get(trend_sessions))
+.route(ApiUrls::MONITORING_RATE_MESSAGES, get(rate_messages))
 // Aliases for frontend compatibility
-.route("/api/ui/monitoring/sessions", get(sessions_panel))
-.route("/api/ui/monitoring/messages", get(messages_panel))
+.route(ApiUrls::MONITORING_SESSIONS_PANEL, get(sessions_panel))
+.route(ApiUrls::MONITORING_MESSAGES_PANEL, get(messages_panel))
 }
 
 async fn dashboard(State(state): State<Arc<AppState>>) -> Html<String> {
@@ -426,7 +426,7 @@ sys.refresh_all();
     let total_memory = sys.total_memory();
     let used_memory = sys.used_memory();
     let memory_percent = if total_memory > 0 {
-        (used_memory as f64 / total_memory as f64) * 100.0
+        ((used_memory as f64 / total_memory as f64) * 100.0) as f32
     } else {
         0.0
     };

@@ -275,9 +275,7 @@ impl AnonymousSessionManager {
         let sessions = self.sessions.read().await;
         let session = sessions.get(&session_id)?;
 
-        if session.upgraded_to_user_id.is_none() {
-            return None;
-        }
+        session.upgraded_to_user_id?;
 
         let messages = self.messages.read().await;
         messages.get(&session_id).cloned()
@@ -365,7 +363,7 @@ impl AnonymousSessionManager {
         let mut sessions = self.sessions.write().await;
         if let Some(session) = sessions.get_mut(&session_id) {
             if session.is_active {
-                session.expires_at = session.expires_at + Duration::minutes(additional_minutes);
+                session.expires_at += Duration::minutes(additional_minutes);
                 return true;
             }
         }

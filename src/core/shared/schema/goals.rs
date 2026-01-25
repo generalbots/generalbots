@@ -1,3 +1,5 @@
+use crate::core::shared::schema::core::{organizations, bots};
+
 diesel::table! {
     okr_objectives (id) {
         id -> Uuid,

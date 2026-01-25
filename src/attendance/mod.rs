@@ -1,5 +1,6 @@
 pub mod drive;
 pub mod keyword_services;
+#[cfg(feature = "llm")]
 pub mod llm_assist;
 pub mod queue;
 
@@ -8,6 +9,7 @@ pub use keyword_services::{
     AttendanceCommand, AttendanceRecord, AttendanceResponse, AttendanceService, KeywordConfig,
     KeywordParser, ParsedCommand,
 };
+#[cfg(feature = "llm")]
 pub use llm_assist::{
     AttendantTip, ConversationMessage, ConversationSummary, LlmAssistConfig, PolishRequest,
     PolishResponse, SentimentAnalysis, SentimentResponse, SmartRepliesRequest,
@@ -45,7 +47,7 @@ use tokio::sync::broadcast;
 use uuid::Uuid;
 
 pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
-    Router::new()
+    let router = Router::new()
         .route(ApiUrls::ATTENDANCE_QUEUE, get(queue::list_queue))
         .route(ApiUrls::ATTENDANCE_ATTENDANTS, get(queue::list_attendants))
         .route(ApiUrls::ATTENDANCE_ASSIGN, post(queue::assign_conversation))
@@ -56,7 +58,10 @@ pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
         .route(ApiUrls::ATTENDANCE_RESOLVE, post(queue::resolve_conversation))
         .route(ApiUrls::ATTENDANCE_INSIGHTS, get(queue::get_insights))
         .route(ApiUrls::ATTENDANCE_RESPOND, post(attendant_respond))
-        .route(ApiUrls::WS_ATTENDANT, get(attendant_websocket_handler))
+        .route(ApiUrls::WS_ATTENDANT, get(attendant_websocket_handler));
+
+    #[cfg(feature = "llm")]
+    let router = router
         .route(
             ApiUrls::ATTENDANCE_LLM_TIPS,
             post(llm_assist::generate_tips),
@@ -74,7 +79,9 @@ pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
             ApiUrls::ATTENDANCE_LLM_SENTIMENT,
             post(llm_assist::analyze_sentiment),
         )
-        .route(ApiUrls::ATTENDANCE_LLM_CONFIG, get(llm_assist::get_llm_config))
+        .route(ApiUrls::ATTENDANCE_LLM_CONFIG, get(llm_assist::get_llm_config));
+
+    router
 }
 
 #[derive(Debug, Deserialize)]

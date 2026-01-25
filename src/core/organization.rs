@@ -558,11 +558,10 @@ impl BotAccessConfig {
         }
 
         // Organization-wide access
-        if self.visibility == BotVisibility::Organization {
-            if user.organization_id == Some(self.organization_id) {
+        if self.visibility == BotVisibility::Organization
+            && user.organization_id == Some(self.organization_id) {
                 return AccessCheckResult::Allowed;
             }
-        }
 
         AccessCheckResult::Denied("Access not granted".to_string())
     }
@@ -702,11 +701,10 @@ impl AppAccessConfig {
         }
 
         // Organization-wide
-        if self.visibility == AppVisibility::Organization {
-            if user.organization_id == Some(self.organization_id) {
+        if self.visibility == AppVisibility::Organization
+            && user.organization_id == Some(self.organization_id) {
                 return AccessCheckResult::Allowed;
             }
-        }
 
         AccessCheckResult::Denied("Access not granted".to_string())
     }

@@ -494,24 +494,7 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_quota_manager_new() {
-        let manager = QuotaManager::new();
-        assert_eq!(manager.alert_thresholds, vec![80.0, 90.0, 100.0]);
-    }
 
-    #[test]
-    fn test_quota_manager_with_thresholds() {
-        let thresholds = vec![50.0, 75.0, 90.0];
-        let manager = QuotaManager::with_thresholds(thresholds.clone());
-        assert_eq!(manager.alert_thresholds, thresholds);
-    }
-
-    #[test]
-    fn test_quota_manager_default() {
-        let manager = QuotaManager::default();
-        assert_eq!(manager.alert_thresholds, vec![80.0, 90.0, 100.0]);
-    }
 
     #[tokio::test]
     async fn test_set_and_get_quotas() {

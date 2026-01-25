@@ -1,7 +1,9 @@
+#[cfg(feature = "calendar")]
 pub mod calendar_integration;
 pub mod crm;
 pub mod crm_ui;
 pub mod external_sync;
+#[cfg(feature = "tasks")]
 pub mod tasks_integration;
 
 use axum::{

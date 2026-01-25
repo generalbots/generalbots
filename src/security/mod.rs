@@ -506,7 +506,7 @@ mod tests {
     }
 
     #[test]
-    fn test_token_response_serialization() {
+    fn test_token_response_serialization() -> Result<(), Box<dyn std::error::Error>> {
         let response = TokenResponse {
             access_token: "test_token".to_string(),
             token_type: "Bearer".to_string(),
@@ -516,15 +516,16 @@ mod tests {
             scope: "openid".to_string(),
         };
 
-        let json = serde_json::to_string(&response).unwrap();
+        let json = serde_json::to_string(&response)?;
         assert!(json.contains("access_token"));
         assert!(json.contains("Bearer"));
         assert!(json.contains("refresh_token"));
         assert!(!json.contains("id_token"));
+        Ok(())
     }
 
     #[test]
-    fn test_introspection_response_active() {
+    fn test_introspection_response_active() -> Result<(), Box<dyn std::error::Error>> {
         let response = IntrospectionResponse {
             active: true,
             scope: Some("openid".to_string()),
@@ -538,12 +539,13 @@ mod tests {
             iss: Some("issuer".to_string()),
         };
 
-        let json = serde_json::to_string(&response).unwrap();
+        let json = serde_json::to_string(&response)?;
         assert!(json.contains(r#""active":true"#));
+        Ok(())
     }
 
     #[test]
-    fn test_introspection_response_inactive() {
+    fn test_introspection_response_inactive() -> Result<(), Box<dyn std::error::Error>> {
         let response = IntrospectionResponse {
             active: false,
             scope: None,
@@ -557,9 +559,10 @@ mod tests {
             iss: None,
         };
 
-        let json = serde_json::to_string(&response).unwrap();
+        let json = serde_json::to_string(&response)?;
         assert!(json.contains(r#""active":false"#));
         assert!(!json.contains("scope"));
+        Ok(())
     }
 
     #[test]
@@ -621,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    fn test_token_response_without_optional_fields() {
+    fn test_token_response_without_optional_fields() -> Result<(), Box<dyn std::error::Error>> {
         let response = TokenResponse {
             access_token: "token123".to_string(),
             token_type: "Bearer".to_string(),
@@ -631,14 +634,15 @@ mod tests {
             scope: "openid profile".to_string(),
         };
 
-        let json = serde_json::to_string(&response).unwrap();
+        let json = serde_json::to_string(&response)?;
         assert!(json.contains("token123"));
         assert!(!json.contains("refresh_token"));
         assert!(!json.contains("id_token"));
+        Ok(())
     }
 
     #[test]
-    fn test_introspection_response_with_all_fields() {
+    fn test_introspection_response_with_all_fields() -> Result<(), Box<dyn std::error::Error>> {
         let response = IntrospectionResponse {
             active: true,
             scope: Some("openid profile email".to_string()),
@@ -652,10 +656,11 @@ mod tests {
             iss: Some("https://issuer.example.com".to_string()),
         };
 
-        let json = serde_json::to_string(&response).unwrap();
+        let json = serde_json::to_string(&response)?;
         assert!(json.contains("openid profile email"));
         assert!(json.contains("my-client-id"));
         assert!(json.contains("johndoe"));
         assert!(json.contains("1700000000"));
+        Ok(())
     }
 }

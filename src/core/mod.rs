@@ -4,10 +4,12 @@ pub mod bootstrap;
 pub mod bot;
 pub mod bot_database;
 pub mod config;
+#[cfg(feature = "directory")]
 pub mod directory;
 pub mod dns;
 pub mod features;
 pub mod i18n;
+#[cfg(any(feature = "research", feature = "llm"))]
 pub mod kb;
 pub mod large_org_optimizer;
 pub mod manifest;

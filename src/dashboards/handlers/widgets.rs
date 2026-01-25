@@ -7,7 +7,7 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::core::shared::schema::dashboard_widgets;
+use crate::core::shared::schema::dashboards::dashboard_widgets;
 use crate::shared::state::AppState;
 
 use crate::dashboards::error::DashboardsError;
@@ -46,7 +46,7 @@ pub async fn handle_add_widget(
         diesel::insert_into(dashboard_widgets::table)
             .values(&db_widget)
             .execute(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         Ok::<_, DashboardsError>(db_widget_to_widget(db_widget))
     })
@@ -97,7 +97,7 @@ pub async fn handle_update_widget(
         diesel::update(dashboard_widgets::table.find(widget_id))
             .set(&db_widget)
             .execute(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         Ok::<_, DashboardsError>(db_widget_to_widget(db_widget))
     })
@@ -124,7 +124,7 @@ pub async fn handle_delete_widget(
                 .filter(dashboard_widgets::dashboard_id.eq(dashboard_id)),
         )
         .execute(&mut conn)
-        .map_err(|e| DashboardsError::Database(e.to_string()))?;
+        .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         if deleted == 0 {
             return Err(DashboardsError::NotFound("Widget not found".to_string()));

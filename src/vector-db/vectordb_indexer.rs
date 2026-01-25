@@ -13,9 +13,8 @@ use crate::drive::vectordb::UserDriveVectorDB;
 #[cfg(feature = "vectordb")]
 use crate::drive::vectordb::{FileContentExtractor, FileDocument};
 #[cfg(all(feature = "vectordb", feature = "mail"))]
-use crate::email::vectordb::UserEmailVectorDB;
-#[cfg(all(feature = "vectordb", feature = "mail"))]
-use crate::email::vectordb::{EmailDocument, EmailEmbeddingGenerator};
+use crate::email::vectordb::{EmailDocument, UserEmailVectorDB};
+use crate::vector_db::embedding::EmbeddingGenerator;
 use crate::shared::utils::DbPool;
 
 #[derive(Debug, Clone)]
@@ -40,6 +39,7 @@ impl UserWorkspace {
             .join(self.user_id.to_string())
     }
 
+    #[cfg(feature = "mail")]
     fn email_vectordb(&self) -> String {
         format!("email_{}_{}", self.bot_id, self.user_id)
     }
@@ -83,7 +83,7 @@ pub struct VectorDBIndexer {
     db_pool: DbPool,
     work_root: PathBuf,
     qdrant_url: String,
-    embedding_generator: Arc<EmailEmbeddingGenerator>,
+    embedding_generator: Arc<EmbeddingGenerator>,
     jobs: Arc<RwLock<HashMap<Uuid, UserIndexingJob>>>,
     running: Arc<RwLock<bool>>,
     interval_seconds: u64,
@@ -101,7 +101,7 @@ impl VectorDBIndexer {
             db_pool,
             work_root,
             qdrant_url,
-            embedding_generator: Arc::new(EmailEmbeddingGenerator { llm_endpoint }),
+            embedding_generator: Arc::new(EmbeddingGenerator::new(llm_endpoint)),
             jobs: Arc::new(RwLock::new(HashMap::new())),
             running: Arc::new(RwLock::new(false)),
             interval_seconds: 300,
@@ -199,6 +199,7 @@ impl VectorDBIndexer {
                 user_id,
                 bot_id,
                 workspace,
+                #[cfg(all(feature = "vectordb", feature = "mail"))]
                 email_db: None,
                 drive_db: None,
                 stats: IndexingStats {
@@ -223,6 +224,7 @@ impl VectorDBIndexer {
 
         job.status = IndexingStatus::Running;
 
+        #[cfg(all(feature = "vectordb", feature = "mail"))]
         if job.email_db.is_none() {
             let mut email_db =
                 UserEmailVectorDB::new(user_id, bot_id, job.workspace.email_vectordb().into());
@@ -251,6 +253,7 @@ impl VectorDBIndexer {
 
         drop(jobs);
 
+        #[cfg(feature = "mail")]
         if let Err(e) = self.index_user_emails(user_id).await {
             error!("Failed to index emails for user {}: {}", user_id, e);
         }
@@ -268,6 +271,7 @@ impl VectorDBIndexer {
         Ok(())
     }
 
+    #[cfg(feature = "mail")]
     async fn index_user_emails(&self, user_id: Uuid) -> Result<()> {
         let jobs = self.jobs.read().await;
         let job = jobs
@@ -302,7 +306,17 @@ impl VectorDBIndexer {
 
                     for chunk in emails.chunks(self.batch_size) {
                         for email in chunk {
-                            match self.embedding_generator.generate_embedding(&email).await {
+                            let text = format!(
+                                "From: {} <{}>\nSubject: {}\n\n{}",
+                                email.from_name, email.from_email, email.subject, email.body_text
+                            );
+                            let text = if text.len() > 8000 {
+                                &text[..8000]
+                            } else {
+                                &text
+                            };
+
+                            match self.embedding_generator.generate_text_embedding(text).await {
                                 Ok(embedding) => {
                                     if let Err(e) = email_db.index_email(&email, embedding).await {
                                         error!("Failed to index email {}: {}", email.id, e);
@@ -394,6 +408,7 @@ impl VectorDBIndexer {
         Ok(())
     }
 
+    #[cfg(feature = "mail")]
     async fn get_user_email_accounts(&self, user_id: Uuid) -> Result<Vec<String>> {
         let pool = self.db_pool.clone();
 
@@ -422,6 +437,7 @@ impl VectorDBIndexer {
         .await?
     }
 
+    #[cfg(feature = "mail")]
     async fn get_unindexed_emails(
         &self,
         user_id: Uuid,

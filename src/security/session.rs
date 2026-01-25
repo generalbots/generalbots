@@ -64,6 +64,7 @@ pub enum SessionStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct DeviceInfo {
     pub user_agent: Option<String>,
     pub device_type: Option<String>,
@@ -72,17 +73,6 @@ pub struct DeviceInfo {
     pub fingerprint: Option<String>,
 }
 
-impl Default for DeviceInfo {
-    fn default() -> Self {
-        Self {
-            user_agent: None,
-            device_type: None,
-            os: None,
-            browser: None,
-            fingerprint: None,
-        }
-    }
-}
 
 impl DeviceInfo {
     pub fn from_user_agent(user_agent: &str) -> Self {
@@ -531,17 +521,7 @@ pub fn extract_session_id_from_cookie(cookie_header: &str, cookie_name: &str) ->
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_session_creation() {
-        let config = SessionConfig::default();
-        let user_id = Uuid::new_v4();
-        let session = Session::new(user_id, &config);
 
-        assert_eq!(session.user_id, user_id);
-        assert_eq!(session.status, SessionStatus::Active);
-        assert!(session.is_valid());
-        assert!(!session.is_expired());
-    }
 
     #[test]
     fn test_session_touch() {

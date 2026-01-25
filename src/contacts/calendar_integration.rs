@@ -625,7 +625,7 @@ impl CalendarIntegrationService {
         let from_date = query.from_date;
         let to_date = query.to_date;
 
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<Vec<ContactEventWithDetails>, CalendarIntegrationError> {
             let mut conn = pool.get().map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             // Get events for the contact's organization in the date range
@@ -674,7 +674,10 @@ impl CalendarIntegrationService {
             Ok(events)
         })
         .await
-        .map_err(|_| CalendarIntegrationError::DatabaseError)?
+        .map_err(|e: tokio::task::JoinError| {
+            log::error!("Spawn blocking error: {}", e);
+            CalendarIntegrationError::DatabaseError
+        })?
     }
 
     async fn get_contact_summary(
@@ -738,7 +741,7 @@ impl CalendarIntegrationService {
         let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
 
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
             let mut conn = pool.get().map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             // Find other contacts in the same organization, excluding specified ones
@@ -780,7 +783,10 @@ impl CalendarIntegrationService {
             Ok(contacts)
         })
         .await
-        .map_err(|_| CalendarIntegrationError::DatabaseError)?
+        .map_err(|e: tokio::task::JoinError| {
+            log::error!("Spawn blocking error: {}", e);
+            CalendarIntegrationError::DatabaseError
+        })?
     }
 
     async fn find_same_company_contacts(
@@ -792,7 +798,7 @@ impl CalendarIntegrationService {
         let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
 
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
             let mut conn = pool.get().map_err(|_| CalendarIntegrationError::DatabaseError)?;
 
             // Find contacts with company field set

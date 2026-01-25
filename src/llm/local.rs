@@ -28,14 +28,15 @@ pub async fn ensure_llama_servers_running(
 
     let config_values = {
         let conn_arc = app_state.conn.clone();
-        let default_bot_id = tokio::task::spawn_blocking(move || {
+        let default_bot_id = tokio::task::spawn_blocking(move || -> Result<uuid::Uuid, String> {
             let mut conn = conn_arc.get().map_err(|e| format!("failed to get db connection: {e}"))?;
-            bots.filter(name.eq("default"))
+            let bot_id = bots.filter(name.eq("default"))
                 .select(id)
                 .first::<uuid::Uuid>(&mut *conn)
-                .unwrap_or_else(|_| uuid::Uuid::nil())
+                .unwrap_or_else(|_| uuid::Uuid::nil());
+            Ok(bot_id)
         })
-        .await?;
+        .await??;
         let config_manager = ConfigManager::new(app_state.conn.clone());
         (
             default_bot_id,

@@ -152,8 +152,7 @@ fn extract_user_id(request: &Request<Body>) -> Option<String> {
 
     if let Some(auth) = request.headers().get("authorization") {
         if let Ok(auth_str) = auth.to_str() {
-            if auth_str.starts_with("Bearer ") {
-                let token = &auth_str[7..];
+            if let Some(token) = auth_str.strip_prefix("Bearer ") {
                 if token.len() > 10 {
                     return Some(format!("token:{}", &token[..10]));
                 }

@@ -13,6 +13,7 @@ use crate::basic::keywords::table_definition::{
 use crate::core::shared::get_content_type;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::{AgentActivity, AppState};
+#[cfg(feature = "drive")]
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
@@ -21,6 +22,10 @@ use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+#[cfg(feature = "llm")]
+use crate::core::config::ConfigManager;
+#[cfg(feature = "llm")]
+use tokio::sync::mpsc;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -382,7 +387,7 @@ impl AppGenerator {
                 crate::core::shared::state::TaskProgressEvent::new(
                     task_id,
                     "manifest_update",
-                    &format!("Manifest updated: {}", manifest.app_name),
+                    format!("Manifest updated: {}", manifest.app_name),
                 )
                 .with_event_type("manifest_update")
                 .with_progress(manifest.completed_steps as u8, manifest.total_steps as u8)
@@ -390,7 +395,7 @@ impl AppGenerator {
                 crate::core::shared::state::TaskProgressEvent::new(
                     task_id,
                     "manifest_update",
-                    &format!("Manifest updated: {}", manifest.app_name),
+                    format!("Manifest updated: {}", manifest.app_name),
                 )
                 .with_event_type("manifest_update")
                 .with_progress(manifest.completed_steps as u8, manifest.total_steps as u8)
@@ -686,7 +691,7 @@ impl AppGenerator {
                     // Check items directly in section
                     for item in &mut section.items {
                         if item.name == item_name {
-                            item.status = status.clone();
+                            item.status = status;
                             if status == crate::auto_task::ItemStatus::Running {
                                 item.started_at = Some(Utc::now());
                             } else if status == crate::auto_task::ItemStatus::Completed {
@@ -704,7 +709,7 @@ impl AppGenerator {
                     for child in &mut section.children {
                         for item in &mut child.items {
                             if item.name == item_name {
-                                item.status = status.clone();
+                                item.status = status;
                                 if status == crate::auto_task::ItemStatus::Running {
                                     item.started_at = Some(Utc::now());
                                 } else if status == crate::auto_task::ItemStatus::Completed {
@@ -1375,7 +1380,7 @@ impl AppGenerator {
                 .with_tables(self.tables_synced.clone());
 
             // Include app_url in the completion event
-            let event = crate::core::shared::state::TaskProgressEvent::new(task_id, "complete", &format!(
+            let event = crate::core::shared::state::TaskProgressEvent::new(task_id, "complete", format!(
                 "App '{}' created: {} files, {} tables, {} bytes in {}s",
                 llm_app.name, pages.len(), tables.len(), self.bytes_generated, elapsed
             ))
@@ -2615,12 +2620,13 @@ NO QUESTIONS. JUST BUILD."#
         &self,
         bucket: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        #[cfg(feature = "drive")]
         if let Some(ref s3) = self.state.drive {
             // Check if bucket exists
             match s3.head_bucket().bucket(bucket).send().await {
                 Ok(_) => {
                     trace!("Bucket {} already exists", bucket);
-                    return Ok(());
+                    Ok(())
                 }
                 Err(_) => {
                     // Bucket doesn't exist, try to create it
@@ -2628,7 +2634,7 @@ NO QUESTIONS. JUST BUILD."#
                     match s3.create_bucket().bucket(bucket).send().await {
                         Ok(_) => {
                             info!("Created bucket: {}", bucket);
-                            return Ok(());
+                            Ok(())
                         }
                         Err(e) => {
                             // Check if error is "bucket already exists" (race condition)
@@ -2638,7 +2644,7 @@ NO QUESTIONS. JUST BUILD."#
                                 return Ok(());
                             }
                             error!("Failed to create bucket {}: {}", bucket, e);
-                            return Err(Box::new(e));
+                            Err(Box::new(e))
                         }
                     }
                 }
@@ -2646,6 +2652,13 @@ NO QUESTIONS. JUST BUILD."#
         } else {
             // No S3 client, we'll use DB fallback - no bucket needed
             trace!("No S3 client, using DB fallback for storage");
+            Ok(())
+        }
+
+        #[cfg(not(feature = "drive"))]
+        {
+            let _ = bucket;
+            trace!("Drive feature not enabled, no bucket check needed");
             Ok(())
         }
     }
@@ -2658,6 +2671,7 @@ NO QUESTIONS. JUST BUILD."#
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("write_to_drive: bucket={}, path={}, content_len={}", bucket, path, content.len());
 
+        #[cfg(feature = "drive")]
         if let Some(ref s3) = self.state.drive {
             let body = ByteStream::from(content.as_bytes().to_vec());
             let content_type = get_content_type(path);
@@ -2704,6 +2718,12 @@ NO QUESTIONS. JUST BUILD."#
             }
         } else {
             warn!("No S3/drive client available, using DB fallback for {}/{}", bucket, path);
+            self.write_to_db_fallback(bucket, path, content)?;
+        }
+
+        #[cfg(not(feature = "drive"))]
+        {
+            warn!("Drive feature not enabled, using DB fallback for {}/{}", bucket, path);
             self.write_to_db_fallback(bucket, path, content)?;
         }
 

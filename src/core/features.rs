@@ -33,8 +33,8 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "analytics",
     #[cfg(feature = "monitoring")]
     "monitoring",
-    #[cfg(feature = "admin")]
-    "admin",
+    #[cfg(feature = "settings")]
+    "settings",
     #[cfg(feature = "automation")]
     "automation",
     #[cfg(feature = "cache")]
@@ -46,8 +46,8 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "project",
     #[cfg(feature = "goals")]
     "goals",
-    #[cfg(feature = "workspace")]
-    "workspace",
+    #[cfg(feature = "workspaces")]
+    "workspaces",
     #[cfg(feature = "tickets")]
     "tickets",
     #[cfg(feature = "billing")]

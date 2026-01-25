@@ -10,7 +10,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::bot::get_default_bot;
-use crate::core::shared::schema::{workspace_members, workspace_pages, workspaces};
+use crate::core::shared::schema::workspaces::{workspace_members, workspace_pages, workspaces as workspaces_table};
 use crate::shared::state::AppState;
 
 use super::{DbWorkspace, DbWorkspaceMember, DbWorkspacePage};
@@ -165,22 +165,22 @@ pub async fn workspace_list(
 
     let (org_id, bot_id) = get_bot_context(&state);
 
-    let mut q = workspaces::table
-        .filter(workspaces::org_id.eq(org_id))
-        .filter(workspaces::bot_id.eq(bot_id))
+    let mut q = workspaces_table::table
+        .filter(workspaces_table::org_id.eq(org_id))
+        .filter(workspaces_table::bot_id.eq(bot_id))
         .into_boxed();
 
     if let Some(search) = &query.search {
         let pattern = format!("%{search}%");
         q = q.filter(
-            workspaces::name
+            workspaces_table::name
                 .ilike(pattern.clone())
-                .or(workspaces::description.ilike(pattern)),
+                .or(workspaces_table::description.ilike(pattern)),
         );
     }
 
     let db_workspaces: Vec<DbWorkspace> = match q
-        .order(workspaces::updated_at.desc())
+        .order(workspaces_table::updated_at.desc())
         .limit(50)
         .load(&mut conn)
     {
@@ -243,22 +243,22 @@ pub async fn workspace_cards(
 
     let (org_id, bot_id) = get_bot_context(&state);
 
-    let mut q = workspaces::table
-        .filter(workspaces::org_id.eq(org_id))
-        .filter(workspaces::bot_id.eq(bot_id))
+    let mut q = workspaces_table::table
+        .filter(workspaces_table::org_id.eq(org_id))
+        .filter(workspaces_table::bot_id.eq(bot_id))
         .into_boxed();
 
     if let Some(search) = &query.search {
         let pattern = format!("%{search}%");
         q = q.filter(
-            workspaces::name
+            workspaces_table::name
                 .ilike(pattern.clone())
-                .or(workspaces::description.ilike(pattern)),
+                .or(workspaces_table::description.ilike(pattern)),
         );
     }
 
     let db_workspaces: Vec<DbWorkspace> = match q
-        .order(workspaces::updated_at.desc())
+        .order(workspaces_table::updated_at.desc())
         .limit(50)
         .load(&mut conn)
     {
@@ -303,9 +303,9 @@ pub async fn workspace_count(State(state): State<Arc<AppState>>) -> Html<String>
 
     let (org_id, bot_id) = get_bot_context(&state);
 
-    let count: i64 = workspaces::table
-        .filter(workspaces::org_id.eq(org_id))
-        .filter(workspaces::bot_id.eq(bot_id))
+    let count: i64 = workspaces_table::table
+        .filter(workspaces_table::org_id.eq(org_id))
+        .filter(workspaces_table::bot_id.eq(bot_id))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
@@ -321,8 +321,8 @@ pub async fn workspace_detail(
         return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
     };
 
-    let workspace: DbWorkspace = match workspaces::table
-        .filter(workspaces::id.eq(workspace_id))
+    let workspace: DbWorkspace = match workspaces_table::table
+        .filter(workspaces_table::id.eq(workspace_id))
         .first(&mut conn)
     {
         Ok(w) => w,
@@ -640,8 +640,8 @@ pub async fn workspace_settings(
         return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
     };
 
-    let workspace: DbWorkspace = match workspaces::table
-        .filter(workspaces::id.eq(workspace_id))
+    let workspace: DbWorkspace = match workspaces_table::table
+        .filter(workspaces_table::id.eq(workspace_id))
         .first(&mut conn)
     {
         Ok(w) => w,

@@ -463,8 +463,7 @@ fn matches_pattern(origin: &str, pattern: &str) -> bool {
         }
     }
 
-    if pattern.ends_with("*") {
-        let prefix = &pattern[..pattern.len() - 1];
+    if let Some(prefix) = pattern.strip_suffix("*") {
         return origin.starts_with(prefix);
     }
 

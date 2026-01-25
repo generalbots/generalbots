@@ -1,3 +1,5 @@
+use crate::core::shared::schema::core::{organizations, bots};
+
 diesel::table! {
     legal_documents (id) {
         id -> Uuid,

@@ -594,7 +594,7 @@ fn add_bot_to_session(
             .map_err(|e| format!("Failed to get bot ID: {e}"))?
     } else {
         let new_bot_id = Uuid::new_v4();
-        let db_name = format!("bot_{}", bot_name.replace('-', "_").replace(' ', "_").to_lowercase());
+        let db_name = format!("bot_{}", bot_name.replace(['-', ' '], "_").to_lowercase());
         diesel::sql_query(
             "INSERT INTO bots (id, name, description, is_active, database_name, created_at)
              VALUES ($1, $2, $3, true, $4, NOW())
@@ -608,7 +608,7 @@ fn add_bot_to_session(
         .execute(&mut *conn)
         .map_err(|e| format!("Failed to create bot: {e}"))?;
 
-        if let Err(e) = create_bot_database(&mut *conn, &db_name) {
+        if let Err(e) = create_bot_database(&mut conn, &db_name) {
             log::warn!("Failed to create database for bot {bot_name}: {e}");
         }
 

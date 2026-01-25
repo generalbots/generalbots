@@ -52,7 +52,9 @@ pub struct ApprovalRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum ApprovalStatus {
+    #[default]
     Pending,
 
     Approved,
@@ -68,11 +70,6 @@ pub enum ApprovalStatus {
     Error,
 }
 
-impl Default for ApprovalStatus {
-    fn default() -> Self {
-        Self::Pending
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -86,7 +83,9 @@ pub enum ApprovalDecision {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum ApprovalChannel {
+    #[default]
     Email,
     Sms,
     Mobile,
@@ -96,11 +95,6 @@ pub enum ApprovalChannel {
     InApp,
 }
 
-impl Default for ApprovalChannel {
-    fn default() -> Self {
-        Self::Email
-    }
-}
 
 impl std::fmt::Display for ApprovalChannel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -205,6 +199,19 @@ pub struct ApprovalConfig {
     pub approval_base_url: Option<String>,
 }
 
+pub struct CreateApprovalRequestParams<'a> {
+    pub bot_id: Uuid,
+    pub session_id: Uuid,
+    pub initiated_by: Uuid,
+    pub approval_type: &'a str,
+    pub channel: ApprovalChannel,
+    pub recipient: &'a str,
+    pub context: serde_json::Value,
+    pub message: &'a str,
+    pub timeout_seconds: Option<u64>,
+    pub default_action: Option<ApprovalDecision>,
+}
+
 impl Default for ApprovalConfig {
     fn default() -> Self {
         Self {
@@ -261,33 +268,24 @@ impl ApprovalManager {
 
     pub fn create_request(
         &self,
-        bot_id: Uuid,
-        session_id: Uuid,
-        initiated_by: Uuid,
-        approval_type: &str,
-        channel: ApprovalChannel,
-        recipient: &str,
-        context: serde_json::Value,
-        message: &str,
-        timeout_seconds: Option<u64>,
-        default_action: Option<ApprovalDecision>,
+        params: CreateApprovalRequestParams<'_>,
     ) -> ApprovalRequest {
-        let timeout = timeout_seconds.unwrap_or(self.config.default_timeout);
+        let timeout = params.timeout_seconds.unwrap_or(self.config.default_timeout);
         let now = Utc::now();
 
         ApprovalRequest {
             id: Uuid::new_v4(),
-            bot_id,
-            session_id,
-            initiated_by,
-            approval_type: approval_type.to_string(),
+            bot_id: params.bot_id,
+            session_id: params.session_id,
+            initiated_by: params.initiated_by,
+            approval_type: params.approval_type.to_string(),
             status: ApprovalStatus::Pending,
-            channel,
-            recipient: recipient.to_string(),
-            context,
-            message: message.to_string(),
+            channel: params.channel,
+            recipient: params.recipient.to_string(),
+            context: params.context,
+            message: params.message.to_string(),
             timeout_seconds: timeout,
-            default_action,
+            default_action: params.default_action,
             current_level: 1,
             total_levels: 1,
             created_at: now,

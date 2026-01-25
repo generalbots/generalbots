@@ -73,7 +73,9 @@ pub struct AutoTask {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum AutoTaskStatus {
+    #[default]
     Draft,
 
     Compiling,
@@ -103,11 +105,6 @@ pub enum AutoTaskStatus {
     RolledBack,
 }
 
-impl Default for AutoTaskStatus {
-    fn default() -> Self {
-        Self::Draft
-    }
-}
 
 impl std::fmt::Display for AutoTaskStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -131,9 +128,11 @@ impl std::fmt::Display for AutoTaskStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum ExecutionMode {
     FullyAutomatic,
 
+    #[default]
     SemiAutomatic,
 
     Supervised,
@@ -143,26 +142,18 @@ pub enum ExecutionMode {
     DryRun,
 }
 
-impl Default for ExecutionMode {
-    fn default() -> Self {
-        Self::SemiAutomatic
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Ord, PartialOrd, Eq)]
+#[derive(Default)]
 pub enum TaskPriority {
     Critical = 4,
     High = 3,
+    #[default]
     Medium = 2,
     Low = 1,
     Background = 0,
 }
 
-impl Default for TaskPriority {
-    fn default() -> Self {
-        Self::Medium
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepExecutionResult {
@@ -258,18 +249,15 @@ pub struct ImpactEstimate {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum TimeoutAction {
     UseDefault,
+    #[default]
     Pause,
     Cancel,
     Escalate,
 }
 
-impl Default for TimeoutAction {
-    fn default() -> Self {
-        Self::Pause
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingApproval {
@@ -300,33 +288,27 @@ pub enum ApprovalType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum ApprovalDefault {
     Approve,
     Reject,
+    #[default]
     Pause,
     Escalate,
 }
 
-impl Default for ApprovalDefault {
-    fn default() -> Self {
-        Self::Pause
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Ord, PartialOrd, Eq)]
+#[derive(Default)]
 pub enum RiskLevel {
     None = 0,
+    #[default]
     Low = 1,
     Medium = 2,
     High = 3,
     Critical = 4,
 }
 
-impl Default for RiskLevel {
-    fn default() -> Self {
-        Self::Low
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskSummary {
@@ -396,6 +378,7 @@ pub struct TaskError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct RollbackState {
     pub available: bool,
     pub steps_rolled_back: Vec<String>,
@@ -404,17 +387,6 @@ pub struct RollbackState {
     pub completed_at: Option<DateTime<Utc>>,
 }
 
-impl Default for RollbackState {
-    fn default() -> Self {
-        Self {
-            available: false,
-            steps_rolled_back: Vec::new(),
-            rollback_data: HashMap::new(),
-            started_at: None,
-            completed_at: None,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskSchedule {

@@ -11,7 +11,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::bot::get_default_bot;
-use crate::core::shared::schema::{people, people_departments, people_teams, people_time_off};
+use crate::core::shared::schema::people::people as people_table;
+use crate::core::shared::schema::{people_departments, people_teams, people_time_off};
 use crate::shared::state::AppState;
 
 #[derive(Debug, Deserialize, Default)]
@@ -56,20 +57,20 @@ async fn handle_people_list(
 ) -> Html<String> {
     let pool = state.conn.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result: Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, bool)>> = tokio::task::spawn_blocking(move || -> Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, bool)>> {
         let mut conn = pool.get().ok()?;
         let (bot_id, _) = get_default_bot(&mut conn);
 
-        let mut db_query = people::table
-            .filter(people::bot_id.eq(bot_id))
+        let mut db_query = people_table::table
+            .filter(people_table::bot_id.eq(bot_id))
             .into_boxed();
 
         if let Some(ref dept) = query.department {
-            db_query = db_query.filter(people::department.eq(dept));
+            db_query = db_query.filter(people_table::department.eq(dept));
         }
 
         if let Some(is_active) = query.is_active {
-            db_query = db_query.filter(people::is_active.eq(is_active));
+            db_query = db_query.filter(people_table::is_active.eq(is_active));
         }
 
         if let Some(ref search) = query.search {
@@ -77,27 +78,27 @@ async fn handle_people_list(
             let term2 = term.clone();
             let term3 = term.clone();
             db_query = db_query.filter(
-                people::first_name.ilike(term)
-                    .or(people::last_name.ilike(term2))
-                    .or(people::email.ilike(term3))
+                people_table::first_name.ilike(term)
+                    .or(people_table::last_name.ilike(term2))
+                    .or(people_table::email.ilike(term3))
             );
         }
 
-        db_query = db_query.order(people::first_name.asc());
+        db_query = db_query.order(people_table::first_name.asc());
 
         let limit = query.limit.unwrap_or(50);
         db_query = db_query.limit(limit);
 
         db_query
             .select((
-                people::id,
-                people::first_name,
-                people::last_name,
-                people::email,
-                people::job_title,
-                people::department,
-                people::avatar_url,
-                people::is_active,
+                people_table::id,
+                people_table::first_name,
+                people_table::last_name,
+                people_table::email,
+                people_table::job_title,
+                people_table::department,
+                people_table::avatar_url,
+                people_table::is_active,
             ))
             .load::<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, bool)>(&mut conn)
             .ok()
@@ -177,34 +178,34 @@ async fn handle_people_cards(
 ) -> Html<String> {
     let pool = state.conn.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result: Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)>> = tokio::task::spawn_blocking(move || -> Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)>> {
         let mut conn = pool.get().ok()?;
         let (bot_id, _) = get_default_bot(&mut conn);
 
-        let mut db_query = people::table
-            .filter(people::bot_id.eq(bot_id))
-            .filter(people::is_active.eq(true))
+        let mut db_query = people_table::table
+            .filter(people_table::bot_id.eq(bot_id))
+            .filter(people_table::is_active.eq(true))
             .into_boxed();
 
         if let Some(ref dept) = query.department {
-            db_query = db_query.filter(people::department.eq(dept));
+            db_query = db_query.filter(people_table::department.eq(dept));
         }
 
-        db_query = db_query.order(people::first_name.asc());
+        db_query = db_query.order(people_table::first_name.asc());
 
         let limit = query.limit.unwrap_or(20);
         db_query = db_query.limit(limit);
 
         db_query
             .select((
-                people::id,
-                people::first_name,
-                people::last_name,
-                people::email,
-                people::job_title,
-                people::department,
-                people::avatar_url,
-                people::phone,
+                people_table::id,
+                people_table::first_name,
+                people_table::last_name,
+                people_table::email,
+                people_table::job_title,
+                people_table::department,
+                people_table::avatar_url,
+                people_table::phone,
             ))
             .load::<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)>(&mut conn)
             .ok()
@@ -265,12 +266,12 @@ async fn handle_people_cards(
 async fn handle_people_count(State(state): State<Arc<AppState>>) -> Html<String> {
     let pool = state.conn.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result: Option<i64> = tokio::task::spawn_blocking(move || -> Option<i64> {
         let mut conn = pool.get().ok()?;
         let (bot_id, _) = get_default_bot(&mut conn);
 
-        people::table
-            .filter(people::bot_id.eq(bot_id))
+        people_table::table
+            .filter(people_table::bot_id.eq(bot_id))
             .count()
             .get_result::<i64>(&mut conn)
             .ok()
@@ -285,13 +286,13 @@ async fn handle_people_count(State(state): State<Arc<AppState>>) -> Html<String>
 async fn handle_active_count(State(state): State<Arc<AppState>>) -> Html<String> {
     let pool = state.conn.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result: Option<i64> = tokio::task::spawn_blocking(move || -> Option<i64> {
         let mut conn = pool.get().ok()?;
         let (bot_id, _) = get_default_bot(&mut conn);
 
-        people::table
-            .filter(people::bot_id.eq(bot_id))
-            .filter(people::is_active.eq(true))
+        people_table::table
+            .filter(people_table::bot_id.eq(bot_id))
+            .filter(people_table::is_active.eq(true))
             .count()
             .get_result::<i64>(&mut conn)
             .ok()
@@ -309,26 +310,26 @@ async fn handle_person_detail(
 ) -> Html<String> {
     let pool = state.conn.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result: Option<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<chrono::NaiveDate>, bool, Option<DateTime<Utc>>)> = tokio::task::spawn_blocking(move || -> Option<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<chrono::NaiveDate>, bool, Option<DateTime<Utc>>)> {
         let mut conn = pool.get().ok()?;
 
-        people::table
+        people_table::table
             .find(id)
             .select((
-                people::id,
-                people::first_name,
-                people::last_name,
-                people::email,
-                people::phone,
-                people::mobile,
-                people::job_title,
-                people::department,
-                people::office_location,
-                people::avatar_url,
-                people::bio,
-                people::hire_date,
-                people::is_active,
-                people::last_seen_at,
+                people_table::id,
+                people_table::first_name,
+                people_table::last_name,
+                people_table::email,
+                people_table::phone,
+                people_table::mobile,
+                people_table::job_title,
+                people_table::department,
+                people_table::office_location,
+                people_table::avatar_url,
+                people_table::bio,
+                people_table::hire_date,
+                people_table::is_active,
+                people_table::last_seen_at,
             ))
             .first::<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<chrono::NaiveDate>, bool, Option<DateTime<Utc>>)>(&mut conn)
             .ok()
@@ -637,27 +638,27 @@ async fn handle_people_search(
     let pool = state.conn.clone();
     let search_term = format!("%{q}%");
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result: Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>)>> = tokio::task::spawn_blocking(move || -> Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>)>> {
         let mut conn = pool.get().ok()?;
         let (bot_id, _) = get_default_bot(&mut conn);
 
-        people::table
-            .filter(people::bot_id.eq(bot_id))
+        people_table::table
+            .filter(people_table::bot_id.eq(bot_id))
             .filter(
-                people::first_name.ilike(&search_term)
-                    .or(people::last_name.ilike(&search_term))
-                    .or(people::email.ilike(&search_term))
-                    .or(people::job_title.ilike(&search_term))
+                people_table::first_name.ilike(&search_term)
+                    .or(people_table::last_name.ilike(&search_term))
+                    .or(people_table::email.ilike(&search_term))
+                    .or(people_table::job_title.ilike(&search_term))
             )
-            .order(people::first_name.asc())
+            .order(people_table::first_name.asc())
             .limit(20)
             .select((
-                people::id,
-                people::first_name,
-                people::last_name,
-                people::email,
-                people::job_title,
-                people::avatar_url,
+                people_table::id,
+                people_table::first_name,
+                people_table::last_name,
+                people_table::email,
+                people_table::job_title,
+                people_table::avatar_url,
             ))
             .load::<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>)>(&mut conn)
             .ok()
@@ -672,9 +673,9 @@ async fn handle_people_search(
 
             for (id, first_name, last_name, email, job_title, avatar_url) in persons {
                 let full_name = format!("{} {}", first_name, last_name.unwrap_or_default());
-                let email_str = email.unwrap_or_default();
-                let title_str = job_title.unwrap_or_default();
-                let avatar = avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
+                let email_str: String = email.unwrap_or_default();
+                let title_str: String = job_title.unwrap_or_default();
+                let avatar: String = avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
 
                 html.push_str(&format!(
                     r##"<div class="search-result-item" hx-get="/api/ui/people/{id}" hx-target="#person-detail">
@@ -707,19 +708,19 @@ async fn handle_people_search(
 async fn handle_people_stats(State(state): State<Arc<AppState>>) -> Html<String> {
     let pool = state.conn.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Option<(i64, i64, i64, i64, i64)> {
         let mut conn = pool.get().ok()?;
         let (bot_id, _) = get_default_bot(&mut conn);
 
-        let total: i64 = people::table
-            .filter(people::bot_id.eq(bot_id))
+        let total: i64 = people_table::table
+            .filter(people_table::bot_id.eq(bot_id))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
-        let active: i64 = people::table
-            .filter(people::bot_id.eq(bot_id))
-            .filter(people::is_active.eq(true))
+        let active: i64 = people_table::table
+            .filter(people_table::bot_id.eq(bot_id))
+            .filter(people_table::is_active.eq(true))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);

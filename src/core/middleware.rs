@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+#[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::permissions::{build_qdrant_permission_filter, UserContext};
 use crate::shared::utils::DbPool;
 
@@ -154,6 +155,7 @@ impl AuthenticatedUser {
     }
 
     /// Convert to UserContext for KB permission checks
+    #[cfg(any(feature = "research", feature = "llm"))]
     pub fn to_user_context(&self) -> UserContext {
         if self.is_authenticated() {
             UserContext::authenticated(self.user_id, self.email.clone(), self.organization_id)
@@ -165,6 +167,7 @@ impl AuthenticatedUser {
     }
 
     /// Get Qdrant permission filter for this user
+    #[cfg(any(feature = "research", feature = "llm"))]
     pub fn get_qdrant_filter(&self) -> serde_json::Value {
         build_qdrant_permission_filter(&self.to_user_context())
     }
@@ -684,8 +687,8 @@ async fn extract_and_validate_user(
         .and_then(|v| v.to_str().ok())
         .ok_or(AuthError::MissingToken)?;
 
-    let token = if auth_header.starts_with("Bearer ") {
-        &auth_header[7..]
+    let token = if let Some(stripped) = auth_header.strip_prefix("Bearer ") {
+        stripped
     } else {
         return Err(AuthError::InvalidFormat);
     };
@@ -990,6 +993,7 @@ pub fn can_access_resource(
 }
 
 /// Build permission filter for Qdrant searches based on user context
+#[cfg(any(feature = "research", feature = "llm"))]
 pub fn build_search_permission_filter(context: &RequestContext) -> serde_json::Value {
     context.user.get_qdrant_filter()
 }

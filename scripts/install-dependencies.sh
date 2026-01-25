@@ -54,7 +54,10 @@ install_debian_ubuntu() {
         zlib1g \
         ca-certificates \
         curl \
-        wget
+        wget \
+        libabseil-dev \
+        libclang-dev \
+        pkg-config
 
     # LXC/LXD for container management (optional but recommended)
     echo ""

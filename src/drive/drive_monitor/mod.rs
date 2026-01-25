@@ -1,20 +1,27 @@
 use crate::basic::compiler::BasicCompiler;
 use crate::core::config::ConfigManager;
+#[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::embedding_generator::is_embedding_server_ready;
+#[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::shared::message_types::MessageType;
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
 use log::{debug, error, info, trace, warn};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+#[cfg(any(feature = "research", feature = "llm"))]
+use std::collections::HashSet;
 use std::error::Error;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
+#[cfg(any(feature = "research", feature = "llm"))]
 use tokio::sync::RwLock as TokioRwLock;
 use tokio::time::Duration;
 
+#[cfg(any(feature = "research", feature = "llm"))]
+#[allow(dead_code)]
 const KB_INDEXING_TIMEOUT_SECS: u64 = 60;
 const MAX_BACKOFF_SECS: u64 = 300;
 const INITIAL_BACKOFF_SECS: u64 = 30;
@@ -28,16 +35,19 @@ pub struct DriveMonitor {
     bucket_name: String,
     file_states: Arc<tokio::sync::RwLock<HashMap<String, FileState>>>,
     bot_id: uuid::Uuid,
+    #[cfg(any(feature = "research", feature = "llm"))]
     kb_manager: Arc<KnowledgeBaseManager>,
     work_root: PathBuf,
     is_processing: Arc<AtomicBool>,
     consecutive_failures: Arc<AtomicU32>,
-    /// Track KB folders currently being indexed to prevent duplicate tasks
+    #[cfg(any(feature = "research", feature = "llm"))]
+    #[allow(dead_code)]
     kb_indexing_in_progress: Arc<TokioRwLock<HashSet<String>>>,
 }
 impl DriveMonitor {
     pub fn new(state: Arc<AppState>, bucket_name: String, bot_id: uuid::Uuid) -> Self {
         let work_root = PathBuf::from("work");
+        #[cfg(any(feature = "research", feature = "llm"))]
         let kb_manager = Arc::new(KnowledgeBaseManager::new(work_root.clone()));
 
         Self {
@@ -45,10 +55,12 @@ impl DriveMonitor {
             bucket_name,
             file_states: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             bot_id,
+            #[cfg(any(feature = "research", feature = "llm"))]
             kb_manager,
             work_root,
             is_processing: Arc::new(AtomicBool::new(false)),
             consecutive_failures: Arc::new(AtomicU32::new(0)),
+            #[cfg(any(feature = "research", feature = "llm"))]
             kb_indexing_in_progress: Arc::new(TokioRwLock::new(HashSet::new())),
         }
     }
@@ -400,7 +412,6 @@ impl DriveMonitor {
                             #[cfg(feature = "llm")]
                             {
                                 use crate::llm::local::ensure_llama_servers_running;
-                                use crate::llm::DynamicLLMProvider;
                                 let mut restart_needed = false;
                                 let mut llm_url_changed = false;
                                 let mut new_llm_url = String::new();
@@ -461,8 +472,7 @@ impl DriveMonitor {
                                             config_manager.get_config(&self.bot_id, "llm-model", None).unwrap_or_default()
                                         };
 
-                                        let mut provider = DynamicLLMProvider::new();
-                                        provider.refresh_config(&effective_url, &effective_model);
+                                        info!("LLM configuration changed to: URL={}, Model={}", effective_url, effective_model);
                                     }
                                 }
                             }
@@ -740,78 +750,87 @@ impl DriveMonitor {
                         continue;
                     }
 
-                    if !is_embedding_server_ready() {
-                        info!("[DRIVE_MONITOR] Embedding server not ready, deferring KB indexing for {}", kb_folder_path.display());
-                        continue;
-                    }
-
-                    // Create a unique key for this KB folder to track indexing state
-                    let kb_key = format!("{}_{}", bot_name, kb_name);
-
-                    // Check if this KB folder is already being indexed
+                    #[cfg(any(feature = "research", feature = "llm"))]
                     {
-                        let indexing_set = self.kb_indexing_in_progress.read().await;
-                        if indexing_set.contains(&kb_key) {
-                            debug!("[DRIVE_MONITOR] KB folder {} already being indexed, skipping duplicate task", kb_key);
+                        if !is_embedding_server_ready() {
+                            info!("[DRIVE_MONITOR] Embedding server not ready, deferring KB indexing for {}", kb_folder_path.display());
                             continue;
                         }
-                    }
 
-                    // Mark this KB folder as being indexed
-                    {
-                        let mut indexing_set = self.kb_indexing_in_progress.write().await;
-                        indexing_set.insert(kb_key.clone());
-                    }
+                        // Create a unique key for this KB folder to track indexing state
+                        let kb_key = format!("{}_{}", bot_name, kb_name);
 
-                    let kb_manager = Arc::clone(&self.kb_manager);
-                    let bot_name_owned = bot_name.to_string();
-                    let kb_name_owned = kb_name.to_string();
-                    let kb_folder_owned = kb_folder_path.clone();
-                    let indexing_tracker = Arc::clone(&self.kb_indexing_in_progress);
-                    let kb_key_owned = kb_key.clone();
-
-                    tokio::spawn(async move {
-                        info!(
-                            "Triggering KB indexing for folder: {} (PDF text extraction enabled)",
-                            kb_folder_owned.display()
-                        );
-
-                        let result = tokio::time::timeout(
-                            Duration::from_secs(KB_INDEXING_TIMEOUT_SECS),
-                            kb_manager.handle_gbkb_change(&bot_name_owned, &kb_folder_owned)
-                        ).await;
-
-                        // Always remove from tracking set when done, regardless of outcome
+                        // Check if this KB folder is already being indexed
                         {
-                            let mut indexing_set = indexing_tracker.write().await;
-                            indexing_set.remove(&kb_key_owned);
+                            let indexing_set = self.kb_indexing_in_progress.read().await;
+                            if indexing_set.contains(&kb_key) {
+                                debug!("[DRIVE_MONITOR] KB folder {} already being indexed, skipping duplicate task", kb_key);
+                                continue;
+                            }
                         }
 
-                        match result {
-                            Ok(Ok(_)) => {
-                                debug!(
-                                    "Successfully processed KB change for {}/{}",
-                                    bot_name_owned, kb_name_owned
-                                );
-                            }
-                            Ok(Err(e)) => {
-                                log::error!(
-                                    "Failed to process .gbkb change for {}/{}: {}",
-                                    bot_name_owned,
-                                    kb_name_owned,
-                                    e
-                                );
-                            }
-                            Err(_) => {
-                                log::error!(
-                                    "KB indexing timed out after {}s for {}/{}",
-                                    KB_INDEXING_TIMEOUT_SECS,
-                                    bot_name_owned,
-                                    kb_name_owned
-                                );
-                            }
+                        // Mark this KB folder as being indexed
+                        {
+                            let mut indexing_set = self.kb_indexing_in_progress.write().await;
+                            indexing_set.insert(kb_key.clone());
                         }
-                    });
+
+                        let kb_manager = Arc::clone(&self.kb_manager);
+                        let bot_name_owned = bot_name.to_string();
+                        let kb_name_owned = kb_name.to_string();
+                        let kb_folder_owned = kb_folder_path.clone();
+                        let indexing_tracker = Arc::clone(&self.kb_indexing_in_progress);
+                        let kb_key_owned = kb_key.clone();
+
+                        tokio::spawn(async move {
+                            info!(
+                                "Triggering KB indexing for folder: {} (PDF text extraction enabled)",
+                                kb_folder_owned.display()
+                            );
+
+                            let result = tokio::time::timeout(
+                                Duration::from_secs(KB_INDEXING_TIMEOUT_SECS),
+                                kb_manager.handle_gbkb_change(&bot_name_owned, &kb_folder_owned)
+                            ).await;
+
+                            // Always remove from tracking set when done, regardless of outcome
+                            {
+                                let mut indexing_set = indexing_tracker.write().await;
+                                indexing_set.remove(&kb_key_owned);
+                            }
+
+                            match result {
+                                Ok(Ok(_)) => {
+                                    debug!(
+                                        "Successfully processed KB change for {}/{}",
+                                        bot_name_owned, kb_name_owned
+                                    );
+                                }
+                                Ok(Err(e)) => {
+                                    log::error!(
+                                        "Failed to process .gbkb change for {}/{}: {}",
+                                        bot_name_owned,
+                                        kb_name_owned,
+                                        e
+                                    );
+                                }
+                                Err(_) => {
+                                    log::error!(
+                                        "KB indexing timed out after {}s for {}/{}",
+                                        KB_INDEXING_TIMEOUT_SECS,
+                                        bot_name_owned,
+                                        kb_name_owned
+                                    );
+                                }
+                            }
+                        });
+                    }
+
+                    #[cfg(not(any(feature = "research", feature = "llm")))]
+                    {
+                        let _ = kb_folder_path;
+                        debug!("KB indexing disabled because research/llm features are not enabled");
+                    }
                 }
             }
         }
@@ -849,8 +868,15 @@ impl DriveMonitor {
 
                 let kb_prefix = format!("{}{}/", gbkb_prefix, kb_name);
                 if !file_states.keys().any(|k| k.starts_with(&kb_prefix)) {
+                    #[cfg(any(feature = "research", feature = "llm"))]
                     if let Err(e) = self.kb_manager.clear_kb(bot_name, kb_name).await {
                         log::error!("Failed to clear KB {}: {}", kb_name, e);
+                    }
+
+                    #[cfg(not(any(feature = "research", feature = "llm")))]
+                    {
+                        let _ = (bot_name, kb_name);
+                        debug!("Bypassing KB clear because research/llm features are not enabled");
                     }
                 }
             }

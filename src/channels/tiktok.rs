@@ -910,8 +910,7 @@ impl TikTokVideo {
     /// Get video creation time as DateTime
     pub fn created_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
         self.create_time
-            .map(|ts| chrono::DateTime::from_timestamp(ts, 0))
-            .flatten()
+            .and_then(|ts| chrono::DateTime::from_timestamp(ts, 0))
     }
 }
 

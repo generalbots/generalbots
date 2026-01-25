@@ -61,29 +61,35 @@ impl ApiKeyScope {
             Self::Custom(c) => format!("custom:{c}"),
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for ApiKeyScope {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "read" => Some(Self::Read),
-            "write" => Some(Self::Write),
-            "delete" => Some(Self::Delete),
-            "admin" => Some(Self::Admin),
+            "read" => Ok(Self::Read),
+            "write" => Ok(Self::Write),
+            "delete" => Ok(Self::Delete),
+            "admin" => Ok(Self::Admin),
             s if s.starts_with("bot:") => {
-                let id = s.strip_prefix("bot:")?;
-                Uuid::parse_str(id).ok().map(Self::Bot)
+                let id = s.strip_prefix("bot:").ok_or(())?;
+                Uuid::parse_str(id).map_err(|_| ()).map(Self::Bot)
             }
             s if s.starts_with("resource:") => {
-                let r = s.strip_prefix("resource:")?;
-                Some(Self::Resource(r.to_string()))
+                let r = s.strip_prefix("resource:").ok_or(())?;
+                Ok(Self::Resource(r.to_string()))
             }
             s if s.starts_with("custom:") => {
-                let c = s.strip_prefix("custom:")?;
-                Some(Self::Custom(c.to_string()))
+                let c = s.strip_prefix("custom:").ok_or(())?;
+                Ok(Self::Custom(c.to_string()))
             }
-            _ => None,
+            _ => Err(()),
         }
     }
+}
 
+impl ApiKeyScope {
     pub fn includes(&self, other: &Self) -> bool {
         if self == &Self::Admin {
             return true;
@@ -376,7 +382,7 @@ impl ApiKeyManager {
             .or(self.config.key_expiry_days)
             .map(|days| Utc::now() + Duration::days(days as i64));
 
-        let rate_limits = request.rate_limits.unwrap_or_else(|| RateLimitConfig {
+        let rate_limits = request.rate_limits.unwrap_or(RateLimitConfig {
             requests_per_minute: self.config.default_rate_limit_per_minute,
             requests_per_hour: self.config.default_rate_limit_per_hour,
             requests_per_day: self.config.default_rate_limit_per_day,

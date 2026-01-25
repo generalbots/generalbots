@@ -33,19 +33,23 @@ pub enum InvitationRole {
     Guest,
 }
 
-impl InvitationRole {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for InvitationRole {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "owner" => Some(Self::Owner),
-            "admin" => Some(Self::Admin),
-            "manager" => Some(Self::Manager),
-            "member" => Some(Self::Member),
-            "viewer" => Some(Self::Viewer),
-            "guest" => Some(Self::Guest),
-            _ => None,
+            "owner" => Ok(Self::Owner),
+            "admin" => Ok(Self::Admin),
+            "manager" => Ok(Self::Manager),
+            "member" => Ok(Self::Member),
+            "viewer" => Ok(Self::Viewer),
+            "guest" => Ok(Self::Guest),
+            _ => Err(()),
         }
     }
+}
 
+impl InvitationRole {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Owner => "owner",
@@ -172,6 +176,29 @@ impl Default for InvitationService {
     }
 }
 
+pub struct CreateInvitationParams<'a> {
+    pub organization_id: Uuid,
+    pub organization_name: &'a str,
+    pub email: &'a str,
+    pub role: InvitationRole,
+    pub groups: Vec<String>,
+    pub invited_by: Uuid,
+    pub invited_by_name: &'a str,
+    pub message: Option<String>,
+    pub expires_in_days: i64,
+}
+
+pub struct BulkInviteParams<'a> {
+    pub organization_id: Uuid,
+    pub organization_name: &'a str,
+    pub emails: Vec<String>,
+    pub role: InvitationRole,
+    pub groups: Vec<String>,
+    pub invited_by: Uuid,
+    pub invited_by_name: &'a str,
+    pub message: Option<String>,
+}
+
 impl InvitationService {
     pub fn new() -> Self {
         Self {
@@ -183,23 +210,17 @@ impl InvitationService {
 
     pub async fn create_invitation(
         &self,
-        organization_id: Uuid,
-        organization_name: &str,
-        email: &str,
-        role: InvitationRole,
-        groups: Vec<String>,
-        invited_by: Uuid,
-        invited_by_name: &str,
-        message: Option<String>,
-        expires_in_days: i64,
+        params: CreateInvitationParams<'_>,
     ) -> Result<OrganizationInvitation, String> {
-        let email_lower = email.to_lowercase().trim().to_string();
+        let email_lower = params.email.to_lowercase().trim().to_string();
 
         if !self.is_valid_email(&email_lower) {
             return Err("Invalid email address".to_string());
         }
 
-        let existing = self.find_pending_invitation(&organization_id, &email_lower).await;
+        let existing = self
+            .find_pending_invitation(&params.organization_id, &email_lower)
+            .await;
         if existing.is_some() {
             return Err("An invitation already exists for this email".to_string());
         }
@@ -210,16 +231,16 @@ impl InvitationService {
 
         let invitation = OrganizationInvitation {
             id: invitation_id,
-            organization_id,
+            organization_id: params.organization_id,
             email: email_lower,
-            role,
-            groups,
-            invited_by,
-            invited_by_name: invited_by_name.to_string(),
+            role: params.role,
+            groups: params.groups,
+            invited_by: params.invited_by,
+            invited_by_name: params.invited_by_name.to_string(),
             status: InvitationStatus::Pending,
             token: token.clone(),
-            message,
-            expires_at: now + Duration::days(expires_in_days),
+            message: params.message,
+            expires_at: now + Duration::days(params.expires_in_days),
             created_at: now,
             updated_at: now,
             accepted_at: None,
@@ -238,45 +259,39 @@ impl InvitationService {
 
         {
             let mut by_org = self.invitations_by_org.write().await;
-            by_org.entry(organization_id).or_default().push(invitation_id);
+            by_org
+                .entry(params.organization_id)
+                .or_default()
+                .push(invitation_id);
         }
 
-        self.send_invitation_email(&invitation, organization_name).await;
+        self.send_invitation_email(&invitation, params.organization_name)
+            .await;
 
         Ok(invitation)
     }
 
-    pub async fn bulk_invite(
-        &self,
-        organization_id: Uuid,
-        organization_name: &str,
-        emails: Vec<String>,
-        role: InvitationRole,
-        groups: Vec<String>,
-        invited_by: Uuid,
-        invited_by_name: &str,
-        message: Option<String>,
-    ) -> BulkInviteResponse {
+    pub async fn bulk_invite(&self, params: BulkInviteParams<'_>) -> BulkInviteResponse {
         let mut successful = Vec::new();
         let mut failed = Vec::new();
 
-        for email in emails {
+        for email in params.emails {
             match self
-                .create_invitation(
-                    organization_id,
-                    organization_name,
-                    &email,
-                    role.clone(),
-                    groups.clone(),
-                    invited_by,
-                    invited_by_name,
-                    message.clone(),
-                    7,
-                )
+                .create_invitation(CreateInvitationParams {
+                    organization_id: params.organization_id,
+                    organization_name: params.organization_name,
+                    email: &email,
+                    role: params.role.clone(),
+                    groups: params.groups.clone(),
+                    invited_by: params.invited_by,
+                    invited_by_name: params.invited_by_name,
+                    message: params.message.clone(),
+                    expires_in_days: 7,
+                })
                 .await
             {
                 Ok(invitation) => {
-                    successful.push(self.to_response(&invitation, organization_name));
+                    successful.push(self.to_response(&invitation, params.organization_name));
                 }
                 Err(error) => {
                     failed.push(BulkInviteError { email, error });
@@ -435,7 +450,7 @@ impl InvitationService {
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
 
         let total = filtered.len() as u32;
-        let total_pages = (total + per_page - 1) / per_page;
+        let total_pages = total.div_ceil(per_page);
         let start = ((page - 1) * per_page) as usize;
         let end = (start + per_page as usize).min(filtered.len());
 
@@ -507,7 +522,11 @@ impl InvitationService {
         None
     }
 
-    fn to_response(&self, invitation: &OrganizationInvitation, org_name: &str) -> InvitationResponse {
+    fn to_response(
+        &self,
+        invitation: &OrganizationInvitation,
+        org_name: &str,
+    ) -> InvitationResponse {
         let now = Utc::now();
         InvitationResponse {
             id: invitation.id,
@@ -586,11 +605,11 @@ impl InvitationService {
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/organizations/:org_id/invitations", get(list_invitations))
-        .route("/organizations/:org_id/invitations", post(create_invitation))
         .route(
-            "/organizations/:org_id/invitations/bulk",
-            post(bulk_invite),
+            "/organizations/:org_id/invitations",
+            post(create_invitation),
         )
+        .route("/organizations/:org_id/invitations/bulk", post(bulk_invite))
         .route(
             "/organizations/:org_id/invitations/:invitation_id",
             get(get_invitation),
@@ -641,29 +660,29 @@ async fn create_invitation(
 ) -> Result<Json<InvitationResponse>, (StatusCode, Json<serde_json::Value>)> {
     let service = InvitationService::new();
 
-    let role = InvitationRole::from_str(&req.role).ok_or_else(|| {
+    let role: InvitationRole = req.role.parse().map_err(|_| {
         (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({"error": "Invalid role"})),
         )
     })?;
 
-    let expires_in_days = req.expires_in_days.unwrap_or(7).max(1).min(30);
+    let expires_in_days = req.expires_in_days.unwrap_or(7).clamp(1, 30);
 
     let invited_by = Uuid::new_v4();
 
     match service
-        .create_invitation(
-            org_id,
-            "Organization",
-            &req.email,
+        .create_invitation(CreateInvitationParams {
+            organization_id: org_id,
+            organization_name: "Organization",
+            email: &req.email,
             role,
-            req.groups,
+            groups: req.groups,
             invited_by,
-            "Admin User",
-            req.message,
+            invited_by_name: "Admin User",
+            message: req.message,
             expires_in_days,
-        )
+        })
         .await
     {
         Ok(invitation) => Ok(Json(service.to_response(&invitation, "Organization"))),
@@ -681,7 +700,7 @@ async fn bulk_invite(
 ) -> Result<Json<BulkInviteResponse>, (StatusCode, Json<serde_json::Value>)> {
     let service = InvitationService::new();
 
-    let role = InvitationRole::from_str(&req.role).ok_or_else(|| {
+    let role = req.role.parse::<InvitationRole>().map_err(|_| {
         (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({"error": "Invalid role"})),
@@ -705,16 +724,16 @@ async fn bulk_invite(
     let invited_by = Uuid::new_v4();
 
     let response = service
-        .bulk_invite(
-            org_id,
-            "Organization",
-            req.emails,
+        .bulk_invite(BulkInviteParams {
+            organization_id: org_id,
+            organization_name: "Organization",
+            emails: req.emails,
             role,
-            req.groups,
+            groups: req.groups,
             invited_by,
-            "Admin User",
-            req.message,
-        )
+            invited_by_name: "Admin User",
+            message: req.message,
+        })
         .await;
 
     Ok(Json(response))
@@ -748,7 +767,9 @@ async fn revoke_invitation(
     let service = InvitationService::new();
 
     match service.revoke_invitation(invitation_id).await {
-        Ok(()) => Ok(Json(serde_json::json!({"success": true, "message": "Invitation revoked"}))),
+        Ok(()) => Ok(Json(
+            serde_json::json!({"success": true, "message": "Invitation revoked"}),
+        )),
         Err(error) => Err((
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({"error": error})),
@@ -801,7 +822,9 @@ async fn decline_invitation(
     let service = InvitationService::new();
 
     match service.decline_invitation(&req.token).await {
-        Ok(()) => Ok(Json(serde_json::json!({"success": true, "message": "Invitation declined"}))),
+        Ok(()) => Ok(Json(
+            serde_json::json!({"success": true, "message": "Invitation declined"}),
+        )),
         Err(error) => Err((
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({"error": error})),
@@ -935,13 +958,12 @@ mod tests {
             .await
             .unwrap();
 
-        let result = service
-            .accept_invitation(&invitation.token, user_id)
-            .await;
+        let result = service.accept_invitation(&invitation.token, user_id).await;
         assert!(result.is_ok());
 
-        let accepted = result.unwrap();
-        assert_eq!(accepted.status, InvitationStatus::Accepted);
-        assert!(accepted.accepted_at.is_some());
+        result.unwrap();
+        let updated = service.get_invitation(invitation.id).await.unwrap();
+        assert_eq!(updated.status, InvitationStatus::Accepted);
+        assert!(updated.accepted_at.is_some());
     }
 }

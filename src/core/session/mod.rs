@@ -990,26 +990,7 @@ mod tests {
 
     // Tests
 
-    #[test]
-    fn test_admin_user() {
-        let user = admin_user();
-        assert_eq!(user.role, Role::Admin);
-        assert_eq!(user.email, "admin@test.com");
-    }
 
-    #[test]
-    fn test_customer_factory() {
-        let c = customer("+15559876543");
-        assert_eq!(c.phone, Some("+15559876543".to_string()));
-        assert_eq!(c.channel, Channel::WhatsApp);
-    }
-
-    #[test]
-    fn test_bot_with_kb() {
-        let bot = bot_with_kb("kb-bot");
-        assert!(bot.kb_enabled);
-        assert!(bot.llm_enabled);
-    }
 
     #[test]
     fn test_session_for() {

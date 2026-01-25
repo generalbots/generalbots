@@ -1,3 +1,5 @@
+// use crate::core::shared::schema::core::{organizations, bots};
+
 diesel::table! {
     global_email_signatures (id) {
         id -> Uuid,

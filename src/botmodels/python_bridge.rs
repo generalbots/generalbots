@@ -98,7 +98,9 @@ pub enum PythonResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum PythonModel {
+    #[default]
     MediaPipe,
     DeepFace,
     FaceRecognition,
@@ -118,25 +120,27 @@ impl PythonModel {
             Self::OpenCV => "opencv",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for PythonModel {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "mediapipe" => Some(Self::MediaPipe),
-            "deepface" => Some(Self::DeepFace),
-            "face_recognition" => Some(Self::FaceRecognition),
-            "insightface" => Some(Self::InsightFace),
-            "dlib" => Some(Self::Dlib),
-            "opencv" => Some(Self::OpenCV),
-            _ => None,
+            "mediapipe" => Ok(Self::MediaPipe),
+            "deepface" => Ok(Self::DeepFace),
+            "face_recognition" => Ok(Self::FaceRecognition),
+            "insightface" => Ok(Self::InsightFace),
+            "dlib" => Ok(Self::Dlib),
+            "opencv" => Ok(Self::OpenCV),
+            _ => Err(()),
         }
     }
 }
 
-impl Default for PythonModel {
-    fn default() -> Self {
-        Self::MediaPipe
-    }
+impl PythonModel {
 }
+
 
 #[derive(Debug, Clone)]
 pub struct PythonBridgeConfig {
@@ -573,9 +577,9 @@ mod tests {
 
     #[test]
     fn test_python_model_from_str() {
-        assert_eq!(PythonModel::from_str("mediapipe"), Some(PythonModel::MediaPipe));
-        assert_eq!(PythonModel::from_str("deepface"), Some(PythonModel::DeepFace));
-        assert_eq!(PythonModel::from_str("unknown"), None);
+        assert_eq!("mediapipe".parse::<PythonModel>(), Ok(PythonModel::MediaPipe));
+        assert_eq!("deepface".parse::<PythonModel>(), Ok(PythonModel::DeepFace));
+        assert!("unknown".parse::<PythonModel>().is_err());
     }
 
     #[test]
@@ -607,9 +611,10 @@ mod tests {
     }
 
     #[test]
-    fn test_command_serialization() {
+    fn test_command_serialization() -> Result<(), Box<dyn std::error::Error>> {
         let cmd = PythonCommand::Health;
-        let json = serde_json::to_string(&cmd).unwrap();
+        let json = serde_json::to_string(&cmd)?;
         assert!(json.contains("health"));
+        Ok(())
     }
 }

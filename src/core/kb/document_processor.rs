@@ -218,33 +218,40 @@ impl DocumentProcessor {
 
     fn extract_pdf_with_library(&self, file_path: &Path) -> Result<String> {
         let _ = self; // Suppress unused self warning
-        use pdf_extract::extract_text;
+        #[cfg(feature = "drive")]
+        {
+            use pdf_extract::extract_text;
 
-        match extract_text(file_path) {
-            Ok(text) => {
-                info!(
-                    "Successfully extracted PDF with library: {}",
-                    file_path.display()
-                );
-                Ok(text)
-            }
-            Err(e) => {
-                warn!("PDF library extraction failed: {}", e);
-
-                Self::extract_pdf_basic_sync(file_path)
+            match extract_text(file_path) {
+                Ok(text) => {
+                    info!(
+                        "Successfully extracted PDF with library: {}",
+                        file_path.display()
+                    );
+                    return Ok(text);
+                }
+                Err(e) => {
+                    warn!("PDF library extraction failed: {}", e);
+                }
             }
         }
+
+        Self::extract_pdf_basic_sync(file_path)
     }
 
     fn extract_pdf_basic_sync(file_path: &Path) -> Result<String> {
-        pdf_extract::extract_text(file_path)
-            .ok()
-            .filter(|text| !text.is_empty())
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Could not extract text from PDF. Please ensure pdftotext is installed."
-                )
-            })
+        #[cfg(feature = "drive")]
+        {
+            if let Ok(text) = pdf_extract::extract_text(file_path) {
+                if !text.is_empty() {
+                    return Ok(text);
+                }
+            }
+        }
+
+        Err(anyhow::anyhow!(
+            "Could not extract text from PDF. Please ensure pdftotext is installed."
+        ))
     }
 
     async fn extract_docx_text(&self, file_path: &Path) -> Result<String> {

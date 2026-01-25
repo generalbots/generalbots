@@ -745,7 +745,7 @@ impl WeChatProvider {
     ) -> bool {
         use sha1::{Digest, Sha1};
 
-        let mut params = vec![token, timestamp, nonce];
+        let mut params = [token, timestamp, nonce];
         params.sort();
         let joined = params.join("");
 

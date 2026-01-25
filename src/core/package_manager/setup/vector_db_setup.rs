@@ -30,7 +30,7 @@ impl VectorDbSetup {
     }
 }
 
-pub fn generate_qdrant_config(data_dir: &PathBuf, cert_dir: &PathBuf) -> String {
+pub fn generate_qdrant_config(data_dir: &std::path::Path, cert_dir: &std::path::Path) -> String {
     let data_path = data_dir.to_string_lossy();
     let cert_path = cert_dir.join("server.crt").to_string_lossy().to_string();
     let key_path = cert_dir.join("server.key").to_string_lossy().to_string();

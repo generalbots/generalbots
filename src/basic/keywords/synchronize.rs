@@ -443,7 +443,7 @@ impl SynchronizeService {
             }
         }
 
-        if body.is_object() && !body.as_object().map_or(true, |o| o.is_empty()) {
+        if body.is_object() && !body.as_object().is_none_or(|o| o.is_empty()) {
             return Ok(vec![body.clone()]);
         }
 

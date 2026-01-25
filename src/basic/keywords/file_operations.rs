@@ -1312,7 +1312,7 @@ async fn execute_compress(
             .and_then(|n| n.to_str())
             .unwrap_or(file_path);
 
-        zip.start_file(file_name, options.clone())?;
+        zip.start_file(file_name, options)?;
         zip.write_all(content.as_bytes())?;
     }
 

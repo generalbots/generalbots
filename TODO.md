@@ -34,13 +34,13 @@ Compilar cada feature individualmente do botserver com `cargo check --no-default
 
 ### Grupo 5: Aprendizado
 - [x] `learn`
-- [ ] `research` (Failed: missing EmailDocument struct, unknown field email_db, type inference errors)
+- [x] `research` (Fixed: gated email dependencies, added missing imports)
 - [x] `sources`
 
 ### Grupo 6: Analytics
 - [x] `analytics`
 - [x] `dashboards`
-- [ ] `monitoring` (Failed: E0308 type mismatch in SVG generation)
+- [x] `monitoring` (Fixed: E0308 type mismatch in SVG generation)
 
 ### Grupo 7: Desenvolvimento
 - [x] `designer`
@@ -55,25 +55,25 @@ Compilar cada feature individualmente do botserver com `cargo check --no-default
 
 ### Erros de Compilação (Bloqueios)
 - [ ] **meet**: Falha no build C++ da dependência `webrtc-sys` (header `absl/container/inlined_vector.h` não encontrado).
-- [ ] **research**: Diversos erros de tipo e campos ausentes:
-    - `EmailDocument` não encontrado no escopo.
-    - Campo `email_db` desconhecido na struct `UserIndexingJob`.
-    - Erros de inferência de tipo em `vectordb_indexer.rs`.
-- [ ] **monitoring**: Erro `E0308` (mismatched types) na geração de SVG em `app_generator.rs` (conflito entre `f32` e `f64`).
+    - Requer instalação de dependências de sistema (não resolvido neste ambiente).
 
 ### Avisos Comuns (Shared)
-- `botserver/src/basic/compiler/mod.rs:358:25`: `unused mut` e `unused variable` (`conn`).
-- `botserver/src/basic/compiler/mod.rs:357:25`: `unused variable` (`cron`).
-- `botserver/src/core/shared/state.rs:469:13`: `unused mut` (`debug`).
-- `botserver/src/drive/drive_monitor/mod.rs:20:7`: `KB_INDEXING_TIMEOUT_SECS` (dead code).
-- `botserver/src/drive/drive_monitor/mod.rs:39:5`: `kb_indexing_in_progress` (dead code).
+- [x] Fixed all shared warnings (unused variables/mut/imports in compiler, state, drive_monitor).
 
 ### Avisos Específicos de Feature
-- **mail**: Unused imports em `src/core/shared/schema/mail.rs`.
-- **tasks**: Unused imports em `src/core/shared/schema/tasks.rs`.
-- **project**: Unused imports em `src/core/shared/schema/project.rs`.
-- **tickets**: Unused imports em `src/core/shared/schema/tickets.rs`.
-- **learn**: Unused imports em `src/core/shared/schema/learn.rs`.
-- **analytics**: Unused import em `src/analytics/mod.rs`.
-- **designer**: Unused variable `_messages`.
+- [x] **mail**: Fixed unused imports.
+- [x] **tasks**: Fixed unused imports.
+- [x] **project**: Fixed unused imports.
+- [x] **tickets**: Fixed unused imports.
+- [x] **learn**: Fixed unused imports.
+- [x] **analytics**: Fixed unused imports.
+- [x] **designer**: Fixed unused variable `messages`.
 
+
+## Remaining Warnings Plan (From TODO.tmp)
+1.  **Automated Fixes**: Run `cargo clippy --fix --workspace` to resolve simple warnings (unused imports/variables/mut).
+    - [ ] Execution in progress.
+2.  **Manual Fixes**: Address warnings not resolvable by auto-fix.
+    - [ ] Complex logic changes.
+    - [ ] Feature gating adjustments.
+3.  **Verification**: Run `cargo check --workspace` to ensure zero warnings.
