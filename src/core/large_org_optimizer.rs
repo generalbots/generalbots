@@ -114,16 +114,13 @@ pub struct PaginatedQuery {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum SortDirection {
+    #[default]
     Asc,
     Desc,
 }
 
-impl Default for SortDirection {
-    fn default() -> Self {
-        Self::Asc
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaginatedResult<T> {
@@ -237,7 +234,7 @@ impl LargeOrgOptimizer {
             Vec::new()
         };
 
-        let total_pages = (cached.total_count + query.page_size - 1) / query.page_size;
+        let total_pages = cached.total_count.div_ceil(query.page_size);
 
         PaginatedResult {
             items,
@@ -255,10 +252,10 @@ impl LargeOrgOptimizer {
         query: &PaginatedQuery,
     ) -> Result<PaginatedResult<Uuid>, LargeOrgError> {
         let items = Vec::new();
-        let total_count = 0;
+        let total_count: usize = 0;
 
         let total_pages = if total_count > 0 {
-            (total_count + query.page_size - 1) / query.page_size
+            total_count.div_ceil(query.page_size)
         } else {
             0
         };

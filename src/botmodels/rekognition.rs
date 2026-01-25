@@ -553,6 +553,12 @@ pub struct RekognitionService {
     face_details: Arc<RwLock<HashMap<String, RekognitionFace>>>,
 }
 
+impl Default for RekognitionService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RekognitionService {
     pub fn new() -> Self {
         Self {

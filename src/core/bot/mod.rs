@@ -1,3 +1,4 @@
+#[cfg(any(feature = "research", feature = "llm"))]
 pub mod kb_context;
 #[cfg(feature = "llm")]
 use crate::core::config::ConfigManager;
@@ -22,6 +23,8 @@ use axum::{
 use diesel::PgConnection;
 use futures::{sink::SinkExt, stream::StreamExt};
 use log::{error, info, warn};
+#[cfg(feature = "llm")]
+use log::trace;
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;

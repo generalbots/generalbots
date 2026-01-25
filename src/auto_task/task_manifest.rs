@@ -36,7 +36,9 @@ pub struct DecisionPoint {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum ManifestStatus {
+    #[default]
     Planning,
     Ready,
     Running,
@@ -45,11 +47,6 @@ pub enum ManifestStatus {
     Failed,
 }
 
-impl Default for ManifestStatus {
-    fn default() -> Self {
-        Self::Planning
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ManifestSection {
@@ -100,7 +97,9 @@ impl std::fmt::Display for SectionType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum SectionStatus {
+    #[default]
     Pending,
     Running,
     Completed,
@@ -108,11 +107,6 @@ pub enum SectionStatus {
     Skipped,
 }
 
-impl Default for SectionStatus {
-    fn default() -> Self {
-        Self::Pending
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ManifestItem {
@@ -182,7 +176,9 @@ pub enum ItemType {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum ItemStatus {
+    #[default]
     Pending,
     Running,
     Completed,
@@ -190,11 +186,6 @@ pub enum ItemStatus {
     Skipped,
 }
 
-impl Default for ItemStatus {
-    fn default() -> Self {
-        Self::Pending
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminalLine {
@@ -476,7 +467,7 @@ impl TaskManifest {
                 "total": self.total_steps,
                 "percentage": self.progress_percentage()
             },
-            "sections": self.sections.iter().map(|s| section_to_web_json(s)).collect::<Vec<_>>(),
+            "sections": self.sections.iter().map(section_to_web_json).collect::<Vec<_>>(),
             "terminal": {
                 "lines": self.terminal_output.iter().map(|l| serde_json::json!({
                     "content": l.content,
@@ -688,7 +679,7 @@ fn section_to_web_json(section: &ManifestSection) -> serde_json::Value {
             "global_current": global_current,
             "global_start": section.global_step_start
         },
-        "duration": section.duration_seconds.map(|d| format_duration(d)),
+        "duration": section.duration_seconds.map(format_duration),
         "duration_seconds": section.duration_seconds,
         "items": section.items.iter().map(|i| {
             let item_checkbox = match i.status {
@@ -703,7 +694,7 @@ fn section_to_web_json(section: &ManifestSection) -> serde_json::Value {
                 "type": format!("{:?}", i.item_type),
                 "status": format!("{:?}", i.status),
                 "details": i.details,
-                "duration": i.duration_seconds.map(|d| format_duration(d)),
+                "duration": i.duration_seconds.map(format_duration),
                 "duration_seconds": i.duration_seconds
             })
         }).collect::<Vec<_>>(),
@@ -719,11 +710,11 @@ fn section_to_web_json(section: &ManifestSection) -> serde_json::Value {
                 "items": g.items,
                 "checkbox": group_checkbox,
                 "status": format!("{:?}", g.status),
-                "duration": g.duration_seconds.map(|d| format_duration(d)),
+                "duration": g.duration_seconds.map(format_duration),
                 "duration_seconds": g.duration_seconds
             })
         }).collect::<Vec<_>>(),
-        "children": section.children.iter().map(|c| section_to_web_json(c)).collect::<Vec<_>>()
+        "children": section.children.iter().map(section_to_web_json).collect::<Vec<_>>()
     })
 }
 

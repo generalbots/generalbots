@@ -4,6 +4,7 @@ use crate::security::zitadel_auth::{ZitadelAuthConfig, ZitadelAuthProvider};
 use anyhow::Result;
 use async_trait::async_trait;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
@@ -38,9 +39,7 @@ impl LocalJwtAuthProvider {
     }
 
     fn claims_to_user(&self, claims: &Claims) -> Result<AuthenticatedUser, AuthError> {
-        let user_id = claims
-            .user_id()
-            .map_err(|_| AuthError::InvalidToken)?;
+        let user_id = claims.user_id().map_err(|_| AuthError::InvalidToken)?;
 
         let username = claims
             .username
@@ -88,13 +87,10 @@ impl AuthProvider for LocalJwtAuthProvider {
     }
 
     async fn authenticate(&self, token: &str) -> Result<AuthenticatedUser, AuthError> {
-        let claims = self
-            .jwt_manager
-            .validate_access_token(token)
-            .map_err(|e| {
-                debug!("JWT validation failed: {e}");
-                AuthError::InvalidToken
-            })?;
+        let claims = self.jwt_manager.validate_access_token(token).map_err(|e| {
+            debug!("JWT validation failed: {e}");
+            AuthError::InvalidToken
+        })?;
 
         self.claims_to_user(&claims)
     }
@@ -282,9 +278,11 @@ impl AuthProviderRegistry {
         let mut providers = self.providers.write().await;
         providers.push(provider);
         providers.sort_by_key(|p| p.priority());
-        info!("Registered auth provider: {} (priority: {})",
+        info!(
+            "Registered auth provider: {} (priority: {})",
             providers.last().map(|p| p.name()).unwrap_or("unknown"),
-            providers.last().map(|p| p.priority()).unwrap_or(0));
+            providers.last().map(|p| p.priority()).unwrap_or(0)
+        );
     }
 
     pub async fn authenticate_token(&self, token: &str) -> Result<AuthenticatedUser, AuthError> {
@@ -319,7 +317,10 @@ impl AuthProviderRegistry {
         Err(AuthError::InvalidToken)
     }
 
-    pub async fn authenticate_api_key(&self, api_key: &str) -> Result<AuthenticatedUser, AuthError> {
+    pub async fn authenticate_api_key(
+        &self,
+        api_key: &str,
+    ) -> Result<AuthenticatedUser, AuthError> {
         let providers = self.providers.read().await;
 
         for provider in providers.iter() {
@@ -357,7 +358,14 @@ impl AuthProviderRegistry {
             .read()
             .await
             .iter()
-            .map(|p| format!("{} (priority: {}, enabled: {})", p.name(), p.priority(), p.is_enabled()))
+            .map(|p| {
+                format!(
+                    "{} (priority: {}, enabled: {})",
+                    p.name(),
+                    p.priority(),
+                    p.is_enabled()
+                )
+            })
             .collect()
     }
 }
@@ -394,7 +402,11 @@ impl AuthProviderBuilder {
         self
     }
 
-    pub fn with_zitadel(mut self, provider: Arc<ZitadelAuthProvider>, config: ZitadelAuthConfig) -> Self {
+    pub fn with_zitadel(
+        mut self,
+        provider: Arc<ZitadelAuthProvider>,
+        config: ZitadelAuthConfig,
+    ) -> Self {
         self.zitadel_provider = Some(provider);
         self.zitadel_config = Some(config);
         self
@@ -480,7 +492,7 @@ mod tests {
 
     fn create_test_jwt_manager() -> Arc<JwtManager> {
         let config = crate::security::jwt::JwtConfig::default();
-        let key = crate::security::jwt::JwtKey::from_secret(b"test-secret-key-for-testing-only");
+        let key = crate::security::jwt::JwtKey::from_secret("test-secret-key-for-testing-only");
         Arc::new(JwtManager::new(config, key).expect("Failed to create JwtManager"))
     }
 

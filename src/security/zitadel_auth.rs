@@ -338,7 +338,7 @@ impl ZitadelAuthProvider {
             .get("roles")
             .or_else(|| {
                 introspection
-                    .get(&format!("urn:zitadel:iam:org:project:{}:roles", self.config.project_id))
+                    .get(format!("urn:zitadel:iam:org:project:{}:roles", self.config.project_id))
             })
             .and_then(|v| v.as_object())
             .map(|obj| obj.keys().cloned().collect())

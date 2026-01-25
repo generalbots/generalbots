@@ -1,3 +1,4 @@
+#[cfg(feature = "chat")]
 use crate::basic::keywords::add_suggestion::clear_suggestions_keyword;
 use crate::basic::keywords::set_user::set_user_keyword;
 use crate::basic::keywords::string_functions::register_string_functions;
@@ -21,9 +22,13 @@ struct ParamConfigRow {
 }
 
 // ===== CORE KEYWORD IMPORTS (always available) =====
+#[cfg(feature = "chat")]
 use self::keywords::add_bot::register_bot_keywords;
+#[cfg(feature = "chat")]
 use self::keywords::add_member::add_member_keyword;
+#[cfg(feature = "chat")]
 use self::keywords::add_suggestion::add_suggestion_keyword;
+#[cfg(feature = "llm")]
 use self::keywords::ai_tools::register_ai_tools_keywords;
 use self::keywords::bot_memory::{get_bot_memory_keyword, set_bot_memory_keyword};
 use self::keywords::clear_tools::clear_tools_keyword;
@@ -31,6 +36,7 @@ use self::keywords::core_functions::register_core_functions;
 use self::keywords::data_operations::register_data_operations;
 use self::keywords::find::find_keyword;
 use self::keywords::search::search_keyword;
+#[cfg(feature = "billing")]
 use self::keywords::products::products_keyword;
 use self::keywords::first::first_keyword;
 use self::keywords::for_next::for_keyword;
@@ -39,11 +45,13 @@ use self::keywords::get::get_keyword;
 use self::keywords::hear_talk::{hear_keyword, talk_keyword};
 use self::keywords::http_operations::register_http_operations;
 use self::keywords::last::last_keyword;
+#[cfg(feature = "automation")]
 use self::keywords::on_form_submit::on_form_submit_keyword;
 use self::keywords::switch_case::preprocess_switch;
 use self::keywords::use_tool::use_tool_keyword;
 use self::keywords::use_website::{clear_websites_keyword, use_website_keyword};
 use self::keywords::web_data::register_web_data_keywords;
+#[cfg(feature = "automation")]
 use self::keywords::webhook::webhook_keyword;
 #[cfg(feature = "llm")]
 use self::keywords::llm_keyword::llm_keyword;
@@ -128,6 +136,7 @@ impl ScriptService {
         get_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
         find_keyword(&state, user.clone(), &mut engine);
         search_keyword(&state, user.clone(), &mut engine);
+        #[cfg(feature = "billing")]
         products_keyword(&state, user.clone(), &mut engine);
         for_keyword(&state, user.clone(), &mut engine);
         first_keyword(&mut engine);
@@ -144,13 +153,17 @@ impl ScriptService {
         talk_keyword(state.clone(), user.clone(), &mut engine);
         set_context_keyword(state.clone(), user.clone(), &mut engine);
         set_user_keyword(state.clone(), user.clone(), &mut engine);
+        #[cfg(feature = "chat")]
         clear_suggestions_keyword(state.clone(), user.clone(), &mut engine);
         use_tool_keyword(state.clone(), user.clone(), &mut engine);
         clear_tools_keyword(state.clone(), user.clone(), &mut engine);
         use_website_keyword(state.clone(), user.clone(), &mut engine);
         clear_websites_keyword(state.clone(), user.clone(), &mut engine);
+        #[cfg(feature = "chat")]
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
+        #[cfg(feature = "chat")]
         add_member_keyword(state.clone(), user.clone(), &mut engine);
+        #[cfg(feature = "chat")]
         register_bot_keywords(&state, &user, &mut engine);
         keywords::universal_messaging::register_universal_messaging(
             state.clone(),
@@ -161,8 +174,11 @@ impl ScriptService {
         switch_keyword(&state, user.clone(), &mut engine);
         register_http_operations(state.clone(), user.clone(), &mut engine);
         register_data_operations(state.clone(), user.clone(), &mut engine);
+        #[cfg(feature = "automation")]
         webhook_keyword(&state, user.clone(), &mut engine);
+        #[cfg(feature = "automation")]
         on_form_submit_keyword(state.clone(), user.clone(), &mut engine);
+        #[cfg(feature = "llm")]
         register_ai_tools_keywords(state.clone(), user.clone(), &mut engine);
         register_web_data_keywords(state.clone(), user.clone(), &mut engine);
         register_core_functions(state.clone(), user.clone(), &mut engine);

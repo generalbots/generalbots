@@ -289,6 +289,21 @@ impl ApiUrls {
     pub const MONITORING_LOGS: &'static str = "/api/ui/monitoring/logs";
     pub const MONITORING_LLM: &'static str = "/api/ui/monitoring/llm";
     pub const MONITORING_HEALTH: &'static str = "/api/ui/monitoring/health";
+    pub const MONITORING_ALERTS: &'static str = "/api/monitoring/alerts";
+    
+    // Monitoring - Metrics & Widgets
+    pub const MONITORING_TIMESTAMP: &'static str = "/api/ui/monitoring/timestamp";
+    pub const MONITORING_BOTS: &'static str = "/api/ui/monitoring/bots";
+    pub const MONITORING_SERVICES_STATUS: &'static str = "/api/ui/monitoring/services/status";
+    pub const MONITORING_RESOURCES_BARS: &'static str = "/api/ui/monitoring/resources/bars";
+    pub const MONITORING_ACTIVITY_LATEST: &'static str = "/api/ui/monitoring/activity/latest";
+    pub const MONITORING_METRIC_SESSIONS: &'static str = "/api/ui/monitoring/metric/sessions";
+    pub const MONITORING_METRIC_MESSAGES: &'static str = "/api/ui/monitoring/metric/messages";
+    pub const MONITORING_METRIC_RESPONSE_TIME: &'static str = "/api/ui/monitoring/metric/response_time";
+    pub const MONITORING_TREND_SESSIONS: &'static str = "/api/ui/monitoring/trend/sessions";
+    pub const MONITORING_RATE_MESSAGES: &'static str = "/api/ui/monitoring/rate/messages";
+    pub const MONITORING_SESSIONS_PANEL: &'static str = "/api/ui/monitoring/sessions";
+    pub const MONITORING_MESSAGES_PANEL: &'static str = "/api/ui/monitoring/messages";
 
     // MS Teams - JSON APIs
     pub const MSTEAMS_MESSAGES: &'static str = "/api/msteams/messages";

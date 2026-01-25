@@ -12,6 +12,7 @@ use tokio::time::timeout;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum SandboxRuntime {
     LXC,
 
@@ -19,14 +20,10 @@ pub enum SandboxRuntime {
 
     Firecracker,
 
+    #[default]
     Process,
 }
 
-impl Default for SandboxRuntime {
-    fn default() -> Self {
-        Self::Process
-    }
-}
 
 impl From<&str> for SandboxRuntime {
     fn from(s: &str) -> Self {
@@ -340,8 +337,8 @@ impl CodeSandbox {
                 .and_then(|c| c.arg(&code_file));
 
             match cmd_result {
-                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
-                Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::other(e.to_string())),
+                Err(e) => Err(std::io::Error::other(e.to_string())),
             }
         })
         .await;
@@ -409,8 +406,8 @@ impl CodeSandbox {
                 .and_then(|c| c.args(&args.iter().map(|s| s.as_str()).collect::<Vec<_>>()));
 
             match cmd_result {
-                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
-                Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::other(e.to_string())),
+                Err(e) => Err(std::io::Error::other(e.to_string())),
             }
         })
         .await;
@@ -471,8 +468,8 @@ impl CodeSandbox {
                 .and_then(|c| c.working_dir(std::path::Path::new(&temp_dir)));
 
             match cmd_result {
-                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
-                Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::other(e.to_string())),
+                Err(e) => Err(std::io::Error::other(e.to_string())),
             }
         })
         .await;

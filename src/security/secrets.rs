@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(Default)]
 pub struct SecretString {
     inner: String,
 }
@@ -8,12 +9,19 @@ impl SecretString {
     pub fn new(secret: String) -> Self {
         Self { inner: secret }
     }
+}
 
-    pub fn from_str(secret: &str) -> Self {
-        Self {
-            inner: secret.to_string(),
-        }
+impl std::str::FromStr for SecretString {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self {
+            inner: s.to_string(),
+        })
     }
+}
+
+impl SecretString {
 
     pub fn expose_secret(&self) -> &str {
         &self.inner
@@ -58,13 +66,6 @@ impl fmt::Display for SecretString {
     }
 }
 
-impl Default for SecretString {
-    fn default() -> Self {
-        Self {
-            inner: String::new(),
-        }
-    }
-}
 
 impl From<String> for SecretString {
     fn from(s: String) -> Self {
@@ -74,10 +75,11 @@ impl From<String> for SecretString {
 
 impl From<&str> for SecretString {
     fn from(s: &str) -> Self {
-        Self::from_str(s)
+        s.parse().unwrap_or_default()
     }
 }
 
+#[derive(Default)]
 pub struct SecretBytes {
     inner: Vec<u8>,
 }
@@ -124,11 +126,6 @@ impl fmt::Debug for SecretBytes {
     }
 }
 
-impl Default for SecretBytes {
-    fn default() -> Self {
-        Self { inner: Vec::new() }
-    }
-}
 
 impl From<Vec<u8>> for SecretBytes {
     fn from(v: Vec<u8>) -> Self {
@@ -238,7 +235,7 @@ impl DatabaseCredentials {
 
         Some(Self {
             username: username.to_string(),
-            password: SecretString::from_str(password),
+            password: password.parse().unwrap_or_default(),
             host,
             port,
             database,
@@ -471,7 +468,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_secret_string_redaction() {
+    fn test_secret_string_redaction() -> Result<(), Box<dyn std::error::Error>> {
         let secret = SecretString::new("my-super-secret-password".to_string());
         assert_eq!(format!("{:?}", secret), "[REDACTED]");
         assert_eq!(format!("{}", secret), "[REDACTED]");
@@ -506,14 +503,15 @@ mod tests {
     }
 
     #[test]
-    fn test_database_credentials_from_url() {
+    fn test_database_credentials_from_url() -> Result<(), Box<dyn std::error::Error>> {
         let url = "postgres://user:pass@localhost:5432/mydb";
-        let creds = DatabaseCredentials::from_url(url).unwrap();
+        let creds = DatabaseCredentials::from_url(url).ok_or("Failed to parse URL")?;
         assert_eq!(creds.username(), "user");
         assert_eq!(creds.expose_password(), "pass");
         assert_eq!(creds.host(), "localhost");
         assert_eq!(creds.port(), 5432);
         assert_eq!(creds.database(), "mydb");
+        Ok(())
     }
 
     #[test]

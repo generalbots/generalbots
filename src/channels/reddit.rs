@@ -143,7 +143,7 @@ impl RedditChannel {
     pub async fn exchange_code(&self, code: &str) -> Result<RedditTokens, RedditError> {
         let response = self
             .http_client
-            .post(&format!("{}/access_token", self.oauth_url))
+            .post(format!("{}/access_token", self.oauth_url))
             .basic_auth(&self.config.client_id, Some(&self.config.client_secret))
             .form(&[
                 ("grant_type", "authorization_code"),
@@ -187,7 +187,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .post(&format!("{}/access_token", self.oauth_url))
+            .post(format!("{}/access_token", self.oauth_url))
             .basic_auth(&self.config.client_id, Some(&self.config.client_secret))
             .form(&[
                 ("grant_type", "refresh_token"),
@@ -234,7 +234,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .post(&format!("{}/access_token", self.oauth_url))
+            .post(format!("{}/access_token", self.oauth_url))
             .basic_auth(&self.config.client_id, Some(&self.config.client_secret))
             .form(&[
                 ("grant_type", "password"),
@@ -286,7 +286,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .get(&format!("{}/api/v1/me", self.base_url))
+            .get(format!("{}/api/v1/me", self.base_url))
             .bearer_auth(&token)
             .send()
             .await
@@ -346,7 +346,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .post(&format!("{}/api/submit", self.base_url))
+            .post(format!("{}/api/submit", self.base_url))
             .bearer_auth(&token)
             .form(&params)
             .send()
@@ -388,7 +388,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .post(&format!("{}/api/comment", self.base_url))
+            .post(format!("{}/api/comment", self.base_url))
             .bearer_auth(&token)
             .form(&[
                 ("api_type", "json"),
@@ -449,7 +449,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .get(&format!("{}/api/info?id={}", self.base_url, id))
+            .get(format!("{}/api/info?id={}", self.base_url, id))
             .bearer_auth(&token)
             .send()
             .await
@@ -471,7 +471,7 @@ impl RedditChannel {
             .into_iter()
             .next()
             .and_then(|c| c.data)
-            .ok_or_else(|| RedditError::PostNotFound)?;
+            .ok_or(RedditError::PostNotFound)?;
 
         Ok(RedditPost {
             id: post_data.id.unwrap_or_default(),
@@ -494,7 +494,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .get(&format!("{}/r/{}/about", self.base_url, name))
+            .get(format!("{}/r/{}/about", self.base_url, name))
             .bearer_auth(&token)
             .send()
             .await
@@ -541,7 +541,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .get(&format!(
+            .get(format!(
                 "{}/r/{}/{}?limit={}",
                 self.base_url, subreddit, sort_str, limit
             ))
@@ -595,7 +595,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .post(&format!("{}/api/vote", self.base_url))
+            .post(format!("{}/api/vote", self.base_url))
             .bearer_auth(&token)
             .form(&[("id", thing_id), ("dir", dir)])
             .send()
@@ -615,7 +615,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .post(&format!("{}/api/del", self.base_url))
+            .post(format!("{}/api/del", self.base_url))
             .bearer_auth(&token)
             .form(&[("id", thing_id)])
             .send()
@@ -635,7 +635,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .post(&format!("{}/api/editusertext", self.base_url))
+            .post(format!("{}/api/editusertext", self.base_url))
             .bearer_auth(&token)
             .form(&[
                 ("api_type", "json"),
@@ -661,7 +661,7 @@ impl RedditChannel {
 
         let response = self
             .http_client
-            .post(&format!("{}/api/subscribe", self.base_url))
+            .post(format!("{}/api/subscribe", self.base_url))
             .bearer_auth(&token)
             .form(&[
                 ("action", action),

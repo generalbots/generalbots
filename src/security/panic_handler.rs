@@ -114,7 +114,7 @@ pub async fn panic_handler_middleware_with_config(
             }
 
             if config.notify_on_panic {
-                notify_panic(&request_id, &method.to_string(), &uri.to_string(), &panic_message);
+                notify_panic(&request_id, method.as_ref(), &uri.to_string(), &panic_message);
             }
 
             create_panic_response(&request_id, config)

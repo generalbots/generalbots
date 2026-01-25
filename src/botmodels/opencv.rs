@@ -469,8 +469,8 @@ impl OpenCvFaceDetector {
             return Err(OpenCvError::InvalidImage("Image data too small".to_string()));
         }
 
-        if image_data.starts_with(&[0x89, 0x50, 0x4E, 0x47]) {
-            if image_data.len() >= 24 {
+        if image_data.starts_with(&[0x89, 0x50, 0x4E, 0x47])
+            && image_data.len() >= 24 {
                 let width = u32::from_be_bytes([
                     image_data[16],
                     image_data[17],
@@ -488,7 +488,6 @@ impl OpenCvFaceDetector {
                     height,
                 });
             }
-        }
 
         if image_data.starts_with(&[0xFF, 0xD8, 0xFF]) {
             return Ok(ImageInfo {
@@ -497,8 +496,8 @@ impl OpenCvFaceDetector {
             });
         }
 
-        if image_data.starts_with(b"BM") {
-            if image_data.len() >= 26 {
+        if image_data.starts_with(b"BM")
+            && image_data.len() >= 26 {
                 let width = i32::from_le_bytes([
                     image_data[18],
                     image_data[19],
@@ -517,7 +516,6 @@ impl OpenCvFaceDetector {
                     height,
                 });
             }
-        }
 
         Ok(ImageInfo {
             width: 640,

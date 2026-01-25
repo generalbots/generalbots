@@ -198,6 +198,17 @@ pub struct AuditLogger {
     retention_days: u32,
 }
 
+pub struct AccessAttemptInfo<'a> {
+    pub organization_id: Uuid,
+    pub actor_id: Uuid,
+    pub resource_type: ResourceType,
+    pub resource_id: Uuid,
+    pub resource_name: &'a str,
+    pub permission_required: &'a str,
+    pub allowed: bool,
+    pub actor_ip: Option<&'a str>,
+}
+
 impl AuditLogger {
     pub fn new(max_entries: usize, retention_days: u32) -> Self {
         Self {
@@ -343,45 +354,39 @@ impl AuditLogger {
         self.log(entry).await;
     }
 
-    pub async fn log_access_attempt(
-        &self,
-        organization_id: Uuid,
-        actor_id: Uuid,
-        resource_type: ResourceType,
-        resource_id: Uuid,
-        resource_name: &str,
-        permission_required: &str,
-        allowed: bool,
-        actor_ip: Option<&str>,
-    ) {
-        let action = if allowed {
+
+
+    pub async fn log_access_attempt(&self, info: AccessAttemptInfo<'_>) {
+        let action = if info.allowed {
             AuditAction::AccessAttempt
         } else {
             AuditAction::AccessDenied
         };
 
-        let result = if allowed {
+        let result = if info.allowed {
             AuditResult::Success
         } else {
             AuditResult::Denied
         };
 
-        let description = if allowed {
+        let description = if info.allowed {
             format!(
-                "Access granted to {resource_name} (required: {permission_required})"
+                "Access granted to {} (required: {})",
+                info.resource_name, info.permission_required
             )
         } else {
             format!(
-                "Access denied to {resource_name} (required: {permission_required})"
+                "Access denied to {} (required: {})",
+                info.resource_name, info.permission_required
             )
         };
 
-        let entry = AuditLogEntry::new(organization_id, actor_id, action, resource_type)
-            .with_resource(resource_id, resource_name)
+        let entry = AuditLogEntry::new(info.organization_id, info.actor_id, action, info.resource_type)
+            .with_resource(info.resource_id, info.resource_name)
             .with_description(description)
             .with_result(result);
 
-        let entry = match actor_ip {
+        let entry = match info.actor_ip {
             Some(ip) => entry.with_actor_ip(ip),
             None => entry,
         };
@@ -444,7 +449,7 @@ impl AuditLogger {
     ) -> AuditLogPage {
         let all_entries = self.query(filter).await;
         let total = all_entries.len();
-        let total_pages = (total + per_page - 1) / per_page;
+        let total_pages = total.div_ceil(per_page);
 
         let start = page.saturating_sub(1) * per_page;
         let entries: Vec<_> = all_entries.into_iter().skip(start).take(per_page).collect();

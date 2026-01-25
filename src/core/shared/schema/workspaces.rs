@@ -1,3 +1,5 @@
+use crate::core::shared::schema::core::{organizations, bots};
+
 diesel::table! {
     workspaces (id) {
         id -> Uuid,
@@ -131,3 +133,14 @@ diesel::joinable!(workspace_comments -> workspace_pages (page_id));
 diesel::joinable!(workspace_comment_reactions -> workspace_comments (comment_id));
 diesel::joinable!(workspace_templates -> organizations (org_id));
 diesel::joinable!(workspace_templates -> bots (bot_id));
+
+diesel::allow_tables_to_appear_in_same_query!(
+    workspaces,
+    workspace_members,
+    workspace_pages,
+    workspace_page_versions,
+    workspace_page_permissions,
+    workspace_comments,
+    workspace_comment_reactions,
+    workspace_templates,
+);

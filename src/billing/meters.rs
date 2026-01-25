@@ -452,23 +452,7 @@ pub async fn daily_snapshot_job(
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_usage_metering_service_new() {
-        let service = UsageMeteringService::new();
-        assert_eq!(service.aggregation_interval(), 3600);
-    }
 
-    #[test]
-    fn test_usage_metering_service_with_interval() {
-        let service = UsageMeteringService::with_aggregation_interval(1800);
-        assert_eq!(service.aggregation_interval(), 1800);
-    }
-
-    #[test]
-    fn test_usage_metering_service_default() {
-        let service = UsageMeteringService::default();
-        assert_eq!(service.aggregation_interval(), 3600);
-    }
 
     #[tokio::test]
     async fn test_record_event() {

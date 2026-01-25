@@ -2,6 +2,7 @@ use crate::auto_task::TaskManifest;
 use crate::core::bot::channels::{ChannelAdapter, VoiceAdapter, WebChannelAdapter};
 use crate::core::bot_database::BotDatabaseManager;
 use crate::core::config::AppConfig;
+#[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
@@ -365,6 +366,7 @@ pub struct AppState {
     pub response_channels: Arc<tokio::sync::Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
     pub web_adapter: Arc<WebChannelAdapter>,
     pub voice_adapter: Arc<VoiceAdapter>,
+    #[cfg(any(feature = "research", feature = "llm"))]
     pub kb_manager: Option<Arc<KnowledgeBaseManager>>,
     #[cfg(feature = "tasks")]
     pub task_engine: Arc<TaskEngine>,
@@ -404,6 +406,7 @@ impl Clone for AppState {
             llm_provider: Arc::clone(&self.llm_provider),
             #[cfg(feature = "directory")]
             auth_service: Arc::clone(&self.auth_service),
+            #[cfg(any(feature = "research", feature = "llm"))]
             kb_manager: self.kb_manager.clone(),
             channels: Arc::clone(&self.channels),
             response_channels: Arc::clone(&self.response_channels),
@@ -449,6 +452,10 @@ impl std::fmt::Debug for AppState {
             .field("session_manager", &"Arc<Mutex<SessionManager>>")
             .field("metrics_collector", &"MetricsCollector");
 
+        #[cfg(any(feature = "research", feature = "llm"))]
+        debug.field("kb_manager", &self.kb_manager.is_some());
+
+
         #[cfg(feature = "tasks")]
         debug.field("task_scheduler", &self.task_scheduler.is_some());
 
@@ -462,8 +469,10 @@ impl std::fmt::Debug for AppState {
             .field("channels", &"Arc<Mutex<HashMap>>")
             .field("response_channels", &"Arc<Mutex<HashMap>>")
             .field("web_adapter", &self.web_adapter)
-            .field("voice_adapter", &self.voice_adapter)
-            .field("kb_manager", &self.kb_manager.is_some());
+            .field("voice_adapter", &self.voice_adapter);
+
+        #[cfg(any(feature = "research", feature = "llm"))]
+        debug.field("kb_manager", &self.kb_manager.is_some());
 
         #[cfg(feature = "tasks")]
         debug.field("task_engine", &"Arc<TaskEngine>");
@@ -617,12 +626,14 @@ impl Default for AppState {
             response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             web_adapter: Arc::new(WebChannelAdapter::new()),
             voice_adapter: Arc::new(VoiceAdapter::new()),
+            #[cfg(any(feature = "research", feature = "llm"))]
             kb_manager: None,
             #[cfg(feature = "tasks")]
             task_engine: Arc::new(TaskEngine::new(pool)),
             extensions: Extensions::new(),
             attendant_broadcast: Some(attendant_tx),
             task_progress_broadcast: Some(task_progress_tx),
+            billing_alert_broadcast: None,
             task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
             #[cfg(feature = "project")]
             project_service: Arc::new(RwLock::new(crate::project::ProjectService::new())),

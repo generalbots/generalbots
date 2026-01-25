@@ -16,13 +16,14 @@ use uuid::Uuid;
 
 use crate::bot::get_default_bot;
 use crate::core::shared::schema::{
-    people, people_departments, people_org_chart, people_person_skills, people_skills,
+    people_departments, people_org_chart, people_person_skills, people_skills,
     people_team_members, people_teams, people_time_off,
 };
+use crate::core::shared::schema::people::people as people_table;
 use crate::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
-#[diesel(table_name = people)]
+#[diesel(table_name = people_table)]
 pub struct Person {
     pub id: Uuid,
     pub org_id: Uuid,
@@ -361,7 +362,7 @@ pub async fn create_person(
         updated_at: now,
     };
 
-    diesel::insert_into(people::table)
+    diesel::insert_into(people_table::table)
         .values(&person)
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
@@ -381,36 +382,36 @@ pub async fn list_people(
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    let mut q = people::table
-        .filter(people::org_id.eq(org_id))
-        .filter(people::bot_id.eq(bot_id))
+    let mut q = people_table::table
+        .filter(people_table::org_id.eq(org_id))
+        .filter(people_table::bot_id.eq(bot_id))
         .into_boxed();
 
     if let Some(is_active) = query.is_active {
-        q = q.filter(people::is_active.eq(is_active));
+        q = q.filter(people_table::is_active.eq(is_active));
     }
 
     if let Some(department) = query.department {
-        q = q.filter(people::department.eq(department));
+        q = q.filter(people_table::department.eq(department));
     }
 
     if let Some(manager_id) = query.manager_id {
-        q = q.filter(people::manager_id.eq(manager_id));
+        q = q.filter(people_table::manager_id.eq(manager_id));
     }
 
     if let Some(search) = query.search {
         let pattern = format!("%{search}%");
         q = q.filter(
-            people::first_name
+            people_table::first_name
                 .ilike(pattern.clone())
-                .or(people::last_name.ilike(pattern.clone()))
-                .or(people::email.ilike(pattern.clone()))
-                .or(people::job_title.ilike(pattern)),
+                .or(people_table::last_name.ilike(pattern.clone()))
+                .or(people_table::email.ilike(pattern.clone()))
+                .or(people_table::job_title.ilike(pattern)),
         );
     }
 
     let persons: Vec<Person> = q
-        .order((people::last_name.asc(), people::first_name.asc()))
+        .order((people_table::last_name.asc(), people_table::first_name.asc()))
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
@@ -427,24 +428,24 @@ pub async fn get_person(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let person: Person = people::table
-        .filter(people::id.eq(id))
+    let person: Person = people_table::table
+        .filter(people_table::id.eq(id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Person not found".to_string()))?;
 
     let manager: Option<Person> = person
         .manager_id
         .and_then(|mid| {
-            people::table
-                .filter(people::id.eq(mid))
+            people_table::table
+                .filter(people_table::id.eq(mid))
                 .first(&mut conn)
                 .ok()
         });
 
-    let direct_reports: Vec<Person> = people::table
-        .filter(people::manager_id.eq(id))
-        .filter(people::is_active.eq(true))
-        .order(people::first_name.asc())
+    let direct_reports: Vec<Person> = people_table::table
+        .filter(people_table::manager_id.eq(id))
+        .filter(people_table::is_active.eq(true))
+        .order(people_table::first_name.asc())
         .load(&mut conn)
         .unwrap_or_default();
 
@@ -498,69 +499,69 @@ pub async fn update_person(
 
     let now = Utc::now();
 
-    diesel::update(people::table.filter(people::id.eq(id)))
-        .set(people::updated_at.eq(now))
+    diesel::update(people_table::table.filter(people_table::id.eq(id)))
+        .set(people_table::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if let Some(first_name) = req.first_name {
-        diesel::update(people::table.filter(people::id.eq(id)))
-            .set(people::first_name.eq(first_name))
+        diesel::update(people_table::table.filter(people_table::id.eq(id)))
+            .set(people_table::first_name.eq(first_name))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(last_name) = req.last_name {
-        diesel::update(people::table.filter(people::id.eq(id)))
-            .set(people::last_name.eq(last_name))
+        diesel::update(people_table::table.filter(people_table::id.eq(id)))
+            .set(people_table::last_name.eq(last_name))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(email) = req.email {
-        diesel::update(people::table.filter(people::id.eq(id)))
-            .set(people::email.eq(email))
+        diesel::update(people_table::table.filter(people_table::id.eq(id)))
+            .set(people_table::email.eq(email))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(job_title) = req.job_title {
-        diesel::update(people::table.filter(people::id.eq(id)))
-            .set(people::job_title.eq(job_title))
+        diesel::update(people_table::table.filter(people_table::id.eq(id)))
+            .set(people_table::job_title.eq(job_title))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(department) = req.department {
-        diesel::update(people::table.filter(people::id.eq(id)))
-            .set(people::department.eq(department))
+        diesel::update(people_table::table.filter(people_table::id.eq(id)))
+            .set(people_table::department.eq(department))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(manager_id) = req.manager_id {
-        diesel::update(people::table.filter(people::id.eq(id)))
-            .set(people::manager_id.eq(Some(manager_id)))
+        diesel::update(people_table::table.filter(people_table::id.eq(id)))
+            .set(people_table::manager_id.eq(Some(manager_id)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(is_active) = req.is_active {
-        diesel::update(people::table.filter(people::id.eq(id)))
-            .set(people::is_active.eq(is_active))
+        diesel::update(people_table::table.filter(people_table::id.eq(id)))
+            .set(people_table::is_active.eq(is_active))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(skills) = req.skills {
-        diesel::update(people::table.filter(people::id.eq(id)))
-            .set(people::skills.eq(skills))
+        diesel::update(people_table::table.filter(people_table::id.eq(id)))
+            .set(people_table::skills.eq(skills))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
-    let person: Person = people::table
-        .filter(people::id.eq(id))
+    let person: Person = people_table::table
+        .filter(people_table::id.eq(id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Person not found".to_string()))?;
 
@@ -575,7 +576,7 @@ pub async fn delete_person(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    diesel::delete(people::table.filter(people::id.eq(id)))
+    diesel::delete(people_table::table.filter(people_table::id.eq(id)))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
 
@@ -590,10 +591,10 @@ pub async fn get_direct_reports(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let reports: Vec<Person> = people::table
-        .filter(people::manager_id.eq(id))
-        .filter(people::is_active.eq(true))
-        .order(people::first_name.asc())
+    let reports: Vec<Person> = people_table::table
+        .filter(people_table::manager_id.eq(id))
+        .filter(people_table::is_active.eq(true))
+        .order(people_table::first_name.asc())
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
 
@@ -677,8 +678,8 @@ pub async fn get_team(
     let members: Vec<Person> = if member_ids.is_empty() {
         vec![]
     } else {
-        people::table
-            .filter(people::id.eq_any(&member_ids))
+        people_table::table
+            .filter(people_table::id.eq_any(&member_ids))
             .load(&mut conn)
             .unwrap_or_default()
     };
@@ -686,8 +687,8 @@ pub async fn get_team(
     let leader: Option<Person> = team
         .leader_id
         .and_then(|lid| {
-            people::table
-                .filter(people::id.eq(lid))
+            people_table::table
+                .filter(people_table::id.eq(lid))
                 .first(&mut conn)
                 .ok()
         });
@@ -1006,17 +1007,17 @@ pub async fn get_people_stats(
 
     let (org_id, bot_id) = get_bot_context(&state);
 
-    let total_people: i64 = people::table
-        .filter(people::org_id.eq(org_id))
-        .filter(people::bot_id.eq(bot_id))
+    let total_people: i64 = people_table::table
+        .filter(people_table::org_id.eq(org_id))
+        .filter(people_table::bot_id.eq(bot_id))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
-    let active_people: i64 = people::table
-        .filter(people::org_id.eq(org_id))
-        .filter(people::bot_id.eq(bot_id))
-        .filter(people::is_active.eq(true))
+    let active_people: i64 = people_table::table
+        .filter(people_table::org_id.eq(org_id))
+        .filter(people_table::bot_id.eq(bot_id))
+        .filter(people_table::is_active.eq(true))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
@@ -1049,10 +1050,10 @@ pub async fn get_people_stats(
     let month_start = NaiveDate::from_ymd_opt(today.year(), today.month(), 1)
         .unwrap_or(today);
 
-    let new_hires_this_month: i64 = people::table
-        .filter(people::org_id.eq(org_id))
-        .filter(people::bot_id.eq(bot_id))
-        .filter(people::hire_date.ge(month_start))
+    let new_hires_this_month: i64 = people_table::table
+        .filter(people_table::org_id.eq(org_id))
+        .filter(people_table::bot_id.eq(bot_id))
+        .filter(people_table::hire_date.ge(month_start))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);

@@ -42,3 +42,5 @@ pub use hybrid_search::{
 pub use hybrid_search::BM25Index;
 
 pub use vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};
+pub mod embedding;
+

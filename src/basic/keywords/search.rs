@@ -431,7 +431,7 @@ fn get_primary_text_column(conn: &mut PgConnection, table_name: &str) -> Result<
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
 
     #[test]
     fn test_sanitize_search_query() {

@@ -354,18 +354,22 @@ impl BasicCompiler {
                 has_schedule = true;
                 let parts: Vec<&str> = normalized.split('"').collect();
                 if parts.len() >= 3 {
-                    let cron = parts[1];
-                    let mut conn = self
-                        .state
-                        .conn
-                        .get()
-                        .map_err(|e| format!("Failed to get database connection: {e}"))?;
                     #[cfg(feature = "tasks")]
-                    if let Err(e) = execute_set_schedule(&mut conn, cron, &script_name, bot_id) {
-                        log::error!(
-                            "Failed to schedule SET SCHEDULE during preprocessing: {}",
-                            e
-                        );
+                    {
+                        #[allow(unused_variables, unused_mut)]
+                        let cron = parts[1];
+                        #[allow(unused_variables, unused_mut)]
+                        let mut conn = self
+                            .state
+                            .conn
+                            .get()
+                            .map_err(|e| format!("Failed to get database connection: {e}"))?;
+                        if let Err(e) = execute_set_schedule(&mut conn, cron, &script_name, bot_id) {
+                            log::error!(
+                                "Failed to schedule SET SCHEDULE during preprocessing: {}",
+                                e
+                            );
+                        }
                     }
                     #[cfg(not(feature = "tasks"))]
                     log::warn!("SET SCHEDULE requires 'tasks' feature - ignoring");

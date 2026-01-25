@@ -132,7 +132,9 @@ impl Default for McpConnection {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum ConnectionType {
+    #[default]
     Http,
 
     WebSocket,
@@ -146,11 +148,6 @@ pub enum ConnectionType {
     Tcp,
 }
 
-impl Default for ConnectionType {
-    fn default() -> Self {
-        Self::Http
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TlsConfig {
@@ -178,7 +175,9 @@ impl Default for McpAuth {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum McpAuthType {
+    #[default]
     None,
     ApiKey,
     Bearer,
@@ -188,14 +187,11 @@ pub enum McpAuthType {
     Custom(String),
 }
 
-impl Default for McpAuthType {
-    fn default() -> Self {
-        Self::None
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum McpCredentials {
+    #[default]
     None,
     ApiKey {
         header_name: String,
@@ -221,11 +217,6 @@ pub enum McpCredentials {
     Custom(HashMap<String, String>),
 }
 
-impl Default for McpCredentials {
-    fn default() -> Self {
-        Self::None
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpTool {
@@ -251,19 +242,16 @@ pub struct McpTool {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum ToolRiskLevel {
     Safe,
+    #[default]
     Low,
     Medium,
     High,
     Critical,
 }
 
-impl Default for ToolRiskLevel {
-    fn default() -> Self {
-        Self::Low
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct McpCapabilities {
@@ -283,8 +271,10 @@ pub struct McpCapabilities {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum McpServerStatus {
     Active,
+    #[default]
     Inactive,
     Connecting,
     Error(String),
@@ -292,13 +282,9 @@ pub enum McpServerStatus {
     Unknown,
 }
 
-impl Default for McpServerStatus {
-    fn default() -> Self {
-        Self::Inactive
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct HealthStatus {
     pub healthy: bool,
     pub last_check: Option<DateTime<Utc>>,
@@ -307,17 +293,6 @@ pub struct HealthStatus {
     pub consecutive_failures: i32,
 }
 
-impl Default for HealthStatus {
-    fn default() -> Self {
-        Self {
-            healthy: false,
-            last_check: None,
-            response_time_ms: None,
-            error_message: None,
-            consecutive_failures: 0,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpRequest {

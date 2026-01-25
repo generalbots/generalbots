@@ -1,16 +1,23 @@
 // ===== CORE KEYWORDS (always available) =====
+#[cfg(feature = "chat")]
 pub mod add_bot;
+#[cfg(feature = "chat")]
 pub mod add_member;
+#[cfg(feature = "chat")]
 pub mod add_suggestion;
 pub mod agent_reflection;
+#[cfg(feature = "llm")]
 pub mod ai_tools;
+#[cfg(feature = "automation")]
 pub mod api_tool_generator;
 pub mod app_server;
 pub mod arrays;
 pub mod bot_memory;
 pub mod clear_tools;
+#[cfg(feature = "automation")]
 pub mod code_sandbox;
 pub mod core_functions;
+#[cfg(feature = "people")]
 pub mod crm;
 pub mod data_operations;
 pub mod datetime;
@@ -18,6 +25,7 @@ pub mod db_api;
 pub mod errors;
 pub mod find;
 pub mod first;
+#[cfg(feature = "billing")]
 pub mod products;
 pub mod search;
 pub mod for_next;
@@ -32,14 +40,18 @@ pub mod llm_keyword;
 #[cfg(feature = "llm")]
 pub mod llm_macros;
 pub mod math;
+#[cfg(feature = "automation")]
 pub mod mcp_client;
+#[cfg(feature = "automation")]
 pub mod mcp_directory;
 pub mod messaging;
 pub mod on;
+#[cfg(feature = "automation")]
 pub mod on_form_submit;
 pub mod print;
 pub mod procedures;
 pub mod qrcode;
+#[cfg(feature = "security")]
 pub mod security_protection;
 pub mod set;
 pub mod set_context;
@@ -55,6 +67,7 @@ pub mod user_memory;
 pub mod validation;
 pub mod wait;
 pub mod web_data;
+#[cfg(feature = "automation")]
 pub mod webhook;
 
 // ===== CALENDAR FEATURE KEYWORDS =====
@@ -79,7 +92,7 @@ pub mod set_schedule;
 
 // ===== SOCIAL FEATURE KEYWORDS =====
 #[cfg(feature = "social")]
-pub mod post_to;
+
 #[cfg(feature = "social")]
 pub mod social;
 #[cfg(feature = "social")]
@@ -149,13 +162,16 @@ pub mod create_site;
 
 pub use app_server::configure_app_server_routes;
 pub use db_api::configure_db_routes;
+#[cfg(feature = "automation")]
 pub use mcp_client::{McpClient, McpRequest, McpResponse, McpServer, McpTool};
+#[cfg(feature = "security")]
 pub use security_protection::{
     security_get_report, security_hardening_score, security_install_tool, security_run_scan,
     security_service_is_running, security_start_service, security_stop_service,
     security_tool_is_installed, security_tool_status, security_update_definitions,
     SecurityScanResult, SecurityToolResult,
 };
+#[cfg(feature = "automation")]
 pub use mcp_directory::{McpDirectoryScanResult, McpDirectoryScanner, McpServerConfig};
 pub use table_access::{
     check_field_write_access, check_table_access, filter_fields_by_role, load_table_access_info,

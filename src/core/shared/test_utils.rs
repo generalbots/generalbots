@@ -12,6 +12,7 @@ use crate::directory::AuthService;
 use crate::llm::LLMProvider;
 use crate::shared::models::BotResponse;
 use crate::shared::utils::{get_database_url_sync, DbPool};
+#[cfg(feature = "tasks")]
 use crate::tasks::TaskEngine;
 use async_trait::async_trait;
 use diesel::r2d2::{ConnectionManager, Pool};
@@ -194,6 +195,7 @@ impl TestAppStateBuilder {
         Ok(AppState {
             #[cfg(feature = "drive")]
             drive: None,
+            #[cfg(feature = "drive")]
             s3_client: None,
             #[cfg(feature = "cache")]
             cache: None,
@@ -204,6 +206,7 @@ impl TestAppStateBuilder {
             bot_database_manager,
             session_manager: Arc::new(tokio::sync::Mutex::new(session_manager)),
             metrics_collector: MetricsCollector::new(),
+            #[cfg(feature = "tasks")]
             task_scheduler: None,
             #[cfg(feature = "llm")]
             llm_provider: Arc::new(MockLLMProvider::new()),
@@ -213,6 +216,7 @@ impl TestAppStateBuilder {
             response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             web_adapter: Arc::new(WebChannelAdapter::new()),
             voice_adapter: Arc::new(VoiceAdapter::new()),
+            #[cfg(any(feature = "research", feature = "llm"))]
             kb_manager: None,
             #[cfg(feature = "tasks")]
             task_engine: Arc::new(TaskEngine::new(pool)),

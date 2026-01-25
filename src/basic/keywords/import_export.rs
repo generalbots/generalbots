@@ -523,7 +523,7 @@ fn parse_csv_line(line: &str) -> Vec<String> {
 
 fn escape_csv_value(value: &str) -> String {
     if value.contains(',') || value.contains('"') || value.contains('\n') {
-        format!("{}", value.replace('"', ""))
+        value.replace('"', "").to_string()
     } else {
         value.to_string()
     }

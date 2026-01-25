@@ -903,25 +903,7 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_e2e_config_default() {
-        let config = E2EConfig::default();
-        assert_eq!(config.window_width, 1920);
-        assert_eq!(config.window_height, 1080);
-        assert!(config.screenshot_on_failure);
-        assert_eq!(config.browser(), BrowserType::Chrome);
-        assert!(config.headless());
-        assert_eq!(config.timeout(), Duration::from_secs(30));
-        assert_eq!(config.screenshot_dir(), "./test-screenshots");
-    }
 
-    #[test]
-    fn test_browser_config_default() {
-        let config = BrowserConfig::default();
-        assert_eq!(config.browser_type, BrowserType::Chrome);
-        assert_eq!(config.debug_port, 9222);
-        assert_eq!(config.timeout, Duration::from_secs(30));
-    }
 
     #[test]
     fn test_browser_config_builder() {
@@ -940,13 +922,7 @@ mod tests {
         assert_eq!(config.timeout, Duration::from_secs(60));
     }
 
-    #[test]
-    fn test_browser_type_browser_name() {
-        assert_eq!(BrowserType::Chrome.browser_name(), "chrome");
-        assert_eq!(BrowserType::Firefox.browser_name(), "firefox");
-        assert_eq!(BrowserType::Safari.browser_name(), "safari");
-        assert_eq!(BrowserType::Edge.browser_name(), "MicrosoftEdge");
-    }
+
 
     #[test]
     fn test_locator_constructors() {

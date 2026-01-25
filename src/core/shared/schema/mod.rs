@@ -83,4 +83,11 @@ pub use self::learn::*;
 #[cfg(feature = "project")]
 pub mod project;
 #[cfg(feature = "project")]
+#[cfg(feature = "project")]
 pub use self::project::*;
+
+#[cfg(feature = "dashboards")]
+pub mod dashboards;
+#[cfg(feature = "dashboards")]
+pub use self::dashboards::*;
+

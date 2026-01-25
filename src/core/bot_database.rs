@@ -191,8 +191,7 @@ impl BotDatabaseManager {
         format!(
             "bot_{}",
             bot_name
-                .replace('-', "_")
-                .replace(' ', "_")
+                .replace(['-', ' '], "_")
                 .to_lowercase()
                 .chars()
                 .filter(|c| c.is_alphanumeric() || *c == '_')

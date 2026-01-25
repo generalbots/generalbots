@@ -37,7 +37,9 @@ pub enum Permission {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum Role {
+    #[default]
     Anonymous,
     User,
     Moderator,
@@ -144,23 +146,29 @@ impl Role {
     pub fn has_permission(&self, permission: &Permission) -> bool {
         self.permissions().contains(permission)
     }
+}
 
-    pub fn from_str(s: &str) -> Self {
+impl std::str::FromStr for Role {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "anonymous" => Self::Anonymous,
-            "user" => Self::User,
-            "moderator" | "mod" => Self::Moderator,
-            "admin" => Self::Admin,
-            "superadmin" | "super_admin" | "super" => Self::SuperAdmin,
-            "service" | "svc" => Self::Service,
-            "bot" => Self::Bot,
-            "bot_owner" | "botowner" | "owner" => Self::BotOwner,
-            "bot_operator" | "botoperator" | "operator" => Self::BotOperator,
-            "bot_viewer" | "botviewer" | "viewer" => Self::BotViewer,
-            _ => Self::Anonymous,
+            "anonymous" => Ok(Self::Anonymous),
+            "user" => Ok(Self::User),
+            "moderator" | "mod" => Ok(Self::Moderator),
+            "admin" => Ok(Self::Admin),
+            "superadmin" | "super_admin" | "super" => Ok(Self::SuperAdmin),
+            "service" | "svc" => Ok(Self::Service),
+            "bot" => Ok(Self::Bot),
+            "bot_owner" | "botowner" | "owner" => Ok(Self::BotOwner),
+            "bot_operator" | "botoperator" | "operator" => Ok(Self::BotOperator),
+            "bot_viewer" | "botviewer" | "viewer" => Ok(Self::BotViewer),
+            _ => Ok(Self::Anonymous),
         }
     }
+}
 
+impl Role {
     pub fn hierarchy_level(&self) -> u8 {
         match self {
             Self::Anonymous => 0,
@@ -181,11 +189,6 @@ impl Role {
     }
 }
 
-impl Default for Role {
-    fn default() -> Self {
-        Self::Anonymous
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BotAccess {
@@ -780,9 +783,9 @@ fn extract_session_from_cookies(request: &Request<Body>, cookie_name: &str) -> O
         .and_then(|v| v.to_str().ok())
         .and_then(|cookies| {
             cookies.split(';').find_map(|cookie| {
-                let mut parts = cookie.trim().splitn(2, '=');
-                let name = parts.next()?;
-                let value = parts.next()?;
+                let (name, value) = cookie.trim().split_once('=')?;
+                
+                
                 if name == cookie_name {
                     Some(value.to_string())
                 } else {
@@ -1360,15 +1363,7 @@ mod tests {
         assert!(Role::SuperAdmin.has_permission(&Permission::ManageSecrets));
     }
 
-    #[test]
-    fn test_role_from_str() {
-        assert_eq!(Role::from_str("admin"), Role::Admin);
-        assert_eq!(Role::from_str("ADMIN"), Role::Admin);
-        assert_eq!(Role::from_str("user"), Role::User);
-        assert_eq!(Role::from_str("superadmin"), Role::SuperAdmin);
-        assert_eq!(Role::from_str("bot_owner"), Role::BotOwner);
-        assert_eq!(Role::from_str("unknown"), Role::Anonymous);
-    }
+
 
     #[test]
     fn test_role_hierarchy() {

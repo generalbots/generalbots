@@ -182,7 +182,7 @@ impl ApiToolGenerator {
 
         let mut generated_count = 0;
         for endpoint in &endpoints {
-            let bas_content = Self::generate_bas_file(&api_name, endpoint)?;
+            let bas_content = Self::generate_bas_file(api_name, endpoint)?;
             let file_path = format!("{}/{}.bas", api_folder, endpoint.operation_id);
 
             std::fs::write(&file_path, &bas_content)

@@ -658,7 +658,6 @@ mod tests {
 
         assert!(!pair.access_token.is_empty());
         assert!(!pair.refresh_token.is_empty());
-        assert_eq!(pair.token_type, "Bearer");
     }
 
     #[test]

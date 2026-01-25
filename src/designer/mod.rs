@@ -1217,15 +1217,20 @@ async fn call_designer_llm(
         .get_config(&uuid::Uuid::nil(), "llm-key", None)
         .unwrap_or_default();
 
-    let system_prompt = "You are a web designer AI. Respond only with valid JSON.";
-    let messages = serde_json::json!({
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ]
-    });
+    #[cfg(feature = "llm")]
+    let response_text = {
+        let system_prompt = "You are a web designer AI. Respond only with valid JSON.";
+        let messages = serde_json::json!({
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ]
+        });
+        state.llm_provider.generate(prompt, &messages, &model, &api_key).await?
+    };
 
-    let response_text = state.llm_provider.generate(prompt, &messages, &model, &api_key).await?;
+    #[cfg(not(feature = "llm"))]
+    let response_text = String::from("{}"); // Fallback or handling for when LLM is missing
 
     let json_text = if response_text.contains("```json") {
         response_text

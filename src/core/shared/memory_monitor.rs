@@ -438,7 +438,7 @@ tokio::spawn(async move {
         );
 
         // Log jemalloc stats every 5 ticks if available
-        if tick_count % 5 == 0 {
+        if tick_count.is_multiple_of(5) {
             log_jemalloc_stats();
         }
 

@@ -451,7 +451,7 @@ pub fn run_migrations_on_conn(conn: &mut diesel::PgConnection) -> Result<(), Box
     }
 
     // Workspaces
-    #[cfg(feature = "workspace")]
+    #[cfg(feature = "workspaces")]
     {
         const WORKSPACE_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/workspaces");
         conn.run_pending_migrations(WORKSPACE_MIGRATIONS).map_err(|e| Box::new(std::io::Error::other(format!("Workspace migration error: {}", e))) as Box<dyn std::error::Error + Send + Sync>)?;

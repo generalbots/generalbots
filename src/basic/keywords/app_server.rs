@@ -103,7 +103,7 @@ pub async fn serve_vendor_file(
     let bot_name = state.bucket_name
         .trim_end_matches(".gbai")
         .to_string();
-    let sanitized_bot_name = bot_name.to_lowercase().replace(' ', "-").replace('_', "-");
+    let sanitized_bot_name = bot_name.to_lowercase().replace([' ', '_'], "-");
 
     let bucket = format!("{}.gbai", sanitized_bot_name);
     let key = format!("{}.gblib/vendor/{}", sanitized_bot_name, file_path);
@@ -243,7 +243,7 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
     let bot_name = state.bucket_name
         .trim_end_matches(".gbai")
         .to_string();
-    let sanitized_bot_name = bot_name.to_lowercase().replace(' ', "-").replace('_', "-");
+    let sanitized_bot_name = bot_name.to_lowercase().replace([' ', '_'], "-");
 
     // MinIO bucket and path: botname.gbai / botname.gbapp/appname/file
     let bucket = format!("{}.gbai", sanitized_bot_name);

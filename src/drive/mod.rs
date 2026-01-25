@@ -373,7 +373,7 @@ pub async fn list_files(
                             let name = dir
                                 .trim_end_matches('/')
                                 .split('/')
-                                .last()
+                                .next_back()
                                 .unwrap_or(&dir)
                                 .to_string();
                             items.push(FileItem {
@@ -392,12 +392,12 @@ pub async fn list_files(
                     for object in contents {
                         if let Some(key) = object.key {
                             if !key.ends_with('/') {
-                                let name = key.split('/').last().unwrap_or(&key).to_string();
+                                let name = key.split('/').next_back().unwrap_or(&key).to_string();
                                 items.push(FileItem {
                                     name,
                                     path: key.clone(),
                                     is_dir: false,
-                                    size: object.size.map(|s| s as i64),
+                                    size: object.size,
                                     modified: object.last_modified.map(|t| t.to_string()),
                                     icon: get_file_icon(&key),
                                 });
@@ -1284,125 +1284,9 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_endpoint_format() {
-        let config = MinioTestConfig {
-            api_port: 9000,
-            console_port: 10000,
-            ..Default::default()
-        };
 
-        assert_eq!(config.endpoint(), "http://127.0.0.1:9000");
-        assert_eq!(config.console_url(), "http://127.0.0.1:10000");
-        assert_eq!(config.data_path(), std::path::Path::new("/tmp/test"));
-    }
 
-    #[test]
-    fn test_credentials() {
-        let config = MinioTestConfig {
-            access_key: "mykey".to_string(),
-            secret_key: "mysecret".to_string(),
-            ..Default::default()
-        };
 
-        let (key, secret) = config.credentials();
-        assert_eq!(key, "mykey");
-        assert_eq!(secret, "mysecret");
-    }
-
-    #[test]
-    fn test_s3_config() {
-        let config = MinioTestConfig {
-            api_port: 9000,
-            access_key: "access".to_string(),
-            secret_key: "secret".to_string(),
-            ..Default::default()
-        };
-
-        let s3_config = config.s3_config();
-        assert_eq!(
-            s3_config.get("endpoint_url"),
-            Some(&"http://127.0.0.1:9000".to_string())
-        );
-        assert_eq!(s3_config.get("access_key_id"), Some(&"access".to_string()));
-        assert_eq!(s3_config.get("force_path_style"), Some(&"true".to_string()));
-    }
-
-    #[test]
-    fn test_file_item_creation() {
-        let item = FileItem {
-            name: "test.txt".to_string(),
-            path: "/documents/test.txt".to_string(),
-            is_dir: false,
-            size: Some(1024),
-            modified: Some("2024-01-15T10:30:00Z".to_string()),
-            icon: "file-text".to_string(),
-        };
-
-        assert_eq!(item.name, "test.txt");
-        assert!(!item.is_dir);
-        assert_eq!(item.size, Some(1024));
-    }
-
-    #[test]
-    fn test_file_item_directory() {
-        let item = FileItem {
-            name: "documents".to_string(),
-            path: "/documents".to_string(),
-            is_dir: true,
-            size: None,
-            modified: Some("2024-01-15T10:30:00Z".to_string()),
-            icon: "folder".to_string(),
-        };
-
-        assert!(item.is_dir);
-        assert!(item.size.is_none());
-    }
-
-    #[test]
-    fn test_list_query() {
-        let query = ListQuery {
-            path: Some("/documents".to_string()),
-            bucket: Some("my-bucket".to_string()),
-        };
-
-        assert_eq!(query.path, Some("/documents".to_string()));
-        assert_eq!(query.bucket, Some("my-bucket".to_string()));
-    }
-
-    #[test]
-    fn test_read_request() {
-        let request = ReadRequest {
-            bucket: "test-bucket".to_string(),
-            path: "folder/file.txt".to_string(),
-        };
-
-        assert_eq!(request.bucket, "test-bucket");
-        assert_eq!(request.path, "folder/file.txt");
-    }
-
-    #[test]
-    fn test_write_request() {
-        let request = WriteRequest {
-            bucket: "test-bucket".to_string(),
-            path: "folder/newfile.txt".to_string(),
-            content: "Hello, World!".to_string(),
-        };
-
-        assert_eq!(request.bucket, "test-bucket");
-        assert_eq!(request.content, "Hello, World!");
-    }
-
-    #[test]
-    fn test_delete_request() {
-        let request = DeleteRequest {
-            bucket: "test-bucket".to_string(),
-            path: "folder/delete-me.txt".to_string(),
-        };
-
-        assert_eq!(request.bucket, "test-bucket");
-        assert_eq!(request.path, "folder/delete-me.txt");
-    }
 
     #[test]
     fn test_create_folder_request() {

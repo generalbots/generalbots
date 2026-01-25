@@ -274,6 +274,16 @@ pub struct PasskeyService {
     fallback_attempts: Arc<RwLock<HashMap<String, FallbackAttemptTracker>>>,
 }
 
+pub struct StorePasskeyParams<'a> {
+    pub user_id: Uuid,
+    pub credential_id: &'a [u8],
+    pub public_key: &'a [u8],
+    pub counter: u32,
+    pub name: &'a str,
+    pub aaguid: Option<&'a [u8]>,
+    pub transports: &'a str,
+}
+
 impl PasskeyService {
     pub fn new(
         pool: DbPool,
@@ -601,15 +611,15 @@ impl PasskeyService {
             .unwrap_or_default()
             .join(",");
 
-        self.store_passkey(
+        self.store_passkey(StorePasskeyParams {
             user_id,
-            &credential_id,
-            &public_key,
-            0,
-            &sanitized_name,
-            aaguid.as_deref(),
-            &transports,
-        )?;
+            credential_id: &credential_id,
+            public_key: &public_key,
+            counter: 0,
+            name: &sanitized_name,
+            aaguid: aaguid.as_deref(),
+            transports: &transports,
+        })?;
 
         info!("Passkey registered for user {}", user_id);
 
@@ -1030,16 +1040,9 @@ impl PasskeyService {
         }
     }
 
-    fn store_passkey(
-        &self,
-        user_id: Uuid,
-        credential_id: &[u8],
-        public_key: &[u8],
-        counter: u32,
-        name: &str,
-        aaguid: Option<&[u8]>,
-        transports: &str,
-    ) -> Result<(), PasskeyError> {
+
+
+    fn store_passkey(&self, params: StorePasskeyParams<'_>) -> Result<(), PasskeyError> {
         let mut conn = self.pool.get().map_err(|_| PasskeyError::DatabaseError)?;
 
         let id = Uuid::new_v4().to_string();
@@ -1051,13 +1054,13 @@ impl PasskeyService {
             "#,
         )
         .bind::<Text, _>(&id)
-        .bind::<DieselUuid, _>(user_id)
-        .bind::<Bytea, _>(credential_id)
-        .bind::<Bytea, _>(public_key)
-        .bind::<BigInt, _>(counter as i64)
-        .bind::<Text, _>(name)
-        .bind::<Nullable<Bytea>, _>(aaguid)
-        .bind::<Text, _>(transports)
+        .bind::<DieselUuid, _>(params.user_id)
+        .bind::<Bytea, _>(params.credential_id)
+        .bind::<Bytea, _>(params.public_key)
+        .bind::<BigInt, _>(params.counter as i64)
+        .bind::<Text, _>(params.name)
+        .bind::<Nullable<Bytea>, _>(params.aaguid)
+        .bind::<Text, _>(params.transports)
         .execute(&mut conn)
         .map_err(|e| {
             error!("Failed to store passkey: {e}");

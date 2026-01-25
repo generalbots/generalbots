@@ -11,6 +11,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 // Module declarations
 #[cfg(feature = "automation")]
 pub mod auto_task;
+#[cfg(feature = "scripting")]
 pub mod basic;
 #[cfg(feature = "billing")]
 pub mod billing;
@@ -164,6 +165,7 @@ use std::sync::Arc;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
+#[cfg(feature = "drive")]
 async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
     use aws_sdk_s3::primitives::ByteStream;
 
@@ -233,6 +235,7 @@ use package_manager::InstallMode;
 use session::{create_session, get_session_history, get_sessions, start_session};
 use crate::shared::state::AppState;
 use crate::shared::utils::create_conn;
+#[cfg(feature = "drive")]
 use crate::shared::utils::create_s3_operator;
 
 
@@ -462,7 +465,7 @@ async fn run_axum_server(
         api_router = api_router.merge(crate::email::configure());
     }
 
-    #[cfg(feature = "calendar")]
+    #[cfg(all(feature = "calendar", feature = "scripting"))]
     {
         let calendar_engine =
             Arc::new(crate::basic::keywords::book::CalendarEngine::new(app_state.conn.clone()));
@@ -545,8 +548,11 @@ api_router = api_router.merge(crate::slides::configure_slides_routes());
     }
     api_router = api_router.merge(crate::security::configure_protection_routes());
     api_router = api_router.merge(crate::settings::configure_settings_routes());
-    api_router = api_router.merge(crate::basic::keywords::configure_db_routes());
-    api_router = api_router.merge(crate::basic::keywords::configure_app_server_routes());
+    #[cfg(feature = "scripting")]
+    {
+        api_router = api_router.merge(crate::basic::keywords::configure_db_routes());
+        api_router = api_router.merge(crate::basic::keywords::configure_app_server_routes());
+    }
     #[cfg(feature = "automation")]
     {
         api_router = api_router.merge(crate::auto_task::configure_autotask_routes());
@@ -561,7 +567,7 @@ api_router = api_router.merge(crate::slides::configure_slides_routes());
     {
         api_router = api_router.merge(crate::project::configure());
     }
-    #[cfg(feature = "analytics")]
+    #[cfg(all(feature = "analytics", feature = "goals"))]
     {
         api_router = api_router.merge(crate::analytics::goals::configure_goals_routes());
         api_router = api_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes());
@@ -1337,6 +1343,7 @@ use crate::core::config::ConfigManager;
         dynamic_llm_provider.clone() as Arc<dyn crate::llm::LLMProvider>
     };
 
+    #[cfg(any(feature = "research", feature = "llm"))]
     let kb_manager = Arc::new(crate::core::kb::KnowledgeBaseManager::new("work"));
 
     #[cfg(feature = "tasks")]
@@ -1409,6 +1416,7 @@ use crate::core::config::ConfigManager;
         response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
+        #[cfg(any(feature = "research", feature = "llm"))]
         kb_manager: Some(kb_manager.clone()),
         #[cfg(feature = "tasks")]
         task_engine,
@@ -1439,6 +1447,7 @@ use crate::core::config::ConfigManager;
     #[cfg(feature = "tasks")]
     task_scheduler.start();
 
+    #[cfg(any(feature = "research", feature = "llm"))]
     if let Err(e) =crate::core::kb::ensure_crawler_service_running(app_state.clone()).await {
         log::warn!("Failed to start website crawler service: {}", e);
     }

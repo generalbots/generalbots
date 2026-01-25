@@ -8,7 +8,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::bot::get_default_bot;
-use crate::core::shared::schema::{conversational_queries, dashboard_data_sources};
+use crate::core::shared::schema::dashboards::{conversational_queries, dashboard_data_sources};
 use crate::shared::state::AppState;
 
 use crate::dashboards::error::DashboardsError;
@@ -33,16 +33,16 @@ pub async fn handle_list_data_sources(
             .filter(dashboard_data_sources::bot_id.eq(bot_id))
             .order(dashboard_data_sources::created_at.desc())
             .load(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         let sources: Vec<DataSource> = db_sources
             .into_iter()
             .map(db_data_source_to_data_source)
             .collect();
-        Ok::<_, DashboardsError>(sources)
+        Ok::<Vec<DataSource>, DashboardsError>(sources)
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(result))
 }
@@ -80,12 +80,12 @@ pub async fn handle_create_data_source(
         diesel::insert_into(dashboard_data_sources::table)
             .values(&db_source)
             .execute(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
-        Ok::<_, DashboardsError>(db_data_source_to_data_source(db_source))
+        Ok::<DataSource, DashboardsError>(db_data_source_to_data_source(db_source))
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(result))
 }
@@ -120,12 +120,12 @@ pub async fn handle_delete_data_source(
 
         diesel::delete(dashboard_data_sources::table.find(source_id))
             .execute(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
-        Ok::<_, DashboardsError>(())
+        Ok::<(), DashboardsError>(())
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(serde_json::json!({ "success": true })))
 }
@@ -228,7 +228,7 @@ pub async fn handle_conversational_query(
         diesel::insert_into(conversational_queries::table)
             .values(&db_query)
             .execute(&mut conn)
-            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+            .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
         let (suggested_viz, explanation) = analyze_query_intent(&query_text);
 
@@ -242,7 +242,7 @@ pub async fn handle_conversational_query(
             created_at: db_query.created_at,
         };
 
-        Ok::<_, DashboardsError>(ConversationalQueryResponse {
+        Ok::<ConversationalQueryResponse, DashboardsError>(ConversationalQueryResponse {
             query: conv_query,
             data: Some(serde_json::json!([])),
             suggested_visualization: Some(suggested_viz),
@@ -250,7 +250,7 @@ pub async fn handle_conversational_query(
         })
     })
     .await
-    .map_err(|e| DashboardsError::Internal(e.to_string()))??;
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
 
     Ok(Json(result))
 }

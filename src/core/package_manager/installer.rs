@@ -74,10 +74,10 @@ fn get_llama_cpp_url() -> Option<String> {
             }
 
             info!("Using standard Ubuntu x64 build (CPU)");
-            return Some(format!(
+            Some(format!(
                 "{}/llama-{}-bin-ubuntu-x64.zip",
                 base_url, LLAMA_CPP_VERSION
-            ));
+            ))
         }
 
         #[cfg(target_arch = "s390x")]
@@ -1155,9 +1155,9 @@ EOF"#.to_string(),
                             component.name
                         );
                         SafeCommand::noop_child()
-                            .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e).into())
+                            .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e))
                     } else {
-                        Err(e.into())
+                        Err(e)
                     }
                 }
             }

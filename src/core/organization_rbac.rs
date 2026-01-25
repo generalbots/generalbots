@@ -239,11 +239,13 @@ pub struct PolicyPrincipals {
     pub resource_owner: bool,
 }
 
+type UserRolesMap = HashMap<(Uuid, Uuid), Vec<Uuid>>;
+
 pub struct OrganizationRbacService {
     roles: Arc<RwLock<HashMap<Uuid, OrganizationRole>>>,
     groups: Arc<RwLock<HashMap<Uuid, OrganizationGroup>>>,
     policies: Arc<RwLock<HashMap<Uuid, ResourcePolicy>>>,
-    user_roles: Arc<RwLock<HashMap<(Uuid, Uuid), Vec<Uuid>>>>,
+    user_roles: Arc<RwLock<UserRolesMap>>,
     audit_log: Arc<RwLock<Vec<AccessAuditEntry>>>,
 }
 
@@ -259,6 +261,12 @@ pub struct AccessAuditEntry {
     pub result: AccessReason,
     pub ip_address: Option<String>,
     pub user_agent: Option<String>,
+}
+
+impl Default for OrganizationRbacService {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OrganizationRbacService {

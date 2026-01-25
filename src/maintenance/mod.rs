@@ -455,7 +455,7 @@ impl CleanupService {
         let table = category.table_name();
         let ts_col = category.timestamp_column();
 
-        let size_before: i64 = diesel::sql_query(&format!(
+        let size_before: i64 = diesel::sql_query(format!(
             "SELECT pg_total_relation_size('{table}') as size_bytes"
         ))
         .load::<SizeRow>(&mut conn)
@@ -476,7 +476,7 @@ impl CleanupService {
                 CleanupError::CleanupFailed(category.to_string())
             })?;
 
-        let size_after: i64 = diesel::sql_query(&format!(
+        let size_after: i64 = diesel::sql_query(format!(
             "SELECT pg_total_relation_size('{table}') as size_bytes"
         ))
         .load::<SizeRow>(&mut conn)

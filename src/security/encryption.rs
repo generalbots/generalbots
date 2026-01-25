@@ -472,7 +472,7 @@ pub fn derive_key_from_password(password: &str, salt: &[u8]) -> Result<Vec<u8>> 
     let mut result = hasher.finalize_reset();
 
     for _ in 0..PBKDF2_ITERATIONS {
-        hasher.update(&result);
+        hasher.update(result);
         hasher.update(salt);
         result = hasher.finalize_reset();
     }

@@ -26,7 +26,9 @@ use std::io::Write;
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum ChannelType {
+    #[default]
     Web = 0,
     WhatsApp = 1,
     Telegram = 2,
@@ -39,11 +41,6 @@ pub enum ChannelType {
     Api = 9,
 }
 
-impl Default for ChannelType {
-    fn default() -> Self {
-        Self::Web
-    }
-}
 
 impl ToSql<SmallInt, Pg> for ChannelType {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -117,7 +114,9 @@ impl std::str::FromStr for ChannelType {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum MessageRole {
+    #[default]
     User = 1,
     Assistant = 2,
     System = 3,
@@ -126,11 +125,6 @@ pub enum MessageRole {
     Compact = 10,
 }
 
-impl Default for MessageRole {
-    fn default() -> Self {
-        Self::User
-    }
-}
 
 impl ToSql<SmallInt, Pg> for MessageRole {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -192,7 +186,9 @@ impl std::str::FromStr for MessageRole {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum MessageType {
+    #[default]
     Text = 0,
     Image = 1,
     Audio = 2,
@@ -204,11 +200,6 @@ pub enum MessageType {
     Reaction = 8,
 }
 
-impl Default for MessageType {
-    fn default() -> Self {
-        Self::Text
-    }
-}
 
 impl ToSql<SmallInt, Pg> for MessageType {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -261,7 +252,9 @@ impl std::fmt::Display for MessageType {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum LlmProvider {
+    #[default]
     OpenAi = 0,
     Anthropic = 1,
     AzureOpenAi = 2,
@@ -274,11 +267,6 @@ pub enum LlmProvider {
     Cohere = 9,
 }
 
-impl Default for LlmProvider {
-    fn default() -> Self {
-        Self::OpenAi
-    }
-}
 
 impl ToSql<SmallInt, Pg> for LlmProvider {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -333,8 +321,10 @@ impl std::fmt::Display for LlmProvider {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum ContextProvider {
     None = 0,
+    #[default]
     Qdrant = 1,
     Pinecone = 2,
     Weaviate = 3,
@@ -343,11 +333,6 @@ pub enum ContextProvider {
     Elasticsearch = 6,
 }
 
-impl Default for ContextProvider {
-    fn default() -> Self {
-        Self::Qdrant
-    }
-}
 
 impl ToSql<SmallInt, Pg> for ContextProvider {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -382,7 +367,9 @@ impl FromSql<SmallInt, Pg> for ContextProvider {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum TaskStatus {
+    #[default]
     Pending = 0,
     Ready = 1,
     Running = 2,
@@ -393,11 +380,6 @@ pub enum TaskStatus {
     Cancelled = 7,
 }
 
-impl Default for TaskStatus {
-    fn default() -> Self {
-        Self::Pending
-    }
-}
 
 impl ToSql<SmallInt, Pg> for TaskStatus {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -465,19 +447,16 @@ impl std::str::FromStr for TaskStatus {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum TaskPriority {
     Low = 0,
+    #[default]
     Normal = 1,
     High = 2,
     Urgent = 3,
     Critical = 4,
 }
 
-impl Default for TaskPriority {
-    fn default() -> Self {
-        Self::Normal
-    }
-}
 
 impl ToSql<SmallInt, Pg> for TaskPriority {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -536,17 +515,14 @@ impl std::str::FromStr for TaskPriority {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum ExecutionMode {
     Manual = 0,
+    #[default]
     Supervised = 1,
     Autonomous = 2,
 }
 
-impl Default for ExecutionMode {
-    fn default() -> Self {
-        Self::Supervised
-    }
-}
 
 impl ToSql<SmallInt, Pg> for ExecutionMode {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -587,19 +563,16 @@ impl std::fmt::Display for ExecutionMode {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum RiskLevel {
     None = 0,
+    #[default]
     Low = 1,
     Medium = 2,
     High = 3,
     Critical = 4,
 }
 
-impl Default for RiskLevel {
-    fn default() -> Self {
-        Self::Low
-    }
-}
 
 impl ToSql<SmallInt, Pg> for RiskLevel {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -644,7 +617,9 @@ impl std::fmt::Display for RiskLevel {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "snake_case")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum ApprovalStatus {
+    #[default]
     Pending = 0,
     Approved = 1,
     Rejected = 2,
@@ -652,11 +627,6 @@ pub enum ApprovalStatus {
     Skipped = 4,
 }
 
-impl Default for ApprovalStatus {
-    fn default() -> Self {
-        Self::Pending
-    }
-}
 
 impl ToSql<SmallInt, Pg> for ApprovalStatus {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
@@ -746,7 +716,9 @@ impl std::fmt::Display for ApprovalDecision {
 #[diesel(sql_type = SmallInt)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[repr(i16)]
+#[derive(Default)]
 pub enum IntentType {
+    #[default]
     Unknown = 0,
     AppCreate = 1,
     Todo = 2,
@@ -758,11 +730,6 @@ pub enum IntentType {
     Query = 8,
 }
 
-impl Default for IntentType {
-    fn default() -> Self {
-        Self::Unknown
-    }
-}
 
 impl ToSql<SmallInt, Pg> for IntentType {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {

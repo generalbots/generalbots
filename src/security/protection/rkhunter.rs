@@ -205,9 +205,7 @@ fn determine_result_status(findings: &[Finding]) -> ScanResultStatus {
 
     if has_critical {
         ScanResultStatus::Infected
-    } else if has_high {
-        ScanResultStatus::Warnings
-    } else if has_medium {
+    } else if has_high || has_medium {
         ScanResultStatus::Warnings
     } else {
         ScanResultStatus::Clean

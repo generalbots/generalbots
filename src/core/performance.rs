@@ -734,10 +734,12 @@ pub struct ConnectionPoolMetrics {
     pub pool_utilization: f64,
 }
 
+type BatchProcessorFunc<T> = Arc<dyn Fn(Vec<T>) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync>;
+
 pub struct BatchProcessor<T> {
     batch_size: usize,
     buffer: Arc<RwLock<Vec<T>>>,
-    processor: Arc<dyn Fn(Vec<T>) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync>,
+    processor: BatchProcessorFunc<T>,
 }
 
 impl<T: Clone + Send + Sync + 'static> BatchProcessor<T> {

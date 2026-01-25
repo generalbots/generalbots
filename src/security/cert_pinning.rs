@@ -184,7 +184,9 @@ impl PinnedCert {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum PinType {
+    #[default]
     Leaf,
 
     Intermediate,
@@ -192,11 +194,6 @@ pub enum PinType {
     Root,
 }
 
-impl Default for PinType {
-    fn default() -> Self {
-        Self::Leaf
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct PinValidationResult {

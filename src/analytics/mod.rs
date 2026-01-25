@@ -1,8 +1,11 @@
+#[cfg(feature = "goals")]
 pub mod goals;
+#[cfg(feature = "goals")]
 pub mod goals_ui;
 pub mod insights;
 
 use crate::core::urls::ApiUrls;
+#[cfg(feature = "llm")]
 use crate::llm::observability::{ObservabilityConfig, ObservabilityManager, QuickStats};
 use crate::shared::state::AppState;
 use axum::{
@@ -15,6 +18,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::Write as FmtWrite;
 use std::sync::Arc;
+#[cfg(feature = "llm")]
 use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable)]
@@ -55,11 +59,13 @@ pub struct AnalyticsQuery {
     pub time_range: Option<String>,
 }
 
+#[cfg(feature = "llm")]
 #[derive(Debug)]
 pub struct AnalyticsService {
     observability: Arc<RwLock<ObservabilityManager>>,
 }
 
+#[cfg(feature = "llm")]
 impl AnalyticsService {
     pub fn new() -> Self {
         let config = ObservabilityConfig::default();
@@ -86,6 +92,7 @@ impl AnalyticsService {
     }
 }
 
+#[cfg(feature = "llm")]
 impl Default for AnalyticsService {
     fn default() -> Self {
         Self::new()
@@ -93,7 +100,7 @@ impl Default for AnalyticsService {
 }
 
 pub fn configure_analytics_routes() -> Router<Arc<AppState>> {
-    Router::new()
+    let router = Router::new()
         .route(ApiUrls::ANALYTICS_MESSAGES_COUNT, get(handle_message_count))
         .route(
             ApiUrls::ANALYTICS_SESSIONS_ACTIVE,
@@ -127,9 +134,14 @@ pub fn configure_analytics_routes() -> Router<Arc<AppState>> {
             get(handle_recent_activity),
         )
         .route(ApiUrls::ANALYTICS_QUERIES_TOP, get(handle_top_queries))
-        .route(ApiUrls::ANALYTICS_CHAT, post(handle_analytics_chat))
+        .route(ApiUrls::ANALYTICS_CHAT, post(handle_analytics_chat));
+
+    #[cfg(feature = "llm")]
+    let router = router
         .route(ApiUrls::ANALYTICS_LLM_STATS, get(handle_llm_stats))
-        .route(ApiUrls::ANALYTICS_BUDGET_STATUS, get(handle_budget_status))
+        .route(ApiUrls::ANALYTICS_BUDGET_STATUS, get(handle_budget_status));
+
+    router
 }
 
 pub async fn handle_message_count(State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -792,6 +804,7 @@ pub async fn handle_analytics_chat(
     Html(html)
 }
 
+#[cfg(feature = "llm")]
 pub async fn handle_llm_stats(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let service = AnalyticsService::new();
     let stats = service.get_quick_stats().await;
@@ -808,6 +821,7 @@ pub async fn handle_llm_stats(State(_state): State<Arc<AppState>>) -> impl IntoR
     Html(html)
 }
 
+#[cfg(feature = "llm")]
 pub async fn handle_budget_status(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let status = {
         let service = AnalyticsService::new();

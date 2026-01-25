@@ -82,18 +82,15 @@ impl std::fmt::Display for ConstraintType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Default)]
 pub enum ConstraintSeverity {
     Info = 0,
+    #[default]
     Warning = 1,
     Error = 2,
     Critical = 3,
 }
 
-impl Default for ConstraintSeverity {
-    fn default() -> Self {
-        Self::Warning
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constraint {
@@ -187,19 +184,16 @@ impl Default for ImpactAssessment {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Default)]
 pub enum RiskLevel {
     None = 0,
+    #[default]
     Low = 1,
     Medium = 2,
     High = 3,
     Critical = 4,
 }
 
-impl Default for RiskLevel {
-    fn default() -> Self {
-        Self::Low
-    }
-}
 
 impl std::fmt::Display for RiskLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -264,6 +258,7 @@ impl Default for CostImpact {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct TimeImpact {
     pub estimated_duration_seconds: i32,
     pub blocking: bool,
@@ -271,16 +266,6 @@ pub struct TimeImpact {
     pub affects_deadline: bool,
 }
 
-impl Default for TimeImpact {
-    fn default() -> Self {
-        Self {
-            estimated_duration_seconds: 0,
-            blocking: false,
-            delayed_tasks: Vec::new(),
-            affects_deadline: false,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityImpact {

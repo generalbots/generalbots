@@ -57,6 +57,16 @@ pub struct DefaultUser {
     pub last_name: String,
 }
 
+pub struct CreateUserParams<'a> {
+    pub org_id: &'a str,
+    pub username: &'a str,
+    pub email: &'a str,
+    pub password: &'a str,
+    pub first_name: &'a str,
+    pub last_name: &'a str,
+    pub is_admin: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DirectoryConfig {
     pub base_url: String,
@@ -220,13 +230,7 @@ impl DirectorySetup {
 
     pub async fn create_user(
         &mut self,
-        org_id: &str,
-        username: &str,
-        email: &str,
-        password: &str,
-        first_name: &str,
-        last_name: &str,
-        is_admin: bool,
+        params: CreateUserParams<'_>,
     ) -> Result<DefaultUser> {
         self.ensure_admin_token()?;
 
@@ -235,19 +239,19 @@ impl DirectorySetup {
             .post(format!("{}/management/v1/users/human", self.base_url))
             .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
             .json(&json!({
-                "userName": username,
+                "userName": params.username,
                 "profile": {
-                    "firstName": first_name,
-                    "lastName": last_name,
-                    "displayName": format!("{} {}", first_name, last_name)
+                    "firstName": params.first_name,
+                    "lastName": params.last_name,
+                    "displayName": format!("{} {}", params.first_name, params.last_name)
                 },
                 "email": {
-                    "email": email,
+                    "email": params.email,
                     "isEmailVerified": true
                 },
-                "password": password,
+                "password": params.password,
                 "organisation": {
-                    "orgId": org_id
+                    "orgId": params.org_id
                 }
             }))
             .send()
@@ -262,15 +266,15 @@ impl DirectorySetup {
 
         let user = DefaultUser {
             id: result["userId"].as_str().unwrap_or("").to_string(),
-            username: username.to_string(),
-            email: email.to_string(),
-            password: password.to_string(),
-            first_name: first_name.to_string(),
-            last_name: last_name.to_string(),
+            username: params.username.to_string(),
+            email: params.email.to_string(),
+            password: params.password.to_string(),
+            first_name: params.first_name.to_string(),
+            last_name: params.last_name.to_string(),
         };
 
-        if is_admin {
-            self.grant_user_permissions(org_id, &user.id).await?;
+        if params.is_admin {
+            self.grant_user_permissions(params.org_id, &user.id).await?;
         }
 
         Ok(user)

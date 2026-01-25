@@ -13,8 +13,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::bot::get_default_bot;
-use crate::core::shared::schema::{
-    workspace_comments, workspace_members, workspace_page_versions, workspace_pages, workspaces,
+use crate::core::shared::schema::workspaces::{
+    workspace_comments, workspace_members, workspace_page_versions, workspace_pages,
+    workspaces as workspaces_table,
 };
 use crate::shared::state::AppState;
 
@@ -25,7 +26,7 @@ pub mod templates;
 pub mod ui;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
-#[diesel(table_name = workspaces)]
+#[diesel(table_name = workspaces_table)]
 pub struct DbWorkspace {
     pub id: Uuid,
     pub org_id: Uuid,
@@ -684,22 +685,22 @@ async fn list_workspaces(
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    let mut q = workspaces::table
-        .filter(workspaces::org_id.eq(org_id))
-        .filter(workspaces::bot_id.eq(bot_id))
+    let mut q = workspaces_table::table
+        .filter(workspaces_table::org_id.eq(org_id))
+        .filter(workspaces_table::bot_id.eq(bot_id))
         .into_boxed();
 
     if let Some(search) = query.search {
         let pattern = format!("%{search}%");
         q = q.filter(
-            workspaces::name
+            workspaces_table::name
                 .ilike(pattern.clone())
-                .or(workspaces::description.ilike(pattern)),
+                .or(workspaces_table::description.ilike(pattern)),
         );
     }
 
     let db_workspaces: Vec<DbWorkspace> = q
-        .order(workspaces::updated_at.desc())
+        .order(workspaces_table::updated_at.desc())
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
@@ -768,7 +769,7 @@ async fn create_workspace(
         updated_at: now,
     };
 
-    diesel::insert_into(workspaces::table)
+    diesel::insert_into(workspaces_table::table)
         .values(&db_workspace)
         .execute(&mut conn)
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
@@ -807,8 +808,8 @@ async fn get_workspace(
         .get()
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
 
-    let db_workspace: DbWorkspace = workspaces::table
-        .filter(workspaces::id.eq(workspace_id))
+    let db_workspace: DbWorkspace = workspaces_table::table
+        .filter(workspaces_table::id.eq(workspace_id))
         .first(&mut conn)
         .map_err(|_| WorkspacesError::WorkspaceNotFound)?;
 
@@ -849,8 +850,8 @@ async fn update_workspace(
         .get()
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
 
-    let mut db_workspace: DbWorkspace = workspaces::table
-        .filter(workspaces::id.eq(workspace_id))
+    let mut db_workspace: DbWorkspace = workspaces_table::table
+        .filter(workspaces_table::id.eq(workspace_id))
         .first(&mut conn)
         .map_err(|_| WorkspacesError::WorkspaceNotFound)?;
 
@@ -866,7 +867,7 @@ async fn update_workspace(
     }
     db_workspace.updated_at = Utc::now();
 
-    diesel::update(workspaces::table.filter(workspaces::id.eq(workspace_id)))
+    diesel::update(workspaces_table::table.filter(workspaces_table::id.eq(workspace_id)))
         .set(&db_workspace)
         .execute(&mut conn)
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
@@ -911,15 +912,19 @@ async fn delete_workspace(
         .execute(&mut conn)
         .ok();
 
-    diesel::delete(workspace_page_versions::table.filter(
-        workspace_page_versions::page_id.eq_any(
-            workspace_pages::table
-                .filter(workspace_pages::workspace_id.eq(workspace_id))
-                .select(workspace_pages::id),
-        ),
-    ))
-    .execute(&mut conn)
-    .ok();
+    let page_ids: Vec<Uuid> = workspace_pages::table
+        .filter(workspace_pages::workspace_id.eq(workspace_id))
+        .select(workspace_pages::id)
+        .load(&mut conn)
+        .unwrap_or_default();
+
+    if !page_ids.is_empty() {
+        diesel::delete(workspace_page_versions::table.filter(
+            workspace_page_versions::page_id.eq_any(&page_ids)
+        ))
+        .execute(&mut conn)
+        .ok();
+    }
 
     diesel::delete(workspace_pages::table.filter(workspace_pages::workspace_id.eq(workspace_id)))
         .execute(&mut conn)
@@ -929,7 +934,7 @@ async fn delete_workspace(
         .execute(&mut conn)
         .ok();
 
-    let deleted = diesel::delete(workspaces::table.filter(workspaces::id.eq(workspace_id)))
+    let deleted = diesel::delete(workspaces_table::table.filter(workspaces_table::id.eq(workspace_id)))
         .execute(&mut conn)
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
 
@@ -993,8 +998,8 @@ async fn create_page(
         .get()
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
 
-    let _: DbWorkspace = workspaces::table
-        .filter(workspaces::id.eq(workspace_id))
+    let _: DbWorkspace = workspaces_table::table
+        .filter(workspaces_table::id.eq(workspace_id))
         .first(&mut conn)
         .map_err(|_| WorkspacesError::WorkspaceNotFound)?;
 

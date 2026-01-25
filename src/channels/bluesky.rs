@@ -249,7 +249,7 @@ impl ChannelProvider for BlueskyProvider {
         let rkey = response
             .uri
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or("")
             .to_string();
 

@@ -18,16 +18,11 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-
 fn safe_pkill(args: &[&str]) {
-    if let Ok(cmd) = SafeCommand::new("pkill")
-        .and_then(|c| c.args(args))
-    {
+    if let Ok(cmd) = SafeCommand::new("pkill").and_then(|c| c.args(args)) {
         let _ = cmd.execute();
     }
 }
-
-
 
 fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
     SafeCommand::new("pgrep")
@@ -46,23 +41,19 @@ fn safe_sh_command(script: &str) -> Option<std::process::Output> {
 
 fn safe_curl(args: &[&str]) -> Option<std::process::Output> {
     match SafeCommand::new("curl") {
-        Ok(cmd) => {
-            match cmd.args(args) {
-                Ok(cmd_with_args) => {
-                    match cmd_with_args.execute() {
-                        Ok(output) => Some(output),
-                        Err(e) => {
-                            log::warn!("safe_curl execute failed: {}", e);
-                            None
-                        }
-                    }
-                }
+        Ok(cmd) => match cmd.args(args) {
+            Ok(cmd_with_args) => match cmd_with_args.execute() {
+                Ok(output) => Some(output),
                 Err(e) => {
-                    log::warn!("safe_curl args failed: {} - args: {:?}", e, args);
+                    log::warn!("safe_curl execute failed: {}", e);
                     None
                 }
+            },
+            Err(e) => {
+                log::warn!("safe_curl args failed: {} - args: {:?}", e, args);
+                None
             }
-        }
+        },
         Err(e) => {
             log::warn!("safe_curl new failed: {}", e);
             None
@@ -71,8 +62,10 @@ fn safe_curl(args: &[&str]) -> Option<std::process::Output> {
 }
 
 fn vault_health_check() -> bool {
-    let client_cert = std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.crt");
-    let client_key = std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.key");
+    let client_cert =
+        std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.crt");
+    let client_key =
+        std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.key");
 
     let certs_exist = client_cert.exists() && client_key.exists();
     log::info!("Vault health check: certs_exist={}", certs_exist);
@@ -80,23 +73,39 @@ fn vault_health_check() -> bool {
     let result = if certs_exist {
         log::info!("Using mTLS for Vault health check");
         safe_curl(&[
-            "-f", "-sk", "--connect-timeout", "2", "-m", "5",
-            "--cert", "./botserver-stack/conf/system/certificates/botserver/client.crt",
-            "--key", "./botserver-stack/conf/system/certificates/botserver/client.key",
-            "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"
+            "-f",
+            "-sk",
+            "--connect-timeout",
+            "2",
+            "-m",
+            "5",
+            "--cert",
+            "./botserver-stack/conf/system/certificates/botserver/client.crt",
+            "--key",
+            "./botserver-stack/conf/system/certificates/botserver/client.key",
+            "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200",
         ])
     } else {
         log::info!("Using plain TLS for Vault health check (no client certs yet)");
         safe_curl(&[
-            "-f", "-sk", "--connect-timeout", "2", "-m", "5",
-            "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"
+            "-f",
+            "-sk",
+            "--connect-timeout",
+            "2",
+            "-m",
+            "5",
+            "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200",
         ])
     };
 
     match &result {
         Some(output) => {
             let success = output.status.success();
-            log::info!("Vault health check result: success={}, status={:?}", success, output.status.code());
+            log::info!(
+                "Vault health check result: success={}, status={:?}",
+                success,
+                output.status.code()
+            );
             if !success {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 let stdout = String::from_utf8_lossy(&output.stdout);
@@ -113,9 +122,7 @@ fn vault_health_check() -> bool {
 }
 
 fn safe_fuser(args: &[&str]) {
-    if let Ok(cmd) = SafeCommand::new("fuser")
-        .and_then(|c| c.args(args))
-    {
+    if let Ok(cmd) = SafeCommand::new("fuser").and_then(|c| c.args(args)) {
         let _ = cmd.execute();
     }
 }
@@ -377,7 +384,9 @@ impl BootstrapManager {
                     for attempt in 1..=30 {
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                         let status = SafeCommand::new("pg_isready")
-                            .and_then(|c| c.args(&["-h", "localhost", "-p", "5432", "-U", "gbuser"]))
+                            .and_then(|c| {
+                                c.args(&["-h", "localhost", "-p", "5432", "-U", "gbuser"])
+                            })
                             .ok()
                             .and_then(|cmd| cmd.execute().ok())
                             .map(|o| o.status.success())
@@ -388,7 +397,10 @@ impl BootstrapManager {
                             break;
                         }
                         if attempt % 5 == 0 {
-                            info!("Waiting for PostgreSQL to be ready... (attempt {}/30)", attempt);
+                            info!(
+                                "Waiting for PostgreSQL to be ready... (attempt {}/30)",
+                                attempt
+                            );
                         }
                     }
                     if !ready {
@@ -746,13 +758,12 @@ impl BootstrapManager {
                 info!("Vault unsealed successfully");
             }
         } else {
-            let vault_pid = safe_pgrep(&["-f", "vault server"])
-                .and_then(|o| {
-                    String::from_utf8_lossy(&o.stdout)
-                        .trim()
-                        .parse::<i32>()
-                        .ok()
-                });
+            let vault_pid = safe_pgrep(&["-f", "vault server"]).and_then(|o| {
+                String::from_utf8_lossy(&o.stdout)
+                    .trim()
+                    .parse::<i32>()
+                    .ok()
+            });
 
             if vault_pid.is_some() {
                 warn!("Vault process exists but not responding - killing and will restart");
@@ -766,7 +777,10 @@ impl BootstrapManager {
 
         std::env::set_var("VAULT_ADDR", vault_addr);
         std::env::set_var("VAULT_TOKEN", &root_token);
-        std::env::set_var("VAULT_CACERT", "./botserver-stack/conf/system/certificates/ca/ca.crt");
+        std::env::set_var(
+            "VAULT_CACERT",
+            "./botserver-stack/conf/system/certificates/ca/ca.crt",
+        );
 
         std::env::set_var(
             "VAULT_CACERT",
@@ -816,7 +830,15 @@ impl BootstrapManager {
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
-        let required_components = vec!["vault", "tables", "directory", "drive", "cache", "llm", "vector_db"];
+        let required_components = vec![
+            "vault",
+            "tables",
+            "directory",
+            "drive",
+            "cache",
+            "llm",
+            "vector_db",
+        ];
 
         let vault_needs_setup = !self.stack_dir("conf/vault/init.json").exists();
 
@@ -1074,7 +1096,11 @@ impl BootstrapManager {
             std::env::current_dir()?.join(self.stack_dir("conf/directory/admin-pat.txt"))
         };
 
-        fs::create_dir_all(zitadel_config_path.parent().ok_or_else(|| anyhow::anyhow!("Invalid zitadel config path"))?)?;
+        fs::create_dir_all(
+            zitadel_config_path
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("Invalid zitadel config path"))?,
+        )?;
 
         let zitadel_db_password = Self::generate_secure_password(24);
 
@@ -1188,7 +1214,11 @@ DefaultInstance:
 
     fn setup_caddy_proxy(&self) -> Result<()> {
         let caddy_config = self.stack_dir("conf/proxy/Caddyfile");
-        fs::create_dir_all(caddy_config.parent().ok_or_else(|| anyhow::anyhow!("Invalid caddy config path"))?)?;
+        fs::create_dir_all(
+            caddy_config
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("Invalid caddy config path"))?,
+        )?;
 
         let config = format!(
             r"{{
@@ -1240,7 +1270,11 @@ meet.botserver.local {{
 
     fn setup_coredns(&self) -> Result<()> {
         let dns_config = self.stack_dir("conf/dns/Corefile");
-        fs::create_dir_all(dns_config.parent().ok_or_else(|| anyhow::anyhow!("Invalid dns config path"))?)?;
+        fs::create_dir_all(
+            dns_config
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("Invalid dns config path"))?,
+        )?;
 
         let zone_file = self.stack_dir("conf/dns/botserver.local.zone");
 
@@ -1359,15 +1393,15 @@ meet        IN      A       127.0.0.1
                 let user_password = Self::generate_secure_password(16);
 
                 match setup
-                    .create_user(
-                        &org_id,
-                        "user",
-                        "user@default",
-                        &user_password,
-                        "User",
-                        "Default",
-                        false,
-                    )
+                    .create_user(crate::package_manager::setup::CreateUserParams {
+                        org_id: &org_id,
+                        username: "user",
+                        email: "user@default",
+                        password: &user_password,
+                        first_name: "User",
+                        last_name: "Default",
+                        is_admin: false,
+                    })
                     .await
                 {
                     Ok(regular_user) => {
@@ -1856,10 +1890,12 @@ VAULT_CACHE_TTL=300
             .credentials_provider(aws_sdk_s3::config::Credentials::new(
                 access_key, secret_key, None, None, "static",
             ))
-            .sleep_impl(std::sync::Arc::new(aws_smithy_async::rt::sleep::TokioSleep::new()))
+            .sleep_impl(std::sync::Arc::new(
+                aws_smithy_async::rt::sleep::TokioSleep::new(),
+            ))
             .load()
             .await;
-        
+
         let s3_config = aws_sdk_s3::config::Builder::from(&base_config)
             .force_path_style(true)
             .build();
@@ -1904,7 +1940,10 @@ VAULT_CACHE_TTL=300
                     .to_string_lossy()
                     .ends_with(".gbai")
             {
-                let bot_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+                let bot_name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
                 let bucket = bot_name.trim_start_matches('/').to_string();
                 let bucket_exists = client.head_bucket().bucket(&bucket).send().await.is_ok();
                 if bucket_exists {
@@ -1912,11 +1951,15 @@ VAULT_CACHE_TTL=300
                     continue;
                 }
                 if let Err(e) = client.create_bucket().bucket(&bucket).send().await {
-                    warn!("S3/MinIO not available, skipping bucket {}: {:?}", bucket, e);
+                    warn!(
+                        "S3/MinIO not available, skipping bucket {}: {:?}",
+                        bucket, e
+                    );
                     continue;
                 }
                 info!("Created new bucket {}, uploading templates...", bucket);
-                if let Err(e) = Self::upload_directory_recursive(&client, &path, &bucket, "/").await {
+                if let Err(e) = Self::upload_directory_recursive(&client, &path, &bucket, "/").await
+                {
                     warn!("Failed to upload templates to bucket {}: {}", bucket, e);
                 }
             }
@@ -2089,7 +2132,10 @@ VAULT_CACHE_TTL=300
             let mut read_dir = tokio::fs::read_dir(local_path).await?;
             while let Some(entry) = read_dir.next_entry().await? {
                 let path = entry.path();
-                let file_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+                let file_name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
                 let mut key = prefix.trim_matches('/').to_string();
                 if !key.is_empty() {
                     key.push('/');
@@ -2114,8 +2160,8 @@ VAULT_CACHE_TTL=300
     pub fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {
         info!("Applying migrations via shared utility...");
         if let Err(e) = crate::core::shared::utils::run_migrations_on_conn(conn) {
-             error!("Failed to apply migrations: {}", e);
-             return Err(anyhow::anyhow!("Migration error: {}", e));
+            error!("Failed to apply migrations: {}", e);
+            return Err(anyhow::anyhow!("Migration error: {}", e));
         }
         Ok(())
     }
@@ -2167,10 +2213,7 @@ log_level = "info"
 
         fs::create_dir_all(self.stack_dir("data/vault"))?;
 
-        info!(
-            "Created Vault config with TLS at {}",
-            config_path.display()
-        );
+        info!("Created Vault config with TLS at {}", config_path.display());
         Ok(())
     }
 
@@ -2340,9 +2383,7 @@ log_level = "info"
 
             for san in sans {
                 if let Ok(ip) = san.parse::<std::net::IpAddr>() {
-                    params
-                        .subject_alt_names
-                        .push(rcgen::SanType::IpAddress(ip));
+                    params.subject_alt_names.push(rcgen::SanType::IpAddress(ip));
                 } else {
                     params
                         .subject_alt_names
@@ -2362,7 +2403,10 @@ log_level = "info"
         let minio_certs_dir = PathBuf::from("./botserver-stack/conf/drive/certs");
         fs::create_dir_all(&minio_certs_dir)?;
         let drive_cert_dir = cert_dir.join("drive");
-        fs::copy(drive_cert_dir.join("server.crt"), minio_certs_dir.join("public.crt"))?;
+        fs::copy(
+            drive_cert_dir.join("server.crt"),
+            minio_certs_dir.join("public.crt"),
+        )?;
 
         let drive_key_src = drive_cert_dir.join("server.key");
         let drive_key_dst = minio_certs_dir.join("private.key");

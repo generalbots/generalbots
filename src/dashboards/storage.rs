@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::core::shared::schema::{
+use crate::core::shared::schema::dashboards::{
     conversational_queries, dashboard_data_sources, dashboard_filters, dashboard_widgets,
     dashboards,
 };

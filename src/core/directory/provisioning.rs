@@ -1,4 +1,5 @@
 use anyhow::Result;
+#[cfg(feature = "drive")]
 use aws_sdk_s3::Client as S3Client;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
@@ -11,7 +12,10 @@ pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
 pub struct UserProvisioningService {
     db_pool: DbPool,
+    #[cfg(feature = "drive")]
     s3_client: Option<Arc<S3Client>>,
+    #[cfg(not(feature = "drive"))]
+    s3_client: Option<Arc<()>>,
     base_url: String,
 }
 
@@ -51,10 +55,20 @@ pub enum UserRole {
 }
 
 impl UserProvisioningService {
+    #[cfg(feature = "drive")]
     pub fn new(db_pool: DbPool, s3_client: Option<Arc<S3Client>>, base_url: String) -> Self {
         Self {
             db_pool,
             s3_client,
+            base_url,
+        }
+    }
+
+    #[cfg(not(feature = "drive"))]
+    pub fn new(db_pool: DbPool, _s3_client: Option<Arc<()>>, base_url: String) -> Self {
+        Self {
+            db_pool,
+            s3_client: None,
             base_url,
         }
     }
@@ -130,52 +144,63 @@ impl UserProvisioningService {
     }
 
     async fn create_s3_home(&self, account: &UserAccount, bot_access: &BotAccess) -> Result<()> {
-        let Some(s3_client) = &self.s3_client else {
-            log::warn!("S3 client not configured, skipping S3 home creation");
-            return Ok(());
-        };
-
-        let bucket_name = format!("{}.gbdrive", bot_access.bot_name);
-        let home_path = format!("home/{}/", account.username);
-
-        if s3_client
-            .head_bucket()
-            .bucket(&bucket_name)
-            .send()
-            .await
-            .is_err()
+        #[cfg(feature = "drive")]
         {
-            s3_client
-                .create_bucket()
+            let Some(s3_client) = &self.s3_client else {
+                log::warn!("S3 client not configured, skipping S3 home creation");
+                return Ok(());
+            };
+
+            let bucket_name = format!("{}.gbdrive", bot_access.bot_name);
+            let home_path = format!("home/{}/", account.username);
+
+            if s3_client
+                .head_bucket()
                 .bucket(&bucket_name)
                 .send()
-                .await?;
-        }
+                .await
+                .is_err()
+            {
+                s3_client
+                    .create_bucket()
+                    .bucket(&bucket_name)
+                    .send()
+                    .await?;
+            }
 
-        s3_client
-            .put_object()
-            .bucket(&bucket_name)
-            .key(&home_path)
-            .body(aws_sdk_s3::primitives::ByteStream::from(vec![]))
-            .send()
-            .await?;
-
-        for folder in &["documents", "projects", "shared"] {
-            let folder_key = format!("{}{}/", home_path, folder);
             s3_client
                 .put_object()
                 .bucket(&bucket_name)
-                .key(&folder_key)
+                .key(&home_path)
                 .body(aws_sdk_s3::primitives::ByteStream::from(vec![]))
                 .send()
                 .await?;
+
+            for folder in &["documents", "projects", "shared"] {
+                let folder_key = format!("{}{}/", home_path, folder);
+                s3_client
+                    .put_object()
+                    .bucket(&bucket_name)
+                    .key(&folder_key)
+                    .body(aws_sdk_s3::primitives::ByteStream::from(vec![]))
+                    .send()
+                    .await?;
+            }
+
+            log::info!(
+                "Created S3 home for {} in {}",
+                account.username,
+                bucket_name
+            );
         }
 
-        log::info!(
-            "Created S3 home for {} in {}",
-            account.username,
-            bucket_name
-        );
+        #[cfg(not(feature = "drive"))]
+        {
+            let _ = account;
+            let _ = bot_access;
+            log::debug!("Drive feature not enabled, skipping S3 home creation");
+        }
+
         Ok(())
     }
 
@@ -275,6 +300,7 @@ impl UserProvisioningService {
     }
 
     async fn remove_s3_data(&self, username: &str) -> Result<()> {
+        #[cfg(feature = "drive")]
         if let Some(s3_client) = &self.s3_client {
             let buckets_result = s3_client.list_buckets().send().await?;
 
@@ -307,6 +333,12 @@ impl UserProvisioningService {
                     }
                 }
             }
+        }
+
+        #[cfg(not(feature = "drive"))]
+        {
+            let _ = username;
+            log::debug!("Drive feature not enabled, bypassing S3 data removal");
         }
 
         Ok(())

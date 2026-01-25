@@ -64,18 +64,15 @@ pub struct Attendant {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum AttendantStatus {
     Online,
     Busy,
     Away,
+    #[default]
     Offline,
 }
 
-impl Default for AttendantStatus {
-    fn default() -> Self {
-        Self::Offline
-    }
-}
 
 pub fn is_crm_enabled(bot_id: Uuid, work_path: &str) -> bool {
     let config_path = PathBuf::from(work_path)
