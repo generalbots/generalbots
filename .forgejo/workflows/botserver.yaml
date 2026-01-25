@@ -69,7 +69,7 @@ jobs:
       - name: Build debug
         working-directory: workspace
         run: |
-          cargo build -p botserver -p botui --locked -j 1 2>&1 | tee /tmp/build.log
+          cargo build -p botserver -p botui -j 1 2>&1 | tee /tmp/build.log
           ls -lh target/debug/botserver
           ls -lh target/debug/botui
 
