@@ -33,7 +33,6 @@ jobs:
           sed -i '/"botapp",/d' Cargo.toml
           sed -i '/"botdevice",/d' Cargo.toml
           sed -i '/"bottest",/d' Cargo.toml
-          sed -i '/"botui",/d' Cargo.toml
           cd ..
           rm -rf workspace/botserver
           mv botserver workspace/botserver
@@ -65,8 +64,9 @@ jobs:
       - name: Build debug
         working-directory: workspace
         run: |
-          cargo build -p botserver --locked -j 1 2>&1 | tee /tmp/build.log
+          cargo build -p botserver -p botui --locked -j 1 2>&1 | tee /tmp/build.log
           ls -lh target/debug/botserver
+          ls -lh target/debug/botui
 
       - name: Save build log
         if: always()
@@ -77,11 +77,11 @@ jobs:
       - name: Deploy
         working-directory: workspace
         run: |
-          sudo mkdir -p /opt/gbo/releases/botserver/linux
-          sudo cp target/debug/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64
-          sudo chmod 755 /opt/gbo/releases/botserver/linux/botserver-x86_64
-
           lxc exec bot:pragmatismo-system -- systemctl stop system || true
-          sudo cp target/debug/botserver /opt/gbo/bin/system/botserver
+
+          sudo cp target/debug/botserver /opt/gbo/bin/system/
           sudo chmod +x /opt/gbo/bin/system/botserver
+          sudo cp target/debug/botui /opt/gbo/bin/system/
+          sudo chmod +x /opt/gbo/bin/system/botui
+
           lxc exec bot:pragmatismo-system -- systemctl start system || true
