@@ -29,6 +29,7 @@ jobs:
           git clone --depth 1 https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
           cd workspace
           git submodule update --init --depth 1 botlib
+          git submodule update --init --depth 1 botui
           # Remove missing members from workspace to prevent Cargo errors
           sed -i '/"botapp",/d' Cargo.toml
           sed -i '/"botdevice",/d' Cargo.toml
