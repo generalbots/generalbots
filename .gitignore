@@ -12,5 +12,5 @@ botserver-stack
 *-log*
 docs/book
 *.rdb
-botserver-installers/*
-!botserver-installers/.gitkeep
+botserver-installers
+.git-rewrite
