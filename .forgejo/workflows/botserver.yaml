@@ -26,7 +26,7 @@ jobs:
 
       - name: Setup Workspace
         run: |
-          git clone https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+          git clone --recursive https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
           rm -rf workspace/botserver
           mv botserver workspace/botserver
 
