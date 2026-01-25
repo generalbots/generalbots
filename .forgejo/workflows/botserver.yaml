@@ -30,6 +30,8 @@ jobs:
           cd workspace
           git submodule update --init --depth 1 botlib
           git submodule update --init --depth 1 botui
+          rm .cargo/config.toml
+
           # Remove missing members from workspace to prevent Cargo errors
           sed -i '/"botapp",/d' Cargo.toml
           sed -i '/"botdevice",/d' Cargo.toml
@@ -37,6 +39,8 @@ jobs:
           cd ..
           rm -rf workspace/botserver
           mv botserver workspace/botserver
+          rm -f workspace/botserver/.cargo/config.toml
+
 
       - name: Cache Cargo registry
         uses: actions/cache@v4
