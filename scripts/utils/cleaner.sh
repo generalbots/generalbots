@@ -43,6 +43,16 @@ echo -e "\n[ LXC CONTAINERS CLEANUP ]"
 
 # Check if LXC is installed
 if command -v lxc >/dev/null 2>&1; then
+    # Remove all snapshots from all containers
+    echo "Removing all LXC snapshots..."
+    for container in $(lxc list -c n --format csv | grep -v "^$"); do
+        snapshots=$(lxc list "$container" -c n --format csv -f snapshot)
+        if [ -n "$snapshots" ]; then
+            echo "Removing snapshots from container: $container"
+            lxc snapshot delete "$container" --all
+        fi
+    done
+    
     for container in $(lxc list -c n --format csv | grep -v "^$"); do
         echo -e "\nCleaning container: $container"
         
