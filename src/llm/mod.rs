@@ -8,9 +8,10 @@ use tokio::sync::{mpsc, RwLock};
 pub mod cache;
 pub mod claude;
 pub mod episodic_memory;
+pub mod smart_router;
 pub mod llm_models;
 pub mod local;
-pub mod observability;
+pub mod smart_router;
 
 pub use claude::ClaudeClient;
 pub use llm_models::get_handler;

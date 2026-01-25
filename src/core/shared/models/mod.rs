@@ -5,6 +5,9 @@ pub use self::core::*;
 pub mod rbac;
 pub use self::rbac::*;
 
+pub mod workflow_models;
+pub use self::workflow_models::*;
+
 #[cfg(feature = "tasks")]
 pub mod task_models;
 #[cfg(feature = "tasks")]
@@ -18,7 +21,7 @@ pub use super::schema::{
     message_history, organizations, rbac_group_roles, rbac_groups,
     rbac_permissions, rbac_role_permissions, rbac_roles, rbac_user_groups, rbac_user_roles,
     session_tool_associations, system_automations, user_login_tokens,
-    user_preferences, user_sessions, users,
+    user_preferences, user_sessions, users, workflow_executions, workflow_events, bot_shared_memory,
 };
 
 // Re-export feature-gated schema tables

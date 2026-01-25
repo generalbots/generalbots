@@ -22,7 +22,7 @@ pub mod channels;
 pub mod contacts;
 pub mod core;
 #[cfg(feature = "dashboards")]
-pub mod dashboards;
+pub mod shared;
 pub mod embedded_ui;
 pub mod maintenance;
 pub mod multimodal;
@@ -1438,6 +1438,11 @@ use crate::core::config::ConfigManager;
         auth_provider_registry: None,
         rbac_manager: None,
     });
+
+    // Resume workflows after server restart
+    if let Err(e) = crate::basic::keywords::orchestration::resume_workflows_on_startup(app_state.clone()).await {
+        log::warn!("Failed to resume workflows on startup: {}", e);
+    }
 
     #[cfg(feature = "tasks")]
     let task_scheduler = Arc::new(crate::tasks::scheduler::TaskScheduler::new(

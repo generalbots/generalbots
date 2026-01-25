@@ -22,6 +22,13 @@ pub mod crm;
 pub mod data_operations;
 pub mod datetime;
 pub mod db_api;
+
+// ===== WORKFLOW ORCHESTRATION MODULES =====
+pub mod orchestration;
+pub mod events;
+pub mod enhanced_memory;
+pub mod enhanced_llm;
+
 pub mod errors;
 pub mod find;
 pub mod first;
