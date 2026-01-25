@@ -223,15 +223,22 @@ src/
 
 When configuring CI/CD pipelines (e.g., Forgejo Actions):
 
-1.  **Clone the Full Workspace**: You MUST clone the entire `GeneralBots/gb` workspace recursively.
-2.  **Integrate BotServer**: Replace the `botserver` directory in the cloned workspace with the current CI checkout.
-3.  **Build in Context**: Run cargo commands from the workspace root (e.g., `cargo build -p botserver`) to ensure all workspace dependencies (like `botlib`, `botapp`) are correctly resolved.
+- **Minimal Checkout**: Clone only the root `gb` and the `botlib` submodule. Do NOT recursively clone everything.
+- **BotServer Context**: Replace the empty `botserver` directory with the current set of files being tested.
 
 **Example Step:**
 ```yaml
 - name: Setup Workspace
   run: |
-    git clone --depth 1 --recursive https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+    # 1. Clone only the root workspace configuration
+    git clone --depth 1 https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+    
+    # 2. Setup only the necessary dependencies (botlib)
+    cd workspace
+    git submodule update --init --depth 1 botlib
+    cd ..
+
+    # 3. Inject current BotServer code
     rm -rf workspace/botserver
     mv botserver workspace/botserver
 ```
