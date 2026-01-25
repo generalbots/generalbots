@@ -49,7 +49,7 @@ impl LocalJwtAuthProvider {
         let roles: Vec<Role> = claims
             .roles
             .as_ref()
-            .map(|r| r.iter().map(|s| Role::from_str(s)).collect())
+            .map(|r| r.iter().filter_map(|s| Role::from_str(s).ok()).collect())
             .unwrap_or_else(|| vec![Role::User]);
 
         let mut user = AuthenticatedUser::new(user_id, username).with_roles(roles);

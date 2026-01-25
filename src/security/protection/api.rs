@@ -6,8 +6,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use std::sync::OnceLock;
 use std::sync::Arc;
+use std::sync::OnceLock;
 use tokio::sync::RwLock;
 use tracing::warn;
 
@@ -18,7 +18,9 @@ static PROTECTION_MANAGER: OnceLock<Arc<RwLock<ProtectionManager>>> = OnceLock::
 
 fn get_manager() -> &'static Arc<RwLock<ProtectionManager>> {
     PROTECTION_MANAGER.get_or_init(|| {
-        Arc::new(RwLock::new(ProtectionManager::new(ProtectionConfig::default())))
+        Arc::new(RwLock::new(ProtectionManager::new(
+            ProtectionConfig::default(),
+        )))
     })
 }
 
@@ -73,10 +75,7 @@ pub fn configure_protection_routes() -> Router<Arc<AppState>> {
             "/api/security/protection/:tool/status",
             get(get_tool_status),
         )
-        .route(
-            "/api/security/protection/:tool/install",
-            post(install_tool),
-        )
+        .route("/api/security/protection/:tool/install", post(install_tool))
         .route(
             "/api/security/protection/:tool/uninstall",
             post(uninstall_tool),
@@ -109,7 +108,7 @@ pub fn configure_protection_routes() -> Router<Arc<AppState>> {
 }
 
 fn parse_tool(tool_name: &str) -> Result<ProtectionTool, (StatusCode, Json<ApiResponse<()>>)> {
-    ProtectionTool::from_str(tool_name).ok_or_else(|| {
+    ProtectionTool::from_str(tool_name).map_err(|_| {
         (
             StatusCode::BAD_REQUEST,
             Json(ApiResponse::error(format!("Unknown tool: {tool_name}"))),
@@ -117,7 +116,8 @@ fn parse_tool(tool_name: &str) -> Result<ProtectionTool, (StatusCode, Json<ApiRe
     })
 }
 
-async fn get_all_status() -> Result<Json<ApiResponse<AllStatusResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+async fn get_all_status(
+) -> Result<Json<ApiResponse<AllStatusResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
     let manager = get_manager().read().await;
     let status_map = manager.get_all_status().await;
     let tools: Vec<ToolStatus> = status_map.into_values().collect();
@@ -135,7 +135,10 @@ async fn get_tool_status(
         Ok(status) => Ok(Json(ApiResponse::success(status))),
         Err(e) => {
             warn!(error = %e, "Failed to get tool status");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to get tool status"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to get tool status")),
+            ))
         }
     }
 }
@@ -153,7 +156,10 @@ async fn install_tool(
         }))),
         Err(e) => {
             warn!(error = %e, "Failed to install tool");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to install tool"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to install tool")),
+            ))
         }
     }
 }
@@ -184,7 +190,10 @@ async fn start_service(
         }))),
         Err(e) => {
             warn!(error = %e, "Failed to start service");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to start service"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to start service")),
+            ))
         }
     }
 }
@@ -202,7 +211,10 @@ async fn stop_service(
         }))),
         Err(e) => {
             warn!(error = %e, "Failed to stop service");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to stop service"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to stop service")),
+            ))
         }
     }
 }
@@ -220,7 +232,10 @@ async fn enable_service(
         }))),
         Err(e) => {
             warn!(error = %e, "Failed to enable service");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to enable service"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to enable service")),
+            ))
         }
     }
 }
@@ -238,7 +253,10 @@ async fn disable_service(
         }))),
         Err(e) => {
             warn!(error = %e, "Failed to disable service");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to disable service"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to disable service")),
+            ))
         }
     }
 }
@@ -253,7 +271,10 @@ async fn run_scan(
         Ok(result) => Ok(Json(ApiResponse::success(result))),
         Err(e) => {
             warn!(error = %e, "Failed to run scan");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to run scan"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to run scan")),
+            ))
         }
     }
 }
@@ -268,7 +289,10 @@ async fn get_report(
         Ok(report) => Ok(Json(ApiResponse::success(report))),
         Err(e) => {
             warn!(error = %e, "Failed to get report");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to get report"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to get report")),
+            ))
         }
     }
 }
@@ -286,7 +310,10 @@ async fn update_definitions(
         }))),
         Err(e) => {
             warn!(error = %e, "Failed to update definitions");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to update definitions"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to update definitions")),
+            ))
         }
     }
 }
@@ -313,17 +340,25 @@ async fn toggle_auto(
         }))),
         Err(e) => {
             warn!(error = %e, "Failed to toggle auto setting");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to toggle auto setting"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to toggle auto setting")),
+            ))
         }
     }
 }
 
-async fn get_quarantine() -> Result<Json<ApiResponse<Vec<super::lmd::QuarantinedFile>>>, (StatusCode, Json<ApiResponse<()>>)> {
+async fn get_quarantine(
+) -> Result<Json<ApiResponse<Vec<super::lmd::QuarantinedFile>>>, (StatusCode, Json<ApiResponse<()>>)>
+{
     match super::lmd::list_quarantined().await {
         Ok(files) => Ok(Json(ApiResponse::success(files))),
         Err(e) => {
             warn!(error = %e, "Failed to get quarantine list");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to get quarantine list"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to get quarantine list")),
+            ))
         }
     }
 }
@@ -338,7 +373,10 @@ async fn remove_from_quarantine(
         }))),
         Err(e) => {
             warn!(error = %e, "Failed to restore file from quarantine");
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("Failed to restore file from quarantine"))))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to restore file from quarantine")),
+            ))
         }
     }
 }
