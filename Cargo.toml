@@ -23,8 +23,8 @@ directory = []
 # Communication
 chat = ["automation", "drive", "cache"]
 people = ["automation", "drive", "cache"]
-mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap", "dep:native-tls"]
-meet = ["automation", "drive", "cache", "dep:livekit"]
+mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap"]
+meet = ["automation", "drive", "cache"]
 social = ["automation", "drive", "cache"]
 
 # Productivity
@@ -38,7 +38,7 @@ billing = ["automation", "drive", "cache"]
 
 # Documents
 docs = ["automation", "drive", "cache", "docx-rs", "ooxmlsdk"]
-sheet = ["automation", "drive", "cache", "calamine", "spreadsheet-ods", "dep:rust_xlsxwriter", "dep:umya-spreadsheet"]
+sheet = ["automation", "drive", "cache", "calamine", "dep:rust_xlsxwriter", "dep:umya-spreadsheet"]
 slides = ["automation", "drive", "cache", "ooxmlsdk"]
 paper = ["automation", "drive", "cache"]
 
@@ -95,26 +95,19 @@ bigdecimal = { workspace = true }
 aes-gcm = { workspace = true }
 anyhow = { workspace = true }
 argon2 = { workspace = true }
-async-lock = { workspace = true }
-async-stream = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true }
 axum-server = { workspace = true }
 base64 = { workspace = true }
-bytes = { workspace = true }
 chrono = { workspace = true, features = ["clock", "std"] }
 color-eyre = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
 dirs = { workspace = true }
 dotenvy = { workspace = true }
-env_logger = { workspace = true }
 futures = { workspace = true }
 futures-util = { workspace = true }
-tokio-util = { workspace = true, features = ["codec"] }
 hex = { workspace = true }
 hmac = { workspace = true }
-hyper = { workspace = true, features = ["client", "server", "http1", "http2"] }
-hyper-rustls = { workspace = true, features = ["http2"] }
 log = { workspace = true }
 num-format = { workspace = true }
 once_cell = { workspace = true }
@@ -127,11 +120,8 @@ toml = { workspace = true }
 sha2 = { workspace = true }
 sha1 = { workspace = true }
 tokio = { workspace = true, features = ["full", "process"] }
-tokio-stream = { workspace = true }
-tower = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
 urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["v4", "v5"] }
 
@@ -140,13 +130,10 @@ rustls = { workspace = true, features = ["ring", "std", "tls12"] }
 tokio-rustls = { workspace = true }
 rcgen = { workspace = true, features = ["crypto", "ring", "pem"] }
 x509-parser = { workspace = true }
-rustls-native-certs = { workspace = true }
-webpki-roots = { workspace = true }
 ring = { workspace = true }
 ciborium = { workspace = true }
 time = { workspace = true, features = ["formatting"] }
 jsonwebtoken = { workspace = true }
-tower-cookies = { workspace = true }
 
 # === APP-SPECIFIC DEPENDENCIES ===
 
@@ -154,10 +141,6 @@ tower-cookies = { workspace = true }
 imap = { workspace = true, optional = true }
 lettre = { workspace = true, optional = true }
 mailparse = { workspace = true, optional = true }
-native-tls = { workspace = true, optional = true }
-
-# Video Meetings (meet feature)
-livekit = { workspace = true, optional = true }
 
 # Vector Database (vectordb feature)
 qdrant-client = { workspace = true, optional = true }
@@ -166,7 +149,6 @@ qdrant-client = { workspace = true, optional = true }
 docx-rs = { workspace = true, optional = true }
 ooxmlsdk = { workspace = true, optional = true, features = ["parts"] }
 calamine = { workspace = true, optional = true }
-spreadsheet-ods = { workspace = true, optional = true }
 rust_xlsxwriter = { workspace = true, optional = true }
 umya-spreadsheet = { workspace = true, optional = true }
 
@@ -206,9 +188,6 @@ redis = { workspace = true, features = ["tokio-comp"], optional = true }
 # System Monitoring (monitoring feature)
 sysinfo = { workspace = true, optional = true }
 
-# Networking/gRPC (grpc feature)
-tonic = { workspace = true, features = ["transport"], optional = true }
-
 # UI Enhancement (progress-bars feature)
 indicatif = { workspace = true, optional = true }
 smartstring = { workspace = true }
@@ -224,9 +203,6 @@ vaultrs = { workspace = true }
 # Calendar standards (RFC 5545)
 icalendar = { workspace = true }
 
-# Layered configuration
-figment = { workspace = true, features = ["toml"] }
-
 # Rate limiting
 governor = { workspace = true }
 
@@ -239,9 +215,6 @@ walkdir = { workspace = true }
 
 # Embedded static files
 rust-embed = { workspace = true }
-mime_guess = { workspace = true }
-hyper-util = { workspace = true, features = ["client-legacy"] }
-http-body-util = { workspace = true }
 
 [dev-dependencies]
 mockito = { workspace = true }
