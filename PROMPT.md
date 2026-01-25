@@ -231,7 +231,7 @@ When configuring CI/CD pipelines (e.g., Forgejo Actions):
 ```yaml
 - name: Setup Workspace
   run: |
-    git clone --recursive https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+    git clone --depth 1 --recursive https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
     rm -rf workspace/botserver
     mv botserver workspace/botserver
 ```
