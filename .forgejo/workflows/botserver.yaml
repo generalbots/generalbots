@@ -19,10 +19,16 @@ jobs:
       - name: Disable SSL verification
         run: git config --global http.sslVerify false
 
-      - uses: actions/checkout@v4
+      - name: Checkout BotServer Code
+        uses: actions/checkout@v4
+        with:
+          path: botserver
 
-      - name: Clone botlib dependency
-        run: git clone --depth 1 https://github.com/GeneralBots/botlib.git ../botlib
+      - name: Setup Workspace
+        run: |
+          git clone https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+          rm -rf workspace/botserver
+          mv botserver workspace/botserver
 
       - name: Cache Cargo registry
         uses: actions/cache@v4
@@ -30,7 +36,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
+            workspace/target
           key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-debug-
@@ -49,8 +55,9 @@ jobs:
         run: sudo cp /opt/gbo/bin/system/.env . 2>/dev/null || true
 
       - name: Build debug
+        working-directory: workspace
         run: |
-          cargo build --locked -j 1 2>&1 | tee /tmp/build.log
+          cargo build -p botserver --locked -j 1 2>&1 | tee /tmp/build.log
           ls -lh target/debug/botserver
 
       - name: Save build log
@@ -60,6 +67,7 @@ jobs:
           sudo cp /tmp/build.log /opt/gbo/logs/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
       - name: Deploy
+        working-directory: workspace
         run: |
           sudo mkdir -p /opt/gbo/releases/botserver/linux
           sudo cp target/debug/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64
