@@ -4,8 +4,34 @@ use crate::package_manager::{InstallMode, OsType};
 use crate::security::command_guard::SafeCommand;
 use anyhow::Result;
 use log::{error, info, trace, warn};
+use once_cell::sync::Lazy;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+#[derive(Deserialize, Debug)]
+struct ComponentEntry {
+    url: String,
+    filename: String,
+    sha256: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct ThirdPartyConfig {
+    components: HashMap<String, ComponentEntry>,
+}
+
+static THIRDPARTY_CONFIG: Lazy<ThirdPartyConfig> = Lazy::new(|| {
+    let toml_str = include_str!("../../../3rdparty.toml");
+    toml::from_str(toml_str).expect("Failed to parse embedded 3rdparty.toml")
+});
+
+fn get_component_url(name: &str) -> Option<String> {
+    THIRDPARTY_CONFIG
+        .components
+        .get(name)
+        .map(|c| c.url.clone())
+}
 
 fn safe_nvcc_version() -> Option<std::process::Output> {
     SafeCommand::new("nvcc")
@@ -32,11 +58,6 @@ fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
 const LLAMA_CPP_VERSION: &str = "b7345";
 
 fn get_llama_cpp_url() -> Option<String> {
-    let base_url = format!(
-        "https://github.com/ggml-org/llama.cpp/releases/download/{}",
-        LLAMA_CPP_VERSION
-    );
-
     #[cfg(target_os = "linux")]
     {
         #[cfg(target_arch = "x86_64")]
@@ -45,54 +66,30 @@ fn get_llama_cpp_url() -> Option<String> {
                 || std::path::Path::new("/opt/cuda").exists()
                 || std::env::var("CUDA_HOME").is_ok()
             {
-                if let Some(output) = safe_nvcc_version() {
-                    let version_str = String::from_utf8_lossy(&output.stdout);
-                    if version_str.contains("13.") {
-                        info!("Detected CUDA 13.x - using CUDA 13.1 build");
-                        return Some(format!(
-                            "{}/llama-{}-bin-linux-cuda-13.1-x64.zip",
-                            base_url, LLAMA_CPP_VERSION
-                        ));
-                    } else if version_str.contains("12.") {
-                        info!("Detected CUDA 12.x - using CUDA 12.4 build");
-                        return Some(format!(
-                            "{}/llama-{}-bin-linux-cuda-12.4-x64.zip",
-                            base_url, LLAMA_CPP_VERSION
-                        ));
-                    }
-                }
+                // CUDA versions not currently in 3rdparty.toml for Linux, falling back to Vulkan or CPU if not added
+                // Or if we had them: get_component_url("llm_linux_cuda12")
             }
 
             if std::path::Path::new("/usr/share/vulkan").exists()
                 || std::env::var("VULKAN_SDK").is_ok()
             {
                 info!("Detected Vulkan - using Vulkan build");
-                return Some(format!(
-                    "{}/llama-{}-bin-ubuntu-vulkan-x64.zip",
-                    base_url, LLAMA_CPP_VERSION
-                ));
+                return get_component_url("llm_linux_vulkan");
             }
 
             info!("Using standard Ubuntu x64 build (CPU)");
-            Some(format!(
-                "{}/llama-{}-bin-ubuntu-x64.zip",
-                base_url, LLAMA_CPP_VERSION
-            ))
+            return get_component_url("llm");
         }
 
         #[cfg(target_arch = "s390x")]
         {
             info!("Detected s390x architecture");
-            return Some(format!(
-                "{}/llama-{}-bin-ubuntu-s390x.zip",
-                base_url, LLAMA_CPP_VERSION
-            ));
+            return get_component_url("llm_linux_s390x");
         }
 
         #[cfg(target_arch = "aarch64")]
         {
             info!("Detected ARM64 architecture on Linux");
-
             warn!("No pre-built llama.cpp for Linux ARM64 - LLM will not be available");
             return None;
         }
@@ -103,19 +100,13 @@ fn get_llama_cpp_url() -> Option<String> {
         #[cfg(target_arch = "aarch64")]
         {
             info!("Detected macOS ARM64 (Apple Silicon)");
-            return Some(format!(
-                "{}/llama-{}-bin-macos-arm64.zip",
-                base_url, LLAMA_CPP_VERSION
-            ));
+            return get_component_url("llm_macos_arm64");
         }
 
         #[cfg(target_arch = "x86_64")]
         {
             info!("Detected macOS x64 (Intel)");
-            return Some(format!(
-                "{}/llama-{}-bin-macos-x64.zip",
-                base_url, LLAMA_CPP_VERSION
-            ));
+            return get_component_url("llm_macos_x64");
         }
     }
 
@@ -128,42 +119,27 @@ fn get_llama_cpp_url() -> Option<String> {
                     let version_str = String::from_utf8_lossy(&output.stdout);
                     if version_str.contains("13.") {
                         info!("Detected CUDA 13.x on Windows");
-                        return Some(format!(
-                            "{}/llama-{}-bin-win-cuda-13.1-x64.zip",
-                            base_url, LLAMA_CPP_VERSION
-                        ));
+                        return get_component_url("llm_win_cuda13");
                     } else if version_str.contains("12.") {
                         info!("Detected CUDA 12.x on Windows");
-                        return Some(format!(
-                            "{}/llama-{}-bin-win-cuda-12.4-x64.zip",
-                            base_url, LLAMA_CPP_VERSION
-                        ));
+                        return get_component_url("llm_win_cuda12");
                     }
                 }
             }
 
             if std::env::var("VULKAN_SDK").is_ok() {
                 info!("Detected Vulkan SDK on Windows");
-                return Some(format!(
-                    "{}/llama-{}-bin-win-vulkan-x64.zip",
-                    base_url, LLAMA_CPP_VERSION
-                ));
+                return get_component_url("llm_win_vulkan");
             }
 
             info!("Using standard Windows x64 CPU build");
-            return Some(format!(
-                "{}/llama-{}-bin-win-cpu-x64.zip",
-                base_url, LLAMA_CPP_VERSION
-            ));
+            return get_component_url("llm_win_cpu_x64");
         }
 
         #[cfg(target_arch = "aarch64")]
         {
             info!("Detected Windows ARM64");
-            return Some(format!(
-                "{}/llama-{}-bin-win-cpu-arm64.zip",
-                base_url, LLAMA_CPP_VERSION
-            ));
+            return get_component_url("llm_win_cpu_arm64");
         }
     }
 }
@@ -253,9 +229,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://dl.min.io/server/minio/release/linux-amd64/minio".to_string(),
-                ),
+                download_url: get_component_url("drive"),
                 binary_name: Some("minio".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -284,9 +258,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz".to_string(),
-                ),
+                download_url: get_component_url("tables"),
                 binary_name: Some("postgres".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
@@ -335,9 +307,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/valkey-io/valkey/archive/refs/tags/8.0.2.tar.gz".to_string(),
-                ),
+                download_url: get_component_url("cache"),
                 binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
@@ -410,10 +380,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/stalwartlabs/mail-server/releases/download/v0.10.7/stalwart-mail-x86_64-linux.tar.gz"
-                        .to_string(),
-                ),
+                download_url: get_component_url("email"),
                 binary_name: Some("stalwart-mail".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -443,9 +410,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/caddyserver/caddy/releases/download/v2.10.0-beta.3/caddy_2.10.0-beta.3_linux_amd64.tar.gz".to_string(),
-                ),
+                download_url: get_component_url("proxy"),
                 binary_name: Some("caddy".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
@@ -455,10 +420,14 @@ impl PackageManager {
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
-                env_vars: HashMap::from([("XDG_DATA_HOME".to_string(), "{{DATA_PATH}}".to_string())]),
+                env_vars: HashMap::from([(
+                    "XDG_DATA_HOME".to_string(),
+                    "{{DATA_PATH}}".to_string(),
+                )]),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/caddy run --config {{CONF_PATH}}/Caddyfile".to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost >/dev/null 2>&1"
+                    .to_string(),
             },
         );
     }
@@ -473,10 +442,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/zitadel/zitadel/releases/download/v2.70.4/zitadel-linux-amd64.tar.gz"
-                        .to_string(),
-                ),
+                download_url: get_component_url("directory"),
                 binary_name: Some("zitadel".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{CONF_PATH}}/directory".to_string(),
@@ -519,9 +485,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.2/forgejo-10.0.2-linux-amd64".to_string(),
-                ),
+                download_url: get_component_url("alm"),
                 binary_name: Some("forgejo".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -551,9 +515,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec!["git".to_string(), "node".to_string()],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://code.forgejo.org/forgejo/runner/releases/download/v6.3.1/forgejo-runner-6.3.1-linux-amd64".to_string(),
-                ),
+                download_url: get_component_url("alm_ci"),
                 binary_name: Some("forgejo-runner".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{CONF_PATH}}/alm-ci".to_string(),
@@ -592,9 +554,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/coredns/coredns/releases/download/v1.11.1/coredns_1.11.1_linux_amd64.tgz".to_string(),
-                ),
+                download_url: get_component_url("dns"),
                 binary_name: Some("coredns".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -626,9 +586,7 @@ impl PackageManager {
                 ],
                 macos_packages: vec!["php".to_string()],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/roundcube/roundcubemail/releases/download/1.6.6/roundcubemail-1.6.6-complete.tar.gz".to_string(),
-                ),
+                download_url: get_component_url("webmail"),
                 binary_name: None,
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -639,7 +597,9 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "php -S 0.0.0.0:8080 -t {{DATA_PATH}}/roundcubemail".to_string(),
-                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8300 >/dev/null 2>&1".to_string(),
+                check_cmd:
+                    "curl -f -k --connect-timeout 2 -m 5 https://localhost:8300 >/dev/null 2>&1"
+                        .to_string(),
             },
         );
     }
@@ -654,10 +614,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/livekit/livekit/releases/download/v2.8.2/livekit_2.8.2_linux_amd64.tar.gz"
-                        .to_string(),
-                ),
+                download_url: get_component_url("meet"),
                 binary_name: Some("livekit-server".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -684,7 +641,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some("http://get.nocodb.com/linux-x64".to_string()),
+                download_url: get_component_url("table_editor"),
                 binary_name: Some("nocodb".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -823,9 +780,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/qdrant/qdrant/releases/latest/download/qdrant-x86_64-unknown-linux-gnu.tar.gz".to_string(),
-                ),
+                download_url: get_component_url("vector_db"),
                 binary_name: Some("qdrant".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -851,9 +806,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://download.influxdata.com/influxdb/releases/influxdb2-2.7.5-linux-amd64.tar.gz".to_string(),
-                ),
+                download_url: get_component_url("timeseries_db"),
                 binary_name: Some("influxd".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{DATA_PATH}}/influxdb".to_string(),
@@ -893,10 +846,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip"
-                        .to_string(),
-                ),
+                download_url: get_component_url("vault"),
                 binary_name: Some("vault".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{DATA_PATH}}/vault".to_string(),
@@ -981,9 +931,7 @@ EOF"#.to_string(),
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://packages.timber.io/vector/0.35.0/vector-0.35.0-x86_64-unknown-linux-gnu.tar.gz".to_string(),
-                ),
+                download_url: get_component_url("observability"),
                 binary_name: Some("vector".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{CONF_PATH}}/monitoring".to_string(),
@@ -1000,13 +948,11 @@ EOF"#.to_string(),
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
 
-
-
-
-
-
-                exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml".to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8686/health >/dev/null 2>&1".to_string(),
+                exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml"
+                    .to_string(),
+                check_cmd:
+                    "curl -f --connect-timeout 2 -m 5 http://localhost:8686/health >/dev/null 2>&1"
+                        .to_string(),
             },
         );
     }
