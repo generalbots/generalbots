@@ -98,11 +98,14 @@ impl DownloadCache {
 
         if !config_path.exists() {
             debug!(
-                "No {} found at {}, using defaults",
+                "No {} found at {}, using embedded configuration",
                 CONFIG_FILE,
                 config_path.display()
             );
-            return Ok(ThirdPartyConfig::default());
+            let content = include_str!("../../../3rdparty.toml");
+            let config: ThirdPartyConfig =
+                toml::from_str(content).with_context(|| "Failed to parse embedded config file")?;
+            return Ok(config);
         }
 
         let content = fs::read_to_string(&config_path)
