@@ -294,7 +294,16 @@ impl AppConfig {
             server: ServerConfig {
                 host: get_str("server_host", "0.0.0.0"),
                 port: get_u16("server_port", 8080),
-                base_url: get_str("server_base_url", "http://localhost:8080"),
+                base_url: config_map.get("server_base_url").cloned().unwrap_or_else(|| {
+                    let is_prod = std::env::var("BOTSERVER_ENV")
+                        .map(|v| v == "production" || v == "prod")
+                        .unwrap_or(false);
+                    if is_prod {
+                        "https://system.pragmatismo.com.br/".to_string()
+                    } else {
+                        "http://localhost:8080".to_string()
+                    }
+                }),
             },
             site_path: {
                 ConfigManager::new(pool.clone()).get_config(
@@ -327,7 +336,16 @@ impl AppConfig {
             server: ServerConfig {
                 host: "0.0.0.0".to_string(),
                 port: 8080,
-                base_url: "http://localhost:8080".to_string(),
+                base_url: {
+                    let is_prod = std::env::var("BOTSERVER_ENV")
+                        .map(|v| v == "production" || v == "prod")
+                        .unwrap_or(false);
+                    if is_prod {
+                        "https://system.pragmatismo.com.br/".to_string()
+                    } else {
+                        "http://localhost:8080".to_string()
+                    }
+                },
             },
 
             site_path: "./botserver-stack/sites".to_string(),
