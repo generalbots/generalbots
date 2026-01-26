@@ -49,13 +49,13 @@ install_debian_ubuntu() {
     # Runtime libraries for botserver binary
     apt-get install -y \
         libpq5 \
+        libpq-dev \
         libssl3 \
         liblzma5 \
         zlib1g \
         ca-certificates \
         curl \
         wget \
-        libabseil-dev \
         libclang-dev \
         pkg-config
 
