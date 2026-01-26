@@ -12,17 +12,23 @@ use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::path::PathBuf;
 fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
-    SafeCommand::new("lxc")
-        .and_then(|c| c.args(args))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
+    let mut cmd_res = SafeCommand::new("lxc").and_then(|c| c.args(args));
+
+    if std::path::Path::new("/tmp/lxd.sock").exists() {
+        cmd_res = cmd_res.and_then(|c| c.env("LXD_SOCKET", "/tmp/lxd.sock"));
+    }
+
+    cmd_res.ok().and_then(|cmd| cmd.execute().ok())
 }
 
 fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
-    SafeCommand::new("lxd")
-        .and_then(|c| c.args(args))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
+    let mut cmd_res = SafeCommand::new("lxd").and_then(|c| c.args(args));
+
+    if std::path::Path::new("/tmp/lxd.sock").exists() {
+        cmd_res = cmd_res.and_then(|c| c.env("LXD_SOCKET", "/tmp/lxd.sock"));
+    }
+
+    cmd_res.ok().and_then(|cmd| cmd.execute().ok())
 }
 
 fn safe_tar(args: &[&str]) -> Option<std::process::Output> {
@@ -1063,11 +1069,19 @@ Store credentials in Vault:
                 .replace("{{DB_PASSWORD}}", &db_password);
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
-                let output = SafeCommand::new("bash")
+                let mut cmd = SafeCommand::new("bash")
                     .and_then(|c| c.arg("-c"))
                     .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
                     .and_then(|c| c.working_dir(&bin_path))
-                    .map_err(|e| anyhow::anyhow!("Failed to build bash command: {}", e))?
+                    .map_err(|e| anyhow::anyhow!("Failed to build bash command: {}", e))?;
+
+                if std::path::Path::new("/tmp/lxd.sock").exists() {
+                    cmd = cmd
+                        .env("LXD_SOCKET", "/tmp/lxd.sock")
+                        .map_err(|e| anyhow::anyhow!("Failed to set env: {}", e))?;
+                }
+
+                let output = cmd
                     .execute()
                     .with_context(|| {
                         format!("Failed to execute command for component '{}'", component)

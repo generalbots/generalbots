@@ -80,7 +80,7 @@ jobs:
       - name: Build debug
         working-directory: workspace
         run: |
-          cargo build -p botserver -p botui -j 8 2>&1 | tee /tmp/build.log
+          cargo build -p botserver -p botui --features botui/embed-ui -j 8 2>&1 | tee /tmp/build.log
           ls -lh target/debug/botserver
           ls -lh target/debug/botui
           sccache --show-stats || true

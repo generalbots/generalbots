@@ -113,6 +113,7 @@ pub struct SafeCommand {
     args: Vec<String>,
     working_dir: Option<PathBuf>,
     allowed_paths: Vec<PathBuf>,
+    envs: HashMap<String, String>,
 }
 
 impl SafeCommand {
@@ -136,6 +137,7 @@ impl SafeCommand {
                 dirs::home_dir().unwrap_or_else(|| PathBuf::from("/")),
                 std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/")),
             ],
+            envs: HashMap::new(),
         })
     }
 
@@ -243,6 +245,13 @@ impl SafeCommand {
         self
     }
 
+    pub fn env(mut self, key: &str, value: &str) -> Result<Self, CommandGuardError> {
+        validate_argument(key)?;
+        validate_argument(value)?;
+        self.envs.insert(key.to_string(), value.to_string());
+        Ok(self)
+    }
+
     pub fn execute(&self) -> Result<Output, CommandGuardError> {
         let mut cmd = std::process::Command::new(&self.command);
         cmd.args(&self.args);
@@ -255,6 +264,10 @@ impl SafeCommand {
         cmd.env("PATH", "/usr/local/bin:/usr/bin:/bin");
         cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
         cmd.env("LANG", "C.UTF-8");
+
+        for (key, value) in &self.envs {
+            cmd.env(key, value);
+        }
 
         cmd.output()
             .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
@@ -273,6 +286,10 @@ impl SafeCommand {
         cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
         cmd.env("LANG", "C.UTF-8");
 
+        for (key, value) in &self.envs {
+            cmd.env(key, value);
+        }
+
         cmd.output()
             .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
     }
@@ -290,6 +307,10 @@ impl SafeCommand {
         cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
         cmd.env("LANG", "C.UTF-8");
 
+        for (key, value) in &self.envs {
+            cmd.env(key, value);
+        }
+
         cmd.spawn()
             .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
     }
@@ -306,6 +327,10 @@ impl SafeCommand {
         cmd.env("PATH", "/usr/local/bin:/usr/bin:/bin");
         cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
         cmd.env("LANG", "C.UTF-8");
+
+        for (key, value) in &self.envs {
+            cmd.env(key, value);
+        }
 
         for (key, value) in envs {
             if validate_argument(key).is_ok() && validate_argument(value).is_ok() {
