@@ -26,7 +26,7 @@ jobs:
 
       - name: Setup Workspace
         run: |
-          git clone --depth 1 https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
           cd workspace
           git submodule update --init --depth 1 botlib
           git submodule update --init --depth 1 botui
