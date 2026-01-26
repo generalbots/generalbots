@@ -18,7 +18,19 @@ fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
         cmd_res = cmd_res.and_then(|c| c.env("LXD_SOCKET", "/tmp/lxd.sock"));
     }
 
-    cmd_res.ok().and_then(|cmd| cmd.execute().ok())
+    match cmd_res {
+        Ok(cmd) => match cmd.execute() {
+            Ok(output) => Some(output),
+            Err(e) => {
+                log::error!("Failed to execute lxc command '{:?}': {}", args, e);
+                None
+            }
+        },
+        Err(e) => {
+            log::error!("Failed to build lxc command '{:?}': {}", args, e);
+            None
+        }
+    }
 }
 
 fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
@@ -208,7 +220,10 @@ impl PackageManager {
             ));
         }
         std::thread::sleep(std::time::Duration::from_secs(15));
-        self.exec_in_container(&container_name, "mkdir -p /opt/gbo/{bin,data,conf,logs}")?;
+        self.exec_in_container(
+            &container_name,
+            "mkdir -p /opt/gbo/bin /opt/gbo/data /opt/gbo/conf /opt/gbo/logs",
+        )?;
 
         self.exec_in_container(
             &container_name,
