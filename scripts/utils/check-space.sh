@@ -8,7 +8,7 @@ done
 #!/bin/bash
 
 # Directory to analyze
-TARGET_DIR="/opt/gbo/tenants/pragmatismo"
+TARGET_DIR="/opt/gbo/tenants/system"
 
 echo "Calculating sizes for directories in $TARGET_DIR..."
 echo ""

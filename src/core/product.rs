@@ -12,9 +12,8 @@ use std::sync::RwLock;
 use tracing::{info, warn};
 
 /// Global product configuration instance
-pub static PRODUCT_CONFIG: Lazy<RwLock<ProductConfig>> = Lazy::new(|| {
-    RwLock::new(ProductConfig::load().unwrap_or_default())
-});
+pub static PRODUCT_CONFIG: Lazy<RwLock<ProductConfig>> =
+    Lazy::new(|| RwLock::new(ProductConfig::load().unwrap_or_default()));
 
 /// Product configuration structure
 #[derive(Debug, Clone)]
@@ -52,9 +51,22 @@ impl Default for ProductConfig {
         let mut apps = HashSet::new();
         // All apps enabled by default
         for app in &[
-            "chat", "mail", "calendar", "drive", "tasks", "docs", "paper",
-            "sheet", "slides", "meet", "research", "sources", "analytics",
-            "admin", "monitoring", "settings",
+            "chat",
+            "mail",
+            "calendar",
+            "drive",
+            "tasks",
+            "docs",
+            "paper",
+            "sheet",
+            "slides",
+            "meet",
+            "research",
+            "sources",
+            "analytics",
+            "admin",
+            "monitoring",
+            "settings",
         ] {
             apps.insert(app.to_string());
         }
@@ -67,7 +79,7 @@ impl Default for ProductConfig {
             favicon: None,
             primary_color: None,
             support_email: None,
-            docs_url: Some("https://docs.pragmatismo.com.br".to_string()),
+            docs_url: None,
             copyright: None,
         }
     }
@@ -76,11 +88,7 @@ impl Default for ProductConfig {
 impl ProductConfig {
     /// Load configuration from .product file
     pub fn load() -> Result<Self, ProductConfigError> {
-        let paths = [
-            ".product",
-            "./botserver/.product",
-            "../.product",
-        ];
+        let paths = [".product", "./botserver/.product", "../.product"];
 
         let mut content = None;
         for path in &paths {
@@ -215,7 +223,9 @@ impl ProductConfig {
     /// Get copyright text with year substitution
     pub fn get_copyright(&self) -> String {
         let year = chrono::Utc::now().format("%Y").to_string();
-        let template = self.copyright.as_deref()
+        let template = self
+            .copyright
+            .as_deref()
             .unwrap_or("© {year} {name}. All rights reserved.");
 
         template
@@ -231,7 +241,8 @@ impl ProductConfig {
     /// Reload configuration from file
     pub fn reload() -> Result<(), ProductConfigError> {
         let new_config = Self::load()?;
-        let mut config = PRODUCT_CONFIG.write()
+        let mut config = PRODUCT_CONFIG
+            .write()
             .map_err(|_| ProductConfigError::LockError)?;
         *config = new_config;
         info!("Product configuration reloaded");
@@ -295,7 +306,7 @@ pub fn replace_branding(text: &str) -> String {
 pub fn get_product_config_json() -> serde_json::Value {
     // Get compiled features from our new module
     let compiled = crate::core::features::COMPILED_FEATURES;
-    
+
     // Get current config
     let config = PRODUCT_CONFIG.read().ok();
 
@@ -327,7 +338,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "compiled_features": compiled,
             "version": env!("CARGO_PKG_VERSION"),
             "theme": "sentient",
-        })
+        }),
     }
 }
 
@@ -336,7 +347,6 @@ pub fn get_workspace_manifest() -> serde_json::Value {
     let manifest = crate::core::manifest::WorkspaceManifest::new();
     serde_json::to_value(manifest).unwrap_or_else(|_| serde_json::json!({}))
 }
-
 
 /// Middleware to check if an app is enabled before allowing API access
 pub async fn app_gate_middleware(
@@ -390,18 +400,15 @@ pub async fn app_gate_middleware(
         // Some core apps like settings might not be in feature flags explicitly or always enabled.
         // For simplicity, if it's not in compiled features but is a known core route, we might allow it,
         // but here we enforce strict feature containment.
-        // Exception: 'settings' and 'auth' are often core. 
+        // Exception: 'settings' and 'auth' are often core.
         if app != "settings" && app != "auth" && !crate::core::features::is_feature_compiled(app) {
-             let error_response = serde_json::json!({
+            let error_response = serde_json::json!({
                 "error": "not_implemented",
                 "message": format!("The '{}' feature is not compiled in this build", app),
                 "code": 501
             });
 
-            return (
-                StatusCode::NOT_IMPLEMENTED,
-                axum::Json(error_response)
-            ).into_response();
+            return (StatusCode::NOT_IMPLEMENTED, axum::Json(error_response)).into_response();
         }
 
         if !is_app_enabled(app) {
@@ -411,10 +418,7 @@ pub async fn app_gate_middleware(
                 "code": 403
             });
 
-            return (
-                StatusCode::FORBIDDEN,
-                axum::Json(error_response)
-            ).into_response();
+            return (StatusCode::FORBIDDEN, axum::Json(error_response)).into_response();
         }
     }
 
@@ -424,9 +428,22 @@ pub async fn app_gate_middleware(
 /// Get list of disabled apps for logging/debugging
 pub fn get_disabled_apps() -> Vec<String> {
     let all_apps = vec![
-        "chat", "mail", "calendar", "drive", "tasks", "docs", "paper",
-        "sheet", "slides", "meet", "research", "sources", "analytics",
-        "admin", "monitoring", "settings",
+        "chat",
+        "mail",
+        "calendar",
+        "drive",
+        "tasks",
+        "docs",
+        "paper",
+        "sheet",
+        "slides",
+        "meet",
+        "research",
+        "sources",
+        "analytics",
+        "admin",
+        "monitoring",
+        "settings",
     ];
 
     all_apps

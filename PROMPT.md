@@ -231,7 +231,7 @@ When configuring CI/CD pipelines (e.g., Forgejo Actions):
 - name: Setup Workspace
   run: |
     # 1. Clone only the root workspace configuration
-    git clone --depth 1 https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+    git clone --depth 1 <your-git-repo-url> workspace
     
     # 2. Setup only the necessary dependencies (botlib)
     cd workspace

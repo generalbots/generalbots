@@ -255,9 +255,7 @@ impl SecretsManager {
             s.get("url")
                 .cloned()
                 .unwrap_or_else(|| "http://localhost:8086".into()),
-            s.get("org")
-                .cloned()
-                .unwrap_or_else(|| "pragmatismo".into()),
+            s.get("org").cloned().unwrap_or_else(|| "system".into()),
             s.get("bucket").cloned().unwrap_or_else(|| "metrics".into()),
             s.get("token").cloned().unwrap_or_default(),
         ))
