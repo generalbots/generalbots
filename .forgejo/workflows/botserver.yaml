@@ -95,6 +95,7 @@ jobs:
         working-directory: workspace
         run: |
           lxc exec bot:pragmatismo-system -- systemctl stop system || true
+          lxc exec bot:pragmatismo-system -- systemctl stop ui || true
 
           sudo cp target/debug/botserver /opt/gbo/bin/system/
           sudo chmod +x /opt/gbo/bin/system/botserver
@@ -102,3 +103,4 @@ jobs:
           sudo chmod +x /opt/gbo/bin/system/botui
 
           lxc exec bot:pragmatismo-system -- systemctl start system || true
+          lxc exec bot:pragmatismo-system -- systemctl start ui || true
