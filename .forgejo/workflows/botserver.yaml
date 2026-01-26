@@ -48,6 +48,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cache/sccache
             workspace/target
           key: ${{ runner.os }}-cargo-v2-debug-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
@@ -70,7 +71,6 @@ jobs:
           mv sccache-v0.8.2-x86_64-unknown-linux-musl/sccache $HOME/.cargo/bin/sccache
           chmod +x $HOME/.cargo/bin/sccache
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-          echo "SCCACHE_DIR=/opt/gbo/sccache" >> $GITHUB_ENV
           $HOME/.cargo/bin/sccache --start-server || true
 
 
