@@ -436,7 +436,8 @@ impl PackageManager {
                     "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator unseal {}",
                     key_str
                 );
-                let unseal_output = safe_lxc(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
+                let unseal_output =
+                    safe_lxc(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
 
                 if let Some(output) = unseal_output {
                     if !output.status.success() {
@@ -594,7 +595,7 @@ Store credentials in Vault:
   API: http://{}:8086
 
 Store credentials in Vault:
-  botserver vault put gbo/observability url=http://{}:8086 token=<influx-token> org=pragmatismo bucket=metrics",
+  botserver vault put gbo/observability url=http://{}:8086 token=<influx-token> org=system bucket=metrics",
                     ip, ip
                 )
             }
@@ -926,7 +927,11 @@ Store credentials in Vault:
         let has_subdir = if list_output.status.success() {
             let contents = String::from_utf8_lossy(&list_output.stdout);
             // If first entry contains '/', there's a subdirectory structure
-            contents.lines().next().map(|l| l.contains('/')).unwrap_or(false)
+            contents
+                .lines()
+                .next()
+                .map(|l| l.contains('/'))
+                .unwrap_or(false)
         } else {
             false
         };
@@ -1081,11 +1086,9 @@ Store credentials in Vault:
                         .map_err(|e| anyhow::anyhow!("Failed to set env: {}", e))?;
                 }
 
-                let output = cmd
-                    .execute()
-                    .with_context(|| {
-                        format!("Failed to execute command for component '{}'", component)
-                    })?;
+                let output = cmd.execute().with_context(|| {
+                    format!("Failed to execute command for component '{}'", component)
+                })?;
                 if !output.status.success() {
                     error!(
                         "Command had non-zero exit: {}",
@@ -1269,7 +1272,8 @@ Store credentials in Vault:
                 "proxy",
                 &listen_arg,
                 &connect_arg,
-            ]).ok_or_else(|| anyhow::anyhow!("Failed to execute lxc port forward command"))?;
+            ])
+            .ok_or_else(|| anyhow::anyhow!("Failed to execute lxc port forward command"))?;
             if !output.status.success() {
                 warn!("Failed to setup port forwarding for port {}", port);
             }

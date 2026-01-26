@@ -860,7 +860,7 @@ impl PackageManager {
                     "mkdir -p {{CONF_PATH}}/influxdb".to_string(),
                 ],
                 post_install_cmds_linux: vec![
-                    "{{BIN_PATH}}/influx setup --org pragmatismo --bucket metrics --username admin --password {{GENERATED_PASSWORD}} --force".to_string(),
+                    "{{BIN_PATH}}/influx setup --org system --bucket metrics --username admin --password {{GENERATED_PASSWORD}} --force".to_string(),
                 ],
                 pre_install_cmds_macos: vec![
                     "mkdir -p {{DATA_PATH}}/influxdb".to_string(),
@@ -1082,7 +1082,8 @@ EOF"#.to_string(),
 
             trace!(
                 "Starting component {} with command: {}",
-                component.name, rendered_cmd
+                component.name,
+                rendered_cmd
             );
             trace!(
                 "Working directory: {}, logs_path: {}",
@@ -1108,7 +1109,8 @@ EOF"#.to_string(),
 
             trace!(
                 "About to spawn shell command for {}: {}",
-                component.name, rendered_cmd
+                component.name,
+                rendered_cmd
             );
             trace!("[START] Working dir: {}", bin_path.display());
             let child = SafeCommand::new("sh")
@@ -1118,11 +1120,7 @@ EOF"#.to_string(),
                 .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs))
                 .map_err(|e| anyhow::anyhow!("Failed to spawn process: {}", e));
 
-            trace!(
-                "Spawn result for {}: {:?}",
-                component.name,
-                child.is_ok()
-            );
+            trace!("Spawn result for {}: {:?}", component.name, child.is_ok());
             std::thread::sleep(std::time::Duration::from_secs(2));
 
             trace!(
@@ -1132,11 +1130,7 @@ EOF"#.to_string(),
             let check_proc = safe_pgrep(&["-f", &component.name]);
             if let Some(output) = check_proc {
                 let pids = String::from_utf8_lossy(&output.stdout);
-                trace!(
-                    "pgrep '{}' result: '{}'",
-                    component.name,
-                    pids.trim()
-                );
+                trace!("pgrep '{}' result: '{}'", component.name, pids.trim());
             }
 
             match child {
@@ -1199,11 +1193,14 @@ EOF"#.to_string(),
             client_key.display(),
             vault_addr
         ))
-            .map(|o| o.status.success())
-            .unwrap_or(false);
+        .map(|o| o.status.success())
+        .unwrap_or(false);
 
         if !vault_check {
-            trace!("Vault not reachable at {}, skipping credential fetch", vault_addr);
+            trace!(
+                "Vault not reachable at {}, skipping credential fetch",
+                vault_addr
+            );
             return credentials;
         }
 
@@ -1211,10 +1208,18 @@ EOF"#.to_string(),
         let vault_bin_str = vault_bin.to_string_lossy();
 
         // Get CA cert path for Vault TLS
-        let ca_cert_path = std::env::var("VAULT_CACERT")
-            .unwrap_or_else(|_| base_path.join("conf/system/certificates/ca/ca.crt").to_string_lossy().to_string());
+        let ca_cert_path = std::env::var("VAULT_CACERT").unwrap_or_else(|_| {
+            base_path
+                .join("conf/system/certificates/ca/ca.crt")
+                .to_string_lossy()
+                .to_string()
+        });
 
-        trace!("Fetching drive credentials from Vault at {} using {}", vault_addr, vault_bin_str);
+        trace!(
+            "Fetching drive credentials from Vault at {} using {}",
+            vault_addr,
+            vault_bin_str
+        );
         let drive_cmd = format!(
             "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -format=json secret/gbo/drive",
             vault_addr, vault_token, ca_cert_path, vault_bin_str
@@ -1227,13 +1232,19 @@ EOF"#.to_string(),
                     match serde_json::from_str::<serde_json::Value>(&json_str) {
                         Ok(json) => {
                             if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
-                                if let Some(accesskey) = data.get("accesskey").and_then(|v| v.as_str()) {
+                                if let Some(accesskey) =
+                                    data.get("accesskey").and_then(|v| v.as_str())
+                                {
                                     trace!("Found DRIVE_ACCESSKEY from Vault");
-                                    credentials.insert("DRIVE_ACCESSKEY".to_string(), accesskey.to_string());
+                                    credentials.insert(
+                                        "DRIVE_ACCESSKEY".to_string(),
+                                        accesskey.to_string(),
+                                    );
                                 }
                                 if let Some(secret) = data.get("secret").and_then(|v| v.as_str()) {
                                     trace!("Found DRIVE_SECRET from Vault");
-                                    credentials.insert("DRIVE_SECRET".to_string(), secret.to_string());
+                                    credentials
+                                        .insert("DRIVE_SECRET".to_string(), secret.to_string());
                                 }
                             } else {
                                 warn!("Vault response missing data.data field");
@@ -1259,7 +1270,8 @@ EOF"#.to_string(),
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
                         if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
                             if let Some(password) = data.get("password").and_then(|v| v.as_str()) {
-                                credentials.insert("CACHE_PASSWORD".to_string(), password.to_string());
+                                credentials
+                                    .insert("CACHE_PASSWORD".to_string(), password.to_string());
                             }
                         }
                     }

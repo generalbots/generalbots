@@ -1,22 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::utils::create_tls_client;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -25,10 +6,8 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeSeriesConfig {
-
     pub url: String,
 
     pub token: String,
@@ -49,7 +28,7 @@ impl Default for TimeSeriesConfig {
         Self {
             url: "http://localhost:8086".to_string(),
             token: String::new(),
-            org: "pragmatismo".to_string(),
+            org: "system".to_string(),
             bucket: "metrics".to_string(),
             batch_size: 1000,
             flush_interval_ms: 1000,
@@ -58,10 +37,8 @@ impl Default for TimeSeriesConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetricPoint {
-
     pub measurement: String,
 
     pub tags: HashMap<String, String>,
@@ -70,7 +47,6 @@ pub struct MetricPoint {
 
     pub timestamp: Option<DateTime<Utc>>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FieldValue {
@@ -82,7 +58,6 @@ pub enum FieldValue {
 }
 
 impl MetricPoint {
-
     pub fn new(measurement: impl Into<String>) -> Self {
         Self {
             measurement: measurement.into(),
@@ -92,24 +67,20 @@ impl MetricPoint {
         }
     }
 
-
     pub fn tag(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.tags.insert(key.into(), value.into());
         self
     }
-
 
     pub fn field_f64(mut self, key: impl Into<String>, value: f64) -> Self {
         self.fields.insert(key.into(), FieldValue::Float(value));
         self
     }
 
-
     pub fn field_i64(mut self, key: impl Into<String>, value: i64) -> Self {
         self.fields.insert(key.into(), FieldValue::Integer(value));
         self
     }
-
 
     pub fn field_u64(mut self, key: impl Into<String>, value: u64) -> Self {
         self.fields
@@ -117,29 +88,24 @@ impl MetricPoint {
         self
     }
 
-
     pub fn field_str(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.fields
             .insert(key.into(), FieldValue::String(value.into()));
         self
     }
 
-
     pub fn field_bool(mut self, key: impl Into<String>, value: bool) -> Self {
         self.fields.insert(key.into(), FieldValue::Boolean(value));
         self
     }
-
 
     pub fn at(mut self, timestamp: DateTime<Utc>) -> Self {
         self.timestamp = Some(timestamp);
         self
     }
 
-
     pub fn to_line_protocol(&self) -> String {
         let mut line = self.measurement.clone();
-
 
         let mut sorted_tags: Vec<_> = self.tags.iter().collect();
         sorted_tags.sort_by_key(|(k, _)| *k);
@@ -149,7 +115,6 @@ impl MetricPoint {
             line.push('=');
             line.push_str(&escape_tag_value(value));
         }
-
 
         line.push(' ');
         let mut sorted_fields: Vec<_> = self.fields.iter().collect();
@@ -171,7 +136,6 @@ impl MetricPoint {
             .collect();
         line.push_str(&fields_str.join(","));
 
-
         if let Some(ts) = self.timestamp {
             line.push(' ');
             line.push_str(&ts.timestamp_nanos_opt().unwrap_or(0).to_string());
@@ -181,13 +145,11 @@ impl MetricPoint {
     }
 }
 
-
 fn escape_tag_key(s: &str) -> String {
     s.replace(',', "\\,")
         .replace('=', "\\=")
         .replace(' ', "\\ ")
 }
-
 
 fn escape_tag_value(s: &str) -> String {
     s.replace(',', "\\,")
@@ -195,25 +157,21 @@ fn escape_tag_value(s: &str) -> String {
         .replace(' ', "\\ ")
 }
 
-
 fn escape_field_key(s: &str) -> String {
     s.replace(',', "\\,")
         .replace('=', "\\=")
         .replace(' ', "\\ ")
 }
 
-
 fn escape_string_value(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryResult {
     pub columns: Vec<String>,
     pub rows: Vec<Vec<serde_json::Value>>,
 }
-
 
 pub struct TimeSeriesClient {
     config: TimeSeriesConfig,
@@ -223,7 +181,6 @@ pub struct TimeSeriesClient {
 }
 
 impl TimeSeriesClient {
-
     pub async fn new(config: TimeSeriesConfig) -> Result<Self, TimeSeriesError> {
         let http_client = create_tls_client(Some(30));
 
@@ -237,22 +194,14 @@ impl TimeSeriesClient {
             write_sender,
         };
 
-
         let buffer_clone = write_buffer.clone();
         let config_clone = config.clone();
         tokio::spawn(async move {
-            Self::background_writer(
-                write_receiver,
-                buffer_clone,
-                http_client,
-                config_clone,
-            )
-            .await;
+            Self::background_writer(write_receiver, buffer_clone, http_client, config_clone).await;
         });
 
         Ok(client)
     }
-
 
     async fn background_writer(
         mut receiver: mpsc::Receiver<MetricPoint>,
@@ -290,7 +239,6 @@ impl TimeSeriesClient {
             }
         }
     }
-
 
     async fn flush_points(
         http_client: &reqwest::Client,
@@ -334,7 +282,6 @@ impl TimeSeriesClient {
         Ok(())
     }
 
-
     pub async fn write_point(&self, point: MetricPoint) -> Result<(), TimeSeriesError> {
         self.write_sender
             .send(point)
@@ -342,14 +289,12 @@ impl TimeSeriesClient {
             .map_err(|e| TimeSeriesError::WriteError(e.to_string()))
     }
 
-
     pub async fn write_points(&self, points: Vec<MetricPoint>) -> Result<(), TimeSeriesError> {
         for point in points {
             self.write_point(point).await?;
         }
         Ok(())
     }
-
 
     pub async fn query(&self, flux_query: &str) -> Result<QueryResult, TimeSeriesError> {
         let url = format!("{}/api/v2/query?org={}", self.config.url, self.config.org);
@@ -382,7 +327,6 @@ impl TimeSeriesClient {
         Self::parse_csv_result(&csv_data)
     }
 
-
     fn parse_csv_result(csv_data: &str) -> Result<QueryResult, TimeSeriesError> {
         let mut result = QueryResult {
             columns: Vec::new(),
@@ -390,7 +334,6 @@ impl TimeSeriesClient {
         };
 
         let mut lines = csv_data.lines().peekable();
-
 
         while let Some(line) = lines.peek() {
             if line.starts_with('#') || line.is_empty() {
@@ -400,11 +343,12 @@ impl TimeSeriesClient {
             }
         }
 
-
         if let Some(header_line) = lines.next() {
-            result.columns = header_line.split(',').map(|s| s.trim().to_string()).collect();
+            result.columns = header_line
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect();
         }
-
 
         for line in lines {
             if line.is_empty() || line.starts_with('#') {
@@ -436,7 +380,6 @@ impl TimeSeriesClient {
         Ok(result)
     }
 
-
     pub async fn query_range(
         &self,
         measurement: &str,
@@ -459,7 +402,6 @@ impl TimeSeriesClient {
         self.query(&flux).await
     }
 
-
     pub async fn query_last(&self, measurement: &str) -> Result<QueryResult, TimeSeriesError> {
         let flux = format!(
             r#"from(bucket: "{}")
@@ -471,7 +413,6 @@ impl TimeSeriesClient {
 
         self.query(&flux).await
     }
-
 
     pub async fn query_stats(
         &self,
@@ -498,7 +439,6 @@ impl TimeSeriesClient {
         self.query(&flux).await
     }
 
-
     pub async fn health_check(&self) -> Result<bool, TimeSeriesError> {
         let url = format!("{}/health", self.config.url);
 
@@ -513,11 +453,9 @@ impl TimeSeriesClient {
     }
 }
 
-
 pub struct Metrics;
 
 impl Metrics {
-
     pub fn message(bot_id: &str, channel: &str, direction: &str) -> MetricPoint {
         MetricPoint::new("messages")
             .tag("bot_id", bot_id)
@@ -527,14 +465,12 @@ impl Metrics {
             .at(Utc::now())
     }
 
-
     pub fn response_time(bot_id: &str, duration_ms: f64) -> MetricPoint {
         MetricPoint::new("response_time")
             .tag("bot_id", bot_id)
             .field_f64("duration_ms", duration_ms)
             .at(Utc::now())
     }
-
 
     pub fn llm_tokens(
         bot_id: &str,
@@ -551,14 +487,12 @@ impl Metrics {
             .at(Utc::now())
     }
 
-
     pub fn active_sessions(bot_id: &str, count: i64) -> MetricPoint {
         MetricPoint::new("active_sessions")
             .tag("bot_id", bot_id)
             .field_i64("count", count)
             .at(Utc::now())
     }
-
 
     pub fn error(bot_id: &str, error_type: &str, message: &str) -> MetricPoint {
         MetricPoint::new("errors")
@@ -569,7 +503,6 @@ impl Metrics {
             .at(Utc::now())
     }
 
-
     pub fn storage_usage(bot_id: &str, bytes_used: u64, file_count: u64) -> MetricPoint {
         MetricPoint::new("storage_usage")
             .tag("bot_id", bot_id)
@@ -578,8 +511,12 @@ impl Metrics {
             .at(Utc::now())
     }
 
-
-    pub fn api_request(endpoint: &str, method: &str, status_code: i64, duration_ms: f64) -> MetricPoint {
+    pub fn api_request(
+        endpoint: &str,
+        method: &str,
+        status_code: i64,
+        duration_ms: f64,
+    ) -> MetricPoint {
         MetricPoint::new("api_requests")
             .tag("endpoint", endpoint)
             .tag("method", method)
@@ -589,7 +526,6 @@ impl Metrics {
             .at(Utc::now())
     }
 
-
     pub fn system(cpu_percent: f64, memory_percent: f64, disk_percent: f64) -> MetricPoint {
         MetricPoint::new("system_metrics")
             .field_f64("cpu_percent", cpu_percent)
@@ -598,7 +534,6 @@ impl Metrics {
             .at(Utc::now())
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub enum TimeSeriesError {
