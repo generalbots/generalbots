@@ -2029,12 +2029,12 @@ CREATE INDEX IF NOT EXISTS idx_source_templates_category ON source_templates(cat
 -- Email tracking moved to migrations/mail
 
 -- Add comment for documentation
-COMMENT ON TABLE sent_email_tracking IS 'Tracks sent emails for read receipt functionality via tracking pixel';
-COMMENT ON COLUMN sent_email_tracking.tracking_id IS 'Unique ID embedded in tracking pixel URL';
-COMMENT ON COLUMN sent_email_tracking.is_read IS 'Whether the email has been opened (pixel loaded)';
-COMMENT ON COLUMN sent_email_tracking.read_count IS 'Number of times the email was opened';
-COMMENT ON COLUMN sent_email_tracking.first_read_ip IS 'IP address of first email open';
-COMMENT ON COLUMN sent_email_tracking.last_read_ip IS 'IP address of most recent email open';
+-- COMMENT ON TABLE sent_email_tracking IS 'Tracks sent emails for read receipt functionality via tracking pixel';
+-- COMMENT ON COLUMN sent_email_tracking.tracking_id IS 'Unique ID embedded in tracking pixel URL';
+-- COMMENT ON COLUMN sent_email_tracking.is_read IS 'Whether the email has been opened (pixel loaded)';
+-- COMMENT ON COLUMN sent_email_tracking.read_count IS 'Number of times the email was opened';
+-- COMMENT ON COLUMN sent_email_tracking.first_read_ip IS 'IP address of first email open';
+-- COMMENT ON COLUMN sent_email_tracking.last_read_ip IS 'IP address of most recent email open';
 -- ============================================
 -- TABLE KEYWORD SUPPORT (from 6.1.0_table_keyword)
 -- ============================================
