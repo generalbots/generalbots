@@ -1,5 +1,5 @@
 lxc config device override $CONTAINER_NAME root
-lxc config device set  $CONTAINER_NAME root size 6GB
+lxc config device set  $CONTAINER_NAME root size 12GB
 
 zpool set autoexpand=on default
 zpool online -e default /var/snap/lxd/common/lxd/disks/default.img

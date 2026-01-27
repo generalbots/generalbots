@@ -6,14 +6,16 @@ declare -A container_limits=(
      ["*tables*"]="4096MB:100ms/100ms"
      ["*postgre*"]="4096MB:100ms/100ms"    # PostgreSQL alternative
      ["*dns*"]="2048MB:100ms/100ms"
-     ["*table-editor*"]="2048MB:25s/100ms"
+     ["*oppbot*"]="4048MB:100ms/100ms"
+     ["*table-editor*"]="2048MB:25ms/100ms"
      ["*proxy*"]="2048MB:100ms/100ms"
      ["*directory*"]="1024MB:50ms/100ms"
      ["*drive*"]="4096MB:100ms/100ms"
      ["*minio*"]="4096MB:100ms/100ms"      # MinIO alternative
      ["*email*"]="4096MB:100ms/100ms"
      ["*webmail*"]="2096MB:100ms/100ms"
-     ["*bot*"]="2048MB:5ms/100ms"
+     ["*bot*"]="2048MB:25ms/100ms"
+     ["*oppbot*"]="2048MB:50ms/100ms"
      ["*meeting*"]="4096MB:100ms/100ms"
      ["*alm*"]="512MB:50ms/100ms"
      ["*vault*"]="512MB:50ms/100ms"
@@ -56,7 +58,7 @@ echo "========================================================="
 # Configure all containers
 for container in $containers; do
     echo "Configuring $container..."
-    
+
     memory=$DEFAULT_MEMORY
     cpu_allowance=$DEFAULT_CPU_ALLOWANCE
     cpu_count=$DEFAULT_CPU_COUNT
@@ -71,7 +73,7 @@ for container in $containers; do
             IFS=':' read -r memory cpu_allowance <<< "${container_limits[$pattern]}"
             matched_pattern=$pattern
             echo "  → Matched pattern: $pattern"
-            
+
             # Set CPU count based on service type
             if [[ $pattern == "*alm-ci*" ]]; then
                 cpu_count=2  # More CPUs for alm-ci
@@ -79,7 +81,7 @@ for container in $containers; do
                 cpu_count=1  # More CPUs for PostgreSQL
             elif [[ $pattern == "*drive*" ]] || [[ $pattern == "*minio*" ]]; then
                 cpu_count=1  # More CPUs for MinIO
-            else    
+            else
                 cpu_count=1
             fi
             break
@@ -99,7 +101,7 @@ for container in $containers; do
     echo "  → CPU: $cpu_count cores"
     echo "  → CPU Allowance: $cpu_allowance"
     echo "  → CPU Priority: $cpu_priority/10"
-    
+
     lxc config set "$container" limits.memory "$memory"
     lxc config set "$container" limits.cpu.allowance "$cpu_allowance"
     lxc config set "$container" limits.cpu "$cpu_count"
@@ -107,7 +109,7 @@ for container in $containers; do
 
     echo "  → Restarting $container..."
     lxc restart "$container" --timeout=30
-    
+
     echo "  → Current config:"
     lxc config show "$container" | grep -E "memory|cpu" | sed 's/^/    /'
     echo ""
