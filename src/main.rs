@@ -887,7 +887,7 @@ async fn main() -> std::io::Result<()> {
 
     let rust_log = match std::env::var("RUST_LOG") {
         Ok(existing) if !existing.is_empty() => format!("{},{}", existing, noise_filters),
-        _ => noise_filters.to_string(),
+        _ => format!("info,{}", noise_filters),
     };
 
     std::env::set_var("RUST_LOG", &rust_log);
@@ -897,7 +897,7 @@ async fn main() -> std::io::Result<()> {
     use crate::llm::local::ensure_llama_servers_running;
 
     if no_console || no_ui {
-        botlib::logging::init_compact_logger_with_style("trace");
+        botlib::logging::init_compact_logger_with_style("info");
         println!("Starting General Bots {}...", env!("CARGO_PKG_VERSION"));
     }
 
