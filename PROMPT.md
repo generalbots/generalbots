@@ -32,17 +32,48 @@
 
 ## 🔐 SECURITY REQUIREMENTS
 
-### Error Handling
+### Error Handling - CRITICAL DEBT
+
+**Current Status**: 955 instances of `unwrap()`/`expect()` found in codebase
+**Target**: 0 instances in production code (tests excluded)
 
 ```rust
-// ❌ WRONG
+// ❌ WRONG - Found 955 times in codebase
 let value = something.unwrap();
 let value = something.expect("msg");
 
-// ✅ CORRECT
+// ✅ CORRECT - Required replacements
 let value = something?;
 let value = something.ok_or_else(|| Error::NotFound)?;
 let value = something.unwrap_or_default();
+let value = something.unwrap_or_else(|e| { 
+    log::error!("Operation failed: {e}"); 
+    default_value 
+});
+```
+
+### Performance Issues - CRITICAL DEBT
+
+**Current Status**: 12,973 excessive `clone()`/`to_string()` calls
+**Target**: Minimize allocations, use references where possible
+
+```rust
+// ❌ WRONG - Excessive allocations
+let name = user.name.clone();
+let msg = format!("Hello {}", name.to_string());
+
+// ✅ CORRECT - Minimize allocations  
+let name = &user.name;
+let msg = format!("Hello {name}");
+
+// ✅ CORRECT - Use Cow for conditional ownership
+use std::borrow::Cow;
+fn process_name(name: Cow<str>) -> String {
+    match name {
+        Cow::Borrowed(s) => s.to_uppercase(),
+        Cow::Owned(s) => s.to_uppercase(),
+    }
+}
 ```
 
 ### Rhai Syntax Registration
@@ -182,9 +213,24 @@ src/
 │   └── keywords/   # BASIC keyword implementations
 ├── security/       # Security modules
 ├── shared/         # Shared types, models
-├── tasks/          # AutoTask system
-└── auto_task/      # App generator
+├── tasks/          # AutoTask system (2651 lines - NEEDS REFACTORING)
+├── auto_task/      # App generator (2981 lines - NEEDS REFACTORING)
+├── drive/          # File operations (1522 lines - NEEDS REFACTORING)
+├── learn/          # Learning system (2306 lines - NEEDS REFACTORING)
+└── attendance/     # LLM assistance (2053 lines - NEEDS REFACTORING)
 ```
+
+### Files Requiring Immediate Refactoring
+
+| File | Current Lines | Target |
+|------|---------------|--------|
+| `auto_task/app_generator.rs` | 2981 | Split into 7 files |
+| `tasks/mod.rs` | 2651 | Split into 6 files |  
+| `learn/mod.rs` | 2306 | Split into 5 files |
+| `attendance/llm_assist.rs` | 2053 | Split into 5 files |
+| `drive/mod.rs` | 1522 | Split into 4 files |
+
+**See `TODO-refactor1.md` for detailed refactoring plans**
 
 ---
 
@@ -251,9 +297,19 @@ When configuring CI/CD pipelines (e.g., Forgejo Actions):
 - **ZERO COMMENTS** - no comments, no doc comments
 - **NO ALLOW IN CODE** - configure exceptions in Cargo.toml only
 - **NO DEAD CODE** - delete unused code
-- **NO UNWRAP/EXPECT** - use ? or combinators
+- **NO UNWRAP/EXPECT** - use ? or combinators (955 instances to fix)
+- **MINIMIZE CLONES** - avoid excessive allocations (12,973 instances to optimize)
 - **PARAMETERIZED SQL** - never format! for queries
 - **VALIDATE COMMANDS** - never pass raw user input
 - **INLINE FORMAT ARGS** - `format!("{name}")` not `format!("{}", name)`
 - **USE SELF** - in impl blocks, use Self not type name
+- **FILE SIZE LIMIT** - max 450 lines per file, refactor at 350 lines
 - **Version 6.2.0** - do not change without approval
+
+## 🚨 IMMEDIATE ACTION REQUIRED
+
+1. **Replace 955 unwrap()/expect() calls** with proper error handling
+2. **Optimize 12,973 clone()/to_string() calls** for performance  
+3. **Refactor 5 large files** following TODO-refactor1.md
+4. **Add missing error handling** in critical paths
+5. **Implement proper logging** instead of panicking
