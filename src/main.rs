@@ -9,47 +9,53 @@ use tikv_jemallocator::Jemalloc;
 static GLOBAL: Jemalloc = Jemalloc;
 
 // Module declarations
+#[cfg(feature = "analytics")]
+pub mod analytics;
+#[cfg(feature = "attendant")]
+pub mod attendant;
 #[cfg(feature = "automation")]
 pub mod auto_task;
 #[cfg(feature = "scripting")]
 pub mod basic;
 #[cfg(feature = "billing")]
 pub mod billing;
+pub mod botmodels;
 #[cfg(feature = "canvas")]
 pub mod canvas;
 pub mod channels;
 #[cfg(feature = "people")]
 pub mod contacts;
 pub mod core;
-#[cfg(feature = "dashboards")]
-pub mod shared;
-pub mod embedded_ui;
-pub mod maintenance;
-pub mod multimodal;
-#[cfg(feature = "player")]
-pub mod player;
-#[cfg(feature = "people")]
-pub mod people;
-#[cfg(feature = "billing")]
-pub mod products;
-pub mod search;
-pub mod security;
-#[cfg(feature = "tickets")]
-pub mod tickets;
-#[cfg(feature = "attendant")]
-pub mod attendant;
-#[cfg(feature = "analytics")]
-pub mod analytics;
 #[cfg(feature = "designer")]
 pub mod designer;
 #[cfg(feature = "docs")]
 pub mod docs;
+pub mod embedded_ui;
 #[cfg(feature = "learn")]
 pub mod learn;
+#[cfg(feature = "compliance")]
+pub mod legal;
+pub mod maintenance;
+#[cfg(feature = "monitoring")]
+pub mod monitoring;
+pub mod multimodal;
 #[cfg(feature = "paper")]
 pub mod paper;
+#[cfg(feature = "people")]
+pub mod people;
+#[cfg(feature = "player")]
+pub mod player;
+#[cfg(feature = "billing")]
+pub mod products;
+#[cfg(feature = "project")]
+pub mod project;
 #[cfg(feature = "research")]
 pub mod research;
+pub mod search;
+pub mod security;
+pub mod settings;
+#[cfg(feature = "dashboards")]
+pub mod shared;
 #[cfg(feature = "sheet")]
 pub mod sheet;
 #[cfg(feature = "slides")]
@@ -58,18 +64,12 @@ pub mod slides;
 pub mod social;
 #[cfg(feature = "sources")]
 pub mod sources;
+#[cfg(feature = "tickets")]
+pub mod tickets;
 #[cfg(feature = "video")]
 pub mod video;
-#[cfg(feature = "monitoring")]
-pub mod monitoring;
-#[cfg(feature = "project")]
-pub mod project;
 #[cfg(feature = "workspaces")]
 pub mod workspaces;
-pub mod botmodels;
-#[cfg(feature = "compliance")]
-pub mod legal;
-pub mod settings;
 
 #[cfg(feature = "attendant")]
 pub mod attendance;
@@ -174,9 +174,7 @@ async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
         "../botui/ui/suite/js/vendor/htmx.min.js",
     ];
 
-    let htmx_content = htmx_paths
-        .iter()
-        .find_map(|path| std::fs::read(path).ok());
+    let htmx_content = htmx_paths.iter().find_map(|path| std::fs::read(path).ok());
 
     let Some(content) = htmx_content else {
         warn!("Could not find htmx.min.js in botui, skipping MinIO upload");
@@ -201,18 +199,16 @@ async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
 }
 
 use crate::security::{
-    create_cors_layer, create_rate_limit_layer, create_security_headers_layer,
-    request_id_middleware, security_headers_middleware, set_cors_allowed_origins,
-    set_global_panic_hook, AuthConfig, HttpRateLimitConfig, PanicHandlerConfig,
-    SecurityHeadersConfig, AuthProviderBuilder, ApiKeyAuthProvider, JwtConfig, JwtKey,
-    JwtManager, RbacManager, RbacConfig, AuthMiddlewareState,
-    build_default_route_permissions,
+    build_default_route_permissions, create_cors_layer, create_rate_limit_layer,
+    create_security_headers_layer, request_id_middleware, security_headers_middleware,
+    set_cors_allowed_origins, set_global_panic_hook, ApiKeyAuthProvider, AuthConfig,
+    AuthMiddlewareState, AuthProviderBuilder, HttpRateLimitConfig, JwtConfig, JwtKey, JwtManager,
+    PanicHandlerConfig, RbacConfig, RbacManager, SecurityHeadersConfig,
 };
 use botlib::SystemLimits;
 
 use crate::core::shared::memory_monitor::{
-    start_memory_monitor, log_process_memory, MemoryStats,
-    register_thread, record_thread_activity
+    log_process_memory, record_thread_activity, register_thread, start_memory_monitor, MemoryStats,
 };
 
 #[cfg(feature = "automation")]
@@ -222,22 +218,21 @@ use crate::core::bot;
 use crate::core::package_manager;
 use crate::core::session;
 
-#[cfg(feature = "automation")]
-use automation::AutomationService;
-use bootstrap::BootstrapManager;
 use crate::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
 use crate::core::bot::websocket_handler;
 use crate::core::bot::BotOrchestrator;
 use crate::core::bot_database::BotDatabaseManager;
 use crate::core::config::AppConfig;
+#[cfg(feature = "automation")]
+use automation::AutomationService;
+use bootstrap::BootstrapManager;
 
-use package_manager::InstallMode;
-use session::{create_session, get_session_history, get_sessions, start_session};
 use crate::shared::state::AppState;
 use crate::shared::utils::create_conn;
 #[cfg(feature = "drive")]
 use crate::shared::utils::create_s3_operator;
-
+use package_manager::InstallMode;
+use session::{create_session, get_session_history, get_sessions, start_session};
 
 async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
     let db_ok = state.conn.get().is_ok();
@@ -341,28 +336,29 @@ async fn run_axum_server(
 
     let cors = create_cors_layer();
 
-    let auth_config = Arc::new(AuthConfig::from_env()
-        .add_anonymous_path("/health")
-        .add_anonymous_path("/healthz")
-        .add_anonymous_path("/api/health")
-        .add_anonymous_path("/api/product")
-        .add_anonymous_path("/api/manifest")
-        .add_anonymous_path("/api/i18n")
-        .add_anonymous_path("/api/auth/login")
-        .add_anonymous_path("/api/auth/refresh")
-        .add_anonymous_path("/api/auth/bootstrap")
-        .add_anonymous_path("/ws")
-        .add_anonymous_path("/auth")
-        .add_public_path("/static")
-        .add_public_path("/favicon.ico")
-        .add_public_path("/suite")
-        .add_public_path("/themes"));
+    let auth_config = Arc::new(
+        AuthConfig::from_env()
+            .add_anonymous_path("/health")
+            .add_anonymous_path("/healthz")
+            .add_anonymous_path("/api/health")
+            .add_anonymous_path("/api/product")
+            .add_anonymous_path("/api/manifest")
+            .add_anonymous_path("/api/i18n")
+            .add_anonymous_path("/api/auth/login")
+            .add_anonymous_path("/api/auth/refresh")
+            .add_anonymous_path("/api/auth/bootstrap")
+            .add_anonymous_path("/ws")
+            .add_anonymous_path("/auth")
+            .add_public_path("/static")
+            .add_public_path("/favicon.ico")
+            .add_public_path("/suite")
+            .add_public_path("/themes"),
+    );
 
-    let jwt_secret = std::env::var("JWT_SECRET")
-        .unwrap_or_else(|_| {
-            warn!("JWT_SECRET not set, using default development secret - DO NOT USE IN PRODUCTION");
-            "dev-secret-key-change-in-production-minimum-32-chars".to_string()
-        });
+    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+        warn!("JWT_SECRET not set, using default development secret - DO NOT USE IN PRODUCTION");
+        "dev-secret-key-change-in-production-minimum-32-chars".to_string()
+    });
 
     let jwt_config = JwtConfig::default();
     let jwt_key = JwtKey::from_secret(&jwt_secret);
@@ -382,8 +378,10 @@ async fn run_axum_server(
 
     let default_permissions = build_default_route_permissions();
     rbac_manager.register_routes(default_permissions).await;
-    info!("RBAC Manager initialized with {} default route permissions",
-        rbac_manager.config().cache_ttl_seconds);
+    info!(
+        "RBAC Manager initialized with {} default route permissions",
+        rbac_manager.config().cache_ttl_seconds
+    );
 
     let auth_provider_registry = {
         let mut builder = AuthProviderBuilder::new()
@@ -401,25 +399,32 @@ async fn run_axum_server(
             info!("Zitadel environment variables detected - external IdP authentication available");
         }
 
-
         Arc::new(builder.build().await)
     };
 
-    info!("Auth provider registry initialized with {} providers",
-        auth_provider_registry.provider_count().await);
+    info!(
+        "Auth provider registry initialized with {} providers",
+        auth_provider_registry.provider_count().await
+    );
 
     let auth_middleware_state = AuthMiddlewareState::new(
         Arc::clone(&auth_config),
         Arc::clone(&auth_provider_registry),
     );
 
+    use crate::core::product::{get_product_config_json, PRODUCT_CONFIG};
     use crate::core::urls::ApiUrls;
-    use crate::core::product::{PRODUCT_CONFIG, get_product_config_json};
 
     {
-        let config = PRODUCT_CONFIG.read().expect("Failed to read product config");
-        info!("Product: {} | Theme: {} | Apps: {:?}",
-            config.name, config.theme, config.get_enabled_apps());
+        let config = PRODUCT_CONFIG
+            .read()
+            .expect("Failed to read product config");
+        info!(
+            "Product: {} | Theme: {} | Apps: {:?}",
+            config.name,
+            config.theme,
+            config.get_enabled_apps()
+        );
     }
 
     async fn get_product_config() -> Json<serde_json::Value> {
@@ -467,8 +472,9 @@ async fn run_axum_server(
 
     #[cfg(all(feature = "calendar", feature = "scripting"))]
     {
-        let calendar_engine =
-            Arc::new(crate::basic::keywords::book::CalendarEngine::new(app_state.conn.clone()));
+        let calendar_engine = Arc::new(crate::basic::keywords::book::CalendarEngine::new(
+            app_state.conn.clone(),
+        ));
 
         api_router = api_router.merge(crate::calendar::caldav::create_caldav_router(
             calendar_engine,
@@ -491,22 +497,22 @@ async fn run_axum_server(
         api_router = api_router.merge(crate::analytics::configure_analytics_routes());
     }
     api_router = api_router.merge(crate::core::i18n::configure_i18n_routes());
-#[cfg(feature = "docs")]
-{
-api_router = api_router.merge(crate::docs::configure_docs_routes());
-}
-#[cfg(feature = "paper")]
-{
-api_router = api_router.merge(crate::paper::configure_paper_routes());
-}
-#[cfg(feature = "sheet")]
-{
-api_router = api_router.merge(crate::sheet::configure_sheet_routes());
-}
-#[cfg(feature = "slides")]
-{
-api_router = api_router.merge(crate::slides::configure_slides_routes());
-}
+    #[cfg(feature = "docs")]
+    {
+        api_router = api_router.merge(crate::docs::configure_docs_routes());
+    }
+    #[cfg(feature = "paper")]
+    {
+        api_router = api_router.merge(crate::paper::configure_paper_routes());
+    }
+    #[cfg(feature = "sheet")]
+    {
+        api_router = api_router.merge(crate::sheet::configure_sheet_routes());
+    }
+    #[cfg(feature = "slides")]
+    {
+        api_router = api_router.merge(crate::slides::configure_slides_routes());
+    }
     #[cfg(feature = "video")]
     {
         api_router = api_router.merge(crate::video::configure_video_routes());
@@ -590,14 +596,14 @@ api_router = api_router.merge(crate::slides::configure_slides_routes());
     {
         api_router = api_router.merge(crate::learn::ui::configure_learn_ui_routes());
     }
-#[cfg(feature = "mail")]
-{
-api_router = api_router.merge(crate::email::ui::configure_email_ui_routes());
-}
-#[cfg(feature = "meet")]
-{
-api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
-}
+    #[cfg(feature = "mail")]
+    {
+        api_router = api_router.merge(crate::email::ui::configure_email_ui_routes());
+    }
+    #[cfg(feature = "meet")]
+    {
+        api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
+    }
     #[cfg(feature = "people")]
     {
         api_router = api_router.merge(crate::contacts::crm_ui::configure_crm_routes());
@@ -654,7 +660,8 @@ api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
     // Create rate limiter integrating with botlib's RateLimiter
     let http_rate_config = HttpRateLimitConfig::api();
     let system_limits = SystemLimits::default();
-    let (rate_limit_extension, _rate_limiter) = create_rate_limit_layer(http_rate_config, system_limits);
+    let (rate_limit_extension, _rate_limiter) =
+        create_rate_limit_layer(http_rate_config, system_limits);
 
     // Create security headers layer
     let security_headers_config = SecurityHeadersConfig::default();
@@ -680,11 +687,17 @@ api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
     if ui_path_exists {
         info!("Serving UI from external folder: {}", ui_path);
     } else if use_embedded_ui {
-        info!("External UI folder not found at '{}', using embedded UI", ui_path);
+        info!(
+            "External UI folder not found at '{}', using embedded UI",
+            ui_path
+        );
         let file_count = embedded_ui::list_embedded_files().len();
         info!("Embedded UI contains {} files", file_count);
     } else {
-        warn!("No UI available: folder '{}' not found and no embedded UI", ui_path);
+        warn!(
+            "No UI available: folder '{}' not found and no embedded UI",
+            ui_path
+        );
     }
 
     // Update app_state with auth components
@@ -707,8 +720,7 @@ api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
             .nest_service("/themes", ServeDir::new(format!("{}/../themes", ui_path)))
             .fallback_service(ServeDir::new(&ui_path))
     } else if use_embedded_ui {
-        base_router
-            .merge(embedded_ui::embedded_ui_router())
+        base_router.merge(embedded_ui::embedded_ui_router())
     } else {
         base_router
     };
@@ -716,39 +728,42 @@ api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
     // Clone rbac_manager for use in middleware
     let rbac_manager_for_middleware = Arc::clone(&rbac_manager);
 
-    let app = app_with_ui
-        // Security middleware stack (order matters - last added is outermost/runs first)
-        .layer(middleware::from_fn(security_headers_middleware))
-        .layer(security_headers_extension)
-        .layer(rate_limit_extension)
-        // Request ID tracking for all requests
-        .layer(middleware::from_fn(request_id_middleware))
-        // RBAC middleware - checks permissions AFTER authentication
-        // NOTE: In Axum, layers run in reverse order (last added = first to run)
-        // So RBAC is added BEFORE auth, meaning auth runs first, then RBAC
-        .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
-            let rbac = Arc::clone(&rbac_manager_for_middleware);
-            async move {
-               crate::security::rbac_middleware_fn(req, next, rbac).await
-            }
-        }))
-        // Authentication middleware - MUST run before RBAC (so added after)
-        .layer(middleware::from_fn(move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
-            let state = auth_middleware_state.clone();
-            async move {
-               crate::security::auth_middleware_with_providers(req, next, state).await
-            }
-        }))
-        // Panic handler catches panics and returns safe 500 responses
-        .layer(middleware::from_fn(move |req, next| {
-            let config = panic_config.clone();
-            async move {
-               crate::security::panic_handler_middleware_with_config(req, next, &config).await
-            }
-        }))
-        .layer(Extension(app_state.clone()))
-        .layer(cors)
-        .layer(TraceLayer::new_for_http());
+    let app =
+        app_with_ui
+            // Security middleware stack (order matters - last added is outermost/runs first)
+            .layer(middleware::from_fn(security_headers_middleware))
+            .layer(security_headers_extension)
+            .layer(rate_limit_extension)
+            // Request ID tracking for all requests
+            .layer(middleware::from_fn(request_id_middleware))
+            // RBAC middleware - checks permissions AFTER authentication
+            // NOTE: In Axum, layers run in reverse order (last added = first to run)
+            // So RBAC is added BEFORE auth, meaning auth runs first, then RBAC
+            .layer(middleware::from_fn(
+                move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+                    let rbac = Arc::clone(&rbac_manager_for_middleware);
+                    async move { crate::security::rbac_middleware_fn(req, next, rbac).await }
+                },
+            ))
+            // Authentication middleware - MUST run before RBAC (so added after)
+            .layer(middleware::from_fn(
+                move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+                    let state = auth_middleware_state.clone();
+                    async move {
+                        crate::security::auth_middleware_with_providers(req, next, state).await
+                    }
+                },
+            ))
+            // Panic handler catches panics and returns safe 500 responses
+            .layer(middleware::from_fn(move |req, next| {
+                let config = panic_config.clone();
+                async move {
+                    crate::security::panic_handler_middleware_with_config(req, next, &config).await
+                }
+            }))
+            .layer(Extension(app_state.clone()))
+            .layer(cors)
+            .layer(TraceLayer::new_for_http());
 
     let cert_dir = std::path::Path::new("./botserver-stack/conf/system/certificates");
     let cert_path = cert_dir.join("api/server.crt");
@@ -794,7 +809,10 @@ api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
         let listener = match tokio::net::TcpListener::bind(addr).await {
             Ok(l) => l,
             Err(e) => {
-                error!("Failed to bind to {}: {} - is another instance running?", addr, e);
+                error!(
+                    "Failed to bind to {}: {} - is another instance running?",
+                    addr, e
+                );
                 return Err(e);
             }
         };
@@ -813,7 +831,12 @@ async fn main() -> std::io::Result<()> {
 
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
+
+    #[cfg(feature = "console")]
     let no_console = args.contains(&"--noconsole".to_string());
+
+    #[cfg(not(feature = "console"))]
+    let no_console = true;
 
     let _ = rustls::crypto::ring::default_provider().install_default();
 
@@ -840,8 +863,7 @@ async fn main() -> std::io::Result<()> {
         trace!("Bootstrap not complete - skipping early SecretsManager init");
     }
 
-    let noise_filters =
-        "vaultrs=off,rustify=off,rustify_derive=off,\
+    let noise_filters = "vaultrs=off,rustify=off,rustify_derive=off,\
          aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
          aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_sdk_s3=off,aws_config=off,\
          aws_credential_types=off,aws_http=off,aws_sig_auth=off,aws_types=off,\
@@ -870,9 +892,9 @@ async fn main() -> std::io::Result<()> {
 
     std::env::set_var("RUST_LOG", &rust_log);
 
-#[cfg(feature = "llm")]
-use crate::llm::local::ensure_llama_servers_running;
-use crate::core::config::ConfigManager;
+    use crate::core::config::ConfigManager;
+    #[cfg(feature = "llm")]
+    use crate::llm::local::ensure_llama_servers_running;
 
     if no_console || no_ui {
         botlib::logging::init_compact_logger_with_style("info");
@@ -889,9 +911,16 @@ use crate::core::config::ConfigManager;
         "./locales"
     };
     if let Err(e) = crate::core::i18n::init_i18n(locales_path) {
-        warn!("Failed to initialize i18n from {}: {}. Translations will show keys.", locales_path, e);
+        warn!(
+            "Failed to initialize i18n from {}: {}. Translations will show keys.",
+            locales_path, e
+        );
     } else {
-        info!("i18n initialized from {} with locales: {:?}", locales_path, crate::core::i18n::available_locales());
+        info!(
+            "i18n initialized from {} with locales: {:?}",
+            locales_path,
+            crate::core::i18n::available_locales()
+        );
     }
 
     let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
@@ -922,7 +951,7 @@ use crate::core::config::ConfigManager;
                 std::thread::Builder::new()
                     .name("ui-thread".to_string())
                     .spawn(move || {
-                        let mut ui =crate::console::XtreeUI::new();
+                        let mut ui = crate::console::XtreeUI::new();
                         ui.set_progress_channel(progress_rx);
                         ui.set_state_channel(state_rx);
 
@@ -930,7 +959,9 @@ use crate::core::config::ConfigManager;
                             eprintln!("UI error: {e}");
                         }
                     })
-                    .map_err(|e| std::io::Error::other(format!("Failed to spawn UI thread: {}", e)))?,
+                    .map_err(|e| {
+                        std::io::Error::other(format!("Failed to spawn UI thread: {}", e))
+                    })?,
             )
         }
         #[cfg(not(feature = "console"))]
@@ -1169,7 +1200,9 @@ use crate::core::config::ConfigManager;
     ensure_vendor_files_in_minio(&drive).await;
 
     let session_manager = Arc::new(tokio::sync::Mutex::new(session::SessionManager::new(
-        pool.get().map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?,
+        pool.get().map_err(|e| {
+            std::io::Error::other(format!("Failed to get database connection: {}", e))
+        })?,
         #[cfg(feature = "cache")]
         redis_client.clone(),
     )));
@@ -1180,17 +1213,20 @@ use crate::core::config::ConfigManager;
         let config_path = "./config/directory_config.json";
         if let Ok(content) = std::fs::read_to_string(config_path) {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                let base_url = json.get("base_url")
+                let base_url = json
+                    .get("base_url")
                     .and_then(|v| v.as_str())
                     .unwrap_or("http://localhost:8300");
-                let client_id = json.get("client_id")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                let client_secret = json.get("client_secret")
+                let client_id = json.get("client_id").and_then(|v| v.as_str()).unwrap_or("");
+                let client_secret = json
+                    .get("client_secret")
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
 
-                info!("Loaded Zitadel config from {}: url={}", config_path, base_url);
+                info!(
+                    "Loaded Zitadel config from {}: url={}",
+                    config_path, base_url
+                );
 
                 crate::directory::ZitadelConfig {
                     issuer_url: base_url.to_string(),
@@ -1231,7 +1267,8 @@ use crate::core::config::ConfigManager;
     };
     #[cfg(feature = "directory")]
     let auth_service = Arc::new(tokio::sync::Mutex::new(
-       crate::directory::AuthService::new(zitadel_config.clone()).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
+        crate::directory::AuthService::new(zitadel_config.clone())
+            .map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
     ));
 
     #[cfg(feature = "directory")]
@@ -1242,19 +1279,29 @@ use crate::core::config::ConfigManager;
                 Ok(pat_token) => {
                     let pat_token = pat_token.trim().to_string();
                     info!("Using admin PAT token for bootstrap authentication");
-                   crate::directory::ZitadelClient::with_pat_token(zitadel_config, pat_token)
-                        .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client with PAT: {}", e)))?
+                    crate::directory::ZitadelClient::with_pat_token(zitadel_config, pat_token)
+                        .map_err(|e| {
+                            std::io::Error::other(format!(
+                                "Failed to create bootstrap client with PAT: {}",
+                                e
+                            ))
+                        })?
                 }
                 Err(e) => {
-                    warn!("Failed to read admin PAT token: {}, falling back to OAuth2", e);
-                   crate::directory::ZitadelClient::new(zitadel_config)
-                        .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
+                    warn!(
+                        "Failed to read admin PAT token: {}, falling back to OAuth2",
+                        e
+                    );
+                    crate::directory::ZitadelClient::new(zitadel_config).map_err(|e| {
+                        std::io::Error::other(format!("Failed to create bootstrap client: {}", e))
+                    })?
                 }
             }
         } else {
             info!("Admin PAT not found, using OAuth2 client credentials for bootstrap");
-           crate::directory::ZitadelClient::new(zitadel_config)
-                .map_err(|e| std::io::Error::other(format!("Failed to create bootstrap client: {}", e)))?
+            crate::directory::ZitadelClient::new(zitadel_config).map_err(|e| {
+                std::io::Error::other(format!("Failed to create bootstrap client: {}", e))
+            })?
         };
 
         match crate::directory::bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
@@ -1271,7 +1318,9 @@ use crate::core::config::ConfigManager;
     }
     let config_manager = ConfigManager::new(pool.clone());
 
-    let mut bot_conn = pool.get().map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
+    let mut bot_conn = pool
+        .get()
+        .map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
     let (default_bot_id, default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
     info!(
         "Using default bot: {} (id: {})",
@@ -1297,7 +1346,11 @@ use crate::core::config::ConfigManager;
     #[cfg(feature = "llm")]
     let base_llm_provider = crate::llm::create_llm_provider_from_url(
         &llm_url,
-        if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
+        if llm_model.is_empty() {
+            None
+        } else {
+            Some(llm_model.clone())
+        },
     );
 
     #[cfg(feature = "llm")]
@@ -1321,8 +1374,7 @@ use crate::core::config::ConfigManager;
         let embedding_service = Some(Arc::new(crate::llm::cache::LocalEmbeddingService::new(
             embedding_url,
             embedding_model,
-        ))
-            as Arc<dyn crate::llm::cache::EmbeddingService>);
+        )) as Arc<dyn crate::llm::cache::EmbeddingService>);
 
         let cache_config = crate::llm::cache::CacheConfig {
             ttl: 3600,
@@ -1349,18 +1401,16 @@ use crate::core::config::ConfigManager;
     #[cfg(feature = "tasks")]
     let task_engine = Arc::new(crate::tasks::TaskEngine::new(pool.clone()));
 
-    let metrics_collector =crate::core::shared::analytics::MetricsCollector::new();
+    let metrics_collector = crate::core::shared::analytics::MetricsCollector::new();
 
     #[cfg(feature = "tasks")]
     let task_scheduler = None;
 
-    let (attendant_tx, _attendant_rx) = tokio::sync::broadcast::channel::<
-       crate::core::shared::state::AttendantNotification,
-    >(1000);
+    let (attendant_tx, _attendant_rx) =
+        tokio::sync::broadcast::channel::<crate::core::shared::state::AttendantNotification>(1000);
 
-    let (task_progress_tx, _task_progress_rx) = tokio::sync::broadcast::channel::<
-       crate::core::shared::state::TaskProgressEvent,
-    >(1000);
+    let (task_progress_tx, _task_progress_rx) =
+        tokio::sync::broadcast::channel::<crate::core::shared::state::TaskProgressEvent>(1000);
 
     // Initialize BotDatabaseManager for per-bot database support
     let database_url = crate::shared::utils::get_database_url_sync().unwrap_or_default();
@@ -1431,7 +1481,9 @@ use crate::core::config::ConfigManager;
         billing_alert_broadcast: None,
         task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
         #[cfg(feature = "project")]
-        project_service: Arc::new(tokio::sync::RwLock::new(crate::project::ProjectService::new())),
+        project_service: Arc::new(tokio::sync::RwLock::new(
+            crate::project::ProjectService::new(),
+        )),
         #[cfg(feature = "compliance")]
         legal_service: Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new())),
         jwt_manager: None,
@@ -1440,7 +1492,9 @@ use crate::core::config::ConfigManager;
     });
 
     // Resume workflows after server restart
-    if let Err(e) = crate::basic::keywords::orchestration::resume_workflows_on_startup(app_state.clone()).await {
+    if let Err(e) =
+        crate::basic::keywords::orchestration::resume_workflows_on_startup(app_state.clone()).await
+    {
         log::warn!("Failed to resume workflows on startup: {}", e);
     }
 
@@ -1453,7 +1507,7 @@ use crate::core::config::ConfigManager;
     task_scheduler.start();
 
     #[cfg(any(feature = "research", feature = "llm"))]
-    if let Err(e) =crate::core::kb::ensure_crawler_service_running(app_state.clone()).await {
+    if let Err(e) = crate::core::kb::ensure_crawler_service_running(app_state.clone()).await {
         log::warn!("Failed to start website crawler service: {}", e);
     }
 
@@ -1487,11 +1541,8 @@ use crate::core::config::ConfigManager;
         tokio::spawn(async move {
             register_thread("drive-monitor", "drive");
             trace!("DriveMonitor::new starting...");
-            let monitor =crate::DriveMonitor::new(
-                drive_monitor_state,
-                bucket_name.clone(),
-                monitor_bot_id,
-            );
+            let monitor =
+                crate::DriveMonitor::new(drive_monitor_state, bucket_name.clone(), monitor_bot_id);
             trace!("DriveMonitor::new done, calling start_monitoring...");
             info!("Starting DriveMonitor for bucket: {}", bucket_name);
             if let Err(e) = monitor.start_monitoring().await {
@@ -1507,8 +1558,10 @@ use crate::core::config::ConfigManager;
         tokio::spawn(async move {
             register_thread("automation-service", "automation");
             let automation = AutomationService::new(automation_state);
-            trace!("[TASK] AutomationService starting, RSS={}",
-                  MemoryStats::format_bytes(MemoryStats::current().rss_bytes));
+            trace!(
+                "[TASK] AutomationService starting, RSS={}",
+                MemoryStats::format_bytes(MemoryStats::current().rss_bytes)
+            );
             loop {
                 record_thread_activity("automation-service");
                 if let Err(e) = automation.check_scheduled_tasks().await {
