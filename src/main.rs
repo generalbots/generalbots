@@ -897,7 +897,7 @@ async fn main() -> std::io::Result<()> {
     use crate::llm::local::ensure_llama_servers_running;
 
     if no_console || no_ui {
-        botlib::logging::init_compact_logger_with_style("info");
+        botlib::logging::init_compact_logger_with_style("trace");
         println!("Starting General Bots {}...", env!("CARGO_PKG_VERSION"));
     }
 
