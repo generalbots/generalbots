@@ -12,8 +12,6 @@ use std::path::PathBuf;
 #[derive(Deserialize, Debug)]
 struct ComponentEntry {
     url: String,
-    filename: String,
-    sha256: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -33,6 +31,7 @@ fn get_component_url(name: &str) -> Option<String> {
         .map(|c| c.url.clone())
 }
 
+#[cfg(target_os = "windows")]
 fn safe_nvcc_version() -> Option<std::process::Output> {
     SafeCommand::new("nvcc")
         .and_then(|c| c.arg("--version"))
