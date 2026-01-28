@@ -8,7 +8,6 @@ use tokio::sync::{mpsc, RwLock};
 pub mod cache;
 pub mod claude;
 pub mod episodic_memory;
-pub mod smart_router;
 pub mod llm_models;
 pub mod local;
 pub mod smart_router;
@@ -235,7 +234,10 @@ pub fn create_llm_provider(
     }
 }
 
-pub fn create_llm_provider_from_url(url: &str, model: Option<String>) -> std::sync::Arc<dyn LLMProvider> {
+pub fn create_llm_provider_from_url(
+    url: &str,
+    model: Option<String>,
+) -> std::sync::Arc<dyn LLMProvider> {
     let provider_type = LLMProviderType::from(url);
     create_llm_provider(provider_type, url.to_string(), model)
 }
@@ -276,7 +278,10 @@ impl LLMProvider for DynamicLLMProvider {
         model: &str,
         key: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        self.get_provider().await.generate(prompt, config, model, key).await
+        self.get_provider()
+            .await
+            .generate(prompt, config, model, key)
+            .await
     }
 
     async fn generate_stream(
@@ -287,7 +292,10 @@ impl LLMProvider for DynamicLLMProvider {
         model: &str,
         key: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.get_provider().await.generate_stream(prompt, config, tx, model, key).await
+        self.get_provider()
+            .await
+            .generate_stream(prompt, config, tx, model, key)
+            .await
     }
 
     async fn cancel_job(

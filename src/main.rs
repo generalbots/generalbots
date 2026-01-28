@@ -680,7 +680,15 @@ async fn run_axum_server(
     info!("Security middleware enabled: rate limiting, security headers, panic handler, request ID tracking, authentication");
 
     // Path to UI files (botui) - use external folder or fallback to embedded
-    let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| "./botui/ui/suite".to_string());
+    let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| {
+        if std::path::Path::new("./botui/ui/suite").exists() {
+            "./botui/ui/suite".to_string()
+        } else if std::path::Path::new("../botui/ui/suite").exists() {
+            "../botui/ui/suite".to_string()
+        } else {
+            "./botui/ui/suite".to_string()
+        }
+    });
     let ui_path_exists = std::path::Path::new(&ui_path).exists();
     let use_embedded_ui = !ui_path_exists && embedded_ui::has_embedded_ui();
 
