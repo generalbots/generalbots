@@ -34,9 +34,16 @@ pub async fn serve_suite_js_file(
     }
 
     if file_path.starts_with("vendor/") || file_path.starts_with("vendor\\") {
-        return serve_vendor_file(State(state), Path(VendorFilePath {
-            file_path: file_path.strip_prefix("vendor/").unwrap_or(&file_path).to_string()
-        })).await;
+        return serve_vendor_file(
+            State(state),
+            Path(VendorFilePath {
+                file_path: file_path
+                    .strip_prefix("vendor/")
+                    .unwrap_or(&file_path)
+                    .to_string(),
+            }),
+        )
+        .await;
     }
 
     if !file_path.ends_with(".js") {
@@ -45,7 +52,15 @@ pub async fn serve_suite_js_file(
 
     let content_type = get_content_type(&file_path);
 
-    let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| "./botui/ui/suite".to_string());
+    let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| {
+        if std::path::Path::new("./botui/ui/suite").exists() {
+            "./botui/ui/suite".to_string()
+        } else if std::path::Path::new("../botui/ui/suite").exists() {
+            "../botui/ui/suite".to_string()
+        } else {
+            "./botui/ui/suite".to_string()
+        }
+    });
     let local_path = format!("{}/js/{}", ui_path, file_path);
 
     match tokio::fs::read(&local_path).await {
@@ -57,7 +72,10 @@ pub async fn serve_suite_js_file(
                 .header(header::CACHE_CONTROL, "public, max-age=3600")
                 .body(Body::from(content))
                 .unwrap_or_else(|_| {
-                    (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
                         .into_response()
                 })
         }
@@ -82,6 +100,7 @@ pub async fn serve_vendor_file(
 
     let local_paths = [
         format!("./botui/ui/suite/js/vendor/{}", file_path),
+        format!("../botui/ui/suite/js/vendor/{}", file_path),
         format!("./botserver-stack/static/js/vendor/{}", file_path),
     ];
 
@@ -94,50 +113,50 @@ pub async fn serve_vendor_file(
                 .header(header::CACHE_CONTROL, "public, max-age=86400")
                 .body(Body::from(content))
                 .unwrap_or_else(|_| {
-                    (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
                         .into_response()
                 });
         }
     }
 
-    let bot_name = state.bucket_name
-        .trim_end_matches(".gbai")
-        .to_string();
+    let bot_name = state.bucket_name.trim_end_matches(".gbai").to_string();
     let sanitized_bot_name = bot_name.to_lowercase().replace([' ', '_'], "-");
 
     let bucket = format!("{}.gbai", sanitized_bot_name);
     let key = format!("{}.gblib/vendor/{}", sanitized_bot_name, file_path);
 
-    trace!("Trying MinIO for vendor file: bucket={}, key={}", bucket, key);
+    trace!(
+        "Trying MinIO for vendor file: bucket={}, key={}",
+        bucket,
+        key
+    );
 
     if let Some(ref drive) = state.drive {
-        match drive
-            .get_object()
-            .bucket(&bucket)
-            .key(&key)
-            .send()
-            .await
-        {
-            Ok(response) => {
-                match response.body.collect().await {
-                    Ok(body) => {
-                        let content = body.into_bytes();
+        match drive.get_object().bucket(&bucket).key(&key).send().await {
+            Ok(response) => match response.body.collect().await {
+                Ok(body) => {
+                    let content = body.into_bytes();
 
-                        return Response::builder()
-                            .status(StatusCode::OK)
-                            .header(header::CONTENT_TYPE, content_type)
-                            .header(header::CACHE_CONTROL, "public, max-age=86400")
-                            .body(Body::from(content.to_vec()))
-                            .unwrap_or_else(|_| {
-                                (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
-                                    .into_response()
-                            });
-                    }
-                    Err(e) => {
-                        error!("Failed to read MinIO response body: {}", e);
-                    }
+                    return Response::builder()
+                        .status(StatusCode::OK)
+                        .header(header::CONTENT_TYPE, content_type)
+                        .header(header::CACHE_CONTROL, "public, max-age=86400")
+                        .body(Body::from(content.to_vec()))
+                        .unwrap_or_else(|_| {
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                "Failed to build response",
+                            )
+                                .into_response()
+                        });
                 }
-            }
+                Err(e) => {
+                    error!("Failed to read MinIO response body: {}", e);
+                }
+            },
             Err(e) => {
                 warn!("MinIO get_object failed for {}/{}: {}", bucket, key, e);
             }
@@ -150,17 +169,47 @@ pub async fn serve_vendor_file(
 fn rewrite_cdn_urls(html: &str) -> String {
     html
         // HTMX from various CDNs
-        .replace("https://unpkg.com/htmx.org@1.9.10", "/js/vendor/htmx.min.js")
-        .replace("https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js", "/js/vendor/htmx.min.js")
-        .replace("https://unpkg.com/htmx.org@1.9.11", "/js/vendor/htmx.min.js")
-        .replace("https://unpkg.com/htmx.org@1.9.11/dist/htmx.min.js", "/js/vendor/htmx.min.js")
-        .replace("https://unpkg.com/htmx.org@1.9.12", "/js/vendor/htmx.min.js")
-        .replace("https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js", "/js/vendor/htmx.min.js")
+        .replace(
+            "https://unpkg.com/htmx.org@1.9.10",
+            "/js/vendor/htmx.min.js",
+        )
+        .replace(
+            "https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js",
+            "/js/vendor/htmx.min.js",
+        )
+        .replace(
+            "https://unpkg.com/htmx.org@1.9.11",
+            "/js/vendor/htmx.min.js",
+        )
+        .replace(
+            "https://unpkg.com/htmx.org@1.9.11/dist/htmx.min.js",
+            "/js/vendor/htmx.min.js",
+        )
+        .replace(
+            "https://unpkg.com/htmx.org@1.9.12",
+            "/js/vendor/htmx.min.js",
+        )
+        .replace(
+            "https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js",
+            "/js/vendor/htmx.min.js",
+        )
         .replace("https://unpkg.com/htmx.org", "/js/vendor/htmx.min.js")
-        .replace("https://cdn.jsdelivr.net/npm/htmx.org", "/js/vendor/htmx.min.js")
-        .replace("https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.10/htmx.min.js", "/js/vendor/htmx.min.js")
-        .replace("https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.11/htmx.min.js", "/js/vendor/htmx.min.js")
-        .replace("https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.12/htmx.min.js", "/js/vendor/htmx.min.js")
+        .replace(
+            "https://cdn.jsdelivr.net/npm/htmx.org",
+            "/js/vendor/htmx.min.js",
+        )
+        .replace(
+            "https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.10/htmx.min.js",
+            "/js/vendor/htmx.min.js",
+        )
+        .replace(
+            "https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.11/htmx.min.js",
+            "/js/vendor/htmx.min.js",
+        )
+        .replace(
+            "https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.12/htmx.min.js",
+            "/js/vendor/htmx.min.js",
+        )
 }
 
 pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
@@ -240,26 +289,24 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
     }
 
     // Get bot name from bucket_name config (default to "default")
-    let bot_name = state.bucket_name
-        .trim_end_matches(".gbai")
-        .to_string();
+    let bot_name = state.bucket_name.trim_end_matches(".gbai").to_string();
     let sanitized_bot_name = bot_name.to_lowercase().replace([' ', '_'], "-");
 
     // MinIO bucket and path: botname.gbai / botname.gbapp/appname/file
     let bucket = format!("{}.gbai", sanitized_bot_name);
-    let key = format!("{}.gbapp/{}/{}", sanitized_bot_name, sanitized_app_name, sanitized_file_path);
+    let key = format!(
+        "{}.gbapp/{}/{}",
+        sanitized_bot_name, sanitized_app_name, sanitized_file_path
+    );
 
-    info!("Serving app file from MinIO: bucket={}, key={}", bucket, key);
+    info!(
+        "Serving app file from MinIO: bucket={}, key={}",
+        bucket, key
+    );
 
     // Try to serve from MinIO
     if let Some(ref drive) = state.drive {
-        match drive
-            .get_object()
-            .bucket(&bucket)
-            .key(&key)
-            .send()
-            .await
-        {
+        match drive.get_object().bucket(&bucket).key(&key).send().await {
             Ok(response) => {
                 match response.body.collect().await {
                     Ok(body) => {
@@ -281,7 +328,10 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
                             .header(header::CACHE_CONTROL, "public, max-age=3600")
                             .body(Body::from(final_content))
                             .unwrap_or_else(|_| {
-                                (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
+                                (
+                                    StatusCode::INTERNAL_SERVER_ERROR,
+                                    "Failed to build response",
+                                )
                                     .into_response()
                             });
                     }
@@ -390,8 +440,6 @@ pub async fn list_all_apps(State(state): State<Arc<AppState>>) -> impl IntoRespo
         .into_response()
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -431,9 +479,15 @@ mod tests {
     fn test_sanitize_file_path() {
         assert_eq!(sanitize_file_path("styles.css"), "styles.css");
         assert_eq!(sanitize_file_path("css/styles.css"), "css/styles.css");
-        assert_eq!(sanitize_file_path("assets/img/logo.png"), "assets/img/logo.png");
+        assert_eq!(
+            sanitize_file_path("assets/img/logo.png"),
+            "assets/img/logo.png"
+        );
         assert_eq!(sanitize_file_path("../../../etc/passwd"), "etc/passwd");
         assert_eq!(sanitize_file_path("./styles.css"), "styles.css");
-        assert_eq!(sanitize_file_path("path//double//slash.js"), "path/double/slash.js");
+        assert_eq!(
+            sanitize_file_path("path//double//slash.js"),
+            "path/double/slash.js"
+        );
     }
 }

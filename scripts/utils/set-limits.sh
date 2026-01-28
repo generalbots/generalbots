@@ -13,19 +13,19 @@ declare -A container_limits=(
      ["*drive*"]="4096MB:100ms/100ms"
      ["*minio*"]="4096MB:100ms/100ms"      # MinIO alternative
      ["*email*"]="4096MB:100ms/100ms"
-     ["*webmail*"]="2096MB:100ms/100ms"
+     ["*webmail*"]="4096MB:100ms/100ms"
      ["*bot*"]="2048MB:25ms/100ms"
-     ["*oppbot*"]="2048MB:50ms/100ms"
+     ["*oppbot*"]="4096MB:50ms/100ms"
      ["*meeting*"]="4096MB:100ms/100ms"
-     ["*alm*"]="512MB:50ms/100ms"
-     ["*vault*"]="512MB:50ms/100ms"
+     ["*alm*"]="2048MB:50ms/100ms"
+     ["*vault*"]="2048MB:50ms/100ms"
      ["*alm-ci*"]="8192MB:200ms/100ms"     # CHANGED: 100ms → 200ms (HIGHEST PRIORITY)
      ["*system*"]="4096MB:50ms/100ms"
      ["*mailer*"]="2096MB:25ms/100ms"
 )
 
 # Default values (for containers that don't match any pattern)
-DEFAULT_MEMORY="512MB"
+DEFAULT_MEMORY="2048MB"
 DEFAULT_CPU_ALLOWANCE="15ms/100ms"
 DEFAULT_CPU_COUNT=1
 
