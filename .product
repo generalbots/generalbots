@@ -14,6 +14,17 @@ name=General Bots
 # Only listed apps will be visible in the UI and have their APIs enabled.
 apps=chat,drive,tasks,sources,settings
 
+# Search mechanism enabled
+# Controls whether the omnibox/search toolbar is displayed in the suite
+# Set to false to disable the search mechanism
+search_enabled=false
+
+# Menu launcher enabled
+# Controls whether the apps menu launcher is displayed in the suite
+# Set to false to hide the menu launcher button
+# When the menu is empty (no apps to show), it will be automatically hidden
+menu_launcher_enabled=false
+
 # Default theme
 # Available themes: dark, light, blue, purple, green, orange, sentient, cyberpunk,
 #                   retrowave, vapordream, y2kglow, arcadeflash, discofever, grungeera,
