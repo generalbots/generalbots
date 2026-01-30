@@ -44,6 +44,14 @@ pub struct ProductConfig {
 
     /// Copyright text (optional)
     pub copyright: Option<String>,
+
+    /// Search mechanism enabled (optional)
+    /// Controls whether the omnibox/search toolbar is displayed in the suite
+    pub search_enabled: Option<bool>,
+
+    /// Menu launcher enabled (optional)
+    /// Controls whether the apps menu launcher is displayed in the suite
+    pub menu_launcher_enabled: Option<bool>,
 }
 
 impl Default for ProductConfig {
@@ -81,6 +89,8 @@ impl Default for ProductConfig {
             support_email: None,
             docs_url: None,
             copyright: None,
+            search_enabled: Some(false),
+            menu_launcher_enabled: Some(false),
         }
     }
 }
@@ -178,6 +188,18 @@ impl ProductConfig {
                         if !value.is_empty() {
                             config.copyright = Some(value.to_string());
                         }
+                    }
+                    "search_enabled" => {
+                        let enabled = value.eq_ignore_ascii_case("true")
+                            || value == "1"
+                            || value.eq_ignore_ascii_case("yes");
+                        config.search_enabled = Some(enabled);
+                    }
+                    "menu_launcher_enabled" => {
+                        let enabled = value.eq_ignore_ascii_case("true")
+                            || value == "1"
+                            || value.eq_ignore_ascii_case("yes");
+                        config.menu_launcher_enabled = Some(enabled);
                     }
                     _ => {
                         warn!("Unknown product configuration key: {}", key);
@@ -331,6 +353,8 @@ pub fn get_product_config_json() -> serde_json::Value {
             "primary_color": c.primary_color,
             "docs_url": c.docs_url,
             "copyright": c.get_copyright(),
+            "search_enabled": c.search_enabled.unwrap_or(false),
+            "menu_launcher_enabled": c.menu_launcher_enabled.unwrap_or(false),
         }),
         None => serde_json::json!({
             "name": "General Bots",
@@ -338,6 +362,8 @@ pub fn get_product_config_json() -> serde_json::Value {
             "compiled_features": compiled,
             "version": env!("CARGO_PKG_VERSION"),
             "theme": "sentient",
+            "search_enabled": false,
+            "menu_launcher_enabled": false,
         }),
     }
 }
