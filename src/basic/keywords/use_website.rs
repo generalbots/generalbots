@@ -6,21 +6,64 @@ use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
 
+/// Parse refresh interval string (e.g., "1d", "1w", "1m", "1y") into days
+/// Returns the number of days for the refresh interval
+fn parse_refresh_interval(interval: &str) -> Result<i32, String> {
+    let interval_lower = interval.trim().to_lowercase();
+
+    // Match patterns like "1d", "7d", "2w", "1m", "1y", etc.
+    if interval_lower.ends_with('d') {
+        let days: i32 = interval_lower[..interval_lower.len()-1]
+            .parse()
+            .map_err(|_| format!("Invalid days format: {}", interval))?;
+        Ok(days)
+    } else if interval_lower.ends_with('w') {
+        let weeks: i32 = interval_lower[..interval_lower.len()-1]
+            .parse()
+            .map_err(|_| format!("Invalid weeks format: {}", interval))?;
+        Ok(weeks * 7)
+    } else if interval_lower.ends_with('m') {
+        let months: i32 = interval_lower[..interval_lower.len()-1]
+            .parse()
+            .map_err(|_| format!("Invalid months format: {}", interval))?;
+        Ok(months * 30) // Approximate month as 30 days
+    } else if interval_lower.ends_with('y') {
+        let years: i32 = interval_lower[..interval_lower.len()-1]
+            .parse()
+            .map_err(|_| format!("Invalid years format: {}", interval))?;
+        Ok(years * 365) // Approximate year as 365 days
+    } else {
+        // Try to parse as plain number (assume days)
+        interval.parse()
+            .map_err(|_| format!("Invalid refresh interval format: {}. Use format like '1d', '1w', '1m', '1y'", interval))
+    }
+}
+
+/// Convert days to expires_policy string format
+fn days_to_expires_policy(days: i32) -> String {
+    format!("{}d", days)
+}
+
 pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user;
+    let user_clone = user.clone();
 
+    // Register syntax for USE WEBSITE "url" REFRESH "interval"
     engine
         .register_custom_syntax(
-            ["USE", "WEBSITE", "$expr$"],
+            ["USE", "WEBSITE", "$expr$", "REFRESH", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?;
                 let url_str = url.to_string().trim_matches('"').to_string();
 
+                let refresh = context.eval_expression_tree(&inputs[1])?;
+                let refresh_str = refresh.to_string().trim_matches('"').to_string();
+
                 trace!(
-                    "USE WEBSITE command executed: {} for session: {}",
+                    "USE WEBSITE command executed: {} REFRESH {} for session: {}",
                     url_str,
+                    refresh_str,
                     user_clone.id
                 );
 
@@ -34,6 +77,83 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
+                let url_for_task = url_str;
+                let refresh_for_task = refresh_str;
+                let (tx, rx) = std::sync::mpsc::channel();
+
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(2)
+                        .enable_all()
+                        .build();
+
+                    let send_err = if let Ok(_rt) = rt {
+                        let result = associate_website_with_session_refresh(
+                            &state_for_task,
+                            &user_for_task,
+                            &url_for_task,
+                            &refresh_for_task,
+                        );
+                        tx.send(result).err()
+                    } else {
+                        tx.send(Err("Failed to build tokio runtime".to_string()))
+                            .err()
+                    };
+
+                    if send_err.is_some() {
+                        error!("Failed to send result from thread");
+                    }
+                });
+
+                match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                    Ok(Ok(message)) => Ok(Dynamic::from(message)),
+                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        e.into(),
+                        rhai::Position::NONE,
+                    ))),
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            "USE WEBSITE timed out".into(),
+                            rhai::Position::NONE,
+                        )))
+                    }
+                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("USE WEBSITE failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
+                }
+            },
+        )
+        .expect("valid syntax registration");
+
+    // Register syntax for USE WEBSITE "url" (without REFRESH)
+    let state_clone2 = Arc::clone(&state);
+    let user_clone2 = user.clone();
+
+    engine
+        .register_custom_syntax(
+            ["USE", "WEBSITE", "$expr$"],
+            false,
+            move |context, inputs| {
+                let url = context.eval_expression_tree(&inputs[0])?;
+                let url_str = url.to_string().trim_matches('"').to_string();
+
+                trace!(
+                    "USE WEBSITE command executed: {} for session: {}",
+                    url_str,
+                    user_clone2.id
+                );
+
+                let is_valid = url_str.starts_with("http://") || url_str.starts_with("https://");
+                if !is_valid {
+                    return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        "Invalid URL format. Must start with http:// or https://".into(),
+                        rhai::Position::NONE,
+                    )));
+                }
+
+                let state_for_task = Arc::clone(&state_clone2);
+                let user_for_task = user_clone2.clone();
                 let url_for_task = url_str;
                 let (tx, rx) = std::sync::mpsc::channel();
 
@@ -87,7 +207,16 @@ fn associate_website_with_session(
     user: &UserSession,
     url: &str,
 ) -> Result<String, String> {
-    info!("Associating website {} with session {}", url, user.id);
+    associate_website_with_session_refresh(state, user, url, "1m") // Default: 1 month
+}
+
+fn associate_website_with_session_refresh(
+    state: &AppState,
+    user: &UserSession,
+    url: &str,
+    refresh_interval: &str,
+) -> Result<String, String> {
+    info!("Associating website {} with session {} (refresh: {})", url, user.id, refresh_interval);
 
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
@@ -97,16 +226,25 @@ fn associate_website_with_session(
 
     match website_status {
         WebsiteCrawlStatus::NotRegistered => {
-            return Err(format!(
-                "Website {} has not been registered for crawling. It should be added to the script for preprocessing.",
-                url
+            // Auto-register website for crawling instead of failing
+            info!("Website {} not registered, auto-registering for crawling with refresh: {}", url, refresh_interval);
+            register_website_for_crawling_with_refresh(&mut conn, &user.bot_id, url, refresh_interval)
+                .map_err(|e| format!("Failed to register website: {}", e))?;
+
+            return Ok(format!(
+                "Website {} has been registered for crawling (refresh: {}). It will be available once crawling completes.",
+                url, refresh_interval
             ));
         }
         WebsiteCrawlStatus::Pending => {
             info!("Website {} is pending crawl, associating anyway", url);
+            // Update refresh policy if needed
+            update_refresh_policy_if_shorter(&mut conn, &user.bot_id, url, refresh_interval)?;
         }
         WebsiteCrawlStatus::Crawled => {
             info!("Website {} is already crawled and ready", url);
+            // Update refresh policy if needed
+            update_refresh_policy_if_shorter(&mut conn, &user.bot_id, url, refresh_interval)?;
         }
         WebsiteCrawlStatus::Failed => {
             return Err(format!(
@@ -165,26 +303,96 @@ pub fn register_website_for_crawling(
     bot_id: &Uuid,
     url: &str,
 ) -> Result<(), String> {
-    let expires_policy = "1d";
+    register_website_for_crawling_with_refresh(conn, bot_id, url, "1m") // Default: 1 month
+}
+
+pub fn register_website_for_crawling_with_refresh(
+    conn: &mut PgConnection,
+    bot_id: &Uuid,
+    url: &str,
+    refresh_interval: &str,
+) -> Result<(), String> {
+    let days = parse_refresh_interval(refresh_interval)
+        .map_err(|e| format!("Invalid refresh interval: {}", e))?;
+
+    let expires_policy = days_to_expires_policy(days);
 
     let query = diesel::sql_query(
-        "INSERT INTO website_crawls (id, bot_id, url, expires_policy, crawl_status, next_crawl)
-         VALUES (gen_random_uuid(), $1, $2, $3, 0, NOW())
-         ON CONFLICT (bot_id, url) DO UPDATE SET next_crawl =
-         CASE
-            WHEN website_crawls.crawl_status = 2 THEN NOW()  -- Failed, retry now
-            ELSE website_crawls.next_crawl  -- Keep existing schedule
-         END",
+        "INSERT INTO website_crawls (id, bot_id, url, expires_policy, crawl_status, next_crawl, refresh_policy)
+         VALUES (gen_random_uuid(), $1, $2, $3, 0, NOW(), $4)
+         ON CONFLICT (bot_id, url) DO UPDATE SET
+            next_crawl = CASE
+                WHEN website_crawls.crawl_status = 2 THEN NOW()  -- Failed, retry now
+                ELSE website_crawls.next_crawl  -- Keep existing schedule
+            END,
+            refresh_policy = CASE
+                WHEN website_crawls.refresh_policy IS NULL THEN $4
+                ELSE LEAST(website_crawls.refresh_policy, $4)  -- Use shorter interval
+            END",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .bind::<diesel::sql_types::Text, _>(url)
-    .bind::<diesel::sql_types::Text, _>(expires_policy);
+    .bind::<diesel::sql_types::Text, _>(expires_policy)
+    .bind::<diesel::sql_types::Text, _>(refresh_interval);
 
     query
         .execute(conn)
         .map_err(|e| format!("Failed to register website for crawling: {}", e))?;
 
-    info!("Website {} registered for crawling for bot {}", url, bot_id);
+    info!("Website {} registered for crawling for bot {} with refresh policy: {}", url, bot_id, refresh_interval);
+    Ok(())
+}
+
+/// Update refresh policy if the new interval is shorter than the existing one
+fn update_refresh_policy_if_shorter(
+    conn: &mut PgConnection,
+    bot_id: &Uuid,
+    url: &str,
+    refresh_interval: &str,
+) -> Result<(), String> {
+    // Get current record to compare in Rust (no SQL business logic!)
+    #[derive(QueryableByName)]
+    struct CurrentRefresh {
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        refresh_policy: Option<String>,
+    }
+
+    let current = diesel::sql_query(
+        "SELECT refresh_policy FROM website_crawls WHERE bot_id = $1 AND url = $2"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .bind::<diesel::sql_types::Text, _>(url)
+    .get_result::<CurrentRefresh>(conn)
+    .ok();
+
+    let new_days = parse_refresh_interval(refresh_interval)
+        .map_err(|e| format!("Invalid refresh interval: {}", e))?;
+
+    // Check if we should update (no policy exists or new interval is shorter)
+    let should_update = match &current {
+        Some(c) if c.refresh_policy.is_some() => {
+            let existing_days = parse_refresh_interval(c.refresh_policy.as_ref().unwrap())
+                .unwrap_or(i32::MAX);
+            new_days < existing_days
+        }
+        _ => true, // No existing policy, so update
+    };
+
+    if should_update {
+        let expires_policy = days_to_expires_policy(new_days);
+
+        diesel::sql_query(
+            "UPDATE website_crawls SET refresh_policy = $3, expires_policy = $4
+             WHERE bot_id = $1 AND url = $2"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Text, _>(url)
+        .bind::<diesel::sql_types::Text, _>(refresh_interval)
+        .bind::<diesel::sql_types::Text, _>(expires_policy)
+        .execute(conn)
+        .map_err(|e| format!("Failed to update refresh policy: {}", e))?;
+    }
+
     Ok(())
 }
 
@@ -193,7 +401,16 @@ pub fn execute_use_website_preprocessing(
     url: &str,
     bot_id: Uuid,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    trace!("Preprocessing USE_WEBSITE: {}, bot_id: {:?}", url, bot_id);
+    execute_use_website_preprocessing_with_refresh(conn, url, bot_id, "1m") // Default: 1 month
+}
+
+pub fn execute_use_website_preprocessing_with_refresh(
+    conn: &mut PgConnection,
+    url: &str,
+    bot_id: Uuid,
+    refresh_interval: &str,
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    trace!("Preprocessing USE_WEBSITE: {}, bot_id: {:?}, refresh: {}", url, bot_id, refresh_interval);
 
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err(format!(
@@ -203,12 +420,13 @@ pub fn execute_use_website_preprocessing(
         .into());
     }
 
-    register_website_for_crawling(conn, &bot_id, url)?;
+    register_website_for_crawling_with_refresh(conn, &bot_id, url, refresh_interval)?;
 
     Ok(serde_json::json!({
         "command": "use_website",
         "url": url,
         "bot_id": bot_id.to_string(),
+        "refresh_policy": refresh_interval,
         "status": "registered_for_crawling"
     }))
 }

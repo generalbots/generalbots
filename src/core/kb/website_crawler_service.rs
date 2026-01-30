@@ -5,6 +5,7 @@ use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 use diesel::prelude::*;
 use log::{error, info, warn};
+use regex;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 use uuid::Uuid;
@@ -22,7 +23,7 @@ impl WebsiteCrawlerService {
         Self {
             db_pool,
             kb_manager,
-            check_interval: Duration::from_secs(3600),
+            check_interval: Duration::from_secs(60),
             running: Arc::new(tokio::sync::RwLock::new(false)),
         }
     }
@@ -57,10 +58,13 @@ impl WebsiteCrawlerService {
     fn check_and_crawl_websites(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Checking for websites that need recrawling");
 
+        // First, scan for new USE WEBSITE commands in .bas files
+        self.scan_and_register_websites_from_scripts()?;
+
         let mut conn = self.db_pool.get()?;
 
         let websites = diesel::sql_query(
-            "SELECT id, bot_id, url, expires_policy, max_depth, max_pages
+            "SELECT id, bot_id, url, expires_policy, refresh_policy, max_depth, max_pages
              FROM website_crawls
              WHERE next_crawl <= NOW()
              AND crawl_status != 2
@@ -116,6 +120,7 @@ impl WebsiteCrawlerService {
             max_pages: website_max_pages,
             crawl_delay_ms: 500,
             expires_policy: website.expires_policy.clone(),
+            refresh_policy: website.refresh_policy.clone(),
             last_crawled: None,
             next_crawl: None,
         };
@@ -207,6 +212,103 @@ impl WebsiteCrawlerService {
 
         Ok(())
     }
+
+    fn scan_and_register_websites_from_scripts(&self) -> Result<(), Box<dyn std::error::Error>> {
+        info!("Scanning .bas files for USE WEBSITE commands");
+
+        let work_dir = std::path::Path::new("work");
+        if !work_dir.exists() {
+            return Ok(());
+        }
+
+        let mut conn = self.db_pool.get()?;
+
+        for entry in std::fs::read_dir(work_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if path.is_dir() && path.file_name().unwrap().to_string_lossy().ends_with(".gbai") {
+                let bot_name = path.file_name().unwrap().to_string_lossy().replace(".gbai", "");
+
+                // Get bot_id from database
+                #[derive(QueryableByName)]
+                struct BotIdResult {
+                    #[diesel(sql_type = diesel::sql_types::Uuid)]
+                    id: uuid::Uuid,
+                }
+
+                let bot_id_result: Result<BotIdResult, _> = diesel::sql_query("SELECT id FROM bots WHERE name = $1")
+                    .bind::<diesel::sql_types::Text, _>(&bot_name)
+                    .get_result(&mut conn);
+
+                let bot_id = match bot_id_result {
+                    Ok(result) => result.id,
+                    Err(_) => continue, // Skip if bot not found
+                };
+
+                // Scan .gbdialog directory for .bas files
+                let dialog_dir = path.join(format!("{}.gbdialog", bot_name));
+                if dialog_dir.exists() {
+                    self.scan_directory_for_websites(&dialog_dir, bot_id, &mut conn)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn scan_directory_for_websites(
+        &self,
+        dir: &std::path::Path,
+        bot_id: uuid::Uuid,
+        conn: &mut diesel::PgConnection,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if path.extension().map_or(false, |ext| ext == "bas") {
+                let content = std::fs::read_to_string(&path)?;
+
+                // Regex to find USE WEBSITE commands with optional REFRESH parameter
+                let re = regex::Regex::new(r#"USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#)?;
+
+                for cap in re.captures_iter(&content) {
+                    if let Some(url) = cap.get(1) {
+                        let url_str = url.as_str();
+                        let refresh_str = cap.get(2).map(|m| m.as_str()).unwrap_or("1m");
+
+                        // Check if already registered
+                        let exists = diesel::sql_query(
+                            "SELECT COUNT(*) as count FROM website_crawls WHERE bot_id = $1 AND url = $2"
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(&bot_id)
+                        .bind::<diesel::sql_types::Text, _>(url_str)
+                        .get_result::<CountResult>(conn)
+                        .map(|r| r.count)
+                        .unwrap_or(0);
+
+                        if exists == 0 {
+                            info!("Auto-registering website {} for bot {} with refresh: {}", url_str, bot_id, refresh_str);
+
+                            // Register website for crawling with refresh policy
+                            crate::basic::keywords::use_website::register_website_for_crawling_with_refresh(
+                                conn, &bot_id, url_str, refresh_str
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(QueryableByName)]
+struct CountResult {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    count: i64,
 }
 
 #[derive(QueryableByName, Debug)]
@@ -219,6 +321,8 @@ struct WebsiteCrawlRecord {
     url: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     expires_policy: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    refresh_policy: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Integer)]
     max_depth: i32,
     #[diesel(sql_type = diesel::sql_types::Integer)]
