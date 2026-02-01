@@ -4,6 +4,7 @@ use crate::package_manager::{InstallMode, PackageManager};
 use crate::security::command_guard::SafeCommand;
 use crate::shared::utils::{establish_pg_connection, init_secrets_manager};
 use anyhow::Result;
+use uuid::Uuid;
 
 #[cfg(feature = "drive")]
 use aws_sdk_s3::Client;
@@ -17,6 +18,13 @@ use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
+
+#[derive(diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct BotExistsResult {
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    exists: bool,
+}
 
 fn safe_pkill(args: &[&str]) {
     if let Ok(cmd) = SafeCommand::new("pkill").and_then(|c| c.args(args)) {
@@ -1971,6 +1979,68 @@ VAULT_CACHE_TTL=300
         debug!("Drive feature disabled, skipping template upload");
         Ok(())
     }
+    fn create_bot_from_template(conn: &mut diesel::PgConnection, bot_name: &str) -> Result<Uuid> {
+        use diesel::sql_query;
+
+        info!("Creating bot '{}' from template", bot_name);
+
+        let bot_id = Uuid::new_v4();
+        let db_name = format!("bot_{}", bot_name.replace(['-', ' '], "_").to_lowercase());
+
+        sql_query(
+            "INSERT INTO bots (id, name, description, is_active, database_name, created_at, updated_at, llm_provider, llm_config, context_provider, context_config)
+             VALUES ($1, $2, $3, true, $4, NOW(), NOW(), $5, $6, $7, $8)",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Text, _>(bot_name)
+        .bind::<diesel::sql_types::Text, _>(format!("Bot agent: {}", bot_name))
+        .bind::<diesel::sql_types::Text, _>(&db_name)
+        .bind::<diesel::sql_types::Text, _>("local")
+        .bind::<diesel::sql_types::Json, _>(serde_json::json!({}))
+        .bind::<diesel::sql_types::Text, _>("postgres")
+        .bind::<diesel::sql_types::Json, _>(serde_json::json!({}))
+        .execute(conn)
+        .map_err(|e| anyhow::anyhow!("Failed to create bot '{}': {}", bot_name, e))?;
+
+        // Create the bot database
+        let safe_db_name: String = db_name
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
+
+        if !safe_db_name.is_empty() && safe_db_name.len() <= 63 {
+            let create_query = format!("CREATE DATABASE {}", safe_db_name);
+            if let Err(e) = sql_query(&create_query).execute(conn) {
+                let err_str = e.to_string();
+                if !err_str.contains("already exists") {
+                    warn!("Failed to create database for bot '{}': {}", bot_name, e);
+                }
+            }
+            info!("Created database '{}' for bot '{}'", safe_db_name, bot_name);
+        }
+
+        Ok(bot_id)
+    }
+
+    fn read_valid_templates(templates_dir: &Path) -> std::collections::HashSet<String> {
+        let valid_file = templates_dir.join(".valid");
+        let mut valid_set = std::collections::HashSet::new();
+
+        if let Ok(content) = std::fs::read_to_string(&valid_file) {
+            for line in content.lines() {
+                let line = line.trim();
+                if !line.is_empty() && !line.starts_with('#') {
+                    valid_set.insert(line.to_string());
+                }
+            }
+            info!("Loaded {} valid templates from .valid file", valid_set.len());
+        } else {
+            info!("No .valid file found, will load all templates");
+        }
+
+        valid_set
+    }
+
     fn create_bots_from_templates(conn: &mut diesel::PgConnection) -> Result<()> {
         use crate::shared::models::schema::bots;
         use diesel::prelude::*;
@@ -2001,21 +2071,78 @@ VAULT_CACHE_TTL=300
             }
         };
 
+        let valid_templates = Self::read_valid_templates(&templates_dir);
+        let load_all = valid_templates.is_empty();
+
         let default_bot: Option<(uuid::Uuid, String)> = bots::table
             .filter(bots::is_active.eq(true))
             .select((bots::id, bots::name))
             .first(conn)
             .optional()?;
 
-        let Some((default_bot_id, default_bot_name)) = default_bot else {
-            error!("No active bot found in database - cannot sync template configs");
-            return Ok(());
+        let (default_bot_id, default_bot_name) = match default_bot {
+            Some(bot) => bot,
+            None => {
+                // Create default bot if it doesn't exist
+                info!("No active bot found, creating 'default' bot from template");
+                let bot_id = Self::create_bot_from_template(conn, "default")?;
+                (bot_id, "default".to_string())
+            }
         };
 
         info!(
             "Syncing template configs to bot '{}' ({})",
             default_bot_name, default_bot_id
         );
+
+        // Scan for .gbai template files and create bots if they don't exist
+        let entries = std::fs::read_dir(&templates_dir)
+            .map_err(|e| anyhow::anyhow!("Failed to read templates directory: {}", e))?;
+
+        for entry in entries.flatten() {
+            let file_name = entry.file_name();
+            let file_name_str = match file_name.to_str() {
+                Some(name) => name,
+                None => continue,
+            };
+
+            if !file_name_str.ends_with(".gbai") {
+                continue;
+            }
+
+            if !load_all && !valid_templates.contains(file_name_str) {
+                debug!("Skipping template '{}' (not in .valid file)", file_name_str);
+                continue;
+            }
+
+            let bot_name = file_name_str.trim_end_matches(".gbai");
+
+            // Check if bot already exists
+            let bot_exists: bool =
+                diesel::sql_query("SELECT EXISTS(SELECT 1 FROM bots WHERE name = $1) as exists")
+                    .bind::<diesel::sql_types::Text, _>(bot_name)
+                    .get_result::<BotExistsResult>(conn)
+                    .map(|r| r.exists)
+                    .unwrap_or(false);
+
+            if bot_exists {
+                info!("Bot '{}' already exists, skipping creation", bot_name);
+                continue;
+            }
+
+            // Create bot from template
+            match Self::create_bot_from_template(conn, bot_name) {
+                Ok(bot_id) => {
+                    info!(
+                        "Successfully created bot '{}' ({}) from template",
+                        bot_name, bot_id
+                    );
+                }
+                Err(e) => {
+                    error!("Failed to create bot '{}' from template: {:#}", bot_name, e);
+                }
+            }
+        }
 
         let default_template = templates_dir.join("default.gbai");
         info!(
