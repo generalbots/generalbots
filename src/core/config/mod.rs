@@ -362,14 +362,55 @@ impl ConfigManager {
         use crate::shared::models::schema::bot_configuration::dsl::*;
         let mut conn = self.get_conn()?;
         let fallback_str = fallback.unwrap_or("");
+
+        // Helper function to check if a value should be treated as "not configured"
+        fn is_placeholder_value(value: &str) -> bool {
+            let trimmed = value.trim().to_lowercase();
+            trimmed.is_empty() || trimmed == "none" || trimmed == "null" || trimmed == "n/a"
+        }
+
+        // Helper function to check if a value is a local file path (for local LLM server)
+        // These should fall back to default bot's config when using remote API
+        fn is_local_file_path(value: &str) -> bool {
+            let value = value.trim();
+            // Check for file path patterns
+            value.starts_with("../") ||
+            value.starts_with("./") ||
+            value.starts_with('/') ||
+            value.starts_with("~") ||
+            value.contains(".gguf") ||
+            value.contains(".bin") ||
+            value.contains(".safetensors") ||
+            value.starts_with("data/") ||
+            value.starts_with("../../") ||
+            value.starts_with("models/")
+        }
+
+        // Try to get value for the specific bot
         let result = bot_configuration
             .filter(bot_id.eq(code_bot_id))
             .filter(config_key.eq(key))
             .select(config_value)
             .first::<String>(&mut conn);
+
         let value = match result {
-            Ok(v) => v,
+            Ok(v) => {
+                // Check if it's a placeholder value or local file path - if so, fall back to default bot
+                // Local file paths are valid for local LLM server but NOT for remote APIs
+                if is_placeholder_value(&v) || is_local_file_path(&v) {
+                    let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut conn);
+                    bot_configuration
+                        .filter(bot_id.eq(default_bot_id))
+                        .filter(config_key.eq(key))
+                        .select(config_value)
+                        .first::<String>(&mut conn)
+                        .unwrap_or_else(|_| fallback_str.to_string())
+                } else {
+                    v
+                }
+            }
             Err(_) => {
+                // Value not found, fall back to default bot
                 let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut conn);
                 bot_configuration
                     .filter(bot_id.eq(default_bot_id))
@@ -379,7 +420,15 @@ impl ConfigManager {
                     .unwrap_or_else(|_| fallback_str.to_string())
             }
         };
-        Ok(value)
+
+        // Final check: if the result is still a placeholder value, use the fallback_str
+        let final_value = if is_placeholder_value(&value) {
+            fallback_str.to_string()
+        } else {
+            value
+        };
+
+        Ok(final_value)
     }
 
     pub fn get_bot_config_value(

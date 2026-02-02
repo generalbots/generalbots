@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{info, trace};
+use log::{error, info};
 use serde_json::Value;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -44,13 +44,116 @@ pub trait LLMProvider: Send + Sync {
 pub struct OpenAIClient {
     client: reqwest::Client,
     base_url: String,
+    endpoint_path: String,
 }
 
 impl OpenAIClient {
-    pub fn new(_api_key: String, base_url: Option<String>) -> Self {
+    /// Estimates token count for a text string (roughly 4 characters per token for English)
+    fn estimate_tokens(text: &str) -> usize {
+        // Rough estimate: ~4 characters per token for English text
+        // This is a heuristic and may not be accurate for all languages
+        text.len().div_ceil(4)
+    }
+
+    /// Estimates total tokens for a messages array
+    fn estimate_messages_tokens(messages: &Value) -> usize {
+        if let Some(msg_array) = messages.as_array() {
+            msg_array
+                .iter()
+                .map(|msg| {
+                    if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
+                        Self::estimate_tokens(content)
+                    } else {
+                        0
+                    }
+                })
+                .sum()
+        } else {
+            0
+        }
+    }
+
+    /// Truncates messages to fit within the max_tokens limit
+    /// Keeps system messages and the most recent user/assistant messages
+    fn truncate_messages(messages: &Value, max_tokens: usize) -> Value {
+        let mut result = Vec::new();
+        let mut token_count = 0;
+
+        if let Some(msg_array) = messages.as_array() {
+            // First pass: keep all system messages
+            for msg in msg_array {
+                if let Some(role) = msg.get("role").and_then(|r| r.as_str()) {
+                    if role == "system" {
+                        if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
+                            let msg_tokens = Self::estimate_tokens(content);
+                            if token_count + msg_tokens <= max_tokens {
+                                result.push(msg.clone());
+                                token_count += msg_tokens;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Second pass: add user/assistant messages from newest to oldest
+            let mut recent_messages: Vec<&Value> = msg_array
+                .iter()
+                .filter(|msg| msg.get("role").and_then(|r| r.as_str()) != Some("system"))
+                .collect();
+
+            // Reverse to get newest first
+            recent_messages.reverse();
+
+            for msg in recent_messages {
+                if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
+                    let msg_tokens = Self::estimate_tokens(content);
+                    if token_count + msg_tokens <= max_tokens {
+                        result.push(msg.clone());
+                        token_count += msg_tokens;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            // Reverse back to chronological order for non-system messages
+            // But keep system messages at the beginning
+            let system_count = result.len()
+                - result
+                    .iter()
+                    .filter(|m| m.get("role").and_then(|r| r.as_str()) != Some("system"))
+                    .count();
+            let mut user_messages: Vec<Value> = result.drain(system_count..).collect();
+            user_messages.reverse();
+            result.extend(user_messages);
+        }
+
+        serde_json::Value::Array(result)
+    }
+
+    /// Ensures messages fit within model's context limit
+    fn ensure_token_limit(messages: &Value, model_context_limit: usize) -> Value {
+        let estimated_tokens = Self::estimate_messages_tokens(messages);
+
+        // Use 90% of context limit to leave room for response
+        let safe_limit = (model_context_limit as f64 * 0.9) as usize;
+
+        if estimated_tokens > safe_limit {
+            log::warn!(
+                "Messages exceed token limit ({} > {}), truncating...",
+                estimated_tokens,
+                safe_limit
+            );
+            Self::truncate_messages(messages, safe_limit)
+        } else {
+            messages.clone()
+        }
+    }
+    pub fn new(_api_key: String, base_url: Option<String>, endpoint_path: Option<String>) -> Self {
         Self {
             client: reqwest::Client::new(),
             base_url: base_url.unwrap_or_else(|| "https://api.openai.com".to_string()),
+            endpoint_path: endpoint_path.unwrap_or_else(|| "/v1/chat/completions".to_string()),
         }
     }
 
@@ -92,20 +195,63 @@ impl LLMProvider for OpenAIClient {
         key: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
+
+        // Get the messages to use
+        let raw_messages =
+            if messages.is_array() && !messages.as_array().unwrap_or(&vec![]).is_empty() {
+                messages
+            } else {
+                &default_messages
+            };
+
+        // Ensure messages fit within model's context limit
+        // GLM-4.7 has 202750 tokens, other models vary
+        let context_limit = if model.contains("glm-4") || model.contains("GLM-4") {
+            202750
+        } else if model.contains("gpt-4") {
+            128000
+        } else if model.contains("gpt-3.5") {
+            16385
+        } else if model.starts_with("http://localhost:808") || model == "local" {
+            768 // Local llama.cpp server context limit
+        } else {
+            4096 // Default conservative limit
+        };
+
+        let messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
+
+        let full_url = format!("{}{}", self.base_url, self.endpoint_path);
+        let auth_header = format!("Bearer {}", key);
+
+        // Debug logging to help troubleshoot 401 errors
+        info!("LLM Request Details:");
+        info!("  URL: {}", full_url);
+        info!("  Authorization: Bearer <{} chars>", key.len());
+        info!("  Model: {}", model);
+        if let Some(msg_array) = messages.as_array() {
+            info!("  Messages: {} messages", msg_array.len());
+        }
+        info!("  API Key First 8 chars: '{}...'", &key.chars().take(8).collect::<String>());
+        info!("  API Key Last 8 chars: '...{}'", &key.chars().rev().take(8).collect::<String>());
+
         let response = self
             .client
-            .post(format!("{}/v1/chat/completions", self.base_url))
-            .header("Authorization", format!("Bearer {}", key))
+            .post(&full_url)
+            .header("Authorization", &auth_header)
             .json(&serde_json::json!({
                 "model": model,
-                "messages": if messages.is_array() && !messages.as_array().unwrap_or(&vec![]).is_empty() {
-                    messages
-                } else {
-                    &default_messages
-                }
+                "messages": messages,
+                "stream": true
             }))
             .send()
             .await?;
+
+        let status = response.status();
+        if status != reqwest::StatusCode::OK {
+            let error_text = response.text().await.unwrap_or_default();
+            error!("LLM generate error: {}", error_text);
+            return Err(format!("LLM request failed with status: {}", status).into());
+        }
 
         let result: Value = response.json().await?;
         let raw_content = result["choices"][0]["message"]["content"]
@@ -127,18 +273,51 @@ impl LLMProvider for OpenAIClient {
         key: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
+
+        // Get the messages to use
+        let raw_messages =
+            if messages.is_array() && !messages.as_array().unwrap_or(&vec![]).is_empty() {
+                info!("Using provided messages: {:?}", messages);
+                messages
+            } else {
+                &default_messages
+            };
+
+        // Ensure messages fit within model's context limit
+        // GLM-4.7 has 202750 tokens, other models vary
+        let context_limit = if model.contains("glm-4") || model.contains("GLM-4") {
+            202750
+        } else if model.contains("gpt-4") {
+            128000
+        } else if model.contains("gpt-3.5") {
+            16385
+        } else if model.starts_with("http://localhost:808") || model == "local" {
+            768 // Local llama.cpp server context limit
+        } else {
+            4096 // Default conservative limit
+        };
+
+        let messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
+
+        let full_url = format!("{}{}", self.base_url, self.endpoint_path);
+        let auth_header = format!("Bearer {}", key);
+
+        // Debug logging to help troubleshoot 401 errors
+        info!("LLM Request Details:");
+        info!("  URL: {}", full_url);
+        info!("  Authorization: Bearer <{} chars>", key.len());
+        info!("  Model: {}", model);
+        if let Some(msg_array) = messages.as_array() {
+            info!("  Messages: {} messages", msg_array.len());
+        }
+
         let response = self
             .client
-            .post(format!("{}/v1/chat/completions", self.base_url))
-            .header("Authorization", format!("Bearer {}", key))
+            .post(&full_url)
+            .header("Authorization", &auth_header)
             .json(&serde_json::json!({
                 "model": model,
-                "messages": if messages.is_array() && !messages.as_array().unwrap_or(&vec![]).is_empty() {
-                    info!("Using provided messages: {:?}", messages);
-                    messages
-                } else {
-                    &default_messages
-                },
+                "messages": messages,
                 "stream": true
             }))
             .send()
@@ -147,7 +326,7 @@ impl LLMProvider for OpenAIClient {
         let status = response.status();
         if status != reqwest::StatusCode::OK {
             let error_text = response.text().await.unwrap_or_default();
-            trace!("LLM generate_stream error: {}", error_text);
+            error!("LLM generate_stream error: {}", error_text);
             return Err(format!("LLM request failed with status: {}", status).into());
         }
 
@@ -213,11 +392,16 @@ pub fn create_llm_provider(
     provider_type: LLMProviderType,
     base_url: String,
     deployment_name: Option<String>,
+    endpoint_path: Option<String>,
 ) -> std::sync::Arc<dyn LLMProvider> {
     match provider_type {
         LLMProviderType::OpenAI => {
             info!("Creating OpenAI LLM provider with URL: {}", base_url);
-            std::sync::Arc::new(OpenAIClient::new("empty".to_string(), Some(base_url)))
+            std::sync::Arc::new(OpenAIClient::new(
+                "empty".to_string(),
+                Some(base_url),
+                endpoint_path,
+            ))
         }
         LLMProviderType::Claude => {
             info!("Creating Claude LLM provider with URL: {}", base_url);
@@ -237,9 +421,10 @@ pub fn create_llm_provider(
 pub fn create_llm_provider_from_url(
     url: &str,
     model: Option<String>,
+    endpoint_path: Option<String>,
 ) -> std::sync::Arc<dyn LLMProvider> {
     let provider_type = LLMProviderType::from(url);
-    create_llm_provider(provider_type, url.to_string(), model)
+    create_llm_provider(provider_type, url.to_string(), model, endpoint_path)
 }
 
 pub struct DynamicLLMProvider {
@@ -259,8 +444,13 @@ impl DynamicLLMProvider {
         info!("LLM provider updated dynamically");
     }
 
-    pub async fn update_from_config(&self, url: &str, model: Option<String>) {
-        let new_provider = create_llm_provider_from_url(url, model);
+    pub async fn update_from_config(
+        &self,
+        url: &str,
+        model: Option<String>,
+        endpoint_path: Option<String>,
+    ) {
+        let new_provider = create_llm_provider_from_url(url, model, endpoint_path);
         self.update_provider(new_provider).await;
     }
 
@@ -490,7 +680,7 @@ mod tests {
 
     #[test]
     fn test_openai_client_new_default_url() {
-        let client = OpenAIClient::new("test_key".to_string(), None);
+        let client = OpenAIClient::new("test_key".to_string(), None, None);
         assert_eq!(client.base_url, "https://api.openai.com");
     }
 
@@ -499,6 +689,7 @@ mod tests {
         let client = OpenAIClient::new(
             "test_key".to_string(),
             Some("http://localhost:8080".to_string()),
+            None,
         );
         assert_eq!(client.base_url, "http://localhost:8080");
     }
