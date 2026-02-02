@@ -1,5 +1,7 @@
 #[cfg(any(feature = "research", feature = "llm"))]
 pub mod kb_context;
+#[cfg(any(feature = "research", feature = "llm"))]
+use kb_context::inject_kb_context;
 #[cfg(feature = "llm")]
 use crate::core::config::ConfigManager;
 
@@ -20,7 +22,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
+use diesel::ExpressionMethods;
 use diesel::PgConnection;
+use diesel::QueryDsl;
+use diesel::RunQueryDsl;
 use futures::{sink::SinkExt, stream::StreamExt};
 #[cfg(feature = "llm")]
 use log::trace;
@@ -39,7 +44,9 @@ pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
     use crate::shared::models::schema::bots::dsl::*;
     use diesel::prelude::*;
 
+    // First try to get the bot named "default"
     match bots
+        .filter(name.eq("default"))
         .filter(is_active.eq(true))
         .select((id, name))
         .first::<(Uuid, String)>(conn)
@@ -47,8 +54,24 @@ pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
     {
         Ok(Some((bot_id, bot_name))) => (bot_id, bot_name),
         Ok(None) => {
-            warn!("No active bots found, using nil UUID");
-            (Uuid::nil(), "default".to_string())
+            warn!("Bot named 'default' not found, falling back to first active bot");
+            // Fall back to first active bot
+            match bots
+                .filter(is_active.eq(true))
+                .select((id, name))
+                .first::<(Uuid, String)>(conn)
+                .optional()
+            {
+                Ok(Some((bot_id, bot_name))) => (bot_id, bot_name),
+                Ok(None) => {
+                    warn!("No active bots found, using nil UUID");
+                    (Uuid::nil(), "default".to_string())
+                }
+                Err(e) => {
+                    error!("Failed to query fallback bot: {}", e);
+                    (Uuid::nil(), "default".to_string())
+                }
+            }
         }
         Err(e) => {
             error!("Failed to query default bot: {}", e);
@@ -72,8 +95,114 @@ impl BotOrchestrator {
     }
 
     pub fn mount_all_bots(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("mount_all_bots called");
+        info!("Scanning drive for .gbai files to mount bots...");
+
+        let mut bots_mounted = 0;
+        let mut bots_created = 0;
+
+        let directories_to_scan: Vec<std::path::PathBuf> = vec![
+            self.state
+                .config
+                .as_ref()
+                .map(|c| c.site_path.clone())
+                .unwrap_or_else(|| "./botserver-stack/sites".to_string())
+                .into(),
+            "./templates".into(),
+            "../bottemplates".into(),
+        ];
+
+        for dir_path in directories_to_scan {
+            info!("Checking directory for bots: {}", dir_path.display());
+
+            if !dir_path.exists() {
+                info!("Directory does not exist, skipping: {}", dir_path.display());
+                continue;
+            }
+
+            match self.scan_directory(&dir_path, &mut bots_mounted, &mut bots_created) {
+                Ok(()) => {}
+                Err(e) => {
+                    error!("Failed to scan directory {}: {}", dir_path.display(), e);
+                }
+            }
+        }
+
+        info!(
+            "Bot mounting complete: {} bots processed ({} created, {} already existed)",
+            bots_mounted,
+            bots_created,
+            bots_mounted - bots_created
+        );
+
         Ok(())
+    }
+
+    fn scan_directory(
+        &self,
+        dir_path: &std::path::Path,
+        bots_mounted: &mut i32,
+        _bots_created: &mut i32,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let entries =
+            std::fs::read_dir(dir_path).map_err(|e| format!("Failed to read directory: {}", e))?;
+
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+
+            let bot_name = match name.to_str() {
+                Some(n) if n.ends_with(".gbai") => n.trim_end_matches(".gbai"),
+                _ => continue,
+            };
+
+            info!("Found .gbai file: {}", bot_name);
+
+            match self.ensure_bot_exists(bot_name) {
+                Ok(true) => {
+                    info!("Bot '{}' already exists in database, mounting", bot_name);
+                    *bots_mounted += 1;
+                }
+                Ok(false) => {
+                    info!(
+                        "Bot '{}' does not exist in database, skipping (run import to create)",
+                        bot_name
+                    );
+                }
+                Err(e) => {
+                    error!("Failed to check if bot '{}' exists: {}", bot_name, e);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn ensure_bot_exists(
+        &self,
+        bot_name: &str,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        use diesel::sql_query;
+
+        let mut conn = self
+            .state
+            .conn
+            .get()
+            .map_err(|e| format!("Failed to get database connection: {e}"))?;
+
+        #[derive(diesel::QueryableByName)]
+        #[diesel(check_for_backend(diesel::pg::Pg))]
+        struct BotExistsResult {
+            #[diesel(sql_type = diesel::sql_types::Bool)]
+            exists: bool,
+        }
+
+        let exists: BotExistsResult = sql_query(
+            "SELECT EXISTS(SELECT 1 FROM bots WHERE name = $1 AND is_active = true) as exists",
+        )
+        .bind::<diesel::sql_types::Text, _>(bot_name)
+        .get_result(&mut conn)
+        .map_err(|e| format!("Failed to check if bot exists: {e}"))?;
+
+        Ok(exists.exists)
     }
 
     #[cfg(feature = "llm")]
@@ -90,6 +219,7 @@ impl BotOrchestrator {
 
         let user_id = Uuid::parse_str(&message.user_id)?;
         let session_id = Uuid::parse_str(&message.session_id)?;
+        let message_content = message.content.clone();
 
         let (session, context_data, history, model, key) = {
             let state_clone = self.state.clone();
@@ -117,12 +247,23 @@ impl BotOrchestrator {
                     };
 
                     let config_manager = ConfigManager::new(state_clone.conn.clone());
+
+                    // DEBUG: Log which bot we're getting config for
+                    info!("[CONFIG_TRACE] Getting LLM config for bot_id: {}", session.bot_id);
+
                     let model = config_manager
                         .get_config(&session.bot_id, "llm-model", Some("gpt-3.5-turbo"))
                         .unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
+
                     let key = config_manager
                         .get_config(&session.bot_id, "llm-key", Some(""))
                         .unwrap_or_default();
+
+                    // DEBUG: Log the exact config values retrieved
+                    info!("[CONFIG_TRACE] Model: '{}'", model);
+                    info!("[CONFIG_TRACE] API Key: '{}' ({} chars)", key, key.len());
+                    info!("[CONFIG_TRACE] API Key first 10 chars: '{}'", &key.chars().take(10).collect::<String>());
+                    info!("[CONFIG_TRACE] API Key last 10 chars: '{}'", &key.chars().rev().take(10).collect::<String>());
 
                     Ok((session, context_data, history, model, key))
                 },
@@ -131,7 +272,39 @@ impl BotOrchestrator {
         };
 
         let system_prompt = "You are a helpful assistant.".to_string();
-        let messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+        let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+
+        #[cfg(any(feature = "research", feature = "llm"))]
+        {
+            if let Some(kb_manager) = self.state.kb_manager.as_ref() {
+                let bot_name_for_kb = {
+                    let conn = self.state.conn.get().ok();
+                    if let Some(mut db_conn) = conn {
+                        use crate::shared::models::schema::bots::dsl::*;
+                        bots.filter(id.eq(session.bot_id))
+                            .select(name)
+                            .first::<String>(&mut db_conn)
+                            .unwrap_or_else(|_| "default".to_string())
+                    } else {
+                        "default".to_string()
+                    }
+                };
+
+                if let Err(e) = inject_kb_context(
+                    kb_manager.clone(),
+                    self.state.conn.clone(),
+                    session_id,
+                    &bot_name_for_kb,
+                    &message_content,
+                    &mut messages,
+                    8000,
+                )
+                .await
+                {
+                    error!("Failed to inject KB context: {}", e);
+                }
+            }
+        }
 
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
         let llm = self.state.llm_provider.clone();
@@ -139,6 +312,16 @@ impl BotOrchestrator {
         let model_clone = model.clone();
         let key_clone = key.clone();
         let messages_clone = messages.clone();
+
+        // DEBUG: Log exact values being passed to LLM
+        info!("[LLM_CALL] Calling generate_stream with:");
+        info!("[LLM_CALL]   Model: '{}'", model_clone);
+        info!("[LLM_CALL]   Key length: {} chars", key_clone.len());
+        info!("[LLM_CALL]   Key preview: '{}...{}'",
+            &key_clone.chars().take(8).collect::<String>(),
+            &key_clone.chars().rev().take(8).collect::<String>()
+        );
+
         tokio::spawn(async move {
             if let Err(e) = llm
                 .generate_stream("", &messages_clone, stream_tx, &model_clone, &key_clone)
@@ -388,10 +571,18 @@ pub async fn websocket_handler(
         let conn = state.conn.get().ok();
         if let Some(mut db_conn) = conn {
             use crate::shared::models::schema::bots::dsl::*;
-            let result: Result<Uuid, _> = bots
-                .filter(name.eq(&bot_name))
-                .select(id)
-                .first(&mut db_conn);
+
+            // Try to parse as UUID first, if that fails treat as bot name
+            let result: Result<Uuid, _> = if let Ok(uuid) = Uuid::parse_str(&bot_name) {
+                // Parameter is a UUID, look up by id
+                bots.filter(id.eq(uuid)).select(id).first(&mut db_conn)
+            } else {
+                // Parameter is a bot name, look up by name
+                bots.filter(name.eq(&bot_name))
+                    .select(id)
+                    .first(&mut db_conn)
+            };
+
             result.unwrap_or_else(|_| {
                 log::warn!("Bot not found: {}, using nil bot_id", bot_name);
                 Uuid::nil()
@@ -427,8 +618,8 @@ async fn handle_websocket(
     }
 
     info!(
-        "WebSocket connected for session: {}, user: {}",
-        session_id, user_id
+        "WebSocket connected for session: {}, user: {}, bot: {}",
+        session_id, user_id, bot_id
     );
 
     let welcome = serde_json::json!({
@@ -442,6 +633,89 @@ async fn handle_websocket(
     if let Ok(welcome_str) = serde_json::to_string(&welcome) {
         if sender.send(Message::Text(welcome_str)).await.is_err() {
             error!("Failed to send welcome message");
+        }
+    }
+
+    // Execute start.bas automatically on connection (similar to auth.ast pattern)
+    {
+        let bot_name_result = {
+            let conn = state.conn.get().ok();
+            if let Some(mut db_conn) = conn {
+                use crate::shared::models::schema::bots::dsl::*;
+                bots.filter(id.eq(bot_id))
+                    .select(name)
+                    .first::<String>(&mut db_conn)
+                    .ok()
+            } else {
+                None
+            }
+        };
+
+        // DEBUG: Log start script execution attempt
+        info!(
+            "Checking for start.bas: bot_id={}, bot_name_result={:?}",
+            bot_id,
+            bot_name_result
+        );
+
+        if let Some(bot_name) = bot_name_result {
+            let start_script_path = format!("./work/{}.gbai/{}.gbdialog/start.bas", bot_name, bot_name);
+
+            info!("Looking for start.bas at: {}", start_script_path);
+
+            if let Ok(metadata) = tokio::fs::metadata(&start_script_path).await {
+                if metadata.is_file() {
+                    info!("Found start.bas file, reading contents...");
+                    if let Ok(start_script) = tokio::fs::read_to_string(&start_script_path).await {
+                        info!(
+                            "Executing start.bas for bot {} on session {}",
+                            bot_name, session_id
+                        );
+
+                        let state_for_start = state.clone();
+                        let _tx_for_start = tx.clone();
+
+                        tokio::spawn(async move {
+                            let session_result = {
+                                let mut sm = state_for_start.session_manager.lock().await;
+                                sm.get_session_by_id(session_id)
+                            };
+
+                            if let Ok(Some(session)) = session_result {
+                                info!("Executing start.bas for bot {} on session {}", bot_name, session_id);
+
+                                let result = tokio::task::spawn_blocking(move || {
+                                    let mut script_service = crate::basic::ScriptService::new(
+                                        state_for_start.clone(),
+                                        session.clone()
+                                    );
+                                    script_service.load_bot_config_params(&state_for_start, bot_id);
+
+                                    match script_service.compile(&start_script) {
+                                        Ok(ast) => match script_service.run(&ast) {
+                                            Ok(_) => Ok(()),
+                                            Err(e) => Err(format!("Script execution error: {}", e)),
+                                        },
+                                        Err(e) => Err(format!("Script compilation error: {}", e)),
+                                    }
+                                }).await;
+
+                                match result {
+                                    Ok(Ok(())) => {
+                                        info!("start.bas executed successfully for bot {}", bot_name);
+                                    }
+                                    Ok(Err(e)) => {
+                                        error!("start.bas error for bot {}: {}", bot_name, e);
+                                    }
+                                    Err(e) => {
+                                        error!("start.bas task error for bot {}: {}", bot_name, e);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
         }
     }
 
