@@ -81,7 +81,7 @@ impl WebsiteCrawlerService {
         }
 
         let websites = diesel::sql_query(
-            "SELECT id, bot_id, url, expires_policy, refresh_policy, max_depth, max_pages, next_crawl
+            "SELECT id, bot_id, url, expires_policy, refresh_policy, max_depth, max_pages, next_crawl, crawl_status
              FROM website_crawls
              WHERE next_crawl <= NOW()
              AND crawl_status != 2
