@@ -5,19 +5,14 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use chrono::{Duration, Utc};
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use uuid::Uuid;
 use once_cell::sync::Lazy;
 
-use crate::shared::models::UserLoginToken;
 use crate::shared::state::AppState;
-use crate::shared::schema::user_login_tokens::dsl::*;
-use diesel::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionUserData {
@@ -217,15 +212,15 @@ pub async fn login(
         )
     })?;
 
-    let user_id = user_data
+    let user_id_str = user_data
         .get("result")
         .and_then(|r| r.as_array())
         .and_then(|arr| arr.first())
         .and_then(|u| u.get("userId"))
-        .and_then(|id| id.as_str())
+        .and_then(|v| v.as_str())
         .map(String::from);
 
-    let user_id = match user_id {
+    let user_id_str = match user_id_str {
         Some(id) => id,
         None => {
             error!("User not found: {}", req.email);
@@ -243,7 +238,7 @@ pub async fn login(
     let session_body = serde_json::json!({
         "checks": {
             "user": {
-                "userId": user_id
+                "userId": user_id_str
             },
             "password": {
                 "password": req.password
@@ -313,14 +308,10 @@ pub async fn login(
         .and_then(|s| s.as_str())
         .map(String::from);
 
-    let access_token = session_id.clone().unwrap_or_else(|| user_id.clone());
-
-    let user_uuid = Uuid::parse_str(&user_id).unwrap_or_else(|_| Uuid::new_v4());
-    let token_uuid = Uuid::new_v4();
-    let expires_at = Utc::now() + Duration::hours(24);
+    let access_token = session_id.clone().unwrap_or_else(|| user_id_str.clone());
 
     let session_user = SessionUserData {
-        user_id: user_id.clone(),
+        user_id: user_id_str.clone(),
         email: req.email.clone(),
         username: req.email.split('@').next().unwrap_or("user").to_string(),
         first_name: None,
@@ -337,33 +328,11 @@ pub async fn login(
         info!("Session cached for user: {} with token: {}...", req.email, &access_token[..std::cmp::min(20, access_token.len())]);
     }
 
-    let db_pool = state.db_pool.clone();
-    if let Err(e) = tokio::task::spawn_blocking(move || {
-        let mut conn = db_pool.get()?;
-        let new_token = UserLoginToken {
-            id: token_uuid,
-            user_id: user_uuid,
-            token_hash: access_token.clone(),
-            expires_at,
-            created_at: Utc::now(),
-            last_used: Utc::now(),
-            user_agent: None,
-            ip_address: None,
-            is_active: true,
-        };
-        diesel::insert_into(user_login_tokens)
-            .values(&new_token)
-            .execute(&mut conn)?;
-        Ok::<_, diesel::result::Error>(())
-    }).await {
-        error!("Failed to save login token to database: {:?}", e);
-    }
-
-    info!("Login successful for: {} (user_id: {})", req.email, user_id);
+    info!("Login successful for: {} (user_id: {})", req.email, user_id_str);
 
     Ok(Json(LoginResponse {
         success: true,
-        user_id: Some(user_id),
+        user_id: Some(user_id_str),
         session_id: session_id.clone(),
         access_token: Some(access_token),
         refresh_token: None,
@@ -439,22 +408,6 @@ pub async fn get_current_user(
     if let Some(user_data) = cache.get(session_token) {
         info!("get_current_user: found cached session for user: {}", user_data.email);
         
-        tokio::spawn({
-            let token = session_token.to_string();
-            let db_pool = state.db_pool.clone();
-            async move {
-                if let Err(e) = tokio::task::spawn_blocking(move || {
-                    let mut conn = db_pool.get()?;
-                    diesel::update(user_login_tokens.filter(token_hash.eq(&token)))
-                        .set(last_used.eq(Utc::now()))
-                        .execute(&mut conn)?;
-                    Ok::<_, diesel::result::Error>(())
-                }).await {
-                    error!("Failed to update last_used for token: {:?}", e);
-                }
-            }
-        });
-        
         return Ok(Json(CurrentUserResponse {
             id: user_data.user_id.clone(),
             username: user_data.username.clone(),
@@ -470,128 +423,14 @@ pub async fn get_current_user(
 
     drop(cache);
 
-    info!("get_current_user: session not in cache, checking database");
-
-    let db_pool = state.db_pool.clone();
-    let token_str = session_token.to_string();
-    
-    let login_token = tokio::task::spawn_blocking(move || {
-        let mut conn = db_pool.get()?;
-        let result: Option<UserLoginToken> = user_login_tokens
-            .filter(token_hash.eq(&token_str))
-            .filter(is_active.eq(true))
-            .filter(expires_at.gt(Utc::now()))
-            .first(&mut conn)
-            .optional()?;
-        Ok::<_, diesel::result::Error>(result)
-    }).await.map_err(|e| {
-        error!("get_current_user: database query failed: {:?}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Database error".to_string(),
-                details: Some(e.to_string()),
-            }),
-        )
-    })?.map_err(|e| {
-        error!("get_current_user: database query error: {:?}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Database error".to_string(),
-                details: Some(e.to_string()),
-            }),
-        )
-    })?;
-
-    match login_token {
-        Some(token) => {
-            info!("get_current_user: found valid token in database for user_id: {}", token.user_id);
-            
-            let client = {
-                let auth_service = state.auth_service.lock().await;
-                auth_service.client().clone()
-            };
-
-            let user_data = client.get_user(&token.user_id.to_string()).await.map_err(|e| {
-                error!("get_current_user: failed to get user from directory: {}", e);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorResponse {
-                        error: "Failed to fetch user data".to_string(),
-                        details: Some(e.to_string()),
-                    }),
-                )
-            })?;
-
-            let session_user = SessionUserData {
-                user_id: token.user_id.to_string(),
-                email: user_data.get("email")
-                    .and_then(|e| e.as_str())
-                    .unwrap_or("unknown@example.com")
-                    .to_string(),
-                username: user_data.get("username")
-                    .and_then(|u| u.as_str())
-                    .unwrap_or("user")
-                    .to_string(),
-                first_name: user_data.get("firstName")
-                    .and_then(|f| f.as_str())
-                    .map(String::from),
-                last_name: user_data.get("lastName")
-                    .and_then(|l| l.as_str())
-                    .map(String::from),
-                display_name: user_data.get("displayName")
-                    .and_then(|d| d.as_str())
-                    .map(String::from),
-                organization_id: None,
-                roles: vec!["admin".to_string()],
-                created_at: chrono::Utc::now().timestamp(),
-            };
-
-            {
-                let mut cache = SESSION_CACHE.write().await;
-                cache.insert(token_str.clone(), session_user.clone());
-            }
-
-            tokio::spawn({
-                let token = token_str.clone();
-                let db_pool = state.db_pool.clone();
-                async move {
-                    if let Err(e) = tokio::task::spawn_blocking(move || {
-                        let mut conn = db_pool.get()?;
-                        diesel::update(user_login_tokens.filter(token_hash.eq(&token)))
-                            .set(last_used.eq(Utc::now()))
-                            .execute(&mut conn)?;
-                        Ok::<_, diesel::result::Error>(())
-                    }).await {
-                        error!("Failed to update last_used for token: {:?}", e);
-                    }
-                }
-            });
-
-            Ok(Json(CurrentUserResponse {
-                id: session_user.user_id.clone(),
-                username: session_user.username.clone(),
-                email: Some(session_user.email.clone()),
-                first_name: session_user.first_name.clone(),
-                last_name: session_user.last_name.clone(),
-                display_name: session_user.display_name.clone(),
-                roles: session_user.roles.clone(),
-                organization_id: session_user.organization_id.clone(),
-                avatar_url: None,
-            }))
-        }
-        None => {
-            warn!("get_current_user: token not found or expired in database");
-            Err((
-                StatusCode::UNAUTHORIZED,
-                Json(ErrorResponse {
-                    error: "Session expired or invalid. Please log in again.".to_string(),
-                    details: None,
-                }),
-            ))
-        }
-    }
+    warn!("get_current_user: session not found in cache");
+    Err((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "Session expired or invalid. Please log in again.".to_string(),
+            details: None,
+        }),
+    ))
 }
 
 pub async fn refresh_token(
@@ -780,7 +619,7 @@ pub async fn bootstrap_admin(
         }
     }
 
-    let user_id = match client
+    let new_user_id = match client
         .create_user(&req.email, &req.first_name, &req.last_name, Some(&req.username))
         .await
     {
@@ -800,12 +639,12 @@ pub async fn bootstrap_admin(
         }
     };
 
-    if let Err(e) = set_user_password(&client, &user_id, &req.password).await {
+    if let Err(e) = set_user_password(&client, &new_user_id, &req.password).await {
         error!("Failed to set admin password: {}", e);
     }
 
     let org_name = req.organization_name.unwrap_or_else(|| "Default Organization".to_string());
-    let org_id = match create_organization(&client, &org_name).await {
+    let new_org_id = match create_organization(&client, &org_name).await {
         Ok(id) => {
             info!("Bootstrap organization created: {}", id);
             Some(id)
@@ -816,13 +655,13 @@ pub async fn bootstrap_admin(
         }
     };
 
-    if let Some(ref oid) = org_id {
+    if let Some(ref oid) = new_org_id {
         let admin_roles = vec![
             "admin".to_string(),
             "org_owner".to_string(),
             "user_manager".to_string(),
         ];
-        if let Err(e) = client.add_org_member(oid, &user_id, admin_roles).await {
+        if let Err(e) = client.add_org_member(oid, &new_user_id, admin_roles).await {
             error!("Failed to add admin to organization: {}", e);
         } else {
             info!("Admin user added to organization with admin roles");
@@ -840,8 +679,8 @@ pub async fn bootstrap_admin(
             "Admin user '{}' created successfully. You can now login with your credentials.",
             req.username
         ),
-        user_id: Some(user_id),
-        organization_id: org_id,
+        user_id: Some(new_user_id),
+        organization_id: new_org_id,
     }))
 }
 
