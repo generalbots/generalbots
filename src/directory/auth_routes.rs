@@ -55,15 +55,16 @@ pub struct LoginResponse {
 
 #[derive(Debug, Serialize)]
 pub struct CurrentUserResponse {
-    pub id: String,
-    pub username: String,
+    pub id: Option<String>,
+    pub username: Option<String>,
     pub email: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub display_name: Option<String>,
-    pub roles: Vec<String>,
+    pub roles: Option<Vec<String>>,
     pub organization_id: Option<String>,
     pub avatar_url: Option<String>,
+    pub is_anonymous: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -372,67 +373,83 @@ pub async fn logout(
 }
 
 pub async fn get_current_user(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
-) -> Result<Json<CurrentUserResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Json<CurrentUserResponse> {
     let session_token = headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
-        .and_then(|auth| auth.strip_prefix("Bearer "))
-        .ok_or_else(|| {
-            warn!("get_current_user: Missing authorization header");
-            (
-                StatusCode::UNAUTHORIZED,
-                Json(ErrorResponse {
-                    error: "Missing authorization token".to_string(),
-                    details: None,
-                }),
-            )
-        })?;
+        .and_then(|auth| auth.strip_prefix("Bearer "));
 
-    if session_token.is_empty() {
-        warn!("get_current_user: Empty authorization token");
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            Json(ErrorResponse {
-                error: "Invalid authorization token".to_string(),
-                details: None,
-            }),
-        ));
+    match session_token {
+        None => {
+            info!("get_current_user: no authorization header - returning anonymous user");
+            Json(CurrentUserResponse {
+                id: None,
+                username: None,
+                email: None,
+                first_name: None,
+                last_name: None,
+                display_name: None,
+                roles: None,
+                organization_id: None,
+                avatar_url: None,
+                is_anonymous: true,
+            })
+        }
+        Some(token) if token.is_empty() => {
+            info!("get_current_user: empty authorization token - returning anonymous user");
+            Json(CurrentUserResponse {
+                id: None,
+                username: None,
+                email: None,
+                first_name: None,
+                last_name: None,
+                display_name: None,
+                roles: None,
+                organization_id: None,
+                avatar_url: None,
+                is_anonymous: true,
+            })
+        }
+        Some(session_token) => {
+            info!("get_current_user: looking up session token (len={}, prefix={}...)",
+                  session_token.len(),
+                  &session_token[..std::cmp::min(20, session_token.len())]);
+
+            let cache = SESSION_CACHE.read().await;
+
+            if let Some(user_data) = cache.get(session_token) {
+                info!("get_current_user: found cached session for user: {}", user_data.email);
+                Json(CurrentUserResponse {
+                    id: Some(user_data.user_id.clone()),
+                    username: Some(user_data.username.clone()),
+                    email: Some(user_data.email.clone()),
+                    first_name: user_data.first_name.clone(),
+                    last_name: user_data.last_name.clone(),
+                    display_name: user_data.display_name.clone(),
+                    roles: Some(user_data.roles.clone()),
+                    organization_id: user_data.organization_id.clone(),
+                    avatar_url: None,
+                    is_anonymous: false,
+                })
+            } else {
+                info!("get_current_user: session not found in cache - returning anonymous user");
+                Json(CurrentUserResponse {
+                    id: None,
+                    username: None,
+                    email: None,
+                    first_name: None,
+                    last_name: None,
+                    display_name: None,
+                    roles: None,
+                    organization_id: None,
+                    avatar_url: None,
+                    is_anonymous: true,
+                })
+            }
+        }
     }
-
-    info!("get_current_user: looking up session token (len={}, prefix={}...)",
-          session_token.len(),
-          &session_token[..std::cmp::min(20, session_token.len())]);
-
-    let cache = SESSION_CACHE.read().await;
-
-    if let Some(user_data) = cache.get(session_token) {
-        info!("get_current_user: found cached session for user: {}", user_data.email);
-        
-        return Ok(Json(CurrentUserResponse {
-            id: user_data.user_id.clone(),
-            username: user_data.username.clone(),
-            email: Some(user_data.email.clone()),
-            first_name: user_data.first_name.clone(),
-            last_name: user_data.last_name.clone(),
-            display_name: user_data.display_name.clone(),
-            roles: user_data.roles.clone(),
-            organization_id: user_data.organization_id.clone(),
-            avatar_url: None,
-        }));
-    }
-
-    drop(cache);
-
-    warn!("get_current_user: session not found in cache");
-    Err((
-        StatusCode::UNAUTHORIZED,
-        Json(ErrorResponse {
-            error: "Session expired or invalid. Please log in again.".to_string(),
-            details: None,
-        }),
-    ))
 }
 
 pub async fn refresh_token(
