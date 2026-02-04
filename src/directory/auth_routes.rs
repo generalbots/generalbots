@@ -308,7 +308,9 @@ pub async fn login(
         .and_then(|s| s.as_str())
         .map(String::from);
 
-    let access_token = session_id.clone().unwrap_or_else(|| user_id_str.clone());
+    use uuid::Uuid;
+    
+    let api_token = format!("gb_{}_{}", Uuid::new_v4(), chrono::Utc::now().timestamp());
 
     let session_user = SessionUserData {
         user_id: user_id_str.clone(),
@@ -324,8 +326,8 @@ pub async fn login(
 
     {
         let mut cache = SESSION_CACHE.write().await;
-        cache.insert(access_token.clone(), session_user.clone());
-        info!("Session cached for user: {} with token: {}...", req.email, &access_token[..std::cmp::min(20, access_token.len())]);
+        cache.insert(api_token.clone(), session_user.clone());
+        info!("Session cached for user: {} with token: {}...", req.email, &api_token[..std::cmp::min(20, api_token.len())]);
     }
 
     info!("Login successful for: {} (user_id: {})", req.email, user_id_str);
@@ -334,7 +336,7 @@ pub async fn login(
         success: true,
         user_id: Some(user_id_str),
         session_id: session_id.clone(),
-        access_token: Some(access_token),
+        access_token: Some(api_token),
         refresh_token: None,
         expires_in: Some(3600),
         requires_2fa: false,
