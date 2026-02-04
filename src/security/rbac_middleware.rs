@@ -959,7 +959,7 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/auth/bootstrap", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/auth/refresh", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/auth/logout", "POST", ""),
-        RoutePermission::new("/api/auth/me", "GET", ""),
+        RoutePermission::new("/api/auth/me", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/auth/**", "GET", ""),
         RoutePermission::new("/api/auth/**", "POST", ""),
 
