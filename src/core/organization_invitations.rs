@@ -879,19 +879,19 @@ mod tests {
         let org_id = Uuid::new_v4();
         let invited_by = Uuid::new_v4();
 
-        let result = service
-            .create_invitation(
-                org_id,
-                "Test Org",
-                "test@example.com",
-                InvitationRole::Member,
-                vec![],
-                invited_by,
-                "Admin",
-                None,
-                7,
-            )
-            .await;
+        let params = crate::core::organization_invitations::CreateInvitationParams {
+            organization_id: org_id,
+            organization_name: "Test Org",
+            email: "test@example.com".to_string(),
+            role: "Member".to_string(),
+            groups: vec![],
+            invited_by: invited_by,
+            invited_by_name: Some("Admin".to_string()),
+            message: None,
+            expires_in_days: Some(7),
+        };
+
+        let result = service.create_invitation(params).await;
 
         assert!(result.is_ok());
         let invitation = result.unwrap();
@@ -905,35 +905,29 @@ mod tests {
         let org_id = Uuid::new_v4();
         let invited_by = Uuid::new_v4();
 
-        let first = service
-            .create_invitation(
-                org_id,
-                "Test Org",
-                "test@example.com",
-                InvitationRole::Member,
-                vec![],
-                invited_by,
-                "Admin",
-                None,
-                7,
-            )
-            .await;
-        assert!(first.is_ok());
+        let params = crate::core::organization_invitations::CreateInvitationParams {
+            organization_id: org_id,
+            organization_name: "Test Org",
+            email: "test@example.com".to_string(),
+            role: "Member".to_string(),
+            groups: vec![],
+            invited_by: invited_by,
+            invited_by_name: Some("Admin".to_string()),
+            message: None,
+            expires_in_days: Some(7),
+        };
 
-        let second = service
-            .create_invitation(
-                org_id,
-                "Test Org",
-                "test@example.com",
-                InvitationRole::Member,
-                vec![],
-                invited_by,
-                "Admin",
-                None,
-                7,
-            )
-            .await;
-        assert!(second.is_err());
+        let first_result = service.create_invitation(params.clone()).await;
+
+        assert!(first_result.is_ok());
+
+        let second_result = service.create_invitation(params).await;
+
+        assert!(second_result.is_err());
+        assert_eq!(
+            second_result.unwrap_err(),
+            "An invitation already exists for this email"
+        );
     }
 
     #[tokio::test]
@@ -943,20 +937,18 @@ mod tests {
         let invited_by = Uuid::new_v4();
         let user_id = Uuid::new_v4();
 
-        let invitation = service
-            .create_invitation(
-                org_id,
-                "Test Org",
-                "accept@example.com",
-                InvitationRole::Member,
-                vec![],
-                invited_by,
-                "Admin",
-                None,
-                7,
-            )
-            .await
-            .unwrap();
+        let params = crate::core::organization_invitations::CreateInvitationParams {
+            organization_id: org_id,
+            organization_name: "Test Org",
+            email: "test@example.com".to_string(),
+            role: "Member".to_string(),
+            groups: vec![],
+            invited_by,
+            invited_by_name: Some("Admin".to_string()),
+            message: None,
+            expires_in_days: Some(7),
+        };
+        let invitation = service.create_invitation(params).await.unwrap();
 
         let result = service.accept_invitation(&invitation.token, user_id).await;
         assert!(result.is_ok());

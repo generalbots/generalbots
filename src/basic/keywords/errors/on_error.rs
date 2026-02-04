@@ -71,15 +71,20 @@ pub fn register_on_error_keywords(_state: Arc<AppState>, _user: UserSession, eng
 
     engine
         .register_custom_syntax(
-            ["ON", "ERROR", "GOTO", "0"],
+            ["ON", "ERROR", "GOTO", "$ident$"],
             false,
-            move |_context, _inputs| {
-                trace!("ON ERROR GOTO 0 - Error handling disabled");
-                set_error_resume_next(false);
+            move |context, inputs| {
+                let label = context.eval_expression_tree(&inputs[0])?.to_string();
+                if label == "0" {
+                    trace!("ON ERROR GOTO 0 - Error handling disabled");
+                    set_error_resume_next(false);
+                } else {
+                    trace!("ON ERROR GOTO {} - Error handler set", label);
+                }
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register ON ERROR GOTO 0");
+        .expect("Failed to register ON ERROR GOTO");
 
     engine
         .register_custom_syntax(["CLEAR", "ERROR"], false, move |_context, _inputs| {

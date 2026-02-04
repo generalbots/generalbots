@@ -266,6 +266,48 @@ async fn health_check_simple() -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
+#[derive(serde::Deserialize)]
+struct ClientErrorsRequest {
+    errors: Vec<ClientErrorData>,
+}
+
+#[derive(serde::Deserialize)]
+struct ClientErrorData {
+    #[serde(default)]
+    r#type: String,
+    #[serde(default)]
+    message: String,
+    #[serde(default)]
+    stack: Option<String>,
+    #[serde(default)]
+    url: String,
+    #[serde(default)]
+    timestamp: String,
+}
+
+async fn receive_client_errors(
+    Json(payload): Json<ClientErrorsRequest>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    for error in &payload.errors {
+        log::error!(
+            "[CLIENT ERROR] {} | {} | {} | URL: {} | Stack: {}",
+            error.timestamp,
+            error.r#type,
+            error.message,
+            error.url,
+            error.stack.as_deref().unwrap_or("<no stack>")
+        );
+    }
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "status": "received",
+            "count": payload.errors.len()
+        })),
+    )
+}
+
 fn print_shutdown_message() {
     println!();
     println!("Thank you for using General Bots!");
@@ -344,9 +386,12 @@ async fn run_axum_server(
             .add_anonymous_path("/api/product")
             .add_anonymous_path("/api/manifest")
             .add_anonymous_path("/api/i18n")
+            .add_anonymous_path("/api/auth")
             .add_anonymous_path("/api/auth/login")
             .add_anonymous_path("/api/auth/refresh")
             .add_anonymous_path("/api/auth/bootstrap")
+            .add_anonymous_path("/api/bot/config")
+            .add_anonymous_path("/api/client-errors")
             .add_anonymous_path("/ws")
             .add_anonymous_path("/auth")
             .add_public_path("/static")
@@ -439,8 +484,11 @@ async fn run_axum_server(
     let mut api_router = Router::new()
         .route("/health", get(health_check_simple))
         .route(ApiUrls::HEALTH, get(health_check))
+        .route("/api/config/reload", post(crate::core::config_reload::reload_config))
         .route("/api/product", get(get_product_config))
         .route("/api/manifest", get(get_workspace_manifest))
+        .route("/api/client-errors", post(receive_client_errors))
+        .route("/api/bot/config", get(crate::core::bot::get_bot_config))
         .route(ApiUrls::SESSIONS, post(create_session))
         .route(ApiUrls::SESSIONS, get(get_sessions))
         .route(ApiUrls::SESSION_HISTORY, get(get_session_history))
@@ -1351,6 +1399,14 @@ async fn main() -> std::io::Result<()> {
         .get_config(&default_bot_id, "llm-key", Some(""))
         .unwrap_or_default();
 
+    let llm_endpoint_path = config_manager
+        .get_config(
+            &default_bot_id,
+            "llm-endpoint-path",
+            Some("/v1/chat/completions"),
+        )
+        .unwrap_or_else(|_| "/v1/chat/completions".to_string());
+
     #[cfg(feature = "llm")]
     let base_llm_provider = crate::llm::create_llm_provider_from_url(
         &llm_url,
@@ -1359,10 +1415,28 @@ async fn main() -> std::io::Result<()> {
         } else {
             Some(llm_model.clone())
         },
+        Some(llm_endpoint_path.clone()),
     );
 
     #[cfg(feature = "llm")]
     let dynamic_llm_provider = Arc::new(crate::llm::DynamicLLMProvider::new(base_llm_provider));
+
+    #[cfg(feature = "llm")]
+    {
+        // Ensure the DynamicLLMProvider is initialized with the correct config from database
+        // This makes the system robust: even if the URL was set before server startup,
+        // the provider will use the correct configuration
+        info!("Initializing DynamicLLMProvider with config: URL={}, Model={}, Endpoint={}",
+              llm_url,
+              if llm_model.is_empty() { "(default)" } else { &llm_model },
+              llm_endpoint_path.clone());
+        dynamic_llm_provider.update_from_config(
+            &llm_url,
+            if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
+            Some(llm_endpoint_path),
+        ).await;
+        info!("DynamicLLMProvider initialized successfully");
+    }
 
     #[cfg(feature = "llm")]
     let llm_provider: Arc<dyn crate::llm::LLMProvider> = if let Some(ref cache) = redis_client {
@@ -1445,9 +1519,7 @@ async fn main() -> std::io::Result<()> {
 
     let app_state = Arc::new(AppState {
         #[cfg(feature = "drive")]
-        drive: Some(drive.clone()),
-        #[cfg(feature = "drive")]
-        s3_client: Some(drive),
+        drive: Some(drive),
         config: Some(cfg.clone()),
         conn: pool.clone(),
         database_url: database_url.clone(),
@@ -1461,6 +1533,8 @@ async fn main() -> std::io::Result<()> {
         task_scheduler,
         #[cfg(feature = "llm")]
         llm_provider: llm_provider.clone(),
+        #[cfg(feature = "llm")]
+        dynamic_llm_provider: Some(dynamic_llm_provider.clone()),
         #[cfg(feature = "directory")]
         auth_service: auth_service.clone(),
         channels: Arc::new(tokio::sync::Mutex::new({
@@ -1541,22 +1615,70 @@ async fn main() -> std::io::Result<()> {
         error!("Failed to mount bots: {}", e);
     }
 
+    #[cfg(feature = "llm")]
+    {
+        let app_state_for_llm = app_state.clone();
+        trace!("ensure_llama_servers_running starting...");
+        if let Err(e) = ensure_llama_servers_running(app_state_for_llm).await {
+            error!("Failed to start LLM servers: {}", e);
+        }
+        trace!("ensure_llama_servers_running completed");
+    }
+
     #[cfg(feature = "drive")]
     {
         let drive_monitor_state = app_state.clone();
-        let bucket_name = "default.gbai".to_string();
-        let monitor_bot_id = default_bot_id;
+        let pool_clone = pool.clone();
+
         tokio::spawn(async move {
             register_thread("drive-monitor", "drive");
-            trace!("DriveMonitor::new starting...");
-            let monitor =
-                crate::DriveMonitor::new(drive_monitor_state, bucket_name.clone(), monitor_bot_id);
-            trace!("DriveMonitor::new done, calling start_monitoring...");
-            info!("Starting DriveMonitor for bucket: {}", bucket_name);
-            if let Err(e) = monitor.start_monitoring().await {
-                error!("DriveMonitor failed: {}", e);
+
+            let bots_to_monitor = tokio::task::spawn_blocking(move || {
+                use uuid::Uuid;
+                let mut conn = match pool_clone.get() {
+                    Ok(conn) => conn,
+                    Err(_) => return Vec::new(),
+                };
+                use crate::shared::models::schema::bots::dsl::*;
+                use diesel::prelude::*;
+                bots.filter(is_active.eq(true))
+                    .select((id, name))
+                    .load::<(Uuid, String)>(&mut conn)
+                    .unwrap_or_default()
+            })
+            .await
+            .unwrap_or_default();
+
+            info!("Found {} active bots to monitor", bots_to_monitor.len());
+
+            for (bot_id, bot_name) in bots_to_monitor {
+                let bucket_name = format!("{}.gbai", bot_name);
+                let monitor_state = drive_monitor_state.clone();
+                let bot_id_clone = bot_id;
+                let bucket_name_clone = bucket_name.clone();
+
+                tokio::spawn(async move {
+                    register_thread(&format!("drive-monitor-{}", bot_name), "drive");
+                    trace!("DriveMonitor::new starting for bot: {}", bot_name);
+                    let monitor =
+                        crate::DriveMonitor::new(monitor_state, bucket_name_clone, bot_id_clone);
+                    trace!(
+                        "DriveMonitor::new done for bot: {}, calling start_monitoring...",
+                        bot_name
+                    );
+                    info!(
+                        "Starting DriveMonitor for bot: {} (bucket: {})",
+                        bot_name, bucket_name
+                    );
+                    if let Err(e) = monitor.start_monitoring().await {
+                        error!("DriveMonitor failed for bot {}: {}", bot_name, e);
+                    }
+                    trace!(
+                        "DriveMonitor start_monitoring returned for bot: {}",
+                        bot_name
+                    );
+                });
             }
-            trace!("DriveMonitor start_monitoring returned");
         });
     }
 
@@ -1580,19 +1702,6 @@ async fn main() -> std::io::Result<()> {
         });
     }
 
-    #[cfg(feature = "llm")]
-    {
-        let app_state_for_llm = app_state.clone();
-        tokio::spawn(async move {
-            register_thread("llm-server-init", "llm");
-            trace!("ensure_llama_servers_running starting...");
-            if let Err(e) = ensure_llama_servers_running(app_state_for_llm).await {
-                error!("Failed to start LLM servers: {}", e);
-            }
-            trace!("ensure_llama_servers_running completed");
-            record_thread_activity("llm-server-init");
-        });
-    }
     trace!("Initial data setup task spawned");
     trace!("All system threads started, starting HTTP server...");
 

@@ -151,7 +151,7 @@ impl TaskScheduler {
                                     let _ = cmd.execute();
                                 }
 
-                                if let Some(s3) = state.s3_client.as_ref() {
+                                if let Some(s3) = state.drive.as_ref() {
                                     let body = tokio::fs::read(&backup_file).await?;
                                     s3.put_object()
                                         .bucket("backups")
@@ -239,7 +239,7 @@ impl TaskScheduler {
                             health["cache"] = serde_json::json!(cache_ok);
                         }
 
-                        if let Some(s3) = &state.s3_client {
+                        if let Some(s3) = &state.drive {
                             let s3_ok = s3.list_buckets().send().await.is_ok();
                             health["storage"] = serde_json::json!(s3_ok);
                         }

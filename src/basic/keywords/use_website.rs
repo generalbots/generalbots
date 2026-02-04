@@ -48,7 +48,8 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    // Register syntax for USE WEBSITE "url" REFRESH "interval"
+    // Register syntax for USE WEBSITE "url" REFRESH "interval" (case insensitive)
+    // Register both uppercase and lowercase variants
     engine
         .register_custom_syntax(
             ["USE", "WEBSITE", "$expr$", "REFRESH", "$expr$"],
@@ -202,6 +203,240 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         .expect("valid syntax registration");
 }
 
+/// Register USE_WEBSITE as a regular function instead of custom syntax
+/// This avoids conflicts with other USE keywords (USE MODEL, USE KB, etc.)
+pub fn register_use_website_function(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+    let state_clone = Arc::clone(&state);
+    let user_clone = user.clone();
+
+    // Register USE_WEBSITE(url, refresh) with both parameters (uppercase)
+    engine.register_fn(
+        "USE_WEBSITE",
+        move |url: &str, refresh: &str| -> Dynamic {
+            trace!(
+                "USE_WEBSITE function called: {} REFRESH {} for session: {}",
+                url,
+                refresh,
+                user_clone.id
+            );
+
+            let is_valid = url.starts_with("http://") || url.starts_with("https://");
+            if !is_valid {
+                return Dynamic::from(format!(
+                    "ERROR: Invalid URL format: {}. Must start with http:// or https://",
+                    url
+                ));
+            }
+
+            let state_for_task = Arc::clone(&state_clone);
+            let user_for_task = user_clone.clone();
+            let url_for_task = url.to_string();
+            let refresh_for_task = refresh.to_string();
+            let (tx, rx) = std::sync::mpsc::channel();
+
+            std::thread::spawn(move || {
+                let _rt = match tokio::runtime::Builder::new_multi_thread()
+                    .worker_threads(2)
+                    .enable_all()
+                    .build()
+                {
+                    Ok(_rt) => _rt,
+                    Err(e) => {
+                        let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                        return;
+                    }
+                };
+                let result = associate_website_with_session_refresh(
+                    &state_for_task,
+                    &user_for_task,
+                    &url_for_task,
+                    &refresh_for_task,
+                );
+                let _ = tx.send(result);
+            });
+
+            match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                Ok(Ok(message)) => Dynamic::from(message),
+                Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                    Dynamic::from("ERROR: USE_WEBSITE timed out")
+                }
+                Err(e) => Dynamic::from(format!("ERROR: USE_WEBSITE failed: {}", e)),
+            }
+        },
+    );
+
+    let state_clone2 = Arc::clone(&state);
+    let user_clone2 = user.clone();
+
+    // Register use_website(url, refresh) with both parameters (lowercase for preprocessor)
+    engine.register_fn(
+        "use_website",
+        move |url: &str, refresh: &str| -> Dynamic {
+            trace!(
+                "use_website function called: {} REFRESH {} for session: {}",
+                url,
+                refresh,
+                user_clone2.id
+            );
+
+            let is_valid = url.starts_with("http://") || url.starts_with("https://");
+            if !is_valid {
+                return Dynamic::from(format!(
+                    "ERROR: Invalid URL format: {}. Must start with http:// or https://",
+                    url
+                ));
+            }
+
+            let state_for_task = Arc::clone(&state_clone2);
+            let user_for_task = user_clone2.clone();
+            let url_for_task = url.to_string();
+            let refresh_for_task = refresh.to_string();
+            let (tx, rx) = std::sync::mpsc::channel();
+
+            std::thread::spawn(move || {
+                let _rt = match tokio::runtime::Builder::new_multi_thread()
+                    .worker_threads(2)
+                    .enable_all()
+                    .build()
+                {
+                    Ok(_rt) => _rt,
+                    Err(e) => {
+                        let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                        return;
+                    }
+                };
+                let result = associate_website_with_session_refresh(
+                    &state_for_task,
+                    &user_for_task,
+                    &url_for_task,
+                    &refresh_for_task,
+                );
+                let _ = tx.send(result);
+            });
+
+            match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                Ok(Ok(message)) => Dynamic::from(message),
+                Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                    Dynamic::from("ERROR: use_website timed out")
+                }
+                Err(e) => Dynamic::from(format!("ERROR: use_website failed: {}", e)),
+            }
+        },
+    );
+
+    let state_clone3 = Arc::clone(&state);
+    let user_clone3 = user.clone();
+
+    // Register USE_WEBSITE(url) with just URL (default refresh)
+    engine.register_fn("USE_WEBSITE", move |url: &str| -> Dynamic {
+        trace!(
+            "USE_WEBSITE function called: {} for session: {}",
+            url,
+            user_clone3.id
+        );
+
+        let is_valid = url.starts_with("http://") || url.starts_with("https://");
+        if !is_valid {
+            return Dynamic::from(format!(
+                "ERROR: Invalid URL format: {}. Must start with http:// or https://",
+                url
+            ));
+        }
+
+        let state_for_task = Arc::clone(&state_clone3);
+        let user_for_task = user_clone3.clone();
+        let url_for_task = url.to_string();
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        std::thread::spawn(move || {
+            let _rt = match tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build()
+            {
+                Ok(_rt) => _rt,
+                Err(e) => {
+                    let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                    return;
+                }
+            };
+            let result = associate_website_with_session(
+                &state_for_task,
+                &user_for_task,
+                &url_for_task,
+            );
+            let _ = tx.send(result);
+        });
+
+        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+            Ok(Ok(message)) => Dynamic::from(message),
+            Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                Dynamic::from("ERROR: USE_WEBSITE timed out")
+            }
+            Err(e) => Dynamic::from(format!("ERROR: USE_WEBSITE failed: {}", e)),
+        }
+    });
+
+    let state_clone4 = Arc::clone(&state);
+    let user_clone4 = user;
+
+    // Register use_website(url) with just URL (default refresh, lowercase)
+    engine.register_fn("use_website", move |url: &str| -> Dynamic {
+        trace!(
+            "use_website function called: {} for session: {}",
+            url,
+            user_clone4.id
+        );
+
+        let is_valid = url.starts_with("http://") || url.starts_with("https://");
+        if !is_valid {
+            return Dynamic::from(format!(
+                "ERROR: Invalid URL format: {}. Must start with http:// or https://",
+                url
+            ));
+        }
+
+        let state_for_task = Arc::clone(&state_clone4);
+        let user_for_task = user_clone4.clone();
+        let url_for_task = url.to_string();
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        std::thread::spawn(move || {
+            let _rt = match tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build()
+            {
+                Ok(_rt) => _rt,
+                Err(e) => {
+                    let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                    return;
+                }
+            };
+            let result = associate_website_with_session(
+                &state_for_task,
+                &user_for_task,
+                &url_for_task,
+            );
+            let _ = tx.send(result);
+        });
+
+        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+            Ok(Ok(message)) => Dynamic::from(message),
+            Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                Dynamic::from("ERROR: use_website timed out")
+            }
+            Err(e) => Dynamic::from(format!("ERROR: use_website failed: {}", e)),
+        }
+    });
+
+    info!("Registered USE_WEBSITE and use_website as function (preprocessed from USE WEBSITE)");
+}
+
 fn associate_website_with_session(
     state: &AppState,
     user: &UserSession,
@@ -220,7 +455,19 @@ fn associate_website_with_session_refresh(
 
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-    let collection_name = format!("website_{}", sanitize_url_for_collection(url));
+    // Get bot name for collection naming
+    #[derive(QueryableByName)]
+    struct BotName {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+    }
+    
+    let bot_name_result: BotName = diesel::sql_query("SELECT name FROM bots WHERE id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(&user.bot_id)
+        .get_result(&mut conn)
+        .map_err(|e| format!("Failed to get bot name: {}", e))?;
+
+    let collection_name = format!("{}_website_{}", bot_name_result.name, sanitize_url_for_collection(url));
 
     let website_status = check_website_crawl_status(&mut conn, &user.bot_id, url)?;
 
@@ -276,8 +523,8 @@ fn check_website_crawl_status(
 ) -> Result<WebsiteCrawlStatus, String> {
     #[derive(QueryableByName)]
     struct CrawlStatus {
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Integer>)]
-        crawl_status: Option<i32>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::SmallInt>)]
+        crawl_status: Option<i16>,
     }
 
     let query =

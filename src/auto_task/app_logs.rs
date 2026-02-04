@@ -121,19 +121,18 @@ impl AppLogStore {
         source: LogSource,
         message: &str,
         details: Option<String>,
-        bot_id: Option<Uuid>,
-        user_id: Option<Uuid>,
+        ids: (Option<Uuid>, Option<Uuid>), // (bot_id, user_id)
     ) {
         let entry = AppLogEntry {
             id: Uuid::new_v4().to_string(),
             timestamp: Utc::now(),
             level,
             source,
-            app_name: app_name.to_string(),
-            bot_id,
-            user_id,
             message: message.to_string(),
             details,
+            bot_id: ids.0,
+            user_id: ids.1,
+            app_name: app_name.to_string(),
             file_path: None,
             line_number: None,
             stack_trace: None,
@@ -157,9 +156,7 @@ impl AppLogStore {
         source: LogSource,
         message: &str,
         error: &str,
-        file_path: Option<&str>,
-        line_number: Option<u32>,
-        stack_trace: Option<&str>,
+        location: (Option<&str>, Option<u32>, Option<&str>), // (file_path, line_number, stack_trace)
     ) {
         let entry = AppLogEntry {
             id: Uuid::new_v4().to_string(),
@@ -171,9 +168,9 @@ impl AppLogStore {
             user_id: None,
             message: message.to_string(),
             details: Some(error.to_string()),
-            file_path: file_path.map(String::from),
-            line_number,
-            stack_trace: stack_trace.map(String::from),
+            file_path: location.0.map(String::from),
+            line_number: location.1,
+            stack_trace: location.2.map(String::from),
         };
 
         self.add_entry(entry);
@@ -184,8 +181,8 @@ impl AppLogStore {
             source,
             message,
             error,
-            file_path.unwrap_or("unknown"),
-            line_number.unwrap_or(0)
+            location.0.unwrap_or("unknown"),
+            location.1.unwrap_or(0)
         );
     }
 
@@ -454,8 +451,7 @@ pub fn log_generator_info(app_name: &str, message: &str) {
         LogSource::Generator,
         message,
         None,
-        None,
-        None,
+        (None, None),
     );
 }
 
@@ -465,9 +461,7 @@ pub fn log_generator_error(app_name: &str, message: &str, error: &str) {
         LogSource::Generator,
         message,
         error,
-        None,
-        None,
-        None,
+        (None, None, None),
     );
 }
 
@@ -482,9 +476,7 @@ pub fn log_validation_error(
         LogSource::Validation,
         message,
         "Validation failed",
-        file_path,
-        line_number,
-        None,
+        (file_path, line_number, None),
     );
 }
 
@@ -494,9 +486,7 @@ pub fn log_runtime_error(app_name: &str, message: &str, error: &str, stack_trace
         LogSource::Runtime,
         message,
         error,
-        None,
-        None,
-        stack_trace,
+        (None, None, stack_trace),
     );
 }
 

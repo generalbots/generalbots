@@ -16,8 +16,10 @@ pub async fn ensure_llama_servers_running(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     trace!("ensure_llama_servers_running ENTER");
     let start_mem = MemoryStats::current();
-    trace!("[LLM_LOCAL] ensure_llama_servers_running START, RSS={}",
-          MemoryStats::format_bytes(start_mem.rss_bytes));
+    trace!(
+        "[LLM_LOCAL] ensure_llama_servers_running START, RSS={}",
+        MemoryStats::format_bytes(start_mem.rss_bytes)
+    );
     log_jemalloc_stats();
 
     if std::env::var("SKIP_LLM_SERVER").is_ok() {
@@ -28,33 +30,32 @@ pub async fn ensure_llama_servers_running(
 
     let config_values = {
         let conn_arc = app_state.conn.clone();
-        let default_bot_id = tokio::task::spawn_blocking(move || -> Result<uuid::Uuid, String> {
-            let mut conn = conn_arc.get().map_err(|e| format!("failed to get db connection: {e}"))?;
-            let bot_id = bots.filter(name.eq("default"))
-                .select(id)
-                .first::<uuid::Uuid>(&mut *conn)
-                .unwrap_or_else(|_| uuid::Uuid::nil());
-            Ok(bot_id)
+        let (default_bot_id, _default_bot_name) = tokio::task::spawn_blocking(move || -> Result<(uuid::Uuid, String), String> {
+            let mut conn = conn_arc
+                .get()
+                .map_err(|e| format!("failed to get db connection: {e}"))?;
+            Ok(crate::bot::get_default_bot(&mut *conn))
         })
         .await??;
         let config_manager = ConfigManager::new(app_state.conn.clone());
+        info!("Reading config for bot_id: {}", default_bot_id);
+        let embedding_model_result = config_manager.get_config(&default_bot_id, "embedding-model", None);
+        info!("embedding-model config result: {:?}", embedding_model_result);
         (
             default_bot_id,
             config_manager
                 .get_config(&default_bot_id, "llm-server", Some("true"))
                 .unwrap_or_else(|_| "true".to_string()),
             config_manager
-                .get_config(&default_bot_id, "llm-url", None)
-                .unwrap_or_default(),
+                .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
+                .unwrap_or_else(|_| "http://localhost:8081".to_string()),
             config_manager
                 .get_config(&default_bot_id, "llm-model", None)
                 .unwrap_or_default(),
             config_manager
-                .get_config(&default_bot_id, "embedding-url", None)
-                .unwrap_or_default(),
-            config_manager
-                .get_config(&default_bot_id, "embedding-model", None)
-                .unwrap_or_default(),
+                .get_config(&default_bot_id, "embedding-url", Some("http://localhost:8082"))
+                .unwrap_or_else(|_| "http://localhost:8082".to_string()),
+            embedding_model_result.unwrap_or_default(),
             config_manager
                 .get_config(&default_bot_id, "llm-server-path", None)
                 .unwrap_or_default(),
@@ -87,7 +88,10 @@ pub async fn ensure_llama_servers_running(
     info!("Restarting any existing llama-server processes...");
     trace!("About to pkill llama-server...");
     let before_pkill = MemoryStats::current();
-    trace!("[LLM_LOCAL] Before pkill, RSS={}", MemoryStats::format_bytes(before_pkill.rss_bytes));
+    trace!(
+        "[LLM_LOCAL] Before pkill, RSS={}",
+        MemoryStats::format_bytes(before_pkill.rss_bytes)
+    );
 
     let pkill_result = SafeCommand::new("sh")
         .and_then(|c| c.arg("-c"))
@@ -107,9 +111,11 @@ pub async fn ensure_llama_servers_running(
     trace!("pkill done");
 
     let after_pkill = MemoryStats::current();
-    trace!("[LLM_LOCAL] After pkill, RSS={} (delta={})",
-          MemoryStats::format_bytes(after_pkill.rss_bytes),
-          MemoryStats::format_bytes(after_pkill.rss_bytes.saturating_sub(before_pkill.rss_bytes)));
+    trace!(
+        "[LLM_LOCAL] After pkill, RSS={} (delta={})",
+        MemoryStats::format_bytes(after_pkill.rss_bytes),
+        MemoryStats::format_bytes(after_pkill.rss_bytes.saturating_sub(before_pkill.rss_bytes))
+    );
 
     let llm_running = if llm_url.starts_with("https://") {
         info!("Using external HTTPS LLM server, skipping local startup");
@@ -162,7 +168,10 @@ pub async fn ensure_llama_servers_running(
     info!("Waiting for servers to become ready...");
     trace!("Starting wait loop for servers...");
     let before_wait = MemoryStats::current();
-    trace!("[LLM_LOCAL] Before wait loop, RSS={}", MemoryStats::format_bytes(before_wait.rss_bytes));
+    trace!(
+        "[LLM_LOCAL] Before wait loop, RSS={}",
+        MemoryStats::format_bytes(before_wait.rss_bytes)
+    );
 
     let mut llm_ready = llm_running || llm_model.is_empty();
     let mut embedding_ready = embedding_running || embedding_model.is_empty();
@@ -174,10 +183,12 @@ pub async fn ensure_llama_servers_running(
 
         if attempts % 5 == 0 {
             let loop_mem = MemoryStats::current();
-            trace!("[LLM_LOCAL] Wait loop attempt {}, RSS={} (delta from start={})",
-                  attempts,
-                  MemoryStats::format_bytes(loop_mem.rss_bytes),
-                  MemoryStats::format_bytes(loop_mem.rss_bytes.saturating_sub(before_wait.rss_bytes)));
+            trace!(
+                "[LLM_LOCAL] Wait loop attempt {}, RSS={} (delta from start={})",
+                attempts,
+                MemoryStats::format_bytes(loop_mem.rss_bytes),
+                MemoryStats::format_bytes(loop_mem.rss_bytes.saturating_sub(before_wait.rss_bytes))
+            );
             log_jemalloc_stats();
         }
 
@@ -231,20 +242,25 @@ pub async fn ensure_llama_servers_running(
         trace!("Servers ready!");
 
         let after_ready = MemoryStats::current();
-        trace!("[LLM_LOCAL] Servers ready, RSS={} (delta from start={})",
-              MemoryStats::format_bytes(after_ready.rss_bytes),
-              MemoryStats::format_bytes(after_ready.rss_bytes.saturating_sub(start_mem.rss_bytes)));
+        trace!(
+            "[LLM_LOCAL] Servers ready, RSS={} (delta from start={})",
+            MemoryStats::format_bytes(after_ready.rss_bytes),
+            MemoryStats::format_bytes(after_ready.rss_bytes.saturating_sub(start_mem.rss_bytes))
+        );
         log_jemalloc_stats();
 
         let _llm_provider1 = Arc::new(crate::llm::OpenAIClient::new(
             llm_model.clone(),
             Some(llm_url.clone()),
+            None,
         ));
 
         let end_mem = MemoryStats::current();
-        trace!("[LLM_LOCAL] ensure_llama_servers_running END, RSS={} (total delta={})",
-              MemoryStats::format_bytes(end_mem.rss_bytes),
-              MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes)));
+        trace!(
+            "[LLM_LOCAL] ensure_llama_servers_running END, RSS={} (total delta={})",
+            MemoryStats::format_bytes(end_mem.rss_bytes),
+            MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes))
+        );
         log_jemalloc_stats();
 
         trace!("ensure_llama_servers_running EXIT OK");
@@ -298,8 +314,11 @@ pub fn start_llm_server(
     std::env::set_var("OMP_PROC_BIND", "close");
     let conn = app_state.conn.clone();
     let config_manager = ConfigManager::new(conn.clone());
-    let mut conn = conn.get()
-        .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("failed to get db connection: {e}"))) as Box<dyn std::error::Error + Send + Sync>)?;
+    let mut conn = conn.get().map_err(|e| {
+        Box::new(std::io::Error::other(
+            format!("failed to get db connection: {e}"),
+        )) as Box<dyn std::error::Error + Send + Sync>
+    })?;
     let default_bot_id = bots
         .filter(name.eq("default"))
         .select(id)
@@ -332,10 +351,10 @@ pub fn start_llm_server(
 
     let n_ctx_size = config_manager
         .get_config(&default_bot_id, "llm-server-ctx-size", None)
-        .unwrap_or_else(|_| "4096".to_string());
+        .unwrap_or_else(|_| "32000".to_string());
 
     let mut args = format!(
-        "-m {model_path} --host 0.0.0.0 --port {port} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {gpu_layers}"
+        "-m {model_path} --host 0.0.0.0 --port {port} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {gpu_layers} --ubatch-size 2048"
     );
     if !reasoning_format.is_empty() {
         let _ = write!(args, " --reasoning-format {reasoning_format}");
@@ -369,8 +388,16 @@ pub fn start_llm_server(
         let cmd = SafeCommand::new("cmd")
             .and_then(|c| c.arg("/C"))
             .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
-            .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
-        cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
+            .map_err(|e| {
+                Box::new(std::io::Error::other(
+                    e.to_string(),
+                )) as Box<dyn std::error::Error + Send + Sync>
+            })?;
+        cmd.execute().map_err(|e| {
+            Box::new(std::io::Error::other(
+                e.to_string(),
+            )) as Box<dyn std::error::Error + Send + Sync>
+        })?;
     } else {
         let cmd_arg = format!(
             "cd {llama_cpp_path} && ./llama-server {args} --verbose >llm-stdout.log 2>&1 &"
@@ -381,8 +408,16 @@ pub fn start_llm_server(
         let cmd = SafeCommand::new("sh")
             .and_then(|c| c.arg("-c"))
             .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
-            .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
-        cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
+            .map_err(|e| {
+                Box::new(std::io::Error::other(
+                    e.to_string(),
+                )) as Box<dyn std::error::Error + Send + Sync>
+            })?;
+        cmd.execute().map_err(|e| {
+            Box::new(std::io::Error::other(
+                e.to_string(),
+            )) as Box<dyn std::error::Error + Send + Sync>
+        })?;
     }
     Ok(())
 }
@@ -413,11 +448,19 @@ pub async fn start_embedding_server(
         let cmd = SafeCommand::new("cmd")
             .and_then(|c| c.arg("/c"))
             .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
-            .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
-        cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
+            .map_err(|e| {
+                Box::new(std::io::Error::other(
+                    e.to_string(),
+                )) as Box<dyn std::error::Error + Send + Sync>
+            })?;
+        cmd.execute().map_err(|e| {
+            Box::new(std::io::Error::other(
+                e.to_string(),
+            )) as Box<dyn std::error::Error + Send + Sync>
+        })?;
     } else {
         let cmd_arg = format!(
-            "cd {llama_cpp_path} && ./llama-server -m {model_path} --verbose --host 0.0.0.0 --port {port} --embedding --n-gpu-layers 99 >llmembd-stdout.log 2>&1 &"
+            "cd {llama_cpp_path} && ./llama-server -m {model_path} --verbose --host 0.0.0.0 --port {port} --embedding --n-gpu-layers 99 --ubatch-size 2048 >llmembd-stdout.log 2>&1 &"
         );
         info!(
             "Executing embedding server command: cd {llama_cpp_path} && ./llama-server -m {model_path} --host 0.0.0.0 --port {port} --embedding"
@@ -425,8 +468,16 @@ pub async fn start_embedding_server(
         let cmd = SafeCommand::new("sh")
             .and_then(|c| c.arg("-c"))
             .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
-            .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
-        cmd.execute().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error + Send + Sync>)?;
+            .map_err(|e| {
+                Box::new(std::io::Error::other(
+                    e.to_string(),
+                )) as Box<dyn std::error::Error + Send + Sync>
+            })?;
+        cmd.execute().map_err(|e| {
+            Box::new(std::io::Error::other(
+                e.to_string(),
+            )) as Box<dyn std::error::Error + Send + Sync>
+        })?;
     }
 
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;

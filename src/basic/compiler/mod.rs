@@ -8,6 +8,7 @@ use diesel::ExpressionMethods;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
 use log::{trace, warn};
+use regex::Regex;
 
 pub mod goto_transform;
 use serde::{Deserialize, Serialize};
@@ -406,26 +407,32 @@ impl BasicCompiler {
                 continue;
             }
 
-            if trimmed.starts_with("USE WEBSITE") {
-                let parts: Vec<&str> = normalized.split('"').collect();
-                if parts.len() >= 2 {
-                    let url = parts[1];
-                    let mut conn = self
-                        .state
-                        .conn
-                        .get()
-                        .map_err(|e| format!("Failed to get database connection: {}", e))?;
-                    if let Err(e) =
-                        crate::basic::keywords::use_website::execute_use_website_preprocessing(
-                            &mut conn, url, bot_id,
-                        )
-                    {
-                        log::error!("Failed to register USE_WEBSITE during preprocessing: {}", e);
-                    } else {
-                        log::info!(
-                            "Registered website {} for crawling during preprocessing",
-                            url
-                        );
+            if trimmed.to_uppercase().starts_with("USE WEBSITE") {
+                let re = Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#).unwrap();
+                if let Some(caps) = re.captures(&normalized) {
+                    if let Some(url_match) = caps.get(1) {
+                        let url = url_match.as_str();
+                        let refresh = caps.get(2).map(|m| m.as_str()).unwrap_or("1m");
+                        let mut conn = self
+                            .state
+                            .conn
+                            .get()
+                            .map_err(|e| format!("Failed to get database connection: {}", e))?;
+                        if let Err(e) =
+                            crate::basic::keywords::use_website::execute_use_website_preprocessing_with_refresh(
+                                &mut conn, url, bot_id, refresh,
+                            )
+                        {
+                            log::error!("Failed to register USE_WEBSITE during preprocessing: {}", e);
+                        } else {
+                            log::info!(
+                                "Registered website {} for crawling during preprocessing (refresh: {})",
+                                url, refresh
+                            );
+                        }
+                        
+                        result.push_str(&format!("USE_WEBSITE(\"{}\", \"{}\");\n", url, refresh));
+                        continue;
                     }
                 } else {
                     log::warn!("Malformed USE_WEBSITE line ignored: {}", normalized);

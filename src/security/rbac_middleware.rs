@@ -946,12 +946,16 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/health", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/version", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/product", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/bot/config", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/i18n/**", "GET", "").with_anonymous(true),
 
         // Auth routes - login must be anonymous
         RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),
 
         RoutePermission::new("/api/auth/login", "POST", "").with_anonymous(true),
+
+        // Client error reporting - anonymous to catch all JS errors
+        RoutePermission::new("/api/client-errors", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/auth/bootstrap", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/auth/refresh", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/auth/logout", "POST", ""),

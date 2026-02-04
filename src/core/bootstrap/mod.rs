@@ -2019,6 +2019,29 @@ VAULT_CACHE_TTL=300
             info!("Created database '{}' for bot '{}'", safe_db_name, bot_name);
         }
 
+        // Sync config.csv for this bot if it exists
+        let templates_dir = std::path::PathBuf::from("./bottemplates");
+        let bot_template_dir = templates_dir.join(format!("{}.gbai", bot_name));
+        let config_path = bot_template_dir.join(format!("{}.gbot/config.csv", bot_name));
+
+        if config_path.exists() {
+            match std::fs::read_to_string(&config_path) {
+                Ok(csv_content) => {
+                    debug!("Syncing config.csv from {}", config_path.display());
+                    if let Err(e) = Self::sync_config_csv_to_db(conn, &bot_id, &csv_content) {
+                        error!("Failed to sync config.csv for bot '{}': {}", bot_name, e);
+                    } else {
+                        info!("Synced config.csv for bot '{}'", bot_name);
+                    }
+                }
+                Err(e) => {
+                    warn!("Could not read config.csv for bot '{}': {}", bot_name, e);
+                }
+            }
+        } else {
+            debug!("No config.csv found at {}", config_path.display());
+        }
+
         Ok(bot_id)
     }
 
@@ -2212,7 +2235,7 @@ VAULT_CACHE_TTL=300
                 match diesel::sql_query(
                     "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type, created_at, updated_at) \
                      VALUES ($1, $2, $3, $4, 'string', NOW(), NOW()) \
-                     ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()"
+                     ON CONFLICT (bot_id, config_key) DO NOTHING"
                 )
                 .bind::<diesel::sql_types::Uuid, _>(new_id)
                 .bind::<diesel::sql_types::Uuid, _>(bot_id)

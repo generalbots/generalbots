@@ -604,6 +604,7 @@ impl Default for ProtectionInstaller {
     }
 }
 
+#[derive(Default)]
 pub struct InstallResult {
     pub success: bool,
     pub packages_installed: Vec<String>,
@@ -613,18 +614,6 @@ pub struct InstallResult {
     pub warnings: Vec<String>,
 }
 
-impl Default for InstallResult {
-    fn default() -> Self {
-        Self {
-            success: false,
-            packages_installed: Vec::new(),
-            sudoers_created: false,
-            databases_updated: false,
-            errors: Vec::new(),
-            warnings: Vec::new(),
-        }
-    }
-}
 
 impl InstallResult {
     pub fn print(&self) {
@@ -677,6 +666,7 @@ impl InstallResult {
     }
 }
 
+#[derive(Default)]
 pub struct UninstallResult {
     pub success: bool,
     pub sudoers_removed: bool,
@@ -684,16 +674,6 @@ pub struct UninstallResult {
     pub errors: Vec<String>,
 }
 
-impl Default for UninstallResult {
-    fn default() -> Self {
-        Self {
-            success: false,
-            sudoers_removed: false,
-            message: String::new(),
-            errors: Vec::new(),
-        }
-    }
-}
 
 impl UninstallResult {
     pub fn print(&self) {
@@ -729,6 +709,7 @@ impl UninstallResult {
     }
 }
 
+#[derive(Default)]
 pub struct VerifyResult {
     pub all_installed: bool,
     pub all_configured: bool,
@@ -736,16 +717,6 @@ pub struct VerifyResult {
     pub tools: Vec<ToolVerification>,
 }
 
-impl Default for VerifyResult {
-    fn default() -> Self {
-        Self {
-            all_installed: false,
-            all_configured: false,
-            sudoers_exists: false,
-            tools: Vec::new(),
-        }
-    }
-}
 
 pub struct ToolVerification {
     pub name: String,

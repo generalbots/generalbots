@@ -168,58 +168,53 @@ impl KbIndexer {
 
         let mut total_chunks = 0;
         let mut indexed_documents = 0;
+        const BATCH_SIZE: usize = 5; // Smaller batch size to prevent memory exhaustion
+        let mut batch_docs = Vec::with_capacity(BATCH_SIZE);
 
-        for (doc_path, chunks) in documents {
+        // Process documents in iterator to avoid keeping all in memory
+        let mut doc_iter = documents.into_iter();
+        
+        while let Some((doc_path, chunks)) = doc_iter.next() {
             if chunks.is_empty() {
                 debug!("[KB_INDEXER] Skipping document with no chunks: {}", doc_path);
                 continue;
             }
 
-            let before_embed = MemoryStats::current();
-            trace!(
-                "[KB_INDEXER] Processing document: {} ({} chunks) RSS={}",
-                doc_path,
-                chunks.len(),
-                MemoryStats::format_bytes(before_embed.rss_bytes)
-            );
+            batch_docs.push((doc_path, chunks));
 
-            // Re-validate embedding server is still available before generating embeddings
-            // This prevents memory from being held if server went down during document processing
-            if !is_embedding_server_ready() {
-                warn!("[KB_INDEXER] Embedding server became unavailable during indexing, aborting");
-                return Err(anyhow::anyhow!(
-                    "Embedding server became unavailable during KB indexing. Processed {} documents before failure.",
-                    indexed_documents
-                ));
-            }
-
-            trace!("[KB_INDEXER] Calling generate_embeddings for {} chunks...", chunks.len());
-            let embeddings = match self
-                .embedding_generator
-                .generate_embeddings(&chunks)
-                .await
-            {
-                Ok(emb) => emb,
-                Err(e) => {
-                    warn!("[KB_INDEXER] Embedding generation failed for {}: {}", doc_path, e);
-                    // Continue with next document instead of failing entire batch
-                    continue;
+            // Process batch when full
+            if batch_docs.len() >= BATCH_SIZE {
+                let (processed, chunks_count) = self.process_document_batch(&collection_name, &mut batch_docs).await?;
+                indexed_documents += processed;
+                total_chunks += chunks_count;
+                
+                // Clear batch and force memory cleanup
+                batch_docs.clear();
+                batch_docs.shrink_to_fit();
+                
+                // Yield control to prevent blocking
+                tokio::task::yield_now().await;
+                
+                // Memory pressure check - more aggressive
+                let current_mem = MemoryStats::current();
+                if current_mem.rss_bytes > 1_500_000_000 { // 1.5GB threshold (reduced)
+                    warn!("[KB_INDEXER] High memory usage detected: {}, forcing cleanup", 
+                          MemoryStats::format_bytes(current_mem.rss_bytes));
+                    
+                    // Force garbage collection hint
+                    std::hint::black_box(&batch_docs);
+                    
+                    // Add delay to allow memory cleanup
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
                 }
-            };
+            }
+        }
 
-            let after_embed = MemoryStats::current();
-            trace!("[KB_INDEXER] After generate_embeddings: {} embeddings, RSS={} (delta={})",
-                  embeddings.len(),
-                  MemoryStats::format_bytes(after_embed.rss_bytes),
-                  MemoryStats::format_bytes(after_embed.rss_bytes.saturating_sub(before_embed.rss_bytes)));
-            log_jemalloc_stats();
-
-            let points = Self::create_qdrant_points(&doc_path, embeddings)?;
-
-            self.upsert_points(&collection_name, points).await?;
-
-            total_chunks += chunks.len();
-            indexed_documents += 1;
+        // Process remaining documents in final batch
+        if !batch_docs.is_empty() {
+            let (processed, chunks_count) = self.process_document_batch(&collection_name, &mut batch_docs).await?;
+            indexed_documents += processed;
+            total_chunks += chunks_count;
         }
 
         self.update_collection_metadata(&collection_name, bot_name, kb_name, total_chunks)?;
@@ -236,6 +231,74 @@ impl KbIndexer {
             documents_processed: indexed_documents,
             chunks_indexed: total_chunks,
         })
+    }
+
+    async fn process_document_batch(
+        &self,
+        collection_name: &str,
+        batch_docs: &mut Vec<(String, Vec<TextChunk>)>,
+    ) -> Result<(usize, usize)> {
+        let mut processed_count = 0;
+        let mut total_chunks = 0;
+
+        // Process documents one by one to minimize memory usage
+        while let Some((doc_path, chunks)) = batch_docs.pop() {
+            let before_embed = MemoryStats::current();
+            trace!(
+                "[KB_INDEXER] Processing document: {} ({} chunks) RSS={}",
+                doc_path,
+                chunks.len(),
+                MemoryStats::format_bytes(before_embed.rss_bytes)
+            );
+
+            // Re-validate embedding server is still available
+            if !is_embedding_server_ready() {
+                warn!("[KB_INDEXER] Embedding server became unavailable during indexing, aborting batch");
+                return Err(anyhow::anyhow!(
+                    "Embedding server became unavailable during KB indexing. Processed {} documents before failure.",
+                    processed_count
+                ));
+            }
+
+            // Process chunks in smaller sub-batches to prevent memory exhaustion
+            const CHUNK_BATCH_SIZE: usize = 20; // Process 20 chunks at a time
+            let mut chunk_batches = chunks.chunks(CHUNK_BATCH_SIZE);
+            
+            while let Some(chunk_batch) = chunk_batches.next() {
+                trace!("[KB_INDEXER] Processing chunk batch of {} chunks", chunk_batch.len());
+                
+                let embeddings = match self
+                    .embedding_generator
+                    .generate_embeddings(chunk_batch)
+                    .await
+                {
+                    Ok(emb) => emb,
+                    Err(e) => {
+                        warn!("[KB_INDEXER] Embedding generation failed for {}: {}", doc_path, e);
+                        break; // Skip to next document
+                    }
+                };
+
+                let points = Self::create_qdrant_points(&doc_path, embeddings)?;
+                self.upsert_points(collection_name, points).await?;
+                
+                // Yield control between chunk batches
+                tokio::task::yield_now().await;
+            }
+
+            let after_embed = MemoryStats::current();
+            trace!("[KB_INDEXER] After processing document: RSS={} (delta={})",
+                  MemoryStats::format_bytes(after_embed.rss_bytes),
+                  MemoryStats::format_bytes(after_embed.rss_bytes.saturating_sub(before_embed.rss_bytes)));
+
+            total_chunks += chunks.len();
+            processed_count += 1;
+            
+            // Force memory cleanup after each document
+            std::hint::black_box(&chunks);
+        }
+
+        Ok((processed_count, total_chunks))
     }
 
     async fn ensure_collection_exists(&self, collection_name: &str) -> Result<()> {

@@ -708,7 +708,7 @@ Respond ONLY with valid JSON."#,
                 .llm_provider
                 .generate(prompt, &llm_config, &model, &key)
                 .await?;
-            return Ok(response);
+            Ok(response)
         }
 
         #[cfg(not(feature = "llm"))]

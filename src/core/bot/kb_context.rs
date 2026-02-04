@@ -17,6 +17,13 @@ pub struct SessionKbAssociation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionWebsiteAssociation {
+    pub website_url: String,
+    pub collection_name: String,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KbContext {
     pub kb_name: String,
     pub search_results: Vec<KbSearchResult>,
@@ -80,6 +87,38 @@ impl KbContextManager {
             .collect())
     }
 
+    pub fn get_active_websites(&self, session_id: Uuid) -> Result<Vec<SessionWebsiteAssociation>> {
+        let mut conn = self.db_pool.get()?;
+
+        let query = diesel::sql_query(
+            "SELECT website_url, collection_name, is_active
+             FROM session_website_associations
+             WHERE session_id = $1 AND is_active = true",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(session_id);
+
+        #[derive(QueryableByName)]
+        struct WebsiteAssocRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            website_url: String,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            collection_name: String,
+            #[diesel(sql_type = diesel::sql_types::Bool)]
+            is_active: bool,
+        }
+
+        let rows: Vec<WebsiteAssocRow> = query.load(&mut conn)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| SessionWebsiteAssociation {
+                website_url: row.website_url,
+                collection_name: row.collection_name,
+                is_active: row.is_active,
+            })
+            .collect())
+    }
+
     pub async fn search_active_kbs(
         &self,
         session_id: Uuid,
@@ -138,6 +177,116 @@ impl KbContextManager {
         }
 
         Ok(kb_contexts)
+    }
+
+    pub async fn search_active_websites(
+        &self,
+        session_id: Uuid,
+        query: &str,
+        max_results_per_website: usize,
+        max_total_tokens: usize,
+    ) -> Result<Vec<KbContext>> {
+        let active_websites = self.get_active_websites(session_id)?;
+
+        if active_websites.is_empty() {
+            debug!("No active websites for session {}", session_id);
+            return Ok(Vec::new());
+        }
+
+        info!(
+            "Searching {} active websites for session {}: {:?}",
+            active_websites.len(),
+            session_id,
+            active_websites.iter().map(|w| &w.website_url).collect::<Vec<_>>()
+        );
+
+        let mut kb_contexts = Vec::new();
+        let mut total_tokens_used = 0;
+
+        for website_assoc in active_websites {
+            if total_tokens_used >= max_total_tokens {
+                warn!("Reached max token limit, skipping remaining websites");
+                break;
+            }
+
+            match self
+                .search_single_collection(
+                    &website_assoc.collection_name,
+                    &website_assoc.website_url,
+                    query,
+                    max_results_per_website,
+                    max_total_tokens - total_tokens_used,
+                )
+                .await
+            {
+                Ok(context) => {
+                    total_tokens_used += context.total_tokens;
+                    info!(
+                        "Found {} results from website '{}' using {} tokens",
+                        context.search_results.len(),
+                        context.kb_name,
+                        context.total_tokens
+                    );
+                    kb_contexts.push(context);
+                }
+                Err(e) => {
+                    error!("Failed to search website '{}': {}", website_assoc.website_url, e);
+                }
+            }
+        }
+
+        Ok(kb_contexts)
+    }
+
+    async fn search_single_collection(
+        &self,
+        collection_name: &str,
+        display_name: &str,
+        query: &str,
+        max_results: usize,
+        max_tokens: usize,
+    ) -> Result<KbContext> {
+        debug!("Searching collection '{}' with query: {}", collection_name, query);
+
+        let search_results = self
+            .kb_manager
+            .search_collection(collection_name, query, max_results)
+            .await?;
+
+        let mut kb_search_results = Vec::new();
+        let mut total_tokens = 0;
+
+        for result in search_results {
+            let tokens = estimate_tokens(&result.content);
+
+            if total_tokens + tokens > max_tokens {
+                debug!(
+                    "Skipping result due to token limit ({} + {} > {})",
+                    total_tokens, tokens, max_tokens
+                );
+                break;
+            }
+
+            kb_search_results.push(KbSearchResult {
+                content: result.content,
+                document_path: result.document_path,
+                score: result.score,
+                chunk_tokens: tokens,
+            });
+
+            total_tokens += tokens;
+
+            if result.score < 0.6 {
+                debug!("Skipping low-relevance result (score: {})", result.score);
+                break;
+            }
+        }
+
+        Ok(KbContext {
+            kb_name: display_name.to_string(),
+            search_results: kb_search_results,
+            total_tokens,
+        })
     }
 
     async fn search_single_kb(
@@ -204,7 +353,7 @@ impl KbContextManager {
             }
 
             context_parts.push(format!(
-                "\n## From '{}' knowledge base:",
+                "\n## From '{}':",
                 kb_context.kb_name
             ));
 
@@ -223,7 +372,10 @@ impl KbContextManager {
         }
 
         context_parts.push("\n--- End Knowledge Base Context ---\n".to_string());
-        context_parts.join("\n")
+        let full_context = context_parts.join("\n");
+        
+        // Truncate KB context to fit within token limits (max 400 tokens for KB context)
+        crate::core::shared::utils::truncate_text_for_model(&full_context, "local", 400)
     }
 
     pub fn get_active_tools(&self, session_id: Uuid) -> Result<Vec<String>> {
@@ -260,25 +412,32 @@ pub async fn inject_kb_context(
     messages: &mut serde_json::Value,
     max_context_tokens: usize,
 ) -> Result<()> {
-    let context_manager = KbContextManager::new(kb_manager, db_pool);
+    let context_manager = KbContextManager::new(kb_manager.clone(), db_pool.clone());
 
     let kb_contexts = context_manager
-        .search_active_kbs(session_id, bot_name, user_query, 5, max_context_tokens)
+        .search_active_kbs(session_id, bot_name, user_query, 5, max_context_tokens / 2)
         .await?;
 
-    if kb_contexts.is_empty() {
-        debug!("No KB context found for session {}", session_id);
+    let website_contexts = context_manager
+        .search_active_websites(session_id, user_query, 5, max_context_tokens / 2)
+        .await?;
+
+    let mut all_contexts = kb_contexts;
+    all_contexts.extend(website_contexts);
+
+    if all_contexts.is_empty() {
+        debug!("No KB or website context found for session {}", session_id);
         return Ok(());
     }
 
-    let context_string = context_manager.build_context_string(&kb_contexts);
+    let context_string = context_manager.build_context_string(&all_contexts);
 
     if context_string.is_empty() {
         return Ok(());
     }
 
     info!(
-        "Injecting {} characters of KB context into prompt for session {}",
+        "Injecting {} characters of KB/website context into prompt for session {}",
         context_string.len(),
         session_id
     );

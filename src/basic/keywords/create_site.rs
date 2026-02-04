@@ -47,7 +47,7 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
                     }
                 };
 
-                let s3 = state_clone.s3_client.clone().map(std::sync::Arc::new);
+                let s3 = state_clone.drive.clone().map(std::sync::Arc::new);
                 let bucket = state_clone.bucket_name.clone();
                 let bot_id = user_clone.bot_id.to_string();
 

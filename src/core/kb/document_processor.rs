@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -111,6 +111,10 @@ impl DocumentProcessor {
         self.chunk_overlap
     }
 
+    pub fn is_supported_file(&self, path: &Path) -> bool {
+        DocumentFormat::from_extension(path).is_some()
+    }
+
     pub async fn process_document(&self, file_path: &Path) -> Result<Vec<TextChunk>> {
         if !file_path.exists() {
             return Err(anyhow::anyhow!("File not found: {}", file_path.display()));
@@ -161,12 +165,29 @@ impl DocumentProcessor {
     }
 
     async fn extract_text(&self, file_path: &Path, format: DocumentFormat) -> Result<String> {
+        // Check file size before processing to prevent memory exhaustion
+        let metadata = tokio::fs::metadata(file_path).await?;
+        let file_size = metadata.len() as usize;
+        
+        if file_size > format.max_size() {
+            return Err(anyhow::anyhow!(
+                "File too large: {} bytes (max: {} bytes)",
+                file_size,
+                format.max_size()
+            ));
+        }
+
         match format {
             DocumentFormat::TXT | DocumentFormat::MD => {
-                let mut file = tokio::fs::File::open(file_path).await?;
-                let mut contents = String::new();
-                file.read_to_string(&mut contents).await?;
-                Ok(contents)
+                // Use streaming read for large text files
+                if file_size > 10 * 1024 * 1024 { // 10MB
+                    self.extract_large_text_file(file_path).await
+                } else {
+                    let mut file = tokio::fs::File::open(file_path).await?;
+                    let mut contents = String::with_capacity(std::cmp::min(file_size, 1024 * 1024));
+                    file.read_to_string(&mut contents).await?;
+                    Ok(contents)
+                }
             }
             DocumentFormat::PDF => self.extract_pdf_text(file_path).await,
             DocumentFormat::DOCX => self.extract_docx_text(file_path).await,
@@ -181,6 +202,34 @@ impl DocumentProcessor {
                 self.fallback_text_extraction(file_path).await
             }
         }
+    }
+
+    async fn extract_large_text_file(&self, file_path: &Path) -> Result<String> {
+        use tokio::io::AsyncBufReadExt;
+        
+        let file = tokio::fs::File::open(file_path).await?;
+        let reader = tokio::io::BufReader::new(file);
+        let mut lines = reader.lines();
+        let mut content = String::new();
+        let mut line_count = 0;
+        const MAX_LINES: usize = 100_000; // Limit lines to prevent memory exhaustion
+        
+        while let Some(line) = lines.next_line().await? {
+            if line_count >= MAX_LINES {
+                warn!("Truncating large file at {} lines: {}", MAX_LINES, file_path.display());
+                break;
+            }
+            content.push_str(&line);
+            content.push('\n');
+            line_count += 1;
+            
+            // Yield control periodically
+            if line_count % 1000 == 0 {
+                tokio::task::yield_now().await;
+            }
+        }
+        
+        Ok(content)
     }
 
     async fn extract_pdf_text(&self, file_path: &Path) -> Result<String> {
@@ -369,7 +418,17 @@ impl DocumentProcessor {
 
     fn create_chunks(&self, text: &str, file_path: &Path) -> Vec<TextChunk> {
         let mut chunks = Vec::new();
-        let chars: Vec<char> = text.chars().collect();
+        
+        // For very large texts, limit processing to prevent memory exhaustion
+        const MAX_TEXT_SIZE: usize = 10 * 1024 * 1024; // 10MB
+        let text_to_process = if text.len() > MAX_TEXT_SIZE {
+            warn!("Truncating large text to {} chars for chunking: {}", MAX_TEXT_SIZE, file_path.display());
+            &text[..MAX_TEXT_SIZE]
+        } else {
+            text
+        };
+        
+        let chars: Vec<char> = text_to_process.chars().collect();
         let total_chars = chars.len();
 
         if total_chars == 0 {
@@ -386,12 +445,18 @@ impl DocumentProcessor {
             1
         };
 
-        while start < total_chars {
+        // Limit maximum number of chunks to prevent memory exhaustion
+        const MAX_CHUNKS: usize = 1000;
+        let max_chunks_to_create = std::cmp::min(total_chunks, MAX_CHUNKS);
+
+        while start < total_chars && chunk_index < max_chunks_to_create {
             let end = std::cmp::min(start + self.chunk_size, total_chars);
 
             let mut chunk_end = end;
             if end < total_chars {
-                for i in (start..end).rev() {
+                // Find word boundary within reasonable distance
+                let search_start = std::cmp::max(start, end.saturating_sub(100));
+                for i in (search_start..end).rev() {
                     if chars[i].is_whitespace() {
                         chunk_end = i + 1;
                         break;
@@ -400,6 +465,12 @@ impl DocumentProcessor {
             }
 
             let chunk_content: String = chars[start..chunk_end].iter().collect();
+
+            // Skip empty or very small chunks
+            if chunk_content.trim().len() < 10 {
+                start = chunk_end;
+                continue;
+            }
 
             chunks.push(TextChunk {
                 content: chunk_content,
@@ -410,7 +481,7 @@ impl DocumentProcessor {
                         .and_then(|s| s.to_str())
                         .map(|s| s.to_string()),
                     chunk_index,
-                    total_chunks,
+                    total_chunks: max_chunks_to_create,
                     start_char: start,
                     end_char: chunk_end,
                     page_number: None,
@@ -430,6 +501,10 @@ impl DocumentProcessor {
             }
         }
 
+        if chunk_index >= MAX_CHUNKS {
+            warn!("Truncated chunking at {} chunks for: {}", MAX_CHUNKS, file_path.display());
+        }
+
         chunks
     }
 
@@ -437,8 +512,6 @@ impl DocumentProcessor {
         &self,
         kb_path: &Path,
     ) -> Result<HashMap<String, Vec<TextChunk>>> {
-        let mut results = HashMap::new();
-
         if !kb_path.exists() {
             return Err(anyhow::anyhow!(
                 "Knowledge base folder not found: {}",
@@ -448,42 +521,83 @@ impl DocumentProcessor {
 
         info!("Processing knowledge base folder: {}", kb_path.display());
 
-        self.process_directory_recursive(kb_path, &mut results)
-            .await?;
+        // Process files in small batches to prevent memory exhaustion
+        let mut results = HashMap::new();
+        const BATCH_SIZE: usize = 10; // Much smaller batch size
+        
+        let files = self.collect_supported_files(kb_path).await?;
+        info!("Found {} supported files to process", files.len());
+        
+        for batch in files.chunks(BATCH_SIZE) {
+            let mut batch_results = HashMap::new();
+            
+            for file_path in batch {
+                match self.process_document(file_path).await {
+                    Ok(chunks) => {
+                        if !chunks.is_empty() {
+                            batch_results.insert(file_path.to_string_lossy().to_string(), chunks);
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Failed to process document {}: {}", file_path.display(), e);
+                    }
+                }
+                
+                // Yield control after each file
+                tokio::task::yield_now().await;
+            }
+            
+            // Merge batch results and clear batch memory
+            results.extend(batch_results);
+            
+            // Force memory cleanup between batches
+            if results.len() % (BATCH_SIZE * 2) == 0 {
+                results.shrink_to_fit();
+            }
+            
+            info!("Processed batch, total documents: {}", results.len());
+        }
 
-        info!("Processed {} documents in knowledge base", results.len());
-
+        info!("Completed processing {} documents in knowledge base", results.len());
         Ok(results)
     }
 
-    fn process_directory_recursive<'a>(
-        &'a self,
-        dir: &'a Path,
-        results: &'a mut HashMap<String, Vec<TextChunk>>,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send + 'a>> {
-        Box::pin(async move {
-            let mut entries = tokio::fs::read_dir(dir).await?;
+    async fn collect_supported_files(&self, dir: &Path) -> Result<Vec<std::path::PathBuf>> {
+        let mut files = Vec::new();
+        self.collect_files_recursive(dir, &mut files, 0).await?;
+        Ok(files)
+    }
 
-            while let Some(entry) = entries.next_entry().await? {
-                let path = entry.path();
-                let metadata = entry.metadata().await?;
+    async fn collect_files_recursive(
+        &self,
+        dir: &Path,
+        files: &mut Vec<std::path::PathBuf>,
+        depth: usize,
+    ) -> Result<()> {
+        // Prevent excessive recursion
+        if depth > 10 {
+            warn!("Skipping deep directory to prevent stack overflow: {}", dir.display());
+            return Ok(());
+        }
 
-                if metadata.is_dir() {
-                    self.process_directory_recursive(&path, results).await?;
-                } else if metadata.is_file() && DocumentFormat::from_extension(&path).is_some() {
-                    match self.process_document(&path).await {
-                        Ok(chunks) => {
-                            let key = path.to_string_lossy().to_string();
-                            results.insert(key, chunks);
-                        }
-                        Err(e) => {
-                            error!("Failed to process document {}: {}", path.display(), e);
-                        }
-                    }
+        let mut entries = tokio::fs::read_dir(dir).await?;
+
+        while let Some(entry) = entries.next_entry().await? {
+            let path = entry.path();
+            let metadata = entry.metadata().await?;
+
+            if metadata.is_dir() {
+                Box::pin(self.collect_files_recursive(&path, files, depth + 1)).await?;
+            } else if self.is_supported_file(&path) {
+                // Skip very large files
+                if metadata.len() > 50 * 1024 * 1024 {
+                    warn!("Skipping large file: {} ({})", path.display(), metadata.len());
+                    continue;
                 }
+                files.push(path);
             }
+        }
 
-            Ok(())
-        })
+        Ok(())
     }
 }

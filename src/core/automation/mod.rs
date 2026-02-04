@@ -4,10 +4,30 @@ use crate::shared::state::AppState;
 use chrono::Utc;
 use cron::Schedule;
 use diesel::prelude::*;
-use log::error;
+use log::{error, trace};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
+
+/// Normalizes a cron schedule by converting 6-field (with seconds) to 5-field format.
+/// If the schedule already has 5 fields or is in natural language format, it's returned as-is.
+fn normalize_cron_schedule(schedule: &str) -> String {
+    let trimmed = schedule.trim();
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+
+    let result = match parts.len() {
+        // 6 fields: assume seconds format, remove seconds
+        6 => parts[1..].join(" "),
+        // 4 fields: missing day-of-week, add "*"
+        4 => format!("{} *", parts.join(" ")),
+        // 5 fields: standard format
+        5 => parts.join(" "),
+        // Invalid: return as-is and let cron parser handle the error
+        _ => trimmed.to_string(),
+    };
+    
+    result.trim().to_string()
+}
 
 #[cfg(feature = "vectordb")]
 pub use crate::vector_db::vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};
@@ -32,7 +52,9 @@ impl AutomationService {
             }
         }
     }
-    pub async fn check_scheduled_tasks(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn check_scheduled_tasks(
+        &self,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         use crate::shared::models::system_automations::dsl::{
             id, is_active, kind, last_triggered as lt_column, system_automations,
         };
@@ -47,7 +69,9 @@ impl AutomationService {
             .load::<Automation>(&mut conn)?;
         for automation in automations {
             if let Some(schedule_str) = &automation.schedule {
-                match Schedule::from_str(schedule_str.trim()) {
+                let normalized_schedule = normalize_cron_schedule(schedule_str);
+                trace!("Parsing schedule: original='{}', normalized='{}'", schedule_str, normalized_schedule);
+                match Schedule::from_str(&normalized_schedule) {
                     Ok(parsed_schedule) => {
                         let now = Utc::now();
                         let next_run = parsed_schedule.upcoming(Utc).next();
@@ -76,9 +100,9 @@ impl AutomationService {
                         }
                     }
                     Err(e) => {
-                        error!(
-                            "Error parsing schedule for automation {} ({}): {}",
-                            automation.id, schedule_str, e
+                        trace!(
+                            "Skipping automation {} with invalid schedule (original: {}, normalized: {}): {}",
+                            automation.id, schedule_str, normalized_schedule, e
                         );
                     }
                 }
@@ -119,7 +143,6 @@ impl AutomationService {
                 .ok_or("Failed to create session")?
         };
         let mut script_service = ScriptService::new(Arc::clone(&self.state), session);
-
 
         script_service.load_bot_config_params(&self.state, automation.bot_id);
 

@@ -344,7 +344,7 @@ impl CachedLLMProvider {
                             .await;
 
                         if similarity >= self.config.similarity_threshold
-                            && best_match.as_ref().map_or(true, |(_, s)| *s < similarity)
+                            && best_match.as_ref().is_none_or(|(_, s)| *s < similarity)
                         {
                             best_match = Some((cached.clone(), similarity));
                         }
@@ -623,7 +623,7 @@ impl EmbeddingService for LocalEmbeddingService {
     ) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
         let client = reqwest::Client::new();
         let response = client
-            .post(format!("{}/embeddings", self.embedding_url))
+            .post(format!("{}/embedding", self.embedding_url))
             .json(&serde_json::json!({
                 "input": text,
                 "model": self.model,

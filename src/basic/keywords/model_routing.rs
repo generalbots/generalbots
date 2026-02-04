@@ -19,18 +19,15 @@ pub struct ModelConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum RoutingStrategy {
+    #[default]
     Manual,
     Auto,
     LoadBalanced,
     Fallback,
 }
 
-impl Default for RoutingStrategy {
-    fn default() -> Self {
-        Self::Manual
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct ModelRouter {

@@ -1,7 +1,6 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use diesel::sql_query;
 use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
@@ -593,26 +592,10 @@ fn add_bot_to_session(
             .map(|r| r.id)
             .map_err(|e| format!("Failed to get bot ID: {e}"))?
     } else {
-        let new_bot_id = Uuid::new_v4();
-        let db_name = format!("bot_{}", bot_name.replace(['-', ' '], "_").to_lowercase());
-        diesel::sql_query(
-            "INSERT INTO bots (id, name, description, is_active, database_name, created_at)
-             VALUES ($1, $2, $3, true, $4, NOW())
-             ON CONFLICT (name) DO UPDATE SET is_active = true, database_name = COALESCE(bots.database_name, $4)
-             RETURNING id",
-        )
-        .bind::<diesel::sql_types::Text, _>(new_bot_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(bot_name)
-        .bind::<diesel::sql_types::Text, _>(format!("Bot agent: {bot_name}"))
-        .bind::<diesel::sql_types::Text, _>(&db_name)
-        .execute(&mut *conn)
-        .map_err(|e| format!("Failed to create bot: {e}"))?;
-
-        if let Err(e) = create_bot_database(&mut conn, &db_name) {
-            log::warn!("Failed to create database for bot {bot_name}: {e}");
-        }
-
-        new_bot_id.to_string()
+        return Err(format!(
+            "Bot '{}' does not exist in database. Please create it first using the import process.",
+            bot_name
+        ));
     };
 
     let trigger_json =
@@ -851,49 +834,4 @@ struct BotConfigRow {
     system_prompt: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     model_config: Option<String>,
-}
-
-fn create_bot_database(conn: &mut PgConnection, db_name: &str) -> Result<(), String> {
-    let safe_db_name: String = db_name
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '_')
-        .collect();
-
-    if safe_db_name.is_empty() || safe_db_name.len() > 63 {
-        return Err("Invalid database name".into());
-    }
-
-    #[derive(QueryableByName)]
-    struct DbExists {
-        #[diesel(sql_type = diesel::sql_types::Bool)]
-        exists: bool,
-    }
-
-    let check_query = format!(
-        "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = '{}') as exists",
-        safe_db_name
-    );
-
-    let exists = sql_query(&check_query)
-        .get_result::<DbExists>(conn)
-        .map(|r| r.exists)
-        .unwrap_or(false);
-
-    if exists {
-        info!("Database {} already exists", safe_db_name);
-        return Ok(());
-    }
-
-    let create_query = format!("CREATE DATABASE {}", safe_db_name);
-    if let Err(e) = sql_query(&create_query).execute(conn) {
-        let err_str = e.to_string();
-        if err_str.contains("already exists") {
-            info!("Database {} already exists", safe_db_name);
-            return Ok(());
-        }
-        return Err(format!("Failed to create database: {}", e));
-    }
-
-    info!("Created database: {}", safe_db_name);
-    Ok(())
 }

@@ -42,7 +42,7 @@ impl Default for EmbeddingConfig {
             dimensions: 384,
             batch_size: 16,
             timeout_seconds: 60,
-            max_concurrent_requests: 2,
+            max_concurrent_requests: 1,
             connect_timeout_seconds: 10,
         }
     }
@@ -60,7 +60,7 @@ impl EmbeddingConfig {
             dimensions,
             batch_size: 16,
             timeout_seconds: 60,
-            max_concurrent_requests: 2,
+            max_concurrent_requests: 1,
             connect_timeout_seconds: 10,
         }
     }
@@ -84,16 +84,46 @@ struct EmbeddingRequest {
     model: String,
 }
 
+// OpenAI/Claude/OpenAI-compatible format
 #[derive(Debug, Deserialize)]
-struct EmbeddingResponse {
-    data: Vec<EmbeddingData>,
+struct OpenAIEmbeddingResponse {
+    data: Vec<OpenAIEmbeddingData>,
     model: String,
     usage: Option<EmbeddingUsage>,
 }
 
 #[derive(Debug, Deserialize)]
-struct EmbeddingData {
+struct OpenAIEmbeddingData {
     embedding: Vec<f32>,
+}
+
+// llama.cpp format
+#[derive(Debug, Deserialize)]
+struct LlamaCppEmbeddingItem {
+    embedding: Vec<Vec<f32>>,
+}
+
+// Hugging Face/SentenceTransformers format (simple array)
+type HuggingFaceEmbeddingResponse = Vec<Vec<f32>>;
+
+// Generic embedding service format (object with embeddings key)
+#[derive(Debug, Deserialize)]
+struct GenericEmbeddingResponse {
+    embeddings: Vec<Vec<f32>>,
+    #[serde(default)]
+    model: Option<String>,
+    #[serde(default)]
+    usage: Option<EmbeddingUsage>,
+}
+
+// Universal response wrapper - tries formats in order of likelihood
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum EmbeddingResponse {
+    OpenAI(OpenAIEmbeddingResponse),           // Most common: OpenAI, Claude, etc.
+    LlamaCpp(Vec<LlamaCppEmbeddingItem>),      // llama.cpp server
+    HuggingFace(HuggingFaceEmbeddingResponse), // Simple array format
+    Generic(GenericEmbeddingResponse),         // Generic services
 }
 
 #[derive(Debug, Deserialize)]
@@ -232,7 +262,7 @@ impl KbEmbeddingGenerator {
               chunks.len(), MemoryStats::format_bytes(start_mem.rss_bytes));
 
         let mut results = Vec::with_capacity(chunks.len());
-        let total_batches = (chunks.len() + self.config.batch_size - 1) / self.config.batch_size;
+        let total_batches = chunks.len().div_ceil(self.config.batch_size);
 
         for (batch_num, batch) in chunks.chunks(self.config.batch_size).enumerate() {
             let batch_start = MemoryStats::current();
@@ -304,11 +334,7 @@ impl KbEmbeddingGenerator {
         info!("[EMBEDDING] generate_batch_embeddings: {} texts, {} total chars",
               texts.len(), total_chars);
 
-        let truncated_texts: Vec<String> = texts.into_iter()
-            .map(|t| if t.len() > 8192 { t[..8192].to_string() } else { t })
-            .collect();
-
-        match self.generate_local_embeddings(&truncated_texts).await {
+        match self.generate_local_embeddings(&texts).await {
             Ok(embeddings) => {
                 info!("[EMBEDDING] Local embeddings succeeded: {} vectors", embeddings.len());
                 Ok(embeddings)
@@ -321,8 +347,13 @@ impl KbEmbeddingGenerator {
     }
 
     async fn generate_local_embeddings(&self, texts: &[String]) -> Result<Vec<Embedding>> {
+        // Apply token-aware truncation to each text before creating request
+        let truncated_texts: Vec<String> = texts.iter()
+            .map(|text| crate::core::shared::utils::truncate_text_for_model(text, &self.config.embedding_model, 600))
+            .collect();
+
         let request = EmbeddingRequest {
-            input: texts.to_vec(),
+            input: truncated_texts,
             model: self.config.embedding_model.clone(),
         };
 
@@ -334,7 +365,7 @@ impl KbEmbeddingGenerator {
 
         let response = self
             .client
-            .post(format!("{}/embeddings", self.config.embedding_url))
+            .post(format!("{}/embedding", self.config.embedding_url))
             .json(&request)
             .send()
             .await
@@ -364,19 +395,67 @@ impl KbEmbeddingGenerator {
         }
 
         let embedding_response: EmbeddingResponse = serde_json::from_slice(&response_bytes)
-            .context("Failed to parse embedding response")?;
+            .with_context(|| {
+                let preview = std::str::from_utf8(&response_bytes)
+                    .map(|s| if s.len() > 200 { &s[..200] } else { s })
+                    .unwrap_or("<invalid utf8>");
+                format!("Failed to parse embedding response. Preview: {}", preview)
+            })?;
 
         drop(response_bytes);
 
-        let mut embeddings = Vec::with_capacity(embedding_response.data.len());
-        for data in embedding_response.data {
-            embeddings.push(Embedding {
-                vector: data.embedding,
-                dimensions: self.config.dimensions,
-                model: embedding_response.model.clone(),
-                tokens_used: embedding_response.usage.as_ref().map(|u| u.total_tokens),
-            });
-        }
+        let embeddings = match embedding_response {
+            EmbeddingResponse::OpenAI(openai_response) => {
+                let mut embeddings = Vec::with_capacity(openai_response.data.len());
+                for data in openai_response.data {
+                    embeddings.push(Embedding {
+                        vector: data.embedding,
+                        dimensions: self.config.dimensions,
+                        model: openai_response.model.clone(),
+                        tokens_used: openai_response.usage.as_ref().map(|u| u.total_tokens),
+                    });
+                }
+                embeddings
+            }
+            EmbeddingResponse::LlamaCpp(llama_response) => {
+                let mut embeddings = Vec::new();
+                for item in llama_response {
+                    for embedding_vec in item.embedding {
+                        embeddings.push(Embedding {
+                            vector: embedding_vec,
+                            dimensions: self.config.dimensions,
+                            model: self.config.embedding_model.clone(),
+                            tokens_used: None,
+                        });
+                    }
+                }
+                embeddings
+            }
+            EmbeddingResponse::HuggingFace(hf_response) => {
+                let mut embeddings = Vec::with_capacity(hf_response.len());
+                for embedding_vec in hf_response {
+                    embeddings.push(Embedding {
+                        vector: embedding_vec,
+                        dimensions: self.config.dimensions,
+                        model: self.config.embedding_model.clone(),
+                        tokens_used: None,
+                    });
+                }
+                embeddings
+            }
+            EmbeddingResponse::Generic(generic_response) => {
+                let mut embeddings = Vec::with_capacity(generic_response.embeddings.len());
+                for embedding_vec in generic_response.embeddings {
+                    embeddings.push(Embedding {
+                        vector: embedding_vec,
+                        dimensions: self.config.dimensions,
+                        model: generic_response.model.clone().unwrap_or_else(|| self.config.embedding_model.clone()),
+                        tokens_used: generic_response.usage.as_ref().map(|u| u.total_tokens),
+                    });
+                }
+                embeddings
+            }
+        };
 
         Ok(embeddings)
     }

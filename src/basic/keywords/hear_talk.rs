@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+// Import the send_message_to_recipient function from universal_messaging
+use super::universal_messaging::send_message_to_recipient;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InputType {
     Any,
@@ -1082,7 +1085,7 @@ pub async fn execute_talk(
         session_id: user_session.id.to_string(),
         channel: "web".to_string(),
         content: message,
-        message_type: MessageType::USER,
+        message_type: MessageType::BOT_RESPONSE,
         stream_token: None,
         is_complete: true,
         suggestions,
@@ -1111,8 +1114,42 @@ pub async fn execute_talk(
 
 pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user;
+    let user_clone = user.clone();
 
+    // Register TALK TO "recipient", "message" syntax FIRST (more specific pattern)
+    let state_clone2 = Arc::clone(&state);
+    let user_clone2 = user.clone();
+
+    engine
+        .register_custom_syntax(
+            ["TALK", "TO", "$expr$", ",", "$expr$"],
+            true,
+            move |context, inputs| {
+                let recipient = context.eval_expression_tree(&inputs[0])?.to_string();
+                let message = context.eval_expression_tree(&inputs[1])?.to_string();
+
+                trace!("TALK TO: Sending message to {}", recipient);
+
+                let state_for_send = Arc::clone(&state_clone2);
+                let user_for_send = user_clone2.clone();
+
+                tokio::spawn(async move {
+                    if let Err(e) = send_message_to_recipient(
+                        state_for_send,
+                        &user_for_send,
+                        &recipient,
+                        &message,
+                    ).await {
+                        error!("Failed to send TALK TO message: {}", e);
+                    }
+                });
+
+                Ok(Dynamic::UNIT)
+            },
+        )
+        .expect("valid syntax registration");
+
+    // Register simple TALK "message" syntax SECOND (fallback pattern)
     engine
         .register_custom_syntax(["TALK", "$expr$"], true, move |context, inputs| {
             let message = context.eval_expression_tree(&inputs[0])?.to_string();

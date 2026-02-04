@@ -8,6 +8,24 @@ diesel::table! {
 }
 
 diesel::table! {
+    organization_invitations (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        email -> Varchar,
+        role -> Varchar,
+        status -> Varchar,
+        message -> Nullable<Text>,
+        invited_by -> Uuid,
+        token -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
+        expires_at -> Nullable<Timestamptz>,
+        accepted_at -> Nullable<Timestamptz>,
+        accepted_by -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
     bots (id) {
         id -> Uuid,
         name -> Varchar,
@@ -261,6 +279,8 @@ diesel::joinable!(rbac_user_groups -> users (user_id));
 diesel::joinable!(rbac_user_groups -> rbac_groups (group_id));
 diesel::joinable!(rbac_group_roles -> rbac_groups (group_id));
 diesel::joinable!(rbac_group_roles -> rbac_roles (role_id));
+diesel::joinable!(website_crawls -> bots (bot_id));
+diesel::joinable!(organization_invitations -> organizations (org_id));
 
 diesel::table! {
     user_preferences (id) {
@@ -287,6 +307,25 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    website_crawls (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        url -> Text,
+        last_crawled -> Nullable<Timestamptz>,
+        next_crawl -> Nullable<Timestamptz>,
+        expires_policy -> Varchar,
+        max_depth -> Nullable<Int4>,
+        max_pages -> Nullable<Int4>,
+        crawl_status -> Nullable<Int2>,
+        pages_crawled -> Nullable<Int4>,
+        error_message -> Nullable<Text>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+        refresh_policy -> Nullable<Varchar>,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     rbac_roles,
     rbac_groups,
@@ -296,4 +335,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     rbac_user_groups,
     rbac_group_roles,
     users,
+    website_crawls,
+    bots,
+    organizations,
+    organization_invitations,
 );

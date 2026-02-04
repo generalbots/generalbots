@@ -49,7 +49,7 @@ use self::keywords::last::last_keyword;
 use self::keywords::on_form_submit::on_form_submit_keyword;
 use self::keywords::switch_case::preprocess_switch;
 use self::keywords::use_tool::use_tool_keyword;
-use self::keywords::use_website::{clear_websites_keyword, use_website_keyword};
+use self::keywords::use_website::{clear_websites_keyword, register_use_website_function};
 use self::keywords::web_data::register_web_data_keywords;
 #[cfg(feature = "automation")]
 use self::keywords::webhook::webhook_keyword;
@@ -157,7 +157,6 @@ impl ScriptService {
         clear_suggestions_keyword(state.clone(), user.clone(), &mut engine);
         use_tool_keyword(state.clone(), user.clone(), &mut engine);
         clear_tools_keyword(state.clone(), user.clone(), &mut engine);
-        use_website_keyword(state.clone(), user.clone(), &mut engine);
         clear_websites_keyword(state.clone(), user.clone(), &mut engine);
         #[cfg(feature = "chat")]
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
@@ -165,7 +164,7 @@ impl ScriptService {
         add_member_keyword(state.clone(), user.clone(), &mut engine);
         #[cfg(feature = "chat")]
         register_bot_keywords(&state, &user, &mut engine);
-        
+
         // ===== WORKFLOW ORCHESTRATION KEYWORDS =====
         keywords::orchestration::register_orchestrate_workflow(state.clone(), user.clone(), &mut engine);
         keywords::orchestration::register_step_keyword(state.clone(), user.clone(), &mut engine);
@@ -175,7 +174,7 @@ impl ScriptService {
         keywords::enhanced_memory::register_bot_share_memory(state.clone(), user.clone(), &mut engine);
         keywords::enhanced_memory::register_bot_sync_memory(state.clone(), user.clone(), &mut engine);
         keywords::enhanced_llm::register_enhanced_llm_keyword(state.clone(), user.clone(), &mut engine);
-        
+
         keywords::universal_messaging::register_universal_messaging(
             state.clone(),
             user.clone(),
@@ -223,6 +222,11 @@ impl ScriptService {
             remember_keyword(state.clone(), user.clone(), &mut engine);
             save_from_unstructured_keyword(state.clone(), user.clone(), &mut engine);
         }
+
+        // Register USE WEBSITE after all other USE keywords to avoid conflicts
+        // USE WEBSITE is now preprocessed to USE_WEBSITE function call
+        // Register it as a regular function instead of custom syntax
+        register_use_website_function(state.clone(), user.clone(), &mut engine);
 
         // ===== VECTORDB FEATURE KEYWORDS =====
         #[cfg(feature = "vectordb")]
@@ -310,6 +314,10 @@ impl ScriptService {
     fn preprocess_basic_script(&self, script: &str) -> String {
         let _ = self; // silence unused self warning - kept for API consistency
         let script = preprocess_switch(script);
+
+        // Convert ALL multi-word keywords to underscore versions (e.g., "USE WEBSITE" → "USE_WEBSITE")
+        // This avoids Rhai custom syntax conflicts and makes the system more secure
+        let script = Self::convert_multiword_keywords(&script);
 
         let script = Self::normalize_variables_to_lowercase(&script);
 
@@ -787,6 +795,8 @@ impl ScriptService {
             "DESCRIPTION",
             "PARAM",
             "REQUIRED",
+            "WEBSITE",
+            "MODEL",
         ];
 
         let _identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").expect("valid regex");
@@ -796,8 +806,6 @@ impl ScriptService {
 
             if trimmed.starts_with("REM") || trimmed.starts_with('\'') || trimmed.starts_with("//")
             {
-                result.push_str(line);
-                result.push('\n');
                 continue;
             }
 
@@ -846,6 +854,161 @@ impl ScriptService {
         }
 
         result
+    }
+
+    /// Convert ALL multi-word keywords to underscore versions (function calls)
+    /// This avoids Rhai custom syntax conflicts and makes the system more secure
+    ///
+    /// Examples:
+    /// - "USE WEBSITE "url"" → "USE_WEBSITE("url")"
+    /// - "USE WEBSITE "url" REFRESH "interval"" → "USE_WEBSITE("url", "interval")"
+    /// - "SET BOT MEMORY key AS value" → "SET_BOT_MEMORY(key, value)"
+    /// - "CLEAR SUGGESTIONS" → "CLEAR_SUGGESTIONS()"
+    fn convert_multiword_keywords(script: &str) -> String {
+        use regex::Regex;
+
+        // Known multi-word keywords with their conversion patterns
+        // Format: (keyword_pattern, min_params, max_params, param_names)
+        let multiword_patterns = vec![
+            // USE family
+            (r#"USE\s+WEBSITE"#, 1, 2, vec!["url", "refresh"]),
+            (r#"USE\s+MODEL"#, 1, 1, vec!["model"]),
+            (r#"USE\s+KB"#, 1, 1, vec!["kb_name"]),
+            (r#"USE\s+TOOL"#, 1, 1, vec!["tool_path"]),
+
+            // SET family
+            (r#"SET\s+BOT\s+MEMORY"#, 2, 2, vec!["key", "value"]),
+            (r#"SET\s+CONTEXT"#, 2, 2, vec!["key", "value"]),
+            (r#"SET\s+USER"#, 1, 1, vec!["user_id"]),
+
+            // GET family
+            (r#"GET\s+BOT\s+MEMORY"#, 1, 1, vec!["key"]),
+
+            // CLEAR family
+            (r#"CLEAR\s+SUGGESTIONS"#, 0, 0, vec![]),
+            (r#"CLEAR\s+TOOLS"#, 0, 0, vec![]),
+            (r#"CLEAR\s+WEBSITES"#, 0, 0, vec![]),
+
+            // ADD family
+            (r#"ADD\s+SUGGESTION"#, 2, 2, vec!["title", "text"]),
+            (r#"ADD\s+MEMBER"#, 2, 2, vec!["name", "role"]),
+
+            // CREATE family
+            (r#"CREATE\s+TASK"#, 1, 1, vec!["task"]),
+            (r#"CREATE\s+DRAFT"#, 4, 4, vec!["to", "subject", "body", "attachments"]),
+            (r#"CREATE\s+SITE"#, 1, 1, vec!["site"]),
+
+            // ON family
+            (r#"ON\s+FORM\s+SUBMIT"#, 1, 1, vec!["form"]),
+            (r#"ON\s+EMAIL"#, 1, 1, vec!["filter"]),
+            (r#"ON\s+EVENT"#, 1, 1, vec!["event"]),
+
+            // SEND family
+            (r#"SEND\s+MAIL"#, 4, 4, vec!["to", "subject", "body", "attachments"]),
+
+            // BOOK (calendar)
+            (r#"BOOK"#, 1, 1, vec!["event"]),
+        ];
+
+        let mut result = String::new();
+
+        for line in script.lines() {
+            let trimmed = line.trim();
+            let mut converted = false;
+
+            // Try each pattern
+            for (pattern, min_params, max_params, _param_names) in &multiword_patterns {
+                // Build regex pattern: KEYWORD params...
+                // Handle quoted strings and unquoted identifiers
+                let regex_str = format!(
+                    r#"(?i)^\s*{}\s+(.*?)(?:\s*)$"#,
+                    pattern
+                );
+
+                if let Ok(re) = Regex::new(&regex_str) {
+                    if let Some(caps) = re.captures(trimmed) {
+                        if let Some(params_str) = caps.get(1) {
+                            let params = Self::parse_parameters(params_str.as_str());
+                            let param_count = params.len();
+
+                            // Validate parameter count
+                            if param_count >= *min_params && param_count <= *max_params {
+                                // Convert keyword to underscores
+                                let keyword = pattern.replace(r"\s+", "_");
+
+                                // Build function call
+                                let params_str = if params.is_empty() {
+                                    String::new()
+                                } else {
+                                    params.join(", ")
+                                };
+
+                                result.push_str(&format!("{}({});", keyword, params_str));
+                                result.push('\n');
+                                converted = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If not converted, keep original line
+            if !converted {
+                result.push_str(line);
+                result.push('\n');
+            }
+        }
+
+        result
+    }
+
+    /// Parse parameters from a keyword line
+    /// Handles quoted strings, AS keyword, and comma-separated values
+    fn parse_parameters(params_str: &str) -> Vec<String> {
+        let mut params = Vec::new();
+        let mut current = String::new();
+        let mut in_quotes = false;
+        let mut quote_char = '"';
+        let mut chars = params_str.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            match c {
+                '"' | '\'' if !in_quotes => {
+                    in_quotes = true;
+                    quote_char = c;
+                    current.push(c);
+                }
+                '"' | '\'' if in_quotes && c == quote_char => {
+                    in_quotes = false;
+                    current.push(c);
+                }
+                ' ' | '\t' if !in_quotes => {
+                    // End of parameter if we have content
+                    if !current.is_empty() {
+                        params.push(current.trim().to_string());
+                        current = String::new();
+                    }
+                }
+                ',' if !in_quotes => {
+                    // Comma separator
+                    if !current.is_empty() {
+                        params.push(current.trim().to_string());
+                        current = String::new();
+                    }
+                }
+                _ => {
+                    current.push(c);
+                }
+            }
+        }
+
+        // Don't forget the last parameter
+        if !current.is_empty() {
+            params.push(current.trim().to_string());
+        }
+
+        params
     }
 
     fn normalize_word(word: &str, keywords: &[&str]) -> String {

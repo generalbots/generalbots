@@ -3,10 +3,10 @@ use axum::{
     http::{header, Request, Response, StatusCode},
     Router,
 };
-use rust_embed::Embed;
+use rust_embed::RustEmbed;
 use std::path::Path;
 
-#[derive(Embed)]
+#[derive(RustEmbed)]
 #[folder = "../botui/ui/suite/"]
 #[prefix = ""]
 struct EmbeddedUi;
@@ -56,6 +56,10 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
         path
     };
 
+    let file_path = file_path.strip_prefix("suite/").unwrap_or(file_path);
+
+    log::trace!("Serving embedded file: {}", file_path);
+
     let try_paths = [
         file_path.to_string(),
         format!("{}/index.html", file_path.trim_end_matches('/')),
@@ -65,6 +69,8 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
     for try_path in &try_paths {
         if let Some(content) = EmbeddedUi::get(try_path) {
             let mime = get_mime_type(try_path);
+
+            log::trace!("Found embedded file: {} with MIME type: {}", try_path, mime);
 
             return Response::builder()
                 .status(StatusCode::OK)
@@ -79,6 +85,8 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
                 });
         }
     }
+
+    log::warn!("Embedded file not found: {} (tried paths: {:?})", file_path, try_paths);
 
     Response::builder()
         .status(StatusCode::NOT_FOUND)
@@ -103,9 +111,17 @@ pub fn embedded_ui_router() -> Router {
 }
 
 pub fn has_embedded_ui() -> bool {
-    EmbeddedUi::get("index.html").is_some()
+    let has_index = EmbeddedUi::get("index.html").is_some();
+    if has_index {
+        log::info!("Embedded UI detected - index.html found");
+    } else {
+        log::warn!("No embedded UI found - index.html not embedded");
+    }
+    has_index
 }
 
 pub fn list_embedded_files() -> Vec<String> {
-    EmbeddedUi::iter().map(|f| f.to_string()).collect()
+    let files: Vec<String> = EmbeddedUi::iter().map(|f| f.to_string()).collect();
+    log::debug!("Embedded UI contains {} files", files.len());
+    files
 }

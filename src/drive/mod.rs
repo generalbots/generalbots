@@ -1141,7 +1141,7 @@ pub async fn list_versions(
     let bucket = params.bucket.unwrap_or_else(|| "default".to_string());
     let path = params.path;
 
-    let s3_client = state.s3_client.as_ref().ok_or_else(|| {
+    let s3_client = state.drive.as_ref().ok_or_else(|| {
         (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(serde_json::json!({ "error": "S3 storage not configured" })),
@@ -1194,7 +1194,7 @@ pub async fn restore_version(
     let path = payload.path;
     let version_id = payload.version_id;
 
-    let s3_client = state.s3_client.as_ref().ok_or_else(|| {
+    let s3_client = state.drive.as_ref().ok_or_else(|| {
         (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(serde_json::json!({ "error": "S3 storage not configured" })),

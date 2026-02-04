@@ -36,8 +36,7 @@ pub enum Permission {
     ManageIntegrations,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum Role {
     #[default]
     Anonymous,
@@ -188,7 +187,6 @@ impl Role {
         self.hierarchy_level() >= other.hierarchy_level()
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BotAccess {
@@ -738,9 +736,7 @@ pub fn extract_user_from_request(
         }
     }
 
-    if let Some(session_id) =
-        extract_session_from_cookies(request, &config.session_cookie_name)
-    {
+    if let Some(session_id) = extract_session_from_cookies(request, &config.session_cookie_name) {
         let mut user = validate_session_sync(&session_id)?;
 
         if let Some(bot_id) = extract_bot_id_from_request(request, config) {
@@ -784,8 +780,7 @@ fn extract_session_from_cookies(request: &Request<Body>, cookie_name: &str) -> O
         .and_then(|cookies| {
             cookies.split(';').find_map(|cookie| {
                 let (name, value) = cookie.trim().split_once('=')?;
-                
-                
+
                 if name == cookie_name {
                     Some(value.to_string())
                 } else {
@@ -831,45 +826,49 @@ fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, AuthErro
 
     // Accept any non-empty token as a valid session
     // The token could be a Zitadel session ID, JWT, or any other format
-    debug!("Validating session token (length={}): {}...",
-           session_id.len(),
-           &session_id[..std::cmp::min(20, session_id.len())]);
+    debug!(
+        "Validating session token (length={}): {}...",
+        session_id.len(),
+        &session_id[..std::cmp::min(20, session_id.len())]
+    );
 
-// Try to get user data from session cache first
-#[cfg(feature = "directory")]
-if let Ok(cache_guard) = crate::directory::auth_routes::SESSION_CACHE.try_read() {
-if let Some(user_data) = cache_guard.get(session_id) {
-                debug!("Found user in session cache: {}", user_data.email);
+    // Try to get user data from session cache first
+    #[cfg(feature = "directory")]
+    if let Ok(cache_guard) = crate::directory::auth_routes::SESSION_CACHE.try_read() {
+        if let Some(user_data) = cache_guard.get(session_id) {
+            debug!("Found user in session cache: {}", user_data.email);
 
-                // Parse user_id from cached data
-                let user_id = Uuid::parse_str(&user_data.user_id)
-                    .unwrap_or_else(|_| Uuid::new_v4());
+            // Parse user_id from cached data
+            let user_id = Uuid::parse_str(&user_data.user_id).unwrap_or_else(|_| Uuid::new_v4());
 
-                // Build user with actual roles from cache
-                let mut user = AuthenticatedUser::new(user_id, user_data.email.clone())
-                    .with_session(session_id);
+            // Build user with actual roles from cache
+            let mut user =
+                AuthenticatedUser::new(user_id, user_data.email.clone()).with_session(session_id);
 
-                // Add roles from cached user data
-                for role_str in &user_data.roles {
-                    let role = match role_str.to_lowercase().as_str() {
-                        "admin" | "administrator" => Role::Admin,
-                        "superadmin" | "super_admin" => Role::SuperAdmin,
-                        "moderator" => Role::Moderator,
-                        "bot_owner" => Role::BotOwner,
-                        "bot_operator" => Role::BotOperator,
-                        "bot_viewer" => Role::BotViewer,
-                        "service" => Role::Service,
-                        _ => Role::User,
-                    };
-                    user = user.with_role(role);
-                }
+            // Add roles from cached user data
+            for role_str in &user_data.roles {
+                let role = match role_str.to_lowercase().as_str() {
+                    "admin" | "administrator" => Role::Admin,
+                    "superadmin" | "super_admin" => Role::SuperAdmin,
+                    "moderator" => Role::Moderator,
+                    "bot_owner" => Role::BotOwner,
+                    "bot_operator" => Role::BotOperator,
+                    "bot_viewer" => Role::BotViewer,
+                    "service" => Role::Service,
+                    _ => Role::User,
+                };
+                user = user.with_role(role);
+            }
 
-                // If no roles were added, default to User role
-                if user_data.roles.is_empty() {
-                    user = user.with_role(Role::User);
-                }
+            // If no roles were added, default to User role
+            if user_data.roles.is_empty() {
+                user = user.with_role(Role::User);
+            }
 
-            debug!("Session validated from cache, user has {} roles", user_data.roles.len());
+            debug!(
+                "Session validated from cache, user has {} roles",
+                user_data.roles.len()
+            );
             return Ok(user);
         }
     }
@@ -910,14 +909,13 @@ pub async fn auth_middleware_with_providers(
     next: Next,
     state: AuthMiddlewareState,
 ) -> Response {
-
     let path = request.uri().path().to_string();
     let method = request.method().to_string();
 
-    info!("[AUTH] Processing {} {}", method, path);
+    info!("Processing {} {}", method, path);
 
     if state.config.is_public_path(&path) || state.config.is_anonymous_allowed(&path) {
-        info!("[AUTH] Path is public/anonymous, skipping auth");
+        info!("Path is public/anonymous, skipping auth");
         request
             .extensions_mut()
             .insert(AuthenticatedUser::anonymous());
@@ -930,28 +928,39 @@ pub async fn auth_middleware_with_providers(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
-    info!("[AUTH] Authorization header: {:?}", auth_header.as_ref().map(|h| {
-        if h.len() > 30 { format!("{}...", &h[..30]) } else { h.clone() }
-    }));
+    info!(
+        "Authorization header: {:?}",
+        auth_header.as_ref().map(|h| {
+            if h.len() > 30 {
+                format!("{}...", &h[..30])
+            } else {
+                h.clone()
+            }
+        })
+    );
 
     let extracted = ExtractedAuthData::from_request(&request, &state.config);
-    let user = authenticate_with_extracted_data(extracted, &state.config, &state.provider_registry).await;
+    let user =
+        authenticate_with_extracted_data(extracted, &state.config, &state.provider_registry).await;
 
     match user {
         Ok(authenticated_user) => {
-            info!("[AUTH] Success: user={} roles={:?}", authenticated_user.username, authenticated_user.roles);
+            info!(
+                "Success: user={} roles={:?}",
+                authenticated_user.username, authenticated_user.roles
+            );
             request.extensions_mut().insert(authenticated_user);
             next.run(request).await
         }
         Err(e) => {
             if !state.config.require_auth {
-                warn!("[AUTH] Failed but not required, allowing anonymous: {:?}", e);
+                warn!("Failed but not required, allowing anonymous: {:?}", e);
                 request
                     .extensions_mut()
                     .insert(AuthenticatedUser::anonymous());
                 return next.run(request).await;
             }
-            info!("[AUTH] Failed: {:?}", e);
+            info!("Failed: {:?}", e);
             e.into_response()
         }
     }
@@ -980,9 +989,15 @@ impl ExtractedAuthData {
             .and_then(|v| v.to_str().ok());
 
         if let Some(auth) = raw_auth {
-            debug!("Raw Authorization header: {}", &auth[..std::cmp::min(50, auth.len())]);
+            debug!(
+                "Raw Authorization header: {}",
+                &auth[..std::cmp::min(50, auth.len())]
+            );
         } else {
-            warn!("No Authorization header found in request to {}", request.uri().path());
+            warn!(
+                "No Authorization header found in request to {}",
+                request.uri().path()
+            );
         }
 
         let bearer_token = raw_auth
@@ -1043,7 +1058,10 @@ async fn authenticate_with_extracted_data(
                     return Ok(user);
                 }
                 Err(e) => {
-                    debug!("JWT authentication failed: {:?}, falling back to session validation", e);
+                    debug!(
+                        "JWT authentication failed: {:?}, falling back to session validation",
+                        e
+                    );
                 }
             }
         } else {
@@ -1363,8 +1381,6 @@ mod tests {
         assert!(Role::SuperAdmin.has_permission(&Permission::ManageSecrets));
     }
 
-
-
     #[test]
     fn test_role_hierarchy() {
         assert!(Role::SuperAdmin.is_at_least(&Role::Admin));
@@ -1388,8 +1404,8 @@ mod tests {
 
     #[test]
     fn test_user_permissions() {
-        let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string())
-            .with_role(Role::Admin);
+        let admin =
+            AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string()).with_role(Role::Admin);
 
         assert!(admin.has_permission(&Permission::ManageUsers));
         assert!(admin.has_permission(&Permission::Delete));
@@ -1440,10 +1456,22 @@ mod tests {
 
     #[test]
     fn test_auth_error_responses() {
-        assert_eq!(AuthError::MissingToken.status_code(), StatusCode::UNAUTHORIZED);
-        assert_eq!(AuthError::InsufficientPermissions.status_code(), StatusCode::FORBIDDEN);
-        assert_eq!(AuthError::RateLimited.status_code(), StatusCode::TOO_MANY_REQUESTS);
-        assert_eq!(AuthError::BotAccessDenied.status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(
+            AuthError::MissingToken.status_code(),
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            AuthError::InsufficientPermissions.status_code(),
+            StatusCode::FORBIDDEN
+        );
+        assert_eq!(
+            AuthError::RateLimited.status_code(),
+            StatusCode::TOO_MANY_REQUESTS
+        );
+        assert_eq!(
+            AuthError::BotAccessDenied.status_code(),
+            StatusCode::FORBIDDEN
+        );
     }
 
     #[test]
@@ -1460,8 +1488,8 @@ mod tests {
         assert!(!user.can_manage_bot(&bot_id));
         assert!(!user.can_access_bot(&other_bot_id));
 
-        let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string())
-            .with_role(Role::Admin);
+        let admin =
+            AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string()).with_role(Role::Admin);
 
         assert!(admin.can_access_bot(&bot_id));
         assert!(admin.can_access_bot(&other_bot_id));
@@ -1544,8 +1572,8 @@ mod tests {
         let org_id = Uuid::new_v4();
         let other_org_id = Uuid::new_v4();
 
-        let user = AuthenticatedUser::new(Uuid::new_v4(), "user".to_string())
-            .with_organization(org_id);
+        let user =
+            AuthenticatedUser::new(Uuid::new_v4(), "user".to_string()).with_organization(org_id);
 
         assert!(user.can_access_organization(&org_id));
         assert!(!user.can_access_organization(&other_org_id));
@@ -1561,10 +1589,14 @@ mod tests {
 
     #[test]
     fn test_has_all_permissions() {
-        let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string())
-            .with_role(Role::Admin);
+        let admin =
+            AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string()).with_role(Role::Admin);
 
-        assert!(admin.has_all_permissions(&[Permission::Read, Permission::Write, Permission::Delete]));
+        assert!(admin.has_all_permissions(&[
+            Permission::Read,
+            Permission::Write,
+            Permission::Delete
+        ]));
         assert!(!admin.has_all_permissions(&[Permission::ManageSecrets]));
     }
 

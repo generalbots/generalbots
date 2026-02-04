@@ -71,9 +71,12 @@ impl EmbeddingGenerator {
     async fn generate_local_embedding(&self, text: &str, embedding_url: &str) -> Result<Vec<f32>> {
         use serde_json::json;
 
+        // Truncate text to fit within token limit (600 tokens for safety under 768 limit)
+        let truncated_text = crate::core::shared::utils::truncate_text_for_model(text, "sentence-transformers/all-MiniLM-L6-v2", 600);
+
         let client = reqwest::Client::new();
         let body = json!({
-            "text": text,
+            "text": truncated_text,
             "model": "sentence-transformers/all-MiniLM-L6-v2"
         });
 

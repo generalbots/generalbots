@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const DEFAULT_CACHE_DIR: &str = "botserver-installers";
+const DEFAULT_CACHE_DIR: &str = "./botserver-installers";
 
 const CONFIG_FILE: &str = "3rdparty.toml";
 

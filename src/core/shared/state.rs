@@ -6,21 +6,21 @@ use crate::core::config::AppConfig;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
-#[cfg(feature = "project")]
-use crate::project::ProjectService;
-#[cfg(feature = "compliance")]
-use crate::legal::LegalService;
-use crate::security::auth_provider::AuthProviderRegistry;
-use crate::security::jwt::JwtManager;
-use crate::security::rbac_middleware::RbacManager;
 #[cfg(all(test, feature = "directory"))]
 use crate::core::shared::test_utils::create_mock_auth_service;
 #[cfg(all(test, feature = "llm"))]
 use crate::core::shared::test_utils::MockLLMProvider;
 #[cfg(feature = "directory")]
 use crate::directory::AuthService;
+#[cfg(feature = "compliance")]
+use crate::legal::LegalService;
 #[cfg(feature = "llm")]
-use crate::llm::LLMProvider;
+use crate::llm::{DynamicLLMProvider, LLMProvider};
+#[cfg(feature = "project")]
+use crate::project::ProjectService;
+use crate::security::auth_provider::AuthProviderRegistry;
+use crate::security::jwt::JwtManager;
+use crate::security::rbac_middleware::RbacManager;
 use crate::shared::models::BotResponse;
 use crate::shared::utils::DbPool;
 #[cfg(feature = "tasks")]
@@ -174,7 +174,11 @@ pub struct TaskProgressEvent {
 }
 
 impl TaskProgressEvent {
-    pub fn new(task_id: impl Into<String>, step: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn new(
+        task_id: impl Into<String>,
+        step: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
             event_type: "task_progress".to_string(),
             task_id: task_id.into(),
@@ -212,7 +216,11 @@ impl TaskProgressEvent {
     pub fn with_progress(mut self, current: u8, total: u8) -> Self {
         self.current_step = current;
         self.total_steps = total;
-        self.progress = if total > 0 { ((current as u16 * 100) / total as u16) as u8 } else { 0 };
+        self.progress = if total > 0 {
+            ((current as u16 * 100) / total as u16) as u8
+        } else {
+            0
+        };
         self
     }
 
@@ -248,7 +256,11 @@ impl TaskProgressEvent {
         self
     }
 
-    pub fn started(task_id: impl Into<String>, message: impl Into<String>, total_steps: u8) -> Self {
+    pub fn started(
+        task_id: impl Into<String>,
+        message: impl Into<String>,
+        total_steps: u8,
+    ) -> Self {
         Self {
             event_type: "task_started".to_string(),
             task_id: task_id.into(),
@@ -345,8 +357,6 @@ pub struct BillingAlertNotification {
 pub struct AppState {
     #[cfg(feature = "drive")]
     pub drive: Option<S3Client>,
-    #[cfg(feature = "drive")]
-    pub s3_client: Option<S3Client>,
     #[cfg(feature = "cache")]
     pub cache: Option<Arc<RedisClient>>,
     pub bucket_name: String,
@@ -360,6 +370,8 @@ pub struct AppState {
     pub task_scheduler: Option<Arc<TaskScheduler>>,
     #[cfg(feature = "llm")]
     pub llm_provider: Arc<dyn LLMProvider>,
+    #[cfg(feature = "llm")]
+    pub dynamic_llm_provider: Option<Arc<DynamicLLMProvider>>,
     #[cfg(feature = "directory")]
     pub auth_service: Arc<tokio::sync::Mutex<AuthService>>,
     pub channels: Arc<tokio::sync::Mutex<HashMap<String, Arc<dyn ChannelAdapter>>>>,
@@ -389,8 +401,6 @@ impl Clone for AppState {
         Self {
             #[cfg(feature = "drive")]
             drive: self.drive.clone(),
-            #[cfg(feature = "drive")]
-            s3_client: self.s3_client.clone(),
             bucket_name: self.bucket_name.clone(),
             config: self.config.clone(),
             conn: self.conn.clone(),
@@ -404,6 +414,8 @@ impl Clone for AppState {
             task_scheduler: self.task_scheduler.clone(),
             #[cfg(feature = "llm")]
             llm_provider: Arc::clone(&self.llm_provider),
+            #[cfg(feature = "llm")]
+            dynamic_llm_provider: self.dynamic_llm_provider.clone(),
             #[cfg(feature = "directory")]
             auth_service: Arc::clone(&self.auth_service),
             #[cfg(any(feature = "research", feature = "llm"))]
@@ -437,9 +449,6 @@ impl std::fmt::Debug for AppState {
         #[cfg(feature = "drive")]
         debug.field("drive", &self.drive.is_some());
 
-        #[cfg(feature = "drive")]
-        debug.field("s3_client", &self.s3_client.is_some());
-
         #[cfg(feature = "cache")]
         debug.field("cache", &self.cache.is_some());
 
@@ -454,7 +463,6 @@ impl std::fmt::Debug for AppState {
 
         #[cfg(any(feature = "research", feature = "llm"))]
         debug.field("kb_manager", &self.kb_manager.is_some());
-
 
         #[cfg(feature = "tasks")]
         debug.field("task_scheduler", &self.task_scheduler.is_some());
@@ -480,9 +488,15 @@ impl std::fmt::Debug for AppState {
         debug
             .field("extensions", &self.extensions)
             .field("attendant_broadcast", &self.attendant_broadcast.is_some())
-            .field("task_progress_broadcast", &self.task_progress_broadcast.is_some())
+            .field(
+                "task_progress_broadcast",
+                &self.task_progress_broadcast.is_some(),
+            )
             .field("jwt_manager", &self.jwt_manager.is_some())
-            .field("auth_provider_registry", &self.auth_provider_registry.is_some())
+            .field(
+                "auth_provider_registry",
+                &self.auth_provider_registry.is_some(),
+            )
             .field("rbac_manager", &self.rbac_manager.is_some())
             .finish()
     }
@@ -498,7 +512,10 @@ impl AppState {
         );
         if let Some(tx) = &self.task_progress_broadcast {
             let receiver_count = tx.receiver_count();
-            log::info!("[TASK_PROGRESS] Broadcast channel has {} receivers", receiver_count);
+            log::info!(
+                "[TASK_PROGRESS] Broadcast channel has {} receivers",
+                receiver_count
+            );
             match tx.send(event) {
                 Ok(_) => {
                     log::info!("[TASK_PROGRESS] Event sent successfully");
@@ -512,16 +529,8 @@ impl AppState {
         }
     }
 
-    pub fn emit_progress(
-        &self,
-        task_id: &str,
-        step: &str,
-        message: &str,
-        current: u8,
-        total: u8,
-    ) {
-        let event = TaskProgressEvent::new(task_id, step, message)
-            .with_progress(current, total);
+    pub fn emit_progress(&self, task_id: &str, step: &str, message: &str, current: u8, total: u8) {
+        let event = TaskProgressEvent::new(task_id, step, message).with_progress(current, total);
         self.broadcast_task_progress(event);
     }
 
@@ -566,8 +575,7 @@ impl AppState {
     }
 
     pub fn emit_task_error(&self, task_id: &str, step: &str, error: &str) {
-        let event = TaskProgressEvent::new(task_id, step, "Task failed")
-            .with_error(error);
+        let event = TaskProgressEvent::new(task_id, step, "Task failed").with_error(error);
         self.broadcast_task_progress(event);
     }
 
@@ -605,8 +613,6 @@ impl Default for AppState {
         Self {
             #[cfg(feature = "drive")]
             drive: None,
-            #[cfg(feature = "drive")]
-            s3_client: None,
             #[cfg(feature = "cache")]
             cache: None,
             bucket_name: "test-bucket".to_string(),
@@ -620,6 +626,8 @@ impl Default for AppState {
             task_scheduler: None,
             #[cfg(all(test, feature = "llm"))]
             llm_provider: Arc::new(MockLLMProvider::new()),
+            #[cfg(feature = "llm")]
+            dynamic_llm_provider: None,
             #[cfg(feature = "directory")]
             auth_service: Arc::new(tokio::sync::Mutex::new(create_mock_auth_service())),
             channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
