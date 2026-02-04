@@ -324,7 +324,7 @@ When a file grows beyond this limit:
 
 ## 🗄️ Database Standards
 
-- **TABLES AND INDEXES ONLY** (no views, triggers, functions)
+- **TABLES AND INDEXES ONLY** (no stored procedures, nothing, no views, no triggers, no functions)
 - **JSON columns:** use TEXT with `_json` suffix
 - **ORM:** Use diesel - no sqlx
 - **Migrations:** Located in `botserver/migrations/`

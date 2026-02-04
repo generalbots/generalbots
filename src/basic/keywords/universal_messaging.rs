@@ -10,12 +10,14 @@ use serde_json::json;
 use std::sync::Arc;
 
 pub fn register_universal_messaging(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    register_talk_to(state.clone(), user.clone(), engine);
     register_send_file_to(state.clone(), user.clone(), engine);
     register_send_to(state.clone(), user.clone(), engine);
     register_broadcast(state, user, engine);
 }
 
+// DEPRECATED: TALK TO functionality moved to hear_talk.rs talk_keyword function
+// to avoid syntax conflicts between TALK and TALK TO
+/*
 fn register_talk_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -50,6 +52,7 @@ fn register_talk_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         )
         .expect("valid syntax registration");
 }
+*/
 
 fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -179,7 +182,7 @@ fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engi
         .expect("valid syntax registration");
 }
 
-async fn send_message_to_recipient(
+pub async fn send_message_to_recipient(
     state: Arc<AppState>,
     user: &UserSession,
     recipient: &str,
@@ -461,7 +464,7 @@ async fn send_instagram_file(
 
     let file_key = format!("temp/instagram/{}_{}.bin", user.id, uuid::Uuid::new_v4());
 
-    if let Some(s3) = &state.s3_client {
+    if let Some(s3) = &state.drive {
         s3.put_object()
             .bucket("uploads")
             .key(&file_key)
@@ -483,7 +486,7 @@ async fn send_instagram_file(
 
         tokio::spawn(async move {
             tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
-            if let Some(s3) = &state.s3_client {
+            if let Some(s3) = &state.drive {
                 let _ = s3
                     .delete_object()
                     .bucket("uploads")

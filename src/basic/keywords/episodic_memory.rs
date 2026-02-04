@@ -53,18 +53,15 @@ pub struct ActionItem {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum Priority {
     Low,
+    #[default]
     Medium,
     High,
     Critical,
 }
 
-impl Default for Priority {
-    fn default() -> Self {
-        Self::Medium
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sentiment {
@@ -77,19 +74,16 @@ pub struct Sentiment {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum SentimentLabel {
     VeryNegative,
     Negative,
+    #[default]
     Neutral,
     Positive,
     VeryPositive,
 }
 
-impl Default for SentimentLabel {
-    fn default() -> Self {
-        Self::Neutral
-    }
-}
 
 impl Default for Sentiment {
     fn default() -> Self {
@@ -103,19 +97,16 @@ impl Default for Sentiment {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum ResolutionStatus {
     Resolved,
     Unresolved,
     Escalated,
     Pending,
+    #[default]
     Unknown,
 }
 
-impl Default for ResolutionStatus {
-    fn default() -> Self {
-        Self::Unknown
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct EpisodicMemoryConfig {

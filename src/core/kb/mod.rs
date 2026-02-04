@@ -83,6 +83,15 @@ impl KnowledgeBaseManager {
         self.indexer.search(&collection_name, query, limit).await
     }
 
+    pub async fn search_collection(
+        &self,
+        collection_name: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<SearchResult>> {
+        self.indexer.search(collection_name, query, limit).await
+    }
+
     pub async fn process_document(&self, file_path: &Path) -> Result<Vec<TextChunk>> {
         self.processor.process_document(file_path).await
     }

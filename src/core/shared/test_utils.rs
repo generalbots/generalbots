@@ -67,7 +67,7 @@ impl LLMProvider for MockLLMProvider {
         &self,
         _prompt: &str,
         _config: &Value,
-        tx: mpsc::Sender<String>,
+        tx: tokio::sync::mpsc::Sender<String>,
         _model: &str,
         _key: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -210,6 +210,8 @@ impl TestAppStateBuilder {
             task_scheduler: None,
             #[cfg(feature = "llm")]
             llm_provider: Arc::new(MockLLMProvider::new()),
+            #[cfg(feature = "llm")]
+            dynamic_llm_provider: None,
             #[cfg(feature = "directory")]
             auth_service: Arc::new(tokio::sync::Mutex::new(create_mock_auth_service())),
             channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
@@ -226,7 +228,9 @@ impl TestAppStateBuilder {
             billing_alert_broadcast: None,
             task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
             #[cfg(feature = "project")]
-            project_service: Arc::new(tokio::sync::RwLock::new(crate::project::ProjectService::new())),
+            project_service: Arc::new(tokio::sync::RwLock::new(
+                crate::project::ProjectService::new(),
+            )),
             #[cfg(feature = "compliance")]
             legal_service: Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new())),
             jwt_manager: None,

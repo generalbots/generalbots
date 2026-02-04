@@ -12,6 +12,7 @@ pub struct WebsiteCrawlConfig {
     pub max_pages: usize,
     pub crawl_delay_ms: u64,
     pub expires_policy: String,
+    pub refresh_policy: Option<String>,
     pub last_crawled: Option<chrono::DateTime<chrono::Utc>>,
     pub next_crawl: Option<chrono::DateTime<chrono::Utc>>,
 }
@@ -21,7 +22,10 @@ impl WebsiteCrawlConfig {
         let now = chrono::Utc::now();
         self.last_crawled = Some(now);
 
-        let duration = match self.expires_policy.as_str() {
+        // Use refresh_policy if available, otherwise fall back to expires_policy
+        let policy = self.refresh_policy.as_ref().unwrap_or(&self.expires_policy);
+
+        let duration = match policy.as_str() {
             "1h" => chrono::Duration::hours(1),
             "6h" => chrono::Duration::hours(6),
             "12h" => chrono::Duration::hours(12),
@@ -117,6 +121,10 @@ impl WebCrawler {
     pub async fn crawl(&mut self) -> Result<Vec<WebPage>> {
         info!("Starting crawl of website: {}", self.config.url);
 
+        // Pre-allocate with reasonable capacity
+        self.pages.reserve(self.config.max_pages.min(1000));
+        self.visited_urls.reserve(self.config.max_pages * 2);
+
         self.crawl_recursive(&self.config.url.clone(), 0).await?;
 
         info!(
@@ -125,25 +133,33 @@ impl WebCrawler {
             self.config.url
         );
 
-        Ok(self.pages.clone())
+        // Move pages out to avoid cloning
+        let pages = std::mem::take(&mut self.pages);
+        
+        // Clear collections to free memory immediately
+        self.visited_urls.clear();
+        self.visited_urls.shrink_to_fit();
+
+        Ok(pages)
     }
 
     async fn crawl_recursive(&mut self, url: &str, depth: usize) -> Result<()> {
+        // Hard limits to prevent memory leaks
         if depth > self.config.max_depth {
-            trace!(
-                "Reached max depth {} for URL: {}",
-                self.config.max_depth,
-                url
-            );
             return Ok(());
         }
 
         if self.pages.len() >= self.config.max_pages {
-            trace!("Reached max pages limit: {}", self.config.max_pages);
             return Ok(());
         }
 
         if self.visited_urls.contains(url) {
+            return Ok(());
+        }
+
+        // Strict memory limit - prevent unbounded growth
+        if self.visited_urls.len() >= 1000 {
+            warn!("Visited URLs limit reached, stopping crawl to prevent memory leak");
             return Ok(());
         }
 
@@ -153,10 +169,17 @@ impl WebCrawler {
             sleep(Duration::from_millis(self.config.crawl_delay_ms)).await;
         }
 
-        let response = match self.client.get(url).send().await {
-            Ok(resp) => resp,
-            Err(e) => {
+        let response = match tokio::time::timeout(
+            Duration::from_secs(30), // Add timeout to prevent hanging
+            self.client.get(url).send()
+        ).await {
+            Ok(Ok(resp)) => resp,
+            Ok(Err(e)) => {
                 warn!("Failed to fetch {}: {}", url, e);
+                return Ok(());
+            }
+            Err(_) => {
+                warn!("Timeout fetching {}", url);
                 return Ok(());
             }
         };
@@ -172,10 +195,24 @@ impl WebCrawler {
             return Ok(());
         }
 
-        let html_text = match response.text().await {
-            Ok(text) => text,
-            Err(e) => {
+        let html_text = match tokio::time::timeout(
+            Duration::from_secs(15), // Reduced timeout
+            response.text()
+        ).await {
+            Ok(Ok(text)) => {
+                // Strict size limit to prevent memory issues
+                if text.len() > 500_000 { // 500KB limit
+                    text.chars().take(500_000).collect()
+                } else {
+                    text
+                }
+            }
+            Ok(Err(e)) => {
                 warn!("Failed to read response from {}: {}", url, e);
+                return Ok(());
+            }
+            Err(_) => {
+                warn!("Timeout reading response from {}", url);
                 return Ok(());
             }
         };
@@ -183,11 +220,29 @@ impl WebCrawler {
         let page = Self::extract_page_content(&html_text, url);
         self.pages.push(page);
 
+        // Aggressive memory cleanup every 10 pages
+        if self.pages.len() % 10 == 0 {
+            self.pages.shrink_to_fit();
+            self.visited_urls.shrink_to_fit();
+        }
+
         if depth < self.config.max_depth {
             let links = Self::extract_links(&html_text, url);
-            for link in links {
+            let max_links = std::cmp::min(20, links.len()); // Strict limit
+            
+            for link in links.into_iter().take(max_links) {
                 if Self::is_same_domain(url, &link) {
-                    Box::pin(self.crawl_recursive(&link, depth + 1)).await?;
+                    // Use Box::pin to prevent stack overflow
+                    if let Err(e) = Box::pin(self.crawl_recursive(&link, depth + 1)).await {
+                        warn!("Error crawling {}: {}", link, e);
+                        continue;
+                    }
+                    
+                    // Check limits frequently to prevent runaway crawling
+                    if self.pages.len() >= self.config.max_pages || 
+                       self.visited_urls.len() >= 1000 {
+                        break;
+                    }
                 }
             }
         }
@@ -196,35 +251,41 @@ impl WebCrawler {
     }
 
     fn extract_page_content(html: &str, url: &str) -> WebPage {
-        let mut text = html.to_string();
+        // Use capacity hint to reduce allocations
+        let mut text = String::with_capacity(html.len() / 2);
+        text.push_str(html);
 
+        // Remove scripts more efficiently
         while let Some(start) = text.find("<script") {
-            if let Some(end) = text.find("</script>") {
-                text.replace_range(start..=end + 8, " ");
+            if let Some(end) = text[start..].find("</script>") {
+                text.drain(start..start + end + 9);
             } else {
                 break;
             }
         }
 
+        // Remove styles more efficiently  
         while let Some(start) = text.find("<style") {
-            if let Some(end) = text.find("</style>") {
-                text.replace_range(start..=end + 7, " ");
+            if let Some(end) = text[start..].find("</style>") {
+                text.drain(start..start + end + 8);
             } else {
                 break;
             }
         }
 
         let title = if let Some(title_start) = text.find("<title>") {
-            text.find("</title>")
-                .map(|title_end| text[title_start + 7..title_end].to_string())
+            text[title_start + 7..]
+                .find("</title>")
+                .map(|title_end| text[title_start + 7..title_start + 7 + title_end].to_string())
         } else {
             None
         };
 
+        // Remove HTML tags more efficiently
         while let Some(start) = text.find('<') {
-            if let Some(end) = text.find('>') {
-                if end > start {
-                    text.replace_range(start..=end, " ");
+            if let Some(end) = text[start..].find('>') {
+                if end > 0 {
+                    text.drain(start..start + end + 1);
                 } else {
                     break;
                 }
@@ -233,7 +294,12 @@ impl WebCrawler {
             }
         }
 
-        let content = text.split_whitespace().collect::<Vec<_>>().join(" ");
+        // Clean whitespace without excessive allocations
+        let content = text
+            .split_whitespace()
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
 
         WebPage {
             url: url.to_string(),

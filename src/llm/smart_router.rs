@@ -35,14 +35,14 @@ impl OptimizationGoal {
 
 pub struct SmartLLMRouter {
     performance_cache: Arc<tokio::sync::RwLock<HashMap<String, ModelPerformance>>>,
-    app_state: Arc<AppState>,
+    _app_state: Arc<AppState>,
 }
 
 impl SmartLLMRouter {
     pub fn new(app_state: Arc<AppState>) -> Self {
         Self {
             performance_cache: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            app_state,
+            _app_state: app_state,
         }
     }
 

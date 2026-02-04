@@ -30,18 +30,15 @@ pub struct KgEntity {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum EntitySource {
+    #[default]
     Manual,
     Extracted,
     Imported,
     Inferred,
 }
 
-impl Default for EntitySource {
-    fn default() -> Self {
-        Self::Manual
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KgRelationship {

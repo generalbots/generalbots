@@ -8,7 +8,7 @@ pub fn parse_natural_schedule(input: &str) -> Result<String, String> {
     let input = input.trim().to_lowercase();
 
     let parts: Vec<&str> = input.split_whitespace().collect();
-    if parts.len() == 5 && is_cron_expression(&parts) {
+    if (parts.len() == 5 || parts.len() == 6) && is_cron_expression(&parts) {
         return Ok(input);
     }
 
@@ -16,9 +16,14 @@ pub fn parse_natural_schedule(input: &str) -> Result<String, String> {
 }
 
 fn is_cron_expression(parts: &[&str]) -> bool {
+    if parts.len() != 5 && parts.len() != 6 {
+        return false;
+    }
+    
     parts.iter().all(|part| {
-        part.chars()
-            .all(|c| c.is_ascii_digit() || c == '*' || c == '/' || c == '-' || c == ',')
+        part.chars().all(|c| {
+            c.is_ascii_digit() || c == '*' || c == '/' || c == '-' || c == ',' || c.is_ascii_alphabetic()
+        })
     })
 }
 

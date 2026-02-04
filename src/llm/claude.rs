@@ -552,8 +552,7 @@ impl ClaudeClient {
         if !sse_buffer.is_empty() {
             for line in sse_buffer.lines() {
                 let line = line.trim();
-                if line.starts_with("data: ") {
-                    let data = &line[6..];
+                if let Some(data) = line.strip_prefix("data: ") {
                     if data != "[DONE]" {
                         if let Some(text) = self.process_sse_data(data, model_name) {
                             let _ = tx.send(text).await;

@@ -26,6 +26,7 @@ use diesel::ExpressionMethods;
 use diesel::PgConnection;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
+use diesel::TextExpressionMethods;
 use futures::{sink::SinkExt, stream::StreamExt};
 #[cfg(feature = "llm")]
 use log::trace;
@@ -36,6 +37,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
+use serde::{Deserialize, Serialize};
 
 pub mod channels;
 pub mod multimedia;
@@ -84,6 +86,70 @@ pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
 pub struct BotOrchestrator {
     pub state: Arc<AppState>,
     pub mounted_bots: Arc<AsyncMutex<HashMap<String, Arc<DriveMonitor>>>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BotConfigQuery {
+    pub bot_name: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BotConfigResponse {
+    pub public: bool,
+}
+
+/// Get bot configuration endpoint
+/// Returns bot's public setting and other configuration values
+pub async fn get_bot_config(
+    Query(params): Query<BotConfigQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<BotConfigResponse>, StatusCode> {
+    let bot_name = params.bot_name.unwrap_or_else(|| "default".to_string());
+
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            error!("Failed to get database connection: {}", e);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    // Query bot_configuration table for this bot's public setting
+    use crate::shared::models::schema::bot_configuration::dsl::*;
+
+    let mut is_public = false;
+
+    match bot_configuration
+        .select((config_key, config_value))
+        .filter(config_key.like(format!("{}%", bot_name)))
+        .filter(config_key.like("%public%"))
+        .load::<(String, String)>(&mut conn)
+    {
+        Ok(configs) => {
+            for (key, value) in configs {
+                let key: String = key;
+                let value: String = value;
+                // Check if this is the public setting
+                let clean_key = key.strip_prefix(&format!("{}.", bot_name))
+                    .or_else(|| key.strip_prefix(&format!("{}_", bot_name)))
+                    .unwrap_or(&key);
+
+                if clean_key.eq_ignore_ascii_case("public") {
+                    is_public = value.eq_ignore_ascii_case("true") || value == "1";
+                    break;
+                }
+            }
+            info!("Retrieved public status for bot '{}': {}", bot_name, is_public);
+        }
+        Err(e) => {
+            warn!("Failed to load public status for bot '{}': {}", bot_name, e);
+            // Return default (not public)
+        }
+    }
+
+    let config_response = BotConfigResponse { public: is_public };
+
+    Ok(Json(config_response))
 }
 
 impl BotOrchestrator {

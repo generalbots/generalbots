@@ -4,6 +4,7 @@ pub mod bootstrap;
 pub mod bot;
 pub mod bot_database;
 pub mod config;
+pub mod config_reload;
 #[cfg(feature = "directory")]
 pub mod directory;
 pub mod dns;

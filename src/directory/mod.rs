@@ -145,6 +145,8 @@ pub async fn auth_handler(
                     Json(serde_json::json!({
                         "user_id": session.user_id,
                         "session_id": session.id,
+                        "bot_id": bot_id,
+                        "bot_name": bot_name,
                         "status": "authenticated"
                     })),
                 );
@@ -184,6 +186,8 @@ pub async fn auth_handler(
         Json(serde_json::json!({
             "user_id": session.user_id,
             "session_id": session.id,
+            "bot_id": bot_id,
+            "bot_name": bot_name,
             "status": "authenticated"
         })),
     )

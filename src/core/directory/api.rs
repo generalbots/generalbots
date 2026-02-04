@@ -76,7 +76,7 @@ pub async fn provision_user_handler(
         });
     }
 
-    let s3_client = state.s3_client.clone().map(Arc::new);
+    let s3_client = state.drive.clone().map(Arc::new);
     let base_url = state
         .config
         .as_ref()
@@ -109,7 +109,7 @@ pub async fn deprovision_user_handler(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let s3_client = state.s3_client.clone().map(Arc::new);
+    let s3_client = state.drive.clone().map(Arc::new);
     let base_url = state
         .config
         .as_ref()
@@ -249,7 +249,7 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
 
     status.database = state.conn.get().is_ok();
 
-    if let Some(s3_client) = &state.s3_client {
+    if let Some(s3_client) = &state.drive {
         if let Ok(result) = s3_client.list_buckets().send().await {
             status.drive = result.buckets.is_some();
         }

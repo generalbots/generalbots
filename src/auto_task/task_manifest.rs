@@ -935,25 +935,28 @@ pub struct MonitorDefinition {
     pub target: String,
 }
 
+pub struct ManifestData {
+    pub tables: Vec<TableDefinition>,
+    pub files: Vec<FileDefinition>,
+    pub pages: Vec<PageDefinition>,
+    pub tools: Vec<ToolDefinition>,
+    pub schedulers: Vec<SchedulerDefinition>,
+    pub monitors: Vec<MonitorDefinition>,
+}
+
 pub fn create_manifest_from_llm_response(
     app_name: &str,
     description: &str,
-    tables: Vec<TableDefinition>,
-    files: Vec<FileDefinition>,
-    pages: Vec<PageDefinition>,
-    tools: Vec<ToolDefinition>,
-    schedulers: Vec<SchedulerDefinition>,
-    monitors: Vec<MonitorDefinition>,
+    data: ManifestData,
 ) -> TaskManifest {
-    let estimated_time = estimate_generation_time(&tables, &files, &tools, &schedulers);
+    let estimated_time = estimate_generation_time(&data.tables, &data.files, &data.tools, &data.schedulers);
 
     ManifestBuilder::new(app_name, description)
-        .with_tables(tables)
-        .with_files(files)
-        .with_pages(pages)
-        .with_tools(tools)
-        .with_schedulers(schedulers)
-        .with_monitors(monitors)
+        .with_tables(data.tables)
+        .with_files(data.files)
+        .with_pages(data.pages)
+        .with_tools(data.tools)
+        .with_schedulers(data.schedulers)
         .with_estimated_time(estimated_time)
         .build()
 }

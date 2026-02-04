@@ -146,7 +146,7 @@ async fn publish_event(
     if let Some(redis_client) = &state.cache {
         if let Ok(mut redis_conn) = redis_client.get_multiplexed_async_connection().await {
             let channel = format!("events:{event_name}");
-            let _: Result<(), _> = redis_conn.publish(&channel, &new_event.id.to_string()).await;
+            let _: Result<(), _> = redis_conn.publish(&channel, new_event.id.to_string()).await;
         }
     }
     
