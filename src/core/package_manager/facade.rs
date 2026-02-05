@@ -1076,12 +1076,12 @@ Store credentials in Vault:
         let db_password = if let Ok(env_pwd) = std::env::var("BOOTSTRAP_DB_PASSWORD") {
             env_pwd
         } else if !db_password_override.is_empty() {
-            db_password_override.clone()
+            db_password_override.to_string()
         } else {
             match get_database_url_sync() {
                 Ok(url) => {
                     let (_, password, _, _, _) = parse_database_url(&url);
-                    password
+                    password.to_string()
                 }
                 Err(_) => {
                     trace!("Vault not available for DB_PASSWORD, using empty string");
