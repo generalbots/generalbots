@@ -4,6 +4,8 @@ use axum::{
     http::{header, Request, Response, StatusCode},
     Router,
 };
+#[cfg(not(feature = "embed-ui"))]
+use axum::Router;
 #[cfg(feature = "embed-ui")]
 use rust_embed::RustEmbed;
 #[cfg(feature = "embed-ui")]
