@@ -277,8 +277,8 @@ impl PackageManager {
                     "touch {{CONF_PATH}}/pg_ident.conf".to_string(),
                     "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30".to_string(),
                     "sleep 5".to_string(),
-                    "for i in $(seq 1 30); do ./bin/pg_isready -h localhost -p 5432 -U gbuser >/dev/null 2>&1 && echo 'PostgreSQL is ready' && break || echo \"Waiting for PostgreSQL... attempt $i/30\" >&2; sleep 2; done".to_string(),
-                    "./bin/pg_isready -h localhost -p 5432 -U gbuser || { echo 'ERROR: PostgreSQL failed to start properly' >&2; cat {{LOGS_PATH}}/postgres.log >&2; exit 1; }".to_string(),
+                    "for i in $(seq 1 30); do ./bin/pg_isready -h localhost -p 5432 -d postgres >/dev/null 2>&1 && echo 'PostgreSQL is ready' && break || echo \"Waiting for PostgreSQL... attempt $i/30\" >&2; sleep 2; done".to_string(),
+                    "./bin/pg_isready -h localhost -p 5432 -d postgres || { echo 'ERROR: PostgreSQL failed to start properly' >&2; cat {{LOGS_PATH}}/postgres.log >&2; exit 1; }".to_string(),
                     "PGPASSWORD='{{DB_PASSWORD}}' ./bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true".to_string(),
                 ],
                 pre_install_cmds_macos: vec![],
@@ -291,7 +291,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30 > {{LOGS_PATH}}/stdout.log 2>&1 &".to_string(),
-                check_cmd: "{{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -U gbuser >/dev/null 2>&1".to_string(),
+                check_cmd: "{{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres >/dev/null 2>&1".to_string(),
             },
         );
     }
