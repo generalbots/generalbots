@@ -15,6 +15,7 @@ use rcgen::{
     BasicConstraints, CertificateParams, DistinguishedName, DnType, IsCa, Issuer, KeyPair,
 };
 use std::fs;
+use std::path::Path;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -133,6 +134,53 @@ fn safe_fuser(args: &[&str]) {
     if let Ok(cmd) = SafeCommand::new("fuser").and_then(|c| c.args(args)) {
         let _ = cmd.execute();
     }
+}
+
+fn dump_all_component_logs(log_dir: &Path) {
+    if !log_dir.exists() {
+        error!("Log directory does not exist: {}", log_dir.display());
+        return;
+    }
+
+    error!("========================================================================");
+    error!("DUMPING ALL AVAILABLE LOGS FROM: {}", log_dir.display());
+    error!("========================================================================");
+
+    let components = vec![
+        "vault", "tables", "drive", "cache", "directory", "llm",
+        "vector_db", "email", "proxy", "dns", "meeting"
+    ];
+
+    for component in components {
+        let component_log_dir = log_dir.join(component);
+        if !component_log_dir.exists() {
+            continue;
+        }
+
+        let log_files = vec!["stdout.log", "stderr.log", "postgres.log", "vault.log", "minio.log"];
+        
+        for log_file in log_files {
+            let log_path = component_log_dir.join(log_file);
+            if log_path.exists() {
+                error!("-------------------- {} ({}) --------------------", component, log_file);
+                match fs::read_to_string(&log_path) {
+                    Ok(content) => {
+                        let lines: Vec<&str> = content.lines().rev().take(30).collect();
+                        for line in lines.iter().rev() {
+                            error!("  {}", line);
+                        }
+                    }
+                    Err(e) => {
+                        error!("  Failed to read: {}", e);
+                    }
+                }
+            }
+        }
+    }
+
+    error!("========================================================================");
+    error!("END OF LOG DUMP");
+    error!("========================================================================");
 }
 #[derive(Debug)]
 pub struct ComponentInfo {
@@ -386,62 +434,40 @@ impl BootstrapManager {
 
         if pm.is_installed("tables") {
             info!("Starting PostgreSQL database...");
-            match pm.start("tables") {
-                Ok(_child) => {
-                    let mut ready = false;
-                    for attempt in 1..=30 {
-                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                        let status = SafeCommand::new("pg_isready")
-                            .and_then(|c| {
-                                c.args(&["-h", "localhost", "-p", "5432", "-U", "gbuser"])
-                            })
-                            .ok()
-                            .and_then(|cmd| cmd.execute().ok())
-                            .map(|o| o.status.success())
-                            .unwrap_or(false);
-                        if status {
-                            ready = true;
-                            info!("PostgreSQL started and ready (attempt {})", attempt);
-                            break;
-                        }
-                        if attempt % 5 == 0 {
-                            info!(
-                                "Waiting for PostgreSQL to be ready... (attempt {}/30)",
-                                attempt
-                            );
-                        }
-                    }
-                    if !ready {
-                        error!("PostgreSQL failed to become ready after 30 seconds");
-                        
-                        let log_path = self.stack_dir("logs/tables/postgres.log");
-                        let stdout_log_path = self.stack_dir("logs/tables/stdout.log");
-                        
-                        if log_path.exists() {
-                            if let Ok(log_content) = fs::read_to_string(&log_path) {
-                                let last_lines: Vec<&str> = log_content.lines().rev().take(20).collect();
-                                error!("PostgreSQL log (last 20 lines):");
-                                for line in last_lines.iter().rev() {
-                                    error!("  {}", line);
-                                }
+                match pm.start("tables") {
+                    Ok(_child) => {
+                        let mut ready = false;
+                        for attempt in 1..=30 {
+                            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                            let status = SafeCommand::new("pg_isready")
+                                .and_then(|c| {
+                                    c.args(&["-h", "localhost", "-p", "5432", "-U", "gbuser"])
+                                })
+                                .ok()
+                                .and_then(|cmd| cmd.execute().ok())
+                                .map(|o| o.status.success())
+                                .unwrap_or(false);
+                            if status {
+                                ready = true;
+                                info!("PostgreSQL started and ready (attempt {})", attempt);
+                                break;
                             }
-                        } else {
-                            error!("PostgreSQL log file not found at: {}", log_path.display());
-                        }
-                        
-                        if stdout_log_path.exists() {
-                            if let Ok(stdout_content) = fs::read_to_string(&stdout_log_path) {
-                                let last_lines: Vec<&str> = stdout_content.lines().rev().take(10).collect();
-                                error!("PostgreSQL stdout (last 10 lines):");
-                                for line in last_lines.iter().rev() {
-                                    error!("  {}", line);
-                                }
+                            if attempt % 5 == 0 {
+                                info!(
+                                    "Waiting for PostgreSQL to be ready... (attempt {}/30)",
+                                    attempt
+                                );
                             }
                         }
-                        
-                        return Err(anyhow::anyhow!("PostgreSQL failed to start properly. Check logs above for details."));
+                        if !ready {
+                            error!("PostgreSQL failed to become ready after 30 seconds");
+                            
+                            let logs_dir = self.stack_dir("logs");
+                            dump_all_component_logs(&logs_dir);
+                            
+                            return Err(anyhow::anyhow!("PostgreSQL failed to start properly. Check logs above for details."));
+                        }
                     }
-                }
                 Err(e) => {
                     warn!("PostgreSQL might already be running: {}", e);
                 }
