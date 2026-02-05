@@ -413,7 +413,33 @@ impl BootstrapManager {
                     }
                     if !ready {
                         error!("PostgreSQL failed to become ready after 30 seconds");
-                        return Err(anyhow::anyhow!("PostgreSQL failed to start properly"));
+                        
+                        let log_path = self.stack_dir("logs/tables/postgres.log");
+                        let stdout_log_path = self.stack_dir("logs/tables/stdout.log");
+                        
+                        if log_path.exists() {
+                            if let Ok(log_content) = fs::read_to_string(&log_path) {
+                                let last_lines: Vec<&str> = log_content.lines().rev().take(20).collect();
+                                error!("PostgreSQL log (last 20 lines):");
+                                for line in last_lines.iter().rev() {
+                                    error!("  {}", line);
+                                }
+                            }
+                        } else {
+                            error!("PostgreSQL log file not found at: {}", log_path.display());
+                        }
+                        
+                        if stdout_log_path.exists() {
+                            if let Ok(stdout_content) = fs::read_to_string(&stdout_log_path) {
+                                let last_lines: Vec<&str> = stdout_content.lines().rev().take(10).collect();
+                                error!("PostgreSQL stdout (last 10 lines):");
+                                for line in last_lines.iter().rev() {
+                                    error!("  {}", line);
+                                }
+                            }
+                        }
+                        
+                        return Err(anyhow::anyhow!("PostgreSQL failed to start properly. Check logs above for details."));
                     }
                 }
                 Err(e) => {
