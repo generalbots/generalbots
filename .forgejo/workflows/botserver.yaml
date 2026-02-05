@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 env:
-  CARGO_BUILD_JOBS: 3
+  CARGO_BUILD_JOBS: 6
   CARGO_NET_RETRY: 10
 
 jobs:
