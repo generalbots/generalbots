@@ -1,10 +1,18 @@
-name: GBCI
+name: BotServer CI
 
 on:
   push:
     branches: ["main"]
+    paths:
+      - "botserver/**"
+      - "botlib/**"
+      - ".forgejo/workflows/botserver.yaml"
   pull_request:
     branches: ["main"]
+    paths:
+      - "botserver/**"
+      - "botlib/**"
+      - ".forgejo/workflows/botserver.yaml"
 
 env:
   CARGO_BUILD_JOBS: 8
@@ -29,13 +37,17 @@ jobs:
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
           cd workspace
           git submodule update --init --depth 1 botlib
-          git submodule update --init --depth 1 botui
-
-
-          # Remove missing members from workspace to prevent Cargo errors
+          
+          # Remove all members except botserver and botlib from workspace
           sed -i '/"botapp",/d' Cargo.toml
           sed -i '/"botdevice",/d' Cargo.toml
           sed -i '/"bottest",/d' Cargo.toml
+          sed -i '/"botui",/d' Cargo.toml
+          sed -i '/"botbook",/d' Cargo.toml
+          sed -i '/"botmodels",/d' Cargo.toml
+          sed -i '/"botplugin",/d' Cargo.toml
+          sed -i '/"bottemplates",/d' Cargo.toml
+          
           cd ..
           rm -rf workspace/botserver
           mv botserver workspace/botserver
@@ -50,8 +62,9 @@ jobs:
             ~/.cargo/git
             ~/.cache/sccache
             workspace/target
-          key: ${{ runner.os }}-cargo-v2-debug-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-v2-debug-server-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
+            ${{ runner.os }}-cargo-v2-debug-server-
             ${{ runner.os }}-cargo-v2-debug-
 
       - name: Install system dependencies
@@ -77,13 +90,11 @@ jobs:
       - name: Setup environment
         run: sudo cp /opt/gbo/bin/system/.env . 2>/dev/null || true
 
-      - name: Build debug
+      - name: Build BotServer
         working-directory: workspace
         run: |
           cargo build -p botserver -j 8 2>&1 | tee /tmp/build.log
-          cargo build -p botui --features embed-ui -j 8 2>&1 | tee -a /tmp/build.log
           ls -lh target/debug/botserver
-          ls -lh target/debug/botui
           sccache --show-stats || true
 
       - name: Save build log
@@ -96,13 +107,9 @@ jobs:
         working-directory: workspace
         run: |
           lxc exec bot:pragmatismo-system -- systemctl stop system || true
-          lxc exec bot:pragmatismo-system -- systemctl stop ui || true
-
+          
           sudo cp target/debug/botserver /opt/gbo/bin/system/
           sudo chmod +x /opt/gbo/bin/system/botserver
-          sudo cp target/debug/botui /opt/gbo/bin/system/
-          sudo chmod +x /opt/gbo/bin/system/botui
-
+          
           lxc exec bot:pragmatismo-system -- systemctl start system || true
-          lxc exec bot:pragmatismo-system -- systemctl start ui || true
           
