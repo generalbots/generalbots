@@ -3,16 +3,8 @@ name: BotServer CI
 on:
   push:
     branches: ["main"]
-    paths:
-      - "botserver/**"
-      - "botlib/**"
-      - ".forgejo/workflows/botserver.yaml"
   pull_request:
     branches: ["main"]
-    paths:
-      - "botserver/**"
-      - "botlib/**"
-      - ".forgejo/workflows/botserver.yaml"
 
 env:
   CARGO_BUILD_JOBS: 4
@@ -53,18 +45,6 @@ jobs:
 
 
 
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cache/sccache
-            workspace/target
-          key: ${{ runner.os }}-cargo-v2-debug-server-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-v2-debug-server-
-            ${{ runner.os }}-cargo-v2-debug-
 
       - name: Install system dependencies
         run: |
