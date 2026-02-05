@@ -242,7 +242,7 @@ pub async fn workflow_designer_page(
                     content = '<strong>Parallel</strong><br>Multiple branches';
                     break;
                 case 'event':
-                    content = '<strong>Event</strong><br><input type="text" placeholder="Event Name" style="width:100px;margin:2px;">';
+                    content = '<strong>Event</strong><br><input type="text" placeholder="Event Name " style="width:100px;margin:2px;">';
                     break;
             }
             

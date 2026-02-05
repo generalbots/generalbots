@@ -87,6 +87,7 @@ console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
 minimal = ["chat"]
 lightweight = ["chat", "tasks", "people"]
 full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
+embed-ui = ["dep:rust-embed"]
 
 [dependencies]
 diesel_migrations = { workspace = true }
@@ -215,7 +216,7 @@ scraper = { workspace = true }
 walkdir = { workspace = true }
 
 # Embedded static files
-rust-embed = { workspace = true }
+rust-embed = { workspace = true, optional = true }
 
 [dev-dependencies]
 mockito = { workspace = true }

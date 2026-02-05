@@ -873,4 +873,3 @@ pub async fn save_auto_responder(
         .to_string(),
     )
 }
-}
