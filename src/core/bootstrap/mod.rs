@@ -488,8 +488,9 @@ impl BootstrapManager {
                         }
 
                         info!("Ensuring botserver database exists...");
+                        let db_password_from_vault = Self::get_db_password_from_vault().await;
                         let db_password_from_env = std::env::var("BOOTSTRAP_DB_PASSWORD").ok();
-                        let db_password_to_use = db_password_from_env.as_deref().unwrap_or(&db_password);
+                        let db_password_to_use = db_password_from_vault.as_ref().or(db_password_from_env.as_ref()).map(|s| s.as_str()).unwrap_or("");
                         let create_db_cmd = format!(
                             "PGPASSWORD='{}' psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true",
                             db_password_to_use
@@ -502,7 +503,8 @@ impl BootstrapManager {
                     
                     info!("Ensuring botserver database exists for already-running PostgreSQL...");
                     let db_password_from_vault = Self::get_db_password_from_vault().await;
-                    let db_password_to_use = db_password_from_vault.as_deref().unwrap_or(&db_password);
+                    let db_password_from_env = std::env::var("BOOTSTRAP_DB_PASSWORD").ok();
+                    let db_password_to_use = db_password_from_vault.as_ref().or(db_password_from_env.as_ref()).map(|s| s.as_str()).unwrap_or("");
                     let create_db_cmd = format!(
                         "PGPASSWORD='{}' psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true",
                         db_password_to_use
