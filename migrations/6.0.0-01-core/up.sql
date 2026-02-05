@@ -710,15 +710,9 @@ CREATE TABLE public.user_login_tokens (
 
 CREATE INDEX idx_user_login_tokens_user_id ON public.user_login_tokens USING btree (user_id);
 CREATE INDEX idx_user_login_tokens_expires ON public.user_login_tokens USING btree (expires_at) WHERE is_active;
--- Session KB Associations moved to migrations/research
+-- Session KB Associations moved to migrations/research (6.1.8-01-research)
+-- Comments moved to 6.1.8-01-research where the table is created
 
--- Comments
--- COMMENT ON TABLE session_kb_associations IS 'Tracks which Knowledge Base collections are active in each conversation session';
--- COMMENT ON COLUMN session_kb_associations.kb_name IS 'Name of the KB folder (e.g., "circular", "comunicado", "geral")';
--- COMMENT ON COLUMN session_kb_associations.kb_folder_path IS 'Full path to KB folder: work/{bot}/{bot}.gbkb/{kb_name}';
--- COMMENT ON COLUMN session_kb_associations.qdrant_collection IS 'Qdrant collection name for this KB';
--- COMMENT ON COLUMN session_kb_associations.added_by_tool IS 'Name of the .bas tool that added this KB (e.g., "change-subject.bas")';
--- COMMENT ON COLUMN session_kb_associations.is_active IS 'Whether this KB is currently active in the session';
 -- Add organization relationship to bots
 ALTER TABLE public.bots
 ADD COLUMN IF NOT EXISTS org_id UUID,
