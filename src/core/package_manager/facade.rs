@@ -1047,6 +1047,10 @@ Store credentials in Vault:
         Ok(())
     }
     pub fn run_commands(&self, commands: &[String], target: &str, component: &str) -> Result<()> {
+        self.run_commands_with_password(commands, target, component, &String::new())
+    }
+
+    pub fn run_commands_with_password(&self, commands: &[String], target: &str, component: &str, db_password_override: &str) -> Result<()> {
         let bin_path = if target == "local" {
             self.base_path.join("bin").join(component)
         } else {
@@ -1069,14 +1073,20 @@ Store credentials in Vault:
             PathBuf::from("/opt/gbo/logs")
         };
 
-        let db_password = match get_database_url_sync() {
-            Ok(url) => {
-                let (_, password, _, _, _) = parse_database_url(&url);
-                password
-            }
-            Err(_) => {
-                trace!("Vault not available for DB_PASSWORD, using empty string");
-                String::new()
+        let db_password = if let Ok(env_pwd) = std::env::var("BOOTSTRAP_DB_PASSWORD") {
+            env_pwd
+        } else if !db_password_override.is_empty() {
+            db_password_override.clone()
+        } else {
+            match get_database_url_sync() {
+                Ok(url) => {
+                    let (_, password, _, _, _) = parse_database_url(&url);
+                    password
+                }
+                Err(_) => {
+                    trace!("Vault not available for DB_PASSWORD, using empty string");
+                    String::new()
+                }
             }
         };
 

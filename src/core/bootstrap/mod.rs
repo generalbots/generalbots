@@ -921,16 +921,20 @@ impl BootstrapManager {
 
                 if component == "tables" {
                     info!("Starting PostgreSQL database...");
+                    
+                    std::env::set_var("BOOTSTRAP_DB_PASSWORD", &db_password);
+                    
                     match pm.start("tables") {
                         Ok(_) => {
                             info!("PostgreSQL started successfully");
-
                             tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
                         }
                         Err(e) => {
                             warn!("Failed to start PostgreSQL: {}", e);
                         }
                     }
+                    
+                    std::env::remove_var("BOOTSTRAP_DB_PASSWORD");
 
                     info!("Running database migrations...");
                     let database_url =
