@@ -460,7 +460,7 @@ impl BootstrapManager {
                             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                             let status = SafeCommand::new("pg_isready")
                                 .and_then(|c| {
-                                    c.args(&["-h", "localhost", "-p", "5432", "-U", "gbuser"])
+                                    c.args(&["-h", "localhost", "-p", "5432", "-d", "postgres"])
                                 })
                                 .ok()
                                 .and_then(|cmd| cmd.execute().ok())
