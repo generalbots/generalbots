@@ -105,3 +105,4 @@ jobs:
 
           lxc exec bot:pragmatismo-system -- systemctl start system || true
           lxc exec bot:pragmatismo-system -- systemctl start ui || true
+          
