@@ -1,16 +1,21 @@
+#[cfg(feature = "embed-ui")]
 use axum::{
     body::Body,
     http::{header, Request, Response, StatusCode},
     Router,
 };
+#[cfg(feature = "embed-ui")]
 use rust_embed::RustEmbed;
+#[cfg(feature = "embed-ui")]
 use std::path::Path;
 
+#[cfg(feature = "embed-ui")]
 #[derive(RustEmbed)]
 #[folder = "../botui/ui/suite/"]
 #[prefix = ""]
 struct EmbeddedUi;
 
+#[cfg(feature = "embed-ui")]
 fn get_mime_type(path: &str) -> &'static str {
     let ext = Path::new(path)
         .extension()
@@ -47,6 +52,7 @@ fn get_mime_type(path: &str) -> &'static str {
     }
 }
 
+#[cfg(feature = "embed-ui")]
 async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
     let path = req.uri().path().trim_start_matches('/');
 
@@ -105,11 +111,13 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
         .unwrap()
 }
 
+#[cfg(feature = "embed-ui")]
 pub fn embedded_ui_router() -> Router {
     use axum::routing::any;
     Router::new().fallback(any(serve_embedded_file))
 }
 
+#[cfg(feature = "embed-ui")]
 pub fn has_embedded_ui() -> bool {
     let has_index = EmbeddedUi::get("index.html").is_some();
     if has_index {
@@ -120,6 +128,7 @@ pub fn has_embedded_ui() -> bool {
     has_index
 }
 
+#[cfg(feature = "embed-ui")]
 pub fn list_embedded_files() -> Vec<String> {
     let files: Vec<String> = EmbeddedUi::iter().map(|f| f.to_string()).collect();
     log::debug!("Embedded UI contains {} files", files.len());
