@@ -54,6 +54,7 @@ pub mod research;
 pub mod search;
 pub mod security;
 pub mod settings;
+#[cfg(feature = "dashboards")]
 pub mod shared;
 #[cfg(feature = "sheet")]
 pub mod sheet;
