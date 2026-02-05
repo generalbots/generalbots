@@ -134,3 +134,18 @@ pub fn list_embedded_files() -> Vec<String> {
     log::debug!("Embedded UI contains {} files", files.len());
     files
 }
+
+#[cfg(not(feature = "embed-ui"))]
+pub fn has_embedded_ui() -> bool {
+    false
+}
+
+#[cfg(not(feature = "embed-ui"))]
+pub fn list_embedded_files() -> Vec<String> {
+    Vec::new()
+}
+
+#[cfg(not(feature = "embed-ui"))]
+pub fn embedded_ui_router() -> Router {
+    Router::new()
+}
