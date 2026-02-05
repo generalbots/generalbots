@@ -192,6 +192,26 @@ pub struct BootstrapManager {
     pub stack_path: PathBuf,
 }
 impl BootstrapManager {
+    async fn get_db_password_from_vault() -> Option<String> {
+        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+        let vault_token = std::env::var("VAULT_TOKEN").ok()?;
+        let vault_cacert = std::env::var("VAULT_CACERT").unwrap_or_else(|_| "./botserver-stack/conf/system/certificates/ca/ca.crt".to_string());
+        let vault_bin = format!("{}/bin/vault/vault", std::env::var("BOTSERVER_STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string()));
+
+        let cmd = format!(
+            "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -field=password secret/gbo/tables 2>/dev/null",
+            vault_addr, vault_token, vault_cacert, vault_bin
+        );
+
+        safe_sh_command(&cmd).and_then(|output| {
+            if output.status.success() {
+                String::from_utf8(output.stdout).ok().map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn new(mode: InstallMode, tenant: Option<String>) -> Self {
         let stack_path = std::env::var("BOTSERVER_STACK_PATH")
             .map(PathBuf::from)
@@ -466,9 +486,29 @@ impl BootstrapManager {
                             
                             return Err(anyhow::anyhow!("PostgreSQL failed to start properly. Check logs above for details."));
                         }
+
+                        info!("Ensuring botserver database exists...");
+                        let db_password_from_env = std::env::var("BOOTSTRAP_DB_PASSWORD").ok();
+                        let db_password_to_use = db_password_from_env.as_deref().unwrap_or(&db_password);
+                        let create_db_cmd = format!(
+                            "PGPASSWORD='{}' psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true",
+                            db_password_to_use
+                        );
+                        let _ = safe_sh_command(&create_db_cmd);
+                        info!("Database ensured");
                     }
                 Err(e) => {
                     warn!("PostgreSQL might already be running: {}", e);
+                    
+                    info!("Ensuring botserver database exists for already-running PostgreSQL...");
+                    let db_password_from_vault = Self::get_db_password_from_vault().await;
+                    let db_password_to_use = db_password_from_vault.as_deref().unwrap_or(&db_password);
+                    let create_db_cmd = format!(
+                        "PGPASSWORD='{}' psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true",
+                        db_password_to_use
+                    );
+                    let _ = safe_sh_command(&create_db_cmd);
+                    info!("Database ensured");
                 }
             }
         }
