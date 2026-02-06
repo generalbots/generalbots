@@ -501,6 +501,38 @@ impl BootstrapManager {
                 Err(e) => {
                     warn!("PostgreSQL might already be running: {}", e);
                     
+                    let mut ready = false;
+                    for attempt in 1..=30 {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                        let status = SafeCommand::new("pg_isready")
+                            .and_then(|c| {
+                                c.args(&["-h", "localhost", "-p", "5432", "-d", "postgres"])
+                            })
+                            .ok()
+                            .and_then(|cmd| cmd.execute().ok())
+                            .map(|o| o.status.success())
+                            .unwrap_or(false);
+                        if status {
+                            ready = true;
+                            info!("PostgreSQL is ready (attempt {})", attempt);
+                            break;
+                        }
+                        if attempt % 5 == 0 {
+                            info!(
+                                "Waiting for PostgreSQL to be ready... (attempt {}/30)",
+                                attempt
+                            );
+                        }
+                    }
+                    if !ready {
+                        error!("PostgreSQL failed to become ready after 30 seconds");
+                        
+                        let logs_dir = self.stack_dir("logs");
+                        dump_all_component_logs(&logs_dir);
+                        
+                        return Err(anyhow::anyhow!("PostgreSQL failed to start properly. Check logs above for details."));
+                    }
+                    
                     info!("Ensuring botserver database exists for already-running PostgreSQL...");
                     let db_password_from_vault = Self::get_db_password_from_vault().await;
                     let db_password_from_env = std::env::var("BOOTSTRAP_DB_PASSWORD").ok();
