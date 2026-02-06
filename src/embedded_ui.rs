@@ -13,8 +13,8 @@ use std::path::Path;
 
 #[cfg(feature = "embed-ui")]
 #[derive(RustEmbed)]
-#[folder = "../botui/ui/suite/"]
-#[prefix = ""]
+#[folder = "ui"]
+#[prefix = "suite"]
 struct EmbeddedUi;
 
 #[cfg(feature = "embed-ui")]
