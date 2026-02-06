@@ -456,16 +456,24 @@ impl BootstrapManager {
                 match pm.start("tables") {
                     Ok(_child) => {
                         let mut ready = false;
+                        let pg_isready_path = self.stack_dir("bin/tables/bin/pg_isready");
                         for attempt in 1..=30 {
                             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                            let status = SafeCommand::new("pg_isready")
-                                .and_then(|c| {
-                                    c.args(&["-h", "localhost", "-p", "5432"])
-                                })
-                                .ok()
-                                .and_then(|cmd| cmd.execute().ok())
-                                .map(|o| o.status.success())
-                                .unwrap_or(false);
+                            let pg_isready_exists = pg_isready_path.exists();
+                            let status = if pg_isready_exists {
+                                safe_sh_command(&format!("{} -h localhost -p 5432", pg_isready_path.display()))
+                                    .map(|o| o.status.success())
+                                    .unwrap_or(false)
+                            } else {
+                                SafeCommand::new("pg_isready")
+                                    .and_then(|c| {
+                                        c.args(&["-h", "localhost", "-p", "5432"])
+                                    })
+                                    .ok()
+                                    .and_then(|cmd| cmd.execute().ok())
+                                    .map(|o| o.status.success())
+                                    .unwrap_or(false)
+                            };
                             if status {
                                 ready = true;
                                 info!("PostgreSQL started and ready (attempt {})", attempt);
@@ -502,16 +510,24 @@ impl BootstrapManager {
                     warn!("PostgreSQL might already be running: {}", e);
                     
                     let mut ready = false;
+                    let pg_isready_path = self.stack_dir("bin/tables/bin/pg_isready");
                     for attempt in 1..=30 {
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                        let status = SafeCommand::new("pg_isready")
-                            .and_then(|c| {
-                                c.args(&["-h", "localhost", "-p", "5432"])
-                            })
-                            .ok()
-                            .and_then(|cmd| cmd.execute().ok())
-                            .map(|o| o.status.success())
-                            .unwrap_or(false);
+                        let pg_isready_exists = pg_isready_path.exists();
+                        let status = if pg_isready_exists {
+                            safe_sh_command(&format!("{} -h localhost -p 5432", pg_isready_path.display()))
+                                .map(|o| o.status.success())
+                                .unwrap_or(false)
+                        } else {
+                            SafeCommand::new("pg_isready")
+                                .and_then(|c| {
+                                    c.args(&["-h", "localhost", "-p", "5432"])
+                                })
+                                .ok()
+                                .and_then(|cmd| cmd.execute().ok())
+                                .map(|o| o.status.success())
+                                .unwrap_or(false)
+                        };
                         if status {
                             ready = true;
                             info!("PostgreSQL is ready (attempt {})", attempt);

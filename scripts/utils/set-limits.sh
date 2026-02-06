@@ -17,7 +17,7 @@ declare -A container_limits=(
      ["*bot*"]="2048MB:25ms/100ms"
      ["*oppbot*"]="4096MB:50ms/100ms"
      ["*meeting*"]="4096MB:100ms/100ms"
-     ["*alm*"]="2048MB:50ms/100ms"
+     ["*alm*"]="4048MB:200ms/100ms"
      ["*vault*"]="2048MB:50ms/100ms"
      ["*alm-ci*"]="8192MB:200ms/100ms"     # CHANGED: 100ms → 200ms (HIGHEST PRIORITY)
      ["*system*"]="4096MB:50ms/100ms"
@@ -45,7 +45,7 @@ declare -A container_priority=(
     ["*system*"]="5"            # Normal priority
     ["*bot*"]="4"               # Lower priority
     ["*doc-editor*"]="4"        # Lower priority
-    ["*alm*"]="4"               # Lower priority
+    ["*alm*"]="10"               # Lower priority
     ["*mailer*"]="3"            # Lowest priority
 )
 
