@@ -288,12 +288,17 @@ impl AppConfig {
             smtp_server: get_str("EMAIL_SMTP_SERVER", "smtp.gmail.com"),
             smtp_port: get_u16("EMAIL_SMTP_PORT", 587),
         };
+        let port = std::env::var("BOTSERVER_PORT")
+            .ok()
+            .and_then(|v| v.parse::<u16>().ok())
+            .unwrap_or_else(|| get_u16("server_port", 8080));
+
         Ok(Self {
             drive,
             email,
             server: ServerConfig {
                 host: get_str("server_host", "0.0.0.0"),
-                port: get_u16("server_port", 8080),
+                port,
                 base_url: config_map.get("server_base_url").cloned().unwrap_or_else(|| "http://localhost:8080".to_string()),
             },
             site_path: {
@@ -321,12 +326,17 @@ impl AppConfig {
             smtp_server: "smtp.gmail.com".to_string(),
             smtp_port: 587,
         };
+        let port = std::env::var("BOTSERVER_PORT")
+            .ok()
+            .and_then(|v| v.parse::<u16>().ok())
+            .unwrap_or(8080);
+
         Ok(Self {
             drive: minio,
             email,
             server: ServerConfig {
                 host: "0.0.0.0".to_string(),
-                port: 8080,
+                port,
                 base_url: "http://localhost:8080".to_string(),
             },
 
