@@ -123,7 +123,7 @@ kubectl rollout restart deployment/botserver -n generalbots
 
 ```bash
 # Find process using port
-lsof -ti:8088 | xargs kill -9
+lsof -ti:9000 | xargs kill -9
 lsof -ti:3000 | xargs kill -9
 ```
 
@@ -193,7 +193,7 @@ kubectl logs -f deployment/botserver -n generalbots
 
 ```bash
 # Check server health
-curl http://localhost:8088/health
+curl http://localhost:9000/health
 
 # Check botui health
 curl http://localhost:3000/health

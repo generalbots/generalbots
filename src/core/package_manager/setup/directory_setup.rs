@@ -357,12 +357,12 @@ impl DirectorySetup {
             .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
             .json(&json!({
                 "name": app_name,
-                "redirectUris": [redirect_uri, "http://localhost:3000/auth/callback", "http://localhost:8088/auth/callback"],
+                "redirectUris": [redirect_uri, "http://localhost:3000/auth/callback", "http://localhost:9000/auth/callback"],
                 "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
                 "grantTypes": ["OIDC_GRANT_TYPE_AUTHORIZATION_CODE", "OIDC_GRANT_TYPE_REFRESH_TOKEN", "OIDC_GRANT_TYPE_PASSWORD"],
                 "appType": "OIDC_APP_TYPE_WEB",
                 "authMethodType": "OIDC_AUTH_METHOD_TYPE_POST",
-                "postLogoutRedirectUris": ["http://localhost:8080", "http://localhost:3000", "http://localhost:8088"],
+                "postLogoutRedirectUris": ["http://localhost:8080", "http://localhost:3000", "http://localhost:9000"],
                 "accessTokenType": "OIDC_TOKEN_TYPE_BEARER",
                 "devMode": true,
             }))
