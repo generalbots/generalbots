@@ -344,7 +344,6 @@ async fn process_attendant_command(
 }
 
 async fn check_is_attendant(state: &Arc<AppState>, phone: &str) -> bool {
-    let _conn = state.conn.clone();
     let phone_clone = phone.to_string();
 
     tokio::task::spawn_blocking(move || {

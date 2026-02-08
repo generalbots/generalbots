@@ -155,10 +155,12 @@ impl BasicCompiler {
                 }
             }
             if line.starts_with("DESCRIPTION ") {
-                let desc_start = line.find('"').unwrap_or(0);
-                let desc_end = line.rfind('"').unwrap_or(line.len());
-                if desc_start < desc_end {
-                    description = line[desc_start + 1..desc_end].to_string();
+                if let Some(desc_start) = line.find('"') {
+                    if let Some(desc_end) = line.rfind('"') {
+                        if desc_start < desc_end {
+                            description = line[desc_start + 1..desc_end].to_string();
+                        }
+                    }
                 }
             }
             i += 1;
@@ -357,9 +359,7 @@ impl BasicCompiler {
                 if parts.len() >= 3 {
                     #[cfg(feature = "tasks")]
                     {
-                        #[allow(unused_variables, unused_mut)]
                         let cron = parts[1];
-                        #[allow(unused_variables, unused_mut)]
                         let mut conn = self
                             .state
                             .conn
@@ -408,7 +408,8 @@ impl BasicCompiler {
             }
 
             if trimmed.to_uppercase().starts_with("USE WEBSITE") {
-                let re = Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#).unwrap();
+                let re = Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#)
+                    .map_err(|e| format!("Failed to compile USE_WEBSITE regex: {e}"))?;
                 if let Some(caps) = re.captures(&normalized) {
                     if let Some(url_match) = caps.get(1) {
                         let url = url_match.as_str();

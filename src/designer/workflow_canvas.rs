@@ -189,15 +189,15 @@ pub async fn workflow_designer_page(
         <input type="file" id="file-input" accept=".bas" onchange="analyzeFile()" style="margin-left: 20px;">
         <label for="file-input" class="btn">Analyze .bas File</label>
     </div>
-    
+
     <div id="file-analysis" style="display:none; padding: 10px; background: #e8f4f8; border: 1px solid #bee5eb; margin: 10px 0;">
         <h4>File Analysis Result</h4>
         <div id="analysis-content"></div>
     </div>
-    
+
     <div id="canvas" class="canvas" ondrop="drop(event)" ondragover="allowDrop(event)">
     </div>
-    
+
     <div id="code-preview" class="code-preview">
         Generated BASIC code will appear here...
     </div>
@@ -242,7 +242,7 @@ pub async fn workflow_designer_page(
                     content = '<strong>Parallel</strong><br>Multiple branches';
                     break;
                 case 'event':
-                    content = '<strong>Event</strong><br><input type="text" placeholder="Event Name " style="width:100px;margin:2px;">';
+                    content = '<strong>Event</strong><br><input type="text" placeholder="Event Name" style="width:100px;margin:2px;">';
                     break;
             }
             

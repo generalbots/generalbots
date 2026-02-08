@@ -139,18 +139,18 @@ pub struct CodeScanner {
 }
 
 impl CodeScanner {
-    pub fn new(base_path: impl AsRef<Path>) -> Self {
-        let patterns = Self::build_patterns();
-        Self {
+    pub fn new(base_path: impl AsRef<Path>) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let patterns = Self::build_patterns()?;
+        Ok(Self {
             patterns,
             base_path: base_path.as_ref().to_path_buf(),
-        }
+        })
     }
 
-    fn build_patterns() -> Vec<ScanPattern> {
-        vec![
+    fn build_patterns() -> Result<Vec<ScanPattern>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(vec![
         ScanPattern {
-            regex: Regex::new(r#"(?i)password\s*=\s*["'][^"']+["']"#).expect("valid regex"),
+            regex: Regex::new(r#"(?i)password\s*=\s*["'][^"']+["']"#)?,
             issue_type: IssueType::PasswordInConfig,
             severity: IssueSeverity::Critical,
             title: "Hardcoded Password".to_string(),
@@ -159,7 +159,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r#"(?i)(api[_-]?key|apikey|secret[_-]?key|client[_-]?secret)\s*=\s*["'][^"']{8,}["']"#).expect("valid regex"),
+            regex: Regex::new(r#"(?i)(api[_-]?key|apikey|secret[_-]?key|client[_-]?secret)\s*=\s*["'][^"']{8,}["']"#)?,
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
             title: "Hardcoded API Key/Secret".to_string(),
@@ -168,7 +168,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r#"(?i)token\s*=\s*["'][a-zA-Z0-9_\-]{20,}["']"#).expect("valid regex"),
+            regex: Regex::new(r#"(?i)token\s*=\s*["'][a-zA-Z0-9_\-]{20,}["']"#)?,
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::High,
             title: "Hardcoded Token".to_string(),
@@ -177,7 +177,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r"(?i)IF\s+.*\binput\b").expect("valid regex"),
+            regex: Regex::new(r"(?i)IF\s+.*\binput\b")?,
             issue_type: IssueType::DeprecatedIfInput,
             severity: IssueSeverity::Medium,
             title: "Deprecated IF...input Pattern".to_string(),
@@ -189,7 +189,7 @@ impl CodeScanner {
             category: "Code Quality".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r"(?i)\b(GET_BOT_MEMORY|SET_BOT_MEMORY|GET_USER_MEMORY|SET_USER_MEMORY|USE_KB|USE_TOOL|SEND_MAIL|CREATE_TASK)\b").expect("valid regex"),
+            regex: Regex::new(r"(?i)\b(GET_BOT_MEMORY|SET_BOT_MEMORY|GET_USER_MEMORY|SET_USER_MEMORY|USE_KB|USE_TOOL|SEND_MAIL|CREATE_TASK)\b")?,
             issue_type: IssueType::UnderscoreInKeyword,
             severity: IssueSeverity::Low,
             title: "Underscore in Keyword".to_string(),
@@ -198,7 +198,7 @@ impl CodeScanner {
             category: "Naming Convention".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r"(?i)POST\s+TO\s+INSTAGRAM\s+\w+\s*,\s*\w+").expect("valid regex"),
+            regex: Regex::new(r"(?i)POST\s+TO\s+INSTAGRAM\s+\w+\s*,\s*\w+")?,
             issue_type: IssueType::InsecurePattern,
             severity: IssueSeverity::High,
             title: "Instagram Credentials in Code".to_string(),
@@ -209,7 +209,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r"(?i)(SELECT|INSERT|UPDATE|DELETE)\s+.*(FROM|INTO|SET)\s+").expect("valid regex"),
+            regex: Regex::new(r"(?i)(SELECT|INSERT|UPDATE|DELETE)\s+.*(FROM|INTO|SET)\s+")?,
             issue_type: IssueType::FragileCode,
             severity: IssueSeverity::Medium,
             title: "Raw SQL Query".to_string(),
@@ -221,7 +221,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r"(?i)\bEVAL\s*\(").expect("valid regex"),
+            regex: Regex::new(r"(?i)\bEVAL\s*\(")?,
             issue_type: IssueType::FragileCode,
             severity: IssueSeverity::High,
             title: "Dynamic Code Execution".to_string(),
@@ -233,7 +233,7 @@ impl CodeScanner {
             regex: Regex::new(
                 r#"(?i)(password|secret|key|token)\s*=\s*["'][A-Za-z0-9+/=]{40,}["']"#,
             )
-            .expect("valid regex"),
+            ?,
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::High,
             title: "Potential Encoded Secret".to_string(),
@@ -243,7 +243,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r"(?i)(AKIA[0-9A-Z]{16})").expect("valid regex"),
+            regex: Regex::new(r"(?i)(AKIA[0-9A-Z]{16})")?,
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
             title: "AWS Access Key".to_string(),
@@ -253,7 +253,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----").expect("valid regex"),
+            regex: Regex::new(r"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----")?,
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
             title: "Private Key in Code".to_string(),
@@ -263,7 +263,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         },
         ScanPattern {
-            regex: Regex::new(r"(?i)(postgres|mysql|mongodb|redis)://[^:]+:[^@]+@").expect("valid regex"),
+            regex: Regex::new(r"(?i)(postgres|mysql|mongodb|redis)://[^:]+:[^@]+@")?,
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
             title: "Database Credentials in Connection String".to_string(),
@@ -450,12 +450,12 @@ impl CodeScanner {
     fn redact_sensitive(line: &str) -> String {
         let mut result = line.to_string();
 
-        let secret_pattern = Regex::new(r#"(["'])[^"']{8,}(["'])"#).expect("valid regex");
+        let secret_pattern = Regex::new(r#"(["'])[^"']{8,}(["'])"#)?;
         result = secret_pattern
             .replace_all(&result, "$1***REDACTED***$2")
             .to_string();
 
-        let aws_pattern = Regex::new(r"AKIA[0-9A-Z]{16}").expect("valid regex");
+        let aws_pattern = Regex::new(r"AKIA[0-9A-Z]{16}")?;
         result = aws_pattern
             .replace_all(&result, "AKIA***REDACTED***")
             .to_string();

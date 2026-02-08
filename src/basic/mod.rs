@@ -7,6 +7,7 @@ use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
 use log::info;
+use regex::Regex;
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -566,8 +567,6 @@ impl ScriptService {
     }
 
     fn normalize_variables_to_lowercase(script: &str) -> String {
-        use regex::Regex;
-
         let mut result = String::new();
 
         let keywords = [
@@ -799,8 +798,6 @@ impl ScriptService {
             "MODEL",
         ];
 
-        let _identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").expect("valid regex");
-
         for line in script.lines() {
             let trimmed = line.trim();
 
@@ -865,8 +862,6 @@ impl ScriptService {
     /// - "SET BOT MEMORY key AS value" → "SET_BOT_MEMORY(key, value)"
     /// - "CLEAR SUGGESTIONS" → "CLEAR_SUGGESTIONS()"
     fn convert_multiword_keywords(script: &str) -> String {
-        use regex::Regex;
-
         // Known multi-word keywords with their conversion patterns
         // Format: (keyword_pattern, min_params, max_params, param_names)
         let multiword_patterns = vec![
@@ -970,9 +965,9 @@ impl ScriptService {
         let mut current = String::new();
         let mut in_quotes = false;
         let mut quote_char = '"';
-        let mut chars = params_str.chars().peekable();
+        let chars = params_str.chars().peekable();
 
-        while let Some(c) = chars.next() {
+        for c in chars {
             match c {
                 '"' | '\'' if !in_quotes => {
                     in_quotes = true;

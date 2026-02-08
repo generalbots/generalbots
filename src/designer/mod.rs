@@ -586,7 +586,7 @@ pub async fn handle_export(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<FileQuery>,
 ) -> impl IntoResponse {
-    let _file_id = params.path.unwrap_or_else(|| "dialog".to_string());
+    let _ = params.path.unwrap_or_else(|| "dialog".to_string());
 
     Html("<script>alert('Export started. File will download shortly.');</script>".to_string())
 }

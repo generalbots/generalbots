@@ -1233,8 +1233,152 @@ impl BootstrapManager {
                 }
             }
         }
+
+        // Install pdftotext for PDF processing (no root required)
+        // Do this BEFORE template sync so PDFs can be processed
+        if let Err(e) = self.ensure_pdftotext() {
+            warn!("Failed to install pdftotext: {} (PDF processing may fall back to Rust library)", e);
+        } else {
+            // Add botserver-stack/bin/shared to PATH for current process
+            let shared_dir = self.stack_dir("bin/shared").display().to_string();
+            if let Ok(current_path) = std::env::var("PATH") {
+                if !current_path.contains(&shared_dir) {
+                    std::env::set_var("PATH", format!("{}:{}", shared_dir, current_path));
+                    info!("Added {} to PATH for PDF processing", shared_dir);
+                }
+            }
+        }
+
         info!("=== BOOTSTRAP COMPLETED SUCCESSFULLY ===");
         Ok(())
+    }
+
+    /// Ensures pdftotext is available for PDF processing.
+    /// Downloads and extracts the binary from poppler-utils package if not found.
+    /// Installs to botserver-stack/bin/shared (no root/sudo required).
+    fn ensure_pdftotext(&self) -> Result<()> {
+        use std::env;
+        use std::process::Command;
+
+        let shared_bin = self.stack_dir("bin/shared/pdftotext");
+
+        // Check if pdftotext is already available
+        if shared_bin.exists() {
+            if let Ok(output) = Command::new(&shared_bin).arg("-v").output() {
+                if output.status.success() {
+                    info!("pdftotext already available at {}", shared_bin.display());
+                    return Ok(());
+                }
+            }
+        }
+
+        // Also check PATH
+        if let Ok(output) = Command::new("pdftotext").arg("-v").output() {
+            if output.status.success() {
+                info!("pdftotext already available in PATH");
+                return Ok(());
+            }
+        }
+
+        info!("pdftotext not found, installing from poppler-utils package...");
+
+        // Create bin/shared directory
+        let bin_dir = shared_bin.parent().unwrap();
+        fs::create_dir_all(bin_dir)?;
+
+        // Download the poppler-utils package
+        let temp_dir = env::temp_dir();
+
+        info!("Downloading poppler-utils package...");
+        let download_cmd = format!(
+            "cd {} && apt-get download poppler-utils 2>&1 | tail -1",
+            temp_dir.display()
+        );
+        let download_result = safe_sh_command(&download_cmd);
+
+        let deb_file = match download_result {
+            Some(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                // Find the .deb file that was downloaded
+                let deb_name = stdout.lines().find(|l| l.contains("poppler-utils"))
+                    .and_then(|l| l.split_whitespace().find(|p| p.ends_with(".deb")));
+                match deb_name {
+                    Some(name) => temp_dir.join(name.trim()),
+                    None => {
+                        // Try listing files to find the deb
+                        let list_cmd = format!("ls -1 {}/poppler-utils*.deb 2>/dev/null", temp_dir.display());
+                        if let Some(list_output) = safe_sh_command(&list_cmd) {
+                            let deb_name = String::from_utf8_lossy(&list_output.stdout).trim().to_string();
+                            if !deb_name.is_empty() {
+                                PathBuf::from(deb_name)
+                            } else {
+                                return Err(anyhow::anyhow!("Failed to find downloaded .deb file"));
+                            }
+                        } else {
+                            return Err(anyhow::anyhow!("Failed to download poppler-utils package"));
+                        }
+                    }
+                }
+            }
+            None => return Err(anyhow::anyhow!("Failed to download poppler-utils")),
+        };
+
+        info!("Extracting pdftotext from package...");
+        // Extract the .deb package (it's an ar archive)
+        let extract_ar_cmd = format!(
+            "cd {} && ar -x '{}' 2>&1",
+            temp_dir.display(),
+            deb_file.display()
+        );
+        let _ = safe_sh_command(&extract_ar_cmd);
+
+        // Extract the data.tar.xz
+        let extract_tar_cmd = format!("cd {} && tar -xf data.tar.xz 2>&1", temp_dir.display());
+        let _ = safe_sh_command(&extract_tar_cmd);
+
+        // Copy the pdftotext binary to botserver-stack/bin/shared
+        let src_binary = temp_dir.join("usr/bin/pdftotext");
+        if !src_binary.exists() {
+            return Err(anyhow::anyhow!("pdftotext not found in extracted package"));
+        }
+
+        fs::copy(&src_binary, &shared_bin)?;
+
+        // Make it executable
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&shared_bin)?.permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&shared_bin, perms)?;
+        }
+
+        // Verify it works
+        if let Ok(output) = Command::new(&shared_bin).arg("-v").output() {
+            if output.status.success() {
+                info!("pdftotext installed successfully to {}", shared_bin.display());
+
+                // Add botserver-stack/bin/shared to PATH for current process
+                let shared_dir = bin_dir.display().to_string();
+                if let Ok(current_path) = env::var("PATH") {
+                    if !current_path.contains(&shared_dir) {
+                        env::set_var("PATH", format!("{}:{}", shared_dir, current_path));
+                        info!("Added {} to PATH for current session", shared_dir);
+                    }
+                }
+
+                // Clean up temporary files
+                let _ = fs::remove_file(&deb_file);
+                let _ = fs::remove_file(temp_dir.join("data.tar.xz"));
+                let _ = fs::remove_file(temp_dir.join("control.tar.xz"));
+                let _ = fs::remove_file(temp_dir.join("debian-binary"));
+                let _ = fs::remove_dir_all(temp_dir.join("usr"));
+
+                return Ok(());
+            }
+        }
+
+        Err(anyhow::anyhow!("pdftotext installation failed"))
     }
 
     fn configure_services_in_directory(&self, db_password: &str) -> Result<()> {
@@ -1956,6 +2100,18 @@ VAULT_CACHE_TTL=300
             );
             let _ = safe_sh_command(&encryption_cmd);
             info!("  Generated and stored encryption key");
+        }
+
+        if secret_exists("secret/gbo/jwt") {
+            info!("  JWT secret already exists - preserving (CRITICAL)");
+        } else {
+            let jwt_secret = Self::generate_secure_password(48);
+            let jwt_cmd = format!(
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/jwt secret='{}'",
+                vault_addr, root_token, ca_cert_path, vault_bin, jwt_secret
+            );
+            let _ = safe_sh_command(&jwt_cmd);
+            info!("  Generated and stored JWT secret");
         }
 
         info!("Vault setup complete!");

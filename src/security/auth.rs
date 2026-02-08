@@ -556,8 +556,104 @@ impl AuthConfig {
     pub fn from_env() -> Self {
         let mut config = Self::default();
 
-        if let Ok(secret) = std::env::var("JWT_SECRET") {
+        // Try to load from Vault first (if available)
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            if let Ok(secret) = handle.block_on(async {
+                if let Some(manager) = crate::core::shared::utils::get_secrets_manager().await {
+                    if manager.is_enabled() {
+                        manager.get_jwt_secret().await
+                    } else {
+                        Err(anyhow::anyhow!("Vault not enabled"))
+                    }
+                } else {
+                    Err(anyhow::anyhow!("SecretsManager not initialized"))
+                }
+            }) {
+                config.jwt_secret = Some(secret);
+            }
+        }
+
+        // Fall back to environment variable (for development or if Vault is not available)
+        if config.jwt_secret.is_none() {
+            if let Ok(secret) = std::env::var("JWT_SECRET") {
+                config.jwt_secret = Some(secret);
+            }
+        }
+
+        if let Ok(require) = std::env::var("REQUIRE_AUTH") {
+            config.require_auth = require == "true" || require == "1";
+        }
+
+        if let Ok(paths) = std::env::var("ANONYMOUS_PATHS") {
+            config.allow_anonymous_paths = paths
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+        }
+
+        config
+    }
+
+    pub async fn from_vault() -> Result<Self, anyhow::Error> {
+        let mut config = Self::default();
+
+        let manager = crate::core::shared::utils::get_secrets_manager()
+            .await
+            .ok_or_else(|| anyhow::anyhow!("SecretsManager not initialized"))?;
+
+        if manager.is_enabled() {
+            let secret = manager.get_jwt_secret().await?;
             config.jwt_secret = Some(secret);
+        }
+
+        Ok(config)
+    }
+
+    pub fn from_vault_blocking() -> Self {
+        let mut config = Self::default();
+
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            if let Ok(secret) = handle.block_on(async {
+                if let Some(manager) = crate::core::shared::utils::get_secrets_manager().await {
+                    if manager.is_enabled() {
+                        manager.get_jwt_secret().await
+                    } else {
+                        Err(anyhow::anyhow!("Vault not enabled"))
+                    }
+                } else {
+                    Err(anyhow::anyhow!("SecretsManager not initialized"))
+                }
+            }) {
+                config.jwt_secret = Some(secret);
+            }
+        } else {
+            let rt = tokio::runtime::Runtime::new()
+                .map_err(|e| log::warn!("Failed to create runtime: {}", e))
+                .ok();
+
+            if let Some(rt) = rt {
+                if let Ok(secret) = rt.block_on(async {
+                    if let Some(manager) = crate::core::shared::utils::get_secrets_manager().await {
+                        if manager.is_enabled() {
+                            manager.get_jwt_secret().await
+                        } else {
+                            Err(anyhow::anyhow!("Vault not enabled"))
+                        }
+                    } else {
+                        Err(anyhow::anyhow!("SecretsManager not initialized"))
+                    }
+                }) {
+                    config.jwt_secret = Some(secret);
+                }
+            }
+        }
+
+        // Fall back to environment variable if Vault doesn't have it
+        if config.jwt_secret.is_none() {
+            if let Ok(secret) = std::env::var("JWT_SECRET") {
+                config.jwt_secret = Some(secret);
+            }
         }
 
         if let Ok(require) = std::env::var("REQUIRE_AUTH") {

@@ -620,7 +620,7 @@ pub async fn create_objective(
 
     let record = new_objective.clone();
 
-    let _result = tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
         diesel::insert_into(okr_objectives::table)
             .values(&new_objective)
@@ -718,7 +718,7 @@ pub async fn delete_objective(
 ) -> Result<Json<serde_json::Value>, GoalsError> {
     let pool = state.conn.clone();
 
-    let _result = tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
         let deleted = diesel::delete(okr_objectives::table.find(objective_id))
             .execute(&mut conn)
@@ -793,7 +793,7 @@ pub async fn create_key_result(
 
     let record = new_kr.clone();
 
-    let _result = tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
         diesel::insert_into(okr_key_results::table)
             .values(&new_kr)

@@ -1,7 +1,6 @@
 use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::path::Path;
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
@@ -174,54 +173,54 @@ pub fn fetch_folder_changes(
     Ok(events)
 }
 
-#[allow(dead_code)]
-fn apply_filters(events: Vec<FolderChangeEvent>, filters: &Option<FileFilters>) -> Vec<FolderChangeEvent> {
-    let Some(filters) = filters else {
-        return events;
-    };
-
-    events
-        .into_iter()
-        .filter(|event| {
-            if let Some(ref extensions) = filters.extensions {
-                let ext = Path::new(&event.path)
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .unwrap_or("");
-                if !extensions.iter().any(|e| e.eq_ignore_ascii_case(ext)) {
-                    return false;
-                }
-            }
-
-            if let Some(min_size) = filters.min_size {
-                if event.size.unwrap_or(0) < min_size {
-                    return false;
-                }
-            }
-
-            if let Some(max_size) = filters.max_size {
-                if event.size.unwrap_or(i64::MAX) > max_size {
-                    return false;
-                }
-            }
-
-            if let Some(ref pattern) = filters.name_pattern {
-                let file_name = Path::new(&event.path)
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("");
-                if !file_name.contains(pattern) {
-                    return false;
-                }
-            }
-
-            true
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    fn apply_filters(events: Vec<FolderChangeEvent>, filters: &Option<FileFilters>) -> Vec<FolderChangeEvent> {
+        let Some(ref filters) = filters else {
+            return events;
+        };
+
+        events
+            .into_iter()
+            .filter(|event| {
+                if let Some(ref extensions) = filters.extensions {
+                    let ext = Path::new(&event.path)
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("");
+                    if !extensions.iter().any(|e| e.eq_ignore_ascii_case(ext)) {
+                        return false;
+                    }
+                }
+
+                if let Some(min_size) = filters.min_size {
+                    if event.size.unwrap_or(0) < min_size {
+                        return false;
+                    }
+                }
+
+                if let Some(max_size) = filters.max_size {
+                    if event.size.unwrap_or(i64::MAX) > max_size {
+                        return false;
+                    }
+                }
+
+                if let Some(ref pattern) = filters.name_pattern {
+                    let file_name = Path::new(&event.path)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("");
+                    if !file_name.contains(pattern) {
+                        return false;
+                    }
+                }
+
+                true
+            })
+            .collect()
+    }
     use super::*;
 
     #[test]

@@ -548,13 +548,9 @@ pub fn truncate_text_for_model(text: &str, model: &str, max_tokens: usize) -> St
 
 /// Estimates characters per token based on model type
 fn estimate_chars_per_token(model: &str) -> usize {
-    if model.contains("gpt") || model.contains("claude") {
-        4 // GPT/Claude models: ~4 chars per token
-    } else if model.contains("llama") || model.contains("mistral") {
+    if model.contains("llama") || model.contains("mistral") {
         3 // Llama/Mistral models: ~3 chars per token  
-    } else if model.contains("bert") || model.contains("mpnet") {
-        4 // BERT-based models: ~4 chars per token
     } else {
-        4 // Default conservative estimate
+        4 // Default conservative estimate (GPT, Claude, BERT, etc.)
     }
 }

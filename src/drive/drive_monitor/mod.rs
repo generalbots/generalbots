@@ -23,7 +23,6 @@ use serde::{Deserialize, Serialize};
 use tokio::fs as tokio_fs;
 
 #[cfg(any(feature = "research", feature = "llm"))]
-#[allow(dead_code)]
 const KB_INDEXING_TIMEOUT_SECS: u64 = 60;
 const MAX_BACKOFF_SECS: u64 = 300;
 const INITIAL_BACKOFF_SECS: u64 = 30;
@@ -43,7 +42,6 @@ pub struct DriveMonitor {
     is_processing: Arc<AtomicBool>,
     consecutive_failures: Arc<AtomicU32>,
     #[cfg(any(feature = "research", feature = "llm"))]
-    #[allow(dead_code)]
     kb_indexing_in_progress: Arc<TokioRwLock<HashSet<String>>>,
 }
 impl DriveMonitor {

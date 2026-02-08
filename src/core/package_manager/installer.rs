@@ -21,7 +21,9 @@ struct ThirdPartyConfig {
 
 static THIRDPARTY_CONFIG: Lazy<ThirdPartyConfig> = Lazy::new(|| {
     let toml_str = include_str!("../../../3rdparty.toml");
-    toml::from_str(toml_str).expect("Failed to parse embedded 3rdparty.toml")
+    toml::from_str(toml_str).unwrap_or_else(|e| {
+        panic!("Failed to parse embedded 3rdparty.toml: {e}")
+    })
 });
 
 fn get_component_url(name: &str) -> Option<String> {

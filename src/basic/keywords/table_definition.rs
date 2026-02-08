@@ -623,7 +623,7 @@ pub fn process_table_definitions(
 
         if table.connection_name == "default" {
             let create_sql = generate_create_table_sql(table, "postgres");
-            info!("Creating table {} on default connection", table.name);
+            info!("Creating table {} on bot's default database", table.name);
             trace!("SQL: {}", create_sql);
 
             sql_query(&create_sql).execute(&mut conn)?;
@@ -646,10 +646,18 @@ pub fn process_table_definitions(
                     }
                 }
                 Err(e) => {
-                    error!(
-                        "Failed to load connection config for {}: {}",
-                        table.connection_name, e
+                    warn!(
+                        "External connection '{}' not configured for bot {}, creating table {} in bot's database instead: {}",
+                        table.connection_name, bot_id, table.name, e
                     );
+
+                    let create_sql = generate_create_table_sql(table, "postgres");
+                    info!("Creating table {} on bot's database (external DB fallback)", table.name);
+                    trace!("SQL: {}", create_sql);
+
+                    if let Err(e) = sql_query(&create_sql).execute(&mut conn) {
+                        error!("Failed to create table {} in bot's database: {}", table.name, e);
+                    }
                 }
             }
         }

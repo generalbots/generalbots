@@ -34,7 +34,7 @@ pub async fn ensure_llama_servers_running(
             let mut conn = conn_arc
                 .get()
                 .map_err(|e| format!("failed to get db connection: {e}"))?;
-            Ok(crate::bot::get_default_bot(&mut *conn))
+            Ok(crate::bot::get_default_bot(&mut conn))
         })
         .await??;
         let config_manager = ConfigManager::new(app_state.conn.clone());

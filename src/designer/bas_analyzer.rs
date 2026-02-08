@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::path::Path;
 use std::fs;
 
@@ -83,7 +84,7 @@ impl BasFileAnalyzer {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct WorkflowMetadata {
     pub name: String,
     pub step_count: usize,
