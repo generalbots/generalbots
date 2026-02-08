@@ -261,7 +261,23 @@ impl SafeCommand {
         }
 
         cmd.env_clear();
-        cmd.env("PATH", "/usr/local/bin:/usr/bin:/bin");
+
+        // Build PATH with standard locations plus botserver-stack/bin/shared
+        let mut path_entries = vec![
+            "/usr/local/bin".to_string(),
+            "/usr/bin".to_string(),
+            "/bin".to_string(),
+        ];
+
+        // Add botserver-stack/bin/shared to PATH if it exists
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let shared_bin = format!("{}/bin/shared", stack_path);
+        if std::path::Path::new(&shared_bin).exists() {
+            path_entries.insert(0, shared_bin);
+        }
+
+        cmd.env("PATH", path_entries.join(":"));
         cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
         cmd.env("LANG", "C.UTF-8");
 
@@ -282,7 +298,23 @@ impl SafeCommand {
         }
 
         cmd.env_clear();
-        cmd.env("PATH", "/usr/local/bin:/usr/bin:/bin");
+
+        // Build PATH with standard locations plus botserver-stack/bin/shared
+        let mut path_entries = vec![
+            "/usr/local/bin".to_string(),
+            "/usr/bin".to_string(),
+            "/bin".to_string(),
+        ];
+
+        // Add botserver-stack/bin/shared to PATH if it exists
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let shared_bin = format!("{}/bin/shared", stack_path);
+        if std::path::Path::new(&shared_bin).exists() {
+            path_entries.insert(0, shared_bin);
+        }
+
+        cmd.env("PATH", path_entries.join(":"));
         cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
         cmd.env("LANG", "C.UTF-8");
 
@@ -303,7 +335,23 @@ impl SafeCommand {
         }
 
         cmd.env_clear();
-        cmd.env("PATH", "/usr/local/bin:/usr/bin:/bin");
+
+        // Build PATH with standard locations plus botserver-stack/bin/shared
+        let mut path_entries = vec![
+            "/usr/local/bin".to_string(),
+            "/usr/bin".to_string(),
+            "/bin".to_string(),
+        ];
+
+        // Add botserver-stack/bin/shared to PATH if it exists
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let shared_bin = format!("{}/bin/shared", stack_path);
+        if std::path::Path::new(&shared_bin).exists() {
+            path_entries.insert(0, shared_bin);
+        }
+
+        cmd.env("PATH", path_entries.join(":"));
         cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
         cmd.env("LANG", "C.UTF-8");
 
@@ -324,7 +372,23 @@ impl SafeCommand {
         }
 
         cmd.env_clear();
-        cmd.env("PATH", "/usr/local/bin:/usr/bin:/bin");
+
+        // Build PATH with standard locations plus botserver-stack/bin/shared
+        let mut path_entries = vec![
+            "/usr/local/bin".to_string(),
+            "/usr/bin".to_string(),
+            "/bin".to_string(),
+        ];
+
+        // Add botserver-stack/bin/shared to PATH if it exists
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let shared_bin = format!("{}/bin/shared", stack_path);
+        if std::path::Path::new(&shared_bin).exists() {
+            path_entries.insert(0, shared_bin);
+        }
+
+        cmd.env("PATH", path_entries.join(":"));
         cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
         cmd.env("LANG", "C.UTF-8");
 

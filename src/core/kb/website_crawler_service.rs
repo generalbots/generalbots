@@ -228,7 +228,7 @@ impl WebsiteCrawlerService {
                 let total_pages = pages.len();
 
                 for (batch_idx, batch) in pages.chunks(BATCH_SIZE).enumerate() {
-                    info!("Processing batch {} of {} pages", batch_idx + 1, (total_pages + BATCH_SIZE - 1) / BATCH_SIZE);
+                    info!("Processing batch {} of {} pages", batch_idx + 1, total_pages.div_ceil(BATCH_SIZE));
 
                     for (idx, page) in batch.iter().enumerate() {
                         let global_idx = batch_idx * BATCH_SIZE + idx;

@@ -221,7 +221,7 @@ impl WebCrawler {
         self.pages.push(page);
 
         // Aggressive memory cleanup every 10 pages
-        if self.pages.len() % 10 == 0 {
+        if self.pages.len().is_multiple_of(10) {
             self.pages.shrink_to_fit();
             self.visited_urls.shrink_to_fit();
         }

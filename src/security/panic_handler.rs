@@ -337,8 +337,6 @@ mod tests {
     fn test_catch_panic_failure() {
         let result = catch_panic(|| {
             panic!("test panic");
-            #[allow(unreachable_code)]
-            42
         });
         assert!(result.is_err());
         assert!(result.unwrap_err().message.contains("test panic"));

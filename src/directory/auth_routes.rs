@@ -397,7 +397,7 @@ pub async fn get_current_user(
                 is_anonymous: true,
             })
         }
-        Some(token) if token.is_empty() => {
+        Some("") => {
             info!("get_current_user: empty authorization token - returning anonymous user");
             Json(CurrentUserResponse {
                 id: None,

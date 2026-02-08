@@ -1,4 +1,3 @@
-#![cfg_attr(feature = "mail", allow(unused_imports))]
 pub mod audit_log;
 pub mod menu_config;
 pub mod permission_inheritance;
@@ -147,13 +146,10 @@ r##"<div class="connections-empty">
 </div>"## .to_string(), ) }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct SearchSettingsRequest {
 enable_fuzzy_search: Option<bool>,
 search_result_limit: Option<i32>,
 enable_ai_suggestions: Option<bool>,
-index_attachments: Option<bool>,
-search_sources: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -183,8 +179,15 @@ Json(SearchSettingsResponse {
 
 }
 
+#[derive(Debug, Serialize)]
+struct SmtpTestResponse {
+success: bool,
+message: Option<String>,
+error: Option<String>,
+}
+
+#[cfg(feature = "mail")]
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct SmtpTestRequest {
 host: String,
 port: i32,
@@ -193,11 +196,14 @@ password: Option<String>,
 use_tls: Option<bool>,
 }
 
-#[derive(Debug, Serialize)]
-struct SmtpTestResponse {
-success: bool,
-message: Option<String>,
-error: Option<String>,
+#[cfg(not(feature = "mail"))]
+#[derive(Debug, Deserialize)]
+struct SmtpTestRequest {
+_host: String,
+_port: i32,
+_username: Option<String>,
+_password: Option<String>,
+_use_tls: Option<bool>,
 }
 
 #[cfg(feature = "mail")]

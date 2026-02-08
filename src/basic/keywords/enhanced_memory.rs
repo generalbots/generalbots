@@ -71,14 +71,12 @@ async fn share_bot_memory(
     
     let target_bot_uuid = find_bot_by_name(&mut conn, target_bot_name)?;
     
-    let memory_value = match bot_memories::table
+    let memory_value: String = bot_memories::table
         .filter(bot_memories::bot_id.eq(source_bot_uuid))
         .filter(bot_memories::key.eq(memory_key))
         .select(bot_memories::value)
-        .first(&mut conn) {
-            Ok(value) => value,
-            Err(_) => String::new(),
-        };
+        .first(&mut conn)
+        .unwrap_or_default();
     
     let shared_memory = BotSharedMemory {
         id: Uuid::new_v4(),

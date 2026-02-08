@@ -13,8 +13,7 @@ use std::path::Path;
 
 #[cfg(feature = "embed-ui")]
 #[derive(RustEmbed)]
-#[folder = "ui"]
-#[prefix = "suite"]
+#[folder = "../botui/ui/suite"]
 struct EmbeddedUi;
 
 #[cfg(feature = "embed-ui")]
@@ -61,10 +60,8 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
     let file_path = if path.is_empty() || path == "/" {
         "index.html"
     } else {
-        path
+        path.trim_start_matches('/')
     };
-
-    let file_path = file_path.strip_prefix("suite/").unwrap_or(file_path);
 
     log::trace!("Serving embedded file: {}", file_path);
 
@@ -88,8 +85,9 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
                 .unwrap_or_else(|_| {
                     Response::builder()
                         .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .header(header::CONTENT_TYPE, "text/plain")
                         .body(Body::from("Internal Server Error"))
-                        .unwrap()
+                        .unwrap_or_else(|_| Body::empty())
                 });
         }
     }
@@ -110,7 +108,13 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
 </body>
 </html>"#,
         ))
-        .unwrap()
+        .unwrap_or_else(|_| {
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .header(header::CONTENT_TYPE, "text/plain")
+                .body(Body::from("Response generation failed"))
+                .unwrap_or_else(|_| Body::empty())
+        })
 }
 
 #[cfg(feature = "embed-ui")]

@@ -930,8 +930,6 @@ END SCHEDULE
             .clone()
             .unwrap_or_else(|| "unspecified".to_string());
 
-        let _goal_id = Uuid::new_v4();
-
         // Goals are more complex - they create a monitoring + action loop
         let basic_code = format!(
             r#"' Goal: {goal_name}

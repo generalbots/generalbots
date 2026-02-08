@@ -54,8 +54,6 @@ pub mod research;
 pub mod search;
 pub mod security;
 pub mod settings;
-#[cfg(feature = "dashboards")]
-pub mod shared;
 #[cfg(feature = "sheet")]
 pub mod sheet;
 #[cfg(feature = "slides")]
@@ -379,7 +377,7 @@ async fn run_axum_server(
     let cors = create_cors_layer();
 
     let auth_config = Arc::new(
-        AuthConfig::from_env()
+        AuthConfig::from_vault_blocking()
             .add_anonymous_path("/health")
             .add_anonymous_path("/healthz")
             .add_anonymous_path("/api/health")
@@ -897,6 +895,30 @@ async fn main() -> std::io::Result<()> {
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     dotenvy::dotenv().ok();
+
+    // Add botserver-stack/bin/shared to PATH for pdftotext and other utilities
+    if let Ok(stack_path) = std::env::var("BOTSERVER_STACK_PATH") {
+        let shared_bin = format!("{}/bin/shared", stack_path);
+        if std::path::Path::new(&shared_bin).exists() {
+            if let Ok(current_path) = std::env::var("PATH") {
+                if !current_path.contains(&shared_bin) {
+                    std::env::set_var("PATH", format!("{}:{}", shared_bin, current_path));
+                    log::info!("Added {} to PATH", shared_bin);
+                }
+            }
+        }
+    } else {
+        // Try default path
+        let shared_bin = "./botserver-stack/bin/shared";
+        if std::path::Path::new(shared_bin).exists() {
+            if let Ok(current_path) = std::env::var("PATH") {
+                if !current_path.contains(shared_bin) {
+                    std::env::set_var("PATH", format!("{}:{}", shared_bin, current_path));
+                    log::info!("Added {} to PATH", shared_bin);
+                }
+            }
+        }
+    }
 
     let env_path_early = std::path::Path::new("./.env");
     let vault_init_path_early = std::path::Path::new("./botserver-stack/conf/vault/init.json");
