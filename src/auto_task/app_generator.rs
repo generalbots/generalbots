@@ -3050,7 +3050,7 @@ NO QUESTIONS. JUST BUILD."#
             match self
                 .state
                 .llm_provider
-                .generate_stream(prompt, &llm_config, tx, &model, &key)
+                .generate_stream(prompt, &llm_config, tx, &model, &key, None)
                 .await
             {
                 Ok(()) => {

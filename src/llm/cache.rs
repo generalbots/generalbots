@@ -545,13 +545,14 @@ impl LLMProvider for CachedLLMProvider {
         tx: mpsc::Sender<String>,
         model: &str,
         key: &str,
+        tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let bot_id = "default";
         if !self.is_cache_enabled(bot_id).await {
             trace!("Cache disabled for streaming, bypassing");
             return self
                 .provider
-                .generate_stream(prompt, messages, tx, model, key)
+                .generate_stream(prompt, messages, tx, model, key, tools)
                 .await;
         }
 
@@ -581,7 +582,7 @@ impl LLMProvider for CachedLLMProvider {
         });
 
         self.provider
-            .generate_stream(prompt, messages, buffer_tx, model, key)
+            .generate_stream(prompt, messages, buffer_tx, model, key, tools)
             .await?;
 
         let full_response = forward_task.await?;

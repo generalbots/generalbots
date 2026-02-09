@@ -2,6 +2,9 @@ pub mod model_routing_config;
 pub mod sse_config;
 pub mod user_memory_config;
 
+#[cfg(feature = "drive")]
+pub mod watcher;
+
 pub use model_routing_config::{ModelRoutingConfig, RoutingStrategy, TaskType};
 pub use sse_config::SseConfig;
 pub use user_memory_config::UserMemoryConfig;

@@ -15,7 +15,7 @@ default = ["chat", "automation", "drive", "tasks", "cache", "directory", "llm", 
 # ===== CORE INFRASTRUCTURE (Can be used standalone) =====
 scripting = ["dep:rhai"]
 automation = ["scripting", "dep:cron"]
-drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
+drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract", "dep:notify"]
 cache = ["dep:redis"]
 directory = []
 crawler = ["drive", "cache"]
@@ -214,6 +214,9 @@ rss = { workspace = true }
 # HTML parsing/web scraping
 scraper = { workspace = true }
 walkdir = { workspace = true }
+
+# File system monitoring (for local .gbai monitoring)
+notify = { workspace = true, optional = true }
 
 # Embedded static files
 rust-embed = { workspace = true, optional = true }

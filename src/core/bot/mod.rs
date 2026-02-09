@@ -2,6 +2,8 @@
 pub mod kb_context;
 #[cfg(any(feature = "research", feature = "llm"))]
 use kb_context::inject_kb_context;
+pub mod tool_context;
+use tool_context::get_session_tools;
 #[cfg(feature = "llm")]
 use crate::core::config::ConfigManager;
 
@@ -80,6 +82,18 @@ pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
             (Uuid::nil(), "default".to_string())
         }
     }
+}
+
+/// Get bot ID by name from database
+pub fn get_bot_id_by_name(conn: &mut PgConnection, bot_name: &str) -> Result<Uuid, String> {
+    use crate::shared::models::schema::bots::dsl::*;
+    use diesel::prelude::*;
+
+    bots
+        .filter(name.eq(bot_name))
+        .select(id)
+        .first::<Uuid>(conn)
+        .map_err(|e| format!("Bot '{}' not found: {}", bot_name, e))
 }
 
 #[derive(Debug)]
@@ -166,6 +180,9 @@ impl BotOrchestrator {
         let mut bots_mounted = 0;
         let mut bots_created = 0;
 
+        let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        let data_dir = format!("{}/data", home_dir);
+
         let directories_to_scan: Vec<std::path::PathBuf> = vec![
             self.state
                 .config
@@ -175,6 +192,7 @@ impl BotOrchestrator {
                 .into(),
             "./templates".into(),
             "../bottemplates".into(),
+            data_dir.into(),
         ];
 
         for dir_path in directories_to_scan {
@@ -207,7 +225,7 @@ impl BotOrchestrator {
         &self,
         dir_path: &std::path::Path,
         bots_mounted: &mut i32,
-        _bots_created: &mut i32,
+        bots_created: &mut i32,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let entries =
             std::fs::read_dir(dir_path).map_err(|e| format!("Failed to read directory: {}", e))?;
@@ -228,10 +246,25 @@ impl BotOrchestrator {
                     *bots_mounted += 1;
                 }
                 Ok(false) => {
-                    info!(
-                        "Bot '{}' does not exist in database, skipping (run import to create)",
-                        bot_name
-                    );
+                    // Auto-create bots found in ~/data
+                    if dir_path.to_string_lossy().contains("/data") {
+                        info!("Auto-creating bot '{}' from ~/data", bot_name);
+                        match self.create_bot_simple(bot_name) {
+                            Ok(_) => {
+                                info!("Bot '{}' created successfully", bot_name);
+                                *bots_created += 1;
+                                *bots_mounted += 1;
+                            }
+                            Err(e) => {
+                                error!("Failed to create bot '{}': {}", bot_name, e);
+                            }
+                        }
+                    } else {
+                        info!(
+                            "Bot '{}' does not exist in database, skipping (run import to create)",
+                            bot_name
+                        );
+                    }
                 }
                 Err(e) => {
                     error!("Failed to check if bot '{}' exists: {}", bot_name, e);
@@ -271,6 +304,38 @@ impl BotOrchestrator {
         Ok(exists.exists)
     }
 
+    fn create_bot_simple(&self, bot_name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        use diesel::sql_query;
+        use uuid::Uuid;
+
+        let mut conn = self
+            .state
+            .conn
+            .get()
+            .map_err(|e| format!("Failed to get database connection: {e}"))?;
+
+        // Check if bot already exists
+        let exists = self.ensure_bot_exists(bot_name)?;
+        if exists {
+            info!("Bot '{}' already exists, skipping creation", bot_name);
+            return Ok(());
+        }
+
+        let bot_id = Uuid::new_v4();
+
+        sql_query(
+            "INSERT INTO bots (id, name, llm_provider, context_provider, is_active, created_at, updated_at)
+             VALUES ($1, $2, 'openai', 'website', true, NOW(), NOW())"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Text, _>(bot_name)
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to create bot: {e}"))?;
+
+        info!("Created bot '{}' with ID '{}'", bot_name, bot_id);
+        Ok(())
+    }
+
     #[cfg(feature = "llm")]
     pub async fn stream_response(
         &self,
@@ -285,6 +350,7 @@ impl BotOrchestrator {
 
         let user_id = Uuid::parse_str(&message.user_id)?;
         let session_id = Uuid::parse_str(&message.session_id)?;
+        let session_id_str = session_id.to_string();
         let message_content = message.content.clone();
 
         let (session, context_data, history, model, key) = {
@@ -337,30 +403,112 @@ impl BotOrchestrator {
             .await??
         };
 
-        let system_prompt = "You are a helpful assistant.".to_string();
+        let system_prompt = "You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response.".to_string();
         let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+
+        // Get bot name for KB and tool injection
+        let bot_name_for_context = {
+            let conn = self.state.conn.get().ok();
+            if let Some(mut db_conn) = conn {
+                use crate::shared::models::schema::bots::dsl::*;
+                bots.filter(id.eq(session.bot_id))
+                    .select(name)
+                    .first::<String>(&mut db_conn)
+                    .unwrap_or_else(|_| "default".to_string())
+            } else {
+                "default".to_string()
+            }
+        };
 
         #[cfg(any(feature = "research", feature = "llm"))]
         {
-            if let Some(kb_manager) = self.state.kb_manager.as_ref() {
-                let bot_name_for_kb = {
-                    let conn = self.state.conn.get().ok();
-                    if let Some(mut db_conn) = conn {
-                        use crate::shared::models::schema::bots::dsl::*;
-                        bots.filter(id.eq(session.bot_id))
-                            .select(name)
-                            .first::<String>(&mut db_conn)
-                            .unwrap_or_else(|_| "default".to_string())
-                    } else {
-                        "default".to_string()
-                    }
-                };
+            // Execute start.bas on first message to load tools
+            // Check if tools have been loaded for this session
+            let has_tools_loaded = {
+                use crate::shared::models::schema::session_tool_associations::dsl::*;
+                let conn = self.state.conn.get().ok();
+                if let Some(mut db_conn) = conn {
+                    let tool_names: Vec<String> = session_tool_associations
+                        .filter(session_id.eq(&session_id_str))
+                        .select(tool_name)
+                        .limit(1)
+                        .load(&mut db_conn)
+                        .unwrap_or_default();
+                    !tool_names.is_empty()
+                } else {
+                    false
+                }
+            };
 
+            // If no tools are loaded, execute start.bas
+            if !has_tools_loaded {
+                let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                let data_dir = format!("{}/data", home_dir);
+                let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name_for_context, bot_name_for_context);
+
+                info!("[START_BAS] Checking for start.bas at: {}", start_script_path);
+
+                if let Ok(metadata) = tokio::fs::metadata(&start_script_path).await {
+                    if metadata.is_file() {
+                        info!("[START_BAS] Found start.bas, executing for session {}", session_id);
+
+                        if let Ok(start_script) = tokio::fs::read_to_string(&start_script_path).await {
+                            let state_clone = self.state.clone();
+                            let session_id_clone = session_id;
+                            let bot_id_clone = session.bot_id;
+                            let bot_name_clone = bot_name_for_context.clone();
+                            let bot_name_for_log = bot_name_clone.clone();
+                            let start_script_clone = start_script.clone();
+
+                            tokio::spawn(async move {
+                                let session_result = state_clone.session_manager.lock().await.get_session_by_id(session_id_clone);
+
+                                if let Ok(Some(session)) = session_result {
+                                    let result = tokio::task::spawn_blocking(move || {
+                                        let mut script_service = crate::basic::ScriptService::new(
+                                            state_clone.clone(),
+                                            session.clone()
+                                        );
+                                        script_service.load_bot_config_params(&state_clone, bot_id_clone);
+
+                                        match script_service.compile(&start_script_clone) {
+                                            Ok(ast) => match script_service.run(&ast) {
+                                                Ok(_) => {
+                                                    info!("[START_BAS] Executed start.bas successfully for bot {}", bot_name_clone);
+                                                    Ok(())
+                                                },
+                                                Err(e) => Err(format!("Script execution error: {}", e)),
+                                            },
+                                            Err(e) => Err(format!("Script compilation error: {}", e)),
+                                        }
+                                    }).await;
+
+                                    match result {
+                                        Ok(Ok(())) => {
+                                            info!("[START_BAS] start.bas completed for bot {}", bot_name_for_log);
+                                        }
+                                        Ok(Err(e)) => {
+                                            error!("[START_BAS] start.bas error for bot {}: {}", bot_name_for_log, e);
+                                        }
+                                        Err(e) => {
+                                            error!("[START_BAS] start.bas task error for bot {}: {}", bot_name_for_log, e);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    } else {
+                        info!("[START_BAS] start.bas not found for bot {}", bot_name_for_context);
+                    }
+                }
+            }
+
+            if let Some(kb_manager) = self.state.kb_manager.as_ref() {
                 if let Err(e) = inject_kb_context(
                     kb_manager.clone(),
                     self.state.conn.clone(),
                     session_id,
-                    &bot_name_for_kb,
+                    &bot_name_for_context,
                     &message_content,
                     &mut messages,
                     8000,
@@ -372,11 +520,44 @@ impl BotOrchestrator {
             }
         }
 
+        // Add the current user message to the messages array
+        if let Some(msgs_array) = messages.as_array_mut() {
+            msgs_array.push(serde_json::json!({
+                "role": "user",
+                "content": message_content
+            }));
+        }
+
+        // DEBUG: Log messages before sending to LLM
+        info!("[LLM_CALL] Messages before LLM: {}", serde_json::to_string_pretty(&messages).unwrap_or_default());
+        info!("[LLM_CALL] message_content: '{}'", message_content);
+
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
+        info!("[STREAM_SETUP] Channel created, starting LLM stream");
         let llm = self.state.llm_provider.clone();
 
         let model_clone = model.clone();
         let key_clone = key.clone();
+
+        // Retrieve session tools for tool calling
+        let session_tools = get_session_tools(&self.state.conn, &bot_name_for_context, &session_id);
+        let tools_for_llm = match session_tools {
+            Ok(tools) => {
+                if !tools.is_empty() {
+                    info!("[TOOLS] Loaded {} tools for session {}", tools.len(), session_id);
+                    Some(tools)
+                } else {
+                    info!("[TOOLS] No tools associated with session {}", session_id);
+                    None
+                }
+            }
+            Err(e) => {
+                warn!("[TOOLS] Failed to load session tools: {}", e);
+                None
+            }
+        };
+
+        // Clone messages for the async task
         let messages_clone = messages.clone();
 
         // DEBUG: Log exact values being passed to LLM
@@ -389,18 +570,23 @@ impl BotOrchestrator {
         );
 
         tokio::spawn(async move {
+            info!("[SPAWN_TASK] LLM stream task started");
             if let Err(e) = llm
-                .generate_stream("", &messages_clone, stream_tx, &model_clone, &key_clone)
+                .generate_stream("", &messages_clone, stream_tx, &model_clone, &key_clone, tools_for_llm.as_ref())
                 .await
             {
                 error!("LLM streaming error: {}", e);
             }
+            info!("[SPAWN_TASK] LLM stream task completed");
         });
 
         let mut full_response = String::new();
         let mut analysis_buffer = String::new();
         let mut in_analysis = false;
         let handler = llm_models::get_handler(&model);
+
+        info!("[STREAM_START] Entering stream processing loop for model: {}", model);
+        info!("[STREAM_START] About to enter while loop, stream_rx is valid");
 
         trace!("Using model handler for {}", model);
 
@@ -426,6 +612,7 @@ impl BotOrchestrator {
         }
 
         while let Some(chunk) = stream_rx.recv().await {
+            info!("[STREAM_DEBUG] Received chunk: '{}', len: {}", chunk, chunk.len());
             trace!("Received LLM chunk: {:?}", chunk);
 
             analysis_buffer.push_str(&chunk);
@@ -466,12 +653,13 @@ impl BotOrchestrator {
 
             if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
                 in_analysis = false;
-                log::debug!(
-                    "Detected end of thinking/analysis content for model {}",
-                    model
+                info!(
+                    "[ANALYSIS] Detected end of thinking for model {}. Buffer: '{}'",
+                    model, analysis_buffer
                 );
 
                 let processed = handler.process_content(&analysis_buffer);
+                info!("[ANALYSIS] Processed content: '{}'", processed);
                 if !processed.is_empty() {
                     full_response.push_str(&processed);
 
@@ -506,6 +694,7 @@ impl BotOrchestrator {
             }
 
             if !in_analysis {
+                info!("[STREAM_CONTENT] Sending chunk: '{}', len: {}", chunk, chunk.len());
                 full_response.push_str(&chunk);
 
                 let response = BotResponse {
@@ -529,6 +718,8 @@ impl BotOrchestrator {
                 }
             }
         }
+
+        info!("[STREAM_END] While loop exited. full_response length: {}", full_response.len());
 
         let state_for_save = self.state.clone();
         let full_response_clone = full_response.clone();
@@ -607,6 +798,25 @@ impl BotOrchestrator {
     }
 }
 
+/// Extract bot name from URL like "http://localhost:3000/bot/cristo" or "/cristo/"
+fn extract_bot_from_url(url: &str) -> Option<String> {
+    // Remove protocol and domain
+    let path_part = url
+        .split('/')
+        .skip_while(|&part| part == "http:" || part == "https:" || part.is_empty())
+        .skip_while(|&part| part.contains('.') || part == "localhost" || part == "bot")
+        .collect::<Vec<_>>();
+
+    // First path segment after /bot/ is the bot name
+    if let Some(&bot_name) = path_part.first() {
+        if !bot_name.is_empty() && bot_name != "bot" {
+            return Some(bot_name.to_string());
+        }
+    }
+
+    None
+}
+
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
@@ -616,6 +826,8 @@ pub async fn websocket_handler(
         .get("session_id")
         .and_then(|s| Uuid::parse_str(s).ok());
     let user_id = params.get("user_id").and_then(|s| Uuid::parse_str(s).ok());
+
+    // Extract bot_name from query params
     let bot_name = params
         .get("bot_name")
         .cloned()
@@ -725,7 +937,9 @@ async fn handle_websocket(
         );
 
         if let Some(bot_name) = bot_name_result {
-            let start_script_path = format!("./work/{}.gbai/{}.gbdialog/start.bas", bot_name, bot_name);
+            let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+            let data_dir = format!("{}/data", home_dir);
+            let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name, bot_name);
 
             info!("Looking for start.bas at: {}", start_script_path);
 

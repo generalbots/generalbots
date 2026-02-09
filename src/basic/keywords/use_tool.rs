@@ -1,13 +1,14 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, trace, warn};
+use log::{error, info, trace, warn};
 use rhai::{Dynamic, Engine};
+use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
 pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user;
+    let user_clone = user.clone();
 
     engine
         .register_custom_syntax(["USE", "TOOL", "$expr$"], false, move |context, inputs| {
@@ -73,44 +74,152 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
             }
         })
         .expect("valid syntax registration");
+
+    // Register use_tool(tool_name) function for preprocessor compatibility
+    let state_clone2 = Arc::clone(&state);
+    let user_clone2 = user.clone();
+
+    engine.register_fn("use_tool", move |tool_path: &str| -> Dynamic {
+        let tool_path_str = tool_path.to_string();
+        trace!(
+            "use_tool function called: {} for session: {}",
+            tool_path_str,
+            user_clone2.id
+        );
+        let tool_name = tool_path_str
+            .strip_prefix(".gbdialog/")
+            .unwrap_or(&tool_path_str)
+            .strip_suffix(".bas")
+            .unwrap_or(&tool_path_str)
+            .to_string();
+        if tool_name.is_empty() {
+            return Dynamic::from("ERROR: Invalid tool name");
+        }
+        let state_for_task = Arc::clone(&state_clone2);
+        let user_for_task = user_clone2.clone();
+        let tool_name_for_task = tool_name;
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build();
+            let send_err = if let Ok(_rt) = rt {
+                let result = associate_tool_with_session(
+                    &state_for_task,
+                    &user_for_task,
+                    &tool_name_for_task,
+                );
+                tx.send(result).err()
+            } else {
+                tx.send(Err("Failed to build tokio runtime".to_string()))
+                    .err()
+            };
+            if send_err.is_some() {
+                error!("Failed to send result from thread");
+            }
+        });
+        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+            Ok(Ok(message)) => Dynamic::from(message),
+            Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                Dynamic::from("ERROR: use_tool timed out")
+            }
+            Err(e) => Dynamic::from(format!("ERROR: use_tool failed: {}", e)),
+        }
+    });
+
+    // Register USE_TOOL(tool_name) function (uppercase variant)
+    let state_clone3 = Arc::clone(&state);
+    let user_clone3 = user;
+
+    engine.register_fn("USE_TOOL", move |tool_path: &str| -> Dynamic {
+        let tool_path_str = tool_path.to_string();
+        trace!(
+            "USE_TOOL function called: {} for session: {}",
+            tool_path_str,
+            user_clone3.id
+        );
+        let tool_name = tool_path_str
+            .strip_prefix(".gbdialog/")
+            .unwrap_or(&tool_path_str)
+            .strip_suffix(".bas")
+            .unwrap_or(&tool_path_str)
+            .to_string();
+        if tool_name.is_empty() {
+            return Dynamic::from("ERROR: Invalid tool name");
+        }
+        let state_for_task = Arc::clone(&state_clone3);
+        let user_for_task = user_clone3.clone();
+        let tool_name_for_task = tool_name;
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build();
+            let send_err = if let Ok(_rt) = rt {
+                let result = associate_tool_with_session(
+                    &state_for_task,
+                    &user_for_task,
+                    &tool_name_for_task,
+                );
+                tx.send(result).err()
+            } else {
+                tx.send(Err("Failed to build tokio runtime".to_string()))
+                    .err()
+            };
+            if send_err.is_some() {
+                error!("Failed to send result from thread");
+            }
+        });
+        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+            Ok(Ok(message)) => Dynamic::from(message),
+            Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                Dynamic::from("ERROR: USE_TOOL timed out")
+            }
+            Err(e) => Dynamic::from(format!("ERROR: USE_TOOL failed: {}", e)),
+        }
+    });
 }
 fn associate_tool_with_session(
     state: &AppState,
     user: &UserSession,
     tool_name: &str,
 ) -> Result<String, String> {
-    use crate::shared::models::schema::{basic_tools, session_tool_associations};
-    let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
-    let tool_exists: Result<bool, diesel::result::Error> = basic_tools::table
-        .filter(basic_tools::bot_id.eq(user.bot_id.to_string()))
-        .filter(basic_tools::tool_name.eq(tool_name))
-        .filter(basic_tools::is_active.eq(1))
-        .select(diesel::dsl::count(basic_tools::id))
-        .first::<i64>(&mut *conn)
-        .map(|count| count > 0);
-    match tool_exists {
-        Ok(true) => {
-            trace!(
-                "Tool '{}' exists and is active for bot '{}'",
-                tool_name,
-                user.bot_id
-            );
-        }
-        Ok(false) => {
-            warn!(
-                "Tool '{}' does not exist or is not active for bot '{}'",
-                tool_name, user.bot_id
-            );
-            return Err(format!(
-                "Tool '{}' is not available. Make sure the tool file is compiled and active.",
-                tool_name
-            ));
-        }
-        Err(e) => {
-            error!("Failed to check tool existence: {}", e);
-            return Err(format!("Database error while checking tool: {}", e));
-        }
+    use crate::shared::models::schema::session_tool_associations;
+
+    // Check if tool's .mcp.json file exists in work directory
+    let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    let gb_dir = format!("{}/gb", home_dir);
+
+    // Get bot name to construct the path
+    let bot_name = get_bot_name_from_id(state, &user.bot_id)?;
+    let work_path = Path::new(&gb_dir)
+        .join("work")
+        .join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+    let mcp_path = work_path.join(format!("{}.mcp.json", tool_name));
+
+    trace!("Checking for tool .mcp.json at: {:?}", mcp_path);
+
+    if !mcp_path.exists() {
+        warn!(
+            "Tool '{}' .mcp.json file not found at {:?}",
+            tool_name, mcp_path
+        );
+        return Err(format!(
+            "Tool '{}' is not available. .mcp.json file not found.",
+            tool_name
+        ));
     }
+
+    info!(
+        "Tool '{}' .mcp.json found, proceeding with session association",
+        tool_name
+    );
+
+    let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
     let association_id = Uuid::new_v4().to_string();
     let session_id_str = user.id.to_string();
     let added_at = chrono::Utc::now().to_rfc3339();
@@ -185,4 +294,15 @@ pub fn clear_session_tools(
             .filter(session_tool_associations::session_id.eq(&session_id_str)),
     )
     .execute(conn)
+}
+
+fn get_bot_name_from_id(state: &AppState, bot_id: &uuid::Uuid) -> Result<String, String> {
+    use crate::shared::models::schema::bots;
+    let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+    let bot_name: String = bots::table
+        .filter(bots::id.eq(bot_id))
+        .select(bots::name)
+        .first(&mut *conn)
+        .map_err(|e| format!("Failed to get bot name for id {}: {}", bot_id, e))?;
+    Ok(bot_name)
 }

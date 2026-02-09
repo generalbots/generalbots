@@ -1399,6 +1399,7 @@ async fn main() -> std::io::Result<()> {
         .get_config(&default_bot_id, "llm-key", Some(""))
         .unwrap_or_default();
 
+    // LLM endpoint path configuration
     let llm_endpoint_path = config_manager
         .get_config(
             &default_bot_id,
@@ -1652,6 +1653,12 @@ async fn main() -> std::io::Result<()> {
             info!("Found {} active bots to monitor", bots_to_monitor.len());
 
             for (bot_id, bot_name) in bots_to_monitor {
+                // Skip default bot - it's managed locally via ConfigWatcher
+                if bot_name == "default" {
+                    info!("Skipping DriveMonitor for 'default' bot - managed via ConfigWatcher");
+                    continue;
+                }
+
                 let bucket_name = format!("{}.gbai", bot_name);
                 let monitor_state = drive_monitor_state.clone();
                 let bot_id_clone = bot_id;
@@ -1679,6 +1686,46 @@ async fn main() -> std::io::Result<()> {
                     );
                 });
             }
+        });
+    }
+
+    #[cfg(feature = "drive")]
+    {
+        // Start local file monitor for ~/data/*.gbai directories
+        let local_monitor_state = app_state.clone();
+        tokio::spawn(async move {
+            register_thread("local-file-monitor", "drive");
+            trace!("Starting LocalFileMonitor for ~/data/*.gbai directories");
+            let monitor = crate::drive::local_file_monitor::LocalFileMonitor::new(local_monitor_state);
+            if let Err(e) = monitor.start_monitoring().await {
+                error!("LocalFileMonitor failed: {}", e);
+            } else {
+                info!("LocalFileMonitor started - watching ~/data/*.gbai/.gbdialog/*.bas");
+            }
+        });
+    }
+
+    #[cfg(feature = "drive")]
+    {
+        // Start config file watcher for ~/data/*.gbai/*.gbot/config.csv
+        let config_watcher_state = app_state.clone();
+        tokio::spawn(async move {
+            register_thread("config-file-watcher", "drive");
+            trace!("Starting ConfigWatcher for ~/data/*.gbai/*.gbot/config.csv");
+
+            // Determine data directory
+            let data_dir = std::env::var("DATA_DIR")
+                .or_else(|_| std::env::var("HOME").map(|h| format!("{}/data", h)))
+                .unwrap_or_else(|_| "./botserver-stack/data".to_string());
+            let data_dir = std::path::PathBuf::from(data_dir);
+
+            let watcher = crate::core::config::watcher::ConfigWatcher::new(
+                data_dir,
+                config_watcher_state,
+            );
+            Arc::new(watcher).spawn();
+
+            info!("ConfigWatcher started - watching ~/data/*.gbai/*.gbot/config.csv");
         });
     }
 
