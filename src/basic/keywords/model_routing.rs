@@ -424,6 +424,7 @@ fn get_session_model_sync(
         preference_value: String,
     }
 
+    // 1. Check session preference first (set by USE MODEL)
     let result: Option<PrefValue> = diesel::sql_query(
         "SELECT preference_value FROM session_preferences \
          WHERE session_id = $1 AND preference_key = 'current_model' LIMIT 1",
@@ -433,9 +434,72 @@ fn get_session_model_sync(
     .optional()
     .map_err(|e| format!("Failed to get session model: {}", e))?;
 
-    Ok(result
-        .map(|r| r.preference_value)
-        .unwrap_or_else(|| "default".to_string()))
+    if let Some(pref) = result {
+        return Ok(pref.preference_value);
+    }
+
+    // 2. No session preference - get bot's configured model
+    // Need to get bot_id from session first
+    #[derive(QueryableByName)]
+    struct SessionBot {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        bot_id: Uuid,
+    }
+
+    let bot_result: Option<SessionBot> = diesel::sql_query(
+        "SELECT bot_id FROM sessions WHERE id = $1 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(session_id)
+    .get_result(conn)
+    .optional()
+    .map_err(|e| format!("Failed to get session bot: {}", e))?;
+
+    if let Some(session_bot) = bot_result {
+        let bot_id = session_bot.bot_id;
+
+        // Get bot's llm-model config
+        #[derive(QueryableByName)]
+        struct ConfigValue {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            config_value: String,
+        }
+
+        let bot_model: Option<ConfigValue> = diesel::sql_query(
+            "SELECT config_value FROM bot_configuration \
+             WHERE bot_id = $1 AND config_key = 'llm-model' LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .get_result(conn)
+        .optional()
+        .map_err(|e| format!("Failed to get bot model: {}", e))?;
+
+        if let Some(model) = bot_model {
+            if !model.config_value.is_empty() && model.config_value != "true" {
+                return Ok(model.config_value);
+            }
+        }
+
+        // 3. Bot has no model configured - fall back to default bot's model
+        let (default_bot_id, _) = crate::bot::get_default_bot(conn);
+
+        let default_model: Option<ConfigValue> = diesel::sql_query(
+            "SELECT config_value FROM bot_configuration \
+             WHERE bot_id = $1 AND config_key = 'llm-model' LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(default_bot_id)
+        .get_result(conn)
+        .optional()
+        .map_err(|e| format!("Failed to get default bot model: {}", e))?;
+
+        if let Some(model) = default_model {
+            if !model.config_value.is_empty() && model.config_value != "true" {
+                return Ok(model.config_value);
+            }
+        }
+    }
+
+    // 4. Ultimate fallback
+    Ok("llama-3.3:8b".to_string())
 }
 
 fn list_available_models_sync(

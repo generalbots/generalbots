@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 pub mod document_processing;
 pub mod drive_monitor;
+pub mod local_file_monitor;
 pub mod vectordb;
 
 #[derive(Debug, Serialize, Deserialize)]

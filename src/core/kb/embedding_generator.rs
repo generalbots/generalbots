@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
 
+use crate::shared::DbPool;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use super::document_processor::TextChunk;
 
@@ -50,17 +51,93 @@ impl Default for EmbeddingConfig {
 
 impl EmbeddingConfig {
     pub fn from_env() -> Self {
-        let embedding_url = "http://localhost:8082".to_string();
-        let embedding_model = "bge-small-en-v1.5".to_string();
-        let dimensions = Self::detect_dimensions(&embedding_model);
+        Self::default()
+    }
+
+    /// Load embedding config from bot's config.csv (similar to llm-url, llm-model)
+    /// This allows configuring embedding server per-bot in config.csv:
+    /// embedding-url,http://localhost:8082
+    /// embedding-model,bge-small-en-v1.5
+    /// embedding-dimensions,384
+    /// embedding-batch-size,16
+    /// embedding-timeout,60
+    pub fn from_bot_config(pool: &DbPool, bot_id: &uuid::Uuid) -> Self {
+        use crate::shared::models::schema::bot_configuration::dsl::*;
+        use diesel::prelude::*;
+
+        let embedding_url = match pool.get() {
+            Ok(mut conn) => bot_configuration
+                .filter(bot_id.eq(bot_id))
+                .filter(config_key.eq("embedding-url"))
+                .select(config_value)
+                .first::<String>(&mut conn)
+                .ok()
+                .filter(|s| !s.is_empty()),
+            Err(_) => None,
+        }.unwrap_or_else(|| "http://localhost:8082".to_string());
+
+        let embedding_model = match pool.get() {
+            Ok(mut conn) => bot_configuration
+                .filter(bot_id.eq(bot_id))
+                .filter(config_key.eq("embedding-model"))
+                .select(config_value)
+                .first::<String>(&mut conn)
+                .ok()
+                .filter(|s| !s.is_empty()),
+            Err(_) => None,
+        }.unwrap_or_else(|| "bge-small-en-v1.5".to_string());
+
+        let dimensions = match pool.get() {
+            Ok(mut conn) => bot_configuration
+                .filter(bot_id.eq(bot_id))
+                .filter(config_key.eq("embedding-dimensions"))
+                .select(config_value)
+                .first::<String>(&mut conn)
+                .ok()
+                .and_then(|v| v.parse().ok()),
+            Err(_) => None,
+        }.unwrap_or_else(|| Self::detect_dimensions(&embedding_model));
+
+        let batch_size = match pool.get() {
+            Ok(mut conn) => bot_configuration
+                .filter(bot_id.eq(bot_id))
+                .filter(config_key.eq("embedding-batch-size"))
+                .select(config_value)
+                .first::<String>(&mut conn)
+                .ok()
+                .and_then(|v| v.parse().ok()),
+            Err(_) => None,
+        }.unwrap_or(16);
+
+        let timeout_seconds = match pool.get() {
+            Ok(mut conn) => bot_configuration
+                .filter(bot_id.eq(bot_id))
+                .filter(config_key.eq("embedding-timeout"))
+                .select(config_value)
+                .first::<String>(&mut conn)
+                .ok()
+                .and_then(|v| v.parse().ok()),
+            Err(_) => None,
+        }.unwrap_or(60);
+
+        let max_concurrent_requests = match pool.get() {
+            Ok(mut conn) => bot_configuration
+                .filter(bot_id.eq(bot_id))
+                .filter(config_key.eq("embedding-concurrent"))
+                .select(config_value)
+                .first::<String>(&mut conn)
+                .ok()
+                .and_then(|v| v.parse().ok()),
+            Err(_) => None,
+        }.unwrap_or(1);
 
         Self {
             embedding_url,
             embedding_model,
             dimensions,
-            batch_size: 16,
-            timeout_seconds: 60,
-            max_concurrent_requests: 1,
+            batch_size,
+            timeout_seconds,
+            max_concurrent_requests,
             connect_timeout_seconds: 10,
         }
     }

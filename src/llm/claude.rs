@@ -583,6 +583,7 @@ impl ClaudeClient {
         tx: mpsc::Sender<String>,
         model: &str,
         key: &str,
+        _tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let model_name = if model.is_empty() {
             &self.deployment_name
@@ -686,6 +687,7 @@ impl LLMProvider for ClaudeClient {
         tx: mpsc::Sender<String>,
         model: &str,
         key: &str,
+        _tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut last_error: Option<Box<dyn std::error::Error + Send + Sync>> = None;
 
@@ -700,7 +702,7 @@ impl LLMProvider for ClaudeClient {
             }
 
             match self
-                .stream_single_attempt(prompt, messages, tx.clone(), model, key)
+                .stream_single_attempt(prompt, messages, tx.clone(), model, key, _tools)
                 .await
             {
                 Ok(()) => {

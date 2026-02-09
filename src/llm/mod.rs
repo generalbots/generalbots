@@ -8,11 +8,13 @@ use tokio::sync::{mpsc, RwLock};
 pub mod cache;
 pub mod claude;
 pub mod episodic_memory;
+pub mod glm;
 pub mod llm_models;
 pub mod local;
 pub mod smart_router;
 
 pub use claude::ClaudeClient;
+pub use glm::GLMClient;
 pub use llm_models::get_handler;
 
 #[async_trait]
@@ -32,6 +34,7 @@ pub trait LLMProvider: Send + Sync {
         tx: mpsc::Sender<String>,
         model: &str,
         key: &str,
+        tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
     async fn cancel_job(
@@ -150,10 +153,21 @@ impl OpenAIClient {
         }
     }
     pub fn new(_api_key: String, base_url: Option<String>, endpoint_path: Option<String>) -> Self {
+        let base = base_url.unwrap_or_else(|| "https://api.openai.com".to_string());
+
+        // For z.ai API, use different endpoint path
+        let endpoint = if endpoint_path.is_some() {
+            endpoint_path.unwrap()
+        } else if base.contains("z.ai") || base.contains("/v4") {
+            "/chat/completions".to_string()  // z.ai uses /chat/completions, not /v1/chat/completions
+        } else {
+            "/v1/chat/completions".to_string()
+        };
+
         Self {
             client: reqwest::Client::new(),
-            base_url: base_url.unwrap_or_else(|| "https://api.openai.com".to_string()),
-            endpoint_path: endpoint_path.unwrap_or_else(|| "/v1/chat/completions".to_string()),
+            base_url: base,
+            endpoint_path: endpoint,
         }
     }
 
@@ -234,6 +248,7 @@ impl LLMProvider for OpenAIClient {
         info!("  API Key First 8 chars: '{}...'", &key.chars().take(8).collect::<String>());
         info!("  API Key Last 8 chars: '...{}'", &key.chars().rev().take(8).collect::<String>());
 
+        // Build the request body (no tools for non-streaming generate)
         let response = self
             .client
             .post(&full_url)
@@ -241,7 +256,7 @@ impl LLMProvider for OpenAIClient {
             .json(&serde_json::json!({
                 "model": model,
                 "messages": messages,
-                "stream": true
+                "stream": false
             }))
             .send()
             .await?;
@@ -271,6 +286,7 @@ impl LLMProvider for OpenAIClient {
         tx: mpsc::Sender<String>,
         model: &str,
         key: &str,
+        tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
 
@@ -310,16 +326,30 @@ impl LLMProvider for OpenAIClient {
         if let Some(msg_array) = messages.as_array() {
             info!("  Messages: {} messages", msg_array.len());
         }
+        if let Some(tools) = tools {
+            info!("  Tools: {} tools provided", tools.len());
+        }
+
+        // Build the request body - include tools if provided
+        let mut request_body = serde_json::json!({
+            "model": model,
+            "messages": messages,
+            "stream": true
+        });
+
+        // Add tools to the request if provided
+        if let Some(tools_value) = tools {
+            if !tools_value.is_empty() {
+                request_body["tools"] = serde_json::json!(tools_value);
+                info!("Added {} tools to LLM request", tools_value.len());
+            }
+        }
 
         let response = self
             .client
             .post(&full_url)
             .header("Authorization", &auth_header)
-            .json(&serde_json::json!({
-                "model": model,
-                "messages": messages,
-                "stream": true
-            }))
+            .json(&request_body)
             .send()
             .await?;
 
@@ -371,6 +401,7 @@ pub enum LLMProviderType {
     OpenAI,
     Claude,
     AzureClaude,
+    GLM,
 }
 
 impl From<&str> for LLMProviderType {
@@ -382,6 +413,8 @@ impl From<&str> for LLMProviderType {
             } else {
                 Self::Claude
             }
+        } else if lower.contains("z.ai") || lower.contains("glm") {
+            Self::GLM
         } else {
             Self::OpenAI
         }
@@ -414,6 +447,10 @@ pub fn create_llm_provider(
                 base_url, deployment
             );
             std::sync::Arc::new(ClaudeClient::azure(base_url, deployment))
+        }
+        LLMProviderType::GLM => {
+            info!("Creating GLM/z.ai LLM provider with URL: {}", base_url);
+            std::sync::Arc::new(GLMClient::new(base_url))
         }
     }
 }
@@ -481,10 +518,11 @@ impl LLMProvider for DynamicLLMProvider {
         tx: mpsc::Sender<String>,
         model: &str,
         key: &str,
+        tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         self.get_provider()
             .await
-            .generate_stream(prompt, config, tx, model, key)
+            .generate_stream(prompt, config, tx, model, key, tools)
             .await
     }
 
