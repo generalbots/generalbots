@@ -82,8 +82,25 @@ fn format_impl(value: Dynamic, pattern: String) -> Result<String, String> {
 
 pub fn format_keyword(engine: &mut Engine) {
     // Register FORMAT as a regular function with two parameters
-    engine.register_fn("FORMAT", format_impl);
-    engine.register_fn("format", format_impl);
+    // Wrap format_impl to unwrap Result before returning to Rhai
+    engine.register_fn("FORMAT", |value: Dynamic, pattern: String| -> String {
+        match format_impl(value, pattern) {
+            Ok(result) => result,
+            Err(e) => {
+                log::error!("FORMAT error: {}", e);
+                String::new()
+            }
+        }
+    });
+    engine.register_fn("format", |value: Dynamic, pattern: String| -> String {
+        match format_impl(value, pattern) {
+            Ok(result) => result,
+            Err(e) => {
+                log::error!("format error: {}", e);
+                String::new()
+            }
+        }
+    });
 }
 fn parse_pattern(pattern: &str) -> (String, usize, String) {
     let mut prefix = String::new();
