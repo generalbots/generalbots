@@ -257,6 +257,69 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
             },
         )
         .expect("valid syntax registration");
+
+    // Register send_mail as a regular function (for function call style: send_mail(to, subject, body, []))
+    let state_fn = Arc::clone(&state);
+    let user_fn = user.clone();
+    engine.register_fn("send_mail", move |to: Dynamic, subject: Dynamic, body: Dynamic, attachments: Dynamic| -> String {
+        // Convert parameters to strings
+        let to_str = to.to_string();
+        let subject_str = subject.to_string();
+        // Convert body to string
+        let body_str = body.to_string();
+        // Convert body to string
+        let body_str = body.to_string();
+
+        // Convert attachments to Vec<String>
+        let mut atts = Vec::new();
+        if attachments.is_array() {
+            if let Ok(arr) = attachments.cast::<rhai::Array>() {
+                for item in arr.iter() {
+                    atts.push(item.to_string());
+                }
+            }
+        } else if !attachments.to_string().is_empty() {
+            atts.push(attachments.to_string());
+        }
+
+        // Execute in blocking thread
+        let (tx, rx) = std::sync::mpsc::channel();
+        let state_for_task = Arc::clone(&state_fn);
+        let user_for_task = user_fn.clone();
+
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build();
+
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async move {
+                    execute_send_mail(&state_for_task, &user_for_task, &to_str, &subject_str, &body_str, atts, None).await
+                })
+            } else {
+                Err("Failed to build tokio runtime".to_string())
+            };
+
+            let _ = tx.send(result);
+        });
+
+        match rx.recv_timeout(std::time::Duration::from_secs(30)) {
+            Ok(Ok(message_id)) => message_id,
+            Ok(Err(e)) => {
+                log::error!("send_mail failed: {}", e);
+                String::new()
+            },
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                log::error!("send_mail timed out");
+                String::new()
+            },
+            Err(e) => {
+                log::error!("send_mail thread failed: {}", e);
+                String::new()
+            },
+        }
+    });
 }
 
 async fn execute_send_mail(

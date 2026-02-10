@@ -1,6 +1,6 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{error, trace};
+use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
@@ -64,9 +64,14 @@ pub fn add_suggestion_keyword(
     let cache = state.cache.clone();
     let cache2 = state.cache.clone();
     let cache3 = state.cache.clone();
+    let cache4 = state.cache.clone();
+    let cache5 = state.cache.clone();
     let user_session2 = user_session.clone();
     let user_session3 = user_session.clone();
+    let user_session4 = user_session.clone();
+    let user_session5 = user_session.clone();
 
+    // ADD SUGGESTION "context_name" AS "button text"
     engine
         .register_custom_syntax(
             ["ADD", "SUGGESTION", "$expr$", "AS", "$expr$"],
@@ -76,6 +81,45 @@ pub fn add_suggestion_keyword(
                 let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
 
                 add_context_suggestion(cache.as_ref(), &user_session, &context_name, &button_text)?;
+
+                Ok(Dynamic::UNIT)
+            },
+        )
+        .expect("valid syntax registration");
+
+    // ADD SUGGESTION TEXT "$expr$" AS "button text"
+    // Creates a suggestion that sends the text as a user message when clicked
+    engine
+        .register_custom_syntax(
+            ["ADD", "SUGGESTION", "TEXT", "$expr$", "AS", "$expr$"],
+            true,
+            move |context, inputs| {
+                let text_value = context.eval_expression_tree(&inputs[0])?.to_string();
+                let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
+
+                add_text_suggestion(cache4.as_ref(), &user_session4, &text_value, &button_text)?;
+
+                Ok(Dynamic::UNIT)
+            },
+        )
+        .expect("valid syntax registration");
+
+    // ADD_SUGGESTION_TOOL "tool_name" AS "button text" - underscore version to avoid syntax conflicts
+    engine
+        .register_custom_syntax(
+            ["ADD_SUGGESTION_TOOL", "$expr$", "AS", "$expr$"],
+            true,
+            move |context, inputs| {
+                let tool_name = context.eval_expression_tree(&inputs[0])?.to_string();
+                let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
+
+                add_tool_suggestion(
+                    cache5.as_ref(),
+                    &user_session5,
+                    &tool_name,
+                    None,
+                    &button_text,
+                )?;
 
                 Ok(Dynamic::UNIT)
             },
@@ -210,27 +254,22 @@ fn add_context_suggestion(
     Ok(())
 }
 
-fn add_tool_suggestion(
+fn add_text_suggestion(
     cache: Option<&Arc<redis::Client>>,
     user_session: &UserSession,
-    tool_name: &str,
-    params: Option<Vec<String>>,
+    text_value: &str,
     button_text: &str,
 ) -> Result<(), Box<rhai::EvalAltResult>> {
     if let Some(cache_client) = cache {
         let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
 
         let suggestion = json!({
-            "type": "tool",
-            "tool": tool_name,
+            "type": "text_value",
             "text": button_text,
+            "value": text_value,
             "action": {
-                "type": "invoke_tool",
-                "tool": tool_name,
-                "params": params,
-
-
-                "prompt_for_params": params.is_none()
+                "type": "send_message",
+                "message": text_value
             }
         });
 
@@ -250,11 +289,65 @@ fn add_tool_suggestion(
         match result {
             Ok(length) => {
                 trace!(
-                    "Added tool suggestion '{}' to session {}, total: {}, has_params: {}",
+                    "Added text suggestion '{}' to session {}, total: {}",
+                    text_value,
+                    user_session.id,
+                    length
+                );
+            }
+            Err(e) => error!("Failed to add text suggestion to Redis: {}", e),
+        }
+    } else {
+        trace!("No cache configured, text suggestion not added");
+    }
+
+    Ok(())
+}
+
+fn add_tool_suggestion(
+    cache: Option<&Arc<redis::Client>>,
+    user_session: &UserSession,
+    tool_name: &str,
+    params: Option<Vec<String>>,
+    button_text: &str,
+) -> Result<(), Box<rhai::EvalAltResult>> {
+    if let Some(cache_client) = cache {
+        let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
+
+        // Create action object and serialize it to JSON string
+        let action_obj = json!({
+            "type": "invoke_tool",
+            "tool": tool_name,
+            "params": params,
+            "prompt_for_params": params.is_none()
+        });
+        let action_str = action_obj.to_string();
+
+        let suggestion = json!({
+            "text": button_text,
+            "action": action_str
+        });
+
+        let mut conn = match cache_client.get_connection() {
+            Ok(conn) => conn,
+            Err(e) => {
+                error!("Failed to connect to cache: {}", e);
+                return Ok(());
+            }
+        };
+
+        let result: Result<i64, redis::RedisError> = redis::cmd("RPUSH")
+            .arg(&redis_key)
+            .arg(suggestion.to_string())
+            .query(&mut conn);
+
+        match result {
+            Ok(length) => {
+                info!(
+                    "Added tool suggestion '{}' to session {}, total: {}",
                     tool_name,
                     user_session.id,
-                    length,
-                    params.is_some()
+                    length
                 );
             }
             Err(e) => error!("Failed to add tool suggestion to Redis: {}", e),
@@ -264,6 +357,74 @@ fn add_tool_suggestion(
     }
 
     Ok(())
+}
+
+/// Retrieve suggestions from Valkey/Redis for a given user session
+/// Returns a vector of Suggestion structs that can be included in BotResponse
+/// Note: This function clears suggestions from Redis after fetching them to prevent duplicates
+pub fn get_suggestions(
+    cache: Option<&Arc<redis::Client>>,
+    user_id: &str,
+    session_id: &str,
+) -> Vec<crate::shared::models::Suggestion> {
+    let mut suggestions = Vec::new();
+
+    if let Some(cache_client) = cache {
+        let redis_key = format!("suggestions:{}:{}", user_id, session_id);
+
+        let mut conn = match cache_client.get_connection() {
+            Ok(conn) => conn,
+            Err(e) => {
+                error!("Failed to connect to cache: {}", e);
+                return suggestions;
+            }
+        };
+
+        // Get all suggestions from the Redis list
+        let result: Result<Vec<String>, redis::RedisError> = redis::cmd("LRANGE")
+            .arg(&redis_key)
+            .arg(0)
+            .arg(-1)
+            .query(&mut conn);
+
+        match result {
+            Ok(items) => {
+                for item in items {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&item) {
+                        let suggestion = crate::shared::models::Suggestion {
+                            text: json["text"].as_str().unwrap_or("").to_string(),
+                            context: json["context"].as_str().map(|s| s.to_string()),
+                            action: json.get("action").and_then(|v| serde_json::to_string(v).ok()),
+                            icon: json.get("icon").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                        };
+                        suggestions.push(suggestion);
+                    }
+                }
+                info!(
+                    "[SUGGESTIONS] Retrieved {} suggestions for session {}",
+                    suggestions.len(),
+                    session_id
+                );
+
+                // Clear suggestions from Redis after fetching to prevent them from being sent again
+                if !suggestions.is_empty() {
+                    let _: Result<i64, redis::RedisError> = redis::cmd("DEL")
+                        .arg(&redis_key)
+                        .query(&mut conn);
+                    info!(
+                        "[SUGGESTIONS] Cleared {} suggestions from Redis for session {}",
+                        suggestions.len(),
+                        session_id
+                    );
+                }
+            }
+            Err(e) => error!("Failed to get suggestions from Redis: {}", e),
+        }
+    } else {
+        info!("[SUGGESTIONS] No cache configured, cannot retrieve suggestions");
+    }
+
+    suggestions
 }
 
 #[cfg(test)]

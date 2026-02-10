@@ -248,36 +248,56 @@ fn parse_field_definition(
         return Err("Empty field definition".into());
     }
 
-    let field_name = parts[0].to_string();
-    let mut field_type = String::new();
+    // Handle FIELD keyword: "FIELD id AS STRING" -> ["FIELD", "id", "AS", "STRING"]
+    // Skip "FIELD" keyword if present
+    let start_idx = if parts[0].eq_ignore_ascii_case("FIELD") { 1 } else { 0 };
+    let as_idx = parts.iter().position(|p| p.eq_ignore_ascii_case("AS"));
+
+    if parts.len() < start_idx + 1 {
+        return Err("Invalid field definition - missing field name".into());
+    }
+
+    let field_name = parts[start_idx].to_string();
+
+    // Parse type from "AS type" or use default if no AS keyword
+    let mut field_type = if let Some(as_idx) = as_idx {
+        if as_idx + 1 < parts.len() {
+            parts[as_idx + 1].to_lowercase()
+        } else {
+            "text".to_string()
+        }
+    } else if parts.len() > start_idx + 1 {
+        parts[start_idx + 1].to_lowercase()
+    } else {
+        "text".to_string()
+    };
+
+    // Handle type parameters like STRING(255)
     let mut length: Option<i32> = None;
     let mut precision: Option<i32> = None;
+    if let Some(paren_start) = field_type.find('(') {
+        let base_type = field_type[..paren_start].to_lowercase();
+        let params = &field_type[paren_start + 1..field_type.len() - 1];
+        let param_parts: Vec<&str> = params.split(',').collect();
+
+        if !param_parts.is_empty() {
+            length = param_parts[0].trim().parse().ok();
+        }
+        if param_parts.len() > 1 {
+            precision = param_parts[1].trim().parse().ok();
+        }
+        field_type = base_type;
+    }
+
     let mut is_key = false;
     let mut reference_table: Option<String> = None;
 
-    if parts.len() >= 2 {
-        let type_part = parts[1];
-
-        if let Some(paren_start) = type_part.find('(') {
-            field_type = type_part[..paren_start].to_lowercase();
-            let params = &type_part[paren_start + 1..type_part.len() - 1];
-            let param_parts: Vec<&str> = params.split(',').collect();
-
-            if !param_parts.is_empty() {
-                length = param_parts[0].trim().parse().ok();
-            }
-            if param_parts.len() > 1 {
-                precision = param_parts[1].trim().parse().ok();
-            }
-        } else {
-            field_type = type_part.to_lowercase();
-        }
-    }
-
-    for i in 2..parts.len() {
+    // Process remaining parts for KEY and REFERENCES keywords
+    for i in (start_idx + 1)..parts.len() {
         let part = parts[i].to_lowercase();
         match part.as_str() {
             "key" => is_key = true,
+            "as" => {}  // Skip AS keyword - already handled above
             _ if parts
                 .get(i - 1)
                 .map(|p| p.eq_ignore_ascii_case("references"))
@@ -619,14 +639,20 @@ pub fn process_table_definitions(
             table.name, table.connection_name
         );
 
-        store_table_definition(&mut conn, bot_id, table)?;
+        // No need to store table definition - just create the table in the bot's database
 
         if table.connection_name == "default" {
             let create_sql = generate_create_table_sql(table, "postgres");
-            info!("Creating table {} on default connection", table.name);
+            info!("Creating table {} in bot's database (bot_id={})", table.name, bot_id);
             trace!("SQL: {}", create_sql);
 
-            sql_query(&create_sql).execute(&mut conn)?;
+            // Create table in the bot's own database using BotDatabaseManager
+            if let Err(e) = state.bot_database_manager.create_table_in_bot_database(bot_id, &create_sql) {
+                error!("Failed to create table {} in bot database: {}", table.name, e);
+                // Continue with other tables even if this one fails
+            } else {
+                info!("Successfully created table {} in bot database", table.name);
+            }
         } else {
             match load_connection_config(&state, bot_id, &table.connection_name) {
                 Ok(ext_conn) => {

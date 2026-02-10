@@ -165,6 +165,9 @@ impl ScriptService {
         #[cfg(feature = "chat")]
         register_bot_keywords(&state, &user, &mut engine);
 
+        // ===== PROCEDURE KEYWORDS (RETURN, etc.) =====
+        keywords::procedures::register_procedure_keywords(state.clone(), user.clone(), &mut engine);
+
         // ===== WORKFLOW ORCHESTRATION KEYWORDS =====
         keywords::orchestration::register_orchestrate_workflow(state.clone(), user.clone(), &mut engine);
         keywords::orchestration::register_step_keyword(state.clone(), user.clone(), &mut engine);
@@ -561,8 +564,266 @@ impl ScriptService {
             Err(parse_error) => Err(Box::new(parse_error.into())),
         }
     }
+
+    /// Compile a tool script (.bas file with PARAM/DESCRIPTION metadata lines)
+    /// Filters out tool metadata before compiling
+    pub fn compile_tool_script(&self, script: &str) -> Result<rhai::AST, Box<EvalAltResult>> {
+        // Filter out PARAM, DESCRIPTION, comment, and empty lines (tool metadata)
+        let executable_script: String = script
+            .lines()
+            .filter(|line| {
+                let trimmed = line.trim();
+                // Keep lines that are NOT PARAM, DESCRIPTION, comments, or empty
+                !(trimmed.starts_with("PARAM ") ||
+                  trimmed.starts_with("PARAM\t") ||
+                  trimmed.starts_with("DESCRIPTION ") ||
+                  trimmed.starts_with("DESCRIPTION\t") ||
+                  trimmed.starts_with('\'') || // BASIC comment lines
+                  trimmed.is_empty())
+            })
+            .collect::<Vec<&str>>()
+            .join("\n");
+
+        info!("[TOOL] Filtered tool metadata: {} -> {} chars", script.len(), executable_script.len());
+
+        // Apply minimal preprocessing for tools (skip variable normalization to avoid breaking multi-line strings)
+        let script = preprocess_switch(&executable_script);
+        let script = Self::convert_multiword_keywords(&script);
+        // Skip normalize_variables_to_lowercase for tools - it breaks multi-line strings
+        // Note: FORMAT is registered as a regular function, so FORMAT(expr, pattern) works directly
+
+        info!("[TOOL] Preprocessed tool script for Rhai compilation");
+        // Convert IF ... THEN / END IF to if ... { }
+        let script = Self::convert_if_then_syntax(&script);
+        // Convert BASIC keywords to lowercase (but preserve variable casing)
+        let script = Self::convert_keywords_to_lowercase(&script);
+        // Save to file for debugging
+        if let Err(e) = std::fs::write("/tmp/tool_preprocessed.bas", &script) {
+            log::warn!("Failed to write preprocessed script: {}", e);
+        }
+        match self.engine.compile(&script) {
+            Ok(ast) => Ok(ast),
+            Err(parse_error) => Err(Box::new(parse_error.into())),
+        }
+    }
     pub fn run(&mut self, ast: &rhai::AST) -> Result<Dynamic, Box<EvalAltResult>> {
         self.engine.eval_ast_with_scope(&mut self.scope, ast)
+    }
+
+    /// Set a variable in the script scope (for tool parameters)
+    pub fn set_variable(&mut self, name: &str, value: &str) -> Result<(), Box<dyn std::error::Error>> {
+        use rhai::Dynamic;
+        self.scope.set_or_push(name, Dynamic::from(value.to_string()));
+        Ok(())
+    }
+
+    /// Convert FORMAT(expr, pattern) to FORMAT expr pattern (custom syntax format)
+    /// Also handles RANDOM and other functions that need space-separated arguments
+    fn convert_format_syntax(script: &str) -> String {
+        use regex::Regex;
+        let mut result = script.to_string();
+
+        // First, process RANDOM to ensure commas are preserved
+        // RANDOM(min, max) stays as RANDOM(min, max) - no conversion needed
+
+        // Convert FORMAT(expr, pattern) → FORMAT expr pattern
+        // Need to handle nested functions carefully
+        // Match FORMAT( ... ) but don't include inner function parentheses
+        // This regex matches FORMAT followed by parentheses containing two comma-separated expressions
+        if let Ok(re) = Regex::new(r"(?i)FORMAT\s*\(([^()]+(?:\([^()]*\)[^()]*)*),([^)]+)\)") {
+            result = re.replace_all(&result, "FORMAT $1$2").to_string();
+        }
+
+        result
+    }
+
+    /// Convert BASIC IF ... THEN / END IF syntax to Rhai's if ... { } syntax
+    fn convert_if_then_syntax(script: &str) -> String {
+        let mut result = String::new();
+        let mut if_stack: Vec<bool> = Vec::new(); // Track if we're inside an IF block
+        let mut in_with_block = false; // Track if we're inside a WITH block
+        let mut line_buffer = String::new();
+
+        log::info!("[TOOL] Converting IF/THEN syntax, input has {} lines", script.lines().count());
+
+        for line in script.lines() {
+            let trimmed = line.trim();
+            let upper = trimmed.to_uppercase();
+
+            // Skip empty lines and comments
+            if trimmed.is_empty() || trimmed.starts_with('\'') || trimmed.starts_with("//") {
+                continue;
+            }
+
+            // Handle IF ... THEN
+            if upper.starts_with("IF ") && upper.contains(" THEN") {
+                let then_pos = upper.find(" THEN").unwrap();
+                let condition = &trimmed[3..then_pos].trim();
+                log::info!("[TOOL] Converting IF statement: condition='{}'", condition);
+                result.push_str("if ");
+                result.push_str(condition);
+                result.push_str(" {\n");
+                if_stack.push(true);
+                continue;
+            }
+
+            // Handle ELSE
+            if upper == "ELSE" {
+                log::info!("[TOOL] Converting ELSE statement");
+                result.push_str("} else {\n");
+                continue;
+            }
+
+            // Handle END IF
+            if upper == "END IF" {
+                log::info!("[TOOL] Converting END IF statement");
+                if let Some(_) = if_stack.pop() {
+                    result.push_str("}\n");
+                }
+                continue;
+            }
+
+            // Handle WITH ... END WITH (BASIC object creation)
+            if upper.starts_with("WITH ") {
+                let object_name = &trimmed[5..].trim();
+                log::info!("[TOOL] Converting WITH statement: object='{}'", object_name);
+                // Convert WITH obj → let obj = #{  (start object literal)
+                result.push_str("let ");
+                result.push_str(object_name);
+                result.push_str(" = #{\n");
+                in_with_block = true;
+                continue;
+            }
+
+            if upper == "END WITH" {
+                log::info!("[TOOL] Converting END WITH statement");
+                result.push_str("};\n");
+                in_with_block = false;
+                continue;
+            }
+
+            // Inside a WITH block - convert property assignments (key = value → key: value)
+            if in_with_block {
+                // Check if this is a property assignment (identifier = value)
+                if trimmed.contains('=') && !trimmed.contains("==") && !trimmed.contains("!=") && !trimmed.contains("+=") && !trimmed.contains("-=") {
+                    // Convert assignment to object property syntax
+                    let parts: Vec<&str> = trimmed.splitn(2, '=').collect();
+                    if parts.len() == 2 {
+                        let property_name = parts[0].trim();
+                        let property_value = parts[1].trim();
+                        // Remove trailing semicolon if present
+                        let property_value = property_value.trim_end_matches(';');
+                        result.push_str(&format!("    {}: {},\n", property_name, property_value));
+                        continue;
+                    }
+                }
+                // Regular line in WITH block - add indentation
+                result.push_str("    ");
+            }
+
+            // Handle SAVE table, object → INSERT table, object
+            // BASIC SAVE uses 2 parameters but Rhai SAVE needs 3
+            // INSERT uses 2 parameters which matches the BASIC syntax
+            if upper.starts_with("SAVE") && upper.contains(',') {
+                log::info!("[TOOL] Processing SAVE line: '{}'", trimmed);
+                // Extract table and object name
+                let after_save = &trimmed[4..].trim(); // Skip "SAVE"
+                let parts: Vec<&str> = after_save.split(',').collect();
+                log::info!("[TOOL] SAVE parts: {:?}", parts);
+                if parts.len() == 2 {
+                    let table = parts[0].trim().trim_matches('"');
+                    let object_name = parts[1].trim().trim_end_matches(';');
+                    // Convert to INSERT table, object
+                    let converted = format!("INSERT \"{}\", {};\n", table, object_name);
+                    log::info!("[TOOL] Converted SAVE to INSERT: '{}'", converted);
+                    result.push_str(&converted);
+                    continue;
+                }
+            }
+
+            // Handle SEND EMAIL → send_mail (function call style)
+            // Syntax: SEND EMAIL to, subject, body → send_mail(to, subject, body, [])
+            if upper.starts_with("SEND EMAIL") {
+                log::info!("[TOOL] Processing SEND EMAIL line: '{}'", trimmed);
+                let after_send = &trimmed[11..].trim(); // Skip "SEND EMAIL " (10 chars + space = 11)
+                let parts: Vec<&str> = after_send.split(',').collect();
+                log::info!("[TOOL] SEND EMAIL parts: {:?}", parts);
+                if parts.len() == 3 {
+                    let to = parts[0].trim();
+                    let subject = parts[1].trim();
+                    let body = parts[2].trim().trim_end_matches(';');
+                    // Convert to send_mail(to, subject, body, []) function call
+                    let converted = format!("send_mail({}, {}, {}, []);\n", to, subject, body);
+                    log::info!("[TOOL] Converted SEND EMAIL to: '{}'", converted);
+                    result.push_str(&converted);
+                    continue;
+                }
+            }
+
+            // Regular line - add indentation if inside IF block
+            if !if_stack.is_empty() {
+                result.push_str("    ");
+            }
+
+            // Check if line is a simple statement (not containing THEN or other control flow)
+            if !upper.starts_with("IF ") && !upper.starts_with("ELSE") && !upper.starts_with("END IF") {
+                // Check if this is a variable assignment (identifier = expression)
+                // Pattern: starts with letter/underscore, contains = but not ==, !=, <=, >=, +=, -=
+                let is_var_assignment = trimmed.chars().next().map_or(false, |c| c.is_alphabetic() || c == '_')
+                    && trimmed.contains('=')
+                    && !trimmed.contains("==")
+                    && !trimmed.contains("!=")
+                    && !trimmed.contains("<=")
+                    && !trimmed.contains(">=")
+                    && !trimmed.contains("+=")
+                    && !trimmed.contains("-=")
+                    && !trimmed.contains("*=")
+                    && !trimmed.contains("/=");
+
+                if is_var_assignment {
+                    // Add 'let' for variable declarations
+                    result.push_str("let ");
+                }
+                result.push_str(trimmed);
+                // Add semicolon if line doesn't have one and doesn't end with { or }
+                if !trimmed.ends_with(';') && !trimmed.ends_with('{') && !trimmed.ends_with('}') {
+                    result.push(';');
+                }
+                result.push('\n');
+            } else {
+                result.push_str(trimmed);
+                result.push('\n');
+            }
+        }
+
+        log::info!("[TOOL] IF/THEN conversion complete, output has {} lines", result.lines().count());
+        result
+    }
+
+    /// Convert BASIC keywords to lowercase without touching variables
+    /// This is a simplified version of normalize_variables_to_lowercase for tools
+    fn convert_keywords_to_lowercase(script: &str) -> String {
+        let keywords = [
+            "IF", "THEN", "ELSE", "END IF", "FOR", "NEXT", "WHILE", "WEND",
+            "DO", "LOOP", "RETURN", "EXIT", "SELECT", "CASE", "END SELECT",
+            "WITH", "END WITH", "AND", "OR", "NOT", "MOD",
+            "DIM", "AS", "NEW", "FUNCTION", "SUB", "CALL",
+        ];
+
+        let mut result = String::new();
+        for line in script.lines() {
+            let mut processed_line = line.to_string();
+            for keyword in &keywords {
+                // Use word boundaries to avoid replacing parts of variable names
+                let pattern = format!(r"\b{}\b", regex::escape(keyword));
+                if let Ok(re) = regex::Regex::new(&pattern) {
+                    processed_line = re.replace_all(&processed_line, keyword.to_lowercase()).to_string();
+                }
+            }
+            result.push_str(&processed_line);
+            result.push('\n');
+        }
+        result
     }
 
     fn normalize_variables_to_lowercase(script: &str) -> String {
@@ -809,6 +1070,19 @@ impl ScriptService {
                 continue;
             }
 
+            // Skip lines with custom syntax that should not be lowercased
+            // These are registered directly with Rhai in uppercase
+            let trimmed_upper = trimmed.to_uppercase();
+            if trimmed_upper.contains("ADD_SUGGESTION_TOOL") ||
+               trimmed_upper.contains("ADD_SUGGESTION_TEXT") ||
+               trimmed_upper.starts_with("ADD_SUGGESTION_") ||
+               trimmed_upper.starts_with("ADD_MEMBER") {
+                // Keep original line as-is
+                result.push_str(line);
+                result.push('\n');
+                continue;
+            }
+
             let mut processed_line = String::new();
             let mut chars = line.chars().peekable();
             let mut in_string = false;
@@ -889,8 +1163,10 @@ impl ScriptService {
             (r#"CLEAR\s+TOOLS"#, 0, 0, vec![]),
             (r#"CLEAR\s+WEBSITES"#, 0, 0, vec![]),
 
-            // ADD family
-            (r#"ADD\s+SUGGESTION"#, 2, 2, vec!["title", "text"]),
+            // ADD family - ADD_SUGGESTION_TOOL must come before ADD\s+SUGGESTION
+            (r#"ADD_SUGGESTION_TOOL"#, 2, 2, vec!["tool", "text"]),
+            (r#"ADD\s+SUGGESTION\s+TEXT"#, 2, 2, vec!["value", "text"]),
+            (r#"ADD\s+SUGGESTION(?!\s*TEXT|\s*TOOL|_TOOL)"#, 2, 2, vec!["context", "text"]),
             (r#"ADD\s+MEMBER"#, 2, 2, vec!["name", "role"]),
 
             // CREATE family
@@ -915,6 +1191,23 @@ impl ScriptService {
         for line in script.lines() {
             let trimmed = line.trim();
             let mut converted = false;
+
+            // Skip lines that already use underscore-style custom syntax
+            // These are registered directly with Rhai and should not be converted
+            let trimmed_upper = trimmed.to_uppercase();
+            if trimmed_upper.contains("ADD_SUGGESTION_TOOL") ||
+               trimmed_upper.contains("ADD_SUGGESTION_TEXT") ||
+               trimmed_upper.starts_with("ADD_SUGGESTION_") ||
+               trimmed_upper.starts_with("ADD_MEMBER") ||
+               (trimmed_upper.starts_with("USE_") && trimmed.contains('(')) {
+                // Keep original line and add semicolon if needed
+                result.push_str(line);
+                if !trimmed.ends_with(';') && !trimmed.ends_with('{') && !trimmed.ends_with('}') {
+                    result.push(';');
+                }
+                result.push('\n');
+                continue;
+            }
 
             // Try each pattern
             for (pattern, min_params, max_params, _param_names) in &multiword_patterns {

@@ -198,6 +198,7 @@ pub fn get_all_keywords() -> Vec<String> {
         "SEND TEMPLATE".to_string(),
         "SMS".to_string(),
         "ADD SUGGESTION".to_string(),
+        "ADD_SUGGESTION_TOOL".to_string(),
         "CLEAR SUGGESTIONS".to_string(),
         "ADD TOOL".to_string(),
         "CLEAR TOOLS".to_string(),

@@ -11,11 +11,13 @@ pub mod episodic_memory;
 pub mod glm;
 pub mod llm_models;
 pub mod local;
+pub mod rate_limiter;
 pub mod smart_router;
 
 pub use claude::ClaudeClient;
 pub use glm::GLMClient;
 pub use llm_models::get_handler;
+pub use rate_limiter::{ApiRateLimiter, RateLimits};
 
 #[async_trait]
 pub trait LLMProvider: Send + Sync {
@@ -48,6 +50,7 @@ pub struct OpenAIClient {
     client: reqwest::Client,
     base_url: String,
     endpoint_path: String,
+    rate_limiter: Arc<ApiRateLimiter>,
 }
 
 impl OpenAIClient {
@@ -164,10 +167,21 @@ impl OpenAIClient {
             "/v1/chat/completions".to_string()
         };
 
+        // Detect API provider and set appropriate rate limits
+        let rate_limiter = if base.contains("groq.com") {
+            ApiRateLimiter::new(RateLimits::groq_free_tier())
+        } else if base.contains("openai.com") {
+            ApiRateLimiter::new(RateLimits::openai_free_tier())
+        } else {
+            // Default to unlimited for other providers (local models, etc.)
+            ApiRateLimiter::unlimited()
+        };
+
         Self {
             client: reqwest::Client::new(),
             base_url: base,
             endpoint_path: endpoint,
+            rate_limiter: Arc::new(rate_limiter),
         }
     }
 
@@ -314,6 +328,13 @@ impl LLMProvider for OpenAIClient {
         };
 
         let messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
+
+        // Check rate limits before making the request
+        let estimated_tokens = OpenAIClient::estimate_messages_tokens(&messages);
+        if let Err(e) = self.rate_limiter.acquire(estimated_tokens).await {
+            error!("Rate limit exceeded: {}", e);
+            return Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>);
+        }
 
         let full_url = format!("{}{}", self.base_url, self.endpoint_path);
         let auth_header = format!("Bearer {}", key);
