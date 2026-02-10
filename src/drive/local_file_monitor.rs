@@ -23,6 +23,7 @@ struct LocalFileState {
 pub struct LocalFileMonitor {
     state: Arc<AppState>,
     data_dir: PathBuf,
+    work_root: PathBuf,
     file_states: Arc<RwLock<HashMap<String, LocalFileState>>>,
     is_processing: Arc<AtomicBool>,
 }
@@ -34,11 +35,15 @@ impl LocalFileMonitor {
             .unwrap_or_else(|_| ".".to_string()))
             .join("data");
 
-        info!("[LOCAL_MONITOR] Initializing with data_dir: {:?}", data_dir);
+        // Use botserver/work as the work directory for generated files
+        let work_root = PathBuf::from("work");
+
+        info!("[LOCAL_MONITOR] Initializing with data_dir: {:?}, work_root: {:?}", data_dir, work_root);
 
         Self {
             state,
             data_dir,
+            work_root,
             file_states: Arc::new(RwLock::new(HashMap::new())),
             is_processing: Arc::new(AtomicBool::new(false)),
         }
@@ -255,8 +260,8 @@ impl LocalFileMonitor {
             .and_then(|s| s.to_str())
             .unwrap_or("unknown");
 
-        // Create work directory structure
-        let work_dir = self.data_dir.join(format!("{}.gbai", bot_name));
+        // Create work directory structure in botserver/work (not in data/)
+        let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
 
         // Read the file content
         let source_content = tokio::fs::read_to_string(file_path).await?;
@@ -319,6 +324,7 @@ impl Clone for LocalFileMonitor {
         Self {
             state: Arc::clone(&self.state),
             data_dir: self.data_dir.clone(),
+            work_root: self.work_root.clone(),
             file_states: Arc::clone(&self.file_states),
             is_processing: Arc::clone(&self.is_processing),
         }

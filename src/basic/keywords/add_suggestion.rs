@@ -406,17 +406,18 @@ pub fn get_suggestions(
                     session_id
                 );
 
-                // Clear suggestions from Redis after fetching to prevent them from being sent again
-                if !suggestions.is_empty() {
-                    let _: Result<i64, redis::RedisError> = redis::cmd("DEL")
-                        .arg(&redis_key)
-                        .query(&mut conn);
-                    info!(
-                        "[SUGGESTIONS] Cleared {} suggestions from Redis for session {}",
-                        suggestions.len(),
-                        session_id
-                    );
-                }
+                // DO NOT clear suggestions from Redis - keep them persistent for the session
+                // TODO: This may cause suggestions to appear multiple times, need better solution
+                // if !suggestions.is_empty() {
+                //     let _: Result<i64, redis::RedisError> = redis::cmd("DEL")
+                //         .arg(&redis_key)
+                //         .query(&mut conn);
+                //     info!(
+                //         "[SUGGESTIONS] Cleared {} suggestions from Redis for session {}",
+                //         suggestions.len(),
+                //         session_id
+                //     );
+                // }
             }
             Err(e) => error!("Failed to get suggestions from Redis: {}", e),
         }
