@@ -25,6 +25,8 @@ pub struct ParamDeclaration {
     pub example: Option<String>,
     pub description: String,
     pub required: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enum_values: Option<Vec<String>>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolDefinition {
@@ -80,6 +82,8 @@ pub struct OpenAIProperty {
     pub description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub example: Option<String>,
+    #[serde(rename = "enum", skip_serializing_if = "Option::is_none")]
+    pub enum_values: Option<Vec<String>>,
 }
 #[derive(Debug)]
 pub struct BasicCompiler {
@@ -115,8 +119,12 @@ impl BasicCompiler {
             .file_stem()
             .and_then(|s| s.to_str())
             .ok_or("Invalid file name")?;
+
+        // Generate ADD SUGGESTION commands for enum parameters
+        let source_with_suggestions = self.generate_enum_suggestions(&source_content, &tool_def)?;
+
         let ast_path = format!("{output_dir}/{file_name}.ast");
-        let ast_content = self.preprocess_basic(&source_content, source_path, self.bot_id)?;
+        let ast_content = self.preprocess_basic(&source_with_suggestions, source_path, self.bot_id)?;
         fs::write(&ast_path, &ast_content).map_err(|e| format!("Failed to write AST file: {e}"))?;
         let (mcp_json, tool_json) = if tool_def.parameters.is_empty() {
             (None, None)
@@ -206,6 +214,36 @@ impl BasicCompiler {
                     .map(|end| rest[start + 1..start + 1 + end].to_string())
             })
         });
+
+        // Parse ENUM array directly from PARAM statement
+        // Syntax: PARAM name AS TYPE ENUM ["value1", "value2", ...]
+        let enum_values = if let Some(enum_pos) = line.find("ENUM") {
+            let rest = &line[enum_pos + 4..].trim();
+            if let Some(start) = rest.find('[') {
+                if let Some(end) = rest[start..].find(']') {
+                    let array_content = &rest[start + 1..start + end];
+                    // Parse the array elements
+                    let values: Vec<String> = array_content
+                        .split(',')
+                        .map(|s| {
+                            s.trim()
+                                .trim_matches('"')
+                                .trim_matches('\'')
+                                .to_string()
+                        })
+                        .filter(|s| !s.is_empty())
+                        .collect();
+                    Some(values)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         let description = if let Some(desc_pos) = line.find("DESCRIPTION") {
             let rest = &line[desc_pos + 11..].trim();
             if let Some(start) = rest.find('"') {
@@ -220,12 +258,14 @@ impl BasicCompiler {
         } else {
             "".to_string()
         };
+
         Ok(Some(ParamDeclaration {
             name,
             param_type: Self::normalize_type(&param_type),
             example,
             description,
             required: true,
+            enum_values,
         }))
     }
     fn normalize_type(basic_type: &str) -> String {
@@ -239,6 +279,62 @@ impl BasicCompiler {
             _ => "string".to_string(),
         }
     }
+
+    /// Generate ADD SUGGESTION commands for parameters with enum values
+    fn generate_enum_suggestions(
+        &self,
+        source: &str,
+        tool_def: &ToolDefinition,
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let mut result = String::new();
+        let mut suggestion_lines = Vec::new();
+
+        // Generate ADD SUGGESTION TEXT commands for each parameter with enum values
+        // These will send the enum value as a text message when clicked
+        for param in &tool_def.parameters {
+            if let Some(ref enum_values) = param.enum_values {
+                // For each enum value, create a suggestion button
+                for enum_value in enum_values {
+                    // Use the enum value as both the text to send and the button label
+                    let suggestion_cmd = format!(
+                        "ADD SUGGESTION TEXT \"{}\" AS \"{}\"",
+                        enum_value, enum_value
+                    );
+                    suggestion_lines.push(suggestion_cmd);
+                }
+            }
+        }
+
+        // Insert suggestions after the DESCRIPTION line (or at end if no DESCRIPTION)
+        let lines: Vec<&str> = source.lines().collect();
+        let mut inserted = false;
+
+        for line in lines.iter() {
+            result.push_str(line);
+            result.push('\n');
+
+            // Insert suggestions after DESCRIPTION line
+            if !inserted && line.trim().starts_with("DESCRIPTION ") {
+                // Insert suggestions after this line
+                for suggestion in &suggestion_lines {
+                    result.push_str(suggestion);
+                    result.push('\n');
+                }
+                inserted = true;
+            }
+        }
+
+        // If we didn't find a DESCRIPTION line, insert at the end
+        if !inserted && !suggestion_lines.is_empty() {
+            for suggestion in &suggestion_lines {
+                result.push_str(suggestion);
+                result.push('\n');
+            }
+        }
+
+        Ok(result)
+    }
+
     fn generate_mcp_tool(
         tool_def: &ToolDefinition,
     ) -> Result<MCPTool, Box<dyn Error + Send + Sync>> {
@@ -279,6 +375,7 @@ impl BasicCompiler {
                     prop_type: param.param_type.clone(),
                     description: param.description.clone(),
                     example: param.example.clone(),
+                    enum_values: param.enum_values.clone(),
                 },
             );
             if param.required {

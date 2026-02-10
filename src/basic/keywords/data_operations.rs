@@ -67,6 +67,7 @@ pub fn register_save_keyword(state: Arc<AppState>, user: UserSession, engine: &m
 
 pub fn register_insert_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
+    let user_clone = user.clone();
     let user_roles = UserRoles::from_user_session(&user);
 
     engine
@@ -79,10 +80,18 @@ pub fn register_insert_keyword(state: Arc<AppState>, user: UserSession, engine: 
 
                 trace!("INSERT into table: {}", table);
 
-                let mut conn = state_clone
-                    .conn
-                    .get()
-                    .map_err(|e| format!("DB error: {}", e))?;
+                // Get bot's database connection instead of main connection
+                let bot_pool = state_clone
+                    .bot_database_manager
+                    .get_bot_pool(user_clone.bot_id);
+
+                let mut conn = match bot_pool {
+                    Ok(pool) => pool.get().map_err(|e| format!("Bot DB error: {}", e))?,
+                    Err(_) => state_clone
+                        .conn
+                        .get()
+                        .map_err(|e| format!("DB error: {}", e))?,
+                };
 
                 // Check write access
                 if let Err(e) =

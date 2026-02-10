@@ -1,62 +1,89 @@
 use chrono::{Datelike, NaiveDateTime, Timelike};
 use num_format::{Locale, ToFormattedString};
-use rhai::{Dynamic, Engine};
+use rhai::{Dynamic, Engine, Map};
 use std::str::FromStr;
-pub fn format_keyword(engine: &mut Engine) {
-    engine
-        .register_custom_syntax(["FORMAT", "$expr$", "$expr$"], false, {
-            move |context, inputs| {
-                let value_dyn = context.eval_expression_tree(&inputs[0])?;
-                let pattern_dyn = context.eval_expression_tree(&inputs[1])?;
-                let value_str = value_dyn.to_string();
-                let pattern = pattern_dyn.to_string();
-                if let Ok(num) = f64::from_str(&value_str) {
-                    let formatted = if pattern.starts_with('N') || pattern.starts_with('C') {
-                        let (prefix, decimals, locale_tag) = parse_pattern(&pattern);
-                        let locale = get_locale(&locale_tag);
-                        let symbol = if prefix == "C" {
-                            get_currency_symbol(&locale_tag)
-                        } else {
-                            ""
-                        };
-                        let int_part = num.trunc() as i64;
-                        let frac_part = num.fract();
-                        if decimals == 0 {
-                            format!("{}{}", symbol, int_part.to_formatted_string(&locale))
-                        } else {
-                            let frac_scaled =
-                                ((frac_part * 10f64.powi(decimals as i32)).round()) as i64;
-                            let decimal_sep = match locale_tag.as_str() {
-                                "pt" | "fr" | "es" | "it" | "de" => ",",
-                                _ => ".",
-                            };
-                            format!(
-                                "{}{}{}{:0width$}",
-                                symbol,
-                                int_part.to_formatted_string(&locale),
-                                decimal_sep,
-                                frac_scaled,
-                                width = decimals
-                            )
-                        }
-                    } else {
-                        match pattern.as_str() {
-                            "n" | "F" => format!("{num:.2}"),
-                            "0%" => format!("{:.0}%", num * 100.0),
-                            _ => format!("{num}"),
-                        }
-                    };
-                    return Ok(Dynamic::from(formatted));
-                }
-                if let Ok(dt) = NaiveDateTime::parse_from_str(&value_str, "%Y-%m-%d %H:%M:%S") {
-                    let formatted = apply_date_format(&dt, &pattern);
-                    return Ok(Dynamic::from(formatted));
-                }
-                let formatted = apply_text_placeholders(&value_str, &pattern);
-                Ok(Dynamic::from(formatted))
+
+/// Format a value (number, date, or Map from NOW()) according to a pattern
+fn format_impl(value: Dynamic, pattern: String) -> Result<String, String> {
+    // Handle Map objects (like NOW() which returns a Map with formatted property)
+    if value.is::<Map>() {
+        let map = value.cast::<Map>();
+        // Try to get the 'formatted' property first
+        if let Some(formatted_val) = map.get("formatted") {
+            let value_str = formatted_val.to_string();
+            if let Ok(dt) = NaiveDateTime::parse_from_str(&value_str, "%Y-%m-%d %H:%M:%S") {
+                let formatted = apply_date_format(&dt, &pattern);
+                return Ok(formatted);
             }
-        })
-        .expect("valid syntax registration");
+        }
+        // If no formatted property or parsing failed, try to construct from components
+        if let (Some(year), Some(month), Some(day)) = (
+            map.get("year").and_then(|v| v.as_int().ok()),
+            map.get("month").and_then(|v| v.as_int().ok()),
+            map.get("day").and_then(|v| v.as_int().ok()),
+        ) {
+            let value_str = format!("{:04}-{:02}-{:02}", year, month, day);
+            if let Ok(dt) = NaiveDateTime::parse_from_str(&value_str, "%Y-%m-%d") {
+                let formatted = apply_date_format(&dt, &pattern);
+                return Ok(formatted);
+            }
+        }
+        // Fallback: return empty string for unsupported map format
+        return Ok(String::new());
+    }
+
+    // Handle string/number values
+    let value_str = value.to_string();
+    if let Ok(num) = f64::from_str(&value_str) {
+        let formatted = if pattern.starts_with('N') || pattern.starts_with('C') {
+            let (prefix, decimals, locale_tag) = parse_pattern(&pattern);
+            let locale = get_locale(&locale_tag);
+            let symbol = if prefix == "C" {
+                get_currency_symbol(&locale_tag)
+            } else {
+                ""
+            };
+            let int_part = num.trunc() as i64;
+            let frac_part = num.fract();
+            if decimals == 0 {
+                format!("{}{}", symbol, int_part.to_formatted_string(&locale))
+            } else {
+                let frac_scaled =
+                    ((frac_part * 10f64.powi(decimals as i32)).round()) as i64;
+                let decimal_sep = match locale_tag.as_str() {
+                    "pt" | "fr" | "es" | "it" | "de" => ",",
+                    _ => ".",
+                };
+                format!(
+                    "{}{}{}{:0width$}",
+                    symbol,
+                    int_part.to_formatted_string(&locale),
+                    decimal_sep,
+                    frac_scaled,
+                    width = decimals
+                )
+            }
+        } else {
+            match pattern.as_str() {
+                "n" | "F" => format!("{num:.2}"),
+                "0%" => format!("{:.0}%", num * 100.0),
+                _ => format!("{num}"),
+            }
+        };
+        return Ok(formatted);
+    }
+    if let Ok(dt) = NaiveDateTime::parse_from_str(&value_str, "%Y-%m-%d %H:%M:%S") {
+        let formatted = apply_date_format(&dt, &pattern);
+        return Ok(formatted);
+    }
+    let formatted = apply_text_placeholders(&value_str, &pattern);
+    Ok(formatted)
+}
+
+pub fn format_keyword(engine: &mut Engine) {
+    // Register FORMAT as a regular function with two parameters
+    engine.register_fn("FORMAT", format_impl);
+    engine.register_fn("format", format_impl);
 }
 fn parse_pattern(pattern: &str) -> (String, usize, String) {
     let mut prefix = String::new();

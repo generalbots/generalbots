@@ -1,5 +1,6 @@
 use crate::basic::compiler::BasicCompiler;
 use crate::shared::state::AppState;
+use diesel::prelude::*;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::error::Error;
@@ -11,6 +12,7 @@ use tokio::sync::RwLock;
 use tokio::time::Duration;
 use notify::{RecursiveMode, EventKind, RecommendedWatcher, Watcher};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct LocalFileState {
@@ -184,8 +186,8 @@ impl LocalFileMonitor {
                     .and_then(|s| s.to_str())
                     .unwrap_or("unknown");
 
-                // Look for .gbdialog folder inside
-                let gbdialog_path = path.join(".gbdialog");
+                // Look for <botname>.gbdialog folder inside (e.g., cristo.gbai/cristo.gbdialog)
+                let gbdialog_path = path.join(format!("{}.gbdialog", bot_name));
                 if gbdialog_path.exists() {
                     self.compile_gbdialog(&bot_name, &gbdialog_path).await?;
                 }
@@ -264,7 +266,19 @@ impl LocalFileMonitor {
         let work_dir_clone = work_dir.clone();
         let tool_name_clone = tool_name.to_string();
         let source_content_clone = source_content.clone();
-        let bot_id = uuid::Uuid::new_v4(); // Generate a bot ID or get from somewhere
+        let bot_name_clone = bot_name.to_string();
+
+        // Get the actual bot_id from the database for this bot_name
+        let bot_id = {
+            use crate::core::shared::models::schema::bots::dsl::*;
+            let mut conn = state_clone.conn.get()
+                .map_err(|e| format!("Failed to get DB connection: {}", e))?;
+
+            bots.filter(name.eq(&bot_name_clone))
+                .select(id)
+                .first::<Uuid>(&mut *conn)
+                .map_err(|e| format!("Failed to get bot_id for '{}': {}", bot_name_clone, e))?
+        };
 
         tokio::task::spawn_blocking(move || {
             std::fs::create_dir_all(&work_dir_clone)?;
@@ -274,8 +288,9 @@ impl LocalFileMonitor {
             let result = compiler.compile_file(local_source_path.to_str().unwrap(), work_dir_clone.to_str().unwrap())?;
             if let Some(mcp_tool) = result.mcp_tool {
                 info!(
-                    "[LOCAL_MONITOR] MCP tool generated with {} parameters",
-                    mcp_tool.input_schema.properties.len()
+                    "[LOCAL_MONITOR] MCP tool generated with {} parameters for bot {}",
+                    mcp_tool.input_schema.properties.len(),
+                    bot_name_clone
                 );
             }
             Ok::<(), Box<dyn Error + Send + Sync>>(())

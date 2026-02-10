@@ -4,6 +4,8 @@ pub mod kb_context;
 use kb_context::inject_kb_context;
 pub mod tool_context;
 use tool_context::get_session_tools;
+pub mod tool_executor;
+use tool_executor::ToolExecutor;
 #[cfg(feature = "llm")]
 use crate::core::config::ConfigManager;
 
@@ -18,6 +20,8 @@ use crate::nvidia::get_system_metrics;
 use crate::shared::message_types::MessageType;
 use crate::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::shared::state::AppState;
+#[cfg(feature = "chat")]
+use crate::basic::keywords::add_suggestion::get_suggestions;
 use axum::extract::ws::{Message, WebSocket};
 use axum::{
     extract::{ws::WebSocketUpgrade, Extension, Query, State},
@@ -422,86 +426,101 @@ impl BotOrchestrator {
 
         #[cfg(any(feature = "research", feature = "llm"))]
         {
-            // Execute start.bas on first message to load tools
-            // Check if tools have been loaded for this session
-            let has_tools_loaded = {
-                use crate::shared::models::schema::session_tool_associations::dsl::*;
-                let conn = self.state.conn.get().ok();
-                if let Some(mut db_conn) = conn {
-                    let tool_names: Vec<String> = session_tool_associations
-                        .filter(session_id.eq(&session_id_str))
-                        .select(tool_name)
-                        .limit(1)
-                        .load(&mut db_conn)
-                        .unwrap_or_default();
-                    !tool_names.is_empty()
+            // Execute start.bas on first message - ONLY run once per session to load suggestions
+            let actual_session_id = session.id.to_string();
+
+            // Check if start.bas has already been executed for this session
+            let start_bas_key = format!("start_bas_executed:{}", actual_session_id);
+            let should_execute_start_bas = if let Some(cache) = &self.state.cache {
+                if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+                    let executed: Result<Option<String>, redis::RedisError> = redis::cmd("GET")
+                        .arg(&start_bas_key)
+                        .query_async(&mut conn)
+                        .await;
+                    executed.is_ok() && executed.unwrap().is_none()
                 } else {
-                    false
+                    true // If cache fails, try to execute
                 }
+            } else {
+                true // If no cache, try to execute
             };
 
-            // If no tools are loaded, execute start.bas
-            if !has_tools_loaded {
+            if should_execute_start_bas {
+                // Always execute start.bas for this session (blocking - wait for completion)
                 let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
                 let data_dir = format!("{}/data", home_dir);
                 let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name_for_context, bot_name_for_context);
 
-                info!("[START_BAS] Checking for start.bas at: {}", start_script_path);
+                info!("[START_BAS] Executing start.bas for session {} at: {}", actual_session_id, start_script_path);
 
                 if let Ok(metadata) = tokio::fs::metadata(&start_script_path).await {
                     if metadata.is_file() {
-                        info!("[START_BAS] Found start.bas, executing for session {}", session_id);
+                        info!("[START_BAS] Found start.bas, executing for session {}", actual_session_id);
 
                         if let Ok(start_script) = tokio::fs::read_to_string(&start_script_path).await {
                             let state_clone = self.state.clone();
-                            let session_id_clone = session_id;
+                            let actual_session_id_for_task = session.id;
                             let bot_id_clone = session.bot_id;
-                            let bot_name_clone = bot_name_for_context.clone();
-                            let bot_name_for_log = bot_name_clone.clone();
-                            let start_script_clone = start_script.clone();
 
-                            tokio::spawn(async move {
-                                let session_result = state_clone.session_manager.lock().await.get_session_by_id(session_id_clone);
+                            // Execute start.bas synchronously (blocking)
+                            let result = tokio::task::spawn_blocking(move || {
+                                let session_result = {
+                                    let mut sm = state_clone.session_manager.blocking_lock();
+                                    sm.get_session_by_id(actual_session_id_for_task)
+                                };
 
-                                if let Ok(Some(session)) = session_result {
-                                    let result = tokio::task::spawn_blocking(move || {
-                                        let mut script_service = crate::basic::ScriptService::new(
-                                            state_clone.clone(),
-                                            session.clone()
-                                        );
-                                        script_service.load_bot_config_params(&state_clone, bot_id_clone);
+                                let sess = match session_result {
+                                    Ok(Some(s)) => s,
+                                    Ok(None) => {
+                                        return Err(format!("Session {} not found during start.bas execution", actual_session_id_for_task));
+                                    }
+                                    Err(e) => return Err(format!("Failed to get session: {}", e)),
+                                };
 
-                                        match script_service.compile(&start_script_clone) {
-                                            Ok(ast) => match script_service.run(&ast) {
-                                                Ok(_) => {
-                                                    info!("[START_BAS] Executed start.bas successfully for bot {}", bot_name_clone);
-                                                    Ok(())
-                                                },
-                                                Err(e) => Err(format!("Script execution error: {}", e)),
-                                            },
-                                            Err(e) => Err(format!("Script compilation error: {}", e)),
-                                        }
-                                    }).await;
+                                let mut script_service = crate::basic::ScriptService::new(
+                                    state_clone.clone(),
+                                    sess
+                                );
+                                script_service.load_bot_config_params(&state_clone, bot_id_clone);
 
-                                    match result {
-                                        Ok(Ok(())) => {
-                                            info!("[START_BAS] start.bas completed for bot {}", bot_name_for_log);
-                                        }
-                                        Ok(Err(e)) => {
-                                            error!("[START_BAS] start.bas error for bot {}: {}", bot_name_for_log, e);
-                                        }
-                                        Err(e) => {
-                                            error!("[START_BAS] start.bas task error for bot {}: {}", bot_name_for_log, e);
+                                match script_service.compile(&start_script) {
+                                    Ok(ast) => match script_service.run(&ast) {
+                                        Ok(_) => Ok(()),
+                                        Err(e) => Err(format!("Script execution error: {}", e)),
+                                    },
+                                    Err(e) => Err(format!("Script compilation error: {}", e)),
+                                }
+                            }).await;
+
+                            match result {
+                                Ok(Ok(())) => {
+                                    info!("[START_BAS] start.bas completed successfully for session {}", actual_session_id);
+
+                                    // Mark start.bas as executed for this session to prevent re-running
+                                    if let Some(cache) = &self.state.cache {
+                                        if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+                                            let _: Result<(), redis::RedisError> = redis::cmd("SET")
+                                                .arg(&start_bas_key)
+                                                .arg("1")
+                                                .arg("EX")
+                                                .arg("86400") // Expire after 24 hours
+                                                .query_async(&mut conn)
+                                                .await;
+                                            info!("[START_BAS] Marked start.bas as executed for session {}", actual_session_id);
                                         }
                                     }
                                 }
-                            });
+                                Ok(Err(e)) => {
+                                    error!("[START_BAS] start.bas error for session {}: {}", actual_session_id, e);
+                                }
+                                Err(e) => {
+                                    error!("[START_BAS] start.bas task error for session {}: {}", actual_session_id, e);
+                                }
+                            }
                         }
-                    } else {
-                        info!("[START_BAS] start.bas not found for bot {}", bot_name_for_context);
                     }
                 }
-            }
+            } // End of if should_execute_start_bas
 
             if let Some(kb_manager) = self.state.kb_manager.as_ref() {
                 if let Err(e) = inject_kb_context(
@@ -539,15 +558,15 @@ impl BotOrchestrator {
         let model_clone = model.clone();
         let key_clone = key.clone();
 
-        // Retrieve session tools for tool calling
-        let session_tools = get_session_tools(&self.state.conn, &bot_name_for_context, &session_id);
+        // Retrieve session tools for tool calling (use actual session.id after potential creation)
+        let session_tools = get_session_tools(&self.state.conn, &bot_name_for_context, &session.id);
         let tools_for_llm = match session_tools {
             Ok(tools) => {
                 if !tools.is_empty() {
-                    info!("[TOOLS] Loaded {} tools for session {}", tools.len(), session_id);
+                    info!("[TOOLS] Loaded {} tools for session {}", tools.len(), session.id);
                     Some(tools)
                 } else {
-                    info!("[TOOLS] No tools associated with session {}", session_id);
+                    info!("[TOOLS] No tools associated with session {}", session.id);
                     None
                 }
             }
@@ -614,6 +633,89 @@ impl BotOrchestrator {
         while let Some(chunk) = stream_rx.recv().await {
             info!("[STREAM_DEBUG] Received chunk: '{}', len: {}", chunk, chunk.len());
             trace!("Received LLM chunk: {:?}", chunk);
+
+            // ===== GENERIC TOOL EXECUTION =====
+            // Check if this chunk contains a tool call (works with all LLM providers)
+            if let Some(tool_call) = ToolExecutor::parse_tool_call(&chunk) {
+                info!(
+                    "[TOOL_CALL] Detected tool '{}' from LLM, executing...",
+                    tool_call.tool_name
+                );
+
+                let execution_result = ToolExecutor::execute_tool_call(
+                    &self.state,
+                    &bot_name_for_context,
+                    &tool_call,
+                    &session_id,
+                    &user_id,
+                )
+                .await;
+
+                if execution_result.success {
+                    info!(
+                        "[TOOL_EXEC] Tool '{}' executed successfully: {}",
+                        tool_call.tool_name, execution_result.result
+                    );
+
+                    // Send tool execution result to user
+                    let response = BotResponse {
+                        bot_id: message.bot_id.clone(),
+                        user_id: message.user_id.clone(),
+                        session_id: message.session_id.clone(),
+                        channel: message.channel.clone(),
+                        content: execution_result.result,
+                        message_type: MessageType::BOT_RESPONSE,
+                        stream_token: None,
+                        is_complete: false,
+                        suggestions: Vec::new(),
+                        context_name: None,
+                        context_length: 0,
+                        context_max_length: 0,
+                    };
+
+                    if response_tx.send(response).await.is_err() {
+                        warn!("Response channel closed during tool execution");
+                        break;
+                    }
+                } else {
+                    error!(
+                        "[TOOL_EXEC] Tool '{}' execution failed: {:?}",
+                        tool_call.tool_name, execution_result.error
+                    );
+
+                    // Send error to user
+                    let error_msg = format!(
+                        "Erro ao executar ferramenta '{}': {:?}",
+                        tool_call.tool_name,
+                        execution_result.error
+                    );
+
+                    let response = BotResponse {
+                        bot_id: message.bot_id.clone(),
+                        user_id: message.user_id.clone(),
+                        session_id: message.session_id.clone(),
+                        channel: message.channel.clone(),
+                        content: error_msg,
+                        message_type: MessageType::BOT_RESPONSE,
+                        stream_token: None,
+                        is_complete: false,
+                        suggestions: Vec::new(),
+                        context_name: None,
+                        context_length: 0,
+                        context_max_length: 0,
+                    };
+
+                    if response_tx.send(response).await.is_err() {
+                        warn!("Response channel closed during tool error");
+                        break;
+                    }
+                }
+
+                // Don't add tool_call JSON to full_response or analysis_buffer
+                // Continue to next chunk
+                continue;
+            }
+            // ===== END TOOL EXECUTION =====
 
             analysis_buffer.push_str(&chunk);
 
@@ -732,6 +834,15 @@ impl BotOrchestrator {
         )
         .await??;
 
+        // Extract user_id and session_id before moving them into BotResponse
+        let user_id_str = message.user_id.clone();
+        let session_id_str = message.session_id.clone();
+
+        #[cfg(feature = "chat")]
+        let suggestions = get_suggestions(self.state.cache.as_ref(), &user_id_str, &session_id_str);
+        #[cfg(not(feature = "chat"))]
+        let suggestions: Vec<crate::shared::models::Suggestion> = Vec::new();
+
         let final_response = BotResponse {
             bot_id: message.bot_id,
             user_id: message.user_id,
@@ -741,7 +852,7 @@ impl BotOrchestrator {
             message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-            suggestions: Vec::new(),
+            suggestions,
             context_name: None,
             context_length: 0,
             context_max_length: 0,
@@ -937,16 +1048,33 @@ async fn handle_websocket(
         );
 
         if let Some(bot_name) = bot_name_result {
-            let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-            let data_dir = format!("{}/data", home_dir);
-            let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name, bot_name);
+            // Check if start.bas has already been executed for this session
+            let start_bas_key = format!("start_bas_executed:{}", session_id);
+            let should_execute_start_bas = if let Some(cache) = &state.cache {
+                if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+                    let executed: Result<Option<String>, redis::RedisError> = redis::cmd("GET")
+                        .arg(&start_bas_key)
+                        .query_async(&mut conn)
+                        .await;
+                    executed.is_ok() && executed.unwrap().is_none()
+                } else {
+                    true // If cache fails, try to execute
+                }
+            } else {
+                true // If no cache, try to execute
+            };
 
-            info!("Looking for start.bas at: {}", start_script_path);
+            if should_execute_start_bas {
+                let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                let data_dir = format!("{}/data", home_dir);
+                let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name, bot_name);
 
-            if let Ok(metadata) = tokio::fs::metadata(&start_script_path).await {
-                if metadata.is_file() {
-                    info!("Found start.bas file, reading contents...");
-                    if let Ok(start_script) = tokio::fs::read_to_string(&start_script_path).await {
+                info!("Looking for start.bas at: {}", start_script_path);
+
+                if let Ok(metadata) = tokio::fs::metadata(&start_script_path).await {
+                    if metadata.is_file() {
+                        info!("Found start.bas file, reading contents...");
+                        if let Ok(start_script) = tokio::fs::read_to_string(&start_script_path).await {
                         info!(
                             "Executing start.bas for bot {} on session {}",
                             bot_name, session_id
@@ -963,6 +1091,9 @@ async fn handle_websocket(
 
                             if let Ok(Some(session)) = session_result {
                                 info!("Executing start.bas for bot {} on session {}", bot_name, session_id);
+
+                                // Clone state_for_start for use in Redis SET after execution
+                                let state_for_redis = state_for_start.clone();
 
                                 let result = tokio::task::spawn_blocking(move || {
                                     let mut script_service = crate::basic::ScriptService::new(
@@ -983,6 +1114,20 @@ async fn handle_websocket(
                                 match result {
                                     Ok(Ok(())) => {
                                         info!("start.bas executed successfully for bot {}", bot_name);
+
+                                        // Mark start.bas as executed for this session to prevent re-running
+                                        if let Some(cache) = &state_for_redis.cache {
+                                            if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+                                                let _: Result<(), redis::RedisError> = redis::cmd("SET")
+                                                    .arg(&start_bas_key)
+                                                    .arg("1")
+                                                    .arg("EX")
+                                                    .arg("86400") // Expire after 24 hours
+                                                    .query_async(&mut conn)
+                                                    .await;
+                                                info!("Marked start.bas as executed for session {}", session_id);
+                                            }
+                                        }
                                     }
                                     Ok(Err(e)) => {
                                         error!("start.bas error for bot {}: {}", bot_name, e);
@@ -996,6 +1141,7 @@ async fn handle_websocket(
                     }
                 }
             }
+            } // End of if should_execute_start_bas
         }
     }
 
@@ -1017,15 +1163,52 @@ async fn handle_websocket(
                     info!("Received WebSocket message: {}", text);
                     if let Ok(user_msg) = serde_json::from_str::<UserMessage>(&text) {
                         let orchestrator = BotOrchestrator::new(state_clone.clone());
+                        info!("[WS_DEBUG] Looking up response channel for session: {}", session_id);
                         if let Some(tx_clone) = state_clone
                             .response_channels
                             .lock()
                             .await
                             .get(&session_id.to_string())
                         {
+                            info!("[WS_DEBUG] Response channel found, calling stream_response");
+
+                            // Ensure session exists - create if not
+                            let session_result = {
+                                let mut sm = state_clone.session_manager.lock().await;
+                                sm.get_session_by_id(session_id)
+                            };
+
+                            let session = match session_result {
+                                Ok(Some(sess)) => {
+                                    info!("[WS_DEBUG] Session exists: {}", session_id);
+                                    sess
+                                }
+                                Ok(None) => {
+                                    info!("[WS_DEBUG] Session not found, creating via session manager");
+                                    // Use session manager to create session (will generate new UUID)
+                                    let mut sm = state_clone.session_manager.lock().await;
+                                    match sm.create_session(user_id, bot_id, "WebSocket Chat") {
+                                        Ok(new_session) => {
+                                            info!("[WS_DEBUG] Session created: {} (note: different from WebSocket session_id)", new_session.id);
+                                            new_session
+                                        }
+                                        Err(e) => {
+                                            error!("[WS_DEBUG] Failed to create session: {}", e);
+                                            continue;
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    error!("[WS_DEBUG] Error getting session: {}", e);
+                                    continue;
+                                }
+                            };
+
                             // Use bot_id from WebSocket connection instead of from message
                             let corrected_msg = UserMessage {
                                 bot_id: bot_id.to_string(),
+                                user_id: session.user_id.to_string(),
+                                session_id: session.id.to_string(),
                                 ..user_msg
                             };
                             if let Err(e) = orchestrator
@@ -1034,7 +1217,11 @@ async fn handle_websocket(
                             {
                                 error!("Failed to stream response: {}", e);
                             }
+                        } else {
+                            warn!("[WS_DEBUG] Response channel NOT found for session: {}", session_id);
                         }
+                    } else {
+                        warn!("[WS_DEBUG] Failed to parse UserMessage from: {}", text);
                     }
                 }
                 Message::Close(_) => {

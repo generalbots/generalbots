@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user;
+    let user_clone = user.clone();
 
 
     engine
@@ -110,6 +110,123 @@ pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
             },
         )
         .expect("valid syntax registration");
+
+    // Also register as underscore function for tools (SET_BOT_MEMORY(key, value))
+    let state_clone2 = Arc::clone(&state);
+    let user_clone2 = user.clone();
+    engine.register_fn("SET_BOT_MEMORY", move |key: String, value: String| {
+        let state_for_spawn = Arc::clone(&state_clone2);
+        let user_clone_spawn = user_clone2.clone();
+        let key_clone = key;
+        let value_clone = value;
+
+        tokio::spawn(async move {
+            use crate::shared::models::bot_memories;
+
+            let mut conn = match state_for_spawn.conn.get() {
+                Ok(conn) => conn,
+                Err(e) => {
+                    error!(
+                        "Failed to acquire database connection for SET_BOT_MEMORY: {}",
+                        e
+                    );
+                    return;
+                }
+            };
+
+            let bot_uuid = match Uuid::parse_str(&user_clone_spawn.bot_id.to_string()) {
+                Ok(uuid) => uuid,
+                Err(e) => {
+                    error!("Invalid bot ID format: {}", e);
+                    return;
+                }
+            };
+
+            let now = chrono::Utc::now();
+
+            let existing_memory: Option<Uuid> = bot_memories::table
+                .filter(bot_memories::bot_id.eq(bot_uuid))
+                .filter(bot_memories::key.eq(&key_clone))
+                .select(bot_memories::id)
+                .first(&mut *conn)
+                .optional()
+                .unwrap_or(None);
+
+            if let Some(memory_id) = existing_memory {
+                let update_result = diesel::update(
+                    bot_memories::table.filter(bot_memories::id.eq(memory_id)),
+                )
+                .set((
+                    bot_memories::value.eq(&value_clone),
+                    bot_memories::updated_at.eq(now),
+                ))
+                .execute(&mut *conn);
+
+                match update_result {
+                    Ok(_) => {
+                        trace!(
+                            "Updated bot memory for key: {} with value length: {}",
+                            key_clone,
+                            value_clone.len()
+                        );
+                    }
+                    Err(e) => {
+                        error!("Failed to update bot memory: {}", e);
+                    }
+                }
+            } else {
+                let insert_result = diesel::insert_into(bot_memories::table)
+                    .values((
+                        bot_memories::id.eq(Uuid::new_v4()),
+                        bot_memories::bot_id.eq(bot_uuid),
+                        bot_memories::key.eq(&key_clone),
+                        bot_memories::value.eq(&value_clone),
+                        bot_memories::created_at.eq(now),
+                        bot_memories::updated_at.eq(now),
+                    ))
+                    .execute(&mut *conn);
+
+                match insert_result {
+                    Ok(_) => {
+                        trace!(
+                            "Created bot memory for key: {} with value length: {}",
+                            key_clone,
+                            value_clone.len()
+                        );
+                    }
+                    Err(e) => {
+                        error!("Failed to insert bot memory: {}", e);
+                    }
+                }
+            }
+        });
+    });
+
+    // Also register GET_BOT_MEMORY as underscore function for tools
+    let state_clone3 = Arc::clone(&state);
+    let user_clone3 = user.clone();
+    engine.register_fn("GET_BOT_MEMORY", move |key_param: String| -> String {
+        use crate::shared::models::bot_memories;
+
+        let state = Arc::clone(&state_clone3);
+        let conn_result = state.conn.get();
+
+        if let Ok(mut conn) = conn_result {
+            let bot_uuid = user_clone3.bot_id;
+
+            let memory_value: Option<String> = bot_memories::table
+                .filter(bot_memories::bot_id.eq(bot_uuid))
+                .filter(bot_memories::key.eq(&key_param))
+                .select(bot_memories::value)
+                .first(&mut *conn)
+                .optional()
+                .unwrap_or(None);
+
+            memory_value.unwrap_or_default()
+        } else {
+            String::new()
+        }
+    });
 }
 
 pub fn get_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
