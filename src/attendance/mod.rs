@@ -1,7 +1,21 @@
 pub mod drive;
 pub mod keyword_services;
 #[cfg(feature = "llm")]
+pub mod llm_types;
+#[cfg(feature = "llm")]
 pub mod llm_assist;
+#[cfg(feature = "llm")]
+pub mod llm_assist_types;
+#[cfg(feature = "llm")]
+pub mod llm_assist_config;
+#[cfg(feature = "llm")]
+pub mod llm_assist_handlers;
+#[cfg(feature = "llm")]
+pub mod llm_assist_commands;
+#[cfg(feature = "llm")]
+pub mod llm_assist_helpers;
+#[cfg(feature = "llm")]
+pub mod llm_parser;
 pub mod queue;
 
 pub use drive::{AttendanceDriveConfig, AttendanceDriveService, RecordMetadata, SyncResult};
@@ -10,11 +24,15 @@ pub use keyword_services::{
     KeywordParser, ParsedCommand,
 };
 #[cfg(feature = "llm")]
-pub use llm_assist::{
-    AttendantTip, ConversationMessage, ConversationSummary, LlmAssistConfig, PolishRequest,
-    PolishResponse, SentimentAnalysis, SentimentResponse, SmartRepliesRequest,
-    SmartRepliesResponse, SmartReply, SummaryRequest, SummaryResponse, TipRequest, TipResponse,
-    TipType,
+pub use llm_assist_types::*;
+#[cfg(feature = "llm")]
+pub use llm_assist::*;
+#[cfg(feature = "llm")]
+pub use llm_parser::{
+    AttendantTip, SmartReply,
+    ConversationSummary, SentimentAnalysis,
+    parse_tips_response, parse_polish_response, parse_smart_replies_response,
+    parse_summary_response, parse_sentiment_response, extract_json,
 };
 pub use queue::{
     AssignRequest, AttendantStats, AttendantStatus, QueueFilters, QueueItem, QueueStatus,
@@ -24,8 +42,8 @@ pub use queue::{
 use crate::core::bot::channels::whatsapp::WhatsAppAdapter;
 use crate::core::bot::channels::ChannelAdapter;
 use crate::core::urls::ApiUrls;
-use crate::shared::models::{BotResponse, UserSession};
-use crate::shared::state::{AppState, AttendantNotification};
+use crate::core::shared::models::{BotResponse, UserSession};
+use crate::core::shared::state::{AppState, AttendantNotification};
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -122,7 +140,7 @@ pub async fn attendant_respond(
     let conn = state.conn.clone();
     let session_result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().ok()?;
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
         user_sessions::table
             .find(session_id)
             .first::<UserSession>(&mut db_conn)
@@ -277,7 +295,7 @@ async fn save_message_to_history(
     tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-        use crate::shared::models::schema::message_history;
+        use crate::core::shared::models::schema::message_history;
 
         diesel::insert_into(message_history::table)
             .values((
@@ -519,7 +537,7 @@ async fn handle_attendant_message(
                     let conn = state.conn.clone();
                     if let Some(session) = tokio::task::spawn_blocking(move || {
                         let mut db_conn = conn.get().ok()?;
-                        use crate::shared::models::schema::user_sessions;
+                        use crate::core::shared::models::schema::user_sessions;
                         user_sessions::table
                             .find(uuid)
                             .first::<UserSession>(&mut db_conn)

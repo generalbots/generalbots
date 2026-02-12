@@ -11,7 +11,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub mod import;
 

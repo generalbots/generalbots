@@ -1,7 +1,7 @@
 use crate::core::directory::{BotAccess, UserAccount, UserProvisioningService, UserRole};
 use crate::core::urls::ApiUrls;
-use crate::shared::state::AppState;
-use crate::shared::utils::create_tls_client;
+use crate::core::shared::state::AppState;
+use crate::core::shared::utils::create_tls_client;
 use anyhow::Result;
 use axum::{
     extract::{Json, Path, State},
@@ -142,7 +142,7 @@ pub async fn get_user_handler(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    use crate::shared::models::schema::users;
+    use crate::core::shared::models::schema::users;
     use diesel::prelude::*;
 
     let mut conn = match state.conn.get() {
@@ -191,7 +191,7 @@ pub async fn get_user_handler(
 }
 
 pub async fn list_users_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    use crate::shared::models::schema::users;
+    use crate::core::shared::models::schema::users;
     use diesel::prelude::*;
 
     let mut conn = match state.conn.get() {

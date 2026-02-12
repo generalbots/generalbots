@@ -14,7 +14,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::core::shared::schema::{okr_checkins, okr_key_results, okr_objectives, okr_templates};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 fn get_bot_context() -> (Uuid, Uuid) {
     let org_id = std::env::var("DEFAULT_ORG_ID")

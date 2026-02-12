@@ -110,7 +110,7 @@ impl UserProvisioningService {
     }
 
     fn create_database_user(&self, account: &UserAccount) -> Result<String> {
-        use crate::shared::models::schema::users;
+        use crate::core::shared::models::schema::users;
         use argon2::{
             password_hash::{rand_core::OsRng, SaltString},
             Argon2, PasswordHasher,
@@ -206,7 +206,7 @@ impl UserProvisioningService {
 
     #[cfg(feature = "mail")]
     fn setup_email_account(&self, account: &UserAccount) -> Result<()> {
-        use crate::shared::models::schema::user_email_accounts;
+        use crate::core::shared::models::schema::user_email_accounts;
         use diesel::prelude::*;
 
         let mut conn = self
@@ -240,7 +240,7 @@ impl UserProvisioningService {
     }
 
     fn setup_oauth_config(&self, _user_id: &str, account: &UserAccount) -> Result<()> {
-        use crate::shared::models::schema::bot_configuration;
+        use crate::core::shared::models::schema::bot_configuration;
         use diesel::prelude::*;
 
         let services = vec![
@@ -287,7 +287,7 @@ impl UserProvisioningService {
     }
 
     fn remove_user_from_db(&self, username: &str) -> Result<()> {
-        use crate::shared::models::schema::users;
+        use crate::core::shared::models::schema::users;
         use diesel::prelude::*;
 
         let mut conn = self
@@ -346,7 +346,7 @@ impl UserProvisioningService {
 
     #[cfg(feature = "mail")]
     fn remove_email_config(&self, username: &str) -> Result<()> {
-        use crate::shared::models::schema::user_email_accounts;
+        use crate::core::shared::models::schema::user_email_accounts;
         use diesel::prelude::*;
 
         let mut conn = self

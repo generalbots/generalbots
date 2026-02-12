@@ -1,9 +1,9 @@
 pub mod anonymous;
 pub mod migration;
 
-use crate::bot::BotOrchestrator;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::bot::BotOrchestrator;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Extension, Path},
     http::StatusCode,
@@ -96,7 +96,7 @@ impl SessionManager {
         &mut self,
         session_id: Uuid,
     ) -> Result<Option<UserSession>, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions::dsl::*;
+        use crate::core::shared::models::user_sessions::dsl::*;
         let result = user_sessions
             .filter(id.eq(session_id))
             .first::<UserSession>(&mut self.conn)
@@ -109,7 +109,7 @@ impl SessionManager {
         uid: Uuid,
         bid: Uuid,
     ) -> Result<Option<UserSession>, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions::dsl::*;
+        use crate::core::shared::models::user_sessions::dsl::*;
         let result = user_sessions
             .filter(user_id.eq(uid))
             .filter(bot_id.eq(bid))
@@ -135,7 +135,7 @@ impl SessionManager {
         &mut self,
         uid: Option<Uuid>,
     ) -> Result<Uuid, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::users::dsl as users_dsl;
+        use crate::core::shared::models::users::dsl as users_dsl;
         let user_id = uid.unwrap_or_else(Uuid::new_v4);
         let user_exists: Option<Uuid> = users_dsl::users
             .filter(users_dsl::id.eq(user_id))
@@ -168,7 +168,7 @@ impl SessionManager {
         bid: Uuid,
         session_title: &str,
     ) -> Result<UserSession, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions::dsl::*;
+        use crate::core::shared::models::user_sessions::dsl::*;
         let verified_uid = self.get_or_create_anonymous_user(Some(uid))?;
         let now = Utc::now();
         let inserted: UserSession = diesel::insert_into(user_sessions)
@@ -192,7 +192,7 @@ impl SessionManager {
     }
 
     fn _clear_messages(&mut self, _session_id: Uuid) -> Result<(), Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::message_history::dsl::*;
+        use crate::core::shared::models::message_history::dsl::*;
         diesel::delete(message_history.filter(session_id.eq(session_id)))
             .execute(&mut self.conn)?;
         Ok(())
@@ -206,7 +206,7 @@ impl SessionManager {
         content: &str,
         msg_type: i32,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::message_history::dsl::*;
+        use crate::core::shared::models::message_history::dsl::*;
         let next_index = message_history
             .filter(session_id.eq(sess_id))
             .count()
@@ -309,7 +309,7 @@ impl SessionManager {
         sess_id: Uuid,
         _uid: Uuid,
     ) -> Result<Vec<(String, String)>, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::message_history::dsl::*;
+        use crate::core::shared::models::message_history::dsl::*;
         let messages = message_history
             .filter(session_id.eq(sess_id))
             .order(message_index.asc())
@@ -333,7 +333,7 @@ impl SessionManager {
         &mut self,
         uid: Uuid,
     ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions::dsl::*;
+        use crate::core::shared::models::user_sessions::dsl::*;
 
         let sessions = if uid == Uuid::nil() {
             user_sessions
@@ -355,7 +355,7 @@ impl SessionManager {
         session_id: Uuid,
         new_user_id: Uuid,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions::dsl::*;
+        use crate::core::shared::models::user_sessions::dsl::*;
         let updated_count = diesel::update(user_sessions.filter(id.eq(session_id)))
             .set((user_id.eq(new_user_id), updated_at.eq(chrono::Utc::now())))
             .execute(&mut self.conn)?;
@@ -372,7 +372,7 @@ impl SessionManager {
     }
 
     pub fn total_count(&mut self) -> usize {
-        use crate::shared::models::user_sessions::dsl::*;
+        use crate::core::shared::models::user_sessions::dsl::*;
         user_sessions
             .count()
             .first::<i64>(&mut self.conn)
@@ -383,7 +383,7 @@ impl SessionManager {
         &mut self,
         hours: i64,
     ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions::dsl::*;
+        use crate::core::shared::models::user_sessions::dsl::*;
         let since = chrono::Utc::now() - chrono::Duration::hours(hours);
         let sessions = user_sessions
             .filter(created_at.gt(since))
@@ -393,7 +393,7 @@ impl SessionManager {
     }
 
     pub fn get_statistics(&mut self) -> Result<serde_json::Value, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions::dsl::*;
+        use crate::core::shared::models::user_sessions::dsl::*;
 
         let total = user_sessions.count().first::<i64>(&mut self.conn)?;
 

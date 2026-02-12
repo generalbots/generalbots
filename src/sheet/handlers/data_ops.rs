@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use crate::sheet::storage::{get_current_user_id, load_sheet_by_id, save_sheet_to_drive};
 use crate::sheet::types::{
     CellData, ChartConfig, ChartOptions, ChartPosition, ChartRequest, ClearFilterRequest,

@@ -1,5 +1,5 @@
-use crate::shared::platform_name;
-use crate::shared::BOTSERVER_VERSION;
+use crate::core::shared::platform_name;
+use crate::core::shared::BOTSERVER_VERSION;
 use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEvent},

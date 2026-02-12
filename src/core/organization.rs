@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 // ============================================================================
 // Organization Types
@@ -870,7 +870,8 @@ impl OrganizationService {
         let owner_member = OrganizationMember::new(org.id, owner_id, "owner");
 
         // Assign owner role
-        let owner_role = roles.iter().find(|r| r.name == "owner").unwrap();
+        let owner_role = roles.iter().find(|r| r.name == "owner")
+            .ok_or_else(|| OrganizationError::InvalidRole("Owner role not found in default roles".to_string()))?;
         let owner_role_assignment = UserRole::new(
             owner_id,
             org.id,

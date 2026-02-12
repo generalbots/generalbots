@@ -6,7 +6,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::core::kb::KnowledgeBaseManager;
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionKbAssociation {

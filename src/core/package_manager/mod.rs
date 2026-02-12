@@ -7,7 +7,8 @@ pub use cache::{CacheResult, DownloadCache};
 pub use installer::PackageManager;
 pub mod cli;
 pub mod facade;
-#[derive(Debug, Clone, PartialEq, Eq)]
+use serde::{Serialize, Deserialize};
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InstallMode {
     Local,
     Container,

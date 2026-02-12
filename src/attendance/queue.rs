@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -307,8 +307,8 @@ pub async fn list_queue(
                 .get()
                 .map_err(|e| format!("Failed to get database connection: {}", e))?;
 
-            use crate::shared::models::schema::user_sessions;
-            use crate::shared::models::schema::users;
+            use crate::core::shared::models::schema::user_sessions;
+            use crate::core::shared::models::schema::users;
 
             let sessions_data: Vec<UserSession> = user_sessions::table
                 .order(user_sessions::created_at.desc())
@@ -399,7 +399,7 @@ pub async fn list_attendants(
             let conn = state.conn.clone();
             let result = tokio::task::spawn_blocking(move || {
                 let mut db_conn = conn.get().ok()?;
-                use crate::shared::models::schema::bots;
+                use crate::core::shared::models::schema::bots;
                 bots::table
                     .filter(bots::is_active.eq(true))
                     .select(bots::id)
@@ -463,7 +463,7 @@ pub async fn assign_conversation(
                 .get()
                 .map_err(|e| format!("Failed to get database connection: {}", e))?;
 
-            use crate::shared::models::schema::user_sessions;
+            use crate::core::shared::models::schema::user_sessions;
 
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
@@ -538,7 +538,7 @@ pub async fn transfer_conversation(
                 .get()
                 .map_err(|e| format!("Failed to get database connection: {}", e))?;
 
-            use crate::shared::models::schema::user_sessions;
+            use crate::core::shared::models::schema::user_sessions;
 
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
@@ -618,7 +618,7 @@ pub async fn resolve_conversation(
                 .get()
                 .map_err(|e| format!("Failed to get database connection: {}", e))?;
 
-            use crate::shared::models::schema::user_sessions;
+            use crate::core::shared::models::schema::user_sessions;
 
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
@@ -688,7 +688,7 @@ pub async fn get_insights(
                 .get()
                 .map_err(|e| format!("Failed to get database connection: {}", e))?;
 
-            use crate::shared::models::schema::message_history;
+            use crate::core::shared::models::schema::message_history;
 
             let messages: Vec<(String, i32)> = message_history::table
                 .filter(message_history::session_id.eq(session_id))

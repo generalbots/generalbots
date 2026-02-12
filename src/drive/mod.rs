@@ -1,6 +1,6 @@
 #[cfg(feature = "console")]
 use crate::console::file_tree::FileTree;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 
 use std::sync::Arc;
 
+pub mod drive_types;
+pub mod drive_handlers;
 pub mod document_processing;
 pub mod drive_monitor;
 pub mod local_file_monitor;
@@ -1248,8 +1250,8 @@ mod tests {
     impl Default for MinioTestConfig {
         fn default() -> Self {
             Self {
-                api_port: 9000,
-                console_port: 10000,
+                api_port: 9100,
+                console_port: 9101,
                 data_dir: PathBuf::from("/tmp/test"),
                 access_key: "minioadmin".to_string(),
                 secret_key: "minioadmin".to_string(),

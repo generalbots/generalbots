@@ -297,7 +297,7 @@ impl From<String> for EmailError {
 }
 
 pub struct EmailService {
-    pub state: std::sync::Arc<crate::shared::state::AppState>,
+    pub state: std::sync::Arc<crate::core::shared::state::AppState>,
 }
 
 pub struct EmailData {

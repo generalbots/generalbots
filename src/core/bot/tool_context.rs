@@ -4,24 +4,7 @@ use serde_json::{json, Value};
 use std::path::Path;
 use uuid::Uuid;
 
-use crate::shared::utils::DbPool;
-
-/// Structure to hold tool information loaded from .mcp.json files
-#[derive(Debug, Clone)]
-struct ToolInfo {
-    name: String,
-    description: String,
-    parameters: Vec<ToolParameter>,
-}
-
-#[derive(Debug, Clone)]
-struct ToolParameter {
-    name: String,
-    param_type: String,
-    description: String,
-    required: bool,
-    example: Option<String>,
-}
+use crate::core::shared::utils::DbPool;
 
 /// Loads tools for a bot and returns them formatted for OpenAI API
 pub fn get_session_tools(
@@ -29,7 +12,7 @@ pub fn get_session_tools(
     bot_name: &str,
     session_id: &Uuid,
 ) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
-    use crate::shared::models::schema::{bots, session_tool_associations};
+    use crate::core::shared::models::schema::{bots, session_tool_associations};
 
     // Get bot_id (we use the query to verify the bot exists)
     let mut conn = db_pool.get()?;

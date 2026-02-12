@@ -15,7 +15,7 @@ use crate::drive::vectordb::{FileContentExtractor, FileDocument};
 #[cfg(all(feature = "vectordb", feature = "mail"))]
 use crate::email::vectordb::{EmailDocument, UserEmailVectorDB};
 use crate::vector_db::embedding::EmbeddingGenerator;
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 #[derive(Debug, Clone)]
 struct UserWorkspace {
@@ -172,7 +172,7 @@ impl VectorDBIndexer {
         let pool = self.db_pool.clone();
 
         tokio::task::spawn_blocking(move || {
-            use crate::shared::models::schema::user_sessions::dsl::*;
+            use crate::core::shared::models::schema::user_sessions::dsl::*;
             use diesel::prelude::*;
 
             let mut db_conn = pool.get()?;

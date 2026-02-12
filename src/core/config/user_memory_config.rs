@@ -13,7 +13,7 @@ use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 
 

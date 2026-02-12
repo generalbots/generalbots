@@ -1,5 +1,5 @@
 use crate::core::shared::get_content_type;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     body::Body,
     extract::{Path, State},

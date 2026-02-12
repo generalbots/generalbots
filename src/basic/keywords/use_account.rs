@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info};
 use rhai::{Dynamic, Engine, EvalAltResult};
@@ -79,7 +79,7 @@ pub fn register_use_account_keyword(
 }
 
 fn add_account_to_session(
-    conn_pool: crate::shared::utils::DbPool,
+    conn_pool: crate::core::shared::utils::DbPool,
     session_id: Uuid,
     bot_id: Uuid,
     user_id: Uuid,
@@ -136,7 +136,7 @@ fn add_account_to_session(
 }
 
 pub fn get_active_accounts_for_session(
-    conn_pool: &crate::shared::utils::DbPool,
+    conn_pool: &crate::core::shared::utils::DbPool,
     session_id: Uuid,
 ) -> Result<Vec<ActiveAccountResult>, String> {
     let mut conn = conn_pool
@@ -172,7 +172,7 @@ pub fn is_account_path(path: &str) -> bool {
 }
 
 pub async fn get_account_credentials(
-    conn_pool: &crate::shared::utils::DbPool,
+    conn_pool: &crate::core::shared::utils::DbPool,
     email: &str,
     bot_id: Uuid,
 ) -> Result<AccountCredentials, String> {

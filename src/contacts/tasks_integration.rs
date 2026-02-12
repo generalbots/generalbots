@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::core::shared::schema::people::{crm_contacts as crm_contacts_table, people as people_table};
 use crate::core::shared::schema::tasks::tasks as tasks_table;
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 #[derive(Debug, Clone)]
 pub enum TasksIntegrationError {
@@ -1281,8 +1281,6 @@ impl TasksIntegrationService {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_task_type_display() {
         assert_eq!(format!("{:?}", ContactTaskType::FollowUp), "FollowUp");

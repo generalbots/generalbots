@@ -1,6 +1,6 @@
 
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 #[cfg(feature = "llm")]
 use crate::core::config::ConfigManager;
 use chrono::{DateTime, Utc};

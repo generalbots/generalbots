@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InvitationStatus {
@@ -186,6 +186,22 @@ pub struct CreateInvitationParams<'a> {
     pub invited_by_name: &'a str,
     pub message: Option<String>,
     pub expires_in_days: i64,
+}
+
+impl<'a> Default for CreateInvitationParams<'a> {
+    fn default() -> Self {
+        Self {
+            organization_id: Uuid::default(),
+            organization_name: "",
+            email: "",
+            role: InvitationRole::Member,
+            groups: Vec::new(),
+            invited_by: Uuid::default(),
+            invited_by_name: "",
+            message: None,
+            expires_in_days: 7,
+        }
+    }
 }
 
 pub struct BulkInviteParams<'a> {
@@ -885,10 +901,7 @@ mod tests {
             email: "test@example.com".to_string(),
             role: "Member".to_string(),
             groups: vec![],
-            invited_by: invited_by,
-            invited_by_name: Some("Admin".to_string()),
-            message: None,
-            expires_in_days: Some(7),
+            ..Default::default()
         };
 
         let result = service.create_invitation(params).await;
@@ -911,10 +924,7 @@ mod tests {
             email: "test@example.com".to_string(),
             role: "Member".to_string(),
             groups: vec![],
-            invited_by: invited_by,
-            invited_by_name: Some("Admin".to_string()),
-            message: None,
-            expires_in_days: Some(7),
+            ..Default::default()
         };
 
         let first_result = service.create_invitation(params.clone()).await;

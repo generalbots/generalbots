@@ -13,8 +13,8 @@ pub use get_posts::get_posts_keyword;
 pub use post_to::post_to_keyword;
 pub use post_to_scheduled::post_to_at_keyword;
 
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use rhai::Engine;
 use std::sync::Arc;
 

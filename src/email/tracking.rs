@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use super::types::*;
 use axum::{
     extract::{Path, Query, State},
@@ -50,7 +50,7 @@ pub fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<App
 }
 
 pub fn save_email_tracking_record(
-    conn: crate::shared::utils::DbPool,
+    conn: crate::core::shared::utils::DbPool,
     tracking_id: Uuid,
     account_id: Uuid,
     bot_id: Uuid,
@@ -145,7 +145,7 @@ pub async fn serve_tracking_pixel(
 }
 
 fn update_email_read_status(
-    conn: crate::shared::utils::DbPool,
+    conn: crate::core::shared::utils::DbPool,
     tracking_id: Uuid,
     client_ip: Option<String>,
     user_agent: Option<String>,
@@ -199,7 +199,7 @@ pub async fn get_tracking_status(
 }
 
 fn get_tracking_record(
-    conn: crate::shared::utils::DbPool,
+    conn: crate::core::shared::utils::DbPool,
     tracking_id: Uuid,
 ) -> Result<TrackingStatusResponse, String> {
     let mut db_conn = conn
@@ -261,7 +261,7 @@ pub async fn list_sent_emails_tracking(
 }
 
 fn list_tracking_records(
-    conn: crate::shared::utils::DbPool,
+    conn: crate::core::shared::utils::DbPool,
     query: ListTrackingQuery,
 ) -> Result<Vec<TrackingStatusResponse>, String> {
     let mut db_conn = conn
@@ -344,7 +344,7 @@ pub async fn get_tracking_stats(
 }
 
 fn calculate_tracking_stats(
-    conn: crate::shared::utils::DbPool,
+    conn: crate::core::shared::utils::DbPool,
 ) -> Result<TrackingStatsResponse, String> {
     let mut db_conn = conn
         .get()

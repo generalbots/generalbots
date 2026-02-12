@@ -9,10 +9,10 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::contacts::crm::{CrmAccount, CrmContact, CrmLead, CrmOpportunity};
 use crate::core::shared::schema::{crm_accounts, crm_contacts, crm_leads, crm_opportunities};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct StageQuery {

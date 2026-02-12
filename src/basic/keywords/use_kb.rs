@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, warn};
 use rhai::{Dynamic, Engine, EvalAltResult};
@@ -75,7 +75,7 @@ pub fn register_use_kb_keyword(
 }
 
 fn add_kb_to_session(
-    conn_pool: crate::shared::utils::DbPool,
+    conn_pool: crate::core::shared::utils::DbPool,
     session_id: Uuid,
     bot_id: Uuid,
     kb_name: &str,
@@ -158,7 +158,7 @@ fn add_kb_to_session(
 }
 
 pub fn get_active_kbs_for_session(
-    conn_pool: &crate::shared::utils::DbPool,
+    conn_pool: &crate::core::shared::utils::DbPool,
     session_id: Uuid,
 ) -> Result<Vec<(String, String, String)>, String> {
     let mut conn = conn_pool

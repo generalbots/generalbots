@@ -5,8 +5,8 @@ use crate::core::kb::embedding_generator::is_embedding_server_ready;
 #[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
-use crate::shared::message_types::MessageType;
-use crate::shared::state::AppState;
+use crate::core::shared::message_types::MessageType;
+use crate::core::shared::state::AppState;
 use aws_sdk_s3::Client;
 use log::{debug, error, info, trace, warn};
 use std::collections::HashMap;
@@ -762,7 +762,7 @@ impl DriveMonitor {
         }
         let response_channels = self.state.response_channels.lock().await;
         for (session_id, tx) in response_channels.iter() {
-            let theme_response = crate::shared::models::BotResponse {
+            let theme_response = crate::core::shared::models::BotResponse {
                 bot_id: self.bot_id.to_string(),
                 user_id: "system".to_string(),
                 session_id: session_id.clone(),
@@ -944,7 +944,7 @@ impl DriveMonitor {
         url: String,
         _bot_id: uuid::Uuid,
         _kb_manager: Option<Arc<crate::core::kb::KnowledgeBaseManager>>,
-        _db_pool: crate::shared::DbPool,
+        _db_pool: crate::core::shared::DbPool,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         #[cfg(feature = "crawler")]
         {

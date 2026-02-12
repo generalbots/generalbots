@@ -1,6 +1,6 @@
 use crate::security::command_guard::SafeCommand;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{trace, warn};
 use rhai::{Dynamic, Engine};

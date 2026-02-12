@@ -2,7 +2,7 @@
 use axum::{extract::State, http::StatusCode, response::Json};
 use serde_json::{json, Value};
 use std::sync::Arc;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use crate::core::config::ConfigManager;
 
 pub async fn reload_config(
@@ -16,7 +16,7 @@ pub async fn reload_config(
         let mut conn = conn_arc
             .get()
             .map_err(|e| format!("failed to get db connection: {e}"))?;
-        Ok(crate::bot::get_default_bot(&mut *conn))
+        Ok(crate::core::bot::get_default_bot(&mut *conn))
     })
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?

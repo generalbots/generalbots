@@ -1,6 +1,6 @@
 use crate::core::config::ConfigManager;
 use crate::llm::llm_models;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use log::{error, info, trace};
 use std::collections::HashSet;
 use std::fmt::Write;

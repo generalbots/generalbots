@@ -1,10 +1,9 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use crate::core::config::EmailConfig;
 use super::types::*;
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
-    Json,
 };
 use diesel::prelude::*;
 use log::{error, info, warn};

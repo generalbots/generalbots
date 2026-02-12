@@ -1,7 +1,7 @@
 pub mod ui;
 pub mod web_search;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Path, State},
     response::{Html, IntoResponse},

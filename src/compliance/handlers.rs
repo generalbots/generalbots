@@ -7,11 +7,11 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{
     compliance_audit_log, compliance_checks, compliance_issues, compliance_training_records,
 };
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 use super::storage::{
     db_audit_to_entry, db_check_to_result, db_issue_to_result, DbAuditLog, DbComplianceCheck,

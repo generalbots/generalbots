@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::{debug, error, info};
@@ -74,7 +74,7 @@ pub fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic 
             }
         };
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let mut query = user_sessions::table
             .filter(
@@ -214,7 +214,7 @@ pub fn next_in_queue_impl(state: &Arc<AppState>) -> Dynamic {
             Err(e) => return create_error_result(&format!("DB error: {}", e)),
         };
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let session: Option<UserSession> = user_sessions::table
             .filter(
@@ -327,7 +327,7 @@ pub fn assign_conversation_impl(
             return create_error_result("DB error: failed to get connection");
         };
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let session: UserSession = match user_sessions::table.find(session_uuid).first(&mut db_conn)
         {
@@ -414,7 +414,7 @@ pub fn resolve_conversation_impl(
             return create_error_result("DB error: failed to get connection");
         };
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let session: UserSession = match user_sessions::table.find(session_uuid).first(&mut db_conn)
         {
@@ -501,7 +501,7 @@ pub fn set_priority_impl(state: &Arc<AppState>, session_id: &str, priority: Dyna
             return create_error_result("DB error: failed to get connection");
         };
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let session: UserSession = match user_sessions::table.find(session_uuid).first(&mut db_conn)
         {
@@ -682,7 +682,7 @@ pub fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dy
             Err(e) => return create_error_result(&format!("DB error: {}", e)),
         };
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let today = Utc::now().date_naive();
         let today_start = today.and_hms_opt(0, 0, 0).unwrap_or_else(|| today.and_hms_opt(0, 0, 1).unwrap_or_default());
@@ -966,7 +966,7 @@ pub fn get_summary_impl(state: &Arc<AppState>, session_id: &str) -> Dynamic {
             Err(e) => return create_error_result(&format!("DB error: {}", e)),
         };
 
-        use crate::shared::models::schema::message_history;
+        use crate::core::shared::models::schema::message_history;
 
         let message_count: i64 = message_history::table
             .filter(message_history::session_id.eq(session_uuid))
@@ -1133,7 +1133,7 @@ pub fn tag_conversation_impl(
             return create_error_result("DB error: failed to get connection");
         };
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let session: UserSession = match user_sessions::table.find(session_uuid).first(&mut db_conn)
         {
@@ -1227,7 +1227,7 @@ pub fn add_note_impl(
             return create_error_result("DB error: failed to get connection");
         };
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let session: UserSession = match user_sessions::table.find(session_uuid).first(&mut db_conn)
         {
@@ -1302,7 +1302,7 @@ pub fn get_customer_history_impl(state: &Arc<AppState>, user_id: &str) -> Dynami
             Err(e) => return create_error_result(&format!("DB error: {}", e)),
         };
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let sessions: Vec<UserSession> = user_sessions::table
             .filter(user_sessions::user_id.eq(user_uuid))

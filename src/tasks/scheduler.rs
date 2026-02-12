@@ -1,5 +1,5 @@
 use crate::security::command_guard::SafeCommand;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
 
@@ -96,11 +96,8 @@ impl TaskScheduler {
     }
 
     fn register_default_handlers(&self) {
-        let registry = self.task_registry.clone();
-        let _state = self.state.clone();
-
         tokio::spawn(async move {
-            let mut handlers = registry.write().await;
+            let mut handlers: HashMap<String, TaskHandler> = HashMap::new();
 
             handlers.insert(
                 "database_cleanup".to_string(),
@@ -122,8 +119,9 @@ impl TaskScheduler {
                 Arc::new(move |state: Arc<AppState>, _payload: serde_json::Value| {
                     Box::pin(async move {
                         if let Some(cache) = &state.cache {
-                            let mut conn = cache.get_connection()?;
-                            redis::cmd("FLUSHDB").query::<()>(&mut conn)?;
+                            let client: Arc<redis::Client> = Arc::clone(cache);
+                            let mut conn = client.get_connection()?;
+                            let _: () = redis::cmd("FLUSHDB").query(&mut conn)?;
                         }
 
                         Ok(serde_json::json!({
@@ -235,12 +233,14 @@ impl TaskScheduler {
                         health["database"] = serde_json::json!(db_ok);
 
                         if let Some(cache) = &state.cache {
-                            let cache_ok = cache.get_connection().is_ok();
+                            let cache_client: Arc<redis::Client> = Arc::clone(cache);
+                            let cache_ok = cache_client.get_connection().is_ok();
                             health["cache"] = serde_json::json!(cache_ok);
                         }
 
                         if let Some(s3) = &state.drive {
-                            let s3_ok = s3.list_buckets().send().await.is_ok();
+                            let s3_clone: aws_sdk_s3::Client = (*s3).clone();
+                            let s3_ok = s3_clone.list_buckets().send().await.is_ok();
                             health["storage"] = serde_json::json!(s3_ok);
                         }
 

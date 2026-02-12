@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 const DEFAULT_RETENTION_DAYS: i64 = 180;
 const MIN_RETENTION_DAYS: i64 = 7;

@@ -22,6 +22,7 @@ pub mod crm;
 pub mod data_operations;
 pub mod datetime;
 pub mod db_api;
+pub mod face_api;
 
 // ===== WORKFLOW ORCHESTRATION MODULES =====
 pub mod orchestration;
@@ -39,6 +40,7 @@ pub mod for_next;
 pub mod format;
 pub mod get;
 pub mod hear_talk;
+pub mod hearing;
 pub mod http_operations;
 pub mod human_approval;
 pub mod last;
@@ -98,8 +100,6 @@ pub mod create_task;
 pub mod set_schedule;
 
 // ===== SOCIAL FEATURE KEYWORDS =====
-#[cfg(feature = "social")]
-
 #[cfg(feature = "social")]
 pub mod social;
 #[cfg(feature = "social")]

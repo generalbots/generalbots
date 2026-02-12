@@ -2,8 +2,8 @@
 
 use crate::security::command_guard::SafeCommand;
 use crate::core::shared::schema::organizations;
-use crate::shared::platform_name;
-use crate::shared::utils::DbPool;
+use crate::core::shared::platform_name;
+use crate::core::shared::utils::DbPool;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use log::{debug, error, info, warn};

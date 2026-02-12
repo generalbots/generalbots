@@ -57,8 +57,6 @@ pub use self::social::*;
 
 #[cfg(feature = "analytics")]
 pub mod analytics;
-#[cfg(feature = "analytics")]
-pub use self::analytics::*;
 
 #[cfg(feature = "compliance")]
 pub mod compliance;
@@ -82,12 +80,7 @@ pub use self::learn::*;
 
 #[cfg(feature = "project")]
 pub mod project;
-#[cfg(feature = "project")]
-#[cfg(feature = "project")]
-pub use self::project::*;
 
 #[cfg(feature = "dashboards")]
 pub mod dashboards;
-#[cfg(feature = "dashboards")]
-pub use self::dashboards::*;
 

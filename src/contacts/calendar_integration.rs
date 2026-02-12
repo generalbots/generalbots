@@ -12,8 +12,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::core::shared::schema::{calendar_events, crm_contacts};
-use crate::shared::state::AppState;
-use crate::shared::utils::DbPool;
+use crate::core::shared::state::AppState;
+use crate::core::shared::utils::DbPool;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventContact {

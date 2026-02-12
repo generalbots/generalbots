@@ -5,7 +5,7 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::security::command_guard::SafeCommand;
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 use super::models::*;
 use super::schema::*;

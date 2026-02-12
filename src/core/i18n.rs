@@ -10,7 +10,7 @@ use botlib::i18n::{self, Locale as BotlibLocale, MessageArgs as BotlibMessageArg
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Locale {

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::bot::channels::ChannelAdapter;
 use crate::core::config::ConfigManager;
-use crate::shared::models::BotResponse;
+use crate::core::shared::models::BotResponse;
 
 #[derive(Debug, Serialize)]
 struct TelegramSendMessage {

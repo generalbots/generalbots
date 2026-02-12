@@ -1,9 +1,9 @@
 use crate::security::error_sanitizer::log_and_sanitize_str;
-use crate::shared::models::{
+use crate::core::shared::models::{
     NewRbacGroup, NewRbacGroupRole, NewRbacRole, NewRbacUserGroup, NewRbacUserRole, RbacGroup,
     RbacGroupRole, RbacRole, RbacUserGroup, RbacUserRole, User,
 };
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -75,7 +75,7 @@ async fn list_roles(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_roles;
+        use crate::core::shared::models::schema::rbac_roles;
         rbac_roles::table
             .filter(rbac_roles::is_active.eq(true))
             .order(rbac_roles::display_name.asc())
@@ -101,7 +101,7 @@ async fn get_role(State(state): State<Arc<AppState>>, Path(role_id): Path<Uuid>)
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_roles;
+        use crate::core::shared::models::schema::rbac_roles;
         rbac_roles::table
             .find(role_id)
             .first::<RbacRole>(&mut db_conn)
@@ -139,7 +139,7 @@ async fn create_role(State(state): State<Arc<AppState>>, Json(req): Json<CreateR
 
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_roles;
+        use crate::core::shared::models::schema::rbac_roles;
         diesel::insert_into(rbac_roles::table)
             .values(&new_role)
             .get_result::<RbacRole>(&mut db_conn)
@@ -167,7 +167,7 @@ async fn delete_role(State(state): State<Arc<AppState>>, Path(role_id): Path<Uui
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_roles;
+        use crate::core::shared::models::schema::rbac_roles;
         let role: RbacRole = rbac_roles::table.find(role_id).first(&mut db_conn).map_err(|e| format!("Role not found: {e}"))?;
         if role.is_system {
             return Err("Cannot delete system role".to_string());
@@ -215,7 +215,7 @@ async fn list_groups(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_groups;
+        use crate::core::shared::models::schema::rbac_groups;
         rbac_groups::table
             .filter(rbac_groups::is_active.eq(true))
             .order(rbac_groups::display_name.asc())
@@ -241,7 +241,7 @@ async fn get_group(State(state): State<Arc<AppState>>, Path(group_id): Path<Uuid
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_groups;
+        use crate::core::shared::models::schema::rbac_groups;
         rbac_groups::table
             .find(group_id)
             .first::<RbacGroup>(&mut db_conn)
@@ -279,7 +279,7 @@ async fn create_group(State(state): State<Arc<AppState>>, Json(req): Json<Create
 
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_groups;
+        use crate::core::shared::models::schema::rbac_groups;
         diesel::insert_into(rbac_groups::table)
             .values(&new_group)
             .get_result::<RbacGroup>(&mut db_conn)
@@ -307,7 +307,7 @@ async fn delete_group(State(state): State<Arc<AppState>>, Path(group_id): Path<U
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_groups;
+        use crate::core::shared::models::schema::rbac_groups;
         diesel::update(rbac_groups::table.find(group_id))
             .set(rbac_groups::is_active.eq(false))
             .execute(&mut db_conn)
@@ -338,7 +338,7 @@ async fn list_users_with_roles(State(state): State<Arc<AppState>>, Query(params)
 
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::users;
+        use crate::core::shared::models::schema::users;
         let mut query = users::table.filter(users::is_active.eq(true)).order(users::username.asc()).into_boxed();
         if let Some(ref s) = search {
             let pattern = format!("%{s}%");
@@ -365,7 +365,7 @@ async fn get_user_roles(State(state): State<Arc<AppState>>, Path(user_id): Path<
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::{rbac_roles, rbac_user_roles};
+        use crate::core::shared::models::schema::{rbac_roles, rbac_user_roles};
         rbac_user_roles::table
             .inner_join(rbac_roles::table)
             .filter(rbac_user_roles::user_id.eq(user_id))
@@ -404,7 +404,7 @@ async fn assign_role_to_user(State(state): State<Arc<AppState>>, Path((user_id, 
 
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_user_roles;
+        use crate::core::shared::models::schema::rbac_user_roles;
         let existing = rbac_user_roles::table
             .filter(rbac_user_roles::user_id.eq(user_id))
             .filter(rbac_user_roles::role_id.eq(role_id))
@@ -442,7 +442,7 @@ async fn remove_role_from_user(State(state): State<Arc<AppState>>, Path((user_id
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_user_roles;
+        use crate::core::shared::models::schema::rbac_user_roles;
         diesel::delete(rbac_user_roles::table.filter(rbac_user_roles::user_id.eq(user_id)).filter(rbac_user_roles::role_id.eq(role_id)))
             .execute(&mut db_conn)
             .map_err(|e| format!("Delete error: {e}"))?;
@@ -470,7 +470,7 @@ async fn get_user_groups(State(state): State<Arc<AppState>>, Path(user_id): Path
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::{rbac_groups, rbac_user_groups};
+        use crate::core::shared::models::schema::{rbac_groups, rbac_user_groups};
         rbac_user_groups::table
             .inner_join(rbac_groups::table)
             .filter(rbac_user_groups::user_id.eq(user_id))
@@ -507,7 +507,7 @@ async fn add_user_to_group(State(state): State<Arc<AppState>>, Path((user_id, gr
 
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_user_groups;
+        use crate::core::shared::models::schema::rbac_user_groups;
         let existing = rbac_user_groups::table
             .filter(rbac_user_groups::user_id.eq(user_id))
             .filter(rbac_user_groups::group_id.eq(group_id))
@@ -545,7 +545,7 @@ async fn remove_user_from_group(State(state): State<Arc<AppState>>, Path((user_i
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_user_groups;
+        use crate::core::shared::models::schema::rbac_user_groups;
         diesel::delete(rbac_user_groups::table.filter(rbac_user_groups::user_id.eq(user_id)).filter(rbac_user_groups::group_id.eq(group_id)))
             .execute(&mut db_conn)
             .map_err(|e| format!("Delete error: {e}"))?;
@@ -573,7 +573,7 @@ async fn get_group_roles(State(state): State<Arc<AppState>>, Path(group_id): Pat
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::{rbac_group_roles, rbac_roles};
+        use crate::core::shared::models::schema::{rbac_group_roles, rbac_roles};
         rbac_group_roles::table
             .inner_join(rbac_roles::table)
             .filter(rbac_group_roles::group_id.eq(group_id))
@@ -610,7 +610,7 @@ async fn assign_role_to_group(State(state): State<Arc<AppState>>, Path((group_id
 
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_group_roles;
+        use crate::core::shared::models::schema::rbac_group_roles;
         let existing = rbac_group_roles::table
             .filter(rbac_group_roles::group_id.eq(group_id))
             .filter(rbac_group_roles::role_id.eq(role_id))
@@ -648,7 +648,7 @@ async fn remove_role_from_group(State(state): State<Arc<AppState>>, Path((group_
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_group_roles;
+        use crate::core::shared::models::schema::rbac_group_roles;
         diesel::delete(rbac_group_roles::table.filter(rbac_group_roles::group_id.eq(group_id)).filter(rbac_group_roles::role_id.eq(role_id)))
             .execute(&mut db_conn)
             .map_err(|e| format!("Delete error: {e}"))?;
@@ -676,7 +676,7 @@ async fn get_effective_permissions(State(state): State<Arc<AppState>>, Path(user
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::{rbac_roles, rbac_user_roles, rbac_groups, rbac_user_groups, rbac_group_roles};
+        use crate::core::shared::models::schema::{rbac_roles, rbac_user_roles, rbac_groups, rbac_user_groups, rbac_group_roles};
 
         let direct_roles: Vec<RbacRole> = rbac_user_roles::table
             .inner_join(rbac_roles::table)

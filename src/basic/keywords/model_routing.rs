@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{info, trace};
 use rhai::{Dynamic, Engine};
@@ -311,11 +311,11 @@ pub fn set_model_routing_keyword(state: Arc<AppState>, user: UserSession, engine
 }
 
 pub fn get_current_model_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
+    let state_clone: Arc<AppState> = Arc::clone(&state);
     let user_clone = user;
 
     engine.register_fn("GET CURRENT MODEL", move || -> String {
-        let state = state_clone.clone();
+        let state = Arc::<AppState>::clone(&state_clone);
 
         if let Ok(mut conn) = state.conn.get() {
             get_session_model_sync(&mut conn, user_clone.id)
@@ -327,11 +327,11 @@ pub fn get_current_model_keyword(state: Arc<AppState>, user: UserSession, engine
 }
 
 pub fn list_models_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
+    let state_clone: Arc<AppState> = Arc::clone(&state);
     let user_clone = user;
 
     engine.register_fn("LIST MODELS", move || -> rhai::Array {
-        let state = state_clone.clone();
+        let state = Arc::<AppState>::clone(&state_clone);
 
         if let Ok(mut conn) = state.conn.get() {
             list_available_models_sync(&mut conn, user_clone.bot_id)
@@ -480,7 +480,7 @@ fn get_session_model_sync(
         }
 
         // 3. Bot has no model configured - fall back to default bot's model
-        let (default_bot_id, _) = crate::bot::get_default_bot(conn);
+        let (default_bot_id, _) = crate::core::bot::get_default_bot(conn);
 
         let default_model: Option<ConfigValue> = diesel::sql_query(
             "SELECT config_value FROM bot_configuration \

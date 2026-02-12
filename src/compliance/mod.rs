@@ -5,7 +5,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub mod access_review;
 pub mod audit;

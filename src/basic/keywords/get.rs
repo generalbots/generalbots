@@ -1,6 +1,6 @@
-use crate::shared::models::schema::bots::dsl::*;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::schema::bots::dsl::*;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, trace};
 use reqwest::{self, Client};

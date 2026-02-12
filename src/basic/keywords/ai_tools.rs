@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use log::{debug, trace};
 use rhai::{Dynamic, Engine, EvalAltResult, Map, Position};
 use std::sync::Arc;

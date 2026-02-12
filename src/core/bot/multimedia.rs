@@ -11,8 +11,8 @@
 
 
 
-use crate::shared::message_types::MessageType;
-use crate::shared::models::{BotResponse, UserMessage};
+use crate::core::shared::message_types::MessageType;
+use crate::core::shared::models::{BotResponse, UserMessage};
 use anyhow::Result;
 use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -441,7 +441,7 @@ impl UserMessageMultimedia for UserMessage {
 }
 
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Path, State},
     http::StatusCode,

@@ -8,8 +8,8 @@ use tokio::sync::{broadcast, RwLock};
 use uuid::Uuid;
 
 use crate::core::shared::schema::meeting_recordings;
-use crate::shared::utils::DbPool;
-use crate::shared::{format_timestamp_plain, format_timestamp_srt, format_timestamp_vtt};
+use crate::core::shared::utils::DbPool;
+use crate::core::shared::{format_timestamp_plain, format_timestamp_srt, format_timestamp_vtt};
 
 #[derive(Debug, Clone)]
 pub enum RecordingError {

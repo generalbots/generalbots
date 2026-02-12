@@ -1,10 +1,10 @@
-use crate::package_manager::cache::{CacheResult, DownloadCache};
-use crate::package_manager::component::{ComponentConfig, InstallResult};
-use crate::package_manager::installer::PackageManager;
-use crate::package_manager::InstallMode;
-use crate::package_manager::OsType;
+use crate::core::package_manager::cache::{CacheResult, DownloadCache};
+use crate::core::package_manager::component::{ComponentConfig, InstallResult};
+use crate::core::package_manager::installer::PackageManager;
+use crate::core::package_manager::InstallMode;
+use crate::core::package_manager::OsType;
 use crate::security::command_guard::SafeCommand;
-use crate::shared::utils::{self, get_database_url_sync, parse_database_url};
+use crate::core::shared::utils::{self, get_database_url_sync, parse_database_url};
 use anyhow::{Context, Result};
 use log::{error, info, trace, warn};
 use reqwest::Client;
@@ -529,11 +529,11 @@ Store credentials in Vault:
             "drive" => {
                 format!(
                     r"MinIO Object Storage:
-  API:     https://{}:9000
-  Console: https://{}:9001
+  API:     https://{}:9100
+  Console: https://{}:9101
 
 Store credentials in Vault:
-  botserver vault put gbo/drive server={} port=9000 accesskey=minioadmin secret=<your-secret>",
+  botserver vault put gbo/drive server={} port=9100 accesskey=minioadmin secret=<your-secret>",
                     ip, ip, ip
                 )
             }
@@ -1081,7 +1081,7 @@ Store credentials in Vault:
             match get_database_url_sync() {
                 Ok(url) => {
                     let (_, password, _, _, _) = parse_database_url(&url);
-                    password.to_string()
+                    String::from(password)
                 }
                 Err(_) => {
                     trace!("Vault not available for DB_PASSWORD, using empty string");

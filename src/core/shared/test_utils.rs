@@ -10,8 +10,8 @@ use crate::directory::client::ZitadelConfig;
 use crate::directory::AuthService;
 #[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
-use crate::shared::models::BotResponse;
-use crate::shared::utils::{get_database_url_sync, DbPool};
+use crate::core::shared::models::BotResponse;
+use crate::core::shared::utils::{get_database_url_sync, DbPool};
 #[cfg(feature = "tasks")]
 use crate::tasks::TaskEngine;
 use async_trait::async_trait;

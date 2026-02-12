@@ -1,6 +1,6 @@
-use crate::package_manager::component::ComponentConfig;
-use crate::package_manager::os::detect_os;
-use crate::package_manager::{InstallMode, OsType};
+use crate::core::package_manager::component::ComponentConfig;
+use crate::core::package_manager::os::detect_os;
+use crate::core::package_manager::{InstallMode, OsType};
 use crate::security::command_guard::SafeCommand;
 use anyhow::Result;
 use log::{error, info, trace, warn};
@@ -223,7 +223,7 @@ impl PackageManager {
             "drive".to_string(),
             ComponentConfig {
                 name: "drive".to_string(),
-                ports: vec![9000, 9001],
+                ports: vec![9100, 9101],
                 dependencies: vec![],
                 linux_packages: vec![],
                 macos_packages: vec![],
@@ -241,8 +241,8 @@ impl PackageManager {
                     ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
-                check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9000/minio/health/live >/dev/null 2>&1".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9100 --console-address :9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
+                check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
             },
         );
     }

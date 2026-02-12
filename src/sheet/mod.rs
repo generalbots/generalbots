@@ -5,7 +5,7 @@ pub mod handlers;
 pub mod storage;
 pub mod types;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     routing::{get, post},
     Router,

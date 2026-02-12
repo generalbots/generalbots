@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::core::bot::channels::ChannelAdapter;
 use crate::core::config::ConfigManager;
-use crate::shared::models::BotResponse;
-use crate::shared::utils::DbPool;
+use crate::core::shared::models::BotResponse;
+use crate::core::shared::utils::DbPool;
 
 #[derive(Debug)]
 pub struct WhatsAppAdapter {

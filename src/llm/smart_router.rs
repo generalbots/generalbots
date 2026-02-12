@@ -76,11 +76,11 @@ impl SmartLLMRouter {
             OptimizationGoal::Cost => candidates.iter().min_by(|a, b| {
                 a.avg_cost_per_token
                     .partial_cmp(&b.avg_cost_per_token)
-                    .unwrap()
+                    .unwrap_or(std::cmp::Ordering::Equal)
             }),
             OptimizationGoal::Quality => candidates
                 .iter()
-                .max_by(|a, b| a.success_rate.partial_cmp(&b.success_rate).unwrap()),
+                .max_by(|a, b| a.success_rate.partial_cmp(&b.success_rate).unwrap_or(std::cmp::Ordering::Equal)),
             OptimizationGoal::Balanced => {
                 // Weighted score: 40% success rate, 30% speed, 30% cost
                 candidates.iter().max_by(|a, b| {
@@ -90,7 +90,7 @@ impl SmartLLMRouter {
                     let score_b = (b.success_rate * 0.4)
                         + ((1000.0 / b.avg_latency_ms as f64) * 0.3)
                         + ((1.0 / (b.avg_cost_per_token + 0.001)) * 0.3);
-                    score_a.partial_cmp(&score_b).unwrap()
+                    score_a.partial_cmp(&score_b).unwrap_or(std::cmp::Ordering::Equal)
                 })
             }
         };

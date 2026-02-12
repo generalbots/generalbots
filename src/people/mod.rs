@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{
     people_departments, people_org_chart, people_person_skills, people_skills,
     people_team_members, people_teams, people_time_off,
 };
 use crate::core::shared::schema::people::people as people_table;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
 #[diesel(table_name = people_table)]

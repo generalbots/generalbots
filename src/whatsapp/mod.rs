@@ -1,8 +1,8 @@
-use crate::bot::BotOrchestrator;
+use crate::core::bot::BotOrchestrator;
 use crate::core::bot::channels::whatsapp::WhatsAppAdapter;
 use crate::core::bot::channels::ChannelAdapter;
-use crate::shared::models::{BotResponse, UserMessage, UserSession};
-use crate::shared::state::{AppState, AttendantNotification};
+use crate::core::shared::models::{BotResponse, UserMessage, UserSession};
+use crate::core::shared::state::{AppState, AttendantNotification};
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -380,7 +380,7 @@ async fn get_attendant_active_session(state: &Arc<AppState>, phone: &str) -> Opt
     tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().ok()?;
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let session: Option<UserSession> = user_sessions::table
             .filter(
@@ -466,7 +466,7 @@ async fn find_or_create_session(
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-        use crate::shared::models::schema::{bots, user_sessions, users};
+        use crate::core::shared::models::schema::{bots, user_sessions, users};
 
         let existing_user: Option<(Uuid, String)> = users::table
             .filter(users::email.eq(&phone_clone))
@@ -696,7 +696,7 @@ async fn save_message_to_history(
     tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-        use crate::shared::models::schema::message_history;
+        use crate::core::shared::models::schema::message_history;
 
         diesel::insert_into(message_history::table)
             .values((
@@ -732,7 +732,7 @@ async fn update_queue_item(
     tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
 
         let current: UserSession = user_sessions::table
             .find(session_id)
@@ -838,7 +838,7 @@ pub async fn attendant_respond(
     let conn = state.conn.clone();
     let session_result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().ok()?;
-        use crate::shared::models::schema::user_sessions;
+        use crate::core::shared::models::schema::user_sessions;
         user_sessions::table
             .find(session_id)
             .first::<UserSession>(&mut db_conn)
@@ -965,7 +965,7 @@ async fn get_default_bot_id(state: &Arc<AppState>) -> Uuid {
 
     tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().ok()?;
-        use crate::shared::models::schema::bots;
+        use crate::core::shared::models::schema::bots;
         bots::table
             .filter(bots::is_active.eq(true))
             .select(bots::id)

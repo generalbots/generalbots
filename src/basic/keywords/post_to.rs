@@ -1,6 +1,6 @@
 use crate::channels::{ChannelManager, ChannelType, PostContent};
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use rhai::{Dynamic, Engine, EvalAltResult, Map};
 use std::sync::Arc;
 

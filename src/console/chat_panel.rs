@@ -1,6 +1,6 @@
-use crate::shared::message_types::MessageType;
-use crate::shared::models::BotResponse;
-use crate::shared::state::AppState;
+use crate::core::shared::message_types::MessageType;
+use crate::core::shared::models::BotResponse;
+use crate::core::shared::state::AppState;
 use color_eyre::Result;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -49,7 +49,7 @@ impl ChatPanel {
         self.messages.push(format!("You: {}", message));
         self.input_buffer.clear();
         let bot_id = Self::get_bot_id(bot_name, app_state)?;
-        let user_message = crate::shared::models::UserMessage {
+        let user_message = crate::core::shared::models::UserMessage {
             bot_id: bot_id.to_string(),
             user_id: self.user_id.to_string(),
             session_id: self.session_id.to_string(),
@@ -62,7 +62,7 @@ impl ChatPanel {
         };
         let (tx, rx) = mpsc::channel::<BotResponse>(100);
         self.response_rx = Some(rx);
-        let orchestrator = crate::bot::BotOrchestrator::new(app_state.clone());
+        let orchestrator = crate::core::bot::BotOrchestrator::new(app_state.clone());
         let _ = orchestrator.stream_response(user_message, tx).await;
         Ok(())
     }
@@ -88,7 +88,7 @@ impl ChatPanel {
         Ok(())
     }
     fn get_bot_id(bot_name: &str, app_state: &Arc<AppState>) -> Result<Uuid> {
-        use crate::shared::models::schema::bots::dsl::*;
+        use crate::core::shared::models::schema::bots::dsl::*;
         use diesel::prelude::*;
         let mut conn = app_state.conn.get()
             .map_err(|e| color_eyre::eyre::eyre!("Failed to get db connection: {e}"))?;

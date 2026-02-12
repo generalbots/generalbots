@@ -6,7 +6,7 @@ use governor::{
 };
 use std::num::NonZeroU32;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::Semaphore;
 
 /// Rate limits for an API provider
@@ -95,8 +95,9 @@ impl ApiRateLimiter {
     /// Create a new rate limiter with the specified limits
     pub fn new(limits: RateLimits) -> Self {
         // Requests per minute limiter
-        let rpm_quota = Quota::per_minute(NonZeroU32::new(limits.requests_per_minute).unwrap());
-        let requests_per_minute = Arc::new(RateLimiter::direct(rpm_quota));
+        let rpm_quota = NonZeroU32::new(limits.requests_per_minute)
+            .unwrap_or_else(|| unsafe { NonZeroU32::new_unchecked(1) });
+        let requests_per_minute = Arc::new(RateLimiter::direct(Quota::per_minute(rpm_quota)));
 
         // Tokens per minute (using semaphore as we need to track token count)
         let tokens_per_minute = Arc::new(Semaphore::new(
@@ -105,7 +106,7 @@ impl ApiRateLimiter {
 
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_else(|_| std::time::Duration::from_secs(0))
             .as_secs();
         let tomorrow = now + 86400;
 
@@ -130,7 +131,7 @@ impl ApiRateLimiter {
     fn check_and_reset_daily(&self) {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_else(|_| std::time::Duration::from_secs(0))
             .as_secs();
         let reset_time = self.daily_request_reset.load(std::sync::atomic::Ordering::Relaxed);
 
@@ -142,7 +143,7 @@ impl ApiRateLimiter {
             // Set new reset time to tomorrow
             let tomorrow = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_else(|_| std::time::Duration::from_secs(0))
                 .as_secs() + 86400;
             self.daily_request_reset.store(tomorrow, std::sync::atomic::Ordering::Relaxed);
             self.daily_token_reset.store(tomorrow, std::sync::atomic::Ordering::Relaxed);

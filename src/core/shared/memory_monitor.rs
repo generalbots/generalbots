@@ -463,7 +463,6 @@ tokio::spawn(async move {
 }
 
 #[cfg(feature = "monitoring")]
-#[cfg(feature = "monitoring")]
 pub fn get_process_memory() -> Option<(u64, u64)> {
 let pid = Pid::from_u32(std::process::id());
 let mut sys = System::new();

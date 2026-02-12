@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use super::types::*;
 use axum::{
     extract::{Path, State},

@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use super::LLMProvider;
 use crate::core::config::ConfigManager;
-use crate::shared::utils::{estimate_token_count, DbPool};
+use crate::core::shared::utils::{estimate_token_count, DbPool};
 
 #[derive(Clone, Debug)]
 

@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info};
 use rhai::{Dynamic, Engine, EvalAltResult};
@@ -93,7 +93,7 @@ pub fn register_clear_kb_keyword(
 }
 
 fn clear_specific_kb(
-    conn_pool: crate::shared::utils::DbPool,
+    conn_pool: crate::core::shared::utils::DbPool,
     session_id: Uuid,
     kb_name: &str,
 ) -> Result<(), String> {
@@ -129,7 +129,7 @@ fn clear_specific_kb(
 }
 
 fn clear_all_kbs(
-    conn_pool: crate::shared::utils::DbPool,
+    conn_pool: crate::core::shared::utils::DbPool,
     session_id: Uuid,
 ) -> Result<usize, String> {
     let mut conn = conn_pool
@@ -158,7 +158,7 @@ fn clear_all_kbs(
 }
 
 pub fn get_active_kb_count(
-    conn_pool: &crate::shared::utils::DbPool,
+    conn_pool: &crate::core::shared::utils::DbPool,
     session_id: Uuid,
 ) -> Result<i64, String> {
     let mut conn = conn_pool

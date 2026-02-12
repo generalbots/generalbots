@@ -1,8 +1,8 @@
 use crate::core::config::ConfigManager;
 use crate::core::kb::web_crawler::{WebCrawler, WebsiteCrawlConfig};
 use crate::core::kb::KnowledgeBaseManager;
-use crate::shared::state::AppState;
-use crate::shared::utils::DbPool;
+use crate::core::shared::state::AppState;
+use crate::core::shared::utils::DbPool;
 use diesel::prelude::*;
 use log::{error, info, warn};
 use regex;
@@ -331,8 +331,10 @@ impl WebsiteCrawlerService {
             let entry = entry?;
             let path = entry.path();
 
-            if path.is_dir() && path.file_name().unwrap().to_string_lossy().ends_with(".gbai") {
-                let bot_name = path.file_name().unwrap().to_string_lossy().replace(".gbai", "");
+            if let Some(file_name) = path.file_name() {
+                let file_name_str = file_name.to_string_lossy();
+                if path.is_dir() && file_name_str.ends_with(".gbai") {
+                    let bot_name = file_name_str.replace(".gbai", "");
 
                 // Get bot_id from database
                 #[derive(QueryableByName)]
@@ -354,6 +356,7 @@ impl WebsiteCrawlerService {
                 let dialog_dir = path.join(format!("{}.gbdialog", bot_name));
                 if dialog_dir.exists() {
                     self.scan_directory_for_websites(&dialog_dir, bot_id, &mut conn)?;
+                }
                 }
             }
         }

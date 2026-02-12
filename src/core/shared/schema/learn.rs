@@ -1,7 +1,5 @@
 // use crate::core::shared::schema::core::{organizations, bots};
 
-use diesel::prelude::*;
-
 diesel::table! {
     learn_courses (id) {
         id -> Uuid,

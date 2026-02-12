@@ -1,5 +1,5 @@
 use crate::docs::types::CollabMessage;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},

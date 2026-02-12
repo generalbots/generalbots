@@ -7,7 +7,7 @@ pub mod insights;
 use crate::core::urls::ApiUrls;
 #[cfg(feature = "llm")]
 use crate::llm::observability::{ObservabilityConfig, ObservabilityManager, QuickStats};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::State,
     response::{Html, IntoResponse},

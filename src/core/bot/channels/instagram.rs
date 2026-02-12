@@ -3,7 +3,7 @@ use log::{error, info};
 use serde::{Deserialize, Serialize};
 
 use crate::core::bot::channels::ChannelAdapter;
-use crate::shared::models::BotResponse;
+use crate::core::shared::models::BotResponse;
 
 #[derive(Debug)]
 pub struct InstagramAdapter {

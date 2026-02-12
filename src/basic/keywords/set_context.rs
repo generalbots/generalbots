@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
@@ -32,7 +32,9 @@ pub fn set_context_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                 );
 
                 if let Some(cache_client) = &cache {
-                    let cache_client = cache_client.clone();
+                    let cache_client_arc: Arc<redis::Client> = cache_client.clone();
+                    let redis_key_clone = redis_key.clone();
+                    let context_value_clone = context_value.clone();
 
                     trace!(
                         "Cloned cache_client, redis_key ({}) and context_value (len={}) for async task",
@@ -41,7 +43,7 @@ pub fn set_context_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                     );
 
                     tokio::spawn(async move {
-                        let mut conn = match cache_client.get_multiplexed_async_connection().await {
+                        let mut conn = match cache_client_arc.get_multiplexed_async_connection().await {
                             Ok(conn) => {
                                 trace!("Cache connection established successfully");
                                 conn
@@ -54,13 +56,13 @@ pub fn set_context_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
 
                         trace!(
                             "Executing Redis SET command with key: {} and value length: {}",
-                            redis_key,
-                            context_value.len()
+                            redis_key_clone,
+                            context_value_clone.len()
                         );
 
                         let result: Result<(), redis::RedisError> = redis::cmd("SET")
-                            .arg(&redis_key)
-                            .arg(&context_value)
+                            .arg(&redis_key_clone)
+                            .arg(&context_value_clone)
                             .query_async(&mut conn)
                             .await;
 

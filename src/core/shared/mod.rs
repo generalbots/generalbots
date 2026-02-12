@@ -1,8 +1,10 @@
 
 
 
-
 pub mod admin;
+pub mod admin_types;
+pub mod admin_config;
+pub mod admin_email;
 pub mod analytics;
 pub mod enums;
 pub mod memory_monitor;

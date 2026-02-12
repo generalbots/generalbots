@@ -28,7 +28,7 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::shared::models::UserSession;
+use crate::core::shared::models::UserSession;
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::Text;

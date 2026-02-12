@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
@@ -618,8 +618,11 @@ fn update_refresh_policy_if_shorter(
     // Check if we should update (no policy exists or new interval is shorter)
     let should_update = match &current {
         Some(c) if c.refresh_policy.is_some() => {
-            let existing_days = parse_refresh_interval(c.refresh_policy.as_ref().unwrap())
-                .unwrap_or(i32::MAX);
+            let existing_days = if let Some(ref policy) = c.refresh_policy {
+                parse_refresh_interval(policy).unwrap_or(i32::MAX)
+            } else {
+                i32::MAX
+            };
             new_days < existing_days
         }
         _ => true, // No existing policy, so update
@@ -751,7 +754,7 @@ pub fn clear_websites_keyword(state: Arc<AppState>, user: UserSession, engine: &
 }
 
 fn clear_all_websites(
-    conn_pool: crate::shared::utils::DbPool,
+    conn_pool: crate::core::shared::utils::DbPool,
     session_id: Uuid,
 ) -> Result<usize, String> {
     let mut conn = conn_pool
@@ -771,7 +774,7 @@ fn clear_all_websites(
 }
 
 pub fn get_active_websites_for_session(
-    conn_pool: &crate::shared::utils::DbPool,
+    conn_pool: &crate::core::shared::utils::DbPool,
     session_id: Uuid,
 ) -> Result<Vec<(String, String)>, String> {
     let mut conn = conn_pool

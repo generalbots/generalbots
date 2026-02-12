@@ -23,7 +23,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub fn configure_video_routes() -> Router<Arc<AppState>> {
     Router::new()

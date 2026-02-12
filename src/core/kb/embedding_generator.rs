@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
 
-use crate::shared::DbPool;
+use crate::core::shared::DbPool;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use super::document_processor::TextChunk;
 
@@ -61,8 +61,8 @@ impl EmbeddingConfig {
     /// embedding-dimensions,384
     /// embedding-batch-size,16
     /// embedding-timeout,60
-    pub fn from_bot_config(pool: &DbPool, bot_id: &uuid::Uuid) -> Self {
-        use crate::shared::models::schema::bot_configuration::dsl::*;
+    pub fn from_bot_config(pool: &DbPool, _bot_id: &uuid::Uuid) -> Self {
+        use crate::core::shared::models::schema::bot_configuration::dsl::*;
         use diesel::prelude::*;
 
         let embedding_url = match pool.get() {

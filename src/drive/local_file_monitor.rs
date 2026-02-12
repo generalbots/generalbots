@@ -1,5 +1,5 @@
 use crate::basic::compiler::BasicCompiler;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
@@ -290,7 +290,11 @@ impl LocalFileMonitor {
             let local_source_path = work_dir_clone.join(format!("{}.bas", tool_name_clone));
             std::fs::write(&local_source_path, &source_content_clone)?;
             let mut compiler = BasicCompiler::new(state_clone, bot_id);
-            let result = compiler.compile_file(local_source_path.to_str().unwrap(), work_dir_clone.to_str().unwrap())?;
+            let local_source_str = local_source_path.to_str()
+                .ok_or_else(|| format!("Invalid UTF-8 in local source path"))?;
+            let work_dir_str = work_dir_clone.to_str()
+                .ok_or_else(|| format!("Invalid UTF-8 in work directory path"))?;
+            let result = compiler.compile_file(local_source_str, work_dir_str)?;
             if let Some(mcp_tool) = result.mcp_tool {
                 info!(
                     "[LOCAL_MONITOR] MCP tool generated with {} parameters for bot {}",

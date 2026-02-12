@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use botlib::MAX_LOOP_ITERATIONS;
 use log::trace;
 use rhai::{Dynamic, Engine};

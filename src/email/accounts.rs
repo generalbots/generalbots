@@ -1,5 +1,4 @@
-use crate::shared::state::AppState;
-use crate::core::middleware::AuthenticatedUser;
+use crate::core::shared::state::AppState;
 use super::types::*;
 use axum::{
     extract::{Path, State},
@@ -8,7 +7,6 @@ use axum::{
 };
 use base64::{engine::general_purpose, Engine as _};
 use diesel::prelude::*;
-use log::warn;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -41,7 +39,7 @@ pub async fn add_email_account(
 
     let conn = state.conn.clone();
     tokio::task::spawn_blocking(move || {
-        use crate::shared::models::schema::user_email_accounts::dsl::{is_primary, user_email_accounts, user_id};
+        use crate::core::shared::models::schema::user_email_accounts::dsl::{is_primary, user_email_accounts, user_id};
         let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {e}"))?;
 
         if request.is_primary {
@@ -162,7 +160,7 @@ pub async fn list_email_accounts(
 
     let conn = state.conn.clone();
     let accounts = tokio::task::spawn_blocking(move || {
-        use crate::shared::models::schema::user_email_accounts::dsl::{
+        use crate::core::shared::models::schema::user_email_accounts::dsl::{
             created_at, display_name, email, id, imap_port, imap_server, is_active, is_primary,
             smtp_port, smtp_server, user_email_accounts, user_id,
         };

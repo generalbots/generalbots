@@ -21,8 +21,8 @@ use crate::project::ProjectService;
 use crate::security::auth_provider::AuthProviderRegistry;
 use crate::security::jwt::JwtManager;
 use crate::security::rbac_middleware::RbacManager;
-use crate::shared::models::BotResponse;
-use crate::shared::utils::DbPool;
+use crate::core::shared::models::BotResponse;
+use crate::core::shared::utils::DbPool;
 #[cfg(feature = "tasks")]
 use crate::tasks::{TaskEngine, TaskScheduler};
 #[cfg(feature = "drive")]
@@ -591,7 +591,7 @@ impl AppState {
 #[cfg(test)]
 impl Default for AppState {
     fn default() -> Self {
-        let database_url = crate::shared::utils::get_database_url_sync()
+        let database_url = crate::core::shared::utils::get_database_url_sync()
             .expect("AppState::default() requires Vault to be configured");
 
         let manager = ConnectionManager::<PgConnection>::new(&database_url);

@@ -9,7 +9,7 @@ pub use model_routing_config::{ModelRoutingConfig, RoutingStrategy, TaskType};
 pub use sse_config::SseConfig;
 pub use user_memory_config::UserMemoryConfig;
 
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use std::collections::HashMap;
@@ -62,7 +62,7 @@ impl CustomDatabaseConfig {
         pool: &DbPool,
         target_bot_id: &Uuid,
     ) -> Result<Option<Self>, diesel::result::Error> {
-        use crate::shared::models::schema::bot_configuration::dsl::*;
+        use crate::core::shared::models::schema::bot_configuration::dsl::*;
 
         let mut conn = pool.get().map_err(|e| {
             diesel::result::Error::DatabaseError(
@@ -158,7 +158,7 @@ impl EmailConfig {
             key: &str,
             default: &str,
         ) -> String {
-            use crate::shared::models::schema::bot_configuration::dsl::*;
+            use crate::core::shared::models::schema::bot_configuration::dsl::*;
             bot_configuration
                 .filter(bot_id.eq(target_bot_id))
                 .filter(config_key.eq(key))
@@ -175,7 +175,7 @@ impl EmailConfig {
             key: &str,
             default: u16,
         ) -> u16 {
-            use crate::shared::models::schema::bot_configuration::dsl::*;
+            use crate::core::shared::models::schema::bot_configuration::dsl::*;
             bot_configuration
                 .filter(bot_id.eq(target_bot_id))
                 .filter(config_key.eq(key))
@@ -247,7 +247,7 @@ impl EmailConfig {
 }
 impl AppConfig {
     pub fn from_database(pool: &DbPool) -> Result<Self, diesel::result::Error> {
-        use crate::shared::models::schema::bot_configuration::dsl::*;
+        use crate::core::shared::models::schema::bot_configuration::dsl::*;
         use diesel::prelude::*;
 
         let mut conn = pool.get().map_err(|e| {
@@ -372,7 +372,7 @@ impl ConfigManager {
         key: &str,
         fallback: Option<&str>,
     ) -> Result<String, diesel::result::Error> {
-        use crate::shared::models::schema::bot_configuration::dsl::*;
+        use crate::core::shared::models::schema::bot_configuration::dsl::*;
         let mut conn = self.get_conn()?;
         let fallback_str = fallback.unwrap_or("");
 
@@ -406,12 +406,12 @@ impl ConfigManager {
             .select(config_value)
             .first::<String>(&mut conn);
 
-        let value = match result {
+        let value: String = match result {
             Ok(v) => {
                 // Check if it's a placeholder value or local file path - if so, fall back to default bot
                 // Local file paths are valid for local LLM server but NOT for remote APIs
                 if is_placeholder_value(&v) || is_local_file_path(&v) {
-                    let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut conn);
+                    let (default_bot_id, _default_bot_name) = crate::core::bot::get_default_bot(&mut conn);
                     bot_configuration
                         .filter(bot_id.eq(default_bot_id))
                         .filter(config_key.eq(key))
@@ -419,12 +419,12 @@ impl ConfigManager {
                         .first::<String>(&mut conn)
                         .unwrap_or_else(|_| fallback_str.to_string())
                 } else {
-                    v
+                    String::from(v)
                 }
             }
             Err(_) => {
                 // Value not found, fall back to default bot
-                let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut conn);
+                let (default_bot_id, _default_bot_name) = crate::core::bot::get_default_bot(&mut conn);
                 bot_configuration
                     .filter(bot_id.eq(default_bot_id))
                     .filter(config_key.eq(key))
@@ -449,7 +449,7 @@ impl ConfigManager {
         target_bot_id: &uuid::Uuid,
         key: &str,
     ) -> Result<String, String> {
-        use crate::shared::models::schema::bot_configuration::dsl::*;
+        use crate::core::shared::models::schema::bot_configuration::dsl::*;
         use diesel::prelude::*;
 
         let mut conn = self

@@ -17,9 +17,9 @@ use crate::llm::llm_models;
 use crate::llm::OpenAIClient;
 #[cfg(feature = "nvidia")]
 use crate::nvidia::get_system_metrics;
-use crate::shared::message_types::MessageType;
-use crate::shared::models::{BotResponse, UserMessage, UserSession};
-use crate::shared::state::AppState;
+use crate::core::shared::message_types::MessageType;
+use crate::core::shared::models::{BotResponse, UserMessage, UserSession};
+use crate::core::shared::state::AppState;
 #[cfg(feature = "chat")]
 use crate::basic::keywords::add_suggestion::get_suggestions;
 use axum::extract::ws::{Message, WebSocket};
@@ -49,7 +49,7 @@ pub mod channels;
 pub mod multimedia;
 
 pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
-    use crate::shared::models::schema::bots::dsl::*;
+    use crate::core::shared::models::schema::bots::dsl::*;
     use diesel::prelude::*;
 
     // First try to get the bot named "default"
@@ -90,7 +90,7 @@ pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
 
 /// Get bot ID by name from database
 pub fn get_bot_id_by_name(conn: &mut PgConnection, bot_name: &str) -> Result<Uuid, String> {
-    use crate::shared::models::schema::bots::dsl::*;
+    use crate::core::shared::models::schema::bots::dsl::*;
     use diesel::prelude::*;
 
     bots
@@ -133,7 +133,7 @@ pub async fn get_bot_config(
     };
 
     // Query bot_configuration table for this bot's public setting
-    use crate::shared::models::schema::bot_configuration::dsl::*;
+    use crate::core::shared::models::schema::bot_configuration::dsl::*;
 
     let mut is_public = false;
 
@@ -354,7 +354,6 @@ impl BotOrchestrator {
 
         let user_id = Uuid::parse_str(&message.user_id)?;
         let session_id = Uuid::parse_str(&message.session_id)?;
-        let session_id_str = session_id.to_string();
         let message_content = message.content.clone();
 
         let (session, context_data, history, model, key) = {
@@ -414,7 +413,7 @@ impl BotOrchestrator {
         let bot_name_for_context = {
             let conn = self.state.conn.get().ok();
             if let Some(mut db_conn) = conn {
-                use crate::shared::models::schema::bots::dsl::*;
+                use crate::core::shared::models::schema::bots::dsl::*;
                 bots.filter(id.eq(session.bot_id))
                     .select(name)
                     .first::<String>(&mut db_conn)
@@ -437,7 +436,7 @@ impl BotOrchestrator {
                         .arg(&start_bas_key)
                         .query_async(&mut conn)
                         .await;
-                    executed.is_ok() && executed.unwrap().is_none()
+                    matches!(executed, Ok(None))
                 } else {
                     true // If cache fails, try to execute
                 }
@@ -611,7 +610,7 @@ impl BotOrchestrator {
 
         #[cfg(feature = "nvidia")]
         {
-            let initial_tokens = crate::shared::utils::estimate_token_count(&context_data);
+            let initial_tokens = crate::core::shared::utils::estimate_token_count(&context_data);
             let config_manager = ConfigManager::new(self.state.conn.clone());
             let max_context_size = config_manager
                 .get_config(&session.bot_id, "llm-server-ctx-size", None)
@@ -841,7 +840,7 @@ impl BotOrchestrator {
         #[cfg(feature = "chat")]
         let suggestions = get_suggestions(self.state.cache.as_ref(), &user_id_str, &session_id_str);
         #[cfg(not(feature = "chat"))]
-        let suggestions: Vec<crate::shared::models::Suggestion> = Vec::new();
+        let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
 
         let final_response = BotResponse {
             bot_id: message.bot_id,
@@ -909,25 +908,6 @@ impl BotOrchestrator {
     }
 }
 
-/// Extract bot name from URL like "http://localhost:3000/bot/cristo" or "/cristo/"
-fn extract_bot_from_url(url: &str) -> Option<String> {
-    // Remove protocol and domain
-    let path_part = url
-        .split('/')
-        .skip_while(|&part| part == "http:" || part == "https:" || part.is_empty())
-        .skip_while(|&part| part.contains('.') || part == "localhost" || part == "bot")
-        .collect::<Vec<_>>();
-
-    // First path segment after /bot/ is the bot name
-    if let Some(&bot_name) = path_part.first() {
-        if !bot_name.is_empty() && bot_name != "bot" {
-            return Some(bot_name.to_string());
-        }
-    }
-
-    None
-}
-
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
@@ -959,7 +939,7 @@ pub async fn websocket_handler(
     let bot_id = {
         let conn = state.conn.get().ok();
         if let Some(mut db_conn) = conn {
-            use crate::shared::models::schema::bots::dsl::*;
+            use crate::core::shared::models::schema::bots::dsl::*;
 
             // Try to parse as UUID first, if that fails treat as bot name
             let result: Result<Uuid, _> = if let Ok(uuid) = Uuid::parse_str(&bot_name) {
@@ -1030,7 +1010,7 @@ async fn handle_websocket(
         let bot_name_result = {
             let conn = state.conn.get().ok();
             if let Some(mut db_conn) = conn {
-                use crate::shared::models::schema::bots::dsl::*;
+                use crate::core::shared::models::schema::bots::dsl::*;
                 bots.filter(id.eq(bot_id))
                     .select(name)
                     .first::<String>(&mut db_conn)
@@ -1056,7 +1036,7 @@ async fn handle_websocket(
                         .arg(&start_bas_key)
                         .query_async(&mut conn)
                         .await;
-                    executed.is_ok() && executed.unwrap().is_none()
+                    matches!(executed, Ok(None))
                 } else {
                     true // If cache fails, try to execute
                 }

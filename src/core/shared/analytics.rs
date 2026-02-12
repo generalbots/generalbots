@@ -1,5 +1,5 @@
 use crate::core::urls::ApiUrls;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Json, Query, State},
     http::StatusCode,

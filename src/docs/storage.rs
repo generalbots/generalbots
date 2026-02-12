@@ -1,6 +1,6 @@
 use crate::docs::ooxml::{load_docx_preserving, update_docx_text};
 use crate::docs::types::{Document, DocumentMetadata};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;

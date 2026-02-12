@@ -12,12 +12,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::workspaces::{
     workspace_comments, workspace_members, workspace_page_versions, workspace_pages,
     workspaces as workspaces_table,
 };
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub mod blocks;
 pub mod collaboration;

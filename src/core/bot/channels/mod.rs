@@ -3,7 +3,7 @@ pub mod teams;
 pub mod telegram;
 pub mod whatsapp;
 
-use crate::shared::models::BotResponse;
+use crate::core::shared::models::BotResponse;
 use async_trait::async_trait;
 use log::{debug, info};
 use std::collections::HashMap;
@@ -92,8 +92,8 @@ impl ChannelAdapter for WebChannelAdapter {
         &self,
         response: BotResponse,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let connections = self.connections.lock().await;
-        if let Some(tx) = connections.get(&response.session_id) {
+        let connections: tokio::sync::MutexGuard<'_, HashMap<String, mpsc::Sender<BotResponse>>> = self.connections.lock().await;
+        if let Some(tx) = connections.get(&response.session_id.to_string()) {
             tx.send(response).await?;
         }
         Ok(())
