@@ -9,10 +9,10 @@
 
 use super::table_access::{check_table_access, filter_fields_by_role, AccessType, UserRoles};
 use crate::security::sql_guard::sanitize_identifier;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
-use crate::shared::utils;
-use crate::shared::utils::to_array;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
+use crate::core::shared::utils;
+use crate::core::shared::utils::to_array;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::sql_types::{Integer, Text};

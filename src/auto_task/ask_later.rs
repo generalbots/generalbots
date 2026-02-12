@@ -1,5 +1,5 @@
 use crate::core::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 fn is_sensitive_config_key(key: &str) -> bool {
     let key_lower = key.to_lowercase();

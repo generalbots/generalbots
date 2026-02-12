@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
@@ -24,7 +24,7 @@ pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
                 let value_clone = value;
 
                 tokio::spawn(async move {
-                    use crate::shared::models::bot_memories;
+                    use crate::core::shared::models::bot_memories;
 
                     let mut conn = match state_for_spawn.conn.get() {
                         Ok(conn) => conn,
@@ -78,7 +78,7 @@ pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
                             }
                         }
                     } else {
-                        let new_memory = crate::shared::models::BotMemory {
+                        let new_memory = crate::core::shared::models::BotMemory {
                             id: Uuid::new_v4(),
                             bot_id: bot_uuid,
                             key: key_clone.clone(),
@@ -121,7 +121,7 @@ pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
         let value_clone = value;
 
         tokio::spawn(async move {
-            use crate::shared::models::bot_memories;
+            use crate::core::shared::models::bot_memories;
 
             let mut conn = match state_for_spawn.conn.get() {
                 Ok(conn) => conn,
@@ -206,7 +206,7 @@ pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
     let state_clone3 = Arc::clone(&state);
     let user_clone3 = user.clone();
     engine.register_fn("GET_BOT_MEMORY", move |key_param: String| -> String {
-        use crate::shared::models::bot_memories;
+        use crate::core::shared::models::bot_memories;
 
         let state = Arc::clone(&state_clone3);
         let conn_result = state.conn.get();
@@ -235,7 +235,7 @@ pub fn get_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
 
 
     engine.register_fn("GET BOT MEMORY", move |key_param: String| -> String {
-        use crate::shared::models::bot_memories;
+        use crate::core::shared::models::bot_memories;
 
         let state = Arc::clone(&state_clone);
         let conn_result = state.conn.get();

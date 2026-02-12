@@ -11,7 +11,7 @@ use tokio::sync::broadcast;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 use super::models::ExportProgressEvent;
 

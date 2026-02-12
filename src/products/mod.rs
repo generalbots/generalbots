@@ -12,9 +12,9 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{products, services, price_lists};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct ProductQuery {

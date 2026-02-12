@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 #[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::permissions::{build_qdrant_permission_filter, UserContext};
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 // ============================================================================
 // Organization Context

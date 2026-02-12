@@ -1,7 +1,7 @@
 pub use crate::core::bot::channels::teams::TeamsAdapter;
 
 use crate::core::bot::channels::ChannelAdapter;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::post, Json, Router};
 use serde::Deserialize;
 use std::sync::Arc;
@@ -91,7 +91,7 @@ async fn send_message(
         .get("message")
         .and_then(|v| v.as_str())
         .unwrap_or("");
-    let response = crate::shared::models::BotResponse {
+    let response = crate::core::shared::models::BotResponse {
         bot_id: bot_id.to_string(),
         session_id: conversation_id.to_string(),
         user_id: conversation_id.to_string(),
@@ -120,7 +120,7 @@ async fn get_default_bot_id(state: &Arc<AppState>) -> Uuid {
 
     tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().ok()?;
-        use crate::shared::models::schema::bots;
+        use crate::core::shared::models::schema::bots;
         use diesel::prelude::*;
 
         bots::table

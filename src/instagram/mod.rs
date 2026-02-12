@@ -1,6 +1,6 @@
 pub use crate::core::bot::channels::instagram::*;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Query, State},
     http::StatusCode,

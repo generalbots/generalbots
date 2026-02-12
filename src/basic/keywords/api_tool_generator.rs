@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};

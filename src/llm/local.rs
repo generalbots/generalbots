@@ -2,8 +2,8 @@ use crate::core::config::ConfigManager;
 use crate::core::kb::embedding_generator::set_embedding_server_ready;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::security::command_guard::SafeCommand;
-use crate::shared::models::schema::bots::dsl::*;
-use crate::shared::state::AppState;
+use crate::core::shared::models::schema::bots::dsl::*;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use reqwest;
@@ -34,7 +34,7 @@ pub async fn ensure_llama_servers_running(
             let mut conn = conn_arc
                 .get()
                 .map_err(|e| format!("failed to get db connection: {e}"))?;
-            Ok(crate::bot::get_default_bot(&mut *conn))
+            Ok(crate::core::bot::get_default_bot(&mut *conn))
         })
         .await??;
         let config_manager = ConfigManager::new(app_state.conn.clone());

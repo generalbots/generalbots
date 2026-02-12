@@ -1,6 +1,6 @@
 use crate::basic::ScriptService;
-use crate::shared::models::{Automation, TriggerKind};
-use crate::shared::state::AppState;
+use crate::core::shared::models::{Automation, TriggerKind};
+use crate::core::shared::state::AppState;
 use chrono::Utc;
 use cron::Schedule;
 use diesel::prelude::*;
@@ -55,7 +55,7 @@ impl AutomationService {
     pub async fn check_scheduled_tasks(
         &self,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        use crate::shared::models::system_automations::dsl::{
+        use crate::core::shared::models::system_automations::dsl::{
             id, is_active, kind, last_triggered as lt_column, system_automations,
         };
         let mut conn = self
@@ -115,7 +115,7 @@ impl AutomationService {
         automation: &Automation,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let bot_name: String = {
-            use crate::shared::models::schema::bots::dsl::*;
+            use crate::core::shared::models::schema::bots::dsl::*;
             let mut conn = self
                 .state
                 .conn

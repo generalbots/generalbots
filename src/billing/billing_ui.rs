@@ -12,9 +12,9 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{billing_invoices, billing_payments, billing_quotes};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 fn bd_to_f64(bd: &BigDecimal) -> f64 {
     bd.to_f64().unwrap_or(0.0)

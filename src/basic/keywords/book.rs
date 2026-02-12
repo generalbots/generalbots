@@ -1,6 +1,6 @@
 use crate::core::shared::schema::calendar_events;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use chrono::{DateTime, Duration, Timelike, Utc};
 use diesel::prelude::*;
 use log::{error, info, trace};
@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct CalendarEngine {
-    _db: crate::shared::utils::DbPool,
+    _db: crate::core::shared::utils::DbPool,
 }
 
 #[derive(Debug)]
@@ -49,7 +49,7 @@ pub struct RecurrenceRule {
 
 impl CalendarEngine {
     #[must_use]
-    pub fn new(db: crate::shared::utils::DbPool) -> Self {
+    pub fn new(db: crate::core::shared::utils::DbPool) -> Self {
         Self { _db: db }
     }
 

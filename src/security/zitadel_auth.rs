@@ -1,6 +1,6 @@
 use crate::core::secrets::SecretsManager;
 use crate::security::auth::{AuthConfig, AuthError, AuthenticatedUser, BotAccess, Permission, Role};
-use crate::shared::utils::create_tls_client;
+use crate::core::shared::utils::create_tls_client;
 use anyhow::Result;
 use axum::{
     body::Body,

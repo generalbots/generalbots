@@ -14,12 +14,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{
     consent_history, cookie_consents, data_deletion_requests, data_export_requests,
     legal_acceptances, legal_document_versions, legal_documents,
 };
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Queryable, Insertable, AsChangeset, Serialize, Deserialize)]
 #[diesel(table_name = legal_documents)]

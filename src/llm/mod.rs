@@ -159,8 +159,8 @@ impl OpenAIClient {
         let base = base_url.unwrap_or_else(|| "https://api.openai.com".to_string());
 
         // For z.ai API, use different endpoint path
-        let endpoint = if endpoint_path.is_some() {
-            endpoint_path.unwrap()
+        let endpoint = if let Some(path) = endpoint_path {
+            path
         } else if base.contains("z.ai") || base.contains("/v4") {
             "/chat/completions".to_string()  // z.ai uses /chat/completions, not /v1/chat/completions
         } else {
@@ -412,7 +412,7 @@ impl LLMProvider for OpenAIClient {
     }
 }
 
-pub fn start_llm_services(state: &std::sync::Arc<crate::shared::state::AppState>) {
+pub fn start_llm_services(state: &std::sync::Arc<crate::core::shared::state::AppState>) {
     episodic_memory::start_episodic_memory_scheduler(std::sync::Arc::clone(state));
     info!("LLM services started (episodic memory scheduler)");
 }

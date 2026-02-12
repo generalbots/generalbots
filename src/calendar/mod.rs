@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 use crate::core::shared::schema::{calendar_event_attendees, calendar_events, calendar_shares, calendars};
 use crate::core::urls::ApiUrls;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub mod caldav;
 pub mod ui;

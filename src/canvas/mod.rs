@@ -12,11 +12,11 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{
     canvas_collaborators, canvas_comments, canvas_elements, canvas_versions, canvases,
 };
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
 #[diesel(table_name = canvases)]

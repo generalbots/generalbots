@@ -9,7 +9,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MediaInfo {

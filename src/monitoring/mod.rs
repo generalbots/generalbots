@@ -5,7 +5,7 @@ use std::sync::Arc;
 use sysinfo::{Disks, Networks, System};
 
 use crate::core::urls::ApiUrls;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub mod real_time;
 pub mod tracing;

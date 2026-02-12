@@ -40,7 +40,7 @@ pub use intent_compiler::{CompiledIntent, IntentCompiler};
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};
 
 use crate::core::urls::ApiUrls;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -53,7 +53,7 @@ use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared::state::AppState>> {
+pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::core::shared::state::AppState>> {
     use axum::routing::{get, post};
 
     axum::Router::new()

@@ -7,7 +7,7 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub async fn handle_meet_list_page(State(_state): State<Arc<AppState>>) -> Html<String> {
     let html = r#"<!DOCTYPE html>

@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use once_cell::sync::Lazy;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionUserData {

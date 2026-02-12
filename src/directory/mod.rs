@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -70,7 +70,7 @@ pub async fn auth_handler(
             let mut db_conn = conn
                 .get()
                 .map_err(|e| format!("Failed to get database connection: {}", e))?;
-            use crate::shared::models::schema::bots::dsl::*;
+            use crate::core::shared::models::schema::bots::dsl::*;
             use diesel::prelude::*;
             match bots
                 .filter(name.eq(&bot_name))

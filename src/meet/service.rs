@@ -1,5 +1,5 @@
-use crate::shared::models::{BotResponse, UserMessage};
-use crate::shared::state::AppState;
+use crate::core::shared::models::{BotResponse, UserMessage};
+use crate::core::shared::state::AppState;
 use anyhow::Result;
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};

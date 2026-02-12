@@ -89,7 +89,7 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
                     Response::builder()
                         .status(StatusCode::INTERNAL_SERVER_ERROR)
                         .body(Body::from("Internal Server Error"))
-                        .unwrap()
+                        .unwrap_or_else(|_| Response::new(Body::from("Critical Error")))
                 });
         }
     }
@@ -110,7 +110,7 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
 </body>
 </html>"#,
         ))
-        .unwrap()
+        .unwrap_or_else(|_| Response::new(Body::from("500 Internal Server Error")))
 }
 
 #[cfg(feature = "embed-ui")]

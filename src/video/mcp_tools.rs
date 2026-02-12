@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tracing::{error, info};
 use uuid::Uuid;
 
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 use super::engine::VideoEngine;
 use super::models::*;

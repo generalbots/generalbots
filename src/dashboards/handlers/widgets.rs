@@ -8,7 +8,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::core::shared::schema::dashboards::dashboard_widgets;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 use crate::dashboards::error::DashboardsError;
 use crate::dashboards::storage::{db_widget_to_widget, DbWidget};

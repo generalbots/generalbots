@@ -1,7 +1,7 @@
 #[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use log::{debug, info};
 #[cfg(feature = "llm")]
 use log::warn;
@@ -38,7 +38,7 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
                 let prompt = context.eval_expression_tree(&inputs[2])?;
 
                 let config = match state_clone.config.as_ref() {
-                    Some(c) => c.clone(),
+                    Some(c) => <crate::core::config::AppConfig as Clone>::clone(c),
                     None => {
                         return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "Config must be initialized".into(),

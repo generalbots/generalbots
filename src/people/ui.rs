@@ -10,10 +10,10 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::people::people as people_table;
 use crate::core::shared::schema::{people_departments, people_teams, people_time_off};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct PeopleQuery {

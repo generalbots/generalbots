@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use color_eyre::Result;
 use std::path::Path;
 use std::sync::Arc;

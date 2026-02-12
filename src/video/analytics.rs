@@ -10,8 +10,8 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::security::error_sanitizer::SafeErrorResponse;
-use crate::shared::state::AppState;
-use crate::shared::utils::DbPool;
+use crate::core::shared::state::AppState;
+use crate::core::shared::utils::DbPool;
 
 use super::models::*;
 use super::schema::*;

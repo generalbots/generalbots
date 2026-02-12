@@ -1,6 +1,6 @@
 use crate::security::protection::{ProtectionManager, ProtectionTool};
 use crate::security::protection::manager::ProtectionConfig;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 

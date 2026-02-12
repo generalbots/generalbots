@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use std::path::Path;
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FolderProvider {

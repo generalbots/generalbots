@@ -1,6 +1,6 @@
 use crate::core::config::ConfigManager;
-use crate::shared::utils::create_tls_client;
-use crate::shared::state::AppState;
+use crate::core::shared::utils::create_tls_client;
+use crate::core::shared::state::AppState;
 use log::{error, info, trace};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -610,7 +610,7 @@ impl BotModelsClient {
 pub async fn ensure_botmodels_running(
     app_state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use crate::shared::models::schema::bots::dsl::*;
+    use crate::core::shared::models::schema::bots::dsl::*;
     use diesel::prelude::*;
 
     let config_values = {

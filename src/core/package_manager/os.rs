@@ -1,4 +1,4 @@
-use crate::package_manager::OsType;
+use crate::core::package_manager::OsType;
 
 #[must_use]
 pub const fn detect_os() -> OsType {

@@ -1,8 +1,8 @@
 use super::table_access::{check_table_access, AccessType, UserRoles};
 use crate::core::shared::{sanitize_identifier, sanitize_sql_value};
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
-use crate::shared::utils::{json_value_to_dynamic, to_array};
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
+use crate::core::shared::utils::{json_value_to_dynamic, to_array};
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::Text;

@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use crate::slides::collaboration::broadcast_slide_change;
 use crate::slides::storage::{
     create_new_presentation, create_slide_with_layout, delete_presentation_from_drive,

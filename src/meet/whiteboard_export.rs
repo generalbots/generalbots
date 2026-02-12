@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::security::path_guard::sanitize_filename;
-use crate::shared::parse_hex_color;
+use crate::core::shared::parse_hex_color;
 
 
 

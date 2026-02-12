@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::core::config::ConfigManager;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
-use crate::shared::utils::{create_tls_client, DbPool};
+use crate::core::shared::utils::{create_tls_client, DbPool};
 
 use super::document_processor::{DocumentProcessor, TextChunk};
 use super::embedding_generator::{is_embedding_server_ready, Embedding, EmbeddingConfig, KbEmbeddingGenerator};

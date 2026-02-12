@@ -29,10 +29,9 @@
 \*****************************************************************************/
 
 use crate::core::shared::sanitize_identifier;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
-use diesel::sql_query;
 use diesel::sql_types::Text;
 use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -630,8 +629,6 @@ pub fn process_table_definitions(
     if tables.is_empty() {
         return Ok(tables);
     }
-
-    let mut conn = state.conn.get()?;
 
     for table in &tables {
         info!(

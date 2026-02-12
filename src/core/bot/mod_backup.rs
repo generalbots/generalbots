@@ -4,8 +4,8 @@ use crate::llm::llm_models;
 use crate::llm::OpenAIClient;
 #[cfg(feature = "nvidia")]
 use crate::nvidia::get_system_metrics;
-use crate::shared::models::{BotResponse, UserMessage, UserSession};
-use crate::shared::state::AppState;
+use crate::core::shared::models::{BotResponse, UserMessage, UserSession};
+use crate::core::shared::state::AppState;
 use axum::extract::ws::{Message, WebSocket};
 use axum::{
     extract::{ws::WebSocketUpgrade, Extension, Query, State},
@@ -26,7 +26,7 @@ pub mod channels;
 pub mod multimedia;
 
 pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
-    use crate::shared::models::schema::bots::dsl::*;
+    use crate::core::shared::models::schema::bots::dsl::*;
     use diesel::prelude::*;
 
     match bots
@@ -148,7 +148,7 @@ impl BotOrchestrator {
 
         #[cfg(feature = "nvidia")]
         {
-            let initial_tokens = crate::shared::utils::estimate_token_count(&context_data);
+            let initial_tokens = crate::core::shared::utils::estimate_token_count(&context_data);
             let config_manager = ConfigManager::new(self.state.conn.clone());
             let max_context_size = config_manager
                 .get_config(&bot_id, "llm-server-ctx-size", None)

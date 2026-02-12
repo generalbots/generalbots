@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
@@ -26,7 +26,7 @@ pub fn clear_suggestions_keyword(
         .register_custom_syntax(["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
                 let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
-                let mut conn = match cache_client.get_connection() {
+                let mut conn: redis::Connection = match cache_client.get_connection() {
                     Ok(conn) => conn,
                     Err(e) => {
                         error!("Failed to connect to cache: {}", e);
@@ -366,7 +366,7 @@ pub fn get_suggestions(
     cache: Option<&Arc<redis::Client>>,
     user_id: &str,
     session_id: &str,
-) -> Vec<crate::shared::models::Suggestion> {
+) -> Vec<crate::core::shared::models::Suggestion> {
     let mut suggestions = Vec::new();
 
     if let Some(cache_client) = cache {
@@ -391,7 +391,7 @@ pub fn get_suggestions(
             Ok(items) => {
                 for item in items {
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&item) {
-                        let suggestion = crate::shared::models::Suggestion {
+                        let suggestion = crate::core::shared::models::Suggestion {
                             text: json["text"].as_str().unwrap_or("").to_string(),
                             context: json["context"].as_str().map(|s| s.to_string()),
                             action: json.get("action").and_then(|v| serde_json::to_string(v).ok()),

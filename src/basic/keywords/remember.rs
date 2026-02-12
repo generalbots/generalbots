@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use chrono::{Duration, Utc};
 use diesel::prelude::*;
 use log::{error, trace};
@@ -287,7 +287,7 @@ fn retrieve_memory(
     let result: Result<Vec<MemoryRecord>, _> = query.load(&mut *conn);
 
     match result {
-        Ok(records) if !records.is_empty() => {
+        Ok(records) if !(records.is_empty()) => {
             trace!("Retrieved memory key='{}' for user={}", key, user_id);
             Ok(records[0].value.clone())
         }

@@ -6,7 +6,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub async fn handle_sources_list_page(
     State(_state): State<Arc<AppState>>,

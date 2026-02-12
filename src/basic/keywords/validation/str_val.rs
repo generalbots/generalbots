@@ -3,8 +3,8 @@
 
 
 
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use log::debug;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;

@@ -9,9 +9,9 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{support_tickets, ticket_comments};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use crate::tickets::{SupportTicket, TicketComment};
 
 #[derive(Debug, Deserialize)]

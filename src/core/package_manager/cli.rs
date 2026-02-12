@@ -1,5 +1,5 @@
 use crate::core::secrets::{SecretPaths, SecretsManager};
-use crate::package_manager::{get_all_components, InstallMode, PackageManager};
+use crate::core::package_manager::{get_all_components, InstallMode, PackageManager};
 use crate::security::command_guard::SafeCommand;
 use crate::security::protection::{ProtectionInstaller, VerifyResult};
 use anyhow::Result;

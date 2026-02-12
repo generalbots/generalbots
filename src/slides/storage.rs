@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use crate::slides::ooxml::update_pptx_text;
 use crate::slides::types::{
     ElementContent, ElementStyle, Presentation, PresentationMetadata, Slide,

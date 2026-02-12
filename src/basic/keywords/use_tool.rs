@@ -1,5 +1,5 @@
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use rhai::{Dynamic, Engine};
@@ -188,7 +188,7 @@ fn associate_tool_with_session(
     user: &UserSession,
     tool_name: &str,
 ) -> Result<String, String> {
-    use crate::shared::models::schema::session_tool_associations;
+    use crate::core::shared::models::schema::session_tool_associations;
 
     // Check if tool's .mcp.json file exists in work directory
     let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
@@ -276,7 +276,7 @@ pub fn get_session_tools(
     conn: &mut PgConnection,
     session_id: &Uuid,
 ) -> Result<Vec<String>, diesel::result::Error> {
-    use crate::shared::models::schema::session_tool_associations;
+    use crate::core::shared::models::schema::session_tool_associations;
     let session_id_str = session_id.to_string();
     session_tool_associations::table
         .filter(session_tool_associations::session_id.eq(&session_id_str))
@@ -287,7 +287,7 @@ pub fn clear_session_tools(
     conn: &mut PgConnection,
     session_id: &Uuid,
 ) -> Result<usize, diesel::result::Error> {
-    use crate::shared::models::schema::session_tool_associations;
+    use crate::core::shared::models::schema::session_tool_associations;
     let session_id_str = session_id.to_string();
     diesel::delete(
         session_tool_associations::table
@@ -297,7 +297,7 @@ pub fn clear_session_tools(
 }
 
 fn get_bot_name_from_id(state: &AppState, bot_id: &uuid::Uuid) -> Result<String, String> {
-    use crate::shared::models::schema::bots;
+    use crate::core::shared::models::schema::bots;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
     let bot_name: String = bots::table
         .filter(bots::id.eq(bot_id))

@@ -1,6 +1,6 @@
 use crate::basic::keywords::use_account::{get_account_credentials, AccountCredentials};
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::{error, info, trace};

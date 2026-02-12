@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use uuid::Uuid;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HybridSearchConfig {

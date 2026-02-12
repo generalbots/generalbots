@@ -1,8 +1,8 @@
-use crate::bot::BotOrchestrator;
+use crate::core::bot::BotOrchestrator;
 use crate::core::bot::channels::telegram::TelegramAdapter;
 use crate::core::bot::channels::ChannelAdapter;
-use crate::shared::models::{BotResponse, UserSession};
-use crate::shared::state::{AppState, AttendantNotification};
+use crate::core::shared::models::{BotResponse, UserSession};
+use crate::core::shared::state::{AppState, AttendantNotification};
 use axum::{
     extract::State,
     http::StatusCode,
@@ -327,7 +327,7 @@ async fn find_or_create_session(
     chat_id: &str,
     user_name: &str,
 ) -> Result<UserSession, Box<dyn std::error::Error + Send + Sync>> {
-    use crate::shared::models::schema::user_sessions::dsl::*;
+    use crate::core::shared::models::schema::user_sessions::dsl::*;
 
     let mut conn = state.conn.get()?;
 
@@ -479,7 +479,7 @@ async fn route_to_attendant(
 }
 
 async fn get_default_bot_id(state: &Arc<AppState>) -> Uuid {
-    use crate::shared::models::schema::bots::dsl::*;
+    use crate::core::shared::models::schema::bots::dsl::*;
 
     if let Ok(mut conn) = state.conn.get() {
         if let Ok(bot_uuid) = bots

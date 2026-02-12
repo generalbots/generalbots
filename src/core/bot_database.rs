@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
 
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 /// Cache for bot database connection pools
 pub struct BotDatabaseManager {
@@ -101,7 +101,7 @@ impl BotDatabaseManager {
         {
             let pools = self.bot_pools.read().map_err(|e| format!("Lock error: {}", e))?;
             if let Some(pool) = pools.get(&bot_id) {
-                return Ok(pool.clone());
+                return Ok(<DbPool as Clone>::clone(pool));
             }
         }
 
@@ -292,14 +292,14 @@ impl BotDatabaseManager {
     /// Clear cached pool for a bot (useful when database is recreated)
     pub fn clear_bot_pool_cache(&self, bot_id: Uuid) {
         if let Ok(mut pools) = self.bot_pools.write() {
-            pools.remove(&bot_id);
+            let _: Option<_> = pools.remove(&bot_id);
         }
     }
 
     /// Clear all cached pools
     pub fn clear_all_pool_caches(&self) {
         if let Ok(mut pools) = self.bot_pools.write() {
-            pools.clear();
+            std::collections::HashMap::clear(&mut pools);
         }
     }
 }

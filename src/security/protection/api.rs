@@ -12,7 +12,7 @@ use tokio::sync::RwLock;
 use tracing::warn;
 
 use super::manager::{ProtectionConfig, ProtectionManager, ProtectionTool, ScanResult, ToolStatus};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 static PROTECTION_MANAGER: OnceLock<Arc<RwLock<ProtectionManager>>> = OnceLock::new();
 

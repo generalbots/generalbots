@@ -28,8 +28,8 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::shared::models::{TriggerKind, UserSession};
-use crate::shared::state::AppState;
+use crate::core::shared::models::{TriggerKind, UserSession};
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::trace;
 use rhai::{Dynamic, Engine};
@@ -75,9 +75,9 @@ pub fn execute_webhook_registration(
         bot_uuid
     );
 
-    use crate::shared::models::bots::dsl::bots;
+    use crate::core::shared::models::bots::dsl::bots;
     let bot_exists: bool = diesel::select(diesel::dsl::exists(
-        bots.filter(crate::shared::models::bots::dsl::id.eq(bot_uuid)),
+        bots.filter(crate::core::shared::models::bots::dsl::id.eq(bot_uuid)),
     ))
     .get_result(conn)?;
 
@@ -95,7 +95,7 @@ pub fn execute_webhook_registration(
         .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
         .collect::<String>();
 
-    use crate::shared::models::system_automations::dsl::*;
+    use crate::core::shared::models::system_automations::dsl::*;
 
     let new_automation = (
         bot_id.eq(bot_uuid),
@@ -134,7 +134,7 @@ pub fn remove_webhook_registration(
     endpoint: &str,
     bot_uuid: Uuid,
 ) -> Result<usize, Box<dyn Error + Send + Sync>> {
-    use crate::shared::models::system_automations::dsl::*;
+    use crate::core::shared::models::system_automations::dsl::*;
 
     let clean_endpoint = endpoint
         .trim()
@@ -188,7 +188,7 @@ pub fn find_webhook_script(
     bot_uuid: Uuid,
     endpoint: &str,
 ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
-    use crate::shared::models::system_automations::dsl::*;
+    use crate::core::shared::models::system_automations::dsl::*;
 
     let clean_endpoint = endpoint
         .trim()

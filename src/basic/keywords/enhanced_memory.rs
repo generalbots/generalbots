@@ -143,7 +143,7 @@ fn find_bot_by_name(
     conn: &mut PgConnection,
     bot_name: &str,
 ) -> Result<Uuid, Box<dyn std::error::Error + Send + Sync>> {
-    use crate::shared::models::bots;
+    use crate::core::shared::models::bots;
     
     let bot_id: Uuid = bots::table
         .filter(bots::name.eq(bot_name))

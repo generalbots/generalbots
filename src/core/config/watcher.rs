@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tokio::sync::RwLock;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 /// Tracks file state to detect changes
 #[derive(Debug, Clone)]
@@ -125,7 +125,7 @@ impl ConfigWatcher {
                             .map_err(|e| format!("Failed to get DB connection: {}", e))?;
 
                         // Get bot_id by name
-                        let bot_id = crate::bot::get_bot_id_by_name(&mut db_conn, &bot_name_owned)
+                        let bot_id = crate::core::bot::get_bot_id_by_name(&mut db_conn, &bot_name_owned)
                             .map_err(|e| format!("Failed to get bot_id for '{}': {}", bot_name_owned, e))?;
 
                         // Use ConfigManager's sync_gbot_config (public method)
@@ -145,7 +145,7 @@ impl ConfigWatcher {
                                     let mut db_conn = pool.get()
                                         .map_err(|e| format!("DB connection error: {}", e))?;
 
-                                    let bot_id = crate::bot::get_bot_id_by_name(&mut db_conn, &bot_name_for_llm)
+                                    let bot_id = crate::core::bot::get_bot_id_by_name(&mut db_conn, &bot_name_for_llm)
                                         .map_err(|e| format!("Get bot_id error: {}", e))?;
 
                                     let config_manager = crate::core::config::ConfigManager::new(pool);
@@ -159,7 +159,7 @@ impl ConfigWatcher {
                                     Ok::<_, String>((llm_server, llm_model, llm_key))
                                 }).await;
 
-                                if let Ok(Ok((llm_server, llm_model, llm_key))) = llm_config {
+                                if let Ok(Ok((llm_server, llm_model, _llm_key))) = llm_config {
                                     if !llm_server.is_empty() {
                                         // Handle both local embedded (llm-server=true) and external API endpoints
                                         if llm_server.eq_ignore_ascii_case("true") {

@@ -2,8 +2,8 @@ use crate::core::config::ConfigManager;
 #[cfg(feature = "nvidia")]
 use crate::nvidia::get_system_metrics;
 use crate::security::command_guard::SafeCommand;
-use crate::shared::models::schema::bots::dsl::*;
-use crate::shared::state::AppState;
+use crate::core::shared::models::schema::bots::dsl::*;
+use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use std::sync::Arc;
 use sysinfo::System;

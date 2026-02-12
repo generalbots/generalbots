@@ -13,12 +13,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{
     social_comments, social_communities, social_community_members, social_posts, social_praises,
     social_reactions,
 };
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Queryable, Insertable, AsChangeset, Serialize, Deserialize)]
 #[diesel(table_name = social_posts)]

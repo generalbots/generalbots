@@ -1,6 +1,6 @@
 use crate::security::error_sanitizer::SafeErrorResponse;
-use crate::shared::models::{RbacGroup, RbacRole, User};
-use crate::shared::state::AppState;
+use crate::core::shared::models::{RbacGroup, RbacRole, User};
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Path, State},
     response::{Html, IntoResponse},
@@ -91,7 +91,7 @@ pub async fn rbac_users_list(State(state): State<Arc<AppState>>) -> impl IntoRes
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::users;
+        use crate::core::shared::models::schema::users;
         users::table
             .filter(users::is_active.eq(true))
             .order(users::username.asc())
@@ -160,7 +160,7 @@ pub async fn rbac_roles_list(State(state): State<Arc<AppState>>) -> impl IntoRes
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_roles;
+        use crate::core::shared::models::schema::rbac_roles;
         rbac_roles::table
             .filter(rbac_roles::is_active.eq(true))
             .order(rbac_roles::display_name.asc())
@@ -237,7 +237,7 @@ pub async fn rbac_groups_list(State(state): State<Arc<AppState>>) -> impl IntoRe
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::rbac_groups;
+        use crate::core::shared::models::schema::rbac_groups;
         rbac_groups::table
             .filter(rbac_groups::is_active.eq(true))
             .order(rbac_groups::display_name.asc())
@@ -302,7 +302,7 @@ pub async fn user_assignment_panel(State(state): State<Arc<AppState>>, Path(user
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::users;
+        use crate::core::shared::models::schema::users;
         users::table
             .find(user_id)
             .first::<User>(&mut db_conn)
@@ -462,7 +462,7 @@ pub async fn available_roles_for_user(State(state): State<Arc<AppState>>, Path(u
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::{rbac_roles, rbac_user_roles};
+        use crate::core::shared::models::schema::{rbac_roles, rbac_user_roles};
 
         let assigned_role_ids: Vec<Uuid> = rbac_user_roles::table
             .filter(rbac_user_roles::user_id.eq(user_id))
@@ -509,7 +509,7 @@ pub async fn assigned_roles_for_user(State(state): State<Arc<AppState>>, Path(us
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::{rbac_roles, rbac_user_roles};
+        use crate::core::shared::models::schema::{rbac_roles, rbac_user_roles};
 
         rbac_user_roles::table
             .inner_join(rbac_roles::table)
@@ -551,7 +551,7 @@ pub async fn available_groups_for_user(State(state): State<Arc<AppState>>, Path(
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::{rbac_groups, rbac_user_groups};
+        use crate::core::shared::models::schema::{rbac_groups, rbac_user_groups};
 
         let assigned_group_ids: Vec<Uuid> = rbac_user_groups::table
             .filter(rbac_user_groups::user_id.eq(user_id))
@@ -598,7 +598,7 @@ pub async fn assigned_groups_for_user(State(state): State<Arc<AppState>>, Path(u
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::shared::models::schema::{rbac_groups, rbac_user_groups};
+        use crate::core::shared::models::schema::{rbac_groups, rbac_user_groups};
 
         rbac_user_groups::table
             .inner_join(rbac_groups::table)

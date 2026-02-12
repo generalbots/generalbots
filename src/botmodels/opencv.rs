@@ -610,7 +610,7 @@ mod tests {
     #[tokio::test]
     async fn test_detector_initialization() {
         let config = OpenCvDetectorConfig::default();
-        let mut detector = OpenCvFaceDetector::new(config);
+        let detector = OpenCvFaceDetector::new(config);
         assert!(!detector.is_initialized());
     }
 

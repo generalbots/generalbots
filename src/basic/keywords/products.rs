@@ -1,8 +1,8 @@
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::multimodal::BotModelsClient;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
-use crate::shared::utils;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
+use crate::core::shared::utils;
 use diesel::prelude::*;
 use diesel::sql_types::{Integer, Text};
 use log::{error, trace};

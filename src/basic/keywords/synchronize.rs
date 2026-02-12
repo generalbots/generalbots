@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 const DEFAULT_PAGE_SIZE: u32 = 100;
 const MAX_PAGE_SIZE: u32 = 1000;

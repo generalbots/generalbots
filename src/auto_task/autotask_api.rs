@@ -5,7 +5,7 @@ use crate::auto_task::task_types::{
 use crate::auto_task::intent_classifier::IntentClassifier;
 use crate::auto_task::intent_compiler::IntentCompiler;
 use crate::auto_task::safety_layer::{SafetyLayer, SimulationResult};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -1345,8 +1345,8 @@ pub async fn simulate_plan_handler(
 
 fn get_current_session(
     state: &Arc<AppState>,
-) -> Result<crate::shared::models::UserSession, Box<dyn std::error::Error + Send + Sync>> {
-    use crate::shared::models::user_sessions::dsl::*;
+) -> Result<crate::core::shared::models::UserSession, Box<dyn std::error::Error + Send + Sync>> {
+    use crate::core::shared::models::user_sessions::dsl::*;
     use diesel::prelude::*;
 
     let mut conn = state
@@ -1356,7 +1356,7 @@ fn get_current_session(
 
     let session = user_sessions
         .order(created_at.desc())
-        .first::<crate::shared::models::UserSession>(&mut conn)
+        .first::<crate::core::shared::models::UserSession>(&mut conn)
         .optional()
         .map_err(|e| format!("DB query error: {}", e))?
         .ok_or("No active session found")?;
@@ -1366,7 +1366,7 @@ fn get_current_session(
 
 fn create_auto_task_from_plan(
     _state: &Arc<AppState>,
-    session: &crate::shared::models::UserSession,
+    session: &crate::core::shared::models::UserSession,
     plan_id: &str,
     execution_mode: ExecutionMode,
     priority: TaskPriority,
@@ -1701,7 +1701,7 @@ fn update_task_status(
 fn create_task_record(
     state: &Arc<AppState>,
     task_id: Uuid,
-    session: &crate::shared::models::UserSession,
+    session: &crate::core::shared::models::UserSession,
     intent: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut conn = state.conn.get()?;
@@ -1799,7 +1799,7 @@ fn simulate_task_execution(
     _state: &Arc<AppState>,
     safety_layer: &SafetyLayer,
     task_id: &str,
-    session: &crate::shared::models::UserSession,
+    session: &crate::core::shared::models::UserSession,
 ) -> Result<SimulationResult, Box<dyn std::error::Error + Send + Sync>> {
     info!("Simulating task execution task_id={task_id}");
     safety_layer.simulate_execution(task_id, session)
@@ -1809,7 +1809,7 @@ fn simulate_plan_execution(
     _state: &Arc<AppState>,
     safety_layer: &SafetyLayer,
     plan_id: &str,
-    session: &crate::shared::models::UserSession,
+    session: &crate::core::shared::models::UserSession,
 ) -> Result<SimulationResult, Box<dyn std::error::Error + Send + Sync>> {
     info!("Simulating plan execution plan_id={plan_id}");
     safety_layer.simulate_execution(plan_id, session)

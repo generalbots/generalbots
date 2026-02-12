@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use axum::{
     extract::{Path, Query, State},
     http::{header, StatusCode},
@@ -408,7 +408,7 @@ async fn get_bot_config(state: &AppState) -> HashMap<String, String> {
         use diesel::prelude::*;
 
         let bot_result: Option<Uuid> = {
-            use crate::shared::models::schema::bots::dsl as bots_dsl;
+            use crate::core::shared::models::schema::bots::dsl as bots_dsl;
             bots_dsl::bots
                 .filter(bots_dsl::is_active.eq(true))
                 .select(bots_dsl::id)
@@ -420,7 +420,7 @@ async fn get_bot_config(state: &AppState) -> HashMap<String, String> {
         let active_bot_id = bot_result?;
 
         let configs: Vec<(String, String)> = {
-            use crate::shared::models::schema::bot_configuration::dsl as cfg_dsl;
+            use crate::core::shared::models::schema::bot_configuration::dsl as cfg_dsl;
             cfg_dsl::bot_configuration
                 .filter(cfg_dsl::bot_id.eq(active_bot_id))
                 .select((cfg_dsl::config_key, cfg_dsl::config_value))
@@ -460,7 +460,7 @@ async fn create_or_get_oauth_user(
             .get()
             .map_err(|e| anyhow::anyhow!("DB connection error: {}", e))?;
 
-        use crate::shared::models::schema::users::dsl::*;
+        use crate::core::shared::models::schema::users::dsl::*;
         use diesel::prelude::*;
 
         let existing_user: Option<Uuid> = if let Some(ref email_addr) = user_email {
@@ -535,7 +535,7 @@ async fn create_user_session(state: &AppState, user_id: Uuid) -> anyhow::Result<
         let conn = state.conn.clone();
         tokio::task::spawn_blocking(move || {
             let mut db_conn = conn.get().ok()?;
-            use crate::shared::models::schema::bots::dsl::*;
+            use crate::core::shared::models::schema::bots::dsl::*;
             use diesel::prelude::*;
 
             bots.filter(is_active.eq(true))

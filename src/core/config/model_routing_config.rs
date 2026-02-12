@@ -3,7 +3,7 @@ use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::shared::utils::DbPool;
+use crate::core::shared::utils::DbPool;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]

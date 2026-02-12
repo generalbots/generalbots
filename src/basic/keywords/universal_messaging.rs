@@ -1,9 +1,9 @@
 use crate::core::bot::channels::{
     instagram::InstagramAdapter, teams::TeamsAdapter, whatsapp::WhatsAppAdapter, ChannelAdapter,
 };
-use crate::shared::message_types::MessageType;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::message_types::MessageType;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
@@ -193,7 +193,7 @@ pub async fn send_message_to_recipient(
     match channel.as_str() {
         "whatsapp" => {
             let adapter = WhatsAppAdapter::new(state.conn.clone(), user.bot_id);
-            let response = crate::shared::models::BotResponse {
+            let response = crate::core::shared::models::BotResponse {
                 bot_id: "default".to_string(),
                 session_id: user.id.to_string(),
                 user_id: recipient_id.clone(),
@@ -211,7 +211,7 @@ pub async fn send_message_to_recipient(
         }
         "instagram" => {
             let adapter = InstagramAdapter::new();
-            let response = crate::shared::models::BotResponse {
+            let response = crate::core::shared::models::BotResponse {
                 bot_id: "default".to_string(),
                 session_id: user.id.to_string(),
                 user_id: recipient_id.clone(),
@@ -229,7 +229,7 @@ pub async fn send_message_to_recipient(
         }
         "teams" => {
             let adapter = TeamsAdapter::new(state.conn.clone(), user.bot_id);
-            let response = crate::shared::models::BotResponse {
+            let response = crate::core::shared::models::BotResponse {
                 bot_id: "default".to_string(),
                 session_id: user.id.to_string(),
                 user_id: recipient_id.clone(),
@@ -561,7 +561,7 @@ async fn send_web_message(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let web_adapter = Arc::clone(&state.web_adapter);
 
-    let response = crate::shared::models::BotResponse {
+    let response = crate::core::shared::models::BotResponse {
         bot_id: "system".to_string(),
         user_id: session_id.to_string(),
         session_id: session_id.to_string(),

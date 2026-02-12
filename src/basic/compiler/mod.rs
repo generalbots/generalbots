@@ -2,8 +2,8 @@
 use crate::basic::keywords::set_schedule::execute_set_schedule;
 use crate::basic::keywords::table_definition::process_table_definitions;
 use crate::basic::keywords::webhook::execute_webhook_registration;
-use crate::shared::models::TriggerKind;
-use crate::shared::state::AppState;
+use crate::core::shared::models::TriggerKind;
+use crate::core::shared::state::AppState;
 use diesel::ExpressionMethods;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
@@ -424,10 +424,10 @@ impl BasicCompiler {
                 .conn
                 .get()
                 .map_err(|e| format!("Failed to get database connection: {e}"))?;
-            use crate::shared::models::system_automations::dsl::*;
+            use crate::core::shared::models::system_automations::dsl::*;
             diesel::delete(
                 system_automations
-                    .filter(bot_id.eq(bot_uuid))
+                    .filter(bot_id.eq(&bot_uuid))
                     .filter(kind.eq(TriggerKind::Scheduled as i32))
                     .filter(param.eq(&script_name)),
             )
@@ -505,7 +505,13 @@ impl BasicCompiler {
             }
 
             if trimmed.to_uppercase().starts_with("USE WEBSITE") {
-                let re = Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#).unwrap();
+                let re = match Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#) {
+                    Ok(re) => re,
+                    Err(e) => {
+                        log::warn!("Invalid regex pattern: {}", e);
+                        continue;
+                    }
+                };
                 if let Some(caps) = re.captures(&normalized) {
                     if let Some(url_match) = caps.get(1) {
                         let url = url_match.as_str();
@@ -548,10 +554,10 @@ impl BasicCompiler {
                 .conn
                 .get()
                 .map_err(|e| format!("Failed to get database connection: {}", e))?;
-            use crate::shared::models::system_automations::dsl::*;
+            use crate::core::shared::models::system_automations::dsl::*;
             diesel::delete(
                 system_automations
-                    .filter(bot_id.eq(bot_uuid))
+                    .filter(bot_id.eq(&bot_uuid))
                     .filter(kind.eq(TriggerKind::Scheduled as i32))
                     .filter(param.eq(&script_name)),
             )

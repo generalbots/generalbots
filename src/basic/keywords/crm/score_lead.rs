@@ -1,6 +1,6 @@
 use crate::core::shared::schema::bot_memories;
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::{debug, error, info, trace};

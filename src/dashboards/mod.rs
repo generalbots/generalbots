@@ -10,7 +10,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub use error::DashboardsError;
 pub use handlers::*;

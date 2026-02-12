@@ -12,13 +12,14 @@ use serde_json::Value;
 use std::sync::Arc;
 
 use crate::core::urls::ApiUrls;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub mod conversations;
 pub mod recording;
 pub mod service;
 pub mod ui;
 pub mod webinar;
+pub mod webinar_types;
 pub mod whiteboard;
 pub mod whiteboard_export;
 use service::{DefaultTranscriptionService, MeetingService};

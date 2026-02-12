@@ -1,4 +1,4 @@
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 use crate::sheet::types::{SheetAiRequest, SheetAiResponse};
 use axum::{extract::State, response::IntoResponse, Json};
 use std::sync::Arc;

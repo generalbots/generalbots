@@ -9,8 +9,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::basic::ScriptService;
-use crate::shared::state::AppState;
-use crate::shared::models::schema::bots;
+use crate::core::shared::state::AppState;
+use crate::core::shared::models::schema::bots;
 use diesel::prelude::*;
 
 /// Represents a parsed tool call from an LLM
@@ -244,7 +244,7 @@ impl ToolExecutor {
         state: &Arc<AppState>,
         bot_name: &str,
         bot_id: Uuid,
-        session: &crate::shared::models::UserSession,
+        session: &crate::core::shared::models::UserSession,
         bas_script: &str,
         tool_name: &str,
         arguments: &Value,

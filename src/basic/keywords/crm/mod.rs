@@ -1,8 +1,8 @@
 pub mod attendance;
 pub mod score_lead;
 
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 use log::debug;
 use rhai::Engine;
 use std::sync::Arc;

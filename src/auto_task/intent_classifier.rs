@@ -2,8 +2,8 @@ use crate::auto_task::app_generator::AppGenerator;
 use crate::auto_task::intent_compiler::IntentCompiler;
 use crate::basic::ScriptService;
 
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
+use crate::core::shared::models::UserSession;
+use crate::core::shared::state::AppState;
 #[cfg(feature = "llm")]
 use crate::core::config::ConfigManager;
 use chrono::{DateTime, Utc};

@@ -13,13 +13,13 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{
     attendant_agent_status, attendant_canned_responses, attendant_queue_agents, attendant_queues,
     attendant_session_messages, attendant_sessions, attendant_tags, attendant_transfers,
     attendant_wrap_up_codes,
 };
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
 #[diesel(table_name = attendant_queues)]
@@ -998,7 +998,10 @@ pub async fn get_attendant_stats(
     })?;
 
     let (org_id, bot_id) = get_bot_context(&state);
-    let today = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap();
+    let today = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap_or_else(|| {
+        // Fallback to midnight (0,0,0 should always be valid)
+        chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_else(|| chrono::NaiveTime::MIN)
+    });
     let today_utc = DateTime::<Utc>::from_naive_utc_and_offset(today, Utc);
 
     let total_sessions_today: i64 = attendant_sessions::table

@@ -8,7 +8,7 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::security::error_sanitizer::SafeErrorResponse;
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 use super::engine::VideoEngine;
 use super::models::*;

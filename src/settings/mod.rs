@@ -15,7 +15,7 @@ Router,
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 pub fn configure_settings_routes() -> Router<Arc<AppState>> {
 Router::new()

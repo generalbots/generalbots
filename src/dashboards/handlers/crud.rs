@@ -7,9 +7,9 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::bot::get_default_bot;
+use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::dashboards::{dashboard_filters, dashboard_widgets, dashboards};
-use crate::shared::state::AppState;
+use crate::core::shared::state::AppState;
 
 use crate::dashboards::error::DashboardsError;
 use crate::dashboards::storage::{
