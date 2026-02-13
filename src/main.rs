@@ -151,7 +151,6 @@ async fn main() -> std::io::Result<()> {
         init_database, init_logging_and_i18n, load_config, parse_cli_args, run_axum_server,
         run_bootstrap, start_background_services, BootstrapProgress,
     };
-    use crate::core::package_manager::InstallMode;
     use crate::core::shared::memory_monitor::MemoryStats;
     use crate::core::shared::memory_monitor::register_thread;
     use crate::security::set_global_panic_hook;

@@ -1,11 +1,10 @@
 //! HTTP server initialization and routing
 
-use axum::extract::State;
 use axum::{
     routing::{get, post},
     Json, Router,
 };
-use log::{error, info, trace, warn};
+use log::{error, info, warn};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;

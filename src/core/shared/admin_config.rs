@@ -5,13 +5,12 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use diesel::prelude::*;
 use log::info;
 use std::sync::Arc;
 
 /// Get current configuration
 pub async fn get_config(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
     // Return default empty config for now
     let configs = vec![
@@ -32,7 +31,7 @@ pub async fn get_config(
 
 /// Update configuration
 pub async fn update_config(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(request): Json<UpdateConfigRequest>,
 ) -> impl IntoResponse {
     info!("Updating config: {} = {}", request.key, request.value);

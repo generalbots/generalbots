@@ -2,7 +2,6 @@
 use crate::core::shared::utils::DbPool;
 use crate::tasks::types::*;
 use chrono::Utc;
-use diesel::prelude::*;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;

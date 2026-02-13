@@ -1,5 +1,4 @@
 //! HTTP handlers for task API
-use crate::auto_task::TaskManifest;
 use crate::core::shared::state::AppState;
 use crate::tasks::task_api::{html_renderers, utils};
 use crate::tasks::types::TaskResponse;
@@ -8,7 +7,6 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Json};
 use axum::routing::{delete, get, post, put};
 use axum::Router;
-use chrono::Utc;
 use diesel::prelude::*;
 use log::{error, info, warn};
 use std::sync::Arc;

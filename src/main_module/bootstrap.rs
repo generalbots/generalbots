@@ -15,7 +15,6 @@ use crate::core::session::SessionManager;
 use crate::core::shared::state::AppState;
 use crate::core::shared::utils::create_conn;
 use crate::core::shared::utils::create_s3_operator;
-use crate::security::set_global_panic_hook;
 
 use super::BootstrapProgress;
 
@@ -682,9 +681,7 @@ pub async fn start_background_services(
     pool: &crate::core::shared::utils::DbPool,
 ) {
     #[cfg(feature = "drive")]
-    use crate::DriveMonitor;
     use crate::core::shared::memory_monitor::{log_process_memory, start_memory_monitor};
-    use crate::core::shared::memory_monitor::register_thread;
 
     // Resume workflows after server restart
     if let Err(e) =

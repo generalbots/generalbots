@@ -5,8 +5,6 @@ use lettre::{
     transport::smtp::authentication::Credentials,
     SmtpTransport, Transport,
 };
-use log::warn;
-use uuid::Uuid;
 
 /// Send invitation email
 #[cfg(feature = "mail")]

@@ -2,20 +2,18 @@
 use crate::core::shared::state::AppState;
 use crate::drive::drive_types::*;
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
-    response::IntoResponse,
     Json,
 };
 use chrono::Utc;
-use log::{debug, error, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
 /// Open a file for editing
 pub async fn open_file(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(file_id): Path<String>,
 ) -> Result<Json<FileItem>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Opening file: {}", file_id);
@@ -42,7 +40,7 @@ pub async fn open_file(
 
 /// List all buckets
 pub async fn list_buckets(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<BucketInfo>>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Listing buckets");
 
@@ -54,7 +52,7 @@ pub async fn list_buckets(
 
 /// List files in a bucket
 pub async fn list_files(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<SearchQuery>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     let query = req.query.clone().unwrap_or_default();
@@ -70,7 +68,7 @@ pub async fn list_files(
 
 /// Read file content
 pub async fn read_file(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(file_id): Path<String>,
 ) -> Result<Json<FileItem>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Reading file: {}", file_id);
@@ -97,7 +95,7 @@ pub async fn read_file(
 
 /// Write file content
 pub async fn write_file(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<WriteRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let file_id = req.file_id.unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -110,7 +108,7 @@ pub async fn write_file(
 
 /// Delete a file
 pub async fn delete_file(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(file_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Deleting file: {}", file_id);
@@ -121,10 +119,10 @@ pub async fn delete_file(
 
 /// Create a folder
 pub async fn create_folder(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<CreateFolderRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let parent_id = req.parent_id.clone().unwrap_or_default();
+    let _parent_id = req.parent_id.clone().unwrap_or_default();
 
     tracing::debug!("Creating folder: {:?}", req.name);
 
@@ -134,8 +132,8 @@ pub async fn create_folder(
 
 /// Copy a file
 pub async fn copy_file(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<CopyFileRequest>,
+    State(_state): State<Arc<AppState>>,
+    Json(_req): Json<CopyFileRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Copying file");
 
@@ -145,8 +143,8 @@ pub async fn copy_file(
 
 /// Upload file to drive
 pub async fn upload_file_to_drive(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<UploadRequest>,
+    State(_state): State<Arc<AppState>>,
+    Json(_req): Json<UploadRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Uploading to drive");
 
@@ -156,7 +154,7 @@ pub async fn upload_file_to_drive(
 
 /// Download file
 pub async fn download_file(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(file_id): Path<String>,
 ) -> Result<Json<FileItem>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Downloading file: {}", file_id);
@@ -183,8 +181,8 @@ pub async fn download_file(
 
 /// List folder contents
 pub async fn list_folder_contents(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<SearchQuery>,
+    State(_state): State<Arc<AppState>>,
+    Json(_req): Json<SearchQuery>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Listing folder contents");
 
@@ -196,7 +194,7 @@ pub async fn list_folder_contents(
 
 /// Search files
 pub async fn search_files(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<SearchQuery>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     let query = req.query.clone().unwrap_or_default();
@@ -212,7 +210,7 @@ pub async fn search_files(
 
 /// Get recent files
 pub async fn recent_files(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Getting recent files");
 
@@ -224,7 +222,7 @@ pub async fn recent_files(
 
 /// List favorites
 pub async fn list_favorites(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Listing favorites");
 
@@ -236,8 +234,8 @@ pub async fn list_favorites(
 
 /// Share folder
 pub async fn share_folder(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<ShareRequest>,
+    State(_state): State<Arc<AppState>>,
+    Json(_req): Json<ShareRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Sharing folder");
 
@@ -247,7 +245,7 @@ pub async fn share_folder(
 
 /// List shared files/folders
 pub async fn list_shared(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     tracing::debug!("Listing shared resources");
 

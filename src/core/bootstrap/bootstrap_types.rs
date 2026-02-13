@@ -1,6 +1,5 @@
 // Bootstrap type definitions
 use crate::core::package_manager::InstallMode;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
