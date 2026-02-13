@@ -1,6 +1,5 @@
 use crate::security::auth_api::{config::AuthConfig, error::AuthError, types::AuthenticatedUser};
 use axum::body::Body;
-use std::sync::Arc;
 use tracing::{debug, warn};
 use uuid::Uuid;
 

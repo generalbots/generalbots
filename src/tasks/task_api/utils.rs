@@ -1,5 +1,4 @@
 //! Utility functions for task API
-use crate::auto_task::TaskManifest;
 use crate::core::shared::state::AppState;
 use std::sync::Arc;
 

@@ -1,14 +1,6 @@
 // Bootstrap utility functions
-use crate::core::config::AppConfig;
-use crate::core::package_manager::setup::{DirectorySetup, EmailSetup, VectorDbSetup};
-use crate::core::package_manager::{InstallMode, PackageManager};
-use crate::security::command_guard::SafeCommand;
-use crate::core::shared::utils::{establish_pg_connection, init_secrets_manager};
-use anyhow::Result;
-use log::{debug, error, info, warn};
-use rand::distr::Alphanumeric;
+use log::{debug, info, warn};
 use std::process::Command;
-use uuid::Uuid;
 
 /// Get list of processes to kill
 pub fn get_processes_to_kill() -> Vec<(&'static str, Vec<&'static str>)> {
@@ -42,11 +34,7 @@ pub fn safe_pkill(pattern: &[&str], extra_args: &[&str]) {
     let mut args: Vec<&str> = extra_args.to_vec();
     args.extend(pattern);
 
-    let result = if cfg!(feature = "sigkill") {
-        Command::new("killall").args(&args).output()
-    } else {
-        Command::new("pkill").args(&args).output()
-    };
+    let result = Command::new("pkill").args(&args).output();
 
     match result {
         Ok(output) => {

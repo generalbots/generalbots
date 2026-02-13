@@ -1,5 +1,4 @@
 use super::types::{InputType, ValidationResult};
-use log::trace;
 use regex::Regex;
 use uuid::Uuid;
 

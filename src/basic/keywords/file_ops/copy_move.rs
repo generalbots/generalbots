@@ -38,7 +38,7 @@ use diesel::prelude::*;
 use log::trace;
 use std::error::Error;
 
-use super::basic_io::{execute_delete_file, execute_read, execute_write};
+use super::basic_io::execute_delete_file;
 
 pub async fn execute_copy(
     state: &AppState,

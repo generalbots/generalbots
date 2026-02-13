@@ -1,16 +1,12 @@
 // Bootstrap manager implementation
 use crate::core::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgress};
-use crate::core::bootstrap::bootstrap_utils::{safe_pkill, safe_pgrep, safe_sh_command, safe_curl, safe_fuser, dump_all_component_logs, vault_health_check};
+use crate::core::bootstrap::bootstrap_utils::{safe_pkill, vault_health_check};
 use crate::core::config::AppConfig;
-use crate::core::package_manager::{PackageManager, InstallMode};
-use anyhow::Result;
-use chrono::Utc;
-use log::{debug, error, info, warn};
-use rand::distr::Alphanumeric;
+use crate::core::package_manager::{InstallMode, PackageManager};
+use log::{info, warn};
 use std::path::PathBuf;
 use std::process::Command;
 use tokio::time::{sleep, Duration};
-use uuid::Uuid;
 
 impl BootstrapManager {
     pub fn new(mode: InstallMode, tenant: Option<String>) -> Self {
@@ -36,7 +32,7 @@ impl BootstrapManager {
             .to_string()
     }
 
-    pub async fn kill_stack_processes(&self) -> Result<()> {
+    pub async fn kill_stack_processes(&self) -> anyhow::Result<()> {
         info!("Killing any existing stack processes...");
 
         let processes = crate::core::bootstrap::bootstrap_utils::get_processes_to_kill();
@@ -52,7 +48,7 @@ impl BootstrapManager {
         Ok(())
     }
 
-    pub async fn start_all(&mut self) -> Result<()> {
+    pub async fn start_all(&mut self) -> anyhow::Result<()> {
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
         info!("Starting bootstrap process...");
@@ -67,7 +63,7 @@ impl BootstrapManager {
                     Ok(_child) => {
                         info!("Vault process started, waiting for initialization...");
                         // Wait for vault to be ready
-                        for i in 0..10 {
+                        for _ in 0..10 {
                             sleep(Duration::from_secs(1)).await;
                             if vault_health_check() {
                                 info!("Vault is responding");
@@ -153,7 +149,7 @@ impl BootstrapManager {
     }
 
     /// Run the bootstrap process
-    pub async fn bootstrap(&mut self) -> Result<()> {
+    pub async fn bootstrap(&mut self) -> anyhow::Result<()> {
         info!("Starting bootstrap process...");
         // Kill any existing processes
         self.kill_stack_processes().await?;
@@ -161,14 +157,14 @@ impl BootstrapManager {
     }
 
     /// Sync templates to database
-    pub fn sync_templates_to_database(&self) -> Result<()> {
+    pub fn sync_templates_to_database(&self) -> anyhow::Result<()> {
         info!("Syncing templates to database...");
         // TODO: Implement actual template sync
         Ok(())
     }
 
     /// Upload templates to drive
-    pub async fn upload_templates_to_drive(&self, _cfg: &AppConfig) -> Result<()> {
+    pub async fn upload_templates_to_drive(&self, _cfg: &AppConfig) -> anyhow::Result<()> {
         info!("Uploading templates to drive...");
         // TODO: Implement actual template upload
         Ok(())

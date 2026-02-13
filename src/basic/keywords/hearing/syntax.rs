@@ -1,7 +1,7 @@
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
 use log::trace;
-use rhai::{Dynamic, Engine, EvalAltResult};
+use rhai::{Engine, EvalAltResult};
 use serde_json::json;
 use std::sync::Arc;
 

@@ -11,6 +11,3 @@ pub mod types;
 // Re-export scheduler
 pub use scheduler::TaskScheduler;
 
-// Import types from types module
-use crate::tasks::types::*;
-
