@@ -30,10 +30,8 @@ pub struct LocalFileMonitor {
 
 impl LocalFileMonitor {
     pub fn new(state: Arc<AppState>) -> Self {
-        // Use ~/data as the base directory
-        let data_dir = PathBuf::from(std::env::var("HOME")
-            .unwrap_or_else(|_| ".".to_string()))
-            .join("data");
+        // Use /opt/gbo/data as the base directory
+        let data_dir = PathBuf::from("/opt/gbo/data");
 
         // Use botserver/work as the work directory for generated files
         let work_root = PathBuf::from("work");
@@ -50,7 +48,7 @@ impl LocalFileMonitor {
     }
 
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        info!("[LOCAL_MONITOR] Starting local file monitor for ~/data/*.gbai directories");
+        info!("[LOCAL_MONITOR] Starting local file monitor for /opt/gbo/data/*.gbai directories");
 
         // Create data directory if it doesn't exist
         if let Err(e) = tokio::fs::create_dir_all(&self.data_dir).await {
@@ -157,7 +155,7 @@ impl LocalFileMonitor {
     }
 
     fn is_gbdialog_file(&self, path: &Path) -> bool {
-        // Check if path is something like ~/data/*.gbai/.gbdialog/*.bas
+        // Check if path is something like /opt/gbo/data/*.gbai/.gbdialog/*.bas
         path.extension()
             .and_then(|e| e.to_str())
             .map(|e| e.eq_ignore_ascii_case("bas"))
@@ -167,7 +165,7 @@ impl LocalFileMonitor {
     }
 
     async fn scan_and_compile_all(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        debug!("[LOCAL_MONITOR] Scanning ~/data for .gbai directories");
+        debug!("[LOCAL_MONITOR] Scanning /opt/gbo/data for .gbai directories");
 
         let entries = match tokio::fs::read_dir(&self.data_dir).await {
             Ok(e) => e,
@@ -252,7 +250,7 @@ impl LocalFileMonitor {
             .and_then(|s| s.to_str())
             .unwrap_or("unknown");
 
-        // Extract bot name from path like ~/data/cristo.gbai/.gbdialog/file.bas
+        // Extract bot name from path like /opt/gbo/data/cristo.gbai/.gbdialog/file.bas
         let bot_name = file_path
             .ancestors()
             .find(|p| p.extension().and_then(|e| e.to_str()).map(|e| e.eq_ignore_ascii_case("gbai")).unwrap_or(false))

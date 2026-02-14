@@ -19,12 +19,15 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 tool_path_str,
                 user_clone.id
             );
-            let tool_name = tool_path_str
-                .strip_prefix(".gbdialog/")
-                .unwrap_or(&tool_path_str)
-                .strip_suffix(".bas")
-                .unwrap_or(&tool_path_str)
-                .to_string();
+            // Strip {bot_name}.gbdialog/ or .gbdialog/ prefix, and .bas suffix
+            let tool_name = if let Some(idx) = tool_path_str.find(".gbdialog/") {
+                tool_path_str[idx + 10..] // Skip past ".gbdialog/"
+            } else {
+                &tool_path_str
+            }
+            .strip_suffix(".bas")
+            .unwrap_or_else(|| &tool_path_str)
+            .to_string();
             if tool_name.is_empty() {
                 return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                     "Invalid tool name".into(),
@@ -86,12 +89,15 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
             tool_path_str,
             user_clone2.id
         );
-        let tool_name = tool_path_str
-            .strip_prefix(".gbdialog/")
-            .unwrap_or(&tool_path_str)
-            .strip_suffix(".bas")
-            .unwrap_or(&tool_path_str)
-            .to_string();
+        // Strip {bot_name}.gbdialog/ or .gbdialog/ prefix, and .bas suffix
+        let tool_name = if let Some(idx) = tool_path_str.find(".gbdialog/") {
+            &tool_path_str[idx + 10..] // Skip past ".gbdialog/"
+        } else {
+            &tool_path_str
+        }
+        .strip_suffix(".bas")
+        .unwrap_or_else(|| &tool_path_str)
+        .to_string();
         if tool_name.is_empty() {
             return Dynamic::from("ERROR: Invalid tool name");
         }
@@ -140,12 +146,15 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
             tool_path_str,
             user_clone3.id
         );
-        let tool_name = tool_path_str
-            .strip_prefix(".gbdialog/")
-            .unwrap_or(&tool_path_str)
-            .strip_suffix(".bas")
-            .unwrap_or(&tool_path_str)
-            .to_string();
+        // Strip {bot_name}.gbdialog/ or .gbdialog/ prefix, and .bas suffix
+        let tool_name = if let Some(idx) = tool_path_str.find(".gbdialog/") {
+            &tool_path_str[idx + 10..] // Skip past ".gbdialog/"
+        } else {
+            &tool_path_str
+        }
+        .strip_suffix(".bas")
+        .unwrap_or_else(|| &tool_path_str)
+        .to_string();
         if tool_name.is_empty() {
             return Dynamic::from("ERROR: Invalid tool name");
         }

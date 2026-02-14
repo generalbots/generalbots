@@ -330,8 +330,8 @@ Guidelines:
 - STYLE: Changes to CSS files (colors, layout, fonts, spacing)
 - HTML: Changes to HTML structure (forms, buttons, elements)
 - DATABASE: Adding fields to tables.bas or creating new tables
-- TOOL: Creating/modifying .gbdialog/tools/*.bas files
-- SCHEDULER: Creating/modifying .gbdialog/schedulers/*.bas files
+- TOOL: Creating/modifying {botname}.gbdialog/tools/*.bas files
+- SCHEDULER: Creating/modifying {botname}.gbdialog/schedulers/*.bas files
 - Require confirmation for: deletions, bulk changes, database schema changes
 - Use the current_app and current_page context to determine which files to modify
 
@@ -432,7 +432,7 @@ Respond ONLY with valid JSON."#
         {
             (
                 ModificationType::Tool,
-                ".gbdialog/tools/new-tool.bas".to_string(),
+                "{botname}.gbdialog/tools/new-tool.bas".to_string(),
             )
         } else if lower.contains("schedule")
             || lower.contains("every day")
@@ -441,7 +441,7 @@ Respond ONLY with valid JSON."#
         {
             (
                 ModificationType::Scheduler,
-                ".gbdialog/schedulers/new-scheduler.bas".to_string(),
+                "{botname}.gbdialog/schedulers/new-scheduler.bas".to_string(),
             )
         } else {
             (ModificationType::Unknown, "".to_string())
@@ -762,7 +762,7 @@ Respond ONLY with valid JSON."#
         session: &UserSession,
     ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
         let site_path = self.get_site_path();
-        let tools_path = format!("{}/{}.gbai/.gbdialog/tools", site_path, session.bot_id);
+        let tools_path = format!("{}/{}.gbai/{}.gbdialog/tools", site_path, session.bot_id, session.bot_id);
 
         let mut tools = Vec::new();
         if let Ok(entries) = std::fs::read_dir(&tools_path) {
@@ -783,7 +783,7 @@ Respond ONLY with valid JSON."#
         session: &UserSession,
     ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
         let site_path = self.get_site_path();
-        let schedulers_path = format!("{}/{}.gbai/.gbdialog/schedulers", site_path, session.bot_id);
+        let schedulers_path = format!("{}/{}.gbai/{}.gbdialog/schedulers", site_path, session.bot_id, session.bot_id);
 
         let mut schedulers = Vec::new();
         if let Ok(entries) = std::fs::read_dir(&schedulers_path) {

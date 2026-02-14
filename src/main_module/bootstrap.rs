@@ -795,29 +795,28 @@ async fn start_drive_monitors(
         }
     });
 
-    // Start local file monitor for ~/data/*.gbai directories
+    // Start local file monitor for /opt/gbo/data/*.gbai directories
     let local_monitor_state = app_state.clone();
     tokio::spawn(async move {
         register_thread("local-file-monitor", "drive");
-        trace!("Starting LocalFileMonitor for ~/data/*.gbai directories");
+        trace!("Starting LocalFileMonitor for /opt/gbo/data/*.gbai directories");
         let monitor = crate::drive::local_file_monitor::LocalFileMonitor::new(local_monitor_state);
         if let Err(e) = monitor.start_monitoring().await {
             error!("LocalFileMonitor failed: {}", e);
         } else {
-            info!("LocalFileMonitor started - watching ~/data/*.gbai/.gbdialog/*.bas");
+            info!("LocalFileMonitor started - watching /opt/gbo/data/*.gbai/*.gbdialog/*.bas");
         }
     });
 
-    // Start config file watcher for ~/data/*.gbai/*.gbot/config.csv
+    // Start config file watcher for /opt/gbo/data/*.gbai/*.gbot/config.csv
     let config_watcher_state = app_state.clone();
     tokio::spawn(async move {
         register_thread("config-file-watcher", "drive");
-        trace!("Starting ConfigWatcher for ~/data/*.gbai/*.gbot/config.csv");
+        trace!("Starting ConfigWatcher for /opt/gbo/data/*.gbai/*.gbot/config.csv");
 
         // Determine data directory
         let data_dir = std::env::var("DATA_DIR")
-            .or_else(|_| std::env::var("HOME").map(|h| format!("{}/data", h)))
-            .unwrap_or_else(|_| "./botserver-stack/data".to_string());
+            .unwrap_or_else(|_| "/opt/gbo/data".to_string());
         let data_dir = std::path::PathBuf::from(data_dir);
 
         let watcher = crate::core::config::watcher::ConfigWatcher::new(
@@ -826,6 +825,6 @@ async fn start_drive_monitors(
         );
         Arc::new(watcher).spawn();
 
-        info!("ConfigWatcher started - watching ~/data/*.gbai/*.gbot/config.csv");
+        info!("ConfigWatcher started - watching /opt/gbo/data/*.gbai/*.gbot/config.csv");
     });
 }

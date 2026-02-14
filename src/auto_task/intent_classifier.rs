@@ -677,8 +677,8 @@ END ON
             Utc::now().format("%Y-%m-%d %H:%M")
         );
 
-        // Save to .gbdialog/events/
-        let event_path = format!(".gbdialog/events/{handler_name}");
+        // Save to {bot_id}.gbdialog/events/
+        let event_path = format!("{}.gbdialog/events/{handler_name}", session.bot_id);
         self.save_basic_file(session.bot_id, &event_path, &basic_code)?;
 
         Ok(IntentResult {
@@ -889,8 +889,8 @@ END SCHEDULE
             classification.original_text
         );
 
-        // Save to .gbdialog/schedulers/
-        let scheduler_path = format!(".gbdialog/schedulers/{scheduler_file}");
+        // Save to {bot_id}.gbdialog/schedulers/
+        let scheduler_path = format!("{}.gbdialog/schedulers/{scheduler_file}", session.bot_id);
         self.save_basic_file(session.bot_id, &scheduler_path, &basic_code)?;
 
         let schedule_id = Uuid::new_v4();
@@ -962,7 +962,7 @@ END GOAL
 
         // Save to .gbdialog/goals/
         let goal_file = format!("{}.bas", goal_name.to_lowercase().replace(' ', "-"));
-        let goal_path = format!(".gbdialog/goals/{goal_file}");
+        let goal_path = format!("{}.gbdialog/goals/{goal_file}", session.bot_id);
         self.save_basic_file(session.bot_id, &goal_path, &basic_code)?;
 
         Ok(IntentResult {
@@ -1029,8 +1029,8 @@ END TRIGGER
             classification.original_text
         );
 
-        // Save to .gbdialog/tools/
-        let tool_path = format!(".gbdialog/tools/{tool_file}");
+        // Save to {bot_id}.gbdialog/tools/
+        let tool_path = format!("{}.gbdialog/tools/{tool_file}", session.bot_id);
         self.save_basic_file(session.bot_id, &tool_path, &basic_code)?;
 
         Ok(IntentResult {

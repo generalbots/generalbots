@@ -462,7 +462,7 @@ impl DriveMonitor {
         &self,
         client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let prefix = ".gbdialog/";
+        // No prefix filter - list all and filter by *.gbdialog pattern below
         let mut current_files = HashMap::new();
         let mut continuation_token = None;
         loop {
@@ -486,6 +486,7 @@ impl DriveMonitor {
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();
                 let path_parts: Vec<&str> = path.split('/').collect();
+                // Filter for paths matching *.gbdialog/*.bas pattern
                 if path_parts.len() < 2 || !path_parts[0].ends_with(".gbdialog") {
                     continue;
                 }

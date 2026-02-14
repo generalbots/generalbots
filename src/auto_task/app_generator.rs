@@ -1552,7 +1552,7 @@ impl AppGenerator {
             );
 
             for (idx, tool) in llm_app.tools.iter().enumerate() {
-                let tool_path = format!(".gbdialog/tools/{}", tool.filename);
+                let tool_path = format!("{}.gbdialog/tools/{}", llm_app.name, tool.filename);
                 self.files_written.push(format!("tools/{}", tool.filename));
                 self.bytes_generated += tool.content.len() as u64;
 
@@ -1624,7 +1624,7 @@ impl AppGenerator {
             );
 
             for (idx, scheduler) in llm_app.schedulers.iter().enumerate() {
-                let scheduler_path = format!(".gbdialog/schedulers/{}", scheduler.filename);
+                let scheduler_path = format!("{}.gbdialog/schedulers/{}", llm_app.name, scheduler.filename);
                 self.files_written
                     .push(format!("schedulers/{}", scheduler.filename));
                 self.bytes_generated += scheduler.content.len() as u64;

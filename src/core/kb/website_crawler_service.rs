@@ -352,7 +352,7 @@ impl WebsiteCrawlerService {
                     Err(_) => continue, // Skip if bot not found
                 };
 
-                // Scan .gbdialog directory for .bas files
+                // Scan {bot_name}.gbdialog directory for .bas files
                 let dialog_dir = path.join(format!("{}.gbdialog", bot_name));
                 if dialog_dir.exists() {
                     self.scan_directory_for_websites(&dialog_dir, bot_id, &mut conn)?;
