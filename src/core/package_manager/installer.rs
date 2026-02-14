@@ -2,12 +2,15 @@ use crate::core::package_manager::component::ComponentConfig;
 use crate::core::package_manager::os::detect_os;
 use crate::core::package_manager::{InstallMode, OsType};
 use crate::security::command_guard::SafeCommand;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use log::{error, info, trace, warn};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 #[derive(Deserialize, Debug)]
 struct ComponentEntry {
@@ -872,8 +875,24 @@ disable_mlock = true
 EOF"#.to_string(),
                 ],
 
-
-                post_install_cmds_linux: vec![],
+                post_install_cmds_linux: vec![
+                    "mkdir -p {{CONF_PATH}}/system/certificates/ca".to_string(),
+                    "mkdir -p {{CONF_PATH}}/system/certificates/vault".to_string(),
+                    "mkdir -p {{CONF_PATH}}/system/certificates/botserver".to_string(),
+                    "mkdir -p {{CONF_PATH}}/system/certificates/tables".to_string(),
+                    "openssl genrsa -out {{CONF_PATH}}/system/certificates/ca/ca.key 4096 2>/dev/null".to_string(),
+                    "openssl req -new -x509 -days 3650 -key {{CONF_PATH}}/system/certificates/ca/ca.key -out {{CONF_PATH}}/system/certificates/ca/ca.crt -subj '/C=BR/ST=SP/L=São Paulo/O=BotServer Internal CA/CN=BotServer CA' 2>/dev/null".to_string(),
+                    "openssl genrsa -out {{CONF_PATH}}/system/certificates/vault/server.key 4096 2>/dev/null".to_string(),
+                    "openssl req -new -key {{CONF_PATH}}/system/certificates/vault/server.key -out {{CONF_PATH}}/system/certificates/vault/server.csr -subj '/C=BR/ST=SP/L=São Paulo/O=BotServer/CN=localhost' 2>/dev/null".to_string(),
+                    "openssl x509 -req -days 3650 -in {{CONF_PATH}}/system/certificates/vault/server.csr -CA {{CONF_PATH}}/system/certificates/ca/ca.crt -CAkey {{CONF_PATH}}/system/certificates/ca/ca.key -CAcreateserial -out {{CONF_PATH}}/system/certificates/vault/server.crt 2>/dev/null".to_string(),
+                    "openssl genrsa -out {{CONF_PATH}}/system/certificates/botserver/client.key 4096 2>/dev/null".to_string(),
+                    "openssl req -new -key {{CONF_PATH}}/system/certificates/botserver/client.key -out {{CONF_PATH}}/system/certificates/botserver/client.csr -subj '/C=BR/ST=SP/L=São Paulo/O=BotServer/CN=botserver' 2>/dev/null".to_string(),
+                    "openssl x509 -req -days 3650 -in {{CONF_PATH}}/system/certificates/botserver/client.csr -CA {{CONF_PATH}}/system/certificates/ca/ca.crt -CAkey {{CONF_PATH}}/system/certificates/ca/ca.key -CAcreateserial -out {{CONF_PATH}}/system/certificates/botserver/client.crt 2>/dev/null".to_string(),
+                    "openssl genrsa -out {{CONF_PATH}}/system/certificates/tables/server.key 4096 2>/dev/null".to_string(),
+                    "openssl req -new -key {{CONF_PATH}}/system/certificates/tables/server.key -out {{CONF_PATH}}/system/certificates/tables/server.csr -subj '/C=BR/ST=SP/L=São Paulo/O=BotServer/CN=localhost' 2>/dev/null".to_string(),
+                    "openssl x509 -req -days 3650 -in {{CONF_PATH}}/system/certificates/tables/server.csr -CA {{CONF_PATH}}/system/certificates/ca/ca.crt -CAkey {{CONF_PATH}}/system/certificates/ca/ca.key -CAcreateserial -out {{CONF_PATH}}/system/certificates/tables/server.crt 2>/dev/null".to_string(),
+                    "echo 'Certificates generated successfully'".to_string(),
+                ],
                 pre_install_cmds_macos: vec![
                     "mkdir -p {{DATA_PATH}}/vault".to_string(),
                     "mkdir -p {{CONF_PATH}}/vault".to_string(),
@@ -1082,6 +1101,15 @@ EOF"#.to_string(),
             match child {
                 Ok(c) => {
                     trace!("Component {} started successfully", component.name);
+
+                    // Initialize Vault after successful start (local mode only)
+                    if component.name == "vault" && self.mode == InstallMode::Local {
+                        if let Err(e) = self.initialize_vault_local() {
+                            warn!("Failed to initialize Vault: {}", e);
+                            warn!("Vault started but may need manual initialization");
+                        }
+                    }
+
                     Ok(c)
                 }
                 Err(e) => {
@@ -1095,6 +1123,12 @@ EOF"#.to_string(),
                             "Component {} may already be running, continuing anyway",
                             component.name
                         );
+
+                        // Even if vault was already running, ensure .env exists
+                        if component.name == "vault" && self.mode == InstallMode::Local {
+                            let _ = self.ensure_env_file_exists();
+                        }
+
                         SafeCommand::noop_child()
                             .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e))
                     } else {
@@ -1227,5 +1261,210 @@ EOF"#.to_string(),
 
         trace!("Fetched {} credentials from Vault", credentials.len());
         credentials
+    }
+
+    /// Initialize Vault locally (non-LXC mode) and create .env file
+    ///
+    /// This function:
+    /// 1. Checks if Vault is already initialized
+    /// 2. If not, runs `vault operator init` to get root token and unseal keys
+    /// 3. Creates .env file with VAULT_ADDR and VAULT_TOKEN
+    /// 4. Creates vault-unseal-keys file with proper permissions
+    /// 5. Unseals Vault with 3 keys
+    fn initialize_vault_local(&self) -> Result<()> {
+        use std::io::Write;
+
+        info!("Initializing Vault locally (non-LXC mode)...");
+
+        let bin_path = self.base_path.join("bin/vault");
+        let conf_path = self.base_path.join("conf");
+        let vault_bin = bin_path.join("vault");
+
+        // Check if already initialized
+        let init_json = self.base_path.join("conf/vault/init.json");
+        if init_json.exists() {
+            info!("Vault already initialized (init.json exists), skipping initialization");
+            // Still ensure .env file exists
+            self.ensure_env_file_exists()?;
+            return Ok(());
+        }
+
+        // Wait for Vault to be ready
+        info!("Waiting for Vault to start...");
+        std::thread::sleep(std::time::Duration::from_secs(3));
+
+        let vault_addr = std::env::var("VAULT_ADDR")
+            .unwrap_or_else(|_| "https://localhost:8200".to_string());
+        let ca_cert = conf_path.join("system/certificates/ca/ca.crt");
+
+        // Initialize Vault
+        let init_cmd = format!(
+            "{} operator init -tls-skip-verify -key-shares=5 -key-threshold=3 -format=json -address={}",
+            vault_bin.display(),
+            vault_addr
+        );
+
+        info!("Running vault operator init...");
+        let output = safe_sh_command(&init_cmd)
+            .ok_or_else(|| anyhow::anyhow!("Failed to execute vault init command"))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if stderr.contains("already initialized") {
+                warn!("Vault already initialized, skipping file generation");
+                return self.ensure_env_file_exists();
+            }
+            return Err(anyhow::anyhow!("Failed to initialize Vault: {}", stderr));
+        }
+
+        let init_output = String::from_utf8_lossy(&output.stdout);
+        let init_json_val: serde_json::Value = serde_json::from_str(&init_output)
+            .context("Failed to parse Vault init output")?;
+
+        let unseal_keys = init_json_val["unseal_keys_b64"]
+            .as_array()
+            .context("No unseal keys in output")?;
+        let root_token = init_json_val["root_token"]
+            .as_str()
+            .context("No root token in output")?;
+
+        // Save init.json
+        std::fs::write(
+            &init_json,
+            serde_json::to_string_pretty(&init_json_val)?
+        )?;
+        info!("Created {}", init_json.display());
+
+        // Create .env file with Vault credentials
+        let env_file = std::path::PathBuf::from(".env");
+        let env_content = format!(
+            r#"
+# Vault Configuration (auto-generated)
+VAULT_ADDR={}
+VAULT_TOKEN={}
+VAULT_CACERT={}
+"#,
+            vault_addr,
+            root_token,
+            ca_cert.display()
+        );
+
+        if env_file.exists() {
+            let existing = std::fs::read_to_string(&env_file)?;
+            if existing.contains("VAULT_ADDR=") {
+                warn!(".env already contains VAULT_ADDR, not overwriting");
+            } else {
+                let mut file = std::fs::OpenOptions::new()
+                    .append(true)
+                    .open(&env_file)?;
+                file.write_all(env_content.as_bytes())?;
+                info!("Appended Vault config to .env");
+            }
+        } else {
+            std::fs::write(&env_file, env_content.trim_start())?;
+            info!("Created .env with Vault config");
+        }
+
+        // Create vault-unseal-keys file
+        let unseal_keys_file = std::path::PathBuf::from("vault-unseal-keys");
+        let keys_content: String = unseal_keys
+            .iter()
+            .enumerate()
+            .map(|(i, key): (usize, &serde_json::Value)| {
+                format!("Unseal Key {}: {}\n", i + 1, key.as_str().unwrap_or(""))
+            })
+            .collect();
+
+        std::fs::write(&unseal_keys_file, keys_content)?;
+
+        #[cfg(unix)]
+        {
+            std::fs::set_permissions(&unseal_keys_file, std::fs::Permissions::from_mode(0o600))?;
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = &unseal_keys_file; // suppress unused warning
+        }
+        info!("Created {} (chmod 600)", unseal_keys_file.display());
+
+        // Unseal Vault (need 3 keys)
+        info!("Unsealing Vault...");
+        for i in 0..3 {
+            if let Some(key) = unseal_keys.get(i) {
+                let key_str: &str = key.as_str().unwrap_or("");
+                let unseal_cmd = format!(
+                    "{} operator unseal -tls-skip-verify -address={} {}",
+                    vault_bin.display(),
+                    vault_addr,
+                    key_str
+                );
+                let unseal_output = safe_sh_command(&unseal_cmd);
+
+                if let Some(output) = unseal_output {
+                    if !output.status.success() {
+                        warn!("Unseal step {} may have failed", i + 1);
+                    }
+                } else {
+                    warn!("Unseal step {} command failed to execute", i + 1);
+                }
+            }
+        }
+
+        info!("Vault initialized and unsealed successfully");
+        info!("✓ Created .env with VAULT_ADDR, VAULT_TOKEN");
+        info!("✓ Created vault-unseal-keys (chmod 600)");
+
+        Ok(())
+    }
+
+    /// Ensure .env file exists with Vault credentials
+    fn ensure_env_file_exists(&self) -> Result<()> {
+        let init_json = self.base_path.join("conf/vault/init.json");
+        let env_file = std::path::PathBuf::from(".env");
+
+        if !init_json.exists() {
+            return Ok(()); // No init, no .env needed yet
+        }
+
+        let init_content = std::fs::read_to_string(&init_json)?;
+        let init_json_val: serde_json::Value = serde_json::from_str(&init_content)?;
+
+        let root_token = init_json_val["root_token"]
+            .as_str()
+            .context("No root_token in init.json")?;
+
+        let conf_path = self.base_path.join("conf");
+        let ca_cert = conf_path.join("system/certificates/ca/ca.crt");
+        let vault_addr = std::env::var("VAULT_ADDR")
+            .unwrap_or_else(|_| "https://localhost:8200".to_string());
+
+        let env_content = format!(
+            r#"
+# Vault Configuration (auto-generated)
+VAULT_ADDR={}
+VAULT_TOKEN={}
+VAULT_CACERT={}
+"#,
+            vault_addr,
+            root_token,
+            ca_cert.display()
+        );
+
+        if env_file.exists() {
+            let existing = std::fs::read_to_string(&env_file)?;
+            if existing.contains("VAULT_ADDR=") {
+                return Ok(());
+            }
+            let mut file = std::fs::OpenOptions::new()
+                .append(true)
+                .open(&env_file)?;
+            use std::io::Write;
+            file.write_all(env_content.as_bytes())?;
+        } else {
+            std::fs::write(&env_file, env_content.trim_start())?;
+        }
+
+        info!("Created .env with Vault credentials");
+        Ok(())
     }
 }
