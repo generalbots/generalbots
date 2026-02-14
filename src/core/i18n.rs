@@ -882,9 +882,14 @@ pub fn get_translations_json(locale: &Locale) -> serde_json::Value {
     let mut translations = serde_json::Map::new();
 
     for key in TRANSLATION_KEYS {
-        translations.insert((*key).to_string(), serde_json::Value::String(t(locale, key)));
+        let value = t(locale, key);
+        if value.contains('[') && value == format!("[{key}]") {
+            log::warn!("i18n: Missing translation for key: {} in locale: {:?}", key, locale);
+        }
+        translations.insert((*key).to_string(), serde_json::Value::String(value));
     }
 
+    log::info!("i18n: Returning {} translations for locale: {}", translations.len(), locale);
     serde_json::Value::Object(translations)
 }
 
