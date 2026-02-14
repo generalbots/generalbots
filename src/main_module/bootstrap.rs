@@ -219,6 +219,9 @@ pub async fn init_database(
     trace!("Creating database pool again...");
     progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
 
+    // Ensure secrets manager is initialized before creating database connection
+    crate::core::shared::utils::init_secrets_manager().await;
+
     let pool = match create_conn() {
         Ok(pool) => {
             trace!("Running database migrations...");

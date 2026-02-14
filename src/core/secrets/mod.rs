@@ -326,8 +326,71 @@ impl SecretsManager {
         self.cache.write().await.remove(path);
     }
 
-    fn get_from_env(_path: &str) -> Result<HashMap<String, String>> {
-        Err(anyhow!("Vault not configured. All secrets must be stored in Vault. Set VAULT_ADDR and VAULT_TOKEN in .env"))
+    fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
+        let mut secrets = HashMap::new();
+
+        match path {
+            SecretPaths::TABLES => {
+                secrets.insert("host".into(), "localhost".into());
+                secrets.insert("port".into(), "5432".into());
+                secrets.insert("database".into(), "botserver".into());
+                secrets.insert("username".into(), "gbuser".into());
+                secrets.insert("password".into(), "changeme".into());
+            }
+            SecretPaths::DIRECTORY => {
+                secrets.insert("url".into(), "http://localhost:8300".into());
+                secrets.insert("project_id".into(), String::new());
+                secrets.insert("client_id".into(), String::new());
+                secrets.insert("client_secret".into(), String::new());
+            }
+            SecretPaths::DRIVE => {
+                secrets.insert("accesskey".into(), String::new());
+                secrets.insert("secret".into(), String::new());
+            }
+            SecretPaths::CACHE => {
+                secrets.insert("password".into(), String::new());
+            }
+            SecretPaths::EMAIL => {
+                secrets.insert("smtp_host".into(), String::new());
+                secrets.insert("smtp_port".into(), "587".into());
+                secrets.insert("username".into(), String::new());
+                secrets.insert("password".into(), String::new());
+                secrets.insert("from_address".into(), String::new());
+            }
+            SecretPaths::LLM => {
+                secrets.insert("openai_key".into(), String::new());
+                secrets.insert("anthropic_key".into(), String::new());
+                secrets.insert("ollama_url".into(), "http://localhost:11434".into());
+            }
+            SecretPaths::ENCRYPTION => {
+                secrets.insert("master_key".into(), String::new());
+            }
+            SecretPaths::MEET => {
+                secrets.insert("jitsi_url".into(), "https://meet.jit.si".into());
+                secrets.insert("app_id".into(), String::new());
+                secrets.insert("app_secret".into(), String::new());
+            }
+            SecretPaths::VECTORDB => {
+                secrets.insert("url".into(), "http://localhost:6333".into());
+                secrets.insert("api_key".into(), String::new());
+            }
+            SecretPaths::OBSERVABILITY => {
+                secrets.insert("url".into(), "http://localhost:8086".into());
+                secrets.insert("org".into(), "system".into());
+                secrets.insert("bucket".into(), "metrics".into());
+                secrets.insert("token".into(), String::new());
+            }
+            SecretPaths::ALM => {
+                secrets.insert("url".into(), "http://localhost:8080".into());
+                secrets.insert("username".into(), String::new());
+                secrets.insert("password".into(), String::new());
+            }
+            _ => {
+                log::debug!("No default values for secret path: {}", path);
+            }
+        }
+
+        Ok(secrets)
     }
 }
 

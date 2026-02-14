@@ -42,13 +42,11 @@ pub async fn init_secrets_manager() -> Result<()> {
 pub async fn get_database_url() -> Result<String> {
     let guard = SECRETS_MANAGER.read().await;
     if let Some(ref manager) = *guard {
-        if manager.is_enabled() {
-            return manager.get_database_url().await;
-        }
+        return manager.get_database_url().await;
     }
 
     Err(anyhow::anyhow!(
-        "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"
+        "Secrets manager not initialized"
     ))
 }
 
@@ -68,7 +66,7 @@ pub fn get_database_url_sync() -> Result<String> {
     }
 
     Err(anyhow::anyhow!(
-        "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"
+        "Secrets manager not initialized"
     ))
 }
 

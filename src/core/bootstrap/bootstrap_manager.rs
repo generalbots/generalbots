@@ -153,6 +153,42 @@ impl BootstrapManager {
         info!("Starting bootstrap process...");
         // Kill any existing processes
         self.kill_stack_processes().await?;
+
+        // Install all required components
+        self.install_all().await?;
+
+        Ok(())
+    }
+
+    /// Install all required components
+    pub async fn install_all(&mut self) -> anyhow::Result<()> {
+        let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
+
+        // Install vault first (required for secrets management)
+        if !pm.is_installed("vault") {
+            info!("Installing Vault...");
+            match pm.install("vault").await {
+                Ok(Some(_)) => info!("Vault installed successfully"),
+                Ok(None) => warn!("Vault installation returned no result"),
+                Err(e) => warn!("Failed to install Vault: {}", e),
+            }
+        } else {
+            info!("Vault already installed");
+        }
+
+        // Install other core components (names must match 3rdparty.toml)
+		let core_components = ["tables", "cache", "drive", "llm"];
+        for component in core_components {
+            if !pm.is_installed(component) {
+                info!("Installing {}...", component);
+                match pm.install(component).await {
+                    Ok(Some(_)) => info!("{} installed successfully", component),
+                    Ok(None) => warn!("{} installation returned no result", component),
+                    Err(e) => warn!("Failed to install {}: {}", component, e),
+                }
+            }
+        }
+
         Ok(())
     }
 
