@@ -114,6 +114,11 @@ pub struct BotConfigQuery {
 #[derive(Debug, Serialize)]
 pub struct BotConfigResponse {
     pub public: bool,
+    pub theme_color1: Option<String>,
+    pub theme_color2: Option<String>,
+    pub theme_title: Option<String>,
+    pub theme_logo: Option<String>,
+    pub theme_logo_text: Option<String>,
 }
 
 /// Get bot configuration endpoint
@@ -132,40 +137,78 @@ pub async fn get_bot_config(
         }
     };
 
-    // Query bot_configuration table for this bot's public setting
+    // Query bot_configuration table for this bot's configuration
     use crate::core::shared::models::schema::bot_configuration::dsl::*;
 
     let mut is_public = false;
+    let mut theme_color1: Option<String> = None;
+    let mut theme_color2: Option<String> = None;
+    let mut theme_title: Option<String> = None;
+    let mut theme_logo: Option<String> = None;
+    let mut theme_logo_text: Option<String> = None;
 
+    // Query all config values (no prefix filter - will match in code)
     match bot_configuration
         .select((config_key, config_value))
-        .filter(config_key.like(format!("{}%", bot_name)))
-        .filter(config_key.like("%public%"))
         .load::<(String, String)>(&mut conn)
     {
         Ok(configs) => {
+            info!("Config query returned {} entries for bot '{}'", configs.len(), bot_name);
             for (key, value) in configs {
-                let key: String = key;
-                let value: String = value;
-                // Check if this is the public setting
+                // Try to strip bot_name prefix, use original if no prefix
                 let clean_key = key.strip_prefix(&format!("{}.", bot_name))
                     .or_else(|| key.strip_prefix(&format!("{}_", bot_name)))
                     .unwrap_or(&key);
 
-                if clean_key.eq_ignore_ascii_case("public") {
-                    is_public = value.eq_ignore_ascii_case("true") || value == "1";
-                    break;
+                // Check if key is for this bot (either prefixed or not)
+                let key_for_bot = clean_key == key || key.starts_with(&format!("{}.", bot_name)) || key.starts_with(&format!("{}_", bot_name));
+
+                info!("Key '{}' -> clean_key '{}' -> key_for_bot: {}", key, clean_key, key_for_bot);
+
+                if !key_for_bot {
+                    info!("Skipping key '{}' - not for bot '{}'", key, bot_name);
+                    continue;
+                }
+
+                match clean_key.to_lowercase().as_str() {
+                    "public" => {
+                        is_public = value.eq_ignore_ascii_case("true") || value == "1";
+                    }
+                    "theme-color1" => {
+                        theme_color1 = Some(value);
+                    }
+                    "theme-color2" => {
+                        theme_color2 = Some(value);
+                    }
+                    "theme-title" => {
+                        theme_title = Some(value);
+                    }
+                    "theme-logo" => {
+                        theme_logo = Some(value);
+                    }
+                    "theme-logo-text" => {
+                        theme_logo_text = Some(value);
+                    }
+                    _ => {}
                 }
             }
-            info!("Retrieved public status for bot '{}': {}", bot_name, is_public);
+            info!("Retrieved config for bot '{}': public={}, theme_color1={:?}, theme_color2={:?}, theme_title={:?}",
+                bot_name, is_public, theme_color1, theme_color2, theme_title);
         }
         Err(e) => {
-            warn!("Failed to load public status for bot '{}': {}", bot_name, e);
-            // Return default (not public)
+            warn!("Failed to load config for bot '{}': {}", bot_name, e);
+            // Return defaults (not public, no theme)
         }
     }
 
-    let config_response = BotConfigResponse { public: is_public };
+    let config_response = BotConfigResponse {
+        public: is_public,
+        theme_color1,
+        theme_color2,
+        theme_title,
+        theme_logo,
+        theme_logo_text,
+    };
 
     Ok(Json(config_response))
 }
