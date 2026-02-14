@@ -313,8 +313,9 @@ impl PackageManager {
                 binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
-                    "ln -sf {{BIN_PATH}}/src/valkey-server {{BIN_PATH}}/valkey-server 2>/dev/null || true".to_string(),
-                    "ln -sf {{BIN_PATH}}/src/valkey-cli {{BIN_PATH}}/valkey-cli 2>/dev/null || true".to_string(),
+                    "chmod +x {{BIN_PATH}}/valkey-server 2>/dev/null || true".to_string(),
+                    "chmod +x {{BIN_PATH}}/valkey-cli 2>/dev/null || true".to_string(),
+                    "chmod +x {{BIN_PATH}}/valkey-benchmark 2>/dev/null || true".to_string(),
                     "ln -sf {{BIN_PATH}}/valkey-server {{BIN_PATH}}/redis-server 2>/dev/null || true".to_string(),
                     "ln -sf {{BIN_PATH}}/valkey-cli {{BIN_PATH}}/redis-cli 2>/dev/null || true".to_string(),
                 ],
