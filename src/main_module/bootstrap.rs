@@ -273,14 +273,46 @@ pub async fn load_config(
     Ok(refreshed_cfg)
 }
 
-/// Initialize Redis cache
+/// Initialize Redis/Valkey cache
 #[cfg(feature = "cache")]
 pub async fn init_redis() -> Option<Arc<redis::Client>> {
-    let cache_url = "redis://localhost:6379".to_string();
+    let cache_url = std::env::var("CACHE_URL")
+        .or_else(|_| std::env::var("REDIS_URL"))
+        .or_else(|_| std::env::var("VALKEY_URL"))
+        .unwrap_or_else(|_| "redis://localhost:6379".to_string());
+
+    info!("Attempting to connect to cache at: {}", cache_url);
+
     match redis::Client::open(cache_url.as_str()) {
-        Ok(client) => Some(Arc::new(client)),
+        Ok(client) => {
+            // Verify the connection actually works
+            match client.get_connection() {
+                Ok(mut conn) => {
+                    // Test with PING
+                    match redis::cmd("PING").query::<String>(&mut conn) {
+                        Ok(response) if response == "PONG" => {
+                            info!("Cache connection verified: PONG");
+                            Some(Arc::new(client))
+                        }
+                        Ok(response) => {
+                            warn!("Cache PING returned unexpected response: {}", response);
+                            Some(Arc::new(client))
+                        }
+                        Err(e) => {
+                            warn!("Cache PING failed: {}. Cache functions will be disabled.", e);
+                            None
+                        }
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to establish cache connection: {}. Cache functions will be disabled.", e);
+                    warn!("Suggestions and other cache-dependent features will not work.");
+                    None
+                }
+            }
+        }
         Err(e) => {
-            log::warn!("Failed to connect to Redis: {}", e);
+            log::warn!("Failed to create cache client: {}. Cache functions will be disabled.", e);
             None
         }
     }
@@ -340,20 +372,38 @@ pub async fn create_app_state(
         default_bot_name, default_bot_id
     );
 
-    let llm_url = config_manager
-        .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
-        .unwrap_or_else(|_| "http://localhost:8081".to_string());
+    // Check environment variables first for LLM configuration
+    let llm_url_env = std::env::var("LLM_URL").ok();
+    let llm_url = if let Some(url) = llm_url_env {
+        info!("Using LLM URL from environment variable: {}", url);
+        url
+    } else {
+        config_manager
+            .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
+            .unwrap_or_else(|_| "http://localhost:8081".to_string())
+    };
     info!("LLM URL: {}", llm_url);
 
-    let llm_model = config_manager
-        .get_config(&default_bot_id, "llm-model", Some(""))
-        .unwrap_or_default();
+    let llm_model_env = std::env::var("LLM_MODEL").ok();
+    let llm_model = if let Some(model) = llm_model_env {
+        info!("Using LLM model from environment variable: {}", model);
+        model
+    } else {
+        config_manager
+            .get_config(&default_bot_id, "llm-model", Some(""))
+            .unwrap_or_default()
+    };
     if !llm_model.is_empty() {
         info!("LLM Model: {}", llm_model);
     }
 
-    let _llm_key = config_manager
-        .get_config(&default_bot_id, "llm-key", Some(""))
+    let _llm_key = std::env::var("LLM_KEY")
+        .or_else(|_| std::env::var("OPENAI_API_KEY"))
+        .or_else(|_| {
+            config_manager
+                .get_config(&default_bot_id, "llm-key", Some(""))
+                .map_err(|_| std::env::VarError::NotPresent)
+        })
         .unwrap_or_default();
 
     // LLM endpoint path configuration
