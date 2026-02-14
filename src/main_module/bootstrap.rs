@@ -90,11 +90,7 @@ pub async fn run_bootstrap(
 
         let env_path = std::path::Path::new("./.env");
         let vault_init_path = std::path::Path::new("./botserver-stack/conf/vault/init.json");
-        let bootstrap_completed = env_path.exists() && vault_init_path.exists() && {
-            std::fs::read_to_string(env_path)
-                .map(|content| content.contains("VAULT_TOKEN="))
-                .unwrap_or(false)
-        };
+        let bootstrap_completed = env_path.exists() && vault_init_path.exists();
 
         info!(
             "Bootstrap check: .env exists={}, init.json exists={}, bootstrap_completed={}",
