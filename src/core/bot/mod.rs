@@ -32,7 +32,6 @@ use diesel::ExpressionMethods;
 use diesel::PgConnection;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
-use diesel::TextExpressionMethods;
 use futures::{sink::SinkExt, stream::StreamExt};
 #[cfg(feature = "llm")]
 use log::trace;

@@ -517,7 +517,6 @@ impl DriveMonitor {
         }
         let previous_paths: Vec<String> = file_states
             .keys()
-            .filter(|k| k.starts_with(prefix))
             .cloned()
             .collect();
         for path in previous_paths {

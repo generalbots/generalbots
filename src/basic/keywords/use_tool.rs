@@ -21,12 +21,12 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
             );
             // Strip {bot_name}.gbdialog/ or .gbdialog/ prefix, and .bas suffix
             let tool_name = if let Some(idx) = tool_path_str.find(".gbdialog/") {
-                tool_path_str[idx + 10..] // Skip past ".gbdialog/"
+                &tool_path_str[idx + 10..] // Skip past ".gbdialog/"
             } else {
-                &tool_path_str
+                tool_path_str.as_str()
             }
             .strip_suffix(".bas")
-            .unwrap_or_else(|| &tool_path_str)
+            .unwrap_or_else(|| tool_path_str.as_str())
             .to_string();
             if tool_name.is_empty() {
                 return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(

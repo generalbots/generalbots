@@ -330,8 +330,8 @@ Guidelines:
 - STYLE: Changes to CSS files (colors, layout, fonts, spacing)
 - HTML: Changes to HTML structure (forms, buttons, elements)
 - DATABASE: Adding fields to tables.bas or creating new tables
-- TOOL: Creating/modifying {botname}.gbdialog/tools/*.bas files
-- SCHEDULER: Creating/modifying {botname}.gbdialog/schedulers/*.bas files
+- TOOL: Creating/modifying {{botname}}.gbdialog/tools/*.bas files
+- SCHEDULER: Creating/modifying {{botname}}.gbdialog/schedulers/*.bas files
 - Require confirmation for: deletions, bulk changes, database schema changes
 - Use the current_app and current_page context to determine which files to modify
 
