@@ -227,8 +227,7 @@ impl BotOrchestrator {
         let mut bots_mounted = 0;
         let mut bots_created = 0;
 
-        let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-        let data_dir = format!("{}/data", home_dir);
+        let data_dir = "/opt/gbo/data";
 
         let directories_to_scan: Vec<std::path::PathBuf> = vec![
             self.state
@@ -293,9 +292,9 @@ impl BotOrchestrator {
                     *bots_mounted += 1;
                 }
                 Ok(false) => {
-                    // Auto-create bots found in ~/data
+                    // Auto-create bots found in /opt/gbo/data
                     if dir_path.to_string_lossy().contains("/data") {
-                        info!("Auto-creating bot '{}' from ~/data", bot_name);
+                        info!("Auto-creating bot '{}' from /opt/gbo/data", bot_name);
                         match self.create_bot_simple(bot_name) {
                             Ok(_) => {
                                 info!("Bot '{}' created successfully", bot_name);
@@ -489,8 +488,7 @@ impl BotOrchestrator {
 
             if should_execute_start_bas {
                 // Always execute start.bas for this session (blocking - wait for completion)
-                let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-                let data_dir = format!("{}/data", home_dir);
+                let data_dir = "/opt/gbo/data";
                 let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name_for_context, bot_name_for_context);
 
                 info!("[START_BAS] Executing start.bas for session {} at: {}", actual_session_id, start_script_path);
@@ -1088,8 +1086,7 @@ async fn handle_websocket(
             };
 
             if should_execute_start_bas {
-                let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-                let data_dir = format!("{}/data", home_dir);
+                let data_dir = "/opt/gbo/data";
                 let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name, bot_name);
 
                 info!("Looking for start.bas at: {}", start_script_path);
