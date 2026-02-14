@@ -38,11 +38,9 @@ sha256 = ""
 
 [components.cache]
 name = "Valkey Cache (Redis-compatible)"
-# Valkey requires compilation from source - no prebuilt binaries available
-# The installer will run 'make' to build valkey-server and valkey-cli
-# Requires: gcc, make (usually available on most Linux systems)
-url = "https://github.com/valkey-io/valkey/archive/refs/tags/8.0.2.tar.gz"
-filename = "valkey-8.0.2.tar.gz"
+# Precompiled binary from download.valkey.io
+url = "https://download.valkey.io/releases/valkey-9.0.2-jammy-x86_64.tar.gz"
+filename = "valkey-9.0.2-jammy-x86_64.tar.gz"
 sha256 = ""
 
 [components.llm]
