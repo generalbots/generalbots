@@ -105,9 +105,25 @@ impl BotDatabaseManager {
             }
         }
 
-        // Get database name for this bot
-        let db_name = self.get_bot_database_name(bot_id)?
-            .ok_or_else(|| format!("No database configured for bot {}", bot_id))?;
+        // Get bot info (including name) from database
+        let mut conn = self.main_pool.get()?;
+        let bot_info: Option<BotDatabaseInfo> = sql_query(
+            "SELECT id, name, database_name FROM bots WHERE id = $1 AND is_active = true",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .get_result(&mut conn)
+        .optional()?;
+
+        let bot_info = bot_info.ok_or_else(|| format!("Bot {} not found or not active", bot_id))?;
+
+        // Ensure bot has a database, create if needed
+        let db_name = if let Some(name) = bot_info.database_name {
+            name
+        } else {
+            // Bot doesn't have a database configured, create it now
+            info!("Bot {} ({}) has no database, creating now", bot_info.name, bot_id);
+            self.ensure_bot_has_database(bot_id, &bot_info.name)?
+        };
 
         // Create new pool
         let pool = self.create_pool_for_database(&db_name)?;
