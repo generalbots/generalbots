@@ -72,6 +72,21 @@ pub async fn ensure_llama_servers_running(
     ) = config_values;
 
     let llm_server_enabled = llm_server_enabled.to_lowercase() == "true";
+
+    // Use default models when config is empty (no default.gbai/config.csv)
+    let llm_model = if llm_model.is_empty() {
+        info!("No LLM model configured, using default: glm-4");
+        "glm-4".to_string()
+    } else {
+        llm_model
+    };
+
+    let embedding_model = if embedding_model.is_empty() {
+        info!("No embedding model configured, using default: bge-small-en-v1.5");
+        "bge-small-en-v1.5".to_string()
+    } else {
+        embedding_model
+    };
     if !llm_server_enabled {
         info!("Local LLM server management disabled (llm-server=false). Using external endpoints.");
         info!("  LLM URL: {llm_url}");
