@@ -18,17 +18,16 @@ jobs:
       - name: Disable SSL verification
         run: git config --global http.sslVerify false
 
-      - name: Checkout BotServer Code
-        uses: actions/checkout@v4
-        with:
-          path: botserver
-
       - name: Setup Workspace
         run: |
+          # Clone the main gb repository
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
           cd workspace
           git submodule update --init --depth 1 botlib
-          
+
+          # Clone botserver separately
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+
           # Remove all members except botserver and botlib from workspace
           sed -i '/"botapp",/d' Cargo.toml
           sed -i '/"botdevice",/d' Cargo.toml
@@ -38,10 +37,6 @@ jobs:
           sed -i '/"botmodels",/d' Cargo.toml
           sed -i '/"botplugin",/d' Cargo.toml
           sed -i '/"bottemplates",/d' Cargo.toml
-          
-          cd ..
-          rm -rf workspace/botserver
-          mv botserver workspace/botserver
 
 
 
