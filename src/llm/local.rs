@@ -348,31 +348,46 @@ pub fn start_llm_server(
     let n_moe = config_manager
         .get_config(&default_bot_id, "llm-server-n-moe", None)
         .unwrap_or_else(|_| "4".to_string());
+    let n_moe = if n_moe.is_empty() { "4".to_string() } else { n_moe };
+
     let parallel = config_manager
         .get_config(&default_bot_id, "llm-server-parallel", None)
         .unwrap_or_else(|_| "1".to_string());
+    let parallel = if parallel.is_empty() { "1".to_string() } else { parallel };
+
     let cont_batching = config_manager
         .get_config(&default_bot_id, "llm-server-cont-batching", None)
         .unwrap_or_else(|_| "true".to_string());
+    let cont_batching = if cont_batching.is_empty() { "true".to_string() } else { cont_batching };
+
     let mlock = config_manager
         .get_config(&default_bot_id, "llm-server-mlock", None)
         .unwrap_or_else(|_| "true".to_string());
+    let mlock = if mlock.is_empty() { "true".to_string() } else { mlock };
+
     let no_mmap = config_manager
         .get_config(&default_bot_id, "llm-server-no-mmap", None)
         .unwrap_or_else(|_| "true".to_string());
+    let no_mmap = if no_mmap.is_empty() { "true".to_string() } else { no_mmap };
+
     let gpu_layers = config_manager
         .get_config(&default_bot_id, "llm-server-gpu-layers", None)
         .unwrap_or_else(|_| "20".to_string());
+    let gpu_layers = if gpu_layers.is_empty() { "20".to_string() } else { gpu_layers };
+
     let reasoning_format = config_manager
         .get_config(&default_bot_id, "llm-server-reasoning-format", None)
         .unwrap_or_else(|_| String::new());
+
     let n_predict = config_manager
         .get_config(&default_bot_id, "llm-server-n-predict", None)
         .unwrap_or_else(|_| "50".to_string());
+    let n_predict = if n_predict.is_empty() { "50".to_string() } else { n_predict };
 
     let n_ctx_size = config_manager
         .get_config(&default_bot_id, "llm-server-ctx-size", None)
         .unwrap_or_else(|_| "32000".to_string());
+    let n_ctx_size = if n_ctx_size.is_empty() { "32000".to_string() } else { n_ctx_size };
 
     let mut args = format!(
         "-m {model_path} --host 0.0.0.0 --port {port} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {gpu_layers} --ubatch-size 2048"
