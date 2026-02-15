@@ -74,16 +74,22 @@ pub async fn ensure_llama_servers_running(
     let llm_server_enabled = llm_server_enabled.to_lowercase() == "true";
 
     // Use default models when config is empty (no default.gbai/config.csv)
+    let llm_server_path = if llm_server_path.is_empty() {
+        "./botserver-stack/bin/llm/build/bin".to_string()
+    } else {
+        llm_server_path
+    };
+
     let llm_model = if llm_model.is_empty() {
-        info!("No LLM model configured, using default: deepseek-small");
-        "deepseek-small".to_string()
+        info!("No LLM model configured, using default: ../../../../data/llm/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf");
+        "../../../../data/llm/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string()
     } else {
         llm_model
     };
 
     let embedding_model = if embedding_model.is_empty() {
-        info!("No embedding model configured, using default: bge-small-en-v1.5");
-        "bge-small-en-v1.5".to_string()
+        info!("No embedding model configured, using default: ../../../../data/llm/bge-small-en-v1.5-f32.gguf");
+        "../../../../data/llm/bge-small-en-v1.5-f32.gguf".to_string()
     } else {
         embedding_model
     };
