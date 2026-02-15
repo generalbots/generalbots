@@ -386,8 +386,8 @@ pub fn start_llm_server(
 
     let n_predict = config_manager
         .get_config(&default_bot_id, "llm-server-n-predict", None)
-        .unwrap_or_else(|_| "50".to_string());
-    let n_predict = if n_predict.is_empty() { "50".to_string() } else { n_predict };
+        .unwrap_or_else(|_| "512".to_string());  // Increased default for DeepSeek R1 reasoning
+    let n_predict = if n_predict.is_empty() { "512".to_string() } else { n_predict };
 
     let n_ctx_size = config_manager
         .get_config(&default_bot_id, "llm-server-ctx-size", None)
