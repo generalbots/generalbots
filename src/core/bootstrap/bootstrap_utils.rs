@@ -93,30 +93,41 @@ pub fn vault_health_check() -> bool {
 
 /// Check if Valkey/Redis cache is healthy
 pub fn cache_health_check() -> bool {
-    // Try to PING the cache server
-    match Command::new("redis-cli")
+    // Try valkey-cli first (preferred for Valkey installations)
+    if let Ok(output) = Command::new("valkey-cli")
         .args(["-h", "127.0.0.1", "-p", "6379", "ping"])
         .output()
     {
-        Ok(output) => {
-            if output.status.success() {
-                let response = String::from_utf8_lossy(&output.stdout);
-                response.trim().to_uppercase() == "PONG"
-            } else {
-                false
+        if output.status.success() {
+            let response = String::from_utf8_lossy(&output.stdout);
+            if response.trim().to_uppercase() == "PONG" {
+                return true;
             }
         }
-        Err(_) => {
-            // If redis-cli is not available, try TCP connection
-            match Command::new("sh")
-                .arg("-c")
-                .arg("timeout 1 bash -c '</dev/tcp/127.0.0.1/6379' 2>/dev/null")
-                .output()
-            {
-                Ok(output) => output.status.success(),
-                Err(_) => false,
+    }
+
+    // Try redis-cli as fallback (for Redis installations)
+    if let Ok(output) = Command::new("redis-cli")
+        .args(["-h", "127.0.0.1", "-p", "6379", "ping"])
+        .output()
+    {
+        if output.status.success() {
+            let response = String::from_utf8_lossy(&output.stdout);
+            if response.trim().to_uppercase() == "PONG" {
+                return true;
             }
         }
+    }
+
+    // If CLI tools are not available, try TCP connection test
+    // This works for both Valkey and Redis
+    match Command::new("sh")
+        .arg("-c")
+        .arg("timeout 1 bash -c '</dev/tcp/127.0.0.1/6379' 2>/dev/null")
+        .output()
+    {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
     }
 }
 
