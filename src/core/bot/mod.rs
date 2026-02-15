@@ -1049,9 +1049,29 @@ async fn handle_websocket(
 
     // Load session tools
     let tools = if let Some(bot_name) = bot_name_result {
-        get_session_tools(&state.conn, &bot_name, &session_id)
-            .unwrap_or_default()
+        match get_session_tools(&state.conn, &bot_name, &session_id) {
+            Ok(tools_vec) => {
+                info!(
+                    "[WEBSOCKET] Loaded {} session tools for bot {}, session {}",
+                    tools_vec.len(),
+                    bot_name,
+                    session_id
+                );
+                tools_vec
+            }
+            Err(e) => {
+                error!(
+                    "[WEBSOCKET] Failed to load session tools for bot {}, session {}: {}",
+                    bot_name, session_id, e
+                );
+                vec![]
+            }
+        }
     } else {
+        warn!(
+            "[WEBSOCKET] Could not get bot name for bot_id {}, no session tools loaded",
+            bot_id
+        );
         vec![]
     };
 
