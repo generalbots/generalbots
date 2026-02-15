@@ -38,9 +38,9 @@ sha256 = ""
 
 [components.cache]
 name = "Valkey Cache (Redis-compatible)"
-# Precompiled binary from download.valkey.io
-url = "https://download.valkey.io/releases/valkey-8.1.5-noble-x86_64.tar.gz"
-filename = "valkey-8.1.5-noble-x86_64.tar.gz"
+# Precompiled binary from download.valkey.io (jammy for GLIBC 2.36 compatibility)
+url = "https://download.valkey.io/releases/valkey-8.1.5-jammy-x86_64.tar.gz"
+filename = "valkey-8.1.5-jammy-x86_64.tar.gz"
 sha256 = ""
 
 [components.llm]
