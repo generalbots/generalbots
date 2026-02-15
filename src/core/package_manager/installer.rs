@@ -313,9 +313,11 @@ impl PackageManager {
                 binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
-                    "chmod +x {{BIN_PATH}}/valkey-server 2>/dev/null || true".to_string(),
-                    "chmod +x {{BIN_PATH}}/valkey-cli 2>/dev/null || true".to_string(),
-                    "chmod +x {{BIN_PATH}}/valkey-benchmark 2>/dev/null || true".to_string(),
+                    "chmod +x {{BIN_PATH}}/bin/valkey-server 2>/dev/null || true".to_string(),
+                    "chmod +x {{BIN_PATH}}/bin/valkey-cli 2>/dev/null || true".to_string(),
+                    "chmod +x {{BIN_PATH}}/bin/valkey-benchmark 2>/dev/null || true".to_string(),
+                    "ln -sf {{BIN_PATH}}/bin/valkey-server {{BIN_PATH}}/valkey-server 2>/dev/null || true".to_string(),
+                    "ln -sf {{BIN_PATH}}/bin/valkey-cli {{BIN_PATH}}/valkey-cli 2>/dev/null || true".to_string(),
                 ],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
@@ -323,8 +325,8 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/valkey-server --port 6379 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
-                check_cmd: "{{BIN_PATH}}/valkey-cli ping 2>/dev/null | grep -q PONG".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
+                check_cmd: "{{BIN_PATH}}/bin/valkey-cli ping 2>/dev/null | grep -q PONG".to_string(),
             },
         );
     }
