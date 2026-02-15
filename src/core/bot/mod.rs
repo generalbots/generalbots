@@ -427,9 +427,11 @@ impl BotOrchestrator {
                     // DEBUG: Log which bot we're getting config for
                     info!("[CONFIG_TRACE] Getting LLM config for bot_id: {}", session.bot_id);
 
+                    // For local LLM server, use the actual model name
+                    // Default to DeepSeek model if not configured
                     let model = config_manager
-                        .get_config(&session.bot_id, "llm-model", Some("gpt-3.5-turbo"))
-                        .unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
+                        .get_config(&session.bot_id, "llm-model", Some("DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf"))
+                        .unwrap_or_else(|_| "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string());
 
                     let key = config_manager
                         .get_config(&session.bot_id, "llm-key", Some(""))
