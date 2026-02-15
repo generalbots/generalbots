@@ -273,7 +273,7 @@ pub async fn load_config(
     Ok(refreshed_cfg)
 }
 
-/// Initialize Redis/Valkey cache
+/// Initialize Redis/Valkey cache with retry logic
 #[cfg(feature = "cache")]
 pub async fn init_redis() -> Option<Arc<redis::Client>> {
     let cache_url = std::env::var("CACHE_URL")
@@ -283,37 +283,63 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
 
     info!("Attempting to connect to cache at: {}", cache_url);
 
-    match redis::Client::open(cache_url.as_str()) {
-        Ok(client) => {
-            // Verify the connection actually works
-            match client.get_connection() {
-                Ok(mut conn) => {
-                    // Test with PING
-                    match redis::cmd("PING").query::<String>(&mut conn) {
-                        Ok(response) if response == "PONG" => {
-                            info!("Cache connection verified: PONG");
-                            Some(Arc::new(client))
+    let max_attempts = 30; // Try for up to 30 seconds
+    let mut attempt = 0;
+
+    loop {
+        attempt += 1;
+
+        match redis::Client::open(cache_url.as_str()) {
+            Ok(client) => {
+                // Verify the connection actually works
+                match client.get_connection() {
+                    Ok(mut conn) => {
+                        // Test with PING
+                        match redis::cmd("PING").query::<String>(&mut conn) {
+                            Ok(response) if response == "PONG" => {
+                                info!("Cache connection verified: PONG");
+                                return Some(Arc::new(client));
+                            }
+                            Ok(response) => {
+                                warn!("Cache PING returned unexpected response: {}", response);
+                                return Some(Arc::new(client));
+                            }
+                            Err(e) => {
+                                if attempt < max_attempts {
+                                    info!("Cache PING failed (attempt {}/{}): {}. Retrying in 1s...", attempt, max_attempts, e);
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                                    continue;
+                                } else {
+                                    warn!("Cache PING failed after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
+                                    warn!("Suggestions and other cache-dependent features will not work.");
+                                    return None;
+                                }
+                            }
                         }
-                        Ok(response) => {
-                            warn!("Cache PING returned unexpected response: {}", response);
-                            Some(Arc::new(client))
-                        }
-                        Err(e) => {
-                            warn!("Cache PING failed: {}. Cache functions will be disabled.", e);
-                            None
+                    }
+                    Err(e) => {
+                        if attempt < max_attempts {
+                            info!("Failed to establish cache connection (attempt {}/{}): {}. Retrying in 1s...", attempt, max_attempts, e);
+                            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                            continue;
+                        } else {
+                            warn!("Failed to establish cache connection after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
+                            warn!("Suggestions and other cache-dependent features will not work.");
+                            return None;
                         }
                     }
                 }
-                Err(e) => {
-                    warn!("Failed to establish cache connection: {}. Cache functions will be disabled.", e);
-                    warn!("Suggestions and other cache-dependent features will not work.");
-                    None
+            }
+            Err(e) => {
+                if attempt < max_attempts {
+                    info!("Failed to create cache client (attempt {}/{}): {}. Retrying in 1s...", attempt, max_attempts, e);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    continue;
+                } else {
+                    log::warn!("Failed to create cache client after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
+                    return None;
                 }
             }
-        }
-        Err(e) => {
-            log::warn!("Failed to create cache client: {}. Cache functions will be disabled.", e);
-            None
         }
     }
 }
