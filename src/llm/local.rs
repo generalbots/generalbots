@@ -94,9 +94,10 @@ pub async fn ensure_llama_servers_running(
         embedding_model
     };
 
-    // For llama-server startup, we need the full path
-    let llm_model_path = format!("{}/../../../../data/llm/{}", llm_server_path, llm_model);
-    let embedding_model_path = format!("{}/../../../../data/llm/{}", llm_server_path, embedding_model);
+    // For llama-server startup, use path relative to botserver root
+    // The models are in ./data/llm/ and the llama-server runs from botserver root
+    let llm_model_path = format!("./data/llm/{}", llm_model);
+    let embedding_model_path = format!("./data/llm/{}", embedding_model);
     if !llm_server_enabled {
         info!("Local LLM server management disabled (llm-server=false). Using external endpoints.");
         info!("  LLM URL: {llm_url}");
@@ -440,10 +441,10 @@ pub fn start_llm_server(
         })?;
     } else {
         let cmd_arg = format!(
-            "cd {llama_cpp_path} && ./llama-server {args} --verbose >llm-stdout.log 2>&1 &"
+            "{llama_cpp_path}/llama-server {args} --verbose >{llama_cpp_path}/llm-stdout.log 2>&1 &"
         );
         info!(
-            "Executing LLM server command: cd {llama_cpp_path} && ./llama-server {args} --verbose"
+            "Executing LLM server command: {llama_cpp_path}/llama-server {args} --verbose"
         );
         let cmd = SafeCommand::new("sh")
             .and_then(|c| c.arg("-c"))
@@ -468,9 +469,13 @@ pub async fn start_embedding_server(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let port = extract_port(&url);
 
-    let full_model_path = if model_path.starts_with('/') {
+    // model_path is already the full path (constructed with ../../../../data/llm/ prefix)
+    // Only prepend llama_cpp_path if model_path is a simple filename (not a path)
+    let full_model_path = if model_path.contains('/') || model_path.contains('.') {
+        // model_path is already a full or relative path, use as-is
         model_path.clone()
     } else {
+        // model_path is just a filename, prepend llama_cpp_path
         format!("{llama_cpp_path}/{model_path}")
     };
 
@@ -500,10 +505,10 @@ pub async fn start_embedding_server(
         })?;
     } else {
         let cmd_arg = format!(
-            "cd {llama_cpp_path} && ./llama-server -m {model_path} --verbose --host 0.0.0.0 --port {port} --embedding --n-gpu-layers 99 --ubatch-size 2048 >llmembd-stdout.log 2>&1 &"
+            "{llama_cpp_path}/llama-server -m {model_path} --verbose --host 0.0.0.0 --port {port} --embedding --n-gpu-layers 99 --ubatch-size 2048 >{llama_cpp_path}/llmembd-stdout.log 2>&1 &"
         );
         info!(
-            "Executing embedding server command: cd {llama_cpp_path} && ./llama-server -m {model_path} --host 0.0.0.0 --port {port} --embedding"
+            "Executing embedding server command: {llama_cpp_path}/llama-server -m {model_path} --host 0.0.0.0 --port {port} --embedding"
         );
         let cmd = SafeCommand::new("sh")
             .and_then(|c| c.arg("-c"))
