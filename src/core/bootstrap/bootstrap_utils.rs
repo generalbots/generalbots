@@ -119,15 +119,30 @@ pub fn cache_health_check() -> bool {
         }
     }
 
-    // If CLI tools are not available, try TCP connection test
-    // This works for both Valkey and Redis
-    match Command::new("sh")
-        .arg("-c")
-        .arg("timeout 1 bash -c '</dev/tcp/127.0.0.1/6379' 2>/dev/null")
+    // If CLI tools are not available, try TCP connection test using nc (netcat)
+    // nc -z tests if port is open without sending data
+    match Command::new("nc")
+        .args(["-z", "-w", "1", "127.0.0.1", "6379"])
         .output()
     {
         Ok(output) => output.status.success(),
-        Err(_) => false,
+        Err(_) => {
+            // Final fallback: try /dev/tcp with actual PING test
+            match Command::new("bash")
+                .arg("-c")
+                .arg(
+                    "exec 3<>/dev/tcp/127.0.0.1/6379 2>/dev/null && \
+                     echo -e 'PING\r\n' >&3 && \
+                     read -t 1 response <&3 && \
+                     [[ \"$response\" == *PONG* ]] && \
+                     exec 3>&-",
+                )
+                .output()
+            {
+                Ok(output) => output.status.success(),
+                Err(_) => false,
+            }
+        }
     }
 }
 
