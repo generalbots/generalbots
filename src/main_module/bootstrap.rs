@@ -283,7 +283,7 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
 
     info!("Attempting to connect to cache at: {}", cache_url);
 
-    let max_attempts = 30; // Try for up to 30 seconds
+    let max_attempts = 12; // Try for up to 60 seconds (12 attempts × 5 seconds)
     let mut attempt = 0;
 
     loop {
@@ -306,8 +306,8 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
                             }
                             Err(e) => {
                                 if attempt < max_attempts {
-                                    info!("Cache PING failed (attempt {}/{}): {}. Retrying in 1s...", attempt, max_attempts, e);
-                                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                                    info!("Cache PING failed (attempt {}/{}): {}. Retrying in 5s...", attempt, max_attempts, e);
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                                     continue;
                                 } else {
                                     warn!("Cache PING failed after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
@@ -319,8 +319,8 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
                     }
                     Err(e) => {
                         if attempt < max_attempts {
-                            info!("Failed to establish cache connection (attempt {}/{}): {}. Retrying in 1s...", attempt, max_attempts, e);
-                            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                            info!("Failed to establish cache connection (attempt {}/{}): {}. Retrying in 5s...", attempt, max_attempts, e);
+                            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                             continue;
                         } else {
                             warn!("Failed to establish cache connection after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
@@ -332,8 +332,8 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
             }
             Err(e) => {
                 if attempt < max_attempts {
-                    info!("Failed to create cache client (attempt {}/{}): {}. Retrying in 1s...", attempt, max_attempts, e);
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    info!("Failed to create cache client (attempt {}/{}): {}. Retrying in 5s...", attempt, max_attempts, e);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                     continue;
                 } else {
                     log::warn!("Failed to create cache client after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
