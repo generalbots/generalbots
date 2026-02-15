@@ -1033,12 +1033,35 @@ async fn handle_websocket(
         session_id, user_id, bot_id
     );
 
+    // Get bot_name for tools loading
+    let bot_name_result = {
+        let conn = state.conn.get().ok();
+        if let Some(mut db_conn) = conn {
+            use crate::core::shared::models::schema::bots::dsl::*;
+            bots.filter(id.eq(bot_id))
+                .select(name)
+                .first::<String>(&mut db_conn)
+                .ok()
+        } else {
+            None
+        }
+    };
+
+    // Load session tools
+    let tools = if let Some(bot_name) = bot_name_result {
+        get_session_tools(&state.conn, &bot_name, &session_id)
+            .unwrap_or_default()
+    } else {
+        vec![]
+    };
+
     let welcome = serde_json::json!({
         "type": "connected",
         "session_id": session_id,
         "user_id": user_id,
         "bot_id": bot_id,
-        "message": "Connected to bot server"
+        "message": "Connected to bot server",
+        "tools": tools
     });
 
     if let Ok(welcome_str) = serde_json::to_string(&welcome) {
