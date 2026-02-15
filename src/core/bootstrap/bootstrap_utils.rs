@@ -146,6 +146,40 @@ pub fn cache_health_check() -> bool {
     }
 }
 
+/// Check if Qdrant vector database is healthy
+pub fn vector_db_health_check() -> bool {
+    // Qdrant has a /healthz endpoint, use curl to check
+    // Try both HTTP and HTTPS
+    let urls = [
+        "http://localhost:6333/healthz",
+        "https://localhost:6333/healthz",
+    ];
+
+    for url in &urls {
+        if let Ok(output) = Command::new("curl")
+            .args(["-f", "-s", "--connect-timeout", "2", "-k", url])
+            .output()
+        {
+            if output.status.success() {
+                // Qdrant healthz returns "OK" or JSON with status
+                let response = String::from_utf8_lossy(&output.stdout);
+                if response.contains("OK") || response.contains("\"status\":\"ok\"") {
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Fallback: just check if port 6333 is listening
+    match Command::new("nc")
+        .args(["-z", "-w", "1", "127.0.0.1", "6333"])
+        .output()
+    {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    }
+}
+
 /// Get current user safely
 pub fn safe_fuser() -> String {
     // Return shell command that uses $USER environment variable

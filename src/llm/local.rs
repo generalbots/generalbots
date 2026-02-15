@@ -81,18 +81,22 @@ pub async fn ensure_llama_servers_running(
     };
 
     let llm_model = if llm_model.is_empty() {
-        info!("No LLM model configured, using default: ../../../../data/llm/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf");
-        "../../../../data/llm/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string()
+        info!("No LLM model configured, using default: DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf");
+        "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string()
     } else {
         llm_model
     };
 
     let embedding_model = if embedding_model.is_empty() {
-        info!("No embedding model configured, using default: ../../../../data/llm/bge-small-en-v1.5-f32.gguf");
-        "../../../../data/llm/bge-small-en-v1.5-f32.gguf".to_string()
+        info!("No embedding model configured, using default: bge-small-en-v1.5-f32.gguf");
+        "bge-small-en-v1.5-f32.gguf".to_string()
     } else {
         embedding_model
     };
+
+    // For llama-server startup, we need the full path
+    let llm_model_path = format!("{}/../../../../data/llm/{}", llm_server_path, llm_model);
+    let embedding_model_path = format!("{}/../../../../data/llm/{}", llm_server_path, embedding_model);
     if !llm_server_enabled {
         info!("Local LLM server management disabled (llm-server=false). Using external endpoints.");
         info!("  LLM URL: {llm_url}");
@@ -160,13 +164,13 @@ pub async fn ensure_llama_servers_running(
         info!("Starting LLM server...");
         let app_state_clone = Arc::clone(&app_state);
         let llm_server_path_clone = llm_server_path.clone();
-        let llm_model_clone = llm_model.clone();
+        let llm_model_path_clone = llm_model_path.clone();
         let llm_url_clone = llm_url.clone();
         tasks.push(tokio::spawn(async move {
             start_llm_server(
                 app_state_clone,
                 llm_server_path_clone,
-                llm_model_clone,
+                llm_model_path_clone,
                 llm_url_clone,
             )
         }));
@@ -177,7 +181,7 @@ pub async fn ensure_llama_servers_running(
         info!("Starting Embedding server...");
         tasks.push(tokio::spawn(start_embedding_server(
             llm_server_path.clone(),
-            embedding_model.clone(),
+            embedding_model_path.clone(),
             embedding_url.clone(),
         )));
     } else if embedding_model.is_empty() {

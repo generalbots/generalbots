@@ -1,6 +1,6 @@
 // Bootstrap manager implementation
 use crate::core::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgress};
-use crate::core::bootstrap::bootstrap_utils::{cache_health_check, safe_pkill, vault_health_check};
+use crate::core::bootstrap::bootstrap_utils::{cache_health_check, safe_pkill, vault_health_check, vector_db_health_check};
 use crate::core::config::AppConfig;
 use crate::core::package_manager::{InstallMode, PackageManager};
 use log::{info, warn};
@@ -79,13 +79,29 @@ impl BootstrapManager {
         }
 
         if pm.is_installed("vector_db") {
-            info!("Starting Vector database...");
-            match pm.start("vector_db") {
-                Ok(_child) => {
-                    info!("Vector database started");
-                }
-                Err(e) => {
-                    warn!("Failed to start Vector database: {}", e);
+            let vector_db_already_running = vector_db_health_check();
+            if vector_db_already_running {
+                info!("Vector database (Qdrant) is already running");
+            } else {
+                info!("Starting Vector database (Qdrant)...");
+                match pm.start("vector_db") {
+                    Ok(_child) => {
+                        info!("Vector database process started, waiting for readiness...");
+                        // Wait for vector_db to be ready
+                        for i in 0..15 {
+                            sleep(Duration::from_secs(1)).await;
+                            if vector_db_health_check() {
+                                info!("Vector database (Qdrant) is responding");
+                                break;
+                            }
+                            if i == 14 {
+                                warn!("Vector database did not respond after 15 seconds");
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Failed to start Vector database: {}", e);
+                    }
                 }
             }
         }
