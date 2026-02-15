@@ -75,8 +75,8 @@ pub async fn ensure_llama_servers_running(
 
     // Use default models when config is empty (no default.gbai/config.csv)
     let llm_model = if llm_model.is_empty() {
-        info!("No LLM model configured, using default: glm-4");
-        "glm-4".to_string()
+        info!("No LLM model configured, using default: deepseek-small");
+        "deepseek-small".to_string()
     } else {
         llm_model
     };
