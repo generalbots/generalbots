@@ -91,6 +91,35 @@ pub fn vault_health_check() -> bool {
     false
 }
 
+/// Check if Valkey/Redis cache is healthy
+pub fn cache_health_check() -> bool {
+    // Try to PING the cache server
+    match Command::new("redis-cli")
+        .args(["-h", "127.0.0.1", "-p", "6379", "ping"])
+        .output()
+    {
+        Ok(output) => {
+            if output.status.success() {
+                let response = String::from_utf8_lossy(&output.stdout);
+                response.trim().to_uppercase() == "PONG"
+            } else {
+                false
+            }
+        }
+        Err(_) => {
+            // If redis-cli is not available, try TCP connection
+            match Command::new("sh")
+                .arg("-c")
+                .arg("timeout 1 bash -c '</dev/tcp/127.0.0.1/6379' 2>/dev/null")
+                .output()
+            {
+                Ok(output) => output.status.success(),
+                Err(_) => false,
+            }
+        }
+    }
+}
+
 /// Get current user safely
 pub fn safe_fuser() -> String {
     // Return shell command that uses $USER environment variable
