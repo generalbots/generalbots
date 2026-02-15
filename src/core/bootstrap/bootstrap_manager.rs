@@ -1,6 +1,6 @@
 // Bootstrap manager implementation
 use crate::core::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgress};
-use crate::core::bootstrap::bootstrap_utils::{safe_pkill, vault_health_check};
+use crate::core::bootstrap::bootstrap_utils::{cache_health_check, safe_pkill, vault_health_check};
 use crate::core::config::AppConfig;
 use crate::core::package_manager::{InstallMode, PackageManager};
 use log::{info, warn};
@@ -102,14 +102,30 @@ impl BootstrapManager {
             }
         }
 
-        if pm.is_installed("redis") {
-            info!("Starting Redis...");
-            match pm.start("redis") {
-                Ok(_child) => {
-                    info!("Redis started");
-                }
-                Err(e) => {
-                    warn!("Failed to start Redis: {}", e);
+        if pm.is_installed("cache") {
+            let cache_already_running = cache_health_check();
+            if cache_already_running {
+                info!("Valkey cache is already running");
+            } else {
+                info!("Starting Valkey cache...");
+                match pm.start("cache") {
+                    Ok(_child) => {
+                        info!("Valkey cache process started, waiting for readiness...");
+                        // Wait for cache to be ready
+                        for i in 0..12 {
+                            sleep(Duration::from_secs(1)).await;
+                            if cache_health_check() {
+                                info!("Valkey cache is responding");
+                                break;
+                            }
+                            if i == 11 {
+                                warn!("Valkey cache did not respond after 12 seconds");
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Failed to start Valkey cache: {}", e);
+                    }
                 }
             }
         }
