@@ -432,7 +432,7 @@ pub async fn create_app_state(
         info!("LLM Model: {}", llm_model);
     }
 
-    let _llm_key = std::env::var("LLM_KEY")
+    let llm_key = std::env::var("LLM_KEY")
         .or_else(|_| std::env::var("OPENAI_API_KEY"))
         .or_else(|_| {
             config_manager
@@ -440,6 +440,18 @@ pub async fn create_app_state(
                 .map_err(|_| std::env::VarError::NotPresent)
         })
         .unwrap_or_default();
+
+    // If llm-url points to external API but no key is configured, fall back to local LLM
+    let llm_url = if llm_key.is_empty()
+        && !llm_url.contains("localhost")
+        && !llm_url.contains("127.0.0.1")
+        && (llm_url.contains("api.z.ai") || llm_url.contains("openai.com") || llm_url.contains("anthropic.com"))
+    {
+        warn!("External LLM URL configured ({}), but no API key provided. Falling back to local LLM at http://localhost:8081", llm_url);
+        "http://localhost:8081".to_string()
+    } else {
+        llm_url
+    };
 
     // LLM endpoint path configuration
     let llm_endpoint_path = config_manager
