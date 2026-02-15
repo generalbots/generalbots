@@ -289,54 +289,63 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
     loop {
         attempt += 1;
 
-        match redis::Client::open(cache_url.as_str()) {
-            Ok(client) => {
-                // Verify the connection actually works
-                match client.get_connection() {
-                    Ok(mut conn) => {
-                        // Test with PING
-                        match redis::cmd("PING").query::<String>(&mut conn) {
-                            Ok(response) if response == "PONG" => {
-                                info!("Cache connection verified: PONG");
-                                return Some(Arc::new(client));
-                            }
-                            Ok(response) => {
-                                warn!("Cache PING returned unexpected response: {}", response);
-                                return Some(Arc::new(client));
-                            }
-                            Err(e) => {
-                                if attempt < max_attempts {
-                                    info!("Cache PING failed (attempt {}/{}): {}. Retrying in 5s...", attempt, max_attempts, e);
-                                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                                    continue;
-                                } else {
-                                    warn!("Cache PING failed after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
-                                    warn!("Suggestions and other cache-dependent features will not work.");
-                                    return None;
+        // Use spawn_blocking to avoid freezing the tokio runtime
+        let cache_url_clone = cache_url.clone();
+        let result = tokio::task::spawn_blocking(move || {
+            match redis::Client::open(cache_url_clone.as_str()) {
+                Ok(client) => {
+                    // Verify the connection actually works
+                    match client.get_connection() {
+                        Ok(mut conn) => {
+                            // Test with PING
+                            match redis::cmd("PING").query::<String>(&mut conn) {
+                                Ok(response) if response == "PONG" => {
+                                    log::info!("Cache connection verified: PONG");
+                                    Ok(Some(Arc::new(client)))
+                                }
+                                Ok(response) => {
+                                    log::warn!("Cache PING returned unexpected response: {}", response);
+                                    Ok(Some(Arc::new(client)))
+                                }
+                                Err(e) => {
+                                    Err(format!("Cache PING failed: {}", e))
                                 }
                             }
                         }
-                    }
-                    Err(e) => {
-                        if attempt < max_attempts {
-                            info!("Failed to establish cache connection (attempt {}/{}): {}. Retrying in 5s...", attempt, max_attempts, e);
-                            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                            continue;
-                        } else {
-                            warn!("Failed to establish cache connection after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
-                            warn!("Suggestions and other cache-dependent features will not work.");
-                            return None;
+                        Err(e) => {
+                            Err(format!("Failed to establish cache connection: {}", e))
                         }
                     }
                 }
+                Err(e) => {
+                    Err(format!("Failed to create cache client: {}", e))
+                }
             }
-            Err(e) => {
+        })
+        .await;
+
+        match result {
+            Ok(Ok(Some(client))) => return Some(client),
+            Ok(Ok(None)) => return None,
+            Ok(Err(e)) => {
                 if attempt < max_attempts {
-                    info!("Failed to create cache client (attempt {}/{}): {}. Retrying in 5s...", attempt, max_attempts, e);
+                    info!("Cache connection attempt {}/{} failed: {}. Retrying in 5s...", attempt, max_attempts, e);
                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                     continue;
                 } else {
-                    log::warn!("Failed to create cache client after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
+                    warn!("Cache connection failed after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
+                    warn!("Suggestions and other cache-dependent features will not work.");
+                    return None;
+                }
+            }
+            Err(e) => {
+                // spawn_blocking itself failed
+                if attempt < max_attempts {
+                    info!("Cache connection attempt {}/{} failed with task error: {}. Retrying in 5s...", attempt, max_attempts, e);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    continue;
+                } else {
+                    warn!("Cache connection failed after {} attempts with task error: {}. Cache functions will be disabled.", max_attempts, e);
                     return None;
                 }
             }
