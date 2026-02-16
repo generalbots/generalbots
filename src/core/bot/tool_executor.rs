@@ -78,9 +78,17 @@ impl ToolExecutor {
     }
     /// Parse a tool call JSON from any LLM provider
     /// Handles OpenAI, GLM, Claude formats
+    /// Handles both single objects and arrays of tool calls
     pub fn parse_tool_call(chunk: &str) -> Option<ParsedToolCall> {
         // Try to parse as JSON
         let json: Value = serde_json::from_str(chunk).ok()?;
+
+        // Handle array of tool calls (common OpenAI format)
+        if let Some(arr) = json.as_array() {
+            if let Some(first_tool) = arr.first() {
+                return Self::extract_tool_call(first_tool);
+            }
+        }
 
         // Check if this is a tool_call type (from GLM wrapper)
         if let Some(tool_type) = json.get("type").and_then(|t| t.as_str()) {
