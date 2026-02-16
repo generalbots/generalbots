@@ -643,6 +643,7 @@ impl BotOrchestrator {
         let mut full_response = String::new();
         let mut analysis_buffer = String::new();
         let mut in_analysis = false;
+        let mut tool_call_buffer = String::new(); // Accumulate potential tool call JSON chunks
         let handler = llm_models::get_handler(&model);
 
         info!("[STREAM_START] Entering stream processing loop for model: {}", model);
@@ -676,17 +677,35 @@ impl BotOrchestrator {
             trace!("Received LLM chunk: {:?}", chunk);
 
             // ===== GENERIC TOOL EXECUTION =====
-            // Check if this chunk contains a tool call (works with all LLM providers)
-            if let Some(tool_call) = ToolExecutor::parse_tool_call(&chunk) {
+            // Add chunk to tool_call_buffer and try to parse
+            // Tool calls arrive as JSON that can span multiple chunks
+            let looks_like_json = chunk.trim().starts_with('{') || chunk.trim().starts_with('[') ||
+                                   tool_call_buffer.contains('{') || tool_call_buffer.contains('[');
+
+            let chunk_in_tool_buffer = if looks_like_json {
+                tool_call_buffer.push_str(&chunk);
+                true
+            } else {
+                false
+            };
+
+            // Try to parse tool call from accumulated buffer
+            let tool_call = if chunk_in_tool_buffer {
+                ToolExecutor::parse_tool_call(&tool_call_buffer)
+            } else {
+                None
+            };
+
+            if let Some(tc) = tool_call {
                 info!(
                     "[TOOL_CALL] Detected tool '{}' from LLM, executing...",
-                    tool_call.tool_name
+                    tc.tool_name
                 );
 
                 let execution_result = ToolExecutor::execute_tool_call(
                     &self.state,
                     &bot_name_for_context,
-                    &tool_call,
+                    &tc,
                     &session_id,
                     &user_id,
                 )
@@ -695,7 +714,7 @@ impl BotOrchestrator {
                 if execution_result.success {
                     info!(
                         "[TOOL_EXEC] Tool '{}' executed successfully: {}",
-                        tool_call.tool_name, execution_result.result
+                        tc.tool_name, execution_result.result
                     );
 
                     // Send tool execution result to user
@@ -721,13 +740,13 @@ impl BotOrchestrator {
                 } else {
                     error!(
                         "[TOOL_EXEC] Tool '{}' execution failed: {:?}",
-                        tool_call.tool_name, execution_result.error
+                        tc.tool_name, execution_result.error
                     );
 
                     // Send error to user
                     let error_msg = format!(
                         "Erro ao executar ferramenta '{}': {:?}",
-                        tool_call.tool_name,
+                        tc.tool_name,
                         execution_result.error
                     );
 
@@ -753,7 +772,45 @@ impl BotOrchestrator {
                 }
 
                 // Don't add tool_call JSON to full_response or analysis_buffer
+                // Clear the tool_call_buffer since we found and executed a tool call
+                tool_call_buffer.clear();
                 // Continue to next chunk
+                continue;
+            }
+
+            // Clear tool_call_buffer if it's getting too large and no tool call was found
+            // This prevents memory issues from accumulating JSON fragments
+            if tool_call_buffer.len() > 10000 {
+                // Flush accumulated content to client since it's too large to be a tool call
+                info!("[TOOL_EXEC] Flushing tool_call_buffer (too large, assuming not a tool call)");
+                full_response.push_str(&tool_call_buffer);
+
+                let response = BotResponse {
+                    bot_id: message.bot_id.clone(),
+                    user_id: message.user_id.clone(),
+                    session_id: message.session_id.clone(),
+                    channel: message.channel.clone(),
+                    content: tool_call_buffer.clone(),
+                    message_type: MessageType::BOT_RESPONSE,
+                    stream_token: None,
+                    is_complete: false,
+                    suggestions: Vec::new(),
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
+                };
+
+                tool_call_buffer.clear();
+
+                if response_tx.send(response).await.is_err() {
+                    warn!("Response channel closed");
+                    break;
+                }
+            }
+
+            // If this chunk was added to tool_call_buffer and no tool call was found yet,
+            // skip processing (it's part of an incomplete tool call JSON)
+            if chunk_in_tool_buffer && tool_call_buffer.len() <= 10000 {
                 continue;
             }
             // ===== END TOOL EXECUTION =====
