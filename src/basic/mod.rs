@@ -595,6 +595,8 @@ impl ScriptService {
         info!("[TOOL] Preprocessed tool script for Rhai compilation");
         // Convert IF ... THEN / END IF to if ... { }
         let script = Self::convert_if_then_syntax(&script);
+        // Convert SELECT ... CASE / END SELECT to match expressions
+        let script = Self::convert_select_case_syntax(&script);
         // Convert BASIC keywords to lowercase (but preserve variable casing)
         let script = Self::convert_keywords_to_lowercase(&script);
         // Save to file for debugging
@@ -662,9 +664,11 @@ impl ScriptService {
                     None => continue, // Skip invalid IF statement
                 };
                 let condition = &trimmed[3..then_pos].trim();
+                // Convert BASIC "NOT IN" to Rhai "!in"
+                let condition = condition.replace(" NOT IN ", " !in ").replace(" not in ", " !in ");
                 log::info!("[TOOL] Converting IF statement: condition='{}'", condition);
                 result.push_str("if ");
-                result.push_str(condition);
+                result.push_str(&condition);
                 result.push_str(" {\n");
                 if_stack.push(true);
                 continue;
@@ -803,12 +807,105 @@ impl ScriptService {
         result
     }
 
+    /// Convert BASIC SELECT ... CASE / END SELECT to Rhai match expressions
+    /// Transforms: SELECT var ... CASE "value" ... END SELECT
+    /// Into: match var { "value" => { ... } ... }
+    fn convert_select_case_syntax(script: &str) -> String {
+        let mut result = String::new();
+        let mut lines: Vec<&str> = script.lines().collect();
+        let mut i = 0;
+
+        log::info!("[TOOL] Converting SELECT/CASE syntax");
+
+        while i < lines.len() {
+            let trimmed = lines[i].trim();
+            let upper = trimmed.to_uppercase();
+
+            // Detect SELECT statement (e.g., "SELECT tipoMissa")
+            if upper.starts_with("SELECT ") && !upper.contains(" THEN") {
+                // Extract the variable being selected
+                let select_var = trimmed[7..].trim(); // Skip "SELECT "
+                log::info!("[TOOL] Converting SELECT statement for variable: '{}'", select_var);
+
+                // Start match expression
+                result.push_str(&format!("match {} {{\n", select_var));
+
+                // Skip the SELECT line
+                i += 1;
+
+                // Process CASE statements until END SELECT
+                let mut current_case_body: Vec<String> = Vec::new();
+                let mut in_case = false;
+
+                while i < lines.len() {
+                    let case_trimmed = lines[i].trim();
+                    let case_upper = case_trimmed.to_uppercase();
+
+                    if case_upper == "END SELECT" {
+                        // Close any open case
+                        if in_case {
+                            for body_line in &current_case_body {
+                                result.push_str("    ");
+                                result.push_str(body_line);
+                                result.push('\n');
+                            }
+                            current_case_body.clear();
+                            in_case = false;
+                        }
+                        // Close the match expression
+                        result.push_str("}\n");
+                        i += 1;
+                        break;
+                    } else if case_upper.starts_with("CASE ") {
+                        // Close previous case if any
+                        if in_case {
+                            for body_line in &current_case_body {
+                                result.push_str("    ");
+                                result.push_str(body_line);
+                                result.push('\n');
+                            }
+                            current_case_body.clear();
+                        }
+
+                        // Extract the case value (handle both CASE "value" and CASE value)
+                        let case_value = if case_trimmed[5..].trim().starts_with('"') {
+                            // CASE "value" format
+                            case_trimmed[5..].trim().to_string()
+                        } else {
+                            // CASE value format (variable/enum)
+                            format!("\"{}\"", case_trimmed[5..].trim())
+                        };
+
+                        result.push_str(&format!("    {} => {{\n", case_value));
+                        in_case = true;
+                        i += 1;
+                    } else {
+                        // Collect body lines for the current case
+                        if in_case {
+                            current_case_body.push(lines[i].to_string());
+                        }
+                        i += 1;
+                    }
+                }
+
+                continue;
+            }
+
+            // Not a SELECT statement - just copy the line
+            result.push_str(lines[i]);
+            result.push('\n');
+            i += 1;
+        }
+
+        result
+    }
+
     /// Convert BASIC keywords to lowercase without touching variables
     /// This is a simplified version of normalize_variables_to_lowercase for tools
     fn convert_keywords_to_lowercase(script: &str) -> String {
         let keywords = [
             "IF", "THEN", "ELSE", "END IF", "FOR", "NEXT", "WHILE", "WEND",
-            "DO", "LOOP", "RETURN", "EXIT", "SELECT", "CASE", "END SELECT",
+            "DO", "LOOP", "RETURN", "EXIT",
             "WITH", "END WITH", "AND", "OR", "NOT", "MOD",
             "DIM", "AS", "NEW", "FUNCTION", "SUB", "CALL",
         ];
