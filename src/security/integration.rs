@@ -35,9 +35,9 @@ impl TlsIntegration {
         services.insert(
             "api".to_string(),
             ServiceUrls {
-                original: "http://localhost:8080".to_string(),
+                original: "http://localhost:9000".to_string(),
                 secure: "https://localhost:8443".to_string(),
-                port: 8080,
+                port: 9000,
                 tls_port: 8443,
             },
         );
@@ -105,9 +105,9 @@ impl TlsIntegration {
         services.insert(
             "directory".to_string(),
             ServiceUrls {
-                original: "http://localhost:8080".to_string(),
+                original: "http://localhost:9000".to_string(),
                 secure: "https://localhost:8446".to_string(),
-                port: 8080,
+                port: 9000,
                 tls_port: 8446,
             },
         );

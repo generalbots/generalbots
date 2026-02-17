@@ -337,7 +337,7 @@ impl DirectorySetup {
         _org_id: &str,
     ) -> Result<(String, String, String)> {
         let app_name = "BotServer";
-        let redirect_uri = "http://localhost:8080/auth/callback".to_string();
+        let redirect_uri = "http://localhost:9000/auth/callback".to_string();
 
         let project_response = self
             .client
@@ -362,7 +362,7 @@ impl DirectorySetup {
                 "grantTypes": ["OIDC_GRANT_TYPE_AUTHORIZATION_CODE", "OIDC_GRANT_TYPE_REFRESH_TOKEN", "OIDC_GRANT_TYPE_PASSWORD"],
                 "appType": "OIDC_APP_TYPE_WEB",
                 "authMethodType": "OIDC_AUTH_METHOD_TYPE_POST",
-                "postLogoutRedirectUris": ["http://localhost:8080", "http://localhost:3000", "http://localhost:9000"],
+                "postLogoutRedirectUris": ["http://localhost:9000", "http://localhost:3000", "http://localhost:9000"],
                 "accessTokenType": "OIDC_TOKEN_TYPE_BEARER",
                 "devMode": true,
             }))
@@ -466,10 +466,10 @@ Database:
 Machine:
   Identification:
     Hostname: localhost
-    WebhookAddress: http://localhost:8080
+    WebhookAddress: http://localhost:9000
 
-ExternalDomain: localhost:8080
-ExternalPort: 8080
+ExternalDomain: localhost:9000
+ExternalPort: 9000
 ExternalSecure: false
 
 TLS:
