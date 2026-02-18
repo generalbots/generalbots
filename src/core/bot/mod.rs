@@ -654,6 +654,7 @@ impl BotOrchestrator {
         let mut in_analysis = false;
         let mut tool_call_buffer = String::new(); // Accumulate potential tool call JSON chunks
         let mut accumulating_tool_call = false; // Track if we're currently accumulating a tool call
+        let mut tool_was_executed = false; // Track if a tool was executed to avoid duplicate final message
         let handler = llm_models::get_handler(&model);
 
         info!("[STREAM_START] Entering stream processing loop for model: {}", model);
@@ -835,6 +836,7 @@ impl BotOrchestrator {
                 // Clear the tool_call_buffer since we found and executed a tool call
                 tool_call_buffer.clear();
                 accumulating_tool_call = false; // Reset accumulation flag
+                tool_was_executed = true; // Mark that a tool was executed
                 // Continue to next chunk
                 continue;
             }
@@ -1004,12 +1006,16 @@ impl BotOrchestrator {
         #[cfg(not(feature = "chat"))]
         let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
 
+        // When a tool was executed, the content was already sent as streaming chunks
+        // (pre-tool text + tool result). Sending full_response again would duplicate it.
+        let final_content = if tool_was_executed { String::new() } else { full_response };
+
         let final_response = BotResponse {
             bot_id: message.bot_id,
             user_id: message.user_id,
             session_id: message.session_id,
             channel: message.channel,
-            content: full_response,
+            content: final_content,
             message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
