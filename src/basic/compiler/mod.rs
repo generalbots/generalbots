@@ -4,6 +4,8 @@ use crate::basic::keywords::table_definition::process_table_definitions;
 use crate::basic::keywords::webhook::execute_webhook_registration;
 use crate::core::shared::models::TriggerKind;
 use crate::core::shared::state::AppState;
+use diesel::{QueryableByName, sql_query};
+use diesel::sql_types::Text;
 use diesel::ExpressionMethods;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
@@ -11,6 +13,7 @@ use log::{trace, warn};
 use regex::Regex;
 
 pub mod goto_transform;
+pub mod blocks;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -22,6 +25,7 @@ use std::sync::Arc;
 pub struct ParamDeclaration {
     pub name: String,
     pub param_type: String,
+    pub original_type: String,
     pub example: Option<String>,
     pub description: String,
     pub required: bool,
@@ -55,6 +59,8 @@ pub struct MCPProperty {
     pub description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub example: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAITool {
@@ -84,6 +90,8 @@ pub struct OpenAIProperty {
     pub example: Option<String>,
     #[serde(rename = "enum", skip_serializing_if = "Option::is_none")]
     pub enum_values: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
 }
 #[derive(Debug)]
 pub struct BasicCompiler {
@@ -262,6 +270,7 @@ impl BasicCompiler {
         Ok(Some(ParamDeclaration {
             name,
             param_type: Self::normalize_type(&param_type),
+            original_type: param_type.to_lowercase(),
             example,
             description,
             required: true,
@@ -341,12 +350,20 @@ impl BasicCompiler {
         let mut properties = HashMap::new();
         let mut required = Vec::new();
         for param in &tool_def.parameters {
+            // Add format="date" for DATE type parameters to indicate ISO 8601 format
+            let format = if param.original_type == "date" {
+                Some("date".to_string())
+            } else {
+                None
+            };
+
             properties.insert(
                 param.name.clone(),
                 MCPProperty {
                     prop_type: param.param_type.clone(),
                     description: param.description.clone(),
                     example: param.example.clone(),
+                    format,
                 },
             );
             if param.required {
@@ -369,6 +386,13 @@ impl BasicCompiler {
         let mut properties = HashMap::new();
         let mut required = Vec::new();
         for param in &tool_def.parameters {
+            // Add format="date" for DATE type parameters to indicate ISO 8601 format
+            let format = if param.original_type == "date" {
+                Some("date".to_string())
+            } else {
+                None
+            };
+
             properties.insert(
                 param.name.clone(),
                 OpenAIProperty {
@@ -376,6 +400,7 @@ impl BasicCompiler {
                     description: param.description.clone(),
                     example: param.example.clone(),
                     enum_values: param.enum_values.clone(),
+                    format,
                 },
             );
             if param.required {
@@ -570,7 +595,352 @@ impl BasicCompiler {
         } else {
             self.previous_schedules.remove(&script_name);
         }
+
+        // Convert SAVE statements with field lists to map-based SAVE
+        let result = match self.convert_save_statements(&result, bot_id) {
+            Ok(r) => r,
+            Err(e) => {
+                log::warn!("SAVE conversion failed: {}, using original code", e);
+                result
+            }
+        };
+        // Convert BEGIN TALK and BEGIN MAIL blocks to Rhai code
+        let result = crate::basic::compiler::blocks::convert_begin_blocks(&result);
+        // Convert IF ... THEN / END IF to if ... { }
+        let result = crate::basic::ScriptService::convert_if_then_syntax(&result);
+        // Convert SELECT ... CASE / END SELECT to match expressions
+        let result = crate::basic::ScriptService::convert_select_case_syntax(&result);
+        // Convert BASIC keywords to lowercase (but preserve variable casing)
+        let result = crate::basic::ScriptService::convert_keywords_to_lowercase(&result);
+
         Ok(result)
+    }
+
+    /// Convert SAVE statements with field lists to map-based SAVE
+    /// SAVE "table", field1, field2, ... -> let __data__ = #{field1: value1, ...}; SAVE "table", __data__
+    fn convert_save_statements(
+        &self,
+        source: &str,
+        bot_id: uuid::Uuid,
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let mut result = String::new();
+        let mut save_counter = 0;
+
+        for line in source.lines() {
+            let trimmed = line.trim();
+
+            // Check if this is a SAVE statement with field list
+            if trimmed.to_uppercase().starts_with("SAVE ") {
+                if let Some(converted) = self.convert_save_line(line, bot_id, &mut save_counter)? {
+                    result.push_str(&converted);
+                    result.push('\n');
+                    continue;
+                }
+            }
+
+            result.push_str(line);
+            result.push('\n');
+        }
+
+        Ok(result)
+    }
+
+    /// Convert a single SAVE statement line if it has a field list
+    fn convert_save_line(
+        &self,
+        line: &str,
+        bot_id: uuid::Uuid,
+        save_counter: &mut usize,
+    ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
+        let trimmed = line.trim();
+
+        // Parse SAVE statement
+        // Format: SAVE "table", value1, value2, ...
+        let upper = trimmed.to_uppercase();
+        if !upper.starts_with("SAVE ") {
+            return Ok(None);
+        }
+
+        // Extract the content after "SAVE"
+        let content = &trimmed[4..].trim();
+
+        // Parse table name and values
+        let parts = self.parse_save_statement(content)?;
+
+        // If only 2 parts (table + data map), leave as-is (structured SAVE)
+        if parts.len() <= 2 {
+            return Ok(None);
+        }
+
+        // This is a field list SAVE - convert to map-based SAVE
+        let table_name = &parts[0];
+
+        // Strip quotes from table name if present
+        let table_name = table_name.trim_matches('"');
+
+        // Debug log to see what we're querying
+        log::info!("[SAVE] Converting SAVE for table: '{}' (original: '{}')", table_name, &parts[0]);
+
+        // Get column names from TABLE definition (preserves order from .bas file)
+        let column_names = self.get_table_columns_for_save(table_name, bot_id)?;
+
+        // Build the map by matching variable names to column names (case-insensitive)
+        let values: Vec<&String> = parts.iter().skip(1).collect();
+        let mut map_pairs = Vec::new();
+
+        log::info!("[SAVE] Matching {} variables to {} columns", values.len(), column_names.len());
+
+        for value_var in values.iter() {
+            // Find the column that matches this variable (case-insensitive)
+            let value_lower = value_var.to_lowercase();
+
+            if let Some(column_name) = column_names.iter().find(|col| col.to_lowercase() == value_lower) {
+                map_pairs.push(format!("{}: {}", column_name, value_var));
+            } else {
+                log::warn!("[SAVE] No matching column for variable '{}'", value_var);
+            }
+        }
+
+        let map_expr = format!("#{{{}}}", map_pairs.join(", "));
+        let data_var = format!("__save_data_{}__", save_counter);
+        *save_counter += 1;
+
+        // Generate: let __save_data_N__ = #{...}; SAVE "table", __save_data_N__
+        let converted = format!("let {} = {}; SAVE {}, {}", data_var, map_expr, table_name, data_var);
+
+        Ok(Some(converted))
+    }
+
+    /// Parse SAVE statement into parts
+    fn parse_save_statement(&self, content: &str) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+        // Simple parsing - split by comma, but respect quoted strings
+        let mut parts = Vec::new();
+        let mut current = String::new();
+        let mut in_quotes = false;
+        let mut chars = content.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            match c {
+                '"' if chars.peek() == Some(&'"') => {
+                    // Escaped quote
+                    current.push('"');
+                    chars.next();
+                }
+                '"' => {
+                    in_quotes = !in_quotes;
+                    current.push('"');
+                }
+                ',' if !in_quotes => {
+                    parts.push(current.trim().to_string());
+                    current = String::new();
+                }
+                _ => {
+                    current.push(c);
+                }
+            }
+        }
+
+        if !current.trim().is_empty() {
+            parts.push(current.trim().to_string());
+        }
+
+        Ok(parts)
+    }
+
+    /// Get column names for a table from TABLE definition (preserves field order)
+    fn get_table_columns_for_save(
+        &self,
+        table_name: &str,
+        bot_id: uuid::Uuid,
+    ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+        // Try to parse TABLE definition from the bot's .bas files to get correct field order
+        if let Ok(columns) = self.get_columns_from_table_definition(table_name, bot_id) {
+            if !columns.is_empty() {
+                log::info!("Using TABLE definition for '{}': {} columns", table_name, columns.len());
+                return Ok(columns);
+            }
+        }
+
+        // Fallback to database schema query (may have different order)
+        self.get_columns_from_database_schema(table_name, bot_id)
+    }
+
+    /// Parse TABLE definition from .bas files to get field order
+    fn get_columns_from_table_definition(
+        &self,
+        table_name: &str,
+        bot_id: uuid::Uuid,
+    ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+        use std::path::Path;
+
+        // Find the tables.bas file in the bot's data directory
+        let bot_name = self.get_bot_name_by_id(bot_id)?;
+        let tables_path = format!("/opt/gbo/data/{}.gbai/{}.gbdialog/tables.bas", bot_name, bot_name);
+
+        let tables_content = fs::read_to_string(&tables_path)?;
+        let columns = self.parse_table_definition_for_fields(&tables_content, table_name)?;
+
+        Ok(columns)
+    }
+
+    /// Parse TABLE definition and extract field names in order
+    fn parse_table_definition_for_fields(
+        &self,
+        content: &str,
+        table_name: &str,
+    ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+        let mut columns = Vec::new();
+        let mut in_target_table = false;
+
+        for line in content.lines() {
+            let trimmed = line.trim();
+
+            if trimmed.starts_with("TABLE ") && trimmed.contains(table_name) {
+                in_target_table = true;
+                continue;
+            }
+
+            if in_target_table {
+                if trimmed.starts_with("END TABLE") {
+                    break;
+                }
+
+                if trimmed.starts_with("FIELD ") {
+                    // Parse: FIELD fieldName AS TYPE
+                    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+                    if parts.len() >= 2 {
+                        let field_name = parts[1].to_string();
+                        columns.push(field_name);
+                    }
+                }
+            }
+        }
+
+        Ok(columns)
+    }
+
+    /// Get bot name by bot_id
+    fn get_bot_name_by_id(&self, bot_id: uuid::Uuid) -> Result<String, Box<dyn Error + Send + Sync>> {
+        use crate::core::shared::models::schema::bots::dsl::*;
+        use diesel::QueryDsl;
+
+        let mut conn = self.state.conn.get()
+            .map_err(|e| format!("Failed to get DB connection: {}", e))?;
+
+        let bot_name: String = bots
+            .filter(id.eq(&bot_id))
+            .select(name)
+            .first(&mut conn)
+            .map_err(|e| format!("Failed to get bot name: {}", e))?;
+
+        Ok(bot_name)
+    }
+
+    /// Get column names from database schema (fallback, order may differ)
+    fn get_columns_from_database_schema(
+        &self,
+        table_name: &str,
+        bot_id: uuid::Uuid,
+    ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+        use diesel::sql_query;
+        use diesel::sql_types::Text;
+        use diesel::RunQueryDsl;
+
+        #[derive(QueryableByName)]
+        struct ColumnRow {
+            #[diesel(sql_type = Text)]
+            column_name: String,
+        }
+
+        // First, try to get columns from the main database's information_schema
+        // This works because tables are created in the bot's database which shares the schema
+        let mut conn = self.state.conn.get()
+            .map_err(|e| format!("Failed to get DB connection: {}", e))?;
+
+        let query = format!(
+            "SELECT column_name FROM information_schema.columns \
+             WHERE table_name = '{}' AND table_schema = 'public' \
+             ORDER BY ordinal_position",
+            table_name
+        );
+
+        let columns: Vec<String> = match sql_query(&query).load(&mut conn) {
+            Ok(cols) => {
+                if cols.is_empty() {
+                    log::warn!("Found 0 columns for table '{}' in main database, trying bot database", table_name);
+                    // Try bot's database as fallback when main DB returns empty
+                    let bot_pool = self.state.bot_database_manager.get_bot_pool(bot_id);
+                    if let Ok(pool) = bot_pool {
+                        let mut bot_conn = pool.get()
+                            .map_err(|e| format!("Bot DB error: {}", e))?;
+
+                        let bot_query = format!(
+                            "SELECT column_name FROM information_schema.columns \
+                             WHERE table_name = '{}' AND table_schema = 'public' \
+                             ORDER BY ordinal_position",
+                            table_name
+                        );
+
+                        match sql_query(&bot_query).load(&mut *bot_conn) {
+                            Ok(bot_cols) => {
+                                log::info!("Found {} columns for table '{}' in bot database", bot_cols.len(), table_name);
+                                bot_cols.into_iter()
+                                    .map(|c: ColumnRow| c.column_name)
+                                    .collect()
+                            }
+                            Err(e) => {
+                                log::error!("Failed to get columns from bot DB for '{}': {}", table_name, e);
+                                Vec::new()
+                            }
+                        }
+                    } else {
+                        log::error!("No bot database available for bot_id: {}", bot_id);
+                        Vec::new()
+                    }
+                } else {
+                    log::info!("Found {} columns for table '{}' in main database", cols.len(), table_name);
+                    cols.into_iter()
+                        .map(|c: ColumnRow| c.column_name)
+                        .collect()
+                }
+            }
+            Err(e) => {
+                log::warn!("Failed to get columns for table '{}' from main DB: {}", table_name, e);
+
+                // Try bot's database as fallback
+                let bot_pool = self.state.bot_database_manager.get_bot_pool(bot_id);
+                if let Ok(pool) = bot_pool {
+                    let mut bot_conn = pool.get()
+                        .map_err(|e| format!("Bot DB error: {}", e))?;
+
+                    let bot_query = format!(
+                        "SELECT column_name FROM information_schema.columns \
+                         WHERE table_name = '{}' AND table_schema = 'public' \
+                         ORDER BY ordinal_position",
+                        table_name
+                    );
+
+                    match sql_query(&bot_query).load(&mut *bot_conn) {
+                        Ok(cols) => {
+                            log::info!("Found {} columns for table '{}' in bot database", cols.len(), table_name);
+                            cols.into_iter()
+                                .filter(|c: &ColumnRow| c.column_name != "id")
+                                .map(|c: ColumnRow| c.column_name)
+                                .collect()
+                        }
+                        Err(e) => {
+                            log::error!("Failed to get columns from bot DB for '{}': {}", table_name, e);
+                            Vec::new()
+                        }
+                    }
+                } else {
+                    log::error!("No bot database available for bot_id: {}", bot_id);
+                    Vec::new()
+                }
+            }
+        };
+
+        Ok(columns)
     }
 }
 #[derive(Debug)]
