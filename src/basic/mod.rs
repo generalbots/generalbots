@@ -598,6 +598,8 @@ impl ScriptService {
         // Skip normalize_variables_to_lowercase for tools - it breaks multi-line strings
 
         info!("[TOOL] Preprocessed tool script for Rhai compilation");
+        // Convert SAVE statements with field lists to map-based SAVE (simplified version for tools)
+        let script = Self::convert_save_for_tools(&script);
         // Convert BEGIN TALK and BEGIN MAIL blocks to single calls
         let script = crate::basic::compiler::blocks::convert_begin_blocks(&script);
         // Convert IF ... THEN / END IF to if ... { }
@@ -617,6 +619,89 @@ impl ScriptService {
     }
     pub fn run(&mut self, ast: &rhai::AST) -> Result<Dynamic, Box<EvalAltResult>> {
         self.engine.eval_ast_with_scope(&mut self.scope, ast)
+    }
+
+    /// Convert SAVE statements for tool compilation (simplified, no DB lookup)
+    /// SAVE "table", var1, var2, ... -> let __data__ = #{var1: var1, var2: var2, ...}; SAVE "table", __data__
+    fn convert_save_for_tools(script: &str) -> String {
+        let mut result = String::new();
+        let mut save_counter = 0;
+
+        for line in script.lines() {
+            let trimmed = line.trim();
+
+            // Check if this is a SAVE statement
+            if trimmed.to_uppercase().starts_with("SAVE ") {
+                // Parse SAVE statement
+                // Format: SAVE "table", value1, value2, ...
+                let content = &trimmed[4..].trim();
+
+                // Simple parse by splitting on commas (outside quotes)
+                let parts = Self::parse_save_parts(content);
+
+                // If more than 2 parts, convert to map-based SAVE
+                if parts.len() > 2 {
+                    let table_name = parts[0].trim_matches('"');
+                    let values: Vec<&str> = parts.iter().skip(1).map(|s| s.trim()).collect();
+
+                    // Build map with variable names as keys
+                    let map_pairs: Vec<String> = values.iter().map(|v| format!("{}: {}", v, v)).collect();
+                    let map_expr = format!("#{{{}}}", map_pairs.join(", "));
+                    let data_var = format!("__save_data_{}__", save_counter);
+                    save_counter += 1;
+
+                    let converted = format!("let {} = {};\nINSERT \"{}\", {};", data_var, map_expr, table_name, data_var);
+                    result.push_str(&converted);
+                    result.push('\n');
+                    continue;
+                }
+            }
+
+            result.push_str(line);
+            result.push('\n');
+        }
+
+        result
+    }
+
+    /// Parse SAVE statement parts (handles quoted strings)
+    fn parse_save_parts(s: &str) -> Vec<String> {
+        let mut parts = Vec::new();
+        let mut current = String::new();
+        let mut in_quotes = false;
+        let mut chars = s.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            match c {
+                '"' if !in_quotes => {
+                    in_quotes = true;
+                    current.push(c);
+                }
+                '"' if in_quotes => {
+                    in_quotes = false;
+                    current.push(c);
+                }
+                ',' if !in_quotes => {
+                    parts.push(current.trim().to_string());
+                    current = String::new();
+                    // Skip whitespace after comma
+                    while let Some(&next_c) = chars.peek() {
+                        if next_c.is_whitespace() {
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                _ => current.push(c),
+            }
+        }
+
+        if !current.is_empty() {
+            parts.push(current.trim().to_string());
+        }
+
+        parts
     }
 
     /// Set a variable in the script scope (for tool parameters)
