@@ -69,6 +69,7 @@ pub mod string_functions;
 pub mod switch_case;
 pub mod table_access;
 pub mod table_definition;
+pub mod table_migration;
 pub mod universal_messaging;
 pub mod use_tool;
 pub mod use_website;

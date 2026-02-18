@@ -580,11 +580,20 @@ impl BotOrchestrator {
             }
         }
 
+        // Sanitize user message to remove any UTF-16 surrogate characters
+        let sanitized_message_content = message_content
+            .chars()
+            .filter(|c| {
+                let cp = *c as u32;
+                !(0xD800..=0xDBFF).contains(&cp) && !(0xDC00..=0xDFFF).contains(&cp)
+            })
+            .collect::<String>();
+
         // Add the current user message to the messages array
         if let Some(msgs_array) = messages.as_array_mut() {
             msgs_array.push(serde_json::json!({
                 "role": "user",
-                "content": message_content
+                "content": sanitized_message_content
             }));
         }
 
@@ -644,6 +653,7 @@ impl BotOrchestrator {
         let mut analysis_buffer = String::new();
         let mut in_analysis = false;
         let mut tool_call_buffer = String::new(); // Accumulate potential tool call JSON chunks
+        let mut accumulating_tool_call = false; // Track if we're currently accumulating a tool call
         let handler = llm_models::get_handler(&model);
 
         info!("[STREAM_START] Entering stream processing loop for model: {}", model);
@@ -679,12 +689,62 @@ impl BotOrchestrator {
             // ===== GENERIC TOOL EXECUTION =====
             // Add chunk to tool_call_buffer and try to parse
             // Tool calls arrive as JSON that can span multiple chunks
-            let looks_like_json = chunk.trim().starts_with('{') || chunk.trim().starts_with('[') ||
-                                   tool_call_buffer.contains('{') || tool_call_buffer.contains('[');
 
-            let chunk_in_tool_buffer = if looks_like_json {
+            // Check if this chunk contains JSON (either starts with {/[ or contains {/[)
+            let chunk_contains_json = chunk.trim().starts_with('{') || chunk.trim().starts_with('[') ||
+                                        chunk.contains('{') || chunk.contains('[');
+
+            let chunk_in_tool_buffer = if accumulating_tool_call {
+                // Already accumulating - add entire chunk to buffer
                 tool_call_buffer.push_str(&chunk);
                 true
+            } else if chunk_contains_json {
+                // Check if { appears in the middle of the chunk (mixed text + JSON)
+                let json_start = chunk.find('{').or_else(|| chunk.find('['));
+
+                if let Some(pos) = json_start {
+                    if pos > 0 {
+                        // Send the part before { as regular content
+                        let regular_part = &chunk[..pos];
+                        if !regular_part.trim().is_empty() {
+                            info!("[STREAM_CONTENT] Sending regular part before JSON: '{}', len: {}", regular_part, regular_part.len());
+                            full_response.push_str(regular_part);
+
+                            let response = BotResponse {
+                                bot_id: message.bot_id.clone(),
+                                user_id: message.user_id.clone(),
+                                session_id: message.session_id.clone(),
+                                channel: message.channel.clone(),
+                                content: regular_part.to_string(),
+                                message_type: MessageType::BOT_RESPONSE,
+                                stream_token: None,
+                                is_complete: false,
+                                suggestions: Vec::new(),
+                                context_name: None,
+                                context_length: 0,
+                                context_max_length: 0,
+                            };
+
+                            if response_tx.send(response).await.is_err() {
+                                warn!("Response channel closed");
+                                break;
+                            }
+                        }
+
+                        // Start accumulating from { onwards
+                        accumulating_tool_call = true;
+                        tool_call_buffer.push_str(&chunk[pos..]);
+                        true
+                    } else {
+                        // Chunk starts with { or [
+                        accumulating_tool_call = true;
+                        tool_call_buffer.push_str(&chunk);
+                        true
+                    }
+                } else {
+                    // Contains {/[ but find() failed - shouldn't happen, but send as regular content
+                    false
+                }
             } else {
                 false
             };
@@ -774,13 +834,15 @@ impl BotOrchestrator {
                 // Don't add tool_call JSON to full_response or analysis_buffer
                 // Clear the tool_call_buffer since we found and executed a tool call
                 tool_call_buffer.clear();
+                accumulating_tool_call = false; // Reset accumulation flag
                 // Continue to next chunk
                 continue;
             }
 
             // Clear tool_call_buffer if it's getting too large and no tool call was found
             // This prevents memory issues from accumulating JSON fragments
-            if tool_call_buffer.len() > 10000 {
+            // Increased limit to 50000 to handle large tool calls with many parameters
+            if tool_call_buffer.len() > 50000 {
                 // Flush accumulated content to client since it's too large to be a tool call
                 info!("[TOOL_EXEC] Flushing tool_call_buffer (too large, assuming not a tool call)");
                 full_response.push_str(&tool_call_buffer);
@@ -801,6 +863,7 @@ impl BotOrchestrator {
                 };
 
                 tool_call_buffer.clear();
+                accumulating_tool_call = false; // Reset accumulation flag after flush
 
                 if response_tx.send(response).await.is_err() {
                     warn!("Response channel closed");
@@ -810,7 +873,7 @@ impl BotOrchestrator {
 
             // If this chunk was added to tool_call_buffer and no tool call was found yet,
             // skip processing (it's part of an incomplete tool call JSON)
-            if chunk_in_tool_buffer && tool_call_buffer.len() <= 10000 {
+            if chunk_in_tool_buffer {
                 continue;
             }
             // ===== END TOOL EXECUTION =====

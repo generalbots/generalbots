@@ -185,6 +185,17 @@ impl OpenAIClient {
         }
     }
 
+    /// Sanitizes a string by removing invalid UTF-8 surrogate characters
+    /// that cannot be encoded in valid UTF-8 (surrogates are only valid in UTF-16)
+    fn sanitize_utf8(input: &str) -> String {
+        input.chars()
+            .filter(|c| {
+                let cp = *c as u32;
+                !(0xD800..=0xDBFF).contains(&cp) && !(0xDC00..=0xDFFF).contains(&cp)
+            })
+            .collect()
+    }
+
     pub fn build_messages(
         system_prompt: &str,
         context_data: &str,
@@ -194,19 +205,19 @@ impl OpenAIClient {
         if !system_prompt.is_empty() {
             messages.push(serde_json::json!({
                 "role": "system",
-                "content": system_prompt
+                "content": Self::sanitize_utf8(system_prompt)
             }));
         }
         if !context_data.is_empty() {
             messages.push(serde_json::json!({
                 "role": "system",
-                "content": context_data
+                "content": Self::sanitize_utf8(context_data)
             }));
         }
         for (role, content) in history {
             messages.push(serde_json::json!({
                 "role": role,
-                "content": content
+                "content": Self::sanitize_utf8(content)
             }));
         }
         serde_json::Value::Array(messages)
@@ -747,10 +758,10 @@ mod tests {
     fn test_openai_client_new_custom_url() {
         let client = OpenAIClient::new(
             "test_key".to_string(),
-            Some("http://localhost:8080".to_string()),
+            Some("http://localhost:9000".to_string()),
             None,
         );
-        assert_eq!(client.base_url, "http://localhost:8080");
+        assert_eq!(client.base_url, "http://localhost:9000");
     }
 
     #[test]

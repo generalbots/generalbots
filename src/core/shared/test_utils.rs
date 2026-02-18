@@ -249,13 +249,13 @@ impl Default for TestAppStateBuilder {
 #[cfg(feature = "directory")]
 pub fn create_mock_auth_service() -> AuthService {
     let config = ZitadelConfig {
-        issuer_url: "http://localhost:8080".to_string(),
-        issuer: "http://localhost:8080".to_string(),
+        issuer_url: "http://localhost:9000".to_string(),
+        issuer: "http://localhost:9000".to_string(),
         client_id: "mock_client_id".to_string(),
         client_secret: "mock_client_secret".to_string(),
         redirect_uri: "http://localhost:3000/callback".to_string(),
         project_id: "mock_project_id".to_string(),
-        api_url: "http://localhost:8080".to_string(),
+        api_url: "http://localhost:9000".to_string(),
         service_account_key: None,
     };
 

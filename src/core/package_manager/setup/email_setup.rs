@@ -203,7 +203,7 @@ impl EmailSetup {
 
         let issuer_url = dir_config["base_url"]
             .as_str()
-            .unwrap_or("http://localhost:8080");
+            .unwrap_or("http://localhost:9000");
 
         log::info!("Setting up OIDC authentication with Directory...");
         log::info!("Issuer URL: {}", issuer_url);
@@ -289,7 +289,7 @@ protocol = "imap"
 tls.implicit = true
 
 [server.listener."http"]
-bind = ["0.0.0.0:8080"]
+bind = ["0.0.0.0:9000"]
 protocol = "http"
 
 [storage]
@@ -315,7 +315,7 @@ store = "sqlite"
             r#"
 [directory."oidc"]
 type = "oidc"
-issuer = "http://localhost:8080"
+issuer = "http://localhost:9000"
 client-id = "{{CLIENT_ID}}"
 client-secret = "{{CLIENT_SECRET}}"
 

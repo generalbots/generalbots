@@ -602,7 +602,7 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "php -S 0.0.0.0:8080 -t {{DATA_PATH}}/roundcubemail".to_string(),
+                exec_cmd: "php -S 0.0.0.0:9000 -t {{DATA_PATH}}/roundcubemail".to_string(),
                 check_cmd:
                     "curl -f -k --connect-timeout 2 -m 5 https://localhost:8300 >/dev/null 2>&1"
                         .to_string(),

@@ -381,7 +381,7 @@ impl SecretsManager {
                 secrets.insert("token".into(), String::new());
             }
             SecretPaths::ALM => {
-                secrets.insert("url".into(), "http://localhost:8080".into());
+                secrets.insert("url".into(), "http://localhost:9000".into());
                 secrets.insert("username".into(), String::new());
                 secrets.insert("password".into(), String::new());
             }

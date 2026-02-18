@@ -232,6 +232,16 @@ impl ClaudeClient {
         (system_prompt, claude_messages)
     }
 
+    /// Sanitizes a string by removing invalid UTF-8 surrogate characters
+    fn sanitize_utf8(input: &str) -> String {
+        input.chars()
+            .filter(|c| {
+                let cp = *c as u32;
+                !(0xD800..=0xDBFF).contains(&cp) && !(0xDC00..=0xDFFF).contains(&cp)
+            })
+            .collect()
+    }
+
     pub fn build_messages(
         system_prompt: &str,
         context_data: &str,
@@ -241,15 +251,15 @@ impl ClaudeClient {
         let mut system_parts = Vec::new();
 
         if !system_prompt.is_empty() {
-            system_parts.push(system_prompt.to_string());
+            system_parts.push(Self::sanitize_utf8(system_prompt));
         }
         if !context_data.is_empty() {
-            system_parts.push(context_data.to_string());
+            system_parts.push(Self::sanitize_utf8(context_data));
         }
 
         for (role, content) in history {
             if role == "episodic" || role == "compact" {
-                system_parts.push(format!("[Previous conversation summary]: {content}"));
+                system_parts.push(format!("[Previous conversation summary]: {}", Self::sanitize_utf8(content)));
             }
         }
 
@@ -270,7 +280,8 @@ impl ClaudeClient {
             };
 
             if let Some(norm_role) = normalized_role {
-                if content.is_empty() {
+                let sanitized_content = Self::sanitize_utf8(content);
+                if sanitized_content.is_empty() {
                     continue;
                 }
 
@@ -278,14 +289,14 @@ impl ClaudeClient {
                     if let Some(last_msg) = messages.last_mut() {
                         let last_msg: &mut ClaudeMessage = last_msg;
                         last_msg.content.push_str("\n\n");
-                        last_msg.content.push_str(content);
+                        last_msg.content.push_str(&sanitized_content);
                         continue;
                     }
                 }
 
                 messages.push(ClaudeMessage {
                     role: norm_role.clone(),
-                    content: content.clone(),
+                    content: sanitized_content,
                 });
                 last_role = Some(norm_role);
             }

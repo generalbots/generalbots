@@ -436,9 +436,22 @@ pub async fn inject_kb_context(
         return Ok(());
     }
 
+    // Sanitize context to remove UTF-16 surrogate characters that can't be encoded in UTF-8
+    let sanitized_context = context_string
+        .chars()
+        .filter(|c| {
+            let cp = *c as u32;
+            !(0xD800..=0xDBFF).contains(&cp) && !(0xDC00..=0xDFFF).contains(&cp)
+        })
+        .collect::<String>();
+
+    if sanitized_context.is_empty() {
+        return Ok(());
+    }
+
     info!(
         "Injecting {} characters of KB/website context into prompt for session {}",
-        context_string.len(),
+        sanitized_context.len(),
         session_id
     );
 
@@ -447,7 +460,7 @@ pub async fn inject_kb_context(
 
         if let Some(idx) = system_msg_idx {
             if let Some(content) = messages_array[idx]["content"].as_str() {
-                let new_content = format!("{}\n{}", content, context_string);
+                let new_content = format!("{}\n{}", content, sanitized_context);
                 messages_array[idx]["content"] = serde_json::Value::String(new_content);
             }
         } else {
@@ -455,7 +468,7 @@ pub async fn inject_kb_context(
                 0,
                 serde_json::json!({
                     "role": "system",
-                    "content": context_string
+                    "content": sanitized_context
                 }),
             );
         }

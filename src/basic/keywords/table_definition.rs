@@ -325,7 +325,7 @@ fn parse_field_definition(
     })
 }
 
-fn map_type_to_sql(field: &FieldDefinition, driver: &str) -> String {
+pub fn map_type_to_sql(field: &FieldDefinition, driver: &str) -> String {
     let base_type = match field.field_type.as_str() {
         "string" => {
             let len = field.length.unwrap_or(255);
@@ -630,6 +630,28 @@ pub fn process_table_definitions(
         return Ok(tables);
     }
 
+    // Use schema sync for both debug and release builds (non-destructive)
+    use super::table_migration::sync_bot_tables;
+
+    info!("Running schema migration sync (non-destructive)");
+
+    match sync_bot_tables(&state, bot_id, source) {
+        Ok(result) => {
+            info!("Schema sync completed: {} created, {} altered, {} columns added",
+                result.tables_created, result.tables_altered, result.columns_added);
+
+            // If sync was successful, skip standard table creation
+            if result.tables_created > 0 || result.tables_altered > 0 {
+                return Ok(tables);
+            }
+        }
+        Err(e) => {
+            error!("Schema sync failed: {}", e);
+            // Fall through to standard table creation
+        }
+    }
+
+    // Standard table creation (for release builds or as fallback)
     for table in &tables {
         info!(
             "Processing TABLE {} ON {}",
