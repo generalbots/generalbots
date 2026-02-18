@@ -1410,12 +1410,29 @@ impl ScriptService {
     /// Transforms: SELECT var ... CASE "value" ... END SELECT
     /// Into: if var == "value" { ... } else if var == "value2" { ... }
     /// Note: We use if-else instead of match because 'match' is a reserved keyword in Rhai
+    ///
+    /// IMPORTANT: This function strips 'let ' keywords from assignment statements inside CASE blocks
+    /// to avoid creating local variables that shadow outer scope variables.
     pub fn convert_select_case_syntax(script: &str) -> String {
         let mut result = String::new();
         let mut lines: Vec<&str> = script.lines().collect();
         let mut i = 0;
 
         log::info!("[TOOL] Converting SELECT/CASE syntax to if-else chains");
+
+        // Helper function to strip 'let ' from the beginning of a line
+        // This is needed because convert_if_then_syntax adds 'let' to all assignments,
+        // but inside CASE blocks we want to modify outer variables, not create new ones
+        fn strip_let_from_assignment(line: &str) -> String {
+            let trimmed = line.trim();
+            let trimmed_lower = trimmed.to_lowercase();
+            if trimmed_lower.starts_with("let ") && trimmed.contains('=') {
+                // This is a 'let' assignment - strip the 'let ' keyword
+                trimmed[4..].trim().to_string()
+            } else {
+                trimmed.to_string()
+            }
+        }
 
         while i < lines.len() {
             let trimmed = lines[i].trim();
@@ -1450,9 +1467,11 @@ impl ScriptService {
                         if in_case {
                             for body_line in &current_case_body {
                                 result.push_str("    ");
-                                result.push_str(body_line);
+                                // Strip 'let ' from assignments to avoid creating local variables
+                                let processed_line = strip_let_from_assignment(body_line);
+                                result.push_str(&processed_line);
                                 // Add semicolon if line doesn't have one
-                                if !body_line.ends_with(';') && !body_line.ends_with('{') && !body_line.ends_with('}') {
+                                if !processed_line.ends_with(';') && !processed_line.ends_with('{') && !processed_line.ends_with('}') {
                                     result.push(';');
                                 }
                                 result.push('\n');
@@ -1471,9 +1490,11 @@ impl ScriptService {
                         if in_case {
                             for body_line in &current_case_body {
                                 result.push_str("    ");
-                                result.push_str(body_line);
+                                // Strip 'let ' from assignments to avoid creating local variables
+                                let processed_line = strip_let_from_assignment(body_line);
+                                result.push_str(&processed_line);
                                 // Add semicolon if line doesn't have one
-                                if !body_line.ends_with(';') && !body_line.ends_with('{') && !body_line.ends_with('}') {
+                                if !processed_line.ends_with(';') && !processed_line.ends_with('{') && !processed_line.ends_with('}') {
                                     result.push(';');
                                 }
                                 result.push('\n');
@@ -1490,9 +1511,11 @@ impl ScriptService {
                         if in_case {
                             for body_line in &current_case_body {
                                 result.push_str("    ");
-                                result.push_str(body_line);
+                                // Strip 'let ' from assignments to avoid creating local variables
+                                let processed_line = strip_let_from_assignment(body_line);
+                                result.push_str(&processed_line);
                                 // Add semicolon if line doesn't have one
-                                if !body_line.ends_with(';') && !body_line.ends_with('{') && !body_line.ends_with('}') {
+                                if !processed_line.ends_with(';') && !processed_line.ends_with('{') && !processed_line.ends_with('}') {
                                     result.push(';');
                                 }
                                 result.push('\n');
