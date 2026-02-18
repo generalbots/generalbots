@@ -405,6 +405,30 @@ pub fn filter_write_fields(
     }
 }
 
+/// Get column names for a table from the database schema
+pub fn get_table_columns(conn: &mut PgConnection, table_name: &str) -> Vec<String> {
+    use diesel::prelude::*;
+    use diesel::sql_types::Text;
+
+    // Define a struct for the query result
+    #[derive(diesel::QueryableByName)]
+    struct ColumnName {
+        #[diesel(sql_type = Text)]
+        column_name: String,
+    }
+
+    // Query information_schema to get column names
+    diesel::sql_query(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = $1 ORDER BY ordinal_position"
+    )
+    .bind::<Text, _>(table_name)
+    .load::<ColumnName>(conn)
+    .unwrap_or_default()
+    .into_iter()
+    .map(|c| c.column_name)
+    .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

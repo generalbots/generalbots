@@ -553,7 +553,7 @@ Store credentials in Vault:
                     r"Email Server (Stalwart):
   SMTP: {}:25
   IMAP: {}:143
-  Web:  http://{}:8080
+  Web:  http://{}:9000
 
 Store credentials in Vault:
   botserver vault put gbo/email server={} port=25 username=admin password=<your-password>",
@@ -563,11 +563,11 @@ Store credentials in Vault:
             "directory" => {
                 format!(
                     r"Zitadel Identity Provider:
-  URL: http://{}:8080
-  Console: http://{}:8080/ui/console
+  URL: http://{}:9000
+  Console: http://{}:9000/ui/console
 
 Store credentials in Vault:
-  botserver vault put gbo/directory url=http://{}:8080 client_id=<client-id> client_secret=<client-secret>",
+  botserver vault put gbo/directory url=http://{}:9000 client_id=<client-id> client_secret=<client-secret>",
                     ip, ip, ip
                 )
             }

@@ -161,7 +161,7 @@ Type=simple
 User=pi
 Environment=DISPLAY=:0
 ExecStartPre=/bin/sleep 5
-ExecStart=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --app=http://localhost:8088/embedded/
+ExecStart=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --app=http://localhost:9000/embedded/
 Restart=always
 RestartSec=10
 
@@ -498,10 +498,10 @@ echo "View logs:"
 echo "  ssh $TARGET_HOST 'sudo journalctl -u botserver -f'"
 echo ""
 if [ "$WITH_UI" = true ]; then
-    echo "Access UI at: http://$TARGET_HOST:8088/embedded/"
+    echo "Access UI at: http://$TARGET_HOST:9000/embedded/"
 fi
 if [ "$WITH_LLAMA" = true ]; then
     echo ""
-    echo "llama.cpp server running at: http://$TARGET_HOST:8080"
-    echo "Test: curl http://$TARGET_HOST:8080/v1/models"
+    echo "llama.cpp server running at: http://$TARGET_HOST:9000"
+    echo "Test: curl http://$TARGET_HOST:9000/v1/models"
 fi

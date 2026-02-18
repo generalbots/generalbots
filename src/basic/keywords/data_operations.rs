@@ -2,7 +2,7 @@ use super::table_access::{check_table_access, AccessType, UserRoles};
 use crate::core::shared::{sanitize_identifier, sanitize_sql_value};
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
-use crate::core::shared::utils::{json_value_to_dynamic, to_array};
+use crate::core::shared::utils::{convert_date_to_iso_format, json_value_to_dynamic, to_array};
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::Text;
@@ -29,40 +29,127 @@ pub fn register_data_operations(state: Arc<AppState>, user: UserSession, engine:
 }
 
 pub fn register_save_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
     let user_roles = UserRoles::from_user_session(&user);
 
-    engine
-        .register_custom_syntax(
-            ["SAVE", "$expr$", ",", "$expr$", ",", "$expr$"],
-            false,
-            move |context, inputs| {
-                let table = context.eval_expression_tree(&inputs[0])?.to_string();
-                let id = context.eval_expression_tree(&inputs[1])?;
-                let data = context.eval_expression_tree(&inputs[2])?;
+    // SAVE with variable arguments: SAVE "table", id, field1, field2, ...
+    // Each pattern: table + id + (1 to 64 fields)
+    // Minimum: table + id + 1 field = 4 expressions total
+    register_save_variants(&state, user_roles, engine);
+}
 
-                trace!("SAVE to table: {}, id: {:?}", table, id);
+fn register_save_variants(state: &Arc<AppState>, user_roles: UserRoles, engine: &mut Engine) {
+    // Register positional saves FIRST (in descending order), so longer patterns
+    // are tried before shorter ones. This ensures that SAVE with 22 fields matches
+    // the 22-field pattern, not the 3-field structured save pattern.
+    // Pattern: SAVE + table + (field1 + field2 + ... + fieldN)
+    // Total elements = 2 (SAVE + table) + num_fields * 2 (comma + expr)
+    // For 22 fields: 2 + 22*2 = 46 elements
 
-                let mut conn = state_clone
-                    .conn
-                    .get()
-                    .map_err(|e| format!("DB error: {}", e))?;
+    // Register in descending order (70 down to 2) so longer patterns override shorter ones
+    for num_fields in (2..=70).rev() {
+        let mut pattern = vec!["SAVE", "$expr$"];
+        for _ in 0..num_fields {
+            pattern.push(",");
+            pattern.push("$expr$");
+        }
 
-                // Check write access
-                if let Err(e) =
-                    check_table_access(&mut conn, &table, &user_roles, AccessType::Write)
-                {
-                    warn!("SAVE access denied: {}", e);
-                    return Err(e.into());
-                }
+        // Log pattern registration for key values
+        if num_fields == 22 || num_fields == 21 || num_fields == 23 {
+            log::info!("Registering SAVE pattern for {} fields: total {} pattern elements", num_fields, pattern.len());
+        }
 
-                let result = execute_save(&mut conn, &table, &id, &data)
-                    .map_err(|e| format!("SAVE error: {}", e))?;
+        let state_clone = Arc::clone(state);
+        let user_roles_clone = user_roles.clone();
+        let field_count = num_fields;
 
-                Ok(json_value_to_dynamic(&result))
-            },
-        )
-        .expect("valid syntax registration");
+        engine
+            .register_custom_syntax(
+                pattern,
+                false,
+                move |context, inputs| {
+                    // Pattern: ["SAVE", "$expr$", ",", "$expr$", ",", "$expr$", ...]
+                    // inputs[0] = table, inputs[2], inputs[4], inputs[6], ... = field values
+                    // Commas are at inputs[1], inputs[3], inputs[5], ...
+                    let table = context.eval_expression_tree(&inputs[0])?.to_string();
+
+                    trace!("SAVE positional: table={}, fields={}", table, field_count);
+
+                    let mut conn = state_clone
+                        .conn
+                        .get()
+                        .map_err(|e| format!("DB error: {}", e))?;
+
+                    if let Err(e) =
+                        check_table_access(&mut conn, &table, &user_roles_clone, AccessType::Write)
+                    {
+                        warn!("SAVE access denied: {}", e);
+                        return Err(e.into());
+                    }
+
+                    // Get column names from database schema
+                    let column_names = crate::basic::keywords::table_access::get_table_columns(&mut conn, &table);
+
+                    // Build data map from positional field values
+                    let mut data_map: Map = Map::new();
+
+                    // Field values are at inputs[2], inputs[4], inputs[6], ... (every other element starting from 2)
+                    for i in 0..field_count {
+                        if i < column_names.len() {
+                            let value_expr = &inputs[i * 2 + 2]; // 2, 4, 6, 8, ...
+                            let value = context.eval_expression_tree(value_expr)?;
+                            data_map.insert(column_names[i].clone().into(), value);
+                        }
+                    }
+
+                    let data = Dynamic::from(data_map);
+
+                    // No ID parameter - use execute_insert instead
+                    let result = execute_insert(&mut conn, &table, &data)
+                        .map_err(|e| format!("SAVE error: {}", e))?;
+
+                    Ok(json_value_to_dynamic(&result))
+                },
+            )
+            .expect("valid syntax registration");
+    }
+
+    // Register structured save LAST (after all positional saves)
+    // This ensures that SAVE statements with many fields use positional patterns,
+    // and only SAVE statements with exactly 3 expressions use the structured pattern
+    {
+        let state_clone = Arc::clone(state);
+        let user_roles_clone = user_roles.clone();
+        engine
+            .register_custom_syntax(
+                ["SAVE", "$expr$", ",", "$expr$", ",", "$expr$"],
+                false,
+                move |context, inputs| {
+                    let table = context.eval_expression_tree(&inputs[0])?.to_string();
+                    let id = context.eval_expression_tree(&inputs[1])?;
+                    let data = context.eval_expression_tree(&inputs[2])?;
+
+                    trace!("SAVE structured: table={}, id={:?}", table, id);
+
+                    let mut conn = state_clone
+                        .conn
+                        .get()
+                        .map_err(|e| format!("DB error: {}", e))?;
+
+                    if let Err(e) =
+                        check_table_access(&mut conn, &table, &user_roles_clone, AccessType::Write)
+                    {
+                        warn!("SAVE access denied: {}", e);
+                        return Err(e.into());
+                    }
+
+                    let result = execute_save(&mut conn, &table, &id, &data)
+                        .map_err(|e| format!("SAVE error: {}", e))?;
+
+                    Ok(json_value_to_dynamic(&result))
+                },
+            )
+            .expect("valid syntax registration");
+    }
 }
 
 pub fn register_insert_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -470,7 +557,9 @@ fn execute_save(
 
     for (key, value) in &data_map {
         let sanitized_key = sanitize_identifier(key);
-        let sanitized_value = format!("'{}'", sanitize_sql_value(&value.to_string()));
+        let value_str = value.to_string();
+        let converted_value = convert_date_to_iso_format(&value_str);
+        let sanitized_value = format!("'{}'", sanitize_sql_value(&converted_value));
         columns.push(sanitized_key.clone());
         values.push(sanitized_value.clone());
         update_sets.push(format!("{} = {}", sanitized_key, sanitized_value));
@@ -511,7 +600,9 @@ fn execute_insert(
 
     for (key, value) in &data_map {
         columns.push(sanitize_identifier(key));
-        values.push(format!("'{}'", sanitize_sql_value(&value.to_string())));
+        let value_str = value.to_string();
+        let converted_value = convert_date_to_iso_format(&value_str);
+        values.push(format!("'{}'", sanitize_sql_value(&converted_value)));
     }
 
     let query = format!(
@@ -564,10 +655,12 @@ fn execute_update(
 
     let mut update_sets: Vec<String> = Vec::new();
     for (key, value) in &data_map {
+        let value_str = value.to_string();
+        let converted_value = convert_date_to_iso_format(&value_str);
         update_sets.push(format!(
             "{} = '{}'",
             sanitize_identifier(key),
-            sanitize_sql_value(&value.to_string())
+            sanitize_sql_value(&converted_value)
         ));
     }
 

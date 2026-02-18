@@ -2,6 +2,7 @@
 /// Works across all LLM providers (GLM, OpenAI, Claude, etc.)
 use log::{error, info, warn};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
@@ -264,6 +265,8 @@ impl ToolExecutor {
         script_service.load_bot_config_params(state, bot_id);
 
         // Set tool parameters as variables in the engine scope
+        // Note: DATE parameters are now sent by LLM in ISO 8601 format (YYYY-MM-DD)
+        // The tool schema with format="date" tells the LLM to use this agnostic format
         if let Some(obj) = arguments.as_object() {
             for (key, value) in obj {
                 let value_str = match value {

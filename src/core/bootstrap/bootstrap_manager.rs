@@ -106,9 +106,9 @@ impl BootstrapManager {
             }
         }
 
-        if pm.is_installed("postgres") {
+        if pm.is_installed("tables") {
             info!("Starting PostgreSQL...");
-            match pm.start("postgres") {
+            match pm.start("tables") {
                 Ok(_child) => {
                     info!("PostgreSQL started");
                 }

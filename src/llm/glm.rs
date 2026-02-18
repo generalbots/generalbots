@@ -116,6 +116,16 @@ impl GLMClient {
         // GLM/z.ai uses /chat/completions (not /v1/chat/completions)
         format!("{}/chat/completions", self.base_url)
     }
+
+    /// Sanitizes a string by removing invalid UTF-8 surrogate characters
+    fn sanitize_utf8(input: &str) -> String {
+        input.chars()
+            .filter(|c| {
+                let cp = *c as u32;
+                !(0xD800..=0xDBFF).contains(&cp) && !(0xDC00..=0xDFFF).contains(&cp)
+            })
+            .collect()
+    }
 }
 
 #[async_trait]
@@ -183,11 +193,6 @@ impl LLMProvider for GLMClient {
         key: &str,
         tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // DEBUG: Log what we received
-        info!("[GLM_DEBUG] config type: {}", config);
-        info!("[GLM_DEBUG] prompt: '{}'", prompt);
-        info!("[GLM_DEBUG] config as JSON: {}", serde_json::to_string_pretty(config).unwrap_or_default());
-
         // config IS the messages array directly, not nested
         let messages = if let Some(msgs) = config.as_array() {
             // Convert messages from config format to GLM format
@@ -195,25 +200,23 @@ impl LLMProvider for GLMClient {
                 .filter_map(|m| {
                     let role = m.get("role")?.as_str()?;
                     let content = m.get("content")?.as_str()?;
-                    info!("[GLM_DEBUG] Processing message - role: {}, content: '{}'", role, content);
-                    if !content.is_empty() {
+                    let sanitized = Self::sanitize_utf8(content);
+                    if !sanitized.is_empty() {
                         Some(GLMMessage {
                             role: role.to_string(),
-                            content: Some(content.to_string()),
+                            content: Some(sanitized),
                             tool_calls: None,
                         })
                     } else {
-                        info!("[GLM_DEBUG] Skipping empty content message");
                         None
                     }
                 })
                 .collect::<Vec<_>>()
         } else {
             // Fallback to building from prompt
-            info!("[GLM_DEBUG] No array found, using prompt: '{}'", prompt);
             vec![GLMMessage {
                 role: "user".to_string(),
-                content: Some(prompt.to_string()),
+                content: Some(Self::sanitize_utf8(prompt)),
                 tool_calls: None,
             }]
         };
@@ -222,8 +225,6 @@ impl LLMProvider for GLMClient {
         if messages.is_empty() {
             return Err("No valid messages in request".into());
         }
-
-        info!("[GLM_DEBUG] Final GLM messages count: {}", messages.len());
 
         // Use glm-4.7 for tool calling support
         // GLM-4.7 supports standard OpenAI-compatible function calling
@@ -248,10 +249,6 @@ impl LLMProvider for GLMClient {
 
         let url = self.build_url();
         info!("GLM streaming request to: {}", url);
-
-        // Log the exact request being sent
-        let request_json = serde_json::to_string_pretty(&request).unwrap_or_default();
-        info!("GLM request body: {}", request_json);
 
         let response = self
             .client
@@ -292,18 +289,13 @@ impl LLMProvider for GLMClient {
 
                 if line.starts_with("data: ") {
                     let json_str = line[6..].trim();
-                    info!("[GLM_SSE] Received SSE line ({} chars): {}", json_str.len(), json_str);
                     if let Ok(chunk_data) = serde_json::from_str::<Value>(json_str) {
                         if let Some(choices) = chunk_data.get("choices").and_then(|c| c.as_array()) {
                             for choice in choices {
-                                info!("[GLM_SSE] Processing choice");
                                 if let Some(delta) = choice.get("delta") {
-                                    info!("[GLM_SSE] Delta: {}", serde_json::to_string(delta).unwrap_or_default());
-
                                     // Handle tool_calls (GLM-4.7 standard function calling)
                                     if let Some(tool_calls) = delta.get("tool_calls").and_then(|t| t.as_array()) {
                                         for tool_call in tool_calls {
-                                            info!("[GLM_SSE] Tool call detected: {}", serde_json::to_string(tool_call).unwrap_or_default());
                                             // Send tool_calls as JSON for the calling code to process
                                             let tool_call_json = serde_json::json!({
                                                 "type": "tool_call",
@@ -323,7 +315,6 @@ impl LLMProvider for GLMClient {
                                     // This makes GLM behave like OpenAI-compatible APIs
                                     if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
                                         if !content.is_empty() {
-                                            info!("[GLM_TX] Sending to channel: '{}'", content);
                                             match tx.send(content.to_string()).await {
                                                 Ok(_) => {},
                                                 Err(e) => {
@@ -331,11 +322,9 @@ impl LLMProvider for GLMClient {
                                                 }
                                             }
                                         }
-                                    } else {
-                                        info!("[GLM_SSE] No content field in delta");
                                     }
                                 } else {
-                                    info!("[GLM_SSE] No delta in choice");
+                                    // No delta in choice
                                 }
                                 if let Some(reason) = choice.get("finish_reason").and_then(|r| r.as_str()) {
                                     if !reason.is_empty() {

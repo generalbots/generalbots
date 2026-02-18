@@ -65,8 +65,8 @@ fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) -> boo
 fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<AppState>) -> String {
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let base_url = config_manager
-        .get_config(&Uuid::nil(), "server-url", Some("http://localhost:8080"))
-        .unwrap_or_else(|_| "http://localhost:8080".to_string());
+        .get_config(&Uuid::nil(), "server-url", Some("http://localhost:9000"))
+        .unwrap_or_else(|_| "http://localhost:9000".to_string());
 
     let pixel_url = format!("{}/api/email/tracking/pixel/{}", base_url, tracking_id);
     let pixel_html = format!(

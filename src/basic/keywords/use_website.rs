@@ -826,7 +826,7 @@ mod tests {
             "docs_example_com_path"
         );
         assert_eq!(
-            sanitize_url_for_collection("http://test.site:8080"),
+            sanitize_url_for_collection("http://test.site:9000"),
             "test_site_8080"
         );
     }
