@@ -6,7 +6,8 @@ use crate::core::shared::sanitize_identifier;
 use crate::core::urls::ApiUrls;
 use crate::security::error_sanitizer::log_and_sanitize;
 use crate::security::sql_guard::{
-    build_safe_count_query, build_safe_select_query, is_table_allowed_with_conn, validate_table_name,
+    build_safe_count_query, build_safe_select_by_id_query, build_safe_select_query,
+    is_table_allowed_with_conn, validate_table_name,
 };
 use axum::{
     extract::{Path, Query, State},
@@ -257,10 +258,21 @@ pub async fn get_record_handler(
             }
         };
 
-    let query = format!(
-        "SELECT row_to_json(t.*) as data FROM {} t WHERE id = $1",
-        table_name
-    );
+    let query = match build_safe_select_by_id_query(&table_name) {
+        Ok(q) => q,
+        Err(e) => {
+            warn!("Failed to build safe query for {}: {}", table_name, e);
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(RecordResponse {
+                    success: false,
+                    data: None,
+                    message: Some("Invalid table name".to_string()),
+                }),
+            )
+                .into_response();
+        }
+    };
 
     let row: Result<Option<JsonRow>, _> = sql_query(&query)
         .bind::<diesel::sql_types::Uuid, _>(record_id)
@@ -700,7 +712,17 @@ pub async fn count_records_handler(
         return (StatusCode::FORBIDDEN, Json(json!({ "error": e }))).into_response();
     }
 
-    let query = format!("SELECT COUNT(*) as count FROM {}", table_name);
+    let query = match build_safe_count_query(&table_name) {
+        Ok(q) => q,
+        Err(e) => {
+            warn!("Failed to build count query: {}", e);
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Invalid table name" })),
+            )
+                .into_response();
+        }
+    };
     let result: Result<CountResult, _> = sql_query(&query).get_result(&mut conn);
 
     match result {
@@ -747,14 +769,18 @@ pub async fn search_records_handler(
             }
         };
 
+    let safe_search = search_term.replace('%', "\\%").replace('_', "\\_");
+
     let query = format!(
         "SELECT row_to_json(t.*) as data FROM {} t WHERE
          COALESCE(t.title::text, '') || ' ' || COALESCE(t.name::text, '') || ' ' || COALESCE(t.description::text, '')
-         ILIKE '%{}%' LIMIT {}",
-        table_name, search_term, limit
+         ILIKE '%' || $1 || '%' LIMIT {}",
+        table_name, limit
     );
 
-    let rows: Result<Vec<JsonRow>, _> = sql_query(&query).get_results(&mut conn);
+    let rows: Result<Vec<JsonRow>, _> = sql_query(&query)
+        .bind::<diesel::sql_types::Text, _>(&safe_search)
+        .get_results(&mut conn);
 
     match rows {
         Ok(data) => {

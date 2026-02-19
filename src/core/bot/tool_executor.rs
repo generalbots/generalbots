@@ -2,7 +2,7 @@
 /// Works across all LLM providers (GLM, OpenAI, Claude, etc.)
 use log::{error, info, warn};
 use serde_json::Value;
-use std::collections::HashMap;
+// use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;

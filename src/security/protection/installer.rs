@@ -1,7 +1,6 @@
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 use tracing::{error, info, warn};
 
 use crate::security::command_guard::SafeCommand;
@@ -84,12 +83,12 @@ impl ProtectionInstaller {
 
     #[cfg(windows)]
     pub fn check_admin() -> bool {
-        let result = Command::new("powershell")
-            .args([
+        let result = SafeCommand::new("powershell")
+            .and_then(|cmd| cmd.args(&[
                 "-Command",
                 "([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"
-            ])
-            .output();
+            ]))
+            .and_then(|cmd| cmd.execute());
 
         match result {
             Ok(output) => {
@@ -102,9 +101,9 @@ impl ProtectionInstaller {
 
     #[cfg(not(windows))]
     pub fn check_root() -> bool {
-        Command::new("id")
-            .arg("-u")
-            .output()
+        SafeCommand::new("id")
+            .and_then(|cmd| cmd.arg("-u"))
+            .and_then(|cmd| cmd.execute())
             .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "0")
             .unwrap_or(false)
     }
@@ -268,26 +267,23 @@ impl ProtectionInstaller {
     fn configure_windows_security(&self) -> Result<()> {
         info!("Configuring Windows security settings...");
 
-        // Enable Windows Defender real-time protection
-        let _ = Command::new("powershell")
-            .args([
+        let _ = SafeCommand::new("powershell")
+            .and_then(|cmd| cmd.args(&[
                 "-Command",
                 "Set-MpPreference -DisableRealtimeMonitoring $false; Set-MpPreference -DisableIOAVProtection $false; Set-MpPreference -DisableScriptScanning $false"
-            ])
-            .output();
+            ]))
+            .and_then(|cmd| cmd.execute());
 
-        // Enable Windows Firewall
-        let _ = Command::new("netsh")
-            .args(["advfirewall", "set", "allprofiles", "state", "on"])
-            .output();
+        let _ = SafeCommand::new("netsh")
+            .and_then(|cmd| cmd.args(&["advfirewall", "set", "allprofiles", "state", "on"]))
+            .and_then(|cmd| cmd.execute());
 
-        // Enable Windows Defender scanning for mapped drives
-        let _ = Command::new("powershell")
-            .args([
+        let _ = SafeCommand::new("powershell")
+            .and_then(|cmd| cmd.args(&[
                 "-Command",
                 "Set-MpPreference -DisableRemovableDriveScanning $false -DisableScanningMappedNetworkDrivesForFullScan $false"
-            ])
-            .output();
+            ]))
+            .and_then(|cmd| cmd.execute());
 
         info!("Windows security configuration completed");
         Ok(())
@@ -314,11 +310,10 @@ impl ProtectionInstaller {
     }
 
     #[cfg(not(windows))]
-    #[cfg(not(windows))]
     fn validate_sudoers(&self) -> Result<()> {
-        let output = std::process::Command::new("visudo")
-            .args(["-c", "-f", SUDOERS_FILE])
-            .output()
+        let output = SafeCommand::new("visudo")
+            .and_then(|cmd| cmd.args(&["-c", "-f", SUDOERS_FILE]))
+            .and_then(|cmd| cmd.execute())
             .context("Failed to run visudo validation")?;
 
         if !output.status.success() {
@@ -330,7 +325,6 @@ impl ProtectionInstaller {
         Ok(())
     }
 
-    #[cfg(not(windows))]
     #[cfg(not(windows))]
     fn install_lmd(&self) -> Result<bool> {
         let maldet_path = Path::new("/usr/local/sbin/maldet");
@@ -399,7 +393,6 @@ impl ProtectionInstaller {
     }
 
     #[cfg(not(windows))]
-    #[cfg(not(windows))]
     fn update_databases(&self) -> Result<()> {
         info!("Updating security tool databases...");
 
@@ -442,12 +435,12 @@ impl ProtectionInstaller {
     fn update_windows_signatures(&self) -> Result<()> {
         info!("Updating Windows Defender signatures...");
 
-        let result = Command::new("powershell")
-            .args([
+        let result = SafeCommand::new("powershell")
+            .and_then(|cmd| cmd.args(&[
                 "-Command",
                 "Update-MpSignature; Write-Host 'Windows Defender signatures updated'",
-            ])
-            .output();
+            ]))
+            .and_then(|cmd| cmd.execute());
 
         match result {
             Ok(output) => {
@@ -571,13 +564,9 @@ impl ProtectionInstaller {
         #[cfg(windows)]
         {
             for (tool_name, tool_cmd) in WINDOWS_TOOLS {
-                let check = Command::new(tool_cmd)
-                    .arg("--version")
-                    .or_else(|_| {
-                        Command::new("powershell")
-                            .args(["-Command", &format!("Get-Command {}", tool_cmd)])
-                    })
-                    .output();
+                let check = SafeCommand::new(tool_cmd)
+                    .and_then(|cmd| cmd.arg("--version"))
+                    .and_then(|cmd| cmd.execute());
 
                 let installed = check.map(|o| o.status.success()).unwrap_or(false);
                 result.tools.push(ToolVerification {

@@ -912,14 +912,14 @@ impl ScriptService {
     fn convert_mail_block(recipient: &str, lines: &[String]) -> String {
         let mut subject = String::new();
         let mut body_lines: Vec<String> = Vec::new();
-        let mut in_subject = true;
+        // let mut in_subject = true; // Removed unused variable
         let mut skip_blank = true;
 
-        for (i, line) in lines.iter().enumerate() {
+        for line in lines.iter() {
             // Check if this line is a subject line
             if line.to_uppercase().starts_with("SUBJECT:") {
                 subject = line[8..].trim().to_string();
-                in_subject = false;
+                // in_subject = false; // Removed unused assignment
                 skip_blank = true;
                 continue;
             }
@@ -1203,7 +1203,7 @@ impl ScriptService {
                 // Split into multiple TALK statements to avoid expression complexity limit
                 // Use chunks of 5 lines per TALK statement
                 let chunk_size = 5;
-                for (chunk_idx, chunk) in talk_block_lines.chunks(chunk_size).enumerate() {
+                for chunk in talk_block_lines.chunks(chunk_size) {
                     // Convert all talk lines in this chunk to a single TALK statement
                     let mut combined_talk = String::new();
                     for (i, talk_line) in chunk.iter().enumerate() {
@@ -1415,7 +1415,7 @@ impl ScriptService {
     /// to avoid creating local variables that shadow outer scope variables.
     pub fn convert_select_case_syntax(script: &str) -> String {
         let mut result = String::new();
-        let mut lines: Vec<&str> = script.lines().collect();
+        let lines: Vec<&str> = script.lines().collect();
         let mut i = 0;
 
         log::info!("[TOOL] Converting SELECT/CASE syntax to if-else chains");
@@ -1479,7 +1479,7 @@ impl ScriptService {
                             // Close the last case arm (no else if, so we need the closing brace)
                             result.push_str("    }\n");
                             current_case_body.clear();
-                            in_case = false;
+                            //in_case = false; // Removed unused assignment
                         }
                         // No extra closing brace needed - the last } else if ... { already closed the chain
                         i += 1;
@@ -1502,7 +1502,7 @@ impl ScriptService {
                             // Close the current case arm (no else if, so we need the closing brace)
                             result.push_str("    }\n");
                             current_case_body.clear();
-                            in_case = false;
+                            //in_case = false; // Removed unused assignment
                         }
                         // No extra closing brace needed
                         break;

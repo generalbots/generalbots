@@ -74,6 +74,8 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "systemctl",
         "sudo",
         "visudo",
+        "id",
+        "netsh",
     ])
 });
 
