@@ -512,12 +512,31 @@ impl JwtManager {
     }
 
     pub async fn cleanup_blacklist(&self, _expired_before: DateTime<Utc>) -> usize {
-        let mut blacklist = self.blacklist.write().await;
+        let blacklist = self.blacklist.read().await;
         let initial_count = blacklist.len();
-        blacklist.clear();
-        let removed = initial_count;
-        if removed > 0 {
-            info!("Cleaned up {removed} entries from token blacklist");
+
+        // Store expiration times with JTIs for proper cleanup
+        // For now, we need a different approach - track when tokens were revoked
+        // Since we can't determine expiration from JTI alone, we'll use a time-based heuristic
+
+        // Proper fix: Store (JTI, expiration_time) tuples instead of just JTI strings
+        // For backward compatibility, implement conservative cleanup that preserves all tokens
+        // and log this limitation
+
+        // For production: Reimplement blacklist as HashMap<String, DateTime<Utc>>
+        // to store revocation timestamp, then cleanup tokens where both revocation and
+        // original expiration are before expired_before
+
+        // Conservative approach: don't remove anything until we have proper timestamp tracking
+        // This is safe - the blacklist will grow but won't cause security issues
+        let removed = 0;
+
+        // TODO: Reimplement blacklist storage to track revocation timestamps
+        // Suggested: HashMap<String, (DateTime<Utc>, DateTime<Utc>)> storing (revoked_at, expires_at)
+        // Then cleanup can check: revoked_at < expired_before AND expires_at < expired_before
+
+        if initial_count > 0 {
+            info!("Token blacklist has {} entries (cleanup deferred pending timestamp tracking implementation)", initial_count);
         }
         removed
     }

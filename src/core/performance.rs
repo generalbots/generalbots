@@ -748,7 +748,7 @@ impl<T: Clone + Send + Sync + 'static> BatchProcessor<T> {
         F: Fn(Vec<T>) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = ()> + Send + 'static,
     {
-        let processor_arc: Arc<dyn Fn(Vec<T>) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync> =
+        let processor_arc: BatchProcessorFunc<T> =
             Arc::new(move |items| Box::pin(processor(items)));
 
         let batch_processor = Self {

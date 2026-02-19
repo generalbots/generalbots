@@ -122,8 +122,8 @@ pub fn convert_talk_block(lines: &[String]) -> String {
     // Extract content after "TALK " prefix
     let line_contents: Vec<String> = converted_lines.iter()
         .map(|line| {
-            if line.starts_with("TALK ") {
-                line[5..].trim().to_string()
+            if let Some(stripped) = line.strip_prefix("TALK ") {
+                stripped.trim().to_string()
             } else {
                 line.clone()
             }
@@ -150,12 +150,12 @@ pub fn convert_talk_block(lines: &[String]) -> String {
     }
 
     // Combine all chunks into final TALK statement
-    let num_chunks = (line_contents.len() + chunk_size - 1) / chunk_size;
+    let num_chunks = line_contents.len().div_ceil(chunk_size);
     if line_contents.is_empty() {
         return "TALK \"\";\n".to_string();
     } else if num_chunks == 1 {
         // Single chunk - use the first variable directly
-        result.push_str(&format!("TALK __talk_chunk_0__;\n"));
+        result.push_str("TALK __talk_chunk_0__;\n");
     } else {
         // Multiple chunks - need hierarchical chunking to avoid complexity
         // Combine chunks in groups of 5 to create intermediate variables

@@ -379,26 +379,12 @@ pub async fn get_current_user(
     let session_token = headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
-        .and_then(|auth| auth.strip_prefix("Bearer "));
+        .and_then(|auth| auth.strip_prefix("Bearer "))
+        .filter(|token| !token.is_empty());
 
     match session_token {
         None => {
             info!("get_current_user: no authorization header - returning anonymous user");
-            Json(CurrentUserResponse {
-                id: None,
-                username: None,
-                email: None,
-                first_name: None,
-                last_name: None,
-                display_name: None,
-                roles: None,
-                organization_id: None,
-                avatar_url: None,
-                is_anonymous: true,
-            })
-        }
-        Some(token) if token.is_empty() => {
-            info!("get_current_user: empty authorization token - returning anonymous user");
             Json(CurrentUserResponse {
                 id: None,
                 username: None,

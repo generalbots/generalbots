@@ -110,11 +110,12 @@ pub fn get_manifest_eta(state: &Arc<AppState>, task_id: &str) -> String {
 }
 
 /// Parse the web JSON format that we store in the database
-pub fn parse_web_manifest_json(json: &serde_json::Value) -> Result<serde_json::Value, ()> {
+/// Returns None if the format is invalid (missing sections)
+pub fn parse_web_manifest_json(json: &serde_json::Value) -> Option<serde_json::Value> {
     // The web format has sections with status as strings, etc.
     if json.get("sections").is_some() {
-        Ok(json.clone())
+        Some(json.clone())
     } else {
-        Err(())
+        None
     }
 }

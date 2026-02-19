@@ -153,6 +153,7 @@ pub struct UserLoginToken {
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = user_preferences)]
 pub struct UserPreference {
+
     pub id: Uuid,
     pub user_id: Uuid,
     pub preference_key: String,
@@ -162,10 +163,28 @@ pub struct UserPreference {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
-#[diesel(table_name = clicks)]
+#[diesel(table_name = clicks)] 
 pub struct Click {
     pub id: Uuid,
     pub campaign_id: String,
     pub email: String,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[diesel(table_name = crate::core::shared::models::schema::organization_invitations)]
+pub struct OrganizationInvitation {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub email: String,
+    pub role: String,
+    pub status: String,
+    pub message: Option<String>,
+    pub invited_by: Uuid,
+    pub token: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub accepted_at: Option<DateTime<Utc>>,
+    pub accepted_by: Option<Uuid>,
 }

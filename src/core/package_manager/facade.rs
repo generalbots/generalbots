@@ -1047,7 +1047,7 @@ Store credentials in Vault:
         Ok(())
     }
     pub fn run_commands(&self, commands: &[String], target: &str, component: &str) -> Result<()> {
-        self.run_commands_with_password(commands, target, component, &String::new())
+        self.run_commands_with_password(commands, target, component, "")
     }
 
     pub fn run_commands_with_password(&self, commands: &[String], target: &str, component: &str, db_password_override: &str) -> Result<()> {
@@ -1081,7 +1081,7 @@ Store credentials in Vault:
             match get_database_url_sync() {
                 Ok(url) => {
                     let (_, password, _, _, _) = parse_database_url(&url);
-                    String::from(password)
+                    password
                 }
                 Err(_) => {
                     trace!("Vault not available for DB_PASSWORD, using empty string");

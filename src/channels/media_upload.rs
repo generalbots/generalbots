@@ -41,7 +41,7 @@ impl Platform {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_str_name(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "twitter" | "x" => Some(Self::Twitter),
             "facebook" | "fb" => Some(Self::Facebook),

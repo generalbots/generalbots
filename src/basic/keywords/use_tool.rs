@@ -26,7 +26,7 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 tool_path_str.as_str()
             }
             .strip_suffix(".bas")
-            .unwrap_or_else(|| tool_path_str.as_str())
+            .unwrap_or(tool_path_str.as_str())
             .to_string();
             if tool_name.is_empty() {
                 return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(

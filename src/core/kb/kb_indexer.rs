@@ -172,9 +172,9 @@ impl KbIndexer {
         let mut batch_docs = Vec::with_capacity(BATCH_SIZE);
 
         // Process documents in iterator to avoid keeping all in memory
-        let mut doc_iter = documents.into_iter();
+        let doc_iter = documents.into_iter();
         
-        while let Some((doc_path, chunks)) = doc_iter.next() {
+        for (doc_path, chunks) in doc_iter {
             if chunks.is_empty() {
                 debug!("[KB_INDEXER] Skipping document with no chunks: {}", doc_path);
                 continue;
@@ -262,9 +262,9 @@ impl KbIndexer {
 
             // Process chunks in smaller sub-batches to prevent memory exhaustion
             const CHUNK_BATCH_SIZE: usize = 20; // Process 20 chunks at a time
-            let mut chunk_batches = chunks.chunks(CHUNK_BATCH_SIZE);
+            let chunk_batches = chunks.chunks(CHUNK_BATCH_SIZE);
             
-            while let Some(chunk_batch) = chunk_batches.next() {
+            for chunk_batch in chunk_batches {
                 trace!("[KB_INDEXER] Processing chunk batch of {} chunks", chunk_batch.len());
                 
                 let embeddings = match self

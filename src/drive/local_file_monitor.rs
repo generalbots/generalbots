@@ -192,7 +192,7 @@ impl LocalFileMonitor {
                 // Look for <botname>.gbdialog folder inside (e.g., cristo.gbai/cristo.gbdialog)
                 let gbdialog_path = path.join(format!("{}.gbdialog", bot_name));
                 if gbdialog_path.exists() {
-                    self.compile_gbdialog(&bot_name, &gbdialog_path).await?;
+                    self.compile_gbdialog(bot_name, &gbdialog_path).await?;
                 }
             }
         }
@@ -289,9 +289,9 @@ impl LocalFileMonitor {
             std::fs::write(&local_source_path, &source_content_clone)?;
             let mut compiler = BasicCompiler::new(state_clone, bot_id);
             let local_source_str = local_source_path.to_str()
-                .ok_or_else(|| format!("Invalid UTF-8 in local source path"))?;
+                .ok_or_else(|| "Invalid UTF-8 in local source path".to_string())?;
             let work_dir_str = work_dir_clone.to_str()
-                .ok_or_else(|| format!("Invalid UTF-8 in work directory path"))?;
+                .ok_or_else(|| "Invalid UTF-8 in work directory path".to_string())?;
             let result = compiler.compile_file(local_source_str, work_dir_str)?;
             if let Some(mcp_tool) = result.mcp_tool {
                 info!(

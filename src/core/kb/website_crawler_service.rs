@@ -228,7 +228,7 @@ impl WebsiteCrawlerService {
                 let total_pages = pages.len();
 
                 for (batch_idx, batch) in pages.chunks(BATCH_SIZE).enumerate() {
-                    info!("Processing batch {} of {} pages", batch_idx + 1, (total_pages + BATCH_SIZE - 1) / BATCH_SIZE);
+                    info!("Processing batch {} of {} pages", batch_idx + 1, total_pages.div_ceil(BATCH_SIZE));
 
                     for (idx, page) in batch.iter().enumerate() {
                         let global_idx = batch_idx * BATCH_SIZE + idx;
@@ -377,6 +377,8 @@ impl WebsiteCrawlerService {
         bot_id: uuid::Uuid,
         conn: &mut diesel::PgConnection,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let website_regex = regex::Regex::new(r#"(?i)(?:USE\s+WEBSITE\s+"([^"]+)"\s+REFRESH\s+"([^"]+)")|(?:USE_WEBSITE\s*\(\s*"([^"]+)"\s*(?:,\s*"([^"]+)"\s*)?\))"#)?;
+
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -384,11 +386,7 @@ impl WebsiteCrawlerService {
             if path.extension().is_some_and(|ext| ext == "bas") {
                 let content = std::fs::read_to_string(&path)?;
 
-                // Regex to find both syntaxes: USE WEBSITE "url" REFRESH "interval" and USE_WEBSITE("url", "refresh")
-                // Case-insensitive to match preprocessed lowercase versions
-                let re = regex::Regex::new(r#"(?i)(?:USE\s+WEBSITE\s+"([^"]+)"\s+REFRESH\s+"([^"]+)")|(?:USE_WEBSITE\s*\(\s*"([^"]+)"\s*(?:,\s*"([^"]+)"\s*)?\))"#)?;
-
-                for cap in re.captures_iter(&content) {
+                for cap in website_regex.captures_iter(&content) {
                     // Extract URL from either capture group 1 (space syntax) or group 3 (function syntax)
                     let url_str = if let Some(url) = cap.get(1) {
                         url.as_str()

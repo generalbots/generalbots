@@ -284,7 +284,7 @@ impl ToolExecutor {
         }
 
         // Compile tool script (filters PARAM/DESCRIPTION lines and converts BASIC to Rhai)
-        let ast = match script_service.compile_tool_script(&bas_script) {
+        let ast = match script_service.compile_tool_script(bas_script) {
             Ok(ast) => ast,
             Err(e) => {
                 let error_msg = format!("Compilation error: {}", e);

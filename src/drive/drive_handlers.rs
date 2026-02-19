@@ -46,7 +46,7 @@ async fn read_metadata(
 
     let item = FileItem {
         id: file_id.clone(),
-        name: file_id.split('/').last().unwrap_or(&file_id).to_string(),
+        name: file_id.split('/').next_back().unwrap_or(&file_id).to_string(),
         file_type: if file_id.ends_with('/') { "folder".to_string() } else { "file".to_string() },
         size: resp.content_length.unwrap_or(0),
         mime_type: resp.content_type.unwrap_or_else(|| "application/octet-stream".to_string()),
@@ -118,7 +118,7 @@ pub async fn list_files(
 
     let files = resp.contents.unwrap_or_default().iter().map(|obj| {
         let key = obj.key().unwrap_or_default();
-        let name = key.split('/').last().unwrap_or(key).to_string();
+        let name = key.split('/').next_back().unwrap_or(key).to_string();
         FileItem {
             id: key.to_string(),
             name,
@@ -260,12 +260,12 @@ pub async fn download_file(
         .await
         .map_err(|e| (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": e.to_string()}))))?;
 
-    let stream = Body::from_stream(resp.body);
+    let body = resp.body.collect().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?.into_bytes();
 
     Ok(Response::builder()
         .header(header::CONTENT_TYPE, "application/octet-stream")
-        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{}\"", file_id.split('/').last().unwrap_or("file")))
-        .body(stream)
+        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{}\"", file_id.split('/').next_back().unwrap_or("file")))
+        .body(Body::from(body))
         .unwrap())
 }
 

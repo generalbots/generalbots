@@ -15,7 +15,7 @@ pub fn convert_mail_line_with_substitution(line: &str) -> String {
 
                     if !current_literal.is_empty() {
                         if result.is_empty() {
-                            result.push_str("\"");
+                            result.push('"');
                             result.push_str(&current_literal.replace('"', "\\\""));
                             result.push('"');
                         } else {
@@ -58,7 +58,7 @@ pub fn convert_mail_line_with_substitution(line: &str) -> String {
 
     if !current_literal.is_empty() {
         if result.is_empty() {
-            result.push_str("\"");
+            result.push('"');
             result.push_str(&current_literal.replace('"', "\\\""));
             result.push('"');
         } else {
@@ -98,10 +98,9 @@ pub fn convert_mail_block(recipient: &str, lines: &[String]) -> String {
 
     let mut result = String::new();
     let chunk_size = 5;
-    let mut var_count = 0;
     let mut all_vars: Vec<String> = Vec::new();
 
-    for chunk in body_lines.chunks(chunk_size) {
+    for (var_count, chunk) in body_lines.chunks(chunk_size).enumerate() {
         let var_name = format!("__mail_body_{}__", var_count);
         all_vars.push(var_name.clone());
 
@@ -115,7 +114,6 @@ pub fn convert_mail_block(recipient: &str, lines: &[String]) -> String {
             }
             result.push_str(&format!("let {} = {};\n", var_name, chunk_expr));
         }
-        var_count += 1;
     }
 
     let body_expr = if all_vars.is_empty() {

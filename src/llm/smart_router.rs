@@ -23,7 +23,7 @@ pub enum OptimizationGoal {
 }
 
 impl OptimizationGoal {
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_str_name(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "speed" => Self::Speed,
             "cost" => Self::Cost,

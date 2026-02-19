@@ -60,8 +60,6 @@ pub mod research;
 pub mod search;
 pub mod security;
 pub mod settings;
-#[cfg(feature = "dashboards")]
-pub mod shared;
 #[cfg(feature = "sheet")]
 pub mod sheet;
 #[cfg(feature = "slides")]
@@ -229,8 +227,9 @@ async fn main() -> std::io::Result<()> {
     if args.len() > 1 {
         let command = &args[1];
         match command.as_str() {
-            "install" | "remove" | "list" | "status" | "start" | "stop" | "restart" | "--help"
-            | "-h" => match crate::core::package_manager::cli::run().await {
+            "install" | "remove" | "list" | "status" | "start" | "stop" | "restart"
+            | "rotate-secret" | "rotate-secrets" | "vault"
+            | "--version" | "-v" | "--help" | "-h" => match crate::core::package_manager::cli::run().await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
                     eprintln!("CLI error: {e}");

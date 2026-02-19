@@ -436,6 +436,42 @@ impl<S: SessionStore> SessionManager<S> {
         Ok(sessions.into_iter().filter(|s| s.is_valid()).collect())
     }
 
+    pub async fn regenerate_session(&self, old_session_id: &str, ip_address: Option<String>, user_agent: Option<&str>) -> Result<Option<Session>> {
+        let old_session = match self.store.get(old_session_id).await? {
+            Some(s) if s.is_valid() => s,
+            _ => return Ok(None),
+        };
+
+        let user_id = old_session.user_id;
+
+        let mut new_session = Session::new(user_id, &self.config)
+            .with_remember_me(old_session.remember_me)
+            .with_metadata("regenerated_from".to_string(), old_session.id.clone());
+
+        if let Some(ip) = ip_address {
+            new_session = new_session.with_ip(ip);
+        }
+
+        if self.config.enable_device_tracking {
+            if let Some(ua) = user_agent {
+                new_session = new_session.with_device(DeviceInfo::from_user_agent(ua));
+            }
+        }
+
+        for (key, value) in old_session.metadata {
+            if key != "regenerated_from" {
+                new_session = new_session.with_metadata(key, value);
+            }
+        }
+
+        self.store.delete(old_session_id).await?;
+        self.store.create(new_session.clone()).await?;
+
+        info!("Regenerated session {} -> {} for user {user_id}", old_session_id, new_session.id);
+
+        Ok(Some(new_session))
+    }
+
     pub async fn invalidate_on_password_change(&self, user_id: Uuid) -> Result<usize> {
         let count = self.store.delete_user_sessions(user_id).await?;
         info!("Invalidated {count} sessions for user {user_id} due to password change");

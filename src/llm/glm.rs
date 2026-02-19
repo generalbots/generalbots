@@ -243,7 +243,7 @@ impl LLMProvider for GLMClient {
             stream: Some(true),
             max_tokens: None,
             temperature: None,
-            tools: tools.map(|t| t.clone()),
+            tools: tools.cloned(),
             tool_choice,
         };
 
@@ -283,12 +283,12 @@ impl LLMProvider for GLMClient {
                 }
 
                 if line == "data: [DONE]" {
-                    let _ = tx.send(String::new()); // Signal end
+                    std::mem::drop(tx.send(String::new())); // Signal end
                     return Ok(());
                 }
 
-                if line.starts_with("data: ") {
-                    let json_str = line[6..].trim();
+                if let Some(json_str) = line.strip_prefix("data: ") {
+                    let json_str = json_str.trim();
                     if let Ok(chunk_data) = serde_json::from_str::<Value>(json_str) {
                         if let Some(choices) = chunk_data.get("choices").and_then(|c| c.as_array()) {
                             for choice in choices {
@@ -329,7 +329,7 @@ impl LLMProvider for GLMClient {
                                 if let Some(reason) = choice.get("finish_reason").and_then(|r| r.as_str()) {
                                     if !reason.is_empty() {
                                         info!("GLM stream finished: {}", reason);
-                                        let _ = tx.send(String::new());
+                                        std::mem::drop(tx.send(String::new()));
                                         return Ok(());
                                     }
                                 }
@@ -345,7 +345,7 @@ impl LLMProvider for GLMClient {
             }
         }
 
-        let _ = tx.send(String::new()); // Signal completion
+        std::mem::drop(tx.send(String::new())); // Signal completion
         Ok(())
     }
 
