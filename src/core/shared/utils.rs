@@ -199,7 +199,7 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
             let pb = ProgressBar::new(total_size);
             pb.set_style(ProgressStyle::default_bar()
                 .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                .expect("Invalid progress bar template")
+                .unwrap_or(ProgressStyle::default_bar())
                 .progress_chars("#>-"));
             pb.set_message(format!("Downloading {}", url));
             let mut file = TokioFile::create(&output_path).await?;

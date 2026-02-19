@@ -308,7 +308,7 @@ fn is_valid_origin_format(origin: &str) -> bool {
         return false;
     }
 
-    if origin.contains("..") || origin.contains("//", ) && origin.matches("//").count() > 1 {
+    if origin.contains("..") || origin.matches("//").count() > 1 {
         return false;
     }
 
