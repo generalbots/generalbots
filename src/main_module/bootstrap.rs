@@ -216,7 +216,9 @@ pub async fn init_database(
     progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
 
     // Ensure secrets manager is initialized before creating database connection
-    crate::core::shared::utils::init_secrets_manager().await;
+    crate::core::shared::utils::init_secrets_manager()
+        .await
+        .expect("Failed to initialize secrets manager");
 
     let pool = match create_conn() {
         Ok(pool) => {

@@ -714,6 +714,7 @@ impl ScriptService {
     /// Convert FORMAT(expr, pattern) to FORMAT expr pattern (custom syntax format)
     /// Also handles RANDOM and other functions that need space-separated arguments
     /// This properly handles nested function calls by counting parentheses
+    #[allow(dead_code)]
     fn convert_format_syntax(script: &str) -> String {
         let mut result = String::new();
         let mut chars = script.chars().peekable();

@@ -318,7 +318,7 @@ When a file grows beyond this limit:
 | `attendance/llm_assist.rs` | 2053 | → 5 files |
 | `drive/mod.rs` | 1522 | → 4 files |
 
-**See `TODO-refactor1.md` for detailed refactoring plans**
+
 
 ---
 
@@ -465,7 +465,7 @@ We welcome contributions! Please read our contributing guidelines before submitt
 
 1. **Replace 955 unwrap()/expect() calls** with proper error handling
 2. **Optimize 12,973 clone()/to_string() calls** for performance  
-3. **Refactor 5 large files** following TODO-refactor1.md
+3. **Refactor 5 large files** following refactoring plan
 4. **Add missing error handling** in critical paths
 5. **Implement proper logging** instead of panicking
 
