@@ -26,10 +26,10 @@ pub struct MigrationResult {
 
 /// Column metadata from database
 #[derive(Debug, Clone)]
-struct DbColumn {
-    name: String,
-    data_type: String,
-    is_nullable: bool,
+pub struct DbColumn {
+    pub name: String,
+    pub data_type: String,
+    pub is_nullable: bool,
 }
 
 /// Compare and sync table schema with definition
