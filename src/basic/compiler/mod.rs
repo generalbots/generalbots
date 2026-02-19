@@ -4,8 +4,8 @@ use crate::basic::keywords::table_definition::process_table_definitions;
 use crate::basic::keywords::webhook::execute_webhook_registration;
 use crate::core::shared::models::TriggerKind;
 use crate::core::shared::state::AppState;
-use diesel::{QueryableByName, sql_query};
-use diesel::sql_types::Text;
+use diesel::QueryableByName;
+// use diesel::sql_types::Text; // Removed unused import
 use diesel::ExpressionMethods;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
@@ -771,7 +771,7 @@ impl BasicCompiler {
         table_name: &str,
         bot_id: uuid::Uuid,
     ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
-        use std::path::Path;
+        // use std::path::Path;
 
         // Find the tables.bas file in the bot's data directory
         let bot_name = self.get_bot_name_by_id(bot_id)?;

@@ -68,11 +68,20 @@ pub struct CombinedRateLimiter {
 
 impl CombinedRateLimiter {
     pub fn new(http_config: HttpRateLimitConfig, system_limits: SystemLimits) -> Self {
+        const DEFAULT_RPS: NonZeroU32 = match NonZeroU32::new(100) {
+            Some(v) => v,
+            None => unreachable!(),
+        };
+        const DEFAULT_BURST: NonZeroU32 = match NonZeroU32::new(200) {
+            Some(v) => v,
+            None => unreachable!(),
+        };
+
         let quota = Quota::per_second(
-            NonZeroU32::new(http_config.requests_per_second).unwrap_or(NonZeroU32::new(100).expect("100 is non-zero")),
+            NonZeroU32::new(http_config.requests_per_second).unwrap_or(DEFAULT_RPS),
         )
         .allow_burst(
-            NonZeroU32::new(http_config.burst_size).unwrap_or(NonZeroU32::new(200).expect("200 is non-zero")),
+            NonZeroU32::new(http_config.burst_size).unwrap_or(DEFAULT_BURST),
         );
 
         Self {

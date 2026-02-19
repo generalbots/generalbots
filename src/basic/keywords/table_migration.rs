@@ -7,7 +7,7 @@ use crate::core::shared::sanitize_identifier;
 use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use diesel::sql_query;
-use diesel::sql_types::{Text, Nullable};
+use diesel::sql_types::Text;
 use log::{error, info, warn};
 use std::error::Error;
 use std::sync::Arc;

@@ -75,13 +75,13 @@ pub fn convert_mail_line_with_substitution(line: &str) -> String {
 pub fn convert_mail_block(recipient: &str, lines: &[String]) -> String {
     let mut subject = String::new();
     let mut body_lines: Vec<String> = Vec::new();
-    let mut in_subject = true;
+    // let mut in_subject = true; // Removed unused variable
     let mut skip_blank = true;
 
     for line in lines.iter() {
         if line.to_uppercase().starts_with("SUBJECT:") {
             subject = line[8..].trim().to_string();
-            in_subject = false;
+            // in_subject = false; // Removed unused assignment
             skip_blank = true;
             continue;
         }
