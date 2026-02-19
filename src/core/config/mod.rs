@@ -419,7 +419,7 @@ impl ConfigManager {
                         .first::<String>(&mut conn)
                         .unwrap_or_else(|_| fallback_str.to_string())
                 } else {
-                    String::from(v)
+                    v
                 }
             }
             Err(_) => {

@@ -1,15 +1,4 @@
-pub mod llm_assist_types;
-pub mod llm_assist_config;
-pub mod llm_assist_handlers;
-pub mod llm_assist_commands;
-pub mod llm_assist_helpers;
-
-// Re-export commonly used types
-pub use llm_assist_types::*;
-
-// Re-export handlers for routing
-pub use llm_assist_handlers::*;
-pub use llm_assist_commands::*;
+use crate::attendance::{llm_assist_types, llm_assist_config, llm_assist_handlers, llm_assist_commands};
 
 use axum::{
     routing::{get, post},
@@ -17,6 +6,10 @@ use axum::{
 };
 use std::sync::Arc;
 use crate::core::shared::state::AppState;
+
+pub use llm_assist_types::*;
+pub use llm_assist_handlers::*;
+pub use llm_assist_commands::*;
 
 pub fn llm_assist_routes() -> Router<Arc<AppState>> {
     Router::new()

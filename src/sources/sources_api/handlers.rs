@@ -8,6 +8,7 @@ use axum::{
     response::{Html, IntoResponse},
     Json,
 };
+use std::fmt::Write;
 use std::sync::Arc;
 
 pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -35,9 +36,8 @@ pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> im
         let language = repo.language.as_deref().unwrap_or("Unknown");
         let last_sync = repo.last_sync.as_deref().unwrap_or("Never");
 
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 r#"<div class="repo-card">
                 <div class="repo-header">
                     <div class="repo-icon">
@@ -77,7 +77,6 @@ pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> im
                 repo.forks,
                 last_sync,
                 html_escape(&repo.url)
-            ),
         );
     }
 
@@ -136,9 +135,8 @@ pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoR
             _ => "🔷",
         };
 
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 r#"<div class="app-card">
                 <div class="app-header">
                     <div class="app-icon">{}</div>
@@ -158,7 +156,6 @@ pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoR
                 html_escape(&app.app_type),
                 html_escape(&app.description),
                 html_escape(&app.url)
-            ),
         );
     }
 
@@ -206,12 +203,10 @@ pub async fn handle_prompts(
 
     for (id, name, icon) in &categories {
         let active = if *id == category { " active" } else { "" };
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 "<button class=\"category-item{}\" hx-get=\"/api/sources/prompts?category={}\" hx-target=\"#content-area\" hx-swap=\"innerHTML\"><span class=\"category-icon\">{}</span><span class=\"category-name\">{}</span></button>",
                 active, id, icon, name
-            ),
         );
     }
 
@@ -219,12 +214,10 @@ pub async fn handle_prompts(
     html.push_str("<div class=\"content-main\"><div class=\"prompts-grid\" id=\"prompts-grid\">");
 
     for prompt in &prompts {
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 "<div class=\"prompt-card\"><div class=\"prompt-header\"><span class=\"prompt-icon\">{}</span><h4>{}</h4></div><p class=\"prompt-description\">{}</p><div class=\"prompt-footer\"><span class=\"prompt-category\">{}</span><button class=\"btn-use\" onclick=\"usePrompt('{}')\">Use</button></div></div>",
                 prompt.icon, html_escape(&prompt.title), html_escape(&prompt.description), html_escape(&prompt.category), html_escape(&prompt.id)
-            ),
         );
     }
 
@@ -247,12 +240,10 @@ pub async fn handle_templates(State(_state): State<Arc<AppState>>) -> impl IntoR
     html.push_str("<div class=\"templates-grid\">");
 
     for template in &templates {
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 "<div class=\"template-card\"><div class=\"template-icon\">{}</div><div class=\"template-info\"><h4>{}</h4><p>{}</p><div class=\"template-meta\"><span class=\"template-category\">{}</span></div></div><div class=\"template-actions\"><button class=\"btn-preview\">Preview</button><button class=\"btn-use-template\">Use Template</button></div></div>",
                 template.icon, html_escape(&template.name), html_escape(&template.description), html_escape(&template.category)
-            ),
         );
     }
 
@@ -296,12 +287,10 @@ pub async fn handle_news(State(_state): State<Arc<AppState>>) -> impl IntoRespon
     html.push_str("<div class=\"news-list\">");
 
     for (icon, title, description, time) in &news_items {
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 "<div class=\"news-item\"><div class=\"news-icon\">{}</div><div class=\"news-content\"><h4>{}</h4><p>{}</p><span class=\"news-time\">{}</span></div></div>",
                 icon, html_escape(title), html_escape(description), time
-            ),
         );
     }
 
@@ -325,31 +314,25 @@ pub async fn handle_llm_tools(
 
     let mut html = String::new();
     html.push_str("<div class=\"tools-container\">");
-    let _ = std::fmt::write!(
+    let _ = write!(
         html,
-        format_args!(
             "<div class=\"tools-header\"><h3>LLM Tools</h3><p>All tools available for Tasks and LLM invocation</p><div class=\"tools-stats\"><span class=\"stat\"><strong>{}</strong> BASIC keywords</span><span class=\"stat\"><strong>{}</strong> MCP tools</span></div></div>",
             keywords.len(), mcp_tools_count
-        ),
     );
 
     html.push_str("<div class=\"tools-grid\">");
     for keyword in keywords.iter().take(20) {
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 "<span class=\"keyword-tag\">{}</span>",
                 html_escape(keyword)
-            ),
         );
     }
     if keywords.len() > 20 {
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 "<span class=\"keyword-more\">+{} more...</span>",
                 keywords.len() - 20
-            ),
         );
     }
     html.push_str("</div></div>");
@@ -402,12 +385,10 @@ pub async fn handle_models(State(_state): State<Arc<AppState>>) -> impl IntoResp
         } else {
             "model-available"
         };
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 "<div class=\"model-card {}\"><div class=\"model-icon\">{}</div><div class=\"model-info\"><div class=\"model-header\"><h4>{}</h4><span class=\"model-provider\">{}</span></div><p>{}</p><div class=\"model-footer\"><span class=\"model-status\">{}</span></div></div></div>",
                 status_class, icon, html_escape(name), html_escape(provider), html_escape(description), status
-            ),
         );
     }
 
@@ -438,25 +419,21 @@ pub async fn handle_search(
         .collect();
 
     let mut html = String::new();
-    let _ = std::fmt::write!(html, format_args!("<div class=\"search-results\"><div class=\"search-header\"><h3>Search Results for \"{}\"</h3></div>", html_escape(&query)));
+    let _ = write!(html, "<div class=\"search-results\"><div class=\"search-header\"><h3>Search Results for \"{}\"</h3></div>", html_escape(&query));
 
     if matching_prompts.is_empty() {
         html.push_str("<div class=\"no-results\"><p>No results found</p></div>");
     } else {
-        let _ = std::fmt::write!(
+        let _ = write!(
             html,
-            format_args!(
                 "<div class=\"result-section\"><h4>Prompts ({})</h4><div class=\"results-grid\">",
                 matching_prompts.len()
-            ),
         );
         for prompt in matching_prompts {
-            let _ = std::fmt::write!(
+            let _ = write!(
                 html,
-                format_args!(
-                    "<div class=\"result-item\"><span class=\"result-icon\">{}</span><div class=\"result-info\"><strong>{}</strong><p>{}</p></div></div>",
+                        "<div class=\"result-item\"><span class=\"result-icon\">{}</span><div class=\"result-info\"><strong>{}</strong><p>{}</p></div></div>",
                     prompt.icon, html_escape(&prompt.title), html_escape(&prompt.description)
-                ),
             );
         }
         html.push_str("</div></div>");

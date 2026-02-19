@@ -56,7 +56,12 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
                 #[cfg(not(feature = "llm"))]
                 let llm: Option<()> = None;
 
-                let fut = create_site(config, s3, bucket, bot_id, llm, alias, template_dir, prompt);
+                let params = SiteCreationParams {
+                    alias,
+                    template_dir,
+                    prompt,
+                };
+                let fut = create_site(config, s3, bucket, bot_id, llm, params);
                 let result =
                     tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(fut))
                         .map_err(|e| format!("Site creation failed: {}", e))?;
@@ -66,6 +71,12 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
         .expect("valid syntax registration");
 }
 
+struct SiteCreationParams {
+    alias: Dynamic,
+    template_dir: Dynamic,
+    prompt: Dynamic,
+}
+
 #[cfg(feature = "llm")]
 async fn create_site(
     config: crate::core::config::AppConfig,
@@ -73,13 +84,11 @@ async fn create_site(
     bucket: String,
     bot_id: String,
     llm: Option<Arc<dyn LLMProvider>>,
-    alias: Dynamic,
-    template_dir: Dynamic,
-    prompt: Dynamic,
+    params: SiteCreationParams,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
-    let alias_str = alias.to_string();
-    let template_dir_str = template_dir.to_string();
-    let prompt_str = prompt.to_string();
+    let alias_str = params.alias.to_string();
+    let template_dir_str = params.template_dir.to_string();
+    let prompt_str = params.prompt.to_string();
 
     info!(
         "CREATE SITE: {} from template {}",
@@ -114,13 +123,11 @@ async fn create_site(
     bucket: String,
     bot_id: String,
     _llm: Option<()>,
-    alias: Dynamic,
-    template_dir: Dynamic,
-    prompt: Dynamic,
+    params: SiteCreationParams,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
-    let alias_str = alias.to_string();
-    let template_dir_str = template_dir.to_string();
-    let prompt_str = prompt.to_string();
+    let alias_str = params.alias.to_string();
+    let template_dir_str = params.template_dir.to_string();
+    let prompt_str = params.prompt.to_string();
 
     info!(
         "CREATE SITE: {} from template {}",

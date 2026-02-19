@@ -254,7 +254,7 @@ impl FaceApiService {
 
         Ok(FaceVerificationResult::match_found(
             result.confidence,
-            options.confidence_threshold as f64,
+            options.confidence_threshold,
             0,
         ).with_face_ids(face1_id, face2_id))
     }
@@ -783,7 +783,7 @@ impl FaceApiService {
         // Simulate detection based on image size/content
         // In production, actual detection algorithms would be used
         let num_faces = if image_bytes.len() > 100_000 {
-            (image_bytes.len() / 500_000).min(5).max(1)
+            (image_bytes.len() / 500_000).clamp(1, 5)
         } else {
             1
         };
@@ -821,7 +821,7 @@ impl FaceApiService {
                     attributes: if options.return_attributes.unwrap_or(false) {
                         Some(FaceAttributes {
                             age: Some(25.0 + (face_id.as_u128() % 40) as f32),
-                            gender: Some(if face_id.as_u128() % 2 == 0 {
+                            gender: Some(if face_id.as_u128().is_multiple_of(2) {
                                 Gender::Male
                             } else {
                                 Gender::Female

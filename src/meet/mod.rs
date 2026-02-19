@@ -19,6 +19,7 @@ pub mod recording;
 pub mod service;
 pub mod ui;
 pub mod webinar;
+pub mod webinar_api;
 pub mod webinar_types;
 pub mod whiteboard;
 pub mod whiteboard_export;

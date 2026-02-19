@@ -26,7 +26,7 @@ pub fn register_enhanced_llm_keyword(state: Arc<AppState>, user: UserSession, en
 
             tokio::spawn(async move {
                 let router = SmartLLMRouter::new(state_for_spawn);
-                let goal = OptimizationGoal::from_str(&optimization);
+                let goal = OptimizationGoal::from_str_name(&optimization);
 
                 match crate::llm::smart_router::enhanced_llm_call(
                     &router, &prompt, goal, None, None,

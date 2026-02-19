@@ -495,12 +495,12 @@ pub async fn require_authentication_middleware(
     Ok(next.run(request).await)
 }
 
+type MiddlewareFuture = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, Response>> + Send>>;
+
 /// Require specific role - returns 403 if role not present
 pub fn require_role_middleware(
     required_role: &'static str,
-) -> impl Fn(Request<Body>, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, Response>> + Send>>
-       + Clone
-       + Send {
+) -> impl Fn(Request<Body>, Next) -> MiddlewareFuture + Clone + Send {
     move |request: Request<Body>, next: Next| {
         Box::pin(async move {
             let user = request

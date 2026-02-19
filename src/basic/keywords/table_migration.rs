@@ -166,13 +166,7 @@ pub fn sync_bot_tables(
         info!("Syncing table: {}", table.name);
 
         // Get existing columns
-        let existing_columns = match get_table_columns(&table.name, &mut conn) {
-            Ok(cols) => cols,
-            Err(_) => {
-                // Table doesn't exist yet
-                vec![]
-            }
-        };
+        let existing_columns = get_table_columns(&table.name, &mut conn).unwrap_or_default();
 
         // Generate CREATE TABLE SQL
         let create_sql = super::table_definition::generate_create_table_sql(table, "postgres");

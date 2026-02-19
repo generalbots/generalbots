@@ -1,5 +1,6 @@
 pub mod collaboration;
 pub mod handlers;
+pub mod handlers_api;
 pub mod ooxml;
 pub mod storage;
 pub mod types;
@@ -16,21 +17,7 @@ pub use collaboration::{
     handle_docs_websocket, handle_get_collaborators, handle_get_mentions, handle_get_presence,
     handle_get_selections, handle_get_typing,
 };
-pub use handlers::{
-    handle_accept_reject_all, handle_accept_reject_change, handle_add_comment, handle_add_endnote,
-    handle_add_footnote, handle_ai_custom, handle_ai_expand, handle_ai_improve, handle_ai_simplify,
-    handle_ai_summarize, handle_ai_translate, handle_apply_style, handle_autosave,
-    handle_compare_documents, handle_create_style, handle_delete_comment, handle_delete_document,
-    handle_delete_endnote, handle_delete_footnote, handle_delete_style, handle_docs_ai,
-    handle_docs_get_by_id, handle_docs_save, handle_enable_track_changes, handle_export_docx,
-    handle_export_html, handle_export_md, handle_export_pdf, handle_export_txt,
-    handle_generate_toc, handle_get_document, handle_get_outline, handle_import_document,
-    handle_list_comments, handle_list_documents, handle_list_endnotes, handle_list_footnotes,
-    handle_list_styles, handle_list_track_changes, handle_new_document, handle_reply_comment,
-    handle_resolve_comment, handle_save_document, handle_search_documents, handle_template_blank,
-    handle_template_letter, handle_template_meeting, handle_template_report, handle_update_endnote,
-    handle_update_footnote, handle_update_style, handle_update_toc,
-};
+pub use handlers::*;
 pub use types::{
     AiRequest, AiResponse, Collaborator, CollabMessage, CommentReply, ComparisonSummary, Document,
     DocumentComment, DocumentComparison, DocumentDiff, DocumentMetadata, DocumentStyle, Endnote,

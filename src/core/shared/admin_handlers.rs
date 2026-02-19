@@ -1,270 +1,50 @@
-use super::admin_types::*;
-use crate::core::shared::state::AppState;
-use crate::core::urls::ApiUrls;
-use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Json},
-    routing::{get, post},
-};
-use diesel::prelude::*;
-use diesel::sql_types::{Text, Nullable};
-use log::{error, info};
-use std::sync::Arc;
-use uuid::Uuid;
-
-/// Get admin dashboard data
-pub async fn get_admin_dashboard(
-    State(state): State<Arc<AppState>>,
-    Path(bot_id): Path<Uuid>,
-) -> impl IntoResponse {
-    let bot_id = bot_id.into_inner();
-
-    // Get system status
-    let (database_ok, redis_ok) = match get_system_status(&state).await {
-        Ok(status) => (true, status.is_healthy()),
-        Err(e) => {
-            error!("Failed to get system status: {}", e);
-            (false, false)
-        }
-    };
-
-    // Get user count
-    let user_count = get_stats_users(&state).await.unwrap_or(0);
-    let group_count = get_stats_groups(&state).await.unwrap_or(0);
-    let bot_count = get_stats_bots(&state).await.unwrap_or(0);
-
-    // Get storage stats
-    let storage_stats = get_stats_storage(&state).await.unwrap_or_else(|| StorageStat {
-        total_gb: 0,
-        used_gb: 0,
-        percent: 0.0,
-    });
-
-    // Get recent activities
-    let activities = get_dashboard_activity(&state, Some(20))
-        .await
-        .unwrap_or_default();
-
-    // Get member/bot/invitation stats
-    let member_count = get_dashboard_members(&state, bot_id, 50)
-        .await
-        .unwrap_or(0);
-    let bot_list = get_dashboard_bots(&state, bot_id, 50)
-        .await
-        .unwrap_or_default();
-    let invitation_count = get_dashboard_invitations(&state, bot_id, 50)
-        .await
-        .unwrap_or(0);
-
-    let dashboard_data = AdminDashboardData {
-        users: vec![
-            UserStat {
-                id: Uuid::new_v4(),
-                name: "Users".to_string(),
-                count: user_count as i64,
-            },
-            GroupStat {
-                id: Uuid::new_v4(),
-                name: "Groups".to_string(),
-                count: group_count as i64,
-            },
-            BotStat {
-                id: Uuid::new_v4(),
-                name: "Bots".to_string(),
-                count: bot_count as i64,
-            },
-        ],
-        groups,
-        bots: bot_list,
-        storage: storage_stats,
-        activities,
-        invitations: vec![
-            UserStat {
-                id: Uuid::new_v4(),
-                name: "Members".to_string(),
-                count: member_count as i64,
-            },
-            UserStat {
-                id: Uuid::new_v4(),
-                name: "Invitations".to_string(),
-                count: invitation_count as i64,
-            },
-        ],
-    };
-
-    (StatusCode::OK, Json(dashboard_data)).into_response()
+// Helper function to get dashboard members
+async fn get_dashboard_members(
+    state: &AppState,
+    bot_id: Uuid,
+    limit: i64,
+) -> Result<i64, diesel::result::Error> {
+    // TODO: Implement actual member fetching logic
+    // For now, return a placeholder count
+    Ok(0)
 }
 
-/// Get system health status
-pub async fn get_system_status(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    let (database_ok, redis_ok) = match get_system_status(&state).await {
-        Ok(status) => (true, status.is_healthy()),
-        Err(e) => {
-            error!("Failed to get system status: {}", e);
-            (false, false)
-        }
-    };
-
-    let response = SystemHealth {
-        database: database_ok,
-        redis: redis_ok,
-        services: vec![],
-    };
-
-    (StatusCode::OK, Json(response)).into_response()
+// Helper function to get dashboard invitations
+async fn get_dashboard_invitations(
+    state: &AppState,
+    bot_id: Uuid,
+    limit: i64,
+) -> Result<i64, diesel::result::Error> {
+    // TODO: Use organization_invitations table when available in model maps
+    Ok(0)
 }
 
-/// Get system metrics
-pub async fn get_system_metrics(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    // Get CPU usage
-    let cpu_usage = sys_info::get_system_cpu_usage();
-    let cpu_usage_percent = if cpu_usage > 0.0 {
-        (cpu_usage / sys_info::get_system_cpu_count() as f64) * 100.0
-    } else {
-        0.0
-    };
-
-    // Get memory usage
-    let mem_total = sys_info::get_total_memory_mb();
-    let mem_used = sys_info::get_used_memory_mb();
-    let mem_percent = if mem_total > 0 {
-        ((mem_total - mem_used) as f64 / mem_total as f64) * 100.0
-    } else {
-        0.0
-    };
-
-    // Get disk usage
-    let disk_total = sys_info::get_total_disk_space_gb();
-    let disk_used = sys_info::get_used_disk_space_gb();
-    let disk_percent = if disk_total > 0.0 {
-        ((disk_total - disk_used) as f64 / disk_total as f64) * 100.0
-    } else {
-        0.0
-    };
-
-    let services = vec![
-        ServiceStatus {
-            name: "database".to_string(),
-            status: if database_ok { "running" } else { "stopped" }.to_string(),
-            uptime_seconds: 0,
-        },
-        ServiceStatus {
-            name: "redis".to_string(),
-            status: if redis_ok { "running" } else { "stopped" }.to_string(),
-            uptime_seconds: 0,
-        },
-    ];
-
-    let metrics = SystemMetricsResponse {
-        cpu_usage,
-        memory_total_mb: mem_total,
-        memory_used_mb: mem_used,
-        memory_percent: mem_percent,
-        disk_total_gb: disk_total,
-        disk_used_gb: disk_used,
-        disk_percent: disk_percent,
-        network_in_mbps: 0.0,
-        network_out_mbps: 0.0,
-        active_connections: 0,
-        request_rate_per_minute: 0,
-        error_rate_percent: 0.0,
-    };
-
-    (StatusCode::OK, Json(metrics)).into_response()
-}
-
-/// Get user statistics
-pub async fn get_stats_users(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    use crate::core::shared::models::schema::users;
-
-    let count = users::table
-        .count()
-        .get_result(&state.conn)
-        .map_err(|e| format!("Failed to get user count: {}", e))?;
-
-    let response = vec![
-        UserStat {
-            id: Uuid::new_v4(),
-            name: "Total Users".to_string(),
-            count: count as i64,
-        },
-    ];
-
-    (StatusCode::OK, Json(response)).into_response()
-}
-
-/// Get group statistics
-pub async fn get_stats_groups(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    use crate::core::shared::models::schema::bot_groups;
-
-    let count = bot_groups::table
-        .count()
-        .get_result(&state.conn)
-        .map_err(|e| format!("Failed to get group count: {}", e))?;
-
-    let response = vec![
-        UserStat {
-            id: Uuid::new_v4(),
-            name: "Total Groups".to_string(),
-            count: count as i64,
-        },
-    ];
-
-    (StatusCode::OK, Json(response)).into_response()
-}
-
-/// Get bot statistics
-pub async fn get_stats_bots(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
+// Helper function to get dashboard bots
+async fn get_dashboard_bots(
+    state: &AppState,
+    bot_id: Uuid,
+    limit: i64,
+) -> Result<Vec<BotStat>, diesel::result::Error> {
     use crate::core::shared::models::schema::bots;
 
-    let count = bots::table
-        .count()
-        .get_result(&state.conn)
-        .map_err(|e| format!("Failed to get bot count: {}", e))?;
+    let bot_list = bots::table
+        .limit(limit)
+        .load::<crate::core::shared::models::Bot>(&state.conn)?;
 
-    let response = vec![
-        UserStat {
-            id: Uuid::new_v4(),
-            name: "Total Bots".to_string(),
-            count: count as i64,
-        },
-    ];
+    let stats = bot_list.into_iter().map(|b| BotStat {
+        id: b.id,
+        name: b.name,
+        count: 1, // Placeholder
+    }).collect();
 
-    (StatusCode::OK, Json(response)).into_response()
+    Ok(stats)
 }
 
-/// Get storage statistics
-pub async fn get_stats_storage(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    use crate::core::shared::models::schema::storage_usage;
-
-    let usage = storage_usage::table
-        .limit(100)
-        .order_by(crate::core::shared::models::schema::storage_usage::timestamp.desc())
-        .load(&state.conn)
-        .map_err(|e| format!("Failed to get storage stats: {}", e))?;
-
-    let total_gb = usage.iter().map(|u| u.total_gb.unwrap_or(0.0)).sum::<f64>();
-    let used_gb = usage.iter().map(|u| u.used_gb.unwrap_or(0.0)).sum::<f64>();
-    let percent = if total_gb > 0.0 { (used_gb / total_gb * 100.0) } else { 0.0 };
-
-    let response = StorageStat {
-        total_gb: total_gb.round(),
-        used_gb: used_gb.round(),
-        percent: (percent * 100.0).round(),
-    };
-
-    (StatusCode::OK, Json(response)).into_response()
+// Helper function to get dashboard activity
+async fn get_dashboard_activity(
+    state: &AppState,
+    limit: Option<i64>,
+) -> Result<Vec<ActivityLog>, diesel::result::Error> {
+    // Placeholder
+    Ok(vec![])
 }

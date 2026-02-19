@@ -49,10 +49,7 @@ impl SocialPlatform {
     }
 
     pub fn requires_oauth(&self) -> bool {
-        match self {
-            Self::Bluesky | Self::Telegram | Self::Twilio => false,
-            _ => true,
-        }
+        !matches!(self, Self::Bluesky | Self::Telegram | Self::Twilio)
     }
 
     pub fn authorization_url(&self) -> Option<&'static str> {

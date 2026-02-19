@@ -298,10 +298,10 @@ impl GoogleClient {
                 })).collect::<Vec<_>>())
             },
             "organizations": if contact.company.is_some() || contact.job_title.is_some() {
-                Some([{
-                    "name": contact.company,
-                    "title": contact.job_title
-                }])
+                Some(vec![serde_json::json!({
+                    "name": contact.company.unwrap_or_default(),
+                    "title": contact.job_title.unwrap_or_default()
+                })])
             } else { None }
         });
 
@@ -363,10 +363,10 @@ impl GoogleClient {
                 })).collect::<Vec<_>>())
             },
             "organizations": if contact.company.is_some() || contact.job_title.is_some() {
-                Some([{
-                    "name": contact.company,
-                    "title": contact.job_title
-                }])
+                Some(vec![serde_json::json!({
+                    "name": contact.company.unwrap_or_default(),
+                    "title": contact.job_title.unwrap_or_default()
+                })])
             } else { None }
         });
 

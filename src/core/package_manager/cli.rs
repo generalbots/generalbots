@@ -197,7 +197,7 @@ pub async fn run() -> Result<()> {
         "rotate-secret" => {
             if args.len() < 3 {
                 eprintln!("Usage: botserver rotate-secret <component>");
-                eprintln!("Components: tables, drive, cache, email, directory, encryption");
+                eprintln!("Components: tables, drive, cache, email, directory, encryption, jwt");
                 return Ok(());
             }
             let component = &args[2];
@@ -282,6 +282,7 @@ fn print_usage() {
     println!("  restart              Restart all components");
     println!("  vault <subcommand>   Manage Vault secrets");
     println!("  rotate-secret <comp> Rotate a component's credentials");
+    println!("                      (tables, drive, cache, email, directory, encryption, jwt)");
     println!("  rotate-secrets --all Rotate ALL credentials (dangerous!)");
     println!("  version [--all]      Show version information");
     println!("  --version, -v        Show version");
@@ -788,6 +789,7 @@ async fn rotate_secret(component: &str) -> Result<()> {
             if input.trim().to_lowercase() == "y" {
                 manager.put_secret(SecretPaths::TABLES, secrets).await?;
                 println!("✓ Credentials saved to Vault");
+                verify_rotation(component).await?;
             } else {
                 println!("✗ Aborted");
             }
@@ -933,9 +935,81 @@ async fn rotate_secret(component: &str) -> Result<()> {
                 println!("✗ Aborted");
             }
         }
+        "jwt" => {
+            let new_secret = generate_password(64);
+            let env_path = std::env::current_dir()?.join(".env");
+
+            println!("⚠️  JWT SECRET ROTATION");
+            println!();
+            println!("Current: JWT_SECRET in .env file");
+            println!("Impact: ALL refresh tokens will become invalid immediately");
+            println!("Access tokens (15 min) will expire naturally");
+            println!();
+
+            // Check if .env exists
+            if !env_path.exists() {
+                println!("✗ .env file not found at: {}", env_path.display());
+                return Ok(());
+            }
+
+            // Read current JWT_SECRET for display
+            let env_content = std::fs::read_to_string(&env_path)?;
+            let current_jwt = env_content
+                .lines()
+                .find(|line| line.starts_with("JWT_SECRET="))
+                .unwrap_or("JWT_SECRET=(not set)");
+
+            println!("Current: {}", &current_jwt.chars().take(40).collect::<String>());
+            println!("New: {}... (64 chars)", &new_secret.chars().take(8).collect::<String>());
+            println!();
+
+            // Backup .env
+            let backup_path = format!("{}.backup.{}", env_path.display(), chrono::Utc::now().timestamp());
+            std::fs::copy(&env_path, &backup_path)?;
+            println!("✓ Backup created: {}", backup_path);
+            println!();
+
+            print!("Update JWT_SECRET in .env? [y/N]: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+
+            if input.trim().to_lowercase() == "y" {
+                // Read, update, write .env atomically
+                let content = std::fs::read_to_string(&env_path)?;
+                let new_content = content
+                    .lines()
+                    .map(|line| {
+                        if line.starts_with("JWT_SECRET=") {
+                            format!("JWT_SECRET={}", new_secret)
+                        } else {
+                            line.to_string()
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                let temp_path = format!("{}.new", env_path.display());
+                std::fs::write(&temp_path, new_content)?;
+                std::fs::rename(&temp_path, &env_path)?;
+
+                println!("✓ JWT_SECRET updated in .env");
+                println!();
+                println!("⚠️  RESTART REQUIRED:");
+                println!("   botserver restart");
+                println!();
+                println!("All users must re-login after restart (refresh tokens invalid)");
+                println!("Access tokens will expire naturally within 15 minutes");
+
+                verify_rotation(component).await?;
+            } else {
+                println!("✗ Aborted");
+                println!("Backup preserved at: {}", backup_path);
+            }
+        }
         _ => {
             eprintln!("Unknown component: {}", component);
-            eprintln!("Valid components: tables, drive, cache, email, directory, encryption");
+            eprintln!("Valid components: tables, drive, cache, email, directory, encryption, jwt");
         }
     }
 
@@ -1037,6 +1111,96 @@ async fn rotate_all_secrets() -> Result<()> {
     println!();
     println!("⚠️  IMPORTANT: Run the commands above to update each service!");
     println!("⚠️  Then restart botserver: botserver restart");
+
+    Ok(())
+}
+
+async fn verify_rotation(component: &str) -> Result<()> {
+    println!();
+    println!("Verifying {}...", component);
+
+    match component {
+        "tables" => {
+            let manager = SecretsManager::from_env()?;
+            let secrets = manager.get_secret(SecretPaths::TABLES).await?;
+
+            let host = secrets.get("host").cloned().unwrap_or_else(|| "localhost".to_string());
+            let port = secrets.get("port").cloned().unwrap_or_else(|| "5432".to_string());
+            let user = secrets.get("username").cloned().unwrap_or_else(|| "postgres".to_string());
+            let pass = secrets.get("password").cloned().unwrap_or_default();
+            let db = secrets.get("database").cloned().unwrap_or_else(|| "postgres".to_string());
+
+            println!("  Testing connection to {}@{}:{}...", user, host, port);
+
+            // Use psql to test connection
+            let result = std::process::Command::new("psql")
+                .args([
+                    "-h", &host,
+                    "-p", &port,
+                    "-U", &user,
+                    "-d", &db,
+                    "-c", "SELECT 1;",
+                    "-t", "-q"  // Tuples only, quiet mode
+                ])
+                .env("PGPASSWORD", &pass)
+                .output();
+
+            match result {
+                Ok(output) if output.status.success() => {
+                    println!("✓ Database connection successful");
+                }
+                Ok(output) => {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    println!("✗ Database connection FAILED");
+                    println!("  Error: {}", stderr.trim());
+                    println!("  Hint: Run the SQL command provided by rotate-secret");
+                }
+                Err(_e) => {
+                    println!("⊘ Verification skipped (psql not available)");
+                    println!("  Hint: Manually test with: psql -h {} -U {} -d {} -c 'SELECT 1'", host, user, db);
+                }
+            }
+        }
+        "jwt" => {
+            println!("  Testing health endpoint...");
+
+            // Try to determine the health endpoint
+            let health_urls = vec![
+                "http://localhost:8080/health",
+                "http://localhost:5858/health",
+                "http://localhost:3000/health",
+            ];
+
+            let mut success = false;
+            for url in health_urls {
+                match reqwest::get(url).await {
+                    Ok(resp) if resp.status().is_success() => {
+                        println!("✓ Service healthy at {}", url);
+                        success = true;
+                        break;
+                    }
+                    Ok(_resp) => {
+                        // Try next URL
+                        continue;
+                    }
+                    Err(_e) => {
+                        // Try next URL
+                        continue;
+                    }
+                }
+            }
+
+            if !success {
+                println!("⊘ Health endpoint not reachable");
+                println!("  Hint: Restart botserver with: botserver restart");
+                println!("  Then manually verify service is responding");
+            }
+        }
+        _ => {
+            println!("⊘ No automated verification available for {}", component);
+            println!("  Hint: Manually verify the service is working after rotation");
+        }
+    }
 
     Ok(())
 }

@@ -84,7 +84,7 @@ pub fn build_taskmd_html(state: &Arc<AppState>, task_id: &str, title: &str, runt
             return (status_html, progress_html);
         } else {
             // Try parsing as web JSON format (the format we store)
-            if let Ok(web_manifest) = super::utils::parse_web_manifest_json(manifest_json) {
+            if let Some(web_manifest) = super::utils::parse_web_manifest_json(manifest_json) {
                 log::info!("[TASKMD_HTML] Parsed web manifest from DB for task: {}", task_id);
                 let status_html = build_status_section_from_web_json(&web_manifest, title, runtime);
                 let progress_html = build_progress_log_from_web_json(&web_manifest);

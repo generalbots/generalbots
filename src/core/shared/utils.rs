@@ -546,14 +546,10 @@ pub fn truncate_text_for_model(text: &str, model: &str, max_tokens: usize) -> St
 
 /// Estimates characters per token based on model type
 fn estimate_chars_per_token(model: &str) -> usize {
-    if model.contains("gpt") || model.contains("claude") {
-        4 // GPT/Claude models: ~4 chars per token
-    } else if model.contains("llama") || model.contains("mistral") {
+    if model.contains("llama") || model.contains("mistral") {
         3 // Llama/Mistral models: ~3 chars per token
-    } else if model.contains("bert") || model.contains("mpnet") {
-        4 // BERT-based models: ~4 chars per token
     } else {
-        4 // Default conservative estimate
+        4 // GPT/Claude/BERT models and default: ~4 chars per token
     }
 }
 
@@ -596,7 +592,7 @@ pub fn convert_date_to_iso_format(value: &str) -> String {
             if let (Ok(year), Ok(month), Ok(day)) =
                 (parts[0].parse::<u32>(), parts[1].parse::<u32>(), parts[2].parse::<u32>())
             {
-                if month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 1900 && year <= 2100 {
+                if (1..=12).contains(&month) && (1..=31).contains(&day) && (1900..=2100).contains(&year) {
                     return value.to_string();
                 }
             }
@@ -638,7 +634,7 @@ pub fn convert_date_to_iso_format(value: &str) -> String {
                     let (year, month, day) = (third, second, first);
 
                     // Validate the determined date
-                    if day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= 2100 {
+                    if (1..=31).contains(&day) && (1..=12).contains(&month) && (1900..=2100).contains(&year) {
                         return format!("{:04}-{:02}-{:02}", year, month, day);
                     }
                 }

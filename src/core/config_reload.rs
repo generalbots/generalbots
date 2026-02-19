@@ -16,7 +16,7 @@ pub async fn reload_config(
         let mut conn = conn_arc
             .get()
             .map_err(|e| format!("failed to get db connection: {e}"))?;
-        Ok(crate::core::bot::get_default_bot(&mut *conn))
+        Ok(crate::core::bot::get_default_bot(&mut conn))
     })
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?

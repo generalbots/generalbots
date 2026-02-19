@@ -11,10 +11,12 @@ pub mod cors;
 pub mod csrf;
 pub mod dlp;
 pub mod encryption;
+pub mod file_validation;
 pub mod error_sanitizer;
 pub mod headers;
 pub mod integration;
 pub mod jwt;
+pub mod log_sanitizer;
 pub mod mfa;
 pub mod mutual_tls;
 pub mod panic_handler;
@@ -25,11 +27,15 @@ pub mod panic_handler;
 // pub mod passkey_types;
 pub mod password;
 pub mod path_guard;
+pub mod redis_csrf_store;
+pub mod redis_session_store;
 pub mod prompt_security;
 pub mod protection;
 pub mod rate_limiter;
 pub mod rbac_middleware;
 pub mod request_id;
+pub mod request_limits;
+pub mod safe_unwrap;
 pub mod secrets;
 pub mod security_monitoring;
 pub mod session;
@@ -167,9 +173,23 @@ pub use tls::{create_https_server, ServiceTlsConfig, TlsConfig, TlsManager, TlsR
 pub use validation::{
     sanitize_html, strip_html_tags, validate_alphanumeric, validate_email, validate_length,
     validate_no_html, validate_no_script_injection, validate_one_of, validate_password_strength,
-    validate_phone, validate_range, validate_required, validate_slug, validate_url,
+    validate_phone, validate_range, validate_required, validate_slug, validate_url, validate_url_ssrf,
     validate_username, validate_uuid, ValidationError, ValidationResult, Validator,
 };
+pub use file_validation::{
+    FileValidationConfig, FileValidationResult, validate_file_upload,
+};
+pub use request_limits::{
+    request_size_middleware, upload_size_middleware, DEFAULT_MAX_REQUEST_SIZE, MAX_UPLOAD_SIZE,
+};
+pub use log_sanitizer::sanitize_log_value as sanitize_log_value_compact;
+
+#[cfg(feature = "cache")]
+pub use redis_session_store::RedisSessionStore;
+
+#[cfg(feature = "cache")]
+pub use redis_csrf_store::RedisCsrfManager;
+pub use safe_unwrap::{safe_unwrap_or, safe_unwrap_or_default, safe_unwrap_none_or};
 
 use anyhow::Result;
 use std::path::PathBuf;

@@ -68,6 +68,7 @@ pub struct ShareRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQuery {
+    pub bucket: Option<String>,
     pub query: Option<String>,
     pub file_type: Option<String>,
     pub parent_path: Option<String>,

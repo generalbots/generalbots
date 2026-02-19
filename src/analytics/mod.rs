@@ -5,8 +5,6 @@ pub mod goals_ui;
 pub mod insights;
 
 use crate::core::urls::ApiUrls;
-#[cfg(feature = "llm")]
-use crate::llm::observability::{ObservabilityConfig, ObservabilityManager, QuickStats};
 use crate::core::shared::state::AppState;
 use axum::{
     extract::State,

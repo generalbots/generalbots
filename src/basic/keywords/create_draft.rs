@@ -30,44 +30,9 @@ async fn execute_create_draft(
     subject: &str,
     reply_text: &str,
 ) -> Result<String, String> {
-    #[cfg(feature = "mail")]
-    {
-        use crate::email::{fetch_latest_sent_to, save_email_draft, SaveDraftRequest};
-
-        let config = state.config.as_ref().ok_or("No email config")?;
-
-        let previous_email = fetch_latest_sent_to(&config.email, to)
-            .await
-            .unwrap_or_default();
-
-        let email_body = if previous_email.is_empty() {
-            reply_text.to_string()
-        } else {
-            let email_separator = "<br><hr><br>";
-            let formatted_reply = reply_text.replace("FIX", "Fixed");
-            let formatted_old = previous_email.replace('\n', "<br>");
-            format!("{formatted_reply}{email_separator}{formatted_old}")
-        };
-
-        let draft_request = SaveDraftRequest {
-            account_id: String::new(),
-            to: to.to_string(),
-            cc: None,
-            bcc: None,
-            subject: subject.to_string(),
-            body: email_body,
-        };
-
-        save_email_draft(&config.email, &draft_request)
-            .await
-            .map(|()| "Draft saved successfully".to_string())
-    }
-
-    #[cfg(not(feature = "mail"))]
-    {
-        use chrono::Utc;
-        use diesel::prelude::*;
-        use uuid::Uuid;
+    use chrono::Utc;
+    use diesel::prelude::*;
+    use uuid::Uuid;
 
         let draft_id = Uuid::new_v4();
         let conn = state.conn.clone();
@@ -94,5 +59,4 @@ async fn execute_create_draft(
         })
         .await
         .map_err(|e| e.to_string())?
-    }
 }

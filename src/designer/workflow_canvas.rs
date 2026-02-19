@@ -123,24 +123,24 @@ impl WorkflowCanvas {
 pub async fn workflow_designer_page(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Html<String>, StatusCode> {
-    let html = r#"
+    let html = r##"
 <!DOCTYPE html>
 <html>
 <head>
     <title>Workflow Designer</title>
     <script src="/static/htmx.min.js"></script>
     <style>
-        .canvas { 
-            width: 100%; 
-            height: 600px; 
-            border: 1px solid #ccc; 
+        .canvas {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
             position: relative;
             background: #f9f9f9;
         }
-        .node { 
-            position: absolute; 
-            padding: 10px; 
-            border: 2px solid #333; 
+        .node {
+            position: absolute;
+            padding: 10px;
+            border: 2px solid #333;
             background: white;
             border-radius: 5px;
             cursor: move;
@@ -152,25 +152,25 @@ pub async fn workflow_designer_page(
         .node.condition { border-color: #28a745; background: #e8f5e9; }
         .node.parallel { border-color: #6f42c1; background: #f3e5f5; }
         .node.event { border-color: #fd7e14; background: #fff3e0; }
-        .toolbar { 
-            padding: 10px; 
-            background: #f8f9fa; 
+        .toolbar {
+            padding: 10px;
+            background: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
         }
-        .btn { 
-            padding: 8px 16px; 
-            margin: 0 5px; 
-            border: none; 
-            border-radius: 4px; 
+        .btn {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
         }
         .btn-primary { background: #007bff; color: white; }
         .btn-success { background: #28a745; color: white; }
         .btn-warning { background: #ffc107; color: black; }
-        .code-preview { 
-            margin-top: 20px; 
-            padding: 15px; 
-            background: #f8f9fa; 
+        .code-preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
             border: 1px solid #dee2e6;
             font-family: monospace;
             white-space: pre-wrap;
@@ -189,15 +189,15 @@ pub async fn workflow_designer_page(
         <input type="file" id="file-input" accept=".bas" onchange="analyzeFile()" style="margin-left: 20px;">
         <label for="file-input" class="btn">Analyze .bas File</label>
     </div>
-    
+
     <div id="file-analysis" style="display:none; padding: 10px; background: #e8f4f8; border: 1px solid #bee5eb; margin: 10px 0;">
         <h4>File Analysis Result</h4>
         <div id="analysis-content"></div>
     </div>
-    
+
     <div id="canvas" class="canvas" ondrop="drop(event)" ondragover="allowDrop(event)">
     </div>
-    
+
     <div id="code-preview" class="code-preview">
         Generated BASIC code will appear here...
     </div>
@@ -205,7 +205,7 @@ pub async fn workflow_designer_page(
     <script>
         let nodeCounter = 0;
         let nodes = [];
-        
+
         function addNode(type) {
             nodeCounter++;
             const node = {
@@ -217,7 +217,7 @@ pub async fn workflow_designer_page(
             nodes.push(node);
             renderNode(node);
         }
-        
+
         function renderNode(node) {
             const canvas = document.getElementById('canvas');
             const nodeEl = document.createElement('div');
@@ -226,11 +226,11 @@ pub async fn workflow_designer_page(
             nodeEl.draggable = true;
             nodeEl.style.left = node.x + 'px';
             nodeEl.style.top = node.y + 'px';
-            
+
             let content = '';
             switch(node.type) {
                 case 'bot-agent':
-                    content = '<strong>Bot Agent</strong><br><input type="text" placeholder="Bot Name" style="width:100px;margin:2px;"><br><input type="text" placeholder="Action" style="width:100px;margin:2px;">';
+                    content = '<strong>Bot Agent</strong><br><input type="text" placeholder="Bot Name " style="width:100px;margin:2px;"><br><input type="text" placeholder="Action" style="width:100px;margin:2px;">';
                     break;
                 case 'human-approval':
                     content = '<strong>Human Approval</strong><br><input type="text" placeholder="Approver" style="width:100px;margin:2px;"><br><input type="number" placeholder="Timeout" style="width:100px;margin:2px;">';
@@ -245,20 +245,20 @@ pub async fn workflow_designer_page(
                     content = '<strong>Event</strong><br><input type="text" placeholder="Event Name " style="width:100px;margin:2px;">';
                     break;
             }
-            
+
             nodeEl.innerHTML = content;
             nodeEl.ondragstart = drag;
             canvas.appendChild(nodeEl);
         }
-        
+
         function allowDrop(ev) {
             ev.preventDefault();
         }
-        
+
         function drag(ev) {
             ev.dataTransfer.setData("text", ev.target.id);
         }
-        
+
         function drop(ev) {
             ev.preventDefault();
             const data = ev.dataTransfer.getData("text");
@@ -266,10 +266,10 @@ pub async fn workflow_designer_page(
             const rect = ev.currentTarget.getBoundingClientRect();
             const x = ev.clientX - rect.left;
             const y = ev.clientY - rect.top;
-            
+
             nodeEl.style.left = x + 'px';
             nodeEl.style.top = y + 'px';
-            
+
             // Update node position in data
             const node = nodes.find(n => n.id === data);
             if (node) {
@@ -277,16 +277,16 @@ pub async fn workflow_designer_page(
                 node.y = y;
             }
         }
-        
+
         function analyzeFile() {
             const fileInput = document.getElementById('file-input');
             const file = fileInput.files[0];
-            
+
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const content = e.target.result;
-                    
+
                     fetch('/api/workflow/analyze', {
                         method: 'POST',
                         headers: {
@@ -305,13 +305,13 @@ pub async fn workflow_designer_page(
                 reader.readAsText(file);
             }
         }
-        
+
         function displayAnalysis(analysis) {
             const analysisDiv = document.getElementById('file-analysis');
             const contentDiv = document.getElementById('analysis-content');
-            
+
             let html = `<p><strong>File Type:</strong> ${analysis.file_type}</p>`;
-            
+
             if (analysis.metadata) {
                 html += `<p><strong>Workflow Name:</strong> ${analysis.metadata.name}</p>`;
                 html += `<p><strong>Steps:</strong> ${analysis.metadata.step_count}</p>`;
@@ -319,7 +319,7 @@ pub async fn workflow_designer_page(
                 html += `<p><strong>Human Approval:</strong> ${analysis.metadata.has_human_approval ? 'Yes' : 'No'}</p>`;
                 html += `<p><strong>Parallel Processing:</strong> ${analysis.metadata.has_parallel ? 'Yes' : 'No'}</p>`;
             }
-            
+
             if (analysis.suggestions.length > 0) {
                 html += '<p><strong>Suggestions:</strong></p><ul>';
                 analysis.suggestions.forEach(suggestion => {
@@ -327,14 +327,14 @@ pub async fn workflow_designer_page(
                 });
                 html += '</ul>';
             }
-            
+
             contentDiv.innerHTML = html;
             analysisDiv.style.display = 'block';
         }
     </script>
 </body>
 </html>
-    "#;
+    "##;
     
     Ok(Html(html.to_string()))
 }

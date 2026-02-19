@@ -944,10 +944,9 @@ impl ScriptService {
 
         // Create intermediate variables for body chunks (max 5 lines per variable to keep complexity low)
         let chunk_size = 5;
-        let mut var_count = 0;
         let mut all_vars: Vec<String> = Vec::new();
 
-        for chunk in body_lines.chunks(chunk_size) {
+        for (var_count, chunk) in body_lines.chunks(chunk_size).enumerate() {
             let var_name = format!("__mail_body_{}__", var_count);
             all_vars.push(var_name.clone());
 
@@ -961,7 +960,6 @@ impl ScriptService {
                 }
                 result.push_str(&format!("let {} = {};\n", var_name, chunk_expr));
             }
-            var_count += 1;
         }
 
         // Combine all chunks into final body
@@ -1011,7 +1009,7 @@ impl ScriptService {
                         // Add accumulated literal as a string if non-empty
                         if !current_literal.is_empty() {
                             if result.is_empty() {
-                                result.push_str("\"");
+                                result.push('"');
                                 result.push_str(&current_literal.replace('"', "\\\""));
                                 result.push('"');
                             } else {
@@ -1062,7 +1060,7 @@ impl ScriptService {
         // Add any remaining literal
         if !current_literal.is_empty() {
             if result.is_empty() {
-                result.push_str("\"");
+                result.push('"');
                 result.push_str(&current_literal.replace('"', "\\\""));
                 result.push('"');
             } else {
@@ -1164,7 +1162,7 @@ impl ScriptService {
             // Handle END IF
             if upper == "END IF" {
                 log::info!("[TOOL] Converting END IF statement");
-                if let Some(_) = if_stack.pop() {
+                if if_stack.pop().is_some() {
                     result.push_str("}\n");
                 }
                 continue;
@@ -1210,8 +1208,8 @@ impl ScriptService {
                     for (i, talk_line) in chunk.iter().enumerate() {
                         let converted = Self::convert_talk_line_with_substitution(talk_line);
                         // Remove "TALK " prefix from converted line if present
-                        let line_content = if converted.starts_with("TALK ") {
-                            converted[5..].trim().to_string()
+                        let line_content = if let Some(stripped) = converted.strip_prefix("TALK ") {
+                            stripped.trim().to_string()
                         } else {
                             converted
                         };
@@ -1346,7 +1344,7 @@ impl ScriptService {
             if !upper.starts_with("IF ") && !upper.starts_with("ELSE") && !upper.starts_with("END IF") {
                 // Check if this is a variable assignment (identifier = expression)
                 // Pattern: starts with letter/underscore, contains = but not ==, !=, <=, >=, +=, -=
-                let is_var_assignment = trimmed.chars().next().map_or(false, |c| c.is_alphabetic() || c == '_')
+                let is_var_assignment = trimmed.chars().next().is_some_and(|c| c.is_alphabetic() || c == '_')
                     && trimmed.contains('=')
                     && !trimmed.contains("==")
                     && !trimmed.contains("!=")
@@ -1402,9 +1400,9 @@ impl ScriptService {
         log::info!("[TOOL] IF/THEN conversion complete, output has {} lines", result.lines().count());
 
         // Convert BASIC <> (not equal) to Rhai != globally
-        let result = result.replace(" <> ", " != ");
+        
 
-        result
+        result.replace(" <> ", " != ")
     }
 
     /// Convert BASIC SELECT ... CASE / END SELECT to if-else chains
@@ -2031,9 +2029,9 @@ impl ScriptService {
         let mut current = String::new();
         let mut in_quotes = false;
         let mut quote_char = '"';
-        let mut chars = params_str.chars().peekable();
+        let chars = params_str.chars().peekable();
 
-        while let Some(c) = chars.next() {
+        for c in chars {
             match c {
                 '"' | '\'' if !in_quotes => {
                     in_quotes = true;

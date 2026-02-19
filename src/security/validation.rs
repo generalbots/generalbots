@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::sync::LazyLock;
+use std::net::IpAddr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidationError {
@@ -511,6 +512,13 @@ impl Validator {
         self
     }
 
+    pub fn ssrf_safe_url(mut self, value: &str) -> Self {
+        if let Err(e) = validate_url_ssrf(value) {
+            self.result.add_error(e);
+        }
+        self
+    }
+
     pub fn validate(self) -> Result<(), ValidationResult> {
         if self.result.is_valid() {
             Ok(())
@@ -528,6 +536,70 @@ impl Default for Validator {
     fn default() -> Self {
         Self::new()
     }
+}
+
+static SSRF_BLOCKED_HOSTS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+    vec![
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+        "::1",
+        "[::1]",
+        "169.254.169.254",
+        "metadata.google.internal",
+        "instance-data",
+        "linklocal.amazonaws.com",
+        "169.254.169.254",
+        "10.0.0.0",
+        "10.255.255.255",
+        "172.16.0.0",
+        "172.31.255.255",
+        "192.168.0.0",
+        "192.168.255.255",
+        "fc00:",
+        "fd00:",
+        "fe80:",
+    ]
+});
+
+pub fn validate_url_ssrf(url: &str) -> Result<(), ValidationError> {
+    validate_url(url)?;
+
+    let url_lower = url.to_lowercase();
+
+    for blocked in SSRF_BLOCKED_HOSTS.iter() {
+        if url_lower.contains(blocked) {
+            return Err(ValidationError::Forbidden {
+                field: "url".to_string(),
+                reason: format!("URL contains blocked host or pattern: {}", blocked),
+            });
+        }
+    }
+
+    if let Ok(parsed) = url::Url::parse(url) {
+        let host_str: &str = match parsed.host_str() {
+            Some(h) => h,
+            None => {
+                return Err(ValidationError::InvalidUrl(url.to_string()));
+            }
+        };
+
+        if let Ok(addr) = host_str.parse::<IpAddr>() {
+            let is_private = match addr {
+                IpAddr::V4(ipv4) => ipv4.is_loopback() || ipv4.is_private() || ipv4.is_link_local(),
+                IpAddr::V6(ipv6) => ipv6.is_loopback() || ipv6.is_unspecified(),
+            };
+
+            if is_private {
+                return Err(ValidationError::Forbidden {
+                    field: "url".to_string(),
+                    reason: format!("URL resolves to private/internal address: {}", addr),
+                });
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

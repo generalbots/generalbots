@@ -459,6 +459,10 @@ impl BasicCompiler {
             .execute(&mut conn)
             .ok();
         }
+
+        let website_regex = Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#)
+            .unwrap_or_else(|_| Regex::new(r"").unwrap());
+
         for line in source.lines() {
             let trimmed = line.trim();
             if trimmed.is_empty()
@@ -530,14 +534,7 @@ impl BasicCompiler {
             }
 
             if trimmed.to_uppercase().starts_with("USE WEBSITE") {
-                let re = match Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#) {
-                    Ok(re) => re,
-                    Err(e) => {
-                        log::warn!("Invalid regex pattern: {}", e);
-                        continue;
-                    }
-                };
-                if let Some(caps) = re.captures(&normalized) {
+                if let Some(caps) = website_regex.captures(&normalized) {
                     if let Some(url_match) = caps.get(1) {
                         let url = url_match.as_str();
                         let refresh = caps.get(2).map(|m| m.as_str()).unwrap_or("1m");
