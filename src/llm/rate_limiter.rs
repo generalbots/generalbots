@@ -96,7 +96,7 @@ impl ApiRateLimiter {
     pub fn new(limits: RateLimits) -> Self {
         // Requests per minute limiter
         let rpm_quota = NonZeroU32::new(limits.requests_per_minute)
-            .unwrap_or_else(|| unsafe { NonZeroU32::new_unchecked(1) });
+            .unwrap_or_else(|| NonZeroU32::new(1).unwrap());
         let requests_per_minute = Arc::new(RateLimiter::direct(Quota::per_minute(rpm_quota)));
 
         // Tokens per minute (using semaphore as we need to track token count)
