@@ -71,6 +71,22 @@ pub fn get_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut
 }
 fn is_safe_path(path: &str) -> bool {
     if path.starts_with("https://") || path.starts_with("http://") {
+        if let Ok(parsed_url) = url::Url::parse(path) {
+            if let Some(host) = parsed_url.host_str() {
+                let host_lower = host.to_lowercase();
+                if host_lower == "localhost" 
+                    || host_lower.contains("169.254") 
+                    || host_lower.starts_with("127.") 
+                    || host_lower.starts_with("10.") 
+                    || host_lower.starts_with("192.168.") 
+                    || host_lower.starts_with("172.")
+                    || host_lower == "::1"
+                    || host_lower.contains("0x7f")
+                    || host_lower.contains("metadata.google.internal") {
+                    return false; // Prevent obvious SSRF
+                }
+            }
+        }
         return true;
     }
     if path.contains("..") || path.starts_with('/') {

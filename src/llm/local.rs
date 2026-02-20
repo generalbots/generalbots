@@ -394,72 +394,76 @@ pub fn start_llm_server(
         .unwrap_or_else(|_| "32000".to_string());
     let n_ctx_size = if n_ctx_size.is_empty() { "32000".to_string() } else { n_ctx_size };
 
-    let mut args = format!(
-        "-m {model_path} --host 0.0.0.0 --port {port} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {gpu_layers} --ubatch-size 2048"
-    );
-    if !reasoning_format.is_empty() {
-        let _ = write!(args, " --reasoning-format {reasoning_format}");
-    }
+    let cmd_path = if cfg!(windows) {
+        format!("{}\\llama-server.exe", llama_cpp_path)
+    } else {
+        format!("{}/llama-server", llama_cpp_path)
+    };
 
+    let mut command = std::process::Command::new(&cmd_path);
+    command.arg("-m").arg(&model_path)
+        .arg("--host").arg("0.0.0.0")
+        .arg("--port").arg(port)
+        .arg("--top_p").arg("0.95")
+        .arg("--temp").arg("0.6")
+        .arg("--repeat-penalty").arg("1.2")
+        .arg("--n-gpu-layers").arg(&gpu_layers)
+        .arg("--ubatch-size").arg("2048");
+
+    if !reasoning_format.is_empty() {
+        command.arg("--reasoning-format").arg(&reasoning_format);
+    }
     if n_moe != "0" {
-        let _ = write!(args, " --n-cpu-moe {n_moe}");
+        command.arg("--n-cpu-moe").arg(&n_moe);
     }
     if parallel != "1" {
-        let _ = write!(args, " --parallel {parallel}");
+        command.arg("--parallel").arg(&parallel);
     }
     if cont_batching == "true" {
-        args.push_str(" --cont-batching");
+        command.arg("--cont-batching");
     }
     if mlock == "true" {
-        args.push_str(" --mlock");
+        command.arg("--mlock");
     }
     if no_mmap == "true" {
-        args.push_str(" --no-mmap");
+        command.arg("--no-mmap");
     }
     if n_predict != "0" {
-        let _ = write!(args, " --n-predict {n_predict}");
+        command.arg("--n-predict").arg(&n_predict);
     }
-    let _ = write!(args, " --ctx-size {n_ctx_size}");
+    command.arg("--ctx-size").arg(&n_ctx_size);
+    command.arg("--verbose");
 
     if cfg!(windows) {
-        let cmd_arg = format!("cd {llama_cpp_path} && .\\llama-server.exe {args}");
-        info!(
-            "Executing LLM server command: cd {llama_cpp_path} && .\\llama-server.exe {args} --verbose"
-        );
-        let cmd = SafeCommand::new("cmd")
-            .and_then(|c| c.arg("/C"))
-            .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
-            .map_err(|e| {
-                Box::new(std::io::Error::other(
-                    e.to_string(),
-                )) as Box<dyn std::error::Error + Send + Sync>
-            })?;
-        cmd.execute().map_err(|e| {
-            Box::new(std::io::Error::other(
-                e.to_string(),
-            )) as Box<dyn std::error::Error + Send + Sync>
-        })?;
-    } else {
-        let cmd_arg = format!(
-            "{llama_cpp_path}/llama-server {args} --verbose >{llama_cpp_path}/llm-stdout.log 2>&1 &"
-        );
-        info!(
-            "Executing LLM server command: {llama_cpp_path}/llama-server {args} --verbose"
-        );
-        let cmd = SafeCommand::new("sh")
-            .and_then(|c| c.arg("-c"))
-            .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
-            .map_err(|e| {
-                Box::new(std::io::Error::other(
-                    e.to_string(),
-                )) as Box<dyn std::error::Error + Send + Sync>
-            })?;
-        cmd.execute().map_err(|e| {
-            Box::new(std::io::Error::other(
-                e.to_string(),
-            )) as Box<dyn std::error::Error + Send + Sync>
-        })?;
+        command.current_dir(&llama_cpp_path);
     }
+
+    let log_file_path = if cfg!(windows) {
+        format!("{}\\llm-stdout.log", llama_cpp_path)
+    } else {
+        format!("{}/llm-stdout.log", llama_cpp_path)
+    };
+
+    match std::fs::File::create(&log_file_path) {
+        Ok(log_file) => {
+            if let Ok(clone) = log_file.try_clone() {
+                command.stdout(std::process::Stdio::from(clone));
+            } else {
+                command.stdout(std::process::Stdio::null());
+            }
+            command.stderr(std::process::Stdio::from(log_file));
+        }
+        Err(_) => {
+            command.stdout(std::process::Stdio::null());
+            command.stderr(std::process::Stdio::null());
+        }
+    }
+
+    info!("Executing LLM server command: {:?}", command);
+    
+    command.spawn().map_err(|e| {
+        Box::new(std::io::Error::other(e.to_string())) as Box<dyn std::error::Error + Send + Sync>
+    })?;
     Ok(())
 }
 pub async fn start_embedding_server(
@@ -486,44 +490,54 @@ pub async fn start_embedding_server(
 
     info!("Starting embedding server on port {port} with model: {model_path}");
 
-    if cfg!(windows) {
-        let cmd_arg = format!(
-            "cd {llama_cpp_path} && .\\llama-server.exe -m {model_path} --verbose --host 0.0.0.0 --port {port} --embedding --n-gpu-layers 99 >stdout.log 2>&1"
-        );
-        let cmd = SafeCommand::new("cmd")
-            .and_then(|c| c.arg("/c"))
-            .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
-            .map_err(|e| {
-                Box::new(std::io::Error::other(
-                    e.to_string(),
-                )) as Box<dyn std::error::Error + Send + Sync>
-            })?;
-        cmd.execute().map_err(|e| {
-            Box::new(std::io::Error::other(
-                e.to_string(),
-            )) as Box<dyn std::error::Error + Send + Sync>
-        })?;
+    let cmd_path = if cfg!(windows) {
+        format!("{}\\llama-server.exe", llama_cpp_path)
     } else {
-        let cmd_arg = format!(
-            "{llama_cpp_path}/llama-server -m {model_path} --verbose --host 0.0.0.0 --port {port} --embedding --n-gpu-layers 99 --ubatch-size 2048 >{llama_cpp_path}/llmembd-stdout.log 2>&1 &"
-        );
-        info!(
-            "Executing embedding server command: {llama_cpp_path}/llama-server -m {model_path} --host 0.0.0.0 --port {port} --embedding"
-        );
-        let cmd = SafeCommand::new("sh")
-            .and_then(|c| c.arg("-c"))
-            .and_then(|c| c.trusted_shell_script_arg(&cmd_arg))
-            .map_err(|e| {
-                Box::new(std::io::Error::other(
-                    e.to_string(),
-                )) as Box<dyn std::error::Error + Send + Sync>
-            })?;
-        cmd.execute().map_err(|e| {
-            Box::new(std::io::Error::other(
-                e.to_string(),
-            )) as Box<dyn std::error::Error + Send + Sync>
-        })?;
+        format!("{}/llama-server", llama_cpp_path)
+    };
+
+    let mut command = std::process::Command::new(&cmd_path);
+    command.arg("-m").arg(&model_path)
+        .arg("--host").arg("0.0.0.0")
+        .arg("--port").arg(port)
+        .arg("--embedding")
+        .arg("--n-gpu-layers").arg("99")
+        .arg("--verbose");
+
+    if !cfg!(windows) {
+        command.arg("--ubatch-size").arg("2048");
     }
+
+    if cfg!(windows) {
+        command.current_dir(&llama_cpp_path);
+    }
+
+    let log_file_path = if cfg!(windows) {
+        format!("{}\\stdout.log", llama_cpp_path)
+    } else {
+        format!("{}/llmembd-stdout.log", llama_cpp_path)
+    };
+
+    match std::fs::File::create(&log_file_path) {
+        Ok(log_file) => {
+            if let Ok(clone) = log_file.try_clone() {
+                command.stdout(std::process::Stdio::from(clone));
+            } else {
+                command.stdout(std::process::Stdio::null());
+            }
+            command.stderr(std::process::Stdio::from(log_file));
+        }
+        Err(_) => {
+            command.stdout(std::process::Stdio::null());
+            command.stderr(std::process::Stdio::null());
+        }
+    }
+
+    info!("Executing embedding server command: {:?}", command);
+    
+    command.spawn().map_err(|e| {
+        Box::new(std::io::Error::other(e.to_string())) as Box<dyn std::error::Error + Send + Sync>
+    })?;
 
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
