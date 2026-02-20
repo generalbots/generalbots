@@ -146,8 +146,24 @@ pub async fn get_bot_config(
     let mut theme_logo: Option<String> = None;
     let mut theme_logo_text: Option<String> = None;
 
-    // Query all config values (no prefix filter - will match in code)
+    let target_bot_id = match get_bot_id_by_name(&mut conn, &bot_name) {
+        Ok(found_id) => found_id,
+        Err(e) => {
+            warn!("Failed to find bot ID for name '{}': {}", bot_name, e);
+            return Ok(Json(BotConfigResponse {
+                public: false,
+                theme_color1: None,
+                theme_color2: None,
+                theme_title: None,
+                theme_logo: None,
+                theme_logo_text: None,
+            }));
+        }
+    };
+
+    // Query all config values for this specific bot
     match bot_configuration
+        .filter(bot_id.eq(target_bot_id))
         .select((config_key, config_value))
         .load::<(String, String)>(&mut conn)
     {
