@@ -407,6 +407,19 @@ impl LLMProvider for OpenAIClient {
                                 let _ = tx.send(processed).await;
                             }
                         }
+                        
+                        // Handle standard OpenAI tool_calls
+                        if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
+                            for tool_call in tool_calls {
+                                // We send the tool_call object as a JSON string so stream_response
+                                // can buffer it and parse it using ToolExecutor::parse_tool_call
+                                if let Some(func) = tool_call.get("function") {
+                                    if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
+                                        let _ = tx.send(args.to_string()).await;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

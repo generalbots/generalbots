@@ -109,7 +109,7 @@ pub fn convert_talk_line_with_substitution(line: &str) -> String {
         result = "TALK \"\"".to_string();
     }
 
-    info!("[TOOL] Converted TALK line: '{}' → '{}'", line, result);
+    info!("Converted TALK line: '{}' → '{}'", line, result);
     result
 }
 

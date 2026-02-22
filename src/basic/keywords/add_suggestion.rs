@@ -401,7 +401,7 @@ pub fn get_suggestions(
                     }
                 }
                 info!(
-                    "[SUGGESTIONS] Retrieved {} suggestions for session {}",
+                    "Retrieved {} suggestions for session {}",
                     suggestions.len(),
                     session_id
                 );
@@ -413,7 +413,7 @@ pub fn get_suggestions(
                 //         .arg(&redis_key)
                 //         .query(&mut conn);
                 //     info!(
-                //         "[SUGGESTIONS] Cleared {} suggestions from Redis for session {}",
+                //         "Cleared {} suggestions from Redis for session {}",
                 //         suggestions.len(),
                 //         session_id
                 //     );
@@ -422,7 +422,7 @@ pub fn get_suggestions(
             Err(e) => error!("Failed to get suggestions from Redis: {}", e),
         }
     } else {
-        info!("[SUGGESTIONS] No cache configured, cannot retrieve suggestions");
+        info!("No cache configured, cannot retrieve suggestions");
     }
 
     suggestions

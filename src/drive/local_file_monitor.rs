@@ -36,7 +36,7 @@ impl LocalFileMonitor {
         // Use botserver/work as the work directory for generated files
         let work_root = PathBuf::from("work");
 
-        info!("[LOCAL_MONITOR] Initializing with data_dir: {:?}, work_root: {:?}", data_dir, work_root);
+        info!("Initializing with data_dir: {:?}, work_root: {:?}", data_dir, work_root);
 
         Self {
             state,
@@ -48,11 +48,11 @@ impl LocalFileMonitor {
     }
 
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        info!("[LOCAL_MONITOR] Starting local file monitor for /opt/gbo/data/*.gbai directories");
+        info!("Starting local file monitor for /opt/gbo/data/*.gbai directories");
 
         // Create data directory if it doesn't exist
         if let Err(e) = tokio::fs::create_dir_all(&self.data_dir).await {
-            warn!("[LOCAL_MONITOR] Failed to create data directory: {}", e);
+            warn!("Failed to create data directory: {}", e);
         }
 
         // Initial scan of all .gbai directories
@@ -66,12 +66,12 @@ impl LocalFileMonitor {
             monitor.monitoring_loop().await;
         });
 
-        info!("[LOCAL_MONITOR] Local file monitor started");
+        info!("Local file monitor started");
         Ok(())
     }
 
     async fn monitoring_loop(&self) {
-        info!("[LOCAL_MONITOR] Starting monitoring loop");
+        info!("Starting monitoring loop");
 
         // Try to create a file system watcher
         let (tx, mut rx) = tokio::sync::mpsc::channel(100);
@@ -88,7 +88,7 @@ impl LocalFileMonitor {
         ) {
             Ok(w) => w,
             Err(e) => {
-                error!("[LOCAL_MONITOR] Failed to create watcher: {}. Falling back to polling.", e);
+                error!("Failed to create watcher: {}. Falling back to polling.", e);
                 // Fall back to polling if watcher creation fails
                 self.polling_loop().await;
                 return;
@@ -97,13 +97,13 @@ impl LocalFileMonitor {
 
         // Watch the data directory
         if let Err(e) = watcher.watch(&self.data_dir, RecursiveMode::Recursive) {
-            warn!("[LOCAL_MONITOR] Failed to watch directory {:?}: {}. Using polling fallback.", self.data_dir, e);
+            warn!("Failed to watch directory {:?}: {}. Using polling fallback.", self.data_dir, e);
             drop(watcher);
             self.polling_loop().await;
             return;
         }
 
-        info!("[LOCAL_MONITOR] Watching directory: {:?}", self.data_dir);
+        info!("Watching directory: {:?}", self.data_dir);
 
         while self.is_processing.load(Ordering::SeqCst) {
             tokio::time::sleep(Duration::from_secs(5)).await;
@@ -114,9 +114,9 @@ impl LocalFileMonitor {
                     EventKind::Create(_) | EventKind::Modify(_) | EventKind::Any => {
                         for path in &event.paths {
                             if self.is_gbdialog_file(path) {
-                                info!("[LOCAL_MONITOR] Detected change: {:?}", path);
+                                info!("Detected change: {:?}", path);
                                 if let Err(e) = self.compile_local_file(path).await {
-                                    error!("[LOCAL_MONITOR] Failed to compile {:?}: {}", path, e);
+                                    error!("Failed to compile {:?}: {}", path, e);
                                 }
                             }
                         }
@@ -124,7 +124,7 @@ impl LocalFileMonitor {
                     EventKind::Remove(_) => {
                         for path in &event.paths {
                             if self.is_gbdialog_file(path) {
-                                info!("[LOCAL_MONITOR] File removed: {:?}", path);
+                                info!("File removed: {:?}", path);
                                 self.remove_file_state(path).await;
                             }
                         }
@@ -135,21 +135,21 @@ impl LocalFileMonitor {
 
             // Periodic scan to catch any missed changes
             if let Err(e) = self.scan_and_compile_all().await {
-                error!("[LOCAL_MONITOR] Scan failed: {}", e);
+                error!("Scan failed: {}", e);
             }
         }
 
-        info!("[LOCAL_MONITOR] Monitoring loop ended");
+        info!("Monitoring loop ended");
     }
 
     async fn polling_loop(&self) {
-        info!("[LOCAL_MONITOR] Using polling fallback (checking every 10s)");
+        info!("Using polling fallback (checking every 10s)");
 
         while self.is_processing.load(Ordering::SeqCst) {
             tokio::time::sleep(Duration::from_secs(10)).await;
 
             if let Err(e) = self.scan_and_compile_all().await {
-                error!("[LOCAL_MONITOR] Scan failed: {}", e);
+                error!("Scan failed: {}", e);
             }
         }
     }
@@ -229,9 +229,9 @@ impl LocalFileMonitor {
                 };
 
                 if should_compile {
-                    info!("[LOCAL_MONITOR] Compiling: {:?}", path);
+                    info!("Compiling: {:?}", path);
                     if let Err(e) = self.compile_local_file(&path).await {
-                        error!("[LOCAL_MONITOR] Failed to compile {:?}: {}", path, e);
+                        error!("Failed to compile {:?}: {}", path, e);
                     }
 
                     // Update state
@@ -304,7 +304,7 @@ impl LocalFileMonitor {
         })
         .await??;
 
-        info!("[LOCAL_MONITOR] Successfully compiled: {:?}", file_path);
+        info!("Successfully compiled: {:?}", file_path);
         Ok(())
     }
 
@@ -315,7 +315,7 @@ impl LocalFileMonitor {
     }
 
     pub async fn stop_monitoring(&self) {
-        info!("[LOCAL_MONITOR] Stopping local file monitor");
+        info!("Stopping local file monitor");
         self.is_processing.store(false, Ordering::SeqCst);
         self.file_states.write().await.clear();
     }

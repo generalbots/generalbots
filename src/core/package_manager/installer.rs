@@ -1080,7 +1080,7 @@ EOF"#.to_string(),
                 component.name,
                 rendered_cmd
             );
-            trace!("[START] Working dir: {}", bin_path.display());
+            trace!("Working dir: {}", bin_path.display());
             let child = SafeCommand::new("sh")
                 .and_then(|c| c.arg("-c"))
                 .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))

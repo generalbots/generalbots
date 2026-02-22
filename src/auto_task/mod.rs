@@ -179,17 +179,17 @@ async fn handle_task_progress_websocket(
                                 match sender.send(Message::Text(json_str)).await {
                                     Ok(()) => {
                                         if is_manifest {
-                                            info!("[WS_HANDLER] manifest_update SENT successfully to WebSocket");
+                                            info!("manifest_update SENT successfully to WebSocket");
                                         }
                                     }
                                     Err(e) => {
-                                        error!("[WS_HANDLER] Failed to send to WebSocket: {:?}", e);
+                                        error!("Failed to send to WebSocket: {:?}", e);
                                         break;
                                     }
                                 }
                             }
                             Err(e) => {
-                                error!("[WS_HANDLER] Failed to serialize event: {:?}", e);
+                                error!("Failed to serialize event: {:?}", e);
                             }
                         }
                     }

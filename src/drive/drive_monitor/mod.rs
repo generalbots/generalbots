@@ -211,7 +211,7 @@ impl DriveMonitor {
 
         // Check if already processing to prevent duplicate monitoring
         if self.is_processing.load(std::sync::atomic::Ordering::Acquire) {
-            warn!("[DRIVE_MONITOR] Already processing for bot {}, skipping", self.bot_id);
+            warn!("Already processing for bot {}, skipping", self.bot_id);
             return Ok(());
         }
 
@@ -234,18 +234,18 @@ impl DriveMonitor {
             .store(true, std::sync::atomic::Ordering::SeqCst);
 
         trace!("start_monitoring: calling check_for_changes...");
-        info!("[DRIVE_MONITOR] Calling initial check_for_changes...");
+        info!("Calling initial check_for_changes...");
 
         match tokio::time::timeout(Duration::from_secs(300), self.check_for_changes()).await {
             Ok(Ok(_)) => {
                 self.consecutive_failures.store(0, Ordering::Relaxed);
             }
             Ok(Err(e)) => {
-                warn!("[DRIVE_MONITOR] Initial check failed (will retry): {}", e);
+                warn!("Initial check failed (will retry): {}", e);
                 self.consecutive_failures.fetch_add(1, Ordering::Relaxed);
             }
             Err(_) => {
-                error!("[DRIVE_MONITOR] Initial check timed out after 5 minutes");
+                error!("Initial check timed out after 5 minutes");
                 self.consecutive_failures.fetch_add(1, Ordering::Relaxed);
             }
         }
@@ -260,15 +260,15 @@ impl DriveMonitor {
 
         // Force enable periodic monitoring regardless of initial check result
         self.is_processing.store(true, std::sync::atomic::Ordering::SeqCst);
-        info!("[DRIVE_MONITOR] Forced is_processing to true for periodic monitoring");
+        info!("Forced is_processing to true for periodic monitoring");
 
         let self_clone = self.clone(); // Don't wrap in Arc::new - that creates a copy
         tokio::spawn(async move {
             let mut consecutive_processing_failures = 0;
-            info!("[DRIVE_MONITOR] Starting periodic monitoring loop for bot {}", self_clone.bot_id);
+            info!("Starting periodic monitoring loop for bot {}", self_clone.bot_id);
             
             let is_processing_state = self_clone.is_processing.load(std::sync::atomic::Ordering::SeqCst);
-            info!("[DRIVE_MONITOR] is_processing state at loop start: {} for bot {}", is_processing_state, self_clone.bot_id);
+            info!("is_processing state at loop start: {} for bot {}", is_processing_state, self_clone.bot_id);
 
             while self_clone
                 .is_processing
@@ -288,7 +288,7 @@ impl DriveMonitor {
                         .fetch_add(1, Ordering::Relaxed)
                         + 1;
                     if failures % 10 == 1 {
-                        warn!("[DRIVE_MONITOR] S3/MinIO unavailable for bucket {} (failures: {}), backing off to {:?}",
+                        warn!("S3/MinIO unavailable for bucket {} (failures: {}), backing off to {:?}",
                               self_clone.bucket_name, failures, self_clone.calculate_backoff());
                     }
                     continue;
@@ -302,7 +302,7 @@ impl DriveMonitor {
                             self_clone.consecutive_failures.swap(0, Ordering::Relaxed);
                         consecutive_processing_failures = 0;
                         if prev_failures > 0 {
-                            info!("[DRIVE_MONITOR] S3/MinIO recovered for bucket {} after {} failures",
+                            info!("S3/MinIO recovered for bucket {} after {} failures",
                                   self_clone.bucket_name, prev_failures);
                         }
                     }
@@ -315,18 +315,18 @@ impl DriveMonitor {
 
                         // If too many consecutive failures, stop processing temporarily
                         if consecutive_processing_failures > 10 {
-                            error!("[DRIVE_MONITOR] Too many consecutive failures ({}), stopping processing for bot {}",
+                            error!("Too many consecutive failures ({}), stopping processing for bot {}",
                                    consecutive_processing_failures, self_clone.bot_id);
                             self_clone.is_processing.store(false, std::sync::atomic::Ordering::SeqCst);
                             break;
                         }
                     }
                     Err(_) => {
-                        error!("[DRIVE_MONITOR] check_for_changes timed out for bot {}", self_clone.bot_id);
+                        error!("check_for_changes timed out for bot {}", self_clone.bot_id);
                         consecutive_processing_failures += 1;
 
                         if consecutive_processing_failures > 5 {
-                            error!("[DRIVE_MONITOR] Too many timeouts, stopping processing for bot {}", self_clone.bot_id);
+                            error!("Too many timeouts, stopping processing for bot {}", self_clone.bot_id);
                             self_clone.is_processing.store(false, std::sync::atomic::Ordering::SeqCst);
                             break;
                         }
@@ -334,7 +334,7 @@ impl DriveMonitor {
                 }
             }
 
-            info!("[DRIVE_MONITOR] Monitoring loop ended for bot {}", self_clone.bot_id);
+            info!("Monitoring loop ended for bot {}", self_clone.bot_id);
         });
 
         info!("DriveMonitor started for bot {}", self.bot_id);
@@ -373,7 +373,7 @@ impl DriveMonitor {
                 if !self.check_drive_health().await {
                     let failures = self.consecutive_failures.fetch_add(1, Ordering::Relaxed) + 1;
                     if failures % 10 == 1 {
-                        warn!("[DRIVE_MONITOR] S3/MinIO unavailable for bucket {} (failures: {}), backing off to {:?}",
+                        warn!("S3/MinIO unavailable for bucket {} (failures: {}), backing off to {:?}",
                               self.bucket_name, failures, self.calculate_backoff());
                     }
                     continue;
@@ -385,7 +385,7 @@ impl DriveMonitor {
                     Ok(_) => {
                         let prev_failures = self.consecutive_failures.swap(0, Ordering::Relaxed);
                         if prev_failures > 0 {
-                            info!("[DRIVE_MONITOR] S3/MinIO recovered for bucket {} after {} failures",
+                            info!("S3/MinIO recovered for bucket {} after {} failures",
                                   self.bucket_name, prev_failures);
                         }
                     }
@@ -408,12 +408,12 @@ impl DriveMonitor {
         );
 
         let Some(client) = &self.state.drive else {
-            warn!("[DRIVE_MONITOR] No drive client available for bot {}, skipping file monitoring", self.bot_id);
+            warn!("No drive client available for bot {}, skipping file monitoring", self.bot_id);
             return Ok(());
         };
 
         trace!("check_for_changes: calling check_gbdialog_changes...");
-        trace!("[DRIVE_MONITOR] Checking gbdialog...");
+        trace!("Checking gbdialog...");
         self.check_gbdialog_changes(client).await?;
         trace!("check_for_changes: check_gbdialog_changes done");
         let after_dialog = MemoryStats::current();
@@ -424,7 +424,7 @@ impl DriveMonitor {
         );
 
         trace!("check_for_changes: calling check_gbot...");
-        trace!("[DRIVE_MONITOR] Checking gbot...");
+        trace!("Checking gbot...");
         self.check_gbot(client).await?;
         trace!("check_for_changes: check_gbot done");
         let after_gbot = MemoryStats::current();
@@ -435,7 +435,7 @@ impl DriveMonitor {
         );
 
         trace!("check_for_changes: calling check_gbkb_changes...");
-        trace!("[DRIVE_MONITOR] Checking gbkb...");
+        trace!("Checking gbkb...");
         self.check_gbkb_changes(client).await?;
         trace!("check_for_changes: check_gbkb_changes done");
         let after_gbkb = MemoryStats::current();
@@ -531,7 +531,7 @@ impl DriveMonitor {
         let self_clone = Arc::new(self.clone());
         tokio::spawn(async move {
             if let Err(e) = self_clone.save_file_states().await {
-                warn!("[DRIVE_MONITOR] Failed to save file states: {}", e);
+                warn!("Failed to save file states: {}", e);
             }
         });
         Ok(())
@@ -1145,7 +1145,7 @@ impl DriveMonitor {
                     #[cfg(any(feature = "research", feature = "llm"))]
                     {
                         if !is_embedding_server_ready() {
-                            info!("[DRIVE_MONITOR] Embedding server not ready, deferring KB indexing for {}", kb_folder_path.display());
+                            info!("Embedding server not ready, deferring KB indexing for {}", kb_folder_path.display());
                             continue;
                         }
 
@@ -1256,7 +1256,7 @@ impl DriveMonitor {
         let self_clone = Arc::new(self.clone());
         tokio::spawn(async move {
             if let Err(e) = self_clone.save_file_states().await {
-                warn!("[DRIVE_MONITOR] Failed to save file states: {}", e);
+                warn!("Failed to save file states: {}", e);
             }
         });
 

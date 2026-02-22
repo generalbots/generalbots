@@ -69,7 +69,7 @@ pub async fn handle_task_list(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| {
-            error!("[TASK_LIST] DB connection error: {}", e);
+            error!("DB connection error: {}", e);
             diesel::result::Error::DatabaseError(
                 diesel::result::DatabaseErrorKind::UnableToSendCommand,
                 Box::new(e.to_string()),
@@ -95,7 +95,7 @@ pub async fn handle_task_list(
         )
         .load::<AutoTaskRow>(&mut db_conn)
         .map_err(|e| {
-            error!("[TASK_LIST] Query error: {}", e);
+            error!("Query error: {}", e);
             e
         })?;
 
@@ -106,11 +106,11 @@ pub async fn handle_task_list(
     match result {
         Ok(Ok(tasks)) => (StatusCode::OK, axum::Json(tasks)).into_response(),
         Ok(Err(e)) => {
-            error!("[TASK_LIST] DB error: {}", e);
+            error!("DB error: {}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()
         }
         Err(e) => {
-            error!("[TASK_LIST] Task join error: {}", e);
+            error!("Task join error: {}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
         }
     }
@@ -122,7 +122,7 @@ pub async fn handle_task_get(
     Path(id): Path<String>,
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    info!("[TASK_GET] *** Handler called for task: {} ***", id);
+    info!("*** Handler called for task: {} ***", id);
 
     // Check if client wants JSON (for polling) vs HTML (for HTMX)
     let wants_json = headers
@@ -138,7 +138,7 @@ pub async fn handle_task_get(
         let mut db_conn = conn
             .get()
             .map_err(|e| {
-                error!("[TASK_GET] DB connection error: {}", e);
+                error!("DB connection error: {}", e);
                 format!("DB connection error: {}", e)
             })?;
 
@@ -176,11 +176,11 @@ pub async fn handle_task_get(
 
         let parsed_uuid = match Uuid::parse_str(&task_id) {
             Ok(u) => {
-                info!("[TASK_GET] Parsed UUID: {}", u);
+                info!("Parsed UUID: {}", u);
                 u
             }
             Err(e) => {
-                error!("[TASK_GET] Invalid task ID '{}': {}", task_id, e);
+                error!("Invalid task ID '{}': {}", task_id, e);
                 return Err(format!("Invalid task ID: {}", task_id));
             }
         };
@@ -192,12 +192,12 @@ pub async fn handle_task_get(
         .bind::<diesel::sql_types::Uuid, _>(parsed_uuid)
         .get_result(&mut db_conn)
         .map_err(|e| {
-            error!("[TASK_GET] Query error for {}: {}", parsed_uuid, e);
+            error!("Query error for {}: {}", parsed_uuid, e);
             e
         })
         .ok();
 
-        info!("[TASK_GET] Query result for {}: found={}", parsed_uuid, task.is_some());
+        info!("Query result for {}: found={}", parsed_uuid, task.is_some());
         Ok::<_, String>(task)
     })
     .await
@@ -208,7 +208,7 @@ pub async fn handle_task_get(
 
     match result {
         Ok(Some(task)) => {
-            info!("[TASK_GET] Returning task: {} - {} (wants_json={})", task.id, task.title, wants_json);
+            info!("Returning task: {} - {} (wants_json={})", task.id, task.title, wants_json);
 
             // Return JSON for API polling clients
             if wants_json {
@@ -371,11 +371,11 @@ pub async fn handle_task_get(
             (StatusCode::OK, axum::response::Html(html)).into_response()
         }
         Ok(None) => {
-            warn!("[TASK_GET] Task not found: {}", id);
+            warn!("Task not found: {}", id);
             (StatusCode::NOT_FOUND, axum::response::Html("<div class='error'>Task not found</div>".to_string())).into_response()
         }
         Err(e) => {
-            error!("[TASK_GET] Error fetching task {}: {}", id, e);
+            error!("Error fetching task {}: {}", id, e);
             (StatusCode::INTERNAL_SERVER_ERROR, axum::response::Html(format!("<div class='error'>{}</div>", e))).into_response()
         }
     }

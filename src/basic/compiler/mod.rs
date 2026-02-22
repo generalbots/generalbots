@@ -676,7 +676,7 @@ impl BasicCompiler {
         let table_name = table_name.trim_matches('"');
 
         // Debug log to see what we're querying
-        log::info!("[SAVE] Converting SAVE for table: '{}' (original: '{}')", table_name, &parts[0]);
+        log::info!("Converting SAVE for table: '{}' (original: '{}')", table_name, &parts[0]);
 
         // Get column names from TABLE definition (preserves order from .bas file)
         let column_names = self.get_table_columns_for_save(table_name, bot_id)?;
@@ -685,7 +685,7 @@ impl BasicCompiler {
         let values: Vec<&String> = parts.iter().skip(1).collect();
         let mut map_pairs = Vec::new();
 
-        log::info!("[SAVE] Matching {} variables to {} columns", values.len(), column_names.len());
+        log::info!("Matching {} variables to {} columns", values.len(), column_names.len());
 
         for value_var in values.iter() {
             // Find the column that matches this variable (case-insensitive)
@@ -694,7 +694,7 @@ impl BasicCompiler {
             if let Some(column_name) = column_names.iter().find(|col| col.to_lowercase() == value_lower) {
                 map_pairs.push(format!("{}: {}", column_name, value_var));
             } else {
-                log::warn!("[SAVE] No matching column for variable '{}'", value_var);
+                log::warn!("No matching column for variable '{}'", value_var);
             }
         }
 

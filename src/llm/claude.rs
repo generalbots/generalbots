@@ -421,7 +421,7 @@ impl ClaudeClient {
 
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("[CLAUDE] Error response: {}", error_text);
+            error!("Claude API error response: {}", error_text);
             return Err(format!("HTTP {}: {}", status, error_text).into());
         }
 

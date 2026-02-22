@@ -198,20 +198,12 @@ fn associate_tool_with_session(
     tool_name: &str,
 ) -> Result<String, String> {
     use crate::core::shared::models::schema::session_tool_associations;
-    use std::fs;
 
     // Check if tool's .mcp.json file exists in work directory
-    // Use relative path from botserver binary location
+    // Use relative path from botserver binary current directory
     let gb_dir = std::env::current_dir()
         .unwrap_or_else(|_| PathBuf::from("."))
         .join("botserver-stack/data/system");
-
-    // Ensure work directory exists (create if not)
-    let work_base = gb_dir.join("work");
-    if !work_base.exists() {
-        fs::create_dir_all(&work_base).map_err(|e| format!("Failed to create work directory {:?}: {}", work_base, e))?;
-        info!("Created work directory at: {:?}", work_base);
-    }
 
     // Get bot name to construct the path
     let bot_name = get_bot_name_from_id(state, &user.bot_id)?;

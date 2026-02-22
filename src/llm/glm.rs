@@ -304,7 +304,7 @@ impl LLMProvider for GLMClient {
                                             match tx.send(tool_call_json).await {
                                                 Ok(_) => {},
                                                 Err(e) => {
-                                                    error!("[GLM_TX] Failed to send tool_call to channel: {}", e);
+                                                    error!("Failed to send tool_call to channel: {}", e);
                                                 }
                                             }
                                         }
@@ -318,7 +318,7 @@ impl LLMProvider for GLMClient {
                                             match tx.send(content.to_string()).await {
                                                 Ok(_) => {},
                                                 Err(e) => {
-                                                    error!("[GLM_TX] Failed to send to channel: {}", e);
+                                                    error!("Failed to send to channel: {}", e);
                                                 }
                                             }
                                         }

@@ -440,9 +440,6 @@ impl BotOrchestrator {
 
                     let config_manager = ConfigManager::new(state_clone.conn.clone());
 
-                    // DEBUG: Log which bot we're getting config for
-                    info!("[CONFIG_TRACE] Getting LLM config for bot_id: {}", session.bot_id);
-
                     // For local LLM server, use the actual model name
                     // Default to DeepSeek model if not configured
                     let model = config_manager
@@ -452,12 +449,6 @@ impl BotOrchestrator {
                     let key = config_manager
                         .get_config(&session.bot_id, "llm-key", Some(""))
                         .unwrap_or_default();
-
-                    // DEBUG: Log the exact config values retrieved
-                    info!("[CONFIG_TRACE] Model: '{}'", model);
-                    info!("[CONFIG_TRACE] API Key: '{}' ({} chars)", key, key.len());
-                    info!("[CONFIG_TRACE] API Key first 10 chars: '{}'", &key.chars().take(10).collect::<String>());
-                    info!("[CONFIG_TRACE] API Key last 10 chars: '{}'", &key.chars().rev().take(10).collect::<String>());
 
                     Ok((session, context_data, history, model, key))
                 },
@@ -508,12 +499,10 @@ impl BotOrchestrator {
                 let data_dir = "/opt/gbo/data";
                 let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name_for_context, bot_name_for_context);
 
-                info!("[START_BAS] Executing start.bas for session {} at: {}", actual_session_id, start_script_path);
+                trace!("Executing start.bas for session {} at: {}", actual_session_id, start_script_path);
 
                 if let Ok(metadata) = tokio::fs::metadata(&start_script_path).await {
                     if metadata.is_file() {
-                        info!("[START_BAS] Found start.bas, executing for session {}", actual_session_id);
-
                         if let Ok(start_script) = tokio::fs::read_to_string(&start_script_path).await {
                             let state_clone = self.state.clone();
                             let actual_session_id_for_task = session.id;
@@ -551,7 +540,7 @@ impl BotOrchestrator {
 
                             match result {
                                 Ok(Ok(())) => {
-                                    info!("[START_BAS] start.bas completed successfully for session {}", actual_session_id);
+                                    trace!("start.bas completed successfully for session {}", actual_session_id);
 
                                     // Mark start.bas as executed for this session to prevent re-running
                                     if let Some(cache) = &self.state.cache {
@@ -563,15 +552,14 @@ impl BotOrchestrator {
                                                 .arg("86400") // Expire after 24 hours
                                                 .query_async(&mut conn)
                                                 .await;
-                                            info!("[START_BAS] Marked start.bas as executed for session {}", actual_session_id);
                                         }
                                     }
                                 }
                                 Ok(Err(e)) => {
-                                    error!("[START_BAS] start.bas error for session {}: {}", actual_session_id, e);
+                                    error!("start.bas error for session {}: {}", actual_session_id, e);
                                 }
                                 Err(e) => {
-                                    error!("[START_BAS] start.bas task error for session {}: {}", actual_session_id, e);
+                                    error!("start.bas task error for session {}: {}", actual_session_id, e);
                                 }
                             }
                         }
@@ -613,12 +601,7 @@ impl BotOrchestrator {
             }));
         }
 
-        // DEBUG: Log messages before sending to LLM
-        info!("[LLM_CALL] Messages before LLM: {}", serde_json::to_string_pretty(&messages).unwrap_or_default());
-        info!("[LLM_CALL] message_content: '{}'", message_content);
-
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
-        info!("[STREAM_SETUP] Channel created, starting LLM stream");
         let llm = self.state.llm_provider.clone();
 
         let model_clone = model.clone();
@@ -629,15 +612,13 @@ impl BotOrchestrator {
         let tools_for_llm = match session_tools {
             Ok(tools) => {
                 if !tools.is_empty() {
-                    info!("[TOOLS] Loaded {} tools for session {}", tools.len(), session.id);
                     Some(tools)
                 } else {
-                    info!("[TOOLS] No tools associated with session {}", session.id);
                     None
                 }
             }
             Err(e) => {
-                warn!("[TOOLS] Failed to load session tools: {}", e);
+                warn!("Failed to load session tools: {}", e);
                 None
             }
         };
@@ -645,24 +626,13 @@ impl BotOrchestrator {
         // Clone messages for the async task
         let messages_clone = messages.clone();
 
-        // DEBUG: Log exact values being passed to LLM
-        info!("[LLM_CALL] Calling generate_stream with:");
-        info!("[LLM_CALL]   Model: '{}'", model_clone);
-        info!("[LLM_CALL]   Key length: {} chars", key_clone.len());
-        info!("[LLM_CALL]   Key preview: '{}...{}'",
-            &key_clone.chars().take(8).collect::<String>(),
-            &key_clone.chars().rev().take(8).collect::<String>()
-        );
-
         tokio::spawn(async move {
-            info!("[SPAWN_TASK] LLM stream task started");
             if let Err(e) = llm
                 .generate_stream("", &messages_clone, stream_tx, &model_clone, &key_clone, tools_for_llm.as_ref())
                 .await
             {
                 error!("LLM streaming error: {}", e);
             }
-            info!("[SPAWN_TASK] LLM stream task completed");
         });
 
         let mut full_response = String::new();
@@ -672,9 +642,6 @@ impl BotOrchestrator {
         let mut accumulating_tool_call = false; // Track if we're currently accumulating a tool call
         let mut tool_was_executed = false; // Track if a tool was executed to avoid duplicate final message
         let handler = llm_models::get_handler(&model);
-
-        info!("[STREAM_START] Entering stream processing loop for model: {}", model);
-        info!("[STREAM_START] About to enter while loop, stream_rx is valid");
 
         trace!("Using model handler for {}", model);
 
@@ -700,7 +667,6 @@ impl BotOrchestrator {
         }
 
         while let Some(chunk) = stream_rx.recv().await {
-            info!("[STREAM_DEBUG] Received chunk: '{}', len: {}", chunk, chunk.len());
             trace!("Received LLM chunk: {:?}", chunk);
 
             // ===== GENERIC TOOL EXECUTION =====
@@ -724,7 +690,6 @@ impl BotOrchestrator {
                         // Send the part before { as regular content
                         let regular_part = &chunk[..pos];
                         if !regular_part.trim().is_empty() {
-                            info!("[STREAM_CONTENT] Sending regular part before JSON: '{}', len: {}", regular_part, regular_part.len());
                             full_response.push_str(regular_part);
 
                             let response = BotResponse {
@@ -774,11 +739,6 @@ impl BotOrchestrator {
             };
 
             if let Some(tc) = tool_call {
-                info!(
-                    "[TOOL_CALL] Detected tool '{}' from LLM, executing...",
-                    tc.tool_name
-                );
-
                 let execution_result = ToolExecutor::execute_tool_call(
                     &self.state,
                     &bot_name_for_context,
@@ -862,7 +822,6 @@ impl BotOrchestrator {
             // Increased limit to 50000 to handle large tool calls with many parameters
             if tool_call_buffer.len() > 50000 {
                 // Flush accumulated content to client since it's too large to be a tool call
-                info!("[TOOL_EXEC] Flushing tool_call_buffer (too large, assuming not a tool call)");
                 full_response.push_str(&tool_call_buffer);
 
                 let response = BotResponse {
@@ -934,13 +893,9 @@ impl BotOrchestrator {
 
             if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
                 in_analysis = false;
-                info!(
-                    "[ANALYSIS] Detected end of thinking for model {}. Buffer: '{}'",
-                    model, analysis_buffer
-                );
+                trace!("Detected end of thinking for model {}", model);
 
                 let processed = handler.process_content(&analysis_buffer);
-                info!("[ANALYSIS] Processed content: '{}'", processed);
                 if !processed.is_empty() {
                     full_response.push_str(&processed);
 
@@ -975,7 +930,6 @@ impl BotOrchestrator {
             }
 
             if !in_analysis {
-                info!("[STREAM_CONTENT] Sending chunk: '{}', len: {}", chunk, chunk.len());
                 full_response.push_str(&chunk);
 
                 let response = BotResponse {
@@ -999,8 +953,6 @@ impl BotOrchestrator {
                 }
             }
         }
-
-        info!("[STREAM_END] While loop exited. full_response length: {}", full_response.len());
 
         let state_for_save = self.state.clone();
         let full_response_clone = full_response.clone();
@@ -1366,18 +1318,14 @@ async fn handle_websocket(
         while let Some(Ok(msg)) = receiver.next().await {
             match msg {
                 Message::Text(text) => {
-                    info!("Received WebSocket message: {}", text);
                     if let Ok(user_msg) = serde_json::from_str::<UserMessage>(&text) {
                         let orchestrator = BotOrchestrator::new(state_clone.clone());
-                        info!("[WS_DEBUG] Looking up response channel for session: {}", session_id);
                         if let Some(tx_clone) = state_clone
                             .response_channels
                             .lock()
                             .await
                             .get(&session_id.to_string())
                         {
-                            info!("[WS_DEBUG] Response channel found, calling stream_response");
-
                             // Ensure session exists - create if not
                             let session_result = {
                                 let mut sm = state_clone.session_manager.lock().await;
@@ -1385,27 +1333,20 @@ async fn handle_websocket(
                             };
 
                             let session = match session_result {
-                                Ok(Some(sess)) => {
-                                    info!("[WS_DEBUG] Session exists: {}", session_id);
-                                    sess
-                                }
+                                Ok(Some(sess)) => sess,
                                 Ok(None) => {
-                                    info!("[WS_DEBUG] Session not found, creating via session manager");
                                     // Use session manager to create session (will generate new UUID)
                                     let mut sm = state_clone.session_manager.lock().await;
                                     match sm.create_session(user_id, bot_id, "WebSocket Chat") {
-                                        Ok(new_session) => {
-                                            info!("[WS_DEBUG] Session created: {} (note: different from WebSocket session_id)", new_session.id);
-                                            new_session
-                                        }
+                                        Ok(new_session) => new_session,
                                         Err(e) => {
-                                            error!("[WS_DEBUG] Failed to create session: {}", e);
+                                            error!("Failed to create session: {}", e);
                                             continue;
                                         }
                                     }
                                 }
                                 Err(e) => {
-                                    error!("[WS_DEBUG] Error getting session: {}", e);
+                                    error!("Error getting session: {}", e);
                                     continue;
                                 }
                             };
@@ -1424,14 +1365,14 @@ async fn handle_websocket(
                                 error!("Failed to stream response: {}", e);
                             }
                         } else {
-                            warn!("[WS_DEBUG] Response channel NOT found for session: {}", session_id);
+                            warn!("Response channel NOT found for session: {}", session_id);
                         }
                     } else {
-                        warn!("[WS_DEBUG] Failed to parse UserMessage from: {}", text);
+                        warn!("Failed to parse UserMessage from: {}", text);
                     }
                 }
                 Message::Close(_) => {
-                    info!("WebSocket close message received");
+                    trace!("WebSocket close message received");
                     break;
                 }
                 _ => {}
