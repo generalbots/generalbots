@@ -23,14 +23,14 @@ pub fn convert_begin_blocks(script: &str) -> String {
         }
 
         if upper == "BEGIN TALK" {
-            info!("[TOOL] Converting BEGIN TALK statement");
+            info!("Converting BEGIN TALK statement");
             in_talk_block = true;
             talk_block_lines.clear();
             continue;
         }
 
         if upper == "END TALK" {
-            info!("[TOOL] Converting END TALK statement, processing {} lines", talk_block_lines.len());
+            info!("Converting END TALK statement, processing {} lines", talk_block_lines.len());
             in_talk_block = false;
             let converted = convert_talk_block(&talk_block_lines);
             result.push_str(&converted);
@@ -45,7 +45,7 @@ pub fn convert_begin_blocks(script: &str) -> String {
 
         if upper.starts_with("BEGIN MAIL ") {
             let recipient = &trimmed[11..].trim();
-            info!("[TOOL] Converting BEGIN MAIL statement: recipient='{}'", recipient);
+            info!("Converting BEGIN MAIL statement: recipient='{}'", recipient);
             mail_recipient = recipient.to_string();
             in_mail_block = true;
             mail_block_lines.clear();
@@ -53,7 +53,7 @@ pub fn convert_begin_blocks(script: &str) -> String {
         }
 
         if upper == "END MAIL" {
-            info!("[TOOL] Converting END MAIL statement, processing {} lines", mail_block_lines.len());
+            info!("Converting END MAIL statement, processing {} lines", mail_block_lines.len());
             in_mail_block = false;
             let converted = convert_mail_block(&mail_recipient, &mail_block_lines);
             result.push_str(&converted);

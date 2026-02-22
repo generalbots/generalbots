@@ -1015,7 +1015,7 @@ impl AppGenerator {
         };
 
         // Mark "Analyzing Request" as completed
-        info!("[PHASE1->2] Marking Analyzing Request as Completed");
+        info!(" Marking Analyzing Request as Completed");
         self.update_manifest_section(SectionType::Validation, SectionStatus::Completed);
         self.broadcast_manifest_update();
 
@@ -1069,7 +1069,7 @@ impl AppGenerator {
         let tables = Self::convert_llm_tables(&llm_app.tables);
 
         if !tables.is_empty() {
-            info!("[PHASE2] Setting Database & Models section to Running");
+            info!(" Setting Database & Models section to Running");
             self.update_manifest_section(SectionType::DatabaseModels, SectionStatus::Running);
             self.broadcast_manifest_update();
             self.update_manifest_child(
@@ -1282,7 +1282,7 @@ impl AppGenerator {
 
             // Debug: List all sections before update
             if let Some(ref manifest) = self.manifest {
-                info!("[PHASE2B] Current manifest sections:");
+                info!(" Current manifest sections:");
                 for (i, s) in manifest.sections.iter().enumerate() {
                     info!(
                         "[PHASE2B]   [{}] {:?} = '{}' status={:?}",
@@ -1301,7 +1301,7 @@ impl AppGenerator {
             for idx in files_needing_content {
                 let filename = llm_app.files[idx].filename.clone();
                 generated_count += 1;
-                info!("[PHASE2B] Starting generation for file: {}", filename);
+                info!(" Starting generation for file: {}", filename);
                 self.add_terminal_output(
                     &format!("Generating `{filename}`..."),
                     TerminalLineType::Info,
@@ -1783,11 +1783,11 @@ impl AppGenerator {
 
             match std::fs::read_to_string(&prompt_path) {
                 Ok(content) => {
-                    info!("[APP_GENERATOR] Loaded prompt from {:?} ({} chars)", prompt_path, content.len());
+                    info!("Loaded prompt from {:?} ({} chars)", prompt_path, content.len());
                     content
                 }
                 Err(e) => {
-                    warn!("[APP_GENERATOR] Failed to load APP_GENERATOR_PROMPT.md: {}, using fallback", e);
+                    warn!("Failed to load APP_GENERATOR_PROMPT.md: {}, using fallback", e);
                     Self::get_fallback_prompt().to_string()
                 }
             }
@@ -1876,7 +1876,7 @@ RESPOND ONLY WITH THE PLAN STRUCTURE. NO QUESTIONS."#
             intent_preview
         );
         let response = self.call_llm(&prompt, bot_id).await?;
-        info!("[PHASE1] Project plan received, parsing...");
+        info!(" Project plan received, parsing...");
 
         Self::parse_project_plan(&response, intent)
     }
@@ -1894,7 +1894,7 @@ RESPOND ONLY WITH THE PLAN STRUCTURE. NO QUESTIONS."#
             "[PHASE1_PARSE] Response preview: {}",
             response_preview.replace('\n', "\\n")
         );
-        info!("[PHASE1_PARSE] Has APP_START: {}, Has TABLES_START: {}, Has FILES_PLAN: {}, Has TOOLS_PLAN: {}",
+        trace!(" Has APP_START: {}, Has TABLES_START: {}, Has FILES_PLAN: {}, Has TOOLS_PLAN: {}",
             response.contains("<<<APP_START>>>"),
             response.contains("<<<TABLES_START>>>"),
             response.contains("<<<FILES_PLAN>>>"),
@@ -1976,7 +1976,7 @@ RESPOND ONLY WITH THE PLAN STRUCTURE. NO QUESTIONS."#
                 }
             }
         } else {
-            info!("[PHASE1_PARSE] TABLES_START not found, trying <<<TABLE:>>> delimiters...");
+            trace!(" TABLES_START not found, trying <<<TABLE:>>> delimiters...");
             for table_match in response.match_indices("<<<TABLE:") {
                 let start = table_match.0;
                 if let Some(rest) = response.get(start..) {
@@ -1984,7 +1984,7 @@ RESPOND ONLY WITH THE PLAN STRUCTURE. NO QUESTIONS."#
                         if let Some(table_name) = rest.get(9..end_offset) {
                             let table_name = table_name.trim();
                             if !table_name.is_empty() {
-                                info!("[PHASE1_PARSE] Found table from delimiter: {}", table_name);
+                                trace!(" Found table from delimiter: {}", table_name);
                                 app.tables.push(LlmTable {
                                     name: table_name.to_string(),
                                     fields: Vec::new(),
@@ -2019,13 +2019,13 @@ RESPOND ONLY WITH THE PLAN STRUCTURE. NO QUESTIONS."#
                             || filename.ends_with(".bas")
                             || filename.ends_with(".json"))
                     {
-                        info!("[PHASE1_PARSE] Adding file: {}", filename);
+                        trace!(" Adding file: {}", filename);
                         app.files.push(LlmFile {
                             filename,
                             content: String::new(), // Content will be generated in Phase 2
                         });
                     } else if !filename.is_empty() {
-                        info!("[PHASE1_PARSE] Skipped file (unknown ext): {}", filename);
+                        trace!(" Skipped file (unknown ext): {}", filename);
                     }
                 }
             }
@@ -2041,7 +2041,7 @@ RESPOND ONLY WITH THE PLAN STRUCTURE. NO QUESTIONS."#
                         if let Some(filename) = rest.get(8..end_offset) {
                             let filename = filename.trim();
                             if !filename.is_empty() {
-                                info!("[PHASE1_PARSE] Found file from delimiter: {}", filename);
+                                trace!(" Found file from delimiter: {}", filename);
                                 app.files.push(LlmFile {
                                     filename: filename.to_string(),
                                     content: String::new(),
@@ -2078,7 +2078,7 @@ RESPOND ONLY WITH THE PLAN STRUCTURE. NO QUESTIONS."#
                 }
             }
         } else {
-            info!("[PHASE1_PARSE] TOOLS_PLAN not found, trying <<<TOOL:>>> delimiters...");
+            trace!(" TOOLS_PLAN not found, trying <<<TOOL:>>> delimiters...");
             for tool_match in response.match_indices("<<<TOOL:") {
                 let start = tool_match.0;
                 if let Some(rest) = response.get(start..) {
@@ -2091,7 +2091,7 @@ RESPOND ONLY WITH THE PLAN STRUCTURE. NO QUESTIONS."#
                                 } else {
                                     format!("{}.bas", tool_name)
                                 };
-                                info!("[PHASE1_PARSE] Found tool from delimiter: {}", filename);
+                                trace!(" Found tool from delimiter: {}", filename);
                                 app.tools.push(LlmFile {
                                     filename,
                                     content: String::new(),
@@ -2802,7 +2802,7 @@ NO QUESTIONS. JUST BUILD."#
                                         && !detected_tables.contains(&table_name.to_string())
                                     {
                                         detected_tables.push(table_name.to_string());
-                                        info!("[LLM_STREAM] Detected table: {table_name}");
+                                        info!("Detected table: {table_name}");
                                     }
                                 }
                             }
@@ -2819,7 +2819,7 @@ NO QUESTIONS. JUST BUILD."#
                                         && !detected_files.contains(&file_name.to_string())
                                     {
                                         detected_files.push(file_name.to_string());
-                                        info!("[LLM_STREAM] Detected file: {file_name}");
+                                        info!("Detected file: {file_name}");
                                     }
                                 }
                             }
@@ -2836,7 +2836,7 @@ NO QUESTIONS. JUST BUILD."#
                                         && !detected_tools.contains(&tool_name.to_string())
                                     {
                                         detected_tools.push(tool_name.to_string());
-                                        info!("[LLM_STREAM] Detected tool: {tool_name}");
+                                        info!("Detected tool: {tool_name}");
                                     }
                                 }
                             }
@@ -2865,7 +2865,7 @@ NO QUESTIONS. JUST BUILD."#
                                                 || name.ends_with(".bas"))
                                             && !detected_files.contains(&name.to_string()) {
                                                 detected_files.push(name.to_string());
-                                                info!("[LLM_STREAM] Detected planned file: {name}");
+                                                info!("Detected planned file: {name}");
                                             }
                                     }
                                 }
@@ -2894,7 +2894,7 @@ NO QUESTIONS. JUST BUILD."#
                                             };
                                             if !detected_tools.contains(&tool_name) {
                                                 detected_tools.push(tool_name.clone());
-                                                info!("[LLM_STREAM] Detected planned tool: {tool_name}");
+                                                info!("Detected planned tool: {tool_name}");
                                             }
                                         }
                                     }
@@ -2924,7 +2924,7 @@ NO QUESTIONS. JUST BUILD."#
                                             };
                                             if !detected_tools.contains(&sched_name) {
                                                 detected_tools.push(sched_name.clone());
-                                                info!("[LLM_STREAM] Detected planned scheduler: {sched_name}");
+                                                info!("Detected planned scheduler: {sched_name}");
                                             }
                                         }
                                     }
@@ -2962,7 +2962,7 @@ NO QUESTIONS. JUST BUILD."#
                                     chars_received
                                 )
                             };
-                            info!("[LLM_STREAM] Progress: {}", progress_msg);
+                            info!("Progress: {}", progress_msg);
                             let event = crate::core::shared::state::TaskProgressEvent::new(
                                 tid,
                                 "llm_generating",
@@ -3002,7 +3002,7 @@ NO QUESTIONS. JUST BUILD."#
                     } else {
                         format!("AI complete: {} chars generated", full_response.len())
                     };
-                    info!("[LLM_STREAM] {}", final_msg);
+                    info!("{}", final_msg);
                     let event = crate::core::shared::state::TaskProgressEvent::new(
                         tid,
                         "llm_complete",

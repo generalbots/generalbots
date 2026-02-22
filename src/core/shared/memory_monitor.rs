@@ -31,7 +31,7 @@ component: component.to_string(),
 if let Ok(mut registry) = THREAD_REGISTRY.write() {
 registry.insert(name.to_string(), info);
 }
-trace!("[THREAD] Registered: {} (component: {})", name, component);
+trace!("Registered: {} (component: {})", name, component);
 }
 
 pub fn record_thread_activity(name: &str) {
@@ -47,12 +47,12 @@ pub fn unregister_thread(name: &str) {
 if let Ok(mut registry) = THREAD_REGISTRY.write() {
 registry.remove(name);
 }
-info!("[THREAD] Unregistered: {}", name);
+info!("Unregistered: {}", name);
 }
 
 pub fn log_thread_stats() {
 if let Ok(registry) = THREAD_REGISTRY.read() {
-info!("[THREADS] Active thread count: {}", registry.len());
+info!("Active thread count: {}", registry.len());
 for (name, info) in registry.iter() {
 let uptime = info.started_at.elapsed().as_secs();
 let idle = info.last_activity.elapsed().as_secs();
@@ -185,7 +185,7 @@ if let Some(stats) = get_jemalloc_stats() {
 stats.log();
 let frag = stats.fragmentation_ratio();
 if frag > 1.5 {
-warn!("[JEMALLOC] High fragmentation detected: {:.2}x", frag);
+warn!("High fragmentation detected: {:.2}x", frag);
 }
 }
 }
@@ -446,7 +446,7 @@ tokio::spawn(async move {
         record_component("global");
 
         if let Some(warning) = detector.check() {
-            warn!("[MONITOR] {}", warning);
+            warn!("{}", warning);
             stats.log();
             log_component_stats();
             log_thread_stats();
@@ -454,7 +454,7 @@ tokio::spawn(async move {
 
         // Switch to normal interval after startup period
         if tick_count == startup_ticks {
-            trace!("[MONITOR] Switching to normal interval ({}s)", interval_secs);
+            trace!("Switching to normal interval ({}s)", interval_secs);
             interval = tokio::time::interval(normal_interval);
         }
     }

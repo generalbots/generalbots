@@ -126,7 +126,7 @@ impl KbIndexer {
         log_jemalloc_stats();
 
         if !is_embedding_server_ready() {
-            info!("[KB_INDEXER] Embedding server not ready yet, waiting up to 60s...");
+            info!("Embedding server not ready yet, waiting up to 60s...");
             if !self.embedding_generator.wait_for_server(60).await {
                 warn!(
                     "Embedding server is not available. KB indexing skipped. \
@@ -155,13 +155,13 @@ impl KbIndexer {
         self.ensure_collection_exists(&collection_name).await?;
 
         let before_docs = MemoryStats::current();
-        trace!("[KB_INDEXER] Before process_kb_folder RSS={}",
+        trace!("Before process_kb_folder RSS={}",
               MemoryStats::format_bytes(before_docs.rss_bytes));
 
         let documents = self.document_processor.process_kb_folder(kb_path).await?;
 
         let after_docs = MemoryStats::current();
-        trace!("[KB_INDEXER] After process_kb_folder: {} documents, RSS={} (delta={})",
+        trace!("After process_kb_folder: {} documents, RSS={} (delta={})",
               documents.len(),
               MemoryStats::format_bytes(after_docs.rss_bytes),
               MemoryStats::format_bytes(after_docs.rss_bytes.saturating_sub(before_docs.rss_bytes)));
@@ -176,7 +176,7 @@ impl KbIndexer {
         
         for (doc_path, chunks) in doc_iter {
             if chunks.is_empty() {
-                debug!("[KB_INDEXER] Skipping document with no chunks: {}", doc_path);
+                debug!("Skipping document with no chunks: {}", doc_path);
                 continue;
             }
 
@@ -198,7 +198,7 @@ impl KbIndexer {
                 // Memory pressure check - more aggressive
                 let current_mem = MemoryStats::current();
                 if current_mem.rss_bytes > 1_500_000_000 { // 1.5GB threshold (reduced)
-                    warn!("[KB_INDEXER] High memory usage detected: {}, forcing cleanup", 
+                    warn!("High memory usage detected: {}, forcing cleanup", 
                           MemoryStats::format_bytes(current_mem.rss_bytes));
                     
                     // Force garbage collection hint
@@ -220,7 +220,7 @@ impl KbIndexer {
         self.update_collection_metadata(&collection_name, bot_name, kb_name, total_chunks)?;
 
         let end_mem = MemoryStats::current();
-        trace!("[KB_INDEXER] Indexing complete: {} docs, {} chunks, RSS={} (total delta={})",
+        trace!("Indexing complete: {} docs, {} chunks, RSS={} (total delta={})",
               indexed_documents, total_chunks,
               MemoryStats::format_bytes(end_mem.rss_bytes),
               MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes)));
@@ -245,7 +245,7 @@ impl KbIndexer {
         while let Some((doc_path, chunks)) = batch_docs.pop() {
             let before_embed = MemoryStats::current();
             trace!(
-                "[KB_INDEXER] Processing document: {} ({} chunks) RSS={}",
+                "Processing document: {} ({} chunks) RSS={}",
                 doc_path,
                 chunks.len(),
                 MemoryStats::format_bytes(before_embed.rss_bytes)
@@ -253,7 +253,7 @@ impl KbIndexer {
 
             // Re-validate embedding server is still available
             if !is_embedding_server_ready() {
-                warn!("[KB_INDEXER] Embedding server became unavailable during indexing, aborting batch");
+                warn!("Embedding server became unavailable during indexing, aborting batch");
                 return Err(anyhow::anyhow!(
                     "Embedding server became unavailable during KB indexing. Processed {} documents before failure.",
                     processed_count
@@ -265,7 +265,7 @@ impl KbIndexer {
             let chunk_batches = chunks.chunks(CHUNK_BATCH_SIZE);
             
             for chunk_batch in chunk_batches {
-                trace!("[KB_INDEXER] Processing chunk batch of {} chunks", chunk_batch.len());
+                trace!("Processing chunk batch of {} chunks", chunk_batch.len());
                 
                 let embeddings = match self
                     .embedding_generator
@@ -274,7 +274,7 @@ impl KbIndexer {
                 {
                     Ok(emb) => emb,
                     Err(e) => {
-                        warn!("[KB_INDEXER] Embedding generation failed for {}: {}", doc_path, e);
+                        warn!("Embedding generation failed for {}: {}", doc_path, e);
                         break; // Skip to next document
                     }
                 };
@@ -287,7 +287,7 @@ impl KbIndexer {
             }
 
             let after_embed = MemoryStats::current();
-            trace!("[KB_INDEXER] After processing document: RSS={} (delta={})",
+            trace!("After processing document: RSS={} (delta={})",
                   MemoryStats::format_bytes(after_embed.rss_bytes),
                   MemoryStats::format_bytes(after_embed.rss_bytes.saturating_sub(before_embed.rss_bytes)));
 

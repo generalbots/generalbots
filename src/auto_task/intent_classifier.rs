@@ -281,12 +281,12 @@ Respond with JSON only:
 }}"#
         );
 
-        info!("[INTENT_CLASSIFIER] Starting LLM call for classification, prompt_len={} chars", prompt.len());
+        info!("Starting LLM call for classification, prompt_len={} chars", prompt.len());
         let start = std::time::Instant::now();
 
         let response = self.call_llm(&prompt, bot_id).await?;
         let elapsed = start.elapsed();
-        info!("[INTENT_CLASSIFIER] LLM classification completed in {:?}, response_len={} chars", elapsed, response.len());
+        info!("LLM classification completed in {:?}, response_len={} chars", elapsed, response.len());
         trace!("LLM classification response: {}", &response[..response.len().min(500)]);
         Self::parse_classification_response(&response, intent)
     }

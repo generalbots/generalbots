@@ -346,18 +346,18 @@ pub async fn create_and_execute_handler(
 
     // Spawn background task to do the actual work
     let spawn_result = tokio::spawn(async move {
-        info!("[AUTOTASK] *** Background task STARTED for task_id={} ***", task_id_str);
+        info!(" *** Background task STARTED for task_id={} ***", task_id_str);
 
         // Use IntentClassifier to classify and process with task tracking
         let classifier = IntentClassifier::new(state_clone.clone());
 
-        info!("[AUTOTASK] Calling classify_and_process_with_task_id for task_id={}", task_id_str);
+        info!(" Calling classify_and_process_with_task_id for task_id={}", task_id_str);
 
         let result = classifier
             .classify_and_process_with_task_id(&intent, &session_clone, Some(task_id_str.clone()))
             .await;
 
-        info!("[AUTOTASK] classify_and_process_with_task_id returned for task_id={}", task_id_str);
+        info!(" classify_and_process_with_task_id returned for task_id={}", task_id_str);
 
         match result {
             Ok(result) => {
@@ -382,10 +382,10 @@ pub async fn create_and_execute_handler(
         }
     });
 
-    info!("[AUTOTASK] Spawn result: {:?}", spawn_result);
+    info!(" Spawn result: {:?}", spawn_result);
 
     // Return immediately with task_id - client will poll for status
-    info!("[AUTOTASK] Returning immediately with task_id={}", task_id);
+    info!(" Returning immediately with task_id={}", task_id);
     (
         StatusCode::ACCEPTED,
         Json(CreateAndExecuteResponse {

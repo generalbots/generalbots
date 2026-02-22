@@ -68,7 +68,7 @@ pub fn convert_mail_line_with_substitution(line: &str) -> String {
         }
     }
 
-    info!("[TOOL] Converted mail line: '{}' → '{}'", line, result);
+    info!("Converted mail line: '{}' → '{}'", line, result);
     result
 }
 
@@ -138,6 +138,6 @@ pub fn convert_mail_block(recipient: &str, lines: &[String]) -> String {
     };
     result.push_str(&format!("send_mail({}, \"{}\", {}, []);\n", recipient_expr, subject, body_expr));
 
-    info!("[TOOL] Converted MAIL block → {}", result);
+    info!("Converted MAIL block → {}", result);
     result
 }

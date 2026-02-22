@@ -20,7 +20,7 @@ pub fn is_embedding_server_ready() -> bool {
 pub fn set_embedding_server_ready(ready: bool) {
     EMBEDDING_SERVER_READY.store(ready, Ordering::SeqCst);
     if ready {
-        info!("[EMBEDDING] Embedding server marked as ready");
+        info!("Embedding server marked as ready");
     }
 }
 
@@ -285,13 +285,13 @@ impl KbEmbeddingGenerator {
                         is_healthy
                     }
                     _ => {
-                        warn!("[EMBEDDING] Health check failed: {}", e);
+                        warn!("Health check failed: {}", e);
                         false
                     }
                 }
             }
             Err(_) => {
-                warn!("[EMBEDDING] Health check timed out");
+                warn!("Health check timed out");
                 false
             }
         }
@@ -301,18 +301,18 @@ impl KbEmbeddingGenerator {
         let start = std::time::Instant::now();
         let max_wait = Duration::from_secs(max_wait_secs);
 
-        info!("[EMBEDDING] Waiting for embedding server at {} (max {}s)...",
+        info!("Waiting for embedding server at {} (max {}s)...",
               self.config.embedding_url, max_wait_secs);
 
         while start.elapsed() < max_wait {
             if self.check_health().await {
-                info!("[EMBEDDING] Embedding server is ready after {:?}", start.elapsed());
+                info!("Embedding server is ready after {:?}", start.elapsed());
                 return true;
             }
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
 
-        warn!("[EMBEDDING] Embedding server not available after {}s", max_wait_secs);
+        warn!("Embedding server not available after {}s", max_wait_secs);
         false
     }
 
@@ -325,7 +325,7 @@ impl KbEmbeddingGenerator {
         }
 
         if !is_embedding_server_ready() {
-            info!("[EMBEDDING] Server not marked ready, checking health...");
+            trace!("Server not marked ready, checking health...");
             if !self.wait_for_server(30).await {
                 return Err(anyhow::anyhow!(
                     "Embedding server not available at {}. Skipping embedding generation.",
@@ -335,7 +335,7 @@ impl KbEmbeddingGenerator {
         }
 
         let start_mem = MemoryStats::current();
-        trace!("[EMBEDDING] Generating embeddings for {} chunks, RSS={}",
+        trace!("Generating embeddings for {} chunks, RSS={}",
               chunks.len(), MemoryStats::format_bytes(start_mem.rss_bytes));
 
         let mut results = Vec::with_capacity(chunks.len());
@@ -343,7 +343,7 @@ impl KbEmbeddingGenerator {
 
         for (batch_num, batch) in chunks.chunks(self.config.batch_size).enumerate() {
             let batch_start = MemoryStats::current();
-            trace!("[EMBEDDING] Processing batch {}/{} ({} items), RSS={}",
+            trace!("Processing batch {}/{} ({} items), RSS={}",
                   batch_num + 1,
                   total_batches,
                   batch.len(),
@@ -355,11 +355,11 @@ impl KbEmbeddingGenerator {
             ).await {
                 Ok(Ok(embeddings)) => embeddings,
                 Ok(Err(e)) => {
-                    warn!("[EMBEDDING] Batch {} failed: {}", batch_num + 1, e);
+                    warn!("Batch {} failed: {}", batch_num + 1, e);
                     break;
                 }
                 Err(_) => {
-                    warn!("[EMBEDDING] Batch {} timed out after {}s",
+                    warn!("Batch {} timed out after {}s",
                           batch_num + 1, self.config.timeout_seconds);
                     break;
                 }
@@ -367,14 +367,14 @@ impl KbEmbeddingGenerator {
 
             let batch_end = MemoryStats::current();
             let delta = batch_end.rss_bytes.saturating_sub(batch_start.rss_bytes);
-            trace!("[EMBEDDING] Batch {} complete: {} embeddings, RSS={} (delta={})",
+            trace!("Batch {} complete: {} embeddings, RSS={} (delta={})",
                   batch_num + 1,
                   batch_embeddings.len(),
                   MemoryStats::format_bytes(batch_end.rss_bytes),
                   MemoryStats::format_bytes(delta));
 
             if delta > 100 * 1024 * 1024 {
-                warn!("[EMBEDDING] Excessive memory growth detected ({}), stopping early",
+                warn!("Excessive memory growth detected ({}), stopping early",
                       MemoryStats::format_bytes(delta));
                 for (chunk, embedding) in batch.iter().zip(batch_embeddings.iter()) {
                     results.push((chunk.clone(), embedding.clone()));
@@ -392,7 +392,7 @@ impl KbEmbeddingGenerator {
         }
 
         let end_mem = MemoryStats::current();
-        trace!("[EMBEDDING] Generated {} embeddings, RSS={} (total delta={})",
+        trace!("Generated {} embeddings, RSS={} (total delta={})",
               results.len(),
               MemoryStats::format_bytes(end_mem.rss_bytes),
               MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes)));
@@ -408,16 +408,16 @@ impl KbEmbeddingGenerator {
         let texts: Vec<String> = chunks.iter().map(|c| c.content.clone()).collect();
         let total_chars: usize = texts.iter().map(|t| t.len()).sum();
 
-        info!("[EMBEDDING] generate_batch_embeddings: {} texts, {} total chars",
+        trace!("generate_batch_embeddings: {} texts, {} total chars",
               texts.len(), total_chars);
 
         match self.generate_local_embeddings(&texts).await {
             Ok(embeddings) => {
-                info!("[EMBEDDING] Local embeddings succeeded: {} vectors", embeddings.len());
+                trace!("Local embeddings succeeded: {} vectors", embeddings.len());
                 Ok(embeddings)
             }
             Err(e) => {
-                warn!("[EMBEDDING] Local embedding service failed: {}", e);
+                warn!("Local embedding service failed: {}", e);
                 Err(e)
             }
         }
@@ -437,7 +437,7 @@ impl KbEmbeddingGenerator {
         let request_size = serde_json::to_string(&request)
             .map(|s| s.len())
             .unwrap_or(0);
-        info!("[EMBEDDING] Sending request to {} (size: {} bytes)",
+        trace!("Sending request to {} (size: {} bytes)",
               self.config.embedding_url, request_size);
 
         let response = self
@@ -462,7 +462,7 @@ impl KbEmbeddingGenerator {
         let response_bytes = response.bytes().await
             .context("Failed to read embedding response bytes")?;
 
-        info!("[EMBEDDING] Received response: {} bytes", response_bytes.len());
+        trace!("Received response: {} bytes", response_bytes.len());
 
         if response_bytes.len() > 50 * 1024 * 1024 {
             return Err(anyhow::anyhow!(

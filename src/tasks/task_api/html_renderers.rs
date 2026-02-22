@@ -62,12 +62,12 @@ pub fn build_terminal_html(step_results: &Option<serde_json::Value>, status: &st
 }
 
 pub fn build_taskmd_html(state: &Arc<AppState>, task_id: &str, title: &str, runtime: &str, db_manifest: Option<&serde_json::Value>) -> (String, String) {
-    log::info!("[TASKMD_HTML] Building TASK.md view for task_id: {}", task_id);
+    log::info!("Building TASK.md view for task_id: {}", task_id);
 
     // First, try to get manifest from in-memory cache (for active/running tasks)
     if let Ok(manifests) = state.task_manifests.read() {
         if let Some(manifest) = manifests.get(task_id) {
-            log::info!("[TASKMD_HTML] Found manifest in memory for task: {} with {} sections", manifest.app_name, manifest.sections.len());
+            log::info!("Found manifest in memory for task: {} with {} sections", manifest.app_name, manifest.sections.len());
             let status_html = build_status_section_html(manifest, title, runtime);
             let progress_html = build_progress_log_html(manifest);
             return (status_html, progress_html);
@@ -76,25 +76,25 @@ pub fn build_taskmd_html(state: &Arc<AppState>, task_id: &str, title: &str, runt
 
     // If not in memory, try to load from database (for completed/historical tasks)
     if let Some(manifest_json) = db_manifest {
-        log::info!("[TASKMD_HTML] Found manifest in database for task: {}", task_id);
+        log::info!("Found manifest in database for task: {}", task_id);
         if let Ok(manifest) = serde_json::from_value::<TaskManifest>(manifest_json.clone()) {
-            log::info!("[TASKMD_HTML] Parsed DB manifest for task: {} with {} sections", manifest.app_name, manifest.sections.len());
+            log::info!("Parsed DB manifest for task: {} with {} sections", manifest.app_name, manifest.sections.len());
             let status_html = build_status_section_html(&manifest, title, runtime);
             let progress_html = build_progress_log_html(&manifest);
             return (status_html, progress_html);
         } else {
             // Try parsing as web JSON format (the format we store)
             if let Some(web_manifest) = super::utils::parse_web_manifest_json(manifest_json) {
-                log::info!("[TASKMD_HTML] Parsed web manifest from DB for task: {}", task_id);
+                log::info!("Parsed web manifest from DB for task: {}", task_id);
                 let status_html = build_status_section_from_web_json(&web_manifest, title, runtime);
                 let progress_html = build_progress_log_from_web_json(&web_manifest);
                 return (status_html, progress_html);
             }
-            log::warn!("[TASKMD_HTML] Failed to parse manifest JSON for task: {}", task_id);
+            log::warn!("Failed to parse manifest JSON for task: {}", task_id);
         }
     }
 
-    log::info!("[TASKMD_HTML] No manifest found for task: {}", task_id);
+    log::info!("No manifest found for task: {}", task_id);
 
     let default_status = format!(r#"
         <div class="status-row">
@@ -326,10 +326,10 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
 
     let total_steps = manifest.total_steps;
 
-    log::info!("[PROGRESS_HTML] Building progress log, {} sections, total_steps={}", manifest.sections.len(), total_steps);
+    log::info!("Building progress log, {} sections, total_steps={}", manifest.sections.len(), total_steps);
 
     for section in &manifest.sections {
-        log::info!("[PROGRESS_HTML] Section '{}': children={}, items={}, item_groups={}",
+        log::info!("Section '{}': children={}, items={}, item_groups={}",
             section.name, section.children.len(), section.items.len(), section.item_groups.len());
         let section_class = match section.status {
             crate::auto_task::SectionStatus::Completed => "completed expanded",
@@ -362,7 +362,7 @@ fn build_progress_log_html(manifest: &TaskManifest) -> String {
         "#, section_class, section.id, section.name, global_current, total_steps, section_class, status_text, section_class));
 
         for child in &section.children {
-            log::info!("[PROGRESS_HTML]   Child '{}': items={}, item_groups={}",
+            log::info!("  Child '{}': items={}, item_groups={}",
                 child.name, child.items.len(), child.item_groups.len());
             let child_class = match child.status {
                 crate::auto_task::SectionStatus::Completed => "completed expanded",

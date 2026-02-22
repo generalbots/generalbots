@@ -505,7 +505,7 @@ impl std::fmt::Debug for AppState {
 impl AppState {
     pub fn broadcast_task_progress(&self, event: TaskProgressEvent) {
         log::info!(
-            "[TASK_PROGRESS] Broadcasting: task_id={}, step={}, message={}",
+            "Broadcasting: task_id={}, step={}, message={}",
             event.task_id,
             event.step,
             event.message
@@ -513,19 +513,19 @@ impl AppState {
         if let Some(tx) = &self.task_progress_broadcast {
             let receiver_count = tx.receiver_count();
             log::info!(
-                "[TASK_PROGRESS] Broadcast channel has {} receivers",
+                "Broadcast channel has {} receivers",
                 receiver_count
             );
             match tx.send(event) {
                 Ok(_) => {
-                    log::info!("[TASK_PROGRESS] Event sent successfully");
+                    log::info!("Event sent successfully");
                 }
                 Err(e) => {
-                    log::warn!("[TASK_PROGRESS] No listeners for task progress: {e}");
+                    log::warn!("No listeners for task progress: {e}");
                 }
             }
         } else {
-            log::warn!("[TASK_PROGRESS] No broadcast channel configured!");
+            log::warn!("No broadcast channel configured!");
         }
     }
 

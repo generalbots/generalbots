@@ -4,7 +4,7 @@ use crate::core::kb::KnowledgeBaseManager;
 use crate::core::shared::state::AppState;
 use crate::core::shared::utils::DbPool;
 use diesel::prelude::*;
-use log::{error, info, warn};
+use log::{error, trace, warn};
 use regex;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -35,7 +35,7 @@ impl WebsiteCrawlerService {
         let service = Arc::clone(&self);
 
         tokio::spawn(async move {
-            info!("Website crawler service started");
+            trace!("Website crawler service started");
 
             let mut ticker = interval(service.check_interval);
 
@@ -59,7 +59,7 @@ impl WebsiteCrawlerService {
     }
 
     async fn check_and_crawl_websites(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Checking for websites that need recrawling");
+        trace!("Checking for websites that need recrawling");
 
         // First, scan for new USE WEBSITE commands in .bas files
         self.scan_and_register_websites_from_scripts()?;
@@ -75,9 +75,9 @@ impl WebsiteCrawlerService {
         )
         .load(&mut conn)?;
 
-        info!("Total websites in database: {}", all_websites.len());
+        trace!("Total websites in database: {}", all_websites.len());
         for ws in &all_websites {
-            info!("  - URL: {}, status: {:?}, refresh: {:?}", ws.url, ws.crawl_status, ws.refresh_policy);
+            trace!("  - URL: {}, status: {:?}, refresh: {:?}", ws.url, ws.crawl_status, ws.refresh_policy);
         }
 
         let websites = diesel::sql_query(
@@ -90,7 +90,7 @@ impl WebsiteCrawlerService {
         )
         .load::<WebsiteCrawlRecord>(&mut conn)?;
 
-        info!("Found {} websites to recrawl (next_crawl <= NOW())", websites.len());
+        trace!("Found {} websites to recrawl (next_crawl <= NOW())", websites.len());
 
         // Process websites sequentially to prevent memory exhaustion
         for website in websites {
@@ -115,11 +115,11 @@ impl WebsiteCrawlerService {
             let db_pool = self.db_pool.clone();
             let active_crawls = Arc::clone(&self.active_crawls);
 
-            info!("Processing website: {}", website.url);
+            trace!("Processing website: {}", website.url);
 
             match Self::crawl_website(website, kb_manager, db_pool, active_crawls).await {
                 Ok(_) => {
-                    info!("Successfully processed website crawl");
+                    trace!("Successfully processed website crawl");
                 }
                 Err(e) => {
                     error!("Failed to crawl website: {}", e);
@@ -165,7 +165,7 @@ impl WebsiteCrawlerService {
             });
         };
 
-        info!("Starting crawl for website: {}", website.url);
+        trace!("Starting crawl for website: {}", website.url);
 
         let config_manager = ConfigManager::new(db_pool.clone());
 
@@ -200,7 +200,7 @@ impl WebsiteCrawlerService {
 
         match crawler.crawl().await {
             Ok(pages) => {
-                info!("Crawled {} pages from {}", pages.len(), website.url);
+                trace!("Crawled {} pages from {}", pages.len(), website.url);
 
                 let mut conn = db_pool.get()?;
                 #[derive(QueryableByName)]
@@ -228,7 +228,7 @@ impl WebsiteCrawlerService {
                 let total_pages = pages.len();
 
                 for (batch_idx, batch) in pages.chunks(BATCH_SIZE).enumerate() {
-                    info!("Processing batch {} of {} pages", batch_idx + 1, total_pages.div_ceil(BATCH_SIZE));
+                    trace!("Processing batch {} of {} pages", batch_idx + 1, total_pages.div_ceil(BATCH_SIZE));
 
                     for (idx, page) in batch.iter().enumerate() {
                         let global_idx = batch_idx * BATCH_SIZE + idx;
@@ -258,7 +258,7 @@ impl WebsiteCrawlerService {
                     if batch_idx == 0 || (batch_idx + 1) % 2 == 0 {
                         // Index every 2 batches to prevent memory buildup
                         match kb_manager.index_kb_folder(&bot_name, &kb_name, &work_path).await {
-                            Ok(_) => info!("Indexed batch {} successfully", batch_idx + 1),
+                            Ok(_) => trace!("Indexed batch {} successfully", batch_idx + 1),
                             Err(e) => warn!("Failed to index batch {}: {}", batch_idx + 1, e),
                         }
 
@@ -290,7 +290,7 @@ impl WebsiteCrawlerService {
                 .bind::<diesel::sql_types::Uuid, _>(&website.id)
                 .execute(&mut conn)?;
 
-                info!(
+                trace!(
                     "Successfully recrawled {}, next crawl: {:?}",
                     website.url, config.next_crawl
                 );
@@ -318,7 +318,7 @@ impl WebsiteCrawlerService {
     }
 
     fn scan_and_register_websites_from_scripts(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Scanning .bas files for USE WEBSITE commands");
+        trace!("Scanning .bas files for USE WEBSITE commands");
 
         let work_dir = std::path::Path::new("work");
         if !work_dir.exists() {
@@ -416,7 +416,7 @@ impl WebsiteCrawlerService {
                     .unwrap_or(0);
 
                     if exists == 0 {
-                        info!("Auto-registering website {} for bot {} with refresh: {}", url_str, bot_id, refresh_str);
+                        trace!("Auto-registering website {} for bot {} with refresh: {}", url_str, bot_id, refresh_str);
 
                         // Register website for crawling with refresh policy
                         crate::basic::keywords::use_website::register_website_for_crawling_with_refresh(
@@ -480,7 +480,7 @@ pub async fn ensure_crawler_service_running(
 
         drop(service.start());
 
-        info!("Website crawler service initialized");
+        trace!("Website crawler service initialized");
 
         Ok(())
     } else {

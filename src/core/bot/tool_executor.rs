@@ -1,6 +1,6 @@
 /// Generic tool executor for LLM tool calls
 /// Works across all LLM providers (GLM, OpenAI, Claude, etc.)
-use log::{error, info, warn};
+use log::{error, info, trace, warn};
 use serde_json::Value;
 // use std::collections::HashMap;
 use std::fs::OpenOptions;
@@ -60,7 +60,7 @@ impl ToolExecutor {
         }
 
         // Also log to system logger
-        error!("[TOOL_ERROR] Bot: {}, Tool: {}, Error: {}", bot_name, tool_name, error_msg);
+        error!("Tool error in {} (bot: {}): {}", tool_name, bot_name, error_msg);
     }
 
     /// Convert internal errors to user-friendly messages for browser
@@ -278,7 +278,7 @@ impl ToolExecutor {
 
                 // Set variable in script scope
                 if let Err(e) = script_service.set_variable(key, &value_str) {
-                    warn!("[TOOL_EXEC] Failed to set variable '{}': {}", key, e);
+                    warn!("Failed to set variable '{}': {}", key, e);
                 }
             }
         }
@@ -302,7 +302,7 @@ impl ToolExecutor {
         // Run the script
         match script_service.run(&ast) {
             Ok(result) => {
-                info!("[TOOL_EXEC] Tool '{}' executed successfully", tool_name);
+                trace!("Tool '{}' executed successfully", tool_name);
 
                 // Convert result to string
                 let result_str = result.to_string();
