@@ -216,7 +216,9 @@ impl WebsiteCrawlerService {
 
                 let kb_name = format!("website_{}", sanitize_url_for_kb(&website.url));
 
-                let work_path = std::path::PathBuf::from("work")
+                let work_path = std::env::current_dir()
+                    .unwrap_or_else(|_| std::path::PathBuf::from("."))
+                    .join("botserver-stack/data/system/work")
                     .join(&bot_name)
                     .join(format!("{}.gbkb", bot_name))
                     .join(&kb_name);
