@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use log::{debug, info, warn};
 use serde_json::{json, Value};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 use crate::core::shared::utils::DbPool;
@@ -36,8 +36,10 @@ pub fn get_session_tools(
     }
 
     // Build path to work/{bot_name}.gbai/{bot_name}.gbdialog directory
-    let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    let gb_dir = format!("{}/gb", home_dir);
+    // Use relative path from botserver binary location
+    let gb_dir = std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("botserver-stack/data/system");
     let work_path = Path::new(&gb_dir).join("work").join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
 
     info!("Loading {} tools for session {} from {:?}", tool_names.len(), session_id, work_path);
