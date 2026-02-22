@@ -3,7 +3,7 @@ use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use rhai::{Dynamic, Engine};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use uuid::Uuid;
 pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -200,8 +200,10 @@ fn associate_tool_with_session(
     use crate::core::shared::models::schema::session_tool_associations;
 
     // Check if tool's .mcp.json file exists in work directory
-    let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    let gb_dir = format!("{}/gb", home_dir);
+    // Use relative path from botserver binary location
+    let gb_dir = std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("botserver-stack/data/system");
 
     // Get bot name to construct the path
     let bot_name = get_bot_name_from_id(state, &user.bot_id)?;
