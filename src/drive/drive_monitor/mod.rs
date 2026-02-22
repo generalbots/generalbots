@@ -57,7 +57,9 @@ impl DriveMonitor {
     }
 
     pub fn new(state: Arc<AppState>, bucket_name: String, bot_id: uuid::Uuid) -> Self {
-        let work_root = PathBuf::from("work");
+        let work_root = std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join("botserver-stack/data/system/work");
         #[cfg(any(feature = "research", feature = "llm"))]
         let kb_manager = Arc::new(KnowledgeBaseManager::new(work_root.clone()));
 
@@ -829,9 +831,10 @@ impl DriveMonitor {
             .bucket_name
             .strip_suffix(".gbai")
             .unwrap_or(&self.bucket_name);
-        let work_dir = format!("./work/{}.gbai/{}.gbdialog", bot_name, bot_name);
+        let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+        let work_dir_str = work_dir.to_string_lossy().to_string();
         let state_clone = Arc::clone(&self.state);
-        let work_dir_clone = work_dir.clone();
+        let work_dir_clone = work_dir_str.clone();
         let tool_name_clone = tool_name.clone();
         let source_content_clone = source_content.clone();
         let bot_id = self.bot_id;
@@ -840,7 +843,7 @@ impl DriveMonitor {
             let local_source_path = format!("{}/{}.bas", work_dir_clone, tool_name_clone);
             std::fs::write(&local_source_path, &source_content_clone)?;
             let mut compiler = BasicCompiler::new(state_clone, bot_id);
-            let result = compiler.compile_file(&local_source_path, &work_dir_clone)?;
+            let result = compiler.compile_file(&local_source_path, &work_dir_str)?;
             if let Some(mcp_tool) = result.mcp_tool {
                 info!(
                     "MCP tool definition generated with {} parameters",

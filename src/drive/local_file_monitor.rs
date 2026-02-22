@@ -30,11 +30,13 @@ pub struct LocalFileMonitor {
 
 impl LocalFileMonitor {
     pub fn new(state: Arc<AppState>) -> Self {
-        // Use /opt/gbo/data as the base directory
-        let data_dir = PathBuf::from("/opt/gbo/data");
+        // Use botserver-stack/data/system/work as the work directory
+        let work_root = std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join("botserver-stack/data/system/work");
 
-        // Use botserver/work as the work directory for generated files
-        let work_root = PathBuf::from("work");
+        // Use /opt/gbo/data as the base directory for source files
+        let data_dir = PathBuf::from("/opt/gbo/data");
 
         info!("Initializing with data_dir: {:?}, work_root: {:?}", data_dir, work_root);
 
