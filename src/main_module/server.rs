@@ -72,7 +72,9 @@ pub async fn run_axum_server(
             .add_public_path("/static")
             .add_public_path("/favicon.ico")
             .add_public_path("/suite")
-            .add_public_path("/themes"),
+            .add_public_path("/themes")
+            .add_public_path("/api/product") // For desktop UI initialization
+            .add_public_path("/") // Allow all bot routes (fallback to UI)
     );
 
     let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {

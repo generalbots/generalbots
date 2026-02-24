@@ -1060,16 +1060,9 @@ pub async fn websocket_handler(
         .cloned()
         .unwrap_or_else(|| "default".to_string());
 
-    if session_id.is_none() || user_id.is_none() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "session_id and user_id are required" })),
-        )
-            .into_response();
-    }
-
-    let session_id = session_id.unwrap_or_default();
-    let user_id = user_id.unwrap_or_default();
+    // Allow anonymous connections for desktop UI - create UUIDs if not provided
+    let session_id = session_id.unwrap_or_else(Uuid::new_v4);
+    let user_id = user_id.unwrap_or_else(Uuid::new_v4);
 
     // Look up bot_id from bot_name
     let bot_id = {

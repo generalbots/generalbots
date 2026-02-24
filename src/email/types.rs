@@ -300,6 +300,22 @@ pub struct EmailService {
     pub state: std::sync::Arc<crate::core::shared::state::AppState>,
 }
 
+impl EmailService {
+    pub fn new(state: std::sync::Arc<crate::core::shared::state::AppState>) -> Self {
+        Self { state }
+    }
+
+    pub fn send_email(&self, to: &str, _subject: &str, _body: &str, _attachments: Option<Vec<String>>) -> Result<(), String> {
+        log::warn!("EmailService::send_email not fully implemented. to: {}", to);
+        Ok(())
+    }
+
+    pub fn send_email_with_attachment(&self, to: &str, _subject: &str, _body: &str, _file_data: Vec<u8>, _filename: &str) -> Result<(), String> {
+        log::warn!("EmailService::send_email_with_attachment not fully implemented. to: {}", to);
+        Ok(())
+    }
+}
+
 pub struct EmailData {
     pub id: String,
     pub from_name: String,

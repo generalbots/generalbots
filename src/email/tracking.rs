@@ -391,7 +391,7 @@ pub fn get_emails(Path(campaign_id): Path<String>, State(_state): State<Arc<AppS
 
 pub async fn track_click(
     Path((campaign_id, email)): Path<(String, String)>,
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, EmailError> {
     info!("Click tracked - Campaign: {}, Email: {}", campaign_id, email);
     
@@ -402,7 +402,7 @@ pub async fn track_click(
 }
 
 pub async fn get_latest_email(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, EmailError> {
     Ok(Json(serde_json::json!({
         "success": false,
@@ -411,8 +411,8 @@ pub async fn get_latest_email(
 }
 
 pub async fn get_email(
-    Path(campaign_id): Path<String>,
-    State(state): State<Arc<AppState>>,
+    Path(_campaign_id): Path<String>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, EmailError> {
     Ok(Json(serde_json::json!({
         "success": false,
