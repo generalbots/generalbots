@@ -10,7 +10,10 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "automation", "drive", "tasks", "cache", "directory", "llm", "crawler"]
+default = ["chat", "automation", "drive", "tasks", "cache", "directory", "llm", "crawler", "browser", "terminal", "editor", "mail"]
+
+browser = ["automation", "drive", "cache"]
+terminal = ["automation", "drive", "cache"]
 
 # ===== CORE INFRASTRUCTURE (Can be used standalone) =====
 scripting = ["dep:rhai"]

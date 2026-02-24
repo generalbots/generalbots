@@ -1,4 +1,4 @@
-use crate::{core::urls::ApiUrls, shared::state::AppState};
+use crate::{core::urls::ApiUrls, core::shared::state::AppState};
 use axum::{
     routing::{delete, get, post},
     Router,

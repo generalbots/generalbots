@@ -1186,7 +1186,7 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         // =====================================================================
         // UI ROUTES (HTMX endpoints) - authenticated users
         // =====================================================================
-        RoutePermission::new("/api/ui/tasks/**", "GET", ""),
+        RoutePermission::new("/api/ui/tasks/**", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/ui/tasks/**", "POST", ""),
         RoutePermission::new("/api/ui/tasks/**", "PUT", ""),
         RoutePermission::new("/api/ui/tasks/**", "PATCH", ""),

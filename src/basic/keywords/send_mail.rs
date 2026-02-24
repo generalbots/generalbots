@@ -176,7 +176,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
-    let user_clone2 = user;
+    let user_clone2 = user.clone();
 
     engine
         .register_custom_syntax(
@@ -266,14 +266,13 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         let to_str = to.to_string();
         let subject_str = subject.to_string();
         // Convert body to string
-        let body_str = body.to_string();
         // Convert body to string
         let body_str = body.to_string();
 
         // Convert attachments to Vec<String>
         let mut atts = Vec::new();
         if attachments.is_array() {
-            if let Ok(arr) = attachments.cast::<rhai::Array>() {
+            let arr = attachments.cast::<rhai::Array>(); {
                 for item in arr.iter() {
                     atts.push(item.to_string());
                 }

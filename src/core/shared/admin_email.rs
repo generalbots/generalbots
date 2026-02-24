@@ -1,4 +1,6 @@
 // Email invitation functions
+use log::warn;
+use uuid::Uuid;
 #[cfg(feature = "mail")]
 use lettre::{
     message::{header::ContentType, Message},

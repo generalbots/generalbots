@@ -84,7 +84,7 @@ fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<AppStat
 }
 
 fn save_email_tracking_record(
-    conn: r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    conn: diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
     tracking_id: Uuid,
     account_id: Uuid,
     bot_id: Uuid,
