@@ -4,7 +4,7 @@ pub mod talk;
 pub use mail::convert_mail_block;
 pub use talk::convert_talk_block;
 
-use log::{info, trace};
+use log::trace;
 
 pub fn convert_begin_blocks(script: &str) -> String {
     let mut result = String::new();

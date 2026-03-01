@@ -455,16 +455,62 @@ impl PackageManager {
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{CONF_PATH}}/directory".to_string(),
                     "mkdir -p {{LOGS_PATH}}".to_string(),
+                    // Create Zitadel steps YAML: configures a machine user (service account)
+                    // with IAM_OWNER role and writes a PAT file for API bootstrap
+                    concat!(
+                        "cat > {{CONF_PATH}}/directory/zitadel-init-steps.yaml << 'STEPSEOF'\n",
+                        "FirstInstance:\n",
+                        "  Org:\n",
+                        "    Machine:\n",
+                        "      Machine:\n",
+                        "        Username: gb-service-account\n",
+                        "        Name: General Bots Service Account\n",
+                        "      MachineKey:\n",
+                        "        Type: 1\n",
+                        "      Pat:\n",
+                        "        ExpirationDate: '2099-01-01T00:00:00Z'\n",
+                        "    PatPath: {{CONF_PATH}}/directory/admin-pat.txt\n",
+                        "    MachineKeyPath: {{CONF_PATH}}/directory/machine-key.json\n",
+                        "STEPSEOF",
+                    ).to_string(),
                 ],
                 post_install_cmds_linux: vec![
-                    "cat > {{CONF_PATH}}/directory/steps.yaml << 'EOF'\n---\nDatabase:\n  postgres:\n    Host: localhost\n    Port: 5432\n    Database: zitadel\n    User:\n      Username: zitadel\n      Password: zitadel\n      SSL:\n        Mode: disable\n    Admin:\n      Username: gbuser\n      Password: {{DB_PASSWORD}}\n      SSL:\n        Mode: disable\nEOF".to_string(),
-                    "cat > {{CONF_PATH}}/directory/zitadel.yaml << 'EOF'\nLog:\n  Level: info\n\nDatabase:\n  postgres:\n    Host: localhost\n    Port: 5432\n    Database: zitadel\n    User:\n      Username: zitadel\n      Password: zitadel\n      SSL:\n        Mode: disable\n    Admin:\n      Username: gbuser\n      Password: {{DB_PASSWORD}}\n      SSL:\n        Mode: disable\n\nMachine:\n  Identification:\n    Hostname: localhost\n    WebhookAddress: http://localhost:8080\n\nPort: 8300\nExternalDomain: localhost\nExternalPort: 8300\nExternalSecure: false\n\nTLS:\n  Enabled: false\nEOF".to_string(),
-
-
-
-                    "ZITADEL_MASTERKEY=$(VAULT_ADDR=https://localhost:8200 VAULT_CACERT={{CONF_PATH}}/system/certificates/ca/ca.crt vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start-from-init --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled --steps {{CONF_PATH}}/directory/steps.yaml > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
-
-                    "for i in $(seq 1 90); do curl -sf http://localhost:8300/debug/ready && break || sleep 1; done".to_string(),
+                    // Create zitadel DB user before start-from-init
+                    "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE ROLE zitadel WITH LOGIN PASSWORD 'zitadel'\" 2>&1 | grep -v 'already exists' || true".to_string(),
+                    "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE zitadel WITH OWNER zitadel\" 2>&1 | grep -v 'already exists' || true".to_string(),
+                    "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE zitadel TO zitadel\" 2>&1 || true".to_string(),
+                    // Start Zitadel with --steps pointing to our init file (creates machine user + PAT)
+                    concat!(
+                        "ZITADEL_PORT=8300 ",
+                        "ZITADEL_DATABASE_POSTGRES_HOST=localhost ",
+                        "ZITADEL_DATABASE_POSTGRES_PORT=5432 ",
+                        "ZITADEL_DATABASE_POSTGRES_DATABASE=zitadel ",
+                        "ZITADEL_DATABASE_POSTGRES_USER_USERNAME=zitadel ",
+                        "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=zitadel ",
+                        "ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE=disable ",
+                        "ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME=gbuser ",
+                        "ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD={{DB_PASSWORD}} ",
+                        "ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE=disable ",
+                        "ZITADEL_EXTERNALSECURE=false ",
+                        "ZITADEL_EXTERNALDOMAIN=localhost ",
+                        "ZITADEL_EXTERNALPORT=8300 ",
+                        "ZITADEL_TLS_ENABLED=false ",
+                        "nohup {{BIN_PATH}}/zitadel start-from-init ",
+                        "--masterkey MasterkeyNeedsToHave32Characters ",
+                        "--tlsMode disabled ",
+                        "--steps {{CONF_PATH}}/directory/zitadel-init-steps.yaml ",
+                        "> {{LOGS_PATH}}/zitadel.log 2>&1 &",
+                    ).to_string(),
+                    // Wait for Zitadel to be ready
+                    "for i in $(seq 1 120); do curl -sf http://localhost:8300/debug/healthz && echo 'Zitadel is ready!' && break || sleep 2; done".to_string(),
+                    // Wait for PAT token to be written to logs with retry loop
+                    // Zitadel may take several seconds to write the PAT after health check passes
+                    "echo 'Waiting for PAT token in logs...'; for i in $(seq 1 30); do sync; if grep -q -E '^[A-Za-z0-9_-]{40,}$' {{LOGS_PATH}}/zitadel.log 2>/dev/null; then echo \"PAT token found in logs after $((i*2)) seconds\"; break; fi; sleep 2; done".to_string(),
+                    // Extract PAT token from logs if Zitadel printed it to stdout instead of file
+                    // The PAT appears as a standalone line (alphanumeric with hyphens/underscores) after machine key JSON
+                    "if [ ! -f '{{CONF_PATH}}/directory/admin-pat.txt' ]; then grep -E '^[A-Za-z0-9_-]{40,}$' {{LOGS_PATH}}/zitadel.log 2>/dev/null | head -1 > {{CONF_PATH}}/directory/admin-pat.txt && echo 'PAT extracted from logs' || echo 'Could not extract PAT from logs'; fi".to_string(),
+                    // Verify PAT file was created and is not empty
+                    "sync; sleep 1; if [ -f '{{CONF_PATH}}/directory/admin-pat.txt' ] && [ -s '{{CONF_PATH}}/directory/admin-pat.txt' ]; then echo 'PAT token created successfully'; cat {{CONF_PATH}}/directory/admin-pat.txt; else echo 'WARNING: PAT file not found or empty'; fi".to_string(),
                 ],
                 pre_install_cmds_macos: vec![
                     "mkdir -p {{CONF_PATH}}/directory".to_string(),
@@ -473,14 +519,34 @@ impl PackageManager {
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::from([
+                    ("ZITADEL_PORT".to_string(), "8300".to_string()),
                     ("ZITADEL_EXTERNALSECURE".to_string(), "false".to_string()),
                     ("ZITADEL_EXTERNALDOMAIN".to_string(), "localhost".to_string()),
                     ("ZITADEL_EXTERNALPORT".to_string(), "8300".to_string()),
                     ("ZITADEL_TLS_ENABLED".to_string(), "false".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "ZITADEL_MASTERKEY=$(VAULT_ADDR=https://localhost:8200 VAULT_CACERT={{CONF_PATH}}/system/certificates/ca/ca.crt vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/healthz >/dev/null 2>&1".to_string(),
+                exec_cmd: concat!(
+                    "ZITADEL_PORT=8300 ",
+                    "ZITADEL_DATABASE_POSTGRES_HOST=localhost ",
+                    "ZITADEL_DATABASE_POSTGRES_PORT=5432 ",
+                    "ZITADEL_DATABASE_POSTGRES_DATABASE=zitadel ",
+                    "ZITADEL_DATABASE_POSTGRES_USER_USERNAME=zitadel ",
+                    "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=zitadel ",
+                    "ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE=disable ",
+                    "ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME=gbuser ",
+                    "ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD={{DB_PASSWORD}} ",
+                    "ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE=disable ",
+                    "ZITADEL_EXTERNALSECURE=false ",
+                    "ZITADEL_EXTERNALDOMAIN=localhost ",
+                    "ZITADEL_EXTERNALPORT=8300 ",
+                    "ZITADEL_TLS_ENABLED=false ",
+                    "nohup {{BIN_PATH}}/zitadel start ",
+                    "--masterkey MasterkeyNeedsToHave32Characters ",
+                    "--tlsMode disabled ",
+                    "> {{LOGS_PATH}}/zitadel.log 2>&1 &",
+                ).to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/debug/healthz >/dev/null 2>&1".to_string(),
             },
         );
     }
