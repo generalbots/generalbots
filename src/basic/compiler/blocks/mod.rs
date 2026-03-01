@@ -4,7 +4,7 @@ pub mod talk;
 pub use mail::convert_mail_block;
 pub use talk::convert_talk_block;
 
-use log::info;
+use log::{info, trace};
 
 pub fn convert_begin_blocks(script: &str) -> String {
     let mut result = String::new();
@@ -23,14 +23,14 @@ pub fn convert_begin_blocks(script: &str) -> String {
         }
 
         if upper == "BEGIN TALK" {
-            info!("Converting BEGIN TALK statement");
+            trace!("Converting BEGIN TALK statement");
             in_talk_block = true;
             talk_block_lines.clear();
             continue;
         }
 
         if upper == "END TALK" {
-            info!("Converting END TALK statement, processing {} lines", talk_block_lines.len());
+            trace!("Converting END TALK statement, processing {} lines", talk_block_lines.len());
             in_talk_block = false;
             let converted = convert_talk_block(&talk_block_lines);
             result.push_str(&converted);
@@ -45,7 +45,7 @@ pub fn convert_begin_blocks(script: &str) -> String {
 
         if upper.starts_with("BEGIN MAIL ") {
             let recipient = &trimmed[11..].trim();
-            info!("Converting BEGIN MAIL statement: recipient='{}'", recipient);
+            trace!("Converting BEGIN MAIL statement: recipient='{}'", recipient);
             mail_recipient = recipient.to_string();
             in_mail_block = true;
             mail_block_lines.clear();
@@ -53,7 +53,7 @@ pub fn convert_begin_blocks(script: &str) -> String {
         }
 
         if upper == "END MAIL" {
-            info!("Converting END MAIL statement, processing {} lines", mail_block_lines.len());
+            trace!("Converting END MAIL statement, processing {} lines", mail_block_lines.len());
             in_mail_block = false;
             let converted = convert_mail_block(&mail_recipient, &mail_block_lines);
             result.push_str(&converted);

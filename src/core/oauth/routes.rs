@@ -439,7 +439,7 @@ async fn get_bot_config(state: &AppState) -> HashMap<String, String> {
 
 fn get_base_url(state: &AppState) -> String {
     let _ = state;
-    "http://localhost:8300".to_string()
+    "http://localhost:9000".to_string()
 }
 
 async fn create_or_get_oauth_user(

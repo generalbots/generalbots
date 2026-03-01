@@ -96,7 +96,7 @@ impl DriveMonitor {
                             let mut file_states = self.file_states.write().await;
                             let count = states.len();
                             *file_states = states;
-                            info!(
+                            trace!(
                                 "[DRIVE_MONITOR] Loaded {} file states from disk for bot {}",
                                 count,
                                 self.bot_id
@@ -236,7 +236,7 @@ impl DriveMonitor {
             .store(true, std::sync::atomic::Ordering::SeqCst);
 
         trace!("start_monitoring: calling check_for_changes...");
-        info!("Calling initial check_for_changes...");
+        trace!("Calling initial check_for_changes...");
 
         match tokio::time::timeout(Duration::from_secs(300), self.check_for_changes()).await {
             Ok(Ok(_)) => {
@@ -262,15 +262,15 @@ impl DriveMonitor {
 
         // Force enable periodic monitoring regardless of initial check result
         self.is_processing.store(true, std::sync::atomic::Ordering::SeqCst);
-        info!("Forced is_processing to true for periodic monitoring");
+        trace!("Forced is_processing to true for periodic monitoring");
 
         let self_clone = self.clone(); // Don't wrap in Arc::new - that creates a copy
         tokio::spawn(async move {
             let mut consecutive_processing_failures = 0;
-            info!("Starting periodic monitoring loop for bot {}", self_clone.bot_id);
+            trace!("Starting periodic monitoring loop for bot {}", self_clone.bot_id);
             
             let is_processing_state = self_clone.is_processing.load(std::sync::atomic::Ordering::SeqCst);
-            info!("is_processing state at loop start: {} for bot {}", is_processing_state, self_clone.bot_id);
+            trace!("is_processing state at loop start: {} for bot {}", is_processing_state, self_clone.bot_id);
 
             while self_clone
                 .is_processing
@@ -304,7 +304,7 @@ impl DriveMonitor {
                             self_clone.consecutive_failures.swap(0, Ordering::Relaxed);
                         consecutive_processing_failures = 0;
                         if prev_failures > 0 {
-                            info!("S3/MinIO recovered for bucket {} after {} failures",
+                            trace!("S3/MinIO recovered for bucket {} after {} failures",
                                   self_clone.bucket_name, prev_failures);
                         }
                     }
@@ -336,15 +336,15 @@ impl DriveMonitor {
                 }
             }
 
-            info!("Monitoring loop ended for bot {}", self_clone.bot_id);
+            trace!("Monitoring loop ended for bot {}", self_clone.bot_id);
         });
 
-        info!("DriveMonitor started for bot {}", self.bot_id);
+        trace!("DriveMonitor started for bot {}", self.bot_id);
         Ok(())
     }
 
     pub async fn stop_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Stopping DriveMonitor for bot {}", self.bot_id);
+        trace!("Stopping DriveMonitor for bot {}", self.bot_id);
 
         self.is_processing
             .store(false, std::sync::atomic::Ordering::SeqCst);
@@ -352,12 +352,12 @@ impl DriveMonitor {
         self.file_states.write().await.clear();
         self.consecutive_failures.store(0, Ordering::Relaxed);
 
-        info!("DriveMonitor stopped for bot {}", self.bot_id);
+        trace!("DriveMonitor stopped for bot {}", self.bot_id);
         Ok(())
     }
     pub fn spawn(self: Arc<Self>) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
-            info!(
+            trace!(
                 "Drive Monitor service started for bucket: {}",
                 self.bucket_name
             );
@@ -387,7 +387,7 @@ impl DriveMonitor {
                     Ok(_) => {
                         let prev_failures = self.consecutive_failures.swap(0, Ordering::Relaxed);
                         if prev_failures > 0 {
-                            info!("S3/MinIO recovered for bucket {} after {} failures",
+                            trace!("S3/MinIO recovered for bucket {} after {} failures",
                                   self.bucket_name, prev_failures);
                         }
                     }
@@ -634,7 +634,7 @@ impl DriveMonitor {
                                         let normalized_new_value = Self::normalize_config_value(new_value);
                                         
                                         if normalized_old_value != normalized_new_value {
-                                            info!(
+                                            trace!(
                                                 "Detected change in {} (old: {}, new: {})",
                                                 key, normalized_old_value, normalized_new_value
                                             );
@@ -656,7 +656,7 @@ impl DriveMonitor {
                                     }
 
                                     if llm_url_changed {
-                                        info!("Broadcasting LLM configuration refresh");
+                                        trace!("Broadcasting LLM configuration refresh");
                                         let effective_url = if !new_llm_url.is_empty() {
                                             new_llm_url
                                         } else {
@@ -672,7 +672,7 @@ impl DriveMonitor {
                                                 .unwrap_or_default()
                                         };
 
-                                        info!(
+                                        trace!(
                                             "LLM configuration changed to: URL={}, Model={}",
                                             effective_url, effective_model
                                         );
@@ -697,7 +697,7 @@ impl DriveMonitor {
                                                     Some(effective_endpoint_path),
                                                 )
                                                 .await;
-                                            info!("Dynamic LLM provider updated with new configuration");
+                                            trace!("Dynamic LLM provider updated with new configuration");
                                         } else {
                                             warn!("Dynamic LLM provider not available - config change ignored");
                                         }
@@ -788,7 +788,7 @@ impl DriveMonitor {
         client: &Client,
         file_path: &str,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        info!(
+        trace!(
             "Fetching object from Drive: bucket={}, key={}",
             &self.bucket_name, file_path
         );
@@ -800,7 +800,7 @@ impl DriveMonitor {
             .await
         {
             Ok(res) => {
-                info!(
+                trace!(
                     "Successfully fetched object from Drive: bucket={}, key={}, size={}",
                     &self.bucket_name,
                     file_path,
@@ -838,21 +838,25 @@ impl DriveMonitor {
         let tool_name_clone = tool_name.clone();
         let source_content_clone = source_content.clone();
         let bot_id = self.bot_id;
-        tokio::task::spawn_blocking(move || {
+        let elapsed_ms = tokio::task::spawn_blocking(move || {
             std::fs::create_dir_all(&work_dir_clone)?;
             let local_source_path = format!("{}/{}.bas", work_dir_clone, tool_name_clone);
             std::fs::write(&local_source_path, &source_content_clone)?;
             let mut compiler = BasicCompiler::new(state_clone, bot_id);
+            let start_time = std::time::Instant::now();
             let result = compiler.compile_file(&local_source_path, &work_dir_str)?;
+            let elapsed = start_time.elapsed().as_millis();
             if let Some(mcp_tool) = result.mcp_tool {
-                info!(
+                trace!(
                     "MCP tool definition generated with {} parameters",
                     mcp_tool.input_schema.properties.len()
                 );
             }
-            Ok::<(), Box<dyn Error + Send + Sync>>(())
+            Ok::<u128, Box<dyn Error + Send + Sync>>(elapsed)
         })
         .await??;
+
+        info!("Successfully compiled {} in {} ms", tool_name, elapsed_ms);
 
         // Check for USE WEBSITE commands and trigger immediate crawling
         if source_content.contains("USE WEBSITE") {
@@ -892,7 +896,7 @@ impl DriveMonitor {
 
                 let refresh_str = cap.get(2).map(|m| m.as_str()).unwrap_or("1m");
 
-                info!("Found USE WEBSITE command for {}, checking if crawl needed", url_str);
+                trace!("Found USE WEBSITE command for {}, checking if crawl needed", url_str);
 
                 // Check if crawl is already in progress or recently completed
                 let mut conn = self.state.conn.get()
@@ -1098,13 +1102,13 @@ impl DriveMonitor {
             if is_new || is_modified {
                 if path.to_lowercase().ends_with(".pdf") {
                     pdf_files_found += 1;
-                    info!(
+                    trace!(
                         "Detected {} PDF in .gbkb: {} (will extract text for vectordb)",
                         if is_new { "new" } else { "changed" },
                         path
                     );
                 } else {
-                    info!(
+                    trace!(
                         "Detected {} in .gbkb: {}",
                         if is_new { "new file" } else { "change" },
                         path
@@ -1148,7 +1152,7 @@ impl DriveMonitor {
                     #[cfg(any(feature = "research", feature = "llm"))]
                     {
                         if !is_embedding_server_ready() {
-                            info!("Embedding server not ready, deferring KB indexing for {}", kb_folder_path.display());
+                            trace!("Embedding server not ready, deferring KB indexing for {}", kb_folder_path.display());
                             continue;
                         }
 
@@ -1178,7 +1182,7 @@ impl DriveMonitor {
                         let kb_key_owned = kb_key.clone();
 
                         tokio::spawn(async move {
-                            info!(
+                            trace!(
                                 "Triggering KB indexing for folder: {} (PDF text extraction enabled)",
                                 kb_folder_owned.display()
                             );
@@ -1246,7 +1250,7 @@ impl DriveMonitor {
         }
 
         if files_processed > 0 {
-            info!(
+            trace!(
                 "Processed {} .gbkb files (including {} PDFs for text extraction)",
                 files_processed, pdf_files_found
             );
@@ -1264,7 +1268,7 @@ impl DriveMonitor {
         });
 
         for path in paths_to_remove {
-            info!("Detected deletion in .gbkb: {}", path);
+            trace!("Detected deletion in .gbkb: {}", path);
             file_states.remove(&path);
 
             let path_parts: Vec<&str> = path.split('/').collect();
@@ -1321,7 +1325,7 @@ impl DriveMonitor {
         let bytes = response.body.collect().await?.into_bytes();
         tokio::fs::write(&local_path, bytes).await?;
 
-        info!(
+        trace!(
             "Downloaded .gbkb file {} to {}",
             file_path,
             local_path.display()

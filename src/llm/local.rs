@@ -1,5 +1,4 @@
 use crate::core::config::ConfigManager;
-use crate::core::kb::embedding_generator::set_embedding_server_ready;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::security::command_guard::SafeCommand;
 use crate::core::shared::models::schema::bots::dsl::*;
@@ -7,7 +6,6 @@ use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use reqwest;
-use std::fmt::Write;
 use std::sync::Arc;
 use tokio;
 
@@ -95,9 +93,10 @@ pub async fn ensure_llama_servers_running(
     };
 
     // For llama-server startup, use path relative to botserver root
-    // The models are in ./data/llm/ and the llama-server runs from botserver root
-    let llm_model_path = format!("./data/llm/{}", llm_model);
-    let embedding_model_path = format!("./data/llm/{}", embedding_model);
+    // The models are in <stack_path>/data/llm/ and the llama-server runs from botserver root
+    let stack_path = std::env::var("BOTSERVER_STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
+    let llm_model_path = format!("{stack_path}/data/llm/{}", llm_model);
+    let embedding_model_path = format!("{stack_path}/data/llm/{}", embedding_model);
     if !llm_server_enabled {
         info!("Local LLM server management disabled (llm-server=false). Using external endpoints.");
         info!("  LLM URL: {llm_url}");
@@ -188,6 +187,37 @@ pub async fn ensure_llama_servers_running(
     } else if embedding_model.is_empty() {
         info!("EMBEDDING_MODEL not set, skipping Embedding server");
     }
+    // Start servers in background - don't block HTTP server startup
+    if !tasks.is_empty() {
+        info!("LLM servers starting in background (non-blocking mode)");
+        tokio::spawn(async move {
+            for task in tasks {
+                if let Err(e) = task.await {
+                    error!("LLM server task failed: {}", e);
+                }
+            }
+            info!("LLM server startup tasks completed");
+        });
+    }
+
+    // Return immediately - don't wait for servers to be ready
+    info!("LLM server initialization initiated (will start in background)");
+    info!("HTTP server can start without waiting for LLM servers");
+    trace!("ensure_llama_servers_running returning early (non-blocking)");
+
+    let end_mem = MemoryStats::current();
+    trace!(
+        "[LLM_LOCAL] ensure_llama_servers_running END (non-blocking), RSS={} (total delta={})",
+        MemoryStats::format_bytes(end_mem.rss_bytes),
+        MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes))
+    );
+    log_jemalloc_stats();
+
+    trace!("ensure_llama_servers_running EXIT OK (non-blocking)");
+    return Ok(());
+
+    // OLD BLOCKING CODE - REMOVED TO PREVENT HTTP SERVER BLOCKING
+    /*
     for task in tasks {
         task.await??;
     }
@@ -202,7 +232,7 @@ pub async fn ensure_llama_servers_running(
     let mut llm_ready = llm_running || llm_model.is_empty();
     let mut embedding_ready = embedding_running || embedding_model.is_empty();
     let mut attempts = 0;
-    let max_attempts = 120;
+    let max_attempts = 15; // Reduced from 120 to 15 (30 seconds instead of 240)
     while attempts < max_attempts && (!llm_ready || !embedding_ready) {
         trace!("Wait loop iteration {}", attempts);
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
@@ -301,6 +331,7 @@ pub async fn ensure_llama_servers_running(
         }
         Err(error_msg.into())
     }
+    */ // END OF OLD BLOCKING CODE
 }
 pub async fn is_server_running(url: &str) -> bool {
     let client = reqwest::Client::builder()
@@ -377,8 +408,8 @@ pub fn start_llm_server(
 
     let gpu_layers = config_manager
         .get_config(&default_bot_id, "llm-server-gpu-layers", None)
-        .unwrap_or_else(|_| "20".to_string());
-    let gpu_layers = if gpu_layers.is_empty() { "20".to_string() } else { gpu_layers };
+        .unwrap_or_else(|_| "0".to_string());
+    let gpu_layers = if gpu_layers.is_empty() { "0".to_string() } else { gpu_layers };
 
     let reasoning_format = config_manager
         .get_config(&default_bot_id, "llm-server-reasoning-format", None)
@@ -501,7 +532,7 @@ pub async fn start_embedding_server(
         .arg("--host").arg("0.0.0.0")
         .arg("--port").arg(port)
         .arg("--embedding")
-        .arg("--n-gpu-layers").arg("99")
+        .arg("--n-gpu-layers").arg("0")
         .arg("--verbose");
 
     if !cfg!(windows) {

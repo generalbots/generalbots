@@ -6,7 +6,7 @@ use crate::basic::keywords::switch_case::switch_keyword;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
 use diesel::prelude::*;
-use log::info;
+use log::{info, trace};
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -560,7 +560,7 @@ impl ScriptService {
     }
     pub fn compile(&self, script: &str) -> Result<rhai::AST, Box<EvalAltResult>> {
         let processed_script = self.preprocess_basic_script(script);
-        info!("Processed Script:\n{}", processed_script);
+        trace!("Processed Script:\n{}", processed_script);
         match self.engine.compile(&processed_script) {
             Ok(ast) => Ok(ast),
             Err(parse_error) => Err(Box::new(parse_error.into())),
@@ -587,7 +587,7 @@ impl ScriptService {
             .collect::<Vec<&str>>()
             .join("\n");
 
-        info!("Filtered tool metadata: {} -> {} chars", script.len(), executable_script.len());
+        trace!("Filtered tool metadata: {} -> {} chars", script.len(), executable_script.len());
 
         // Apply minimal preprocessing for tools (skip variable normalization to avoid breaking multi-line strings)
         let script = preprocess_switch(&executable_script);
@@ -597,7 +597,7 @@ impl ScriptService {
         // let script = Self::convert_format_syntax(&script);
         // Skip normalize_variables_to_lowercase for tools - it breaks multi-line strings
 
-        info!("Preprocessed tool script for Rhai compilation");
+        trace!("Preprocessed tool script for Rhai compilation");
         // Convert SAVE statements with field lists to map-based SAVE (simplified version for tools)
         let script = Self::convert_save_for_tools(&script);
         // Convert BEGIN TALK and BEGIN MAIL blocks to single calls
@@ -986,7 +986,7 @@ impl ScriptService {
         };
         result.push_str(&format!("send_mail({}, \"{}\", {}, []);\n", recipient_expr, subject, body_expr));
 
-        log::info!("Converted MAIL block → {}", result);
+        log::trace!("Converted MAIL block → {}", result);
         result
     }
 
@@ -1086,7 +1086,7 @@ impl ScriptService {
         let mut mail_block_lines: Vec<String> = Vec::new();
         let mut in_line_continuation = false;
 
-        log::info!("Converting IF/THEN syntax, input has {} lines", script.lines().count());
+        log::trace!("Converting IF/THEN syntax, input has {} lines", script.lines().count());
 
         for line in script.lines() {
             let trimmed = line.trim();
@@ -1119,7 +1119,7 @@ impl ScriptService {
                     } else {
                         condition.to_string()
                     };
-                log::info!("Converting IF statement: condition='{}'", condition);
+                log::trace!("Converting IF statement: condition='{}'", condition);
                 result.push_str("if ");
                 result.push_str(&condition);
                 result.push_str(" {\n");
@@ -1129,7 +1129,7 @@ impl ScriptService {
 
             // Handle ELSE
             if upper == "ELSE" {
-                log::info!("Converting ELSE statement");
+                log::trace!("Converting ELSE statement");
                 result.push_str("} else {\n");
                 continue;
             }
@@ -1152,7 +1152,7 @@ impl ScriptService {
                     } else {
                         condition.to_string()
                     };
-                log::info!("Converting ELSEIF statement: condition='{}'", condition);
+                log::trace!("Converting ELSEIF statement: condition='{}'", condition);
                 result.push_str("} else if ");
                 result.push_str(&condition);
                 result.push_str(" {\n");
@@ -1161,7 +1161,7 @@ impl ScriptService {
 
             // Handle END IF
             if upper == "END IF" {
-                log::info!("Converting END IF statement");
+                log::trace!("Converting END IF statement");
                 if if_stack.pop().is_some() {
                     result.push_str("}\n");
                 }
@@ -1171,7 +1171,7 @@ impl ScriptService {
             // Handle WITH ... END WITH (BASIC object creation)
             if upper.starts_with("WITH ") {
                 let object_name = &trimmed[5..].trim();
-                log::info!("Converting WITH statement: object='{}'", object_name);
+                log::trace!("Converting WITH statement: object='{}'", object_name);
                 // Convert WITH obj → let obj = #{  (start object literal)
                 result.push_str("let ");
                 result.push_str(object_name);
@@ -1181,7 +1181,7 @@ impl ScriptService {
             }
 
             if upper == "END WITH" {
-                log::info!("Converting END WITH statement");
+                log::trace!("Converting END WITH statement");
                 result.push_str("};\n");
                 in_with_block = false;
                 continue;
@@ -1189,14 +1189,14 @@ impl ScriptService {
 
             // Handle BEGIN TALK ... END TALK (multi-line TALK with ${} substitution)
             if upper == "BEGIN TALK" {
-                log::info!("Converting BEGIN TALK statement");
+                log::trace!("Converting BEGIN TALK statement");
                 in_talk_block = true;
                 talk_block_lines.clear();
                 continue;
             }
 
             if upper == "END TALK" {
-                log::info!("Converting END TALK statement, processing {} lines", talk_block_lines.len());
+                log::trace!("Converting END TALK statement, processing {} lines", talk_block_lines.len());
                 in_talk_block = false;
 
                 // Split into multiple TALK statements to avoid expression complexity limit
@@ -1239,7 +1239,7 @@ impl ScriptService {
             // Handle BEGIN MAIL ... END MAIL (multi-line email with ${} substitution)
             if upper.starts_with("BEGIN MAIL ") {
                 let recipient = &trimmed[11..].trim(); // Skip "BEGIN MAIL "
-                log::info!("Converting BEGIN MAIL statement: recipient='{}'", recipient);
+                log::trace!("Converting BEGIN MAIL statement: recipient='{}'", recipient);
                 mail_recipient = recipient.to_string();
                 in_mail_block = true;
                 mail_block_lines.clear();
@@ -1247,7 +1247,7 @@ impl ScriptService {
             }
 
             if upper == "END MAIL" {
-                log::info!("Converting END MAIL statement, processing {} lines", mail_block_lines.len());
+                log::trace!("Converting END MAIL statement, processing {} lines", mail_block_lines.len());
                 in_mail_block = false;
 
                 // Process the mail block and convert to SEND EMAIL
@@ -1287,11 +1287,11 @@ impl ScriptService {
 
             // Handle SAVE table, field1, field2, ... → INSERT "table", #{field1: value1, field2: value2, ...}
             if upper.starts_with("SAVE") && upper.contains(',') {
-                log::info!("Processing SAVE line: '{}'", trimmed);
+                log::trace!("Processing SAVE line: '{}'", trimmed);
                 // Extract the part after "SAVE"
                 let after_save = &trimmed[4..].trim(); // Skip "SAVE"
                 let parts: Vec<&str> = after_save.split(',').collect();
-                log::info!("SAVE parts: {:?}", parts);
+                log::trace!("SAVE parts: {:?}", parts);
 
                 if parts.len() >= 2 {
                     // First part is the table name (in quotes)
@@ -1301,7 +1301,7 @@ impl ScriptService {
                     if parts.len() == 2 {
                         let object_name = parts[1].trim().trim_end_matches(';');
                         let converted = format!("INSERT \"{}\", {};\n", table, object_name);
-                        log::info!("Converted SAVE to INSERT (old syntax): '{}'", converted);
+                        log::trace!("Converted SAVE to INSERT (old syntax): '{}'", converted);
                         result.push_str(&converted);
                         continue;
                     }
@@ -1310,7 +1310,7 @@ impl ScriptService {
                     // The runtime SAVE handler will match them to database columns by position
                     let values = parts[1..].join(", ");
                     let converted = format!("SAVE \"{}\", {};\n", table, values);
-                    log::info!("Keeping SAVE syntax (modern): '{}'", converted);
+                    log::trace!("Keeping SAVE syntax (modern): '{}'", converted);
                     result.push_str(&converted);
                     continue;
                 }
@@ -1319,17 +1319,17 @@ impl ScriptService {
             // Handle SEND EMAIL → send_mail (function call style)
             // Syntax: SEND EMAIL to, subject, body → send_mail(to, subject, body, [])
             if upper.starts_with("SEND EMAIL") {
-                log::info!("Processing SEND EMAIL line: '{}'", trimmed);
+                log::trace!("Processing SEND EMAIL line: '{}'", trimmed);
                 let after_send = &trimmed[11..].trim(); // Skip "SEND EMAIL " (10 chars + space = 11)
                 let parts: Vec<&str> = after_send.split(',').collect();
-                log::info!("SEND EMAIL parts: {:?}", parts);
+                log::trace!("SEND EMAIL parts: {:?}", parts);
                 if parts.len() == 3 {
                     let to = parts[0].trim();
                     let subject = parts[1].trim();
                     let body = parts[2].trim().trim_end_matches(';');
                     // Convert to send_mail(to, subject, body, []) function call
                     let converted = format!("send_mail({}, {}, {}, []);\n", to, subject, body);
-                    log::info!("Converted SEND EMAIL to: '{}'", converted);
+                    log::trace!("Converted SEND EMAIL to: '{}'", converted);
                     result.push_str(&converted);
                     continue;
                 }
@@ -1397,7 +1397,7 @@ impl ScriptService {
             }
         }
 
-        log::info!("IF/THEN conversion complete, output has {} lines", result.lines().count());
+        log::trace!("IF/THEN conversion complete, output has {} lines", result.lines().count());
 
         // Convert BASIC <> (not equal) to Rhai != globally
         
@@ -1417,7 +1417,7 @@ impl ScriptService {
         let lines: Vec<&str> = script.lines().collect();
         let mut i = 0;
 
-        log::info!("Converting SELECT/CASE syntax to if-else chains");
+        log::trace!("Converting SELECT/CASE syntax to if-else chains");
 
         // Helper function to strip 'let ' from the beginning of a line
         // This is needed because convert_if_then_syntax adds 'let' to all assignments,
@@ -1441,7 +1441,7 @@ impl ScriptService {
             if upper.starts_with("SELECT ") && !upper.contains(" THEN") {
                 // Extract the variable being selected
                 let select_var = trimmed[7..].trim(); // Skip "SELECT "
-                log::info!("Converting SELECT statement for variable: '{}'", select_var);
+                log::trace!("Converting SELECT statement for variable: '{}'", select_var);
 
                 // Skip the SELECT line
                 i += 1;

@@ -1,7 +1,7 @@
 use crate::basic::compiler::BasicCompiler;
 use crate::core::shared::state::AppState;
 use diesel::prelude::*;
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -38,7 +38,7 @@ impl LocalFileMonitor {
         // Use /opt/gbo/data as the base directory for source files
         let data_dir = PathBuf::from("/opt/gbo/data");
 
-        info!("Initializing with data_dir: {:?}, work_root: {:?}", data_dir, work_root);
+        trace!("Initializing with data_dir: {:?}, work_root: {:?}", data_dir, work_root);
 
         Self {
             state,
@@ -50,7 +50,7 @@ impl LocalFileMonitor {
     }
 
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        info!("Starting local file monitor for /opt/gbo/data/*.gbai directories");
+        trace!("Starting local file monitor for /opt/gbo/data/*.gbai directories");
 
         // Create data directory if it doesn't exist
         if let Err(e) = tokio::fs::create_dir_all(&self.data_dir).await {
@@ -68,12 +68,12 @@ impl LocalFileMonitor {
             monitor.monitoring_loop().await;
         });
 
-        info!("Local file monitor started");
+        trace!("Local file monitor started");
         Ok(())
     }
 
     async fn monitoring_loop(&self) {
-        info!("Starting monitoring loop");
+        trace!("Starting monitoring loop");
 
         // Try to create a file system watcher
         let (tx, mut rx) = tokio::sync::mpsc::channel(100);
@@ -105,7 +105,7 @@ impl LocalFileMonitor {
             return;
         }
 
-        info!("Watching directory: {:?}", self.data_dir);
+        trace!("Watching directory: {:?}", self.data_dir);
 
         while self.is_processing.load(Ordering::SeqCst) {
             tokio::time::sleep(Duration::from_secs(5)).await;
@@ -116,7 +116,7 @@ impl LocalFileMonitor {
                     EventKind::Create(_) | EventKind::Modify(_) | EventKind::Any => {
                         for path in &event.paths {
                             if self.is_gbdialog_file(path) {
-                                info!("Detected change: {:?}", path);
+                                trace!("Detected change: {:?}", path);
                                 if let Err(e) = self.compile_local_file(path).await {
                                     error!("Failed to compile {:?}: {}", path, e);
                                 }
@@ -126,7 +126,7 @@ impl LocalFileMonitor {
                     EventKind::Remove(_) => {
                         for path in &event.paths {
                             if self.is_gbdialog_file(path) {
-                                info!("File removed: {:?}", path);
+                                trace!("File removed: {:?}", path);
                                 self.remove_file_state(path).await;
                             }
                         }
@@ -141,11 +141,11 @@ impl LocalFileMonitor {
             }
         }
 
-        info!("Monitoring loop ended");
+        trace!("Monitoring loop ended");
     }
 
     async fn polling_loop(&self) {
-        info!("Using polling fallback (checking every 10s)");
+        trace!("Using polling fallback (checking every 10s)");
 
         while self.is_processing.load(Ordering::SeqCst) {
             tokio::time::sleep(Duration::from_secs(10)).await;
@@ -231,7 +231,7 @@ impl LocalFileMonitor {
                 };
 
                 if should_compile {
-                    info!("Compiling: {:?}", path);
+                    trace!("Compiling: {:?}", path);
                     if let Err(e) = self.compile_local_file(&path).await {
                         error!("Failed to compile {:?}: {}", path, e);
                     }
@@ -285,7 +285,7 @@ impl LocalFileMonitor {
                 .map_err(|e| format!("Failed to get bot_id for '{}': {}", bot_name_clone, e))?
         };
 
-        tokio::task::spawn_blocking(move || {
+        let elapsed_ms = tokio::task::spawn_blocking(move || {
             std::fs::create_dir_all(&work_dir_clone)?;
             let local_source_path = work_dir_clone.join(format!("{}.bas", tool_name_clone));
             std::fs::write(&local_source_path, &source_content_clone)?;
@@ -294,19 +294,21 @@ impl LocalFileMonitor {
                 .ok_or_else(|| "Invalid UTF-8 in local source path".to_string())?;
             let work_dir_str = work_dir_clone.to_str()
                 .ok_or_else(|| "Invalid UTF-8 in work directory path".to_string())?;
+            let start_time = std::time::Instant::now();
             let result = compiler.compile_file(local_source_str, work_dir_str)?;
+            let elapsed_ms = start_time.elapsed().as_millis();
             if let Some(mcp_tool) = result.mcp_tool {
-                info!(
+                trace!(
                     "[LOCAL_MONITOR] MCP tool generated with {} parameters for bot {}",
                     mcp_tool.input_schema.properties.len(),
                     bot_name_clone
                 );
             }
-            Ok::<(), Box<dyn Error + Send + Sync>>(())
+            Ok::<u128, Box<dyn Error + Send + Sync>>(elapsed_ms)
         })
         .await??;
 
-        info!("Successfully compiled: {:?}", file_path);
+        info!("Successfully compiled: {:?} in {} ms", file_path, elapsed_ms);
         Ok(())
     }
 
@@ -317,7 +319,7 @@ impl LocalFileMonitor {
     }
 
     pub async fn stop_monitoring(&self) {
-        info!("Stopping local file monitor");
+        trace!("Stopping local file monitor");
         self.is_processing.store(false, Ordering::SeqCst);
         self.file_states.write().await.clear();
     }

@@ -101,14 +101,14 @@ impl CorsConfig {
         Self {
             allowed_origins: vec![
                 "http://localhost:3000".to_string(),
+                "http://localhost:8080".to_string(),
                 "http://localhost:9000".to_string(),
-                "http://localhost:8300".to_string(),
                 "http://127.0.0.1:3000".to_string(),
+                "http://127.0.0.1:8080".to_string(),
                 "http://127.0.0.1:9000".to_string(),
-                "http://127.0.0.1:8300".to_string(),
                 "https://localhost:3000".to_string(),
+                "https://localhost:8080".to_string(),
                 "https://localhost:9000".to_string(),
-                "https://localhost:8300".to_string(),
             ],
             allowed_methods: vec![
                 Method::GET,

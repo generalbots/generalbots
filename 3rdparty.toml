@@ -63,14 +63,14 @@ sha256 = ""
 
 [components.directory]
 name = "Zitadel Identity Provider"
-url = "https://github.com/zitadel/zitadel/releases/download/v2.70.4/zitadel-linux-amd64.tar.gz"
+url = "https://github.com/zitadel/zitadel/releases/download/v4.11.1/zitadel-linux-amd64.tar.gz"
 filename = "zitadel-linux-amd64.tar.gz"
 sha256 = ""
 
 [components.alm]
 name = "Forgejo Git Server"
-url = "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.2/forgejo-10.0.2-linux-amd64"
-filename = "forgejo-10.0.2-linux-amd64"
+url = "https://codeberg.org/forgejo/forgejo/releases/download/v14.0.2/forgejo-14.0.2-linux-amd64"
+filename = "forgejo-14.0.2-linux-amd64"
 sha256 = ""
 
 [components.alm_ci]

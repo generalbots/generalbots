@@ -35,9 +35,9 @@ impl TlsIntegration {
         services.insert(
             "api".to_string(),
             ServiceUrls {
-                original: "http://localhost:9000".to_string(),
+                original: "http://localhost:8080".to_string(),
                 secure: "https://localhost:8443".to_string(),
-                port: 9000,
+                port: 8080,
                 tls_port: 8443,
             },
         );
@@ -95,10 +95,10 @@ impl TlsIntegration {
         services.insert(
             "minio".to_string(),
             ServiceUrls {
-                original: "https://localhost:9000".to_string(),
-                secure: "https://localhost:9000".to_string(),
-                port: 9000,
-                tls_port: 9000,
+                original: "https://localhost:9100".to_string(),
+                secure: "https://localhost:9100".to_string(),
+                port: 9100,
+                tls_port: 9100,
             },
         );
 

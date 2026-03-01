@@ -1,4 +1,4 @@
-use log::info;
+use log::{info, trace};
 
 pub fn convert_talk_line_with_substitution(line: &str) -> String {
     let mut result = String::new();
@@ -109,7 +109,7 @@ pub fn convert_talk_line_with_substitution(line: &str) -> String {
         result = "TALK \"\"".to_string();
     }
 
-    info!("Converted TALK line: '{}' → '{}'", line, result);
+    trace!("Converted TALK line: '{}' → '{}'", line, result);
     result
 }
 

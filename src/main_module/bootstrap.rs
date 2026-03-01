@@ -607,8 +607,11 @@ pub async fn create_app_state(
 fn init_directory_service() -> Result<(Arc<Mutex<crate::directory::AuthService>>, crate::directory::ZitadelConfig), std::io::Error> {
     let zitadel_config = {
         // Try to load from directory_config.json first
-        let config_path = "./config/directory_config.json";
-        if let Ok(content) = std::fs::read_to_string(config_path) {
+        // Use same path as DirectorySetup saves to (BOTSERVER_STACK_PATH/conf/system/directory_config.json)
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let config_path = format!("{}/conf/system/directory_config.json", stack_path);
+        if let Ok(content) = std::fs::read_to_string(&config_path) {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
                 let base_url = json
                     .get("base_url")
