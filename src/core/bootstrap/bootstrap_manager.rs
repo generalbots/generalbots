@@ -176,6 +176,16 @@ impl BootstrapManager {
 
             if directory_already_running {
                 info!("Zitadel/Directory service is already running");
+
+                // Create OAuth client if config doesn't exist (even when already running)
+                let config_path = self.stack_dir("conf/system/directory_config.json");
+                if !config_path.exists() {
+                    info!("Creating OAuth client for Directory service...");
+                    match crate::core::package_manager::setup_directory().await {
+                        Ok(_) => info!("OAuth client created successfully"),
+                        Err(e) => warn!("Failed to create OAuth client: {}", e),
+                    }
+                }
             } else {
                 info!("Starting Zitadel/Directory service...");
                 match pm.start("directory") {
