@@ -21,6 +21,8 @@ pub struct ZitadelClient {
     http_client: reqwest::Client,
     access_token: Arc<RwLock<Option<String>>>,
     pat_token: Option<String>,
+    /// Username and password for password grant OAuth flow
+    password_credentials: Option<(String, String)>,
 }
 
 impl ZitadelClient {
@@ -35,6 +37,28 @@ impl ZitadelClient {
             http_client,
             access_token: Arc::new(RwLock::new(None)),
             pat_token: None,
+            password_credentials: None,
+        })
+    }
+
+    /// Create a client that uses password grant OAuth flow
+    /// This is used for initial bootstrap with Zitadel's default admin user
+    pub fn with_password_grant(
+        config: ZitadelConfig,
+        username: String,
+        password: String,
+    ) -> Result<Self> {
+        let http_client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| anyhow!("Failed to create HTTP client: {}", e))?;
+
+        Ok(Self {
+            config,
+            http_client,
+            access_token: Arc::new(RwLock::new(None)),
+            pat_token: None,
+            password_credentials: Some((username, password)),
         })
     }
 
@@ -49,6 +73,7 @@ impl ZitadelClient {
             http_client,
             access_token: Arc::new(RwLock::new(None)),
             pat_token: Some(pat_token),
+            password_credentials: None,
         })
     }
 
@@ -108,12 +133,23 @@ impl ZitadelClient {
         let token_url = format!("{}/oauth/v2/token", self.config.api_url);
         log::info!("Requesting access token from: {}", token_url);
 
-        let params = [
-            ("grant_type", "client_credentials"),
-            ("client_id", &self.config.client_id),
-            ("client_secret", &self.config.client_secret),
-            ("scope", "openid profile email"),
+        // Build params dynamically based on auth method
+        let mut params: Vec<(&str, String)> = vec![
+            ("client_id", self.config.client_id.clone()),
+            ("client_secret", self.config.client_secret.clone()),
         ];
+
+        if let Some((username, password)) = &self.password_credentials {
+            // Use password grant flow
+            params.push(("grant_type", "password".to_string()));
+            params.push(("username", username.clone()));
+            params.push(("password", password.clone()));
+            params.push(("scope", "openid profile email urn:zitadel:iam:org:project:id:zitadel:aud".to_string()));
+        } else {
+            // Use client credentials flow
+            params.push(("grant_type", "client_credentials".to_string()));
+            params.push(("scope", "openid profile email".to_string()));
+        }
 
         let response = self
             .http_client
@@ -532,5 +568,48 @@ impl ZitadelClient {
         }
 
         Ok(())
+    }
+
+    pub async fn create_pat(&self, user_id: &str, display_name: &str, expiration_date: Option<&str>) -> Result<String> {
+        let token = self.get_access_token().await?;
+        let url = format!("{}/v2/users/{}/pat", self.config.api_url, user_id);
+
+        let body = if let Some(expiry) = expiration_date {
+            serde_json::json!({
+                "displayName": display_name,
+                "expirationDate": expiry
+            })
+        } else {
+            serde_json::json!({
+                "displayName": display_name
+            })
+        };
+
+        let response = self
+            .http_client
+            .post(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to create PAT: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to create PAT: {}", error_text));
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| anyhow!("Failed to parse PAT response: {}", e))?;
+
+        let pat_token = data
+            .get("token")
+            .and_then(|t| t.as_str())
+            .ok_or_else(|| anyhow!("No token in PAT response"))?
+            .to_string();
+
+        Ok(pat_token)
     }
 }

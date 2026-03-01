@@ -521,7 +521,7 @@ impl BasicCompiler {
                     {
                         log::error!("Failed to register WEBHOOK during preprocessing: {}", e);
                     } else {
-                        log::info!(
+                        log::trace!(
                             "Registered webhook endpoint {} for script {} during preprocessing",
                             endpoint,
                             script_name
@@ -550,7 +550,7 @@ impl BasicCompiler {
                         {
                             log::error!("Failed to register USE_WEBSITE during preprocessing: {}", e);
                         } else {
-                            log::info!(
+                            log::trace!(
                                 "Registered website {} for crawling during preprocessing (refresh: {})",
                                 url, refresh
                             );
@@ -676,7 +676,7 @@ impl BasicCompiler {
         let table_name = table_name.trim_matches('"');
 
         // Debug log to see what we're querying
-        log::info!("Converting SAVE for table: '{}' (original: '{}')", table_name, &parts[0]);
+        log::trace!("Converting SAVE for table: '{}' (original: '{}')", table_name, &parts[0]);
 
         // Get column names from TABLE definition (preserves order from .bas file)
         let column_names = self.get_table_columns_for_save(table_name, bot_id)?;
@@ -685,7 +685,7 @@ impl BasicCompiler {
         let values: Vec<&String> = parts.iter().skip(1).collect();
         let mut map_pairs = Vec::new();
 
-        log::info!("Matching {} variables to {} columns", values.len(), column_names.len());
+        log::trace!("Matching {} variables to {} columns", values.len(), column_names.len());
 
         for value_var in values.iter() {
             // Find the column that matches this variable (case-insensitive)
@@ -753,7 +753,7 @@ impl BasicCompiler {
         // Try to parse TABLE definition from the bot's .bas files to get correct field order
         if let Ok(columns) = self.get_columns_from_table_definition(table_name, bot_id) {
             if !columns.is_empty() {
-                log::info!("Using TABLE definition for '{}': {} columns", table_name, columns.len());
+                log::trace!("Using TABLE definition for '{}': {} columns", table_name, columns.len());
                 return Ok(columns);
             }
         }
@@ -880,7 +880,7 @@ impl BasicCompiler {
 
                         match sql_query(&bot_query).load(&mut *bot_conn) {
                             Ok(bot_cols) => {
-                                log::info!("Found {} columns for table '{}' in bot database", bot_cols.len(), table_name);
+                                log::trace!("Found {} columns for table '{}' in bot database", bot_cols.len(), table_name);
                                 bot_cols.into_iter()
                                     .map(|c: ColumnRow| c.column_name)
                                     .collect()
@@ -895,7 +895,7 @@ impl BasicCompiler {
                         Vec::new()
                     }
                 } else {
-                    log::info!("Found {} columns for table '{}' in main database", cols.len(), table_name);
+                    log::trace!("Found {} columns for table '{}' in main database", cols.len(), table_name);
                     cols.into_iter()
                         .map(|c: ColumnRow| c.column_name)
                         .collect()
@@ -919,7 +919,7 @@ impl BasicCompiler {
 
                     match sql_query(&bot_query).load(&mut *bot_conn) {
                         Ok(cols) => {
-                            log::info!("Found {} columns for table '{}' in bot database", cols.len(), table_name);
+                            log::trace!("Found {} columns for table '{}' in bot database", cols.len(), table_name);
                             cols.into_iter()
                                 .filter(|c: &ColumnRow| c.column_name != "id")
                                 .map(|c: ColumnRow| c.column_name)

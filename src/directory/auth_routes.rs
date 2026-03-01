@@ -147,21 +147,30 @@ pub async fn login(
             )
         })?;
 
+    // Try to get admin token: first PAT file, then OAuth client credentials
     let pat_path = std::path::Path::new("./botserver-stack/conf/directory/admin-pat.txt");
     let admin_token = std::fs::read_to_string(pat_path)
         .map(|s| s.trim().to_string())
         .unwrap_or_default();
 
-    if admin_token.is_empty() {
-        error!("Admin PAT token not found");
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Authentication service not configured".to_string(),
-                details: None,
-            }),
-        ));
-    }
+    let admin_token = if admin_token.is_empty() {
+        info!("Admin PAT token not found, using OAuth client credentials flow");
+        match get_oauth_token(&http_client, &client).await {
+            Ok(token) => token,
+            Err(e) => {
+                error!("Failed to get OAuth token: {}", e);
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Authentication service not configured".to_string(),
+                        details: Some("OAuth client credentials not available".to_string()),
+                    }),
+                ));
+            }
+        }
+    } else {
+        admin_token
+    };
 
     let search_url = format!("{}/v2/users", client.api_url());
     let search_body = serde_json::json!({
@@ -764,4 +773,44 @@ async fn create_organization(
         let error_text = response.text().await.unwrap_or_default();
         Err(format!("Failed to create organization: {}", error_text))
     }
+}
+
+async fn get_oauth_token(
+    http_client: &reqwest::Client,
+    client: &crate::directory::client::ZitadelClient,
+) -> Result<String, String> {
+    let token_url = format!("{}/oauth/v2/token", client.api_url());
+
+    let params = [
+        ("grant_type", "client_credentials".to_string()),
+        ("client_id", client.client_id().to_string()),
+        ("client_secret", client.client_secret().to_string()),
+        ("scope", "openid profile email urn:zitadel:iam:org:project:id:zitadel:aud".to_string()),
+    ];
+
+    let response = http_client
+        .post(&token_url)
+        .form(&params)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to request OAuth token: {}", e))?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await.unwrap_or_default();
+        return Err(format!("OAuth token request failed: {}", error_text));
+    }
+
+    let token_data: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse OAuth token response: {}", e))?;
+
+    let access_token = token_data
+        .get("access_token")
+        .and_then(|t| t.as_str())
+        .ok_or_else(|| "No access_token in OAuth response".to_string())?
+        .to_string();
+
+    info!("Successfully obtained OAuth access token via client credentials");
+    Ok(access_token)
 }

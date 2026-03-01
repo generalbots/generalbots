@@ -1,4 +1,3 @@
-use crate::auto_task::app_generator::AppGenerator;
 use crate::auto_task::intent_compiler::IntentCompiler;
 use crate::basic::ScriptService;
 
@@ -10,7 +9,7 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::{Text, Uuid as DieselUuid};
-use log::{error, info, trace, warn};
+use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -512,112 +511,44 @@ Respond with JSON only:
         session: &UserSession,
         task_id: Option<String>,
     ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
-        info!("Handling APP_CREATE intent");
+        info!("Handling APP_CREATE intent via Orchestrator pipeline");
 
-        // [AGENT MODE] Initialize the LXC container session for real terminal output
-        let t_id = task_id.clone().unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-        let mut executor = crate::auto_task::AgentExecutor::new(self.state.clone(), &session.id.to_string(), &t_id);
-        
-        if let Err(e) = executor.initialize().await {
-            log::warn!("Failed to initialize LXC container for agent: {}", e);
+        let mut orchestrator = if let Some(tid) = task_id {
+            crate::auto_task::orchestrator::Orchestrator::with_task_id(
+                self.state.clone(),
+                tid,
+            )
         } else {
-            executor.broadcast_thought("Analyzing the user prompt and setting up a dedicated LXC workspace...");
-            let _ = executor.execute_shell_command("echo 'Initializing Agent Workspace...' && date && mkdir -p /root/app").await;
-        }
-
-        let mut app_generator = if let Some(tid) = task_id {
-            AppGenerator::with_task_id(self.state.clone(), tid)
-        } else {
-            AppGenerator::new(self.state.clone())
+            crate::auto_task::orchestrator::Orchestrator::new(self.state.clone())
         };
 
-        match app_generator
-            .generate_app(&classification.original_text, session)
-            .await
-        {
-            Ok(app) => {
-                let mut resources = Vec::new();
+        let result = orchestrator
+            .execute_pipeline(classification, session)
+            .await?;
 
-                // Track created tables
-                for table in &app.tables {
-                    resources.push(CreatedResource {
-                        resource_type: "table".to_string(),
-                        name: table.name.clone(),
-                        path: Some("tables.bas".to_string()),
-                    });
-                }
-
-                for page in &app.pages {
-                    resources.push(CreatedResource {
-                        resource_type: "page".to_string(),
-                        name: page.filename.clone(),
-                        path: Some(page.filename.clone()),
-                    });
-                }
-
-                for tool in &app.tools {
-                    resources.push(CreatedResource {
-                        resource_type: "tool".to_string(),
-                        name: tool.filename.clone(),
-                        path: Some(tool.filename.clone()),
-                    });
-                }
-
-                let app_url = format!("/apps/{}", app.name.to_lowercase().replace(' ', "-"));
-
-                let res = Ok(IntentResult {
-                    success: true,
-                    intent_type: IntentType::AppCreate,
-                    message: format!(
-                        "Done:\n{}\nApp available at {}",
-                        resources
-                            .iter()
-                            .filter(|r| r.resource_type == "table")
-                            .map(|r| format!("{} table created", r.name))
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                        app_url
-                    ),
-                    created_resources: resources,
-                    app_url: Some(app_url),
-                    task_id: None,
-                    schedule_id: None,
-                    tool_triggers: Vec::new(),
-                    next_steps: vec![
-                        "Open the app to start using it".to_string(),
-                        "Use Designer to customize the app".to_string(),
-                    ],
-                    error: None,
-                });
-                
-                // [AGENT MODE] Cleanup the LXC container
-                executor.broadcast_thought("Generation complete. Terminating LXC sandbox.");
-                executor.cleanup().await;
-                
-                res
-            }
-            Err(e) => {
-                error!("Failed to generate app: {e}");
-                let res = Ok(IntentResult {
-                    success: false,
-                    intent_type: IntentType::AppCreate,
-                    message: "Failed to create the application".to_string(),
-                    created_resources: Vec::new(),
-                    app_url: None,
-                    task_id: None,
-                    schedule_id: None,
-                    tool_triggers: Vec::new(),
-                    next_steps: vec!["Try again with more details".to_string()],
-                    error: Some(e.to_string()),
-                });
-                
-                // [AGENT MODE] Cleanup the LXC container on error
-                if let Err(_) = executor.execute_shell_command("echo 'Build failed' >&2").await {}
-                executor.cleanup().await;
-                
-                res
-            }
-        }
+        Ok(IntentResult {
+            success: result.success,
+            intent_type: IntentType::AppCreate,
+            message: result.message,
+            created_resources: result
+                .created_resources
+                .into_iter()
+                .map(|r| CreatedResource {
+                    resource_type: r.resource_type,
+                    name: r.name,
+                    path: r.path,
+                })
+                .collect(),
+            app_url: result.app_url,
+            task_id: Some(result.task_id),
+            schedule_id: None,
+            tool_triggers: Vec::new(),
+            next_steps: vec![
+                "Open the app to start using it".to_string(),
+                "Use Designer to customize the app".to_string(),
+            ],
+            error: result.error,
+        })
     }
 
     fn handle_todo(

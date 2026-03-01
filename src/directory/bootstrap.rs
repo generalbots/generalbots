@@ -144,6 +144,23 @@ async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<BootstrapResul
         }
     };
 
+    // Create a PAT token for the admin user for API access
+    // Note: This requires OAuth client credentials. If not available, PAT creation
+    // will be skipped, but admin user can still login with username/password.
+    info!("Creating admin PAT token for API access...");
+    match client.create_pat(&user_id, "Admin API Token", None).await {
+        Ok(pat_token) => {
+            info!("Admin PAT token created successfully");
+            save_admin_pat_token(&pat_token);
+        }
+        Err(e) => {
+            // PAT creation failure is not critical - user can still login
+            // This happens when Zitadel doesn't have OAuth client configured yet
+            warn!("Failed to create admin PAT token (non-critical): {}", e);
+            info!("Admin user can still login with username/password. PAT can be created later via UI.");
+        }
+    }
+
     let base_url = client.api_url();
     let setup_url = format!("{}/ui/login", base_url);
 
@@ -250,7 +267,7 @@ fn save_setup_credentials(result: &BootstrapResult) {
 ║  Password: {:<46}║
 ║  Email:    {:<46}║
 ║                                                            ║
-║  🌐 LOGIN NOW: http://localhost:9000/suite/login           ║
+║  🌐 LOGIN NOW: http://localhost:8080/suite/login           ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 
@@ -276,6 +293,32 @@ fn save_setup_credentials(result: &BootstrapResult) {
         }
         Err(e) => {
             error!("Failed to save setup credentials: {}", e);
+        }
+    }
+}
+
+fn save_admin_pat_token(pat_token: &str) {
+    // Create directory if it doesn't exist
+    let pat_dir = std::path::Path::new("./botserver-stack/conf/directory");
+    if let Err(e) = fs::create_dir_all(pat_dir) {
+        error!("Failed to create PAT directory: {}", e);
+        return;
+    }
+
+    let pat_path = pat_dir.join("admin-pat.txt");
+
+    match fs::write(&pat_path, pat_token) {
+        Ok(_) => {
+            #[cfg(unix)]
+            {
+                if let Err(e) = fs::set_permissions(&pat_path, fs::Permissions::from_mode(0o600)) {
+                    warn!("Failed to set PAT file permissions: {}", e);
+                }
+            }
+            info!("Admin PAT token saved to: {}", pat_path.display());
+        }
+        Err(e) => {
+            error!("Failed to save admin PAT token: {}", e);
         }
     }
 }
@@ -313,7 +356,7 @@ fn print_bootstrap_credentials(result: &BootstrapResult) {
     println!("║{:^60}║", "");
     println!("║  {:56}║", "🌐 LOGIN NOW:");
     println!("║{:^60}║", "");
-    println!("║  {:56}║", "http://localhost:9000/suite/login");
+    println!("║  {:56}║", "http://localhost:8080/suite/login");
     println!("║{:^60}║", "");
     println!("╠{}╣", separator);
     println!("║{:^60}║", "");

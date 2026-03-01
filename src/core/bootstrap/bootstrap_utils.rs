@@ -17,6 +17,8 @@ pub fn get_processes_to_kill() -> Vec<(&'static str, Vec<&'static str>)> {
         ("botserver-stack/bin/meeting", vec!["-9", "-f"]),
         ("botserver-stack/bin/vector_db", vec!["-9", "-f"]),
         ("botserver-stack/bin/zitadel", vec!["-9", "-f"]),
+        ("botserver-stack/bin/alm", vec!["-9", "-f"]),
+        ("forgejo", vec!["-9", "-f"]),
         ("caddy", vec!["-9", "-f"]),
         ("postgres", vec!["-9", "-f"]),
         ("minio", vec!["-9", "-f"]),
@@ -201,3 +203,25 @@ pub enum BotExistsResult {
 }
 
 
+
+/// Check if Zitadel directory is healthy
+pub fn zitadel_health_check() -> bool {
+    // Check if Zitadel is responding on port 9000
+    if let Ok(output) = Command::new("curl")
+        .args(["-f", "-s", "--connect-timeout", "2", "http://localhost:9000/debug/ready"])
+        .output()
+    {
+        if output.status.success() {
+            return true;
+        }
+    }
+    
+    // Fallback: just check if port 9000 is listening
+    match Command::new("nc")
+        .args(["-z", "-w", "1", "127.0.0.1", "9000"])
+        .output()
+    {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    }
+}

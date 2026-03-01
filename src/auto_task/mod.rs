@@ -5,6 +5,7 @@ pub mod autotask_api;
 pub mod designer_ai;
 pub mod intent_classifier;
 pub mod intent_compiler;
+pub mod orchestrator;
 pub mod safety_layer;
 pub mod task_manifest;
 pub mod task_types;

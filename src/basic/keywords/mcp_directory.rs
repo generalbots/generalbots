@@ -388,7 +388,7 @@ impl McpCsvLoader {
                     .first()
                     .map(|s| (*s).to_string())
                     .unwrap_or_else(|| "localhost".to_string());
-                let port: u16 = parts.get(1).and_then(|p| p.parse().ok()).unwrap_or(9000);
+                let port: u16 = parts.get(1).and_then(|p| p.parse().ok()).unwrap_or(8080);
                 McpConnection {
                     connection_type: ConnectionType::Tcp,
                     url: host,
