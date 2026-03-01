@@ -1,6 +1,6 @@
 // Bootstrap manager implementation
 use crate::core::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgress};
-use crate::core::bootstrap::bootstrap_utils::{cache_health_check, safe_pkill, vault_health_check, vector_db_health_check};
+use crate::core::bootstrap::bootstrap_utils::{cache_health_check, safe_pkill, vault_health_check, vector_db_health_check, zitadel_health_check};
 use crate::core::config::AppConfig;
 use crate::core::package_manager::{InstallMode, PackageManager};
 use log::{info, warn};
@@ -158,6 +158,76 @@ impl BootstrapManager {
             }
         }
 
+        if pm.is_installed("directory") {
+            // Wait for Zitadel to be ready - it might have been started during installation
+            // Give it up to 60 seconds before trying to start it ourselves
+            let mut directory_already_running = zitadel_health_check();
+            if !directory_already_running {
+                info!("Zitadel not responding to health check, waiting up to 60s for it to start...");
+                for i in 0..30 {
+                    sleep(Duration::from_secs(2)).await;
+                    if zitadel_health_check() {
+                        info!("Zitadel/Directory service is now responding (waited {}s)", (i + 1) * 2);
+                        directory_already_running = true;
+                        break;
+                    }
+                }
+            }
+
+            if directory_already_running {
+                info!("Zitadel/Directory service is already running");
+            } else {
+                info!("Starting Zitadel/Directory service...");
+                match pm.start("directory") {
+                    Ok(_child) => {
+                        info!("Directory service started, waiting for readiness...");
+                        let mut zitadel_ready = false;
+                        for i in 0..150 {
+                            sleep(Duration::from_secs(2)).await;
+                            if zitadel_health_check() {
+                                info!("Zitadel/Directory service is responding");
+                                zitadel_ready = true;
+                                break;
+                            }
+                            if i == 149 {
+                                warn!("Zitadel/Directory service did not respond after 300 seconds");
+                            }
+                        }
+
+                        // Create OAuth client if Zitadel is ready and config doesn't exist
+                        if zitadel_ready {
+                            let config_path = self.stack_dir("conf/system/directory_config.json");
+                            if !config_path.exists() {
+                                info!("Creating OAuth client for Directory service...");
+                                match crate::core::package_manager::setup_directory().await {
+                                    Ok(_) => info!("OAuth client created successfully"),
+                                    Err(e) => warn!("Failed to create OAuth client: {}", e),
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Failed to start Directory service: {}", e);
+                    }
+                }
+            }
+
+            // Note: Directory (Zitadel) bootstrap is handled in main_module/bootstrap.rs
+            // where it has proper access to the admin PAT token
+        }
+
+        if pm.is_installed("alm") {
+            info!("Starting ALM (Forgejo) service...");
+            match pm.start("alm") {
+                Ok(_child) => {
+                    info!("ALM service started");
+                }
+                Err(e) => {
+                    warn!("Failed to start ALM service: {}", e);
+                }
+            }
+        }
+
         // Caddy is the web server
         match Command::new("caddy")
             .arg("validate")
@@ -209,7 +279,7 @@ impl BootstrapManager {
         }
 
         // Install other core components (names must match 3rdparty.toml)
-		let core_components = ["tables", "cache", "drive", "llm"];
+		let core_components = ["tables", "cache", "drive", "directory", "llm"];
         for component in core_components {
             if !pm.is_installed(component) {
                 info!("Installing {}...", component);

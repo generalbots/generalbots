@@ -514,6 +514,17 @@ Respond with JSON only:
     ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
         info!("Handling APP_CREATE intent");
 
+        // [AGENT MODE] Initialize the LXC container session for real terminal output
+        let t_id = task_id.clone().unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let mut executor = crate::auto_task::AgentExecutor::new(self.state.clone(), &session.id.to_string(), &t_id);
+        
+        if let Err(e) = executor.initialize().await {
+            log::warn!("Failed to initialize LXC container for agent: {}", e);
+        } else {
+            executor.broadcast_thought("Analyzing the user prompt and setting up a dedicated LXC workspace...");
+            let _ = executor.execute_shell_command("echo 'Initializing Agent Workspace...' && date && mkdir -p /root/app").await;
+        }
+
         let mut app_generator = if let Some(tid) = task_id {
             AppGenerator::with_task_id(self.state.clone(), tid)
         } else {
@@ -554,7 +565,7 @@ Respond with JSON only:
 
                 let app_url = format!("/apps/{}", app.name.to_lowercase().replace(' ', "-"));
 
-                Ok(IntentResult {
+                let res = Ok(IntentResult {
                     success: true,
                     intent_type: IntentType::AppCreate,
                     message: format!(
@@ -577,11 +588,17 @@ Respond with JSON only:
                         "Use Designer to customize the app".to_string(),
                     ],
                     error: None,
-                })
+                });
+                
+                // [AGENT MODE] Cleanup the LXC container
+                executor.broadcast_thought("Generation complete. Terminating LXC sandbox.");
+                executor.cleanup().await;
+                
+                res
             }
             Err(e) => {
                 error!("Failed to generate app: {e}");
-                Ok(IntentResult {
+                let res = Ok(IntentResult {
                     success: false,
                     intent_type: IntentType::AppCreate,
                     message: "Failed to create the application".to_string(),
@@ -592,7 +609,13 @@ Respond with JSON only:
                     tool_triggers: Vec::new(),
                     next_steps: vec!["Try again with more details".to_string()],
                     error: Some(e.to_string()),
-                })
+                });
+                
+                // [AGENT MODE] Cleanup the LXC container on error
+                if let Err(_) = executor.execute_shell_command("echo 'Build failed' >&2").await {}
+                executor.cleanup().await;
+                
+                res
             }
         }
     }

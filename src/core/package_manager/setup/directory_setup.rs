@@ -12,6 +12,8 @@ pub struct DirectorySetup {
     base_url: String,
     client: Client,
     admin_token: Option<String>,
+    /// Admin credentials for password grant authentication (used during initial setup)
+    admin_credentials: Option<(String, String)>,
     config_path: PathBuf,
 }
 
@@ -20,9 +22,57 @@ impl DirectorySetup {
         self.admin_token = Some(token);
     }
 
+    /// Set admin credentials for password grant authentication
+    pub fn set_admin_credentials(&mut self, username: String, password: String) {
+        self.admin_credentials = Some((username, password));
+    }
+
+    /// Get an access token using either PAT or password grant
+    async fn get_admin_access_token(&self) -> Result<String> {
+        // If we have a PAT token, use it directly
+        if let Some(ref token) = self.admin_token {
+            return Ok(token.clone());
+        }
+
+        // If we have admin credentials, use password grant
+        if let Some((username, password)) = &self.admin_credentials {
+            let token_url = format!("{}/oauth/v2/token", self.base_url);
+            let params = [
+                ("grant_type", "password".to_string()),
+                ("username", username.clone()),
+                ("password", password.clone()),
+                ("scope", "openid profile email urn:zitadel:iam:org:project:id:zitadel:aud".to_string()),
+            ];
+
+            let response = self
+                .client
+                .post(&token_url)
+                .form(&params)
+                .send()
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to get access token: {}", e))?;
+
+            let token_data: serde_json::Value = response
+                .json()
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to parse token response: {}", e))?;
+
+            let access_token = token_data
+                .get("access_token")
+                .and_then(|t| t.as_str())
+                .ok_or_else(|| anyhow::anyhow!("No access token in response"))?
+                .to_string();
+
+            log::info!("Obtained access token via password grant");
+            return Ok(access_token);
+        }
+
+        Err(anyhow::anyhow!("No admin token or credentials configured"))
+    }
+
     pub fn ensure_admin_token(&mut self) -> Result<()> {
-        if self.admin_token.is_none() {
-            return Err(anyhow::anyhow!("Admin token must be configured"));
+        if self.admin_token.is_none() && self.admin_credentials.is_none() {
+            return Err(anyhow::anyhow!("Admin token or credentials must be configured"));
         }
         Ok(())
     }
@@ -90,6 +140,24 @@ impl DirectorySetup {
                     Client::new()
                 }),
             admin_token: None,
+            admin_credentials: None,
+            config_path,
+        }
+    }
+
+    /// Create a DirectorySetup with initial admin credentials for password grant
+    pub fn with_admin_credentials(base_url: String, config_path: PathBuf, username: String, password: String) -> Self {
+        Self {
+            base_url,
+            client: Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to create HTTP client with timeout: {}, using default", e);
+                    Client::new()
+                }),
+            admin_token: None,
+            admin_credentials: Some((username, password)),
             config_path,
         }
     }
@@ -132,6 +200,10 @@ impl DirectorySetup {
 
         self.wait_for_ready(30).await?;
 
+        // Wait additional time for Zitadel API to be fully ready
+        log::info!("Waiting for Zitadel API to be fully initialized...");
+        sleep(Duration::from_secs(10)).await;
+
         self.ensure_admin_token()?;
 
         let org = self.create_default_organization().await?;
@@ -140,7 +212,39 @@ impl DirectorySetup {
         let user = self.create_default_user(&org.id).await?;
         log::info!(" Created default user: {}", user.username);
 
-        let (project_id, client_id, client_secret) = self.create_oauth_application(&org.id).await?;
+        // Retry OAuth client creation up to 3 times with delays
+        let (project_id, client_id, client_secret) = {
+            let mut last_error = None;
+            let mut result = None;
+
+            for attempt in 1..=3 {
+                match self.create_oauth_application(&org.id).await {
+                    Ok(credentials) => {
+                        result = Some(credentials);
+                        break;
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "OAuth client creation attempt {}/3 failed: {}",
+                            attempt,
+                            e
+                        );
+                        last_error = Some(e);
+                        if attempt < 3 {
+                            log::info!("Retrying in 5 seconds...");
+                            sleep(Duration::from_secs(5)).await;
+                        }
+                    }
+                }
+            }
+
+            result.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Failed to create OAuth client after 3 attempts: {}",
+                    last_error.unwrap_or_else(|| anyhow::anyhow!("Unknown error"))
+                )
+            })?
+        };
         log::info!(" Created OAuth2 application");
 
         self.grant_user_permissions(&org.id, &user.id).await?;
@@ -337,37 +441,55 @@ impl DirectorySetup {
         _org_id: &str,
     ) -> Result<(String, String, String)> {
         let app_name = "BotServer";
-        let redirect_uri = "http://localhost:9000/auth/callback".to_string();
+        let redirect_uri = "http://localhost:8080/auth/callback".to_string();
+
+        // Get access token using either PAT or password grant
+        let access_token = self.get_admin_access_token().await
+            .map_err(|e| anyhow::anyhow!("Failed to get admin access token: {}", e))?;
 
         let project_response = self
             .client
             .post(format!("{}/management/v1/projects", self.base_url))
-            .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
+            .bearer_auth(&access_token)
             .json(&json!({
                 "name": app_name,
             }))
             .send()
             .await?;
 
+        if !project_response.status().is_success() {
+            let error_text = project_response.text().await.unwrap_or_default();
+            return Err(anyhow::anyhow!("Failed to create project: {}", error_text));
+        }
+
         let project_result: serde_json::Value = project_response.json().await?;
         let project_id = project_result["id"].as_str().unwrap_or("").to_string();
 
+        if project_id.is_empty() {
+            return Err(anyhow::anyhow!("Project ID is empty in response"));
+        }
+
         let app_response = self.client
             .post(format!("{}/management/v1/projects/{}/apps/oidc", self.base_url, project_id))
-            .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
+            .bearer_auth(&access_token)
             .json(&json!({
                 "name": app_name,
-                "redirectUris": [redirect_uri, "http://localhost:3000/auth/callback", "http://localhost:9000/auth/callback"],
+                "redirectUris": [redirect_uri, "http://localhost:3000/auth/callback", "http://localhost:8080/auth/callback"],
                 "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
                 "grantTypes": ["OIDC_GRANT_TYPE_AUTHORIZATION_CODE", "OIDC_GRANT_TYPE_REFRESH_TOKEN", "OIDC_GRANT_TYPE_PASSWORD"],
                 "appType": "OIDC_APP_TYPE_WEB",
                 "authMethodType": "OIDC_AUTH_METHOD_TYPE_POST",
-                "postLogoutRedirectUris": ["http://localhost:9000", "http://localhost:3000", "http://localhost:9000"],
+                "postLogoutRedirectUris": ["http://localhost:8080", "http://localhost:3000", "http://localhost:8080"],
                 "accessTokenType": "OIDC_TOKEN_TYPE_BEARER",
                 "devMode": true,
             }))
             .send()
             .await?;
+
+        if !app_response.status().is_success() {
+            let error_text = app_response.text().await.unwrap_or_default();
+            return Err(anyhow::anyhow!("Failed to create OAuth application: {}", error_text));
+        }
 
         let app_result: serde_json::Value = app_response.json().await?;
         let client_id = app_result["clientId"].as_str().unwrap_or("").to_string();
@@ -376,6 +498,11 @@ impl DirectorySetup {
             .unwrap_or("")
             .to_string();
 
+        if client_id.is_empty() {
+            return Err(anyhow::anyhow!("Client ID is empty in response"));
+        }
+
+        log::info!("Created OAuth application with client_id: {}", client_id);
         Ok((project_id, client_id, client_secret))
     }
 
@@ -432,8 +559,21 @@ impl DirectorySetup {
     }
 
     async fn save_config_internal(&self, config: &DirectoryConfig) -> Result<()> {
+        // Ensure parent directory exists
+        if let Some(parent) = self.config_path.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent).await.map_err(|e| {
+                    anyhow::anyhow!("Failed to create config directory {}: {}", parent.display(), e)
+                })?;
+                log::info!("Created config directory: {}", parent.display());
+            }
+        }
+
         let json = serde_json::to_string_pretty(config)?;
-        fs::write(&self.config_path, json).await?;
+        fs::write(&self.config_path, json).await.map_err(|e| {
+            anyhow::anyhow!("Failed to write config to {}: {}", self.config_path.display(), e)
+        })?;
+        log::info!("Saved Directory configuration to {}", self.config_path.display());
         Ok(())
     }
 
@@ -466,9 +606,10 @@ Database:
 Machine:
   Identification:
     Hostname: localhost
-    WebhookAddress: http://localhost:9000
+    WebhookAddress: http://localhost:8080
 
-ExternalDomain: localhost:9000
+Port: 9000
+ExternalDomain: localhost
 ExternalPort: 9000
 ExternalSecure: false
 
