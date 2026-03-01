@@ -475,12 +475,12 @@ impl PackageManager {
                 env_vars: HashMap::from([
                     ("ZITADEL_EXTERNALSECURE".to_string(), "false".to_string()),
                     ("ZITADEL_EXTERNALDOMAIN".to_string(), "localhost".to_string()),
-                    ("ZITADEL_EXTERNALPORT".to_string(), "9000".to_string()),
+                    ("ZITADEL_EXTERNALPORT".to_string(), "8300".to_string()),
                     ("ZITADEL_TLS_ENABLED".to_string(), "false".to_string()),
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "ZITADEL_MASTERKEY=$(VAULT_ADDR=https://localhost:8200 VAULT_CACERT={{CONF_PATH}}/system/certificates/ca/ca.crt vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:9000/healthz >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/healthz >/dev/null 2>&1".to_string(),
             },
         );
     }

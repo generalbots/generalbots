@@ -70,10 +70,18 @@ impl DirectorySetup {
         Err(anyhow::anyhow!("No admin token or credentials configured"))
     }
 
-    pub fn ensure_admin_token(&mut self) -> Result<()> {
+    pub async fn ensure_admin_token(&mut self) -> Result<()> {
         if self.admin_token.is_none() && self.admin_credentials.is_none() {
             return Err(anyhow::anyhow!("Admin token or credentials must be configured"));
         }
+
+        // If we have credentials but no token, authenticate and get the token
+        if self.admin_token.is_none() && self.admin_credentials.is_some() {
+            let token = self.get_admin_access_token().await?;
+            self.admin_token = Some(token);
+            log::info!("Obtained admin access token from credentials");
+        }
+
         Ok(())
     }
 
@@ -204,7 +212,7 @@ impl DirectorySetup {
         log::info!("Waiting for Zitadel API to be fully initialized...");
         sleep(Duration::from_secs(10)).await;
 
-        self.ensure_admin_token()?;
+        self.ensure_admin_token().await?;
 
         let org = self.create_default_organization().await?;
         log::info!(" Created default organization: {}", org.name);
@@ -283,7 +291,7 @@ impl DirectorySetup {
     }
 
     pub async fn create_organization(&mut self, name: &str, description: &str) -> Result<String> {
-        self.ensure_admin_token()?;
+        self.ensure_admin_token().await?;
 
         let response = self
             .client
@@ -336,7 +344,7 @@ impl DirectorySetup {
         &mut self,
         params: CreateUserParams<'_>,
     ) -> Result<DefaultUser> {
-        self.ensure_admin_token()?;
+        self.ensure_admin_token().await?;
 
         let response = self
             .client
@@ -532,7 +540,7 @@ impl DirectorySetup {
         client_id: String,
         client_secret: String,
     ) -> Result<DirectoryConfig> {
-        self.ensure_admin_token()?;
+        self.ensure_admin_token().await?;
 
         let config = DirectoryConfig {
             base_url: self.base_url.clone(),

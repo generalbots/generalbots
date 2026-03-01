@@ -206,19 +206,19 @@ pub enum BotExistsResult {
 
 /// Check if Zitadel directory is healthy
 pub fn zitadel_health_check() -> bool {
-    // Check if Zitadel is responding on port 9000
+    // Check if Zitadel is responding on port 8300
     if let Ok(output) = Command::new("curl")
-        .args(["-f", "-s", "--connect-timeout", "2", "http://localhost:9000/debug/ready"])
+        .args(["-f", "-s", "--connect-timeout", "2", "http://localhost:8300/debug/ready"])
         .output()
     {
         if output.status.success() {
             return true;
         }
     }
-    
-    // Fallback: just check if port 9000 is listening
+
+    // Fallback: just check if port 8300 is listening
     match Command::new("nc")
-        .args(["-z", "-w", "1", "127.0.0.1", "9000"])
+        .args(["-z", "-w", "1", "127.0.0.1", "8300"])
         .output()
     {
         Ok(output) => output.status.success(),

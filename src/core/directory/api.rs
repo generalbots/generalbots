@@ -257,7 +257,7 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
 
     let client = create_tls_client(Some(2));
 
-    if let Ok(response) = client.get("https://localhost:9000/healthz").send().await {
+    if let Ok(response) = client.get("http://localhost:8300/healthz").send().await {
         status.directory = response.status().is_success();
     }
 
