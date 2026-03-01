@@ -196,21 +196,26 @@ async fn get_admin_credentials(stack_path: &str) -> anyhow::Result<AdminCredenti
         return Ok(AdminCredentials { email, password });
     }
 
-    // Approach 3: Error with helpful message
+    // This should not be reached - initialize() will handle authentication errors
+    // If we get here, it means credentials were found but authentication failed
     log::error!("═══════════════════════════════════════════════════════════════");
-    log::error!("❌ FAILED TO GET ZITADEL ADMIN CREDENTIALS");
+    log::error!("❌ ZITADEL AUTHENTICATION FAILED");
     log::error!("═══════════════════════════════════════════════════════════════");
-    log::error!("Could not find credentials in:");
-    log::error!("  - ~/.gb-setup-credentials");
-    log::error!("  - {}/logs/directory/zitadel.log", stack_path);
+    log::error!("Credentials were found but authentication failed.");
+    log::error!("This usually means:");
+    log::error!("  • Credentials are from a previous Zitadel installation");
+    log::error!("  • User account is locked or disabled");
+    log::error!("  • Password has been changed");
     log::error!("");
-    log::error!("SOLUTION: Run a fresh bootstrap to create initial admin user:");
-    log::error!("  1. Delete .env and botserver-stack/conf/system/.bootstrap_completed");
-    log::error!("  2. Run: ./reset.sh");
-    log::error!("  3. Admin credentials will be displayed and saved");
+    log::error!("SOLUTION: Reset and create fresh credentials:");
+    log::error!("  1. Delete: rm ~/.gb-setup-credentials");
+    log::error!("  2. Delete: rm .env");
+    log::error!("  3. Delete: rm botserver-stack/conf/system/.bootstrap_completed");
+    log::error!("  4. Run: ./reset.sh");
+    log::error!("  5. New admin credentials will be displayed and saved");
     log::error!("═══════════════════════════════════════════════════════════════");
 
-    anyhow::bail!("No admin credentials found. Run fresh bootstrap to create them.")
+    anyhow::bail!("Authentication failed. Reset bootstrap to create fresh credentials.")
 }
 
 /// Read credentials from ~/.gb-setup-credentials file
