@@ -189,11 +189,11 @@ error: Option<String>,
 #[cfg(feature = "mail")]
 #[derive(Debug, Deserialize)]
 struct SmtpTestRequest {
-host: String,
-port: i32,
-username: Option<String>,
-password: Option<String>,
-use_tls: Option<bool>,
+    host: String,
+    port: i32,
+    username: Option<String>,
+    password: Option<String>,
+    _use_tls: Option<bool>,
 }
 
 #[cfg(not(feature = "mail"))]

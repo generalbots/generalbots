@@ -208,7 +208,7 @@ pub enum BotExistsResult {
 pub fn zitadel_health_check() -> bool {
     // Check if Zitadel is responding on port 8300
     if let Ok(output) = Command::new("curl")
-        .args(["-f", "-s", "--connect-timeout", "2", "http://localhost:8300/debug/ready"])
+        .args(["-f", "-s", "--connect-timeout", "2", "http://localhost:8300/debug/healthz"])
         .output()
     {
         if output.status.success() {

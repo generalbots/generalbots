@@ -45,108 +45,16 @@ pub fn get_all_components() -> Vec<ComponentInfo> {
     ]
 }
 
-/// Parse Zitadel log file to extract initial admin credentials
-#[cfg(feature = "directory")]
-fn extract_initial_admin_from_log(log_path: &std::path::Path) -> Option<(String, String)> {
-    use std::fs;
 
-    let log_content = fs::read_to_string(log_path).ok()?;
 
-    // Try different log formats from Zitadel
-    // Format 1: "initial admin user created. email: admin@<domain> password: <password>"
-    for line in log_content.lines() {
-        let line_lower = line.to_lowercase();
-        if line_lower.contains("initial admin") || line_lower.contains("admin credentials") {
-            // Try to extract email and password
-            let email = if let Some(email_start) = line.find("email:") {
-                let rest = &line[email_start + 6..];
-                rest.trim()
-                    .split_whitespace()
-                    .next()
-                    .map(|s| s.trim_end_matches(',').to_string())
-            } else if let Some(email_start) = line.find("Email:") {
-                let rest = &line[email_start + 6..];
-                rest.trim()
-                    .split_whitespace()
-                    .next()
-                    .map(|s| s.trim_end_matches(',').to_string())
-            } else {
-                None
-            };
 
-            let password = if let Some(pwd_start) = line.find("password:") {
-                let rest = &line[pwd_start + 9..];
-                rest.trim()
-                    .split_whitespace()
-                    .next()
-                    .map(|s| s.trim_end_matches(',').to_string())
-            } else if let Some(pwd_start) = line.find("Password:") {
-                let rest = &line[pwd_start + 9..];
-                rest.trim()
-                    .split_whitespace()
-                    .next()
-                    .map(|s| s.trim_end_matches(',').to_string())
-            } else {
-                None
-            };
-
-            if let (Some(email), Some(password)) = (email, password) {
-                if !email.is_empty() && !password.is_empty() {
-                    log::info!("Extracted initial admin credentials from log: {}", email);
-                    return Some((email, password));
-                }
-            }
-        }
-    }
-
-    // Try multiline format
-    // Admin credentials:
-    //   Email: admin@localhost
-    //   Password: xxxxx
-    let lines: Vec<&str> = log_content.lines().collect();
-    for i in 0..lines.len().saturating_sub(2) {
-        if lines[i].to_lowercase().contains("admin credentials") {
-            let mut email = None;
-            let mut password = None;
-
-            for j in (i + 1)..std::cmp::min(i + 5, lines.len()) {
-                let line = lines[j];
-                if line.contains("Email:") {
-                    email = line.split("Email:")
-                        .nth(1)
-                        .map(|s| s.trim().to_string());
-                }
-                if line.contains("Password:") {
-                    password = line.split("Password:")
-                        .nth(1)
-                        .map(|s| s.trim().to_string());
-                }
-            }
-
-            if let (Some(e), Some(p)) = (email, password) {
-                if !e.is_empty() && !p.is_empty() {
-                    log::info!("Extracted initial admin credentials from multiline log: {}", e);
-                    return Some((e, p));
-                }
-            }
-        }
-    }
-
-    None
-}
-
-/// Admin credentials structure
-#[cfg(feature = "directory")]
-struct AdminCredentials {
-    email: String,
-    password: String,
-}
 
 /// Initialize Directory (Zitadel) with default admin user and OAuth application
 /// This should be called after Zitadel has started and is responding
 #[cfg(feature = "directory")]
 pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::setup::DirectoryConfig> {
     use std::path::PathBuf;
+    use std::collections::HashMap;
 
     let stack_path = std::env::var("BOTSERVER_STACK_PATH")
         .unwrap_or_else(|_| "./botserver-stack".to_string());
@@ -154,11 +62,51 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
     let base_url = "http://localhost:8300".to_string();
     let config_path = PathBuf::from(&stack_path).join("conf/system/directory_config.json");
 
-    // Check if config already exists with valid OAuth client
+    // Check if config already exists in Vault first
+    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::from_env() {
+        if secrets_manager.is_enabled() {
+            if let Ok(secrets) = secrets_manager.get_secret(crate::core::secrets::SecretPaths::DIRECTORY).await {
+                if let (Some(client_id), Some(client_secret)) = (secrets.get("client_id"), secrets.get("client_secret")) {
+                    // Validate that credentials are real, not placeholders
+                    let is_valid = !client_id.is_empty()
+                        && !client_secret.is_empty()
+                        && client_secret != "..."
+                        && client_id.contains('@') // OAuth client IDs contain @
+                        && client_secret.len() > 10; // Real secrets are longer than placeholders
+
+                    if is_valid {
+                        log::info!("Directory already configured with OAuth client in Vault");
+                        // Reconstruct config from Vault
+                        let config = crate::core::package_manager::setup::DirectoryConfig {
+                            base_url: base_url.clone(),
+                            issuer_url: secrets.get("issuer_url").cloned().unwrap_or_else(|| base_url.clone()),
+                            issuer: secrets.get("issuer").cloned().unwrap_or_else(|| base_url.clone()),
+                            client_id: client_id.clone(),
+                            client_secret: client_secret.clone(),
+                            redirect_uri: secrets.get("redirect_uri").cloned().unwrap_or_else(|| "http://localhost:3000/auth/callback".to_string()),
+                            project_id: secrets.get("project_id").cloned().unwrap_or_default(),
+                            api_url: secrets.get("api_url").cloned().unwrap_or_else(|| base_url.clone()),
+                            service_account_key: secrets.get("service_account_key").cloned(),
+                        };
+                        return Ok(config);
+                    }
+                }
+            }
+        }
+    }
+
+    // Check if config already exists with valid OAuth client in file
     if config_path.exists() {
         if let Ok(content) = std::fs::read_to_string(&config_path) {
             if let Ok(config) = serde_json::from_str::<crate::core::package_manager::setup::DirectoryConfig>(&content) {
-                if !config.client_id.is_empty() && !config.client_secret.is_empty() {
+                // Validate that credentials are real, not placeholders
+                let is_valid = !config.client_id.is_empty()
+                    && !config.client_secret.is_empty()
+                    && config.client_secret != "..."
+                    && config.client_id.contains('@')
+                    && config.client_secret.len() > 10;
+
+                if is_valid {
                     log::info!("Directory already configured with OAuth client");
                     return Ok(config);
                 }
@@ -166,96 +114,33 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
         }
     }
 
-    // Try to get credentials from multiple sources
-    let credentials = get_admin_credentials(&stack_path).await?;
+    // Initialize directory with default credentials
+    let mut directory_setup = crate::core::package_manager::setup::DirectorySetup::new(base_url.clone(), config_path.clone());
+    let config = directory_setup.initialize().await
+        .map_err(|e| anyhow::anyhow!("Failed to initialize directory: {}", e))?;
 
-    let mut directory_setup = crate::core::package_manager::setup::DirectorySetup::with_admin_credentials(
-        base_url,
-        config_path.clone(),
-        credentials.email,
-        credentials.password,
-    );
+    // Store credentials in Vault
+    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::from_env() {
+        if secrets_manager.is_enabled() {
+            let mut secrets = HashMap::new();
+            secrets.insert("url".to_string(), config.base_url.clone());
+            secrets.insert("issuer_url".to_string(), config.issuer_url.clone());
+            secrets.insert("issuer".to_string(), config.issuer.clone());
+            secrets.insert("client_id".to_string(), config.client_id.clone());
+            secrets.insert("client_secret".to_string(), config.client_secret.clone());
+            secrets.insert("redirect_uri".to_string(), config.redirect_uri.clone());
+            secrets.insert("project_id".to_string(), config.project_id.clone());
+            secrets.insert("api_url".to_string(), config.api_url.clone());
+            if let Some(key) = &config.service_account_key {
+                secrets.insert("service_account_key".to_string(), key.clone());
+            }
 
-    directory_setup.initialize().await
-        .map_err(|e| anyhow::anyhow!("Failed to initialize directory: {}", e))
-}
-
-/// Get admin credentials from multiple sources
-#[cfg(feature = "directory")]
-async fn get_admin_credentials(stack_path: &str) -> anyhow::Result<AdminCredentials> {
-    // Approach 1: Read from ~/.gb-setup-credentials (most reliable - from first bootstrap)
-    if let Some(creds) = read_saved_credentials() {
-        log::info!("Using credentials from ~/.gb-setup-credentials");
-        return Ok(creds);
-    }
-
-    // Approach 2: Try to extract from Zitadel logs (fallback)
-    let log_path = std::path::PathBuf::from(stack_path).join("logs/directory/zitadel.log");
-    if let Some((email, password)) = extract_initial_admin_from_log(&log_path) {
-        log::info!("Using credentials extracted from Zitadel log");
-        return Ok(AdminCredentials { email, password });
-    }
-
-    // This should not be reached - initialize() will handle authentication errors
-    // If we get here, it means credentials were found but authentication failed
-    log::error!("═══════════════════════════════════════════════════════════════");
-    log::error!("❌ ZITADEL AUTHENTICATION FAILED");
-    log::error!("═══════════════════════════════════════════════════════════════");
-    log::error!("Credentials were found but authentication failed.");
-    log::error!("This usually means:");
-    log::error!("  • Credentials are from a previous Zitadel installation");
-    log::error!("  • User account is locked or disabled");
-    log::error!("  • Password has been changed");
-    log::error!("");
-    log::error!("SOLUTION: Reset and create fresh credentials:");
-    log::error!("  1. Delete: rm ~/.gb-setup-credentials");
-    log::error!("  2. Delete: rm .env");
-    log::error!("  3. Delete: rm botserver-stack/conf/system/.bootstrap_completed");
-    log::error!("  4. Run: ./reset.sh");
-    log::error!("  5. New admin credentials will be displayed and saved");
-    log::error!("═══════════════════════════════════════════════════════════════");
-
-    anyhow::bail!("Authentication failed. Reset bootstrap to create fresh credentials.")
-}
-
-/// Read credentials from ~/.gb-setup-credentials file
-#[cfg(feature = "directory")]
-fn read_saved_credentials() -> Option<AdminCredentials> {
-    let home = std::env::var("HOME").ok()?;
-    let creds_path = std::path::PathBuf::from(&home).join(".gb-setup-credentials");
-
-    if !creds_path.exists() {
-        return None;
-    }
-
-    let content = std::fs::read_to_string(&creds_path).ok()?;
-
-    // Parse credentials from file
-    let mut username = None;
-    let mut password = None;
-    let mut email = None;
-
-    for line in content.lines() {
-        if line.contains("Username:") {
-            username = line.split("Username:")
-                .nth(1)
-                .map(|s| s.trim().to_string());
-        }
-        if line.contains("Password:") {
-            password = line.split("Password:")
-                .nth(1)
-                .map(|s| s.trim().to_string());
-        }
-        if line.contains("Email:") {
-            email = line.split("Email:")
-                .nth(1)
-                .map(|s| s.trim().to_string());
+            match secrets_manager.put_secret(crate::core::secrets::SecretPaths::DIRECTORY, secrets).await {
+                Ok(_) => log::info!("Directory credentials stored in Vault"),
+                Err(e) => log::warn!("Failed to store directory credentials in Vault: {}", e),
+            }
         }
     }
 
-    if let (Some(_username), Some(password), Some(email)) = (username, password, email) {
-        Some(AdminCredentials { email, password })
-    } else {
-        None
-    }
+    Ok(config)
 }

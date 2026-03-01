@@ -1,4 +1,4 @@
-use log::{info, trace};
+use log::trace;
 
 pub fn convert_talk_line_with_substitution(line: &str) -> String {
     let mut result = String::new();

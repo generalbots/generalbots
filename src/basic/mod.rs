@@ -6,7 +6,7 @@ use crate::basic::keywords::switch_case::switch_keyword;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
 use diesel::prelude::*;
-use log::{info, trace};
+use log::trace;
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -1400,7 +1400,7 @@ impl ScriptService {
         log::trace!("IF/THEN conversion complete, output has {} lines", result.lines().count());
 
         // Convert BASIC <> (not equal) to Rhai != globally
-        
+
 
         result.replace(" <> ", " != ")
     }
