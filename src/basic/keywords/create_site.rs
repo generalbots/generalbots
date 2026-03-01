@@ -16,11 +16,6 @@ use std::path::PathBuf;
 #[cfg(feature = "llm")]
 use std::sync::Arc;
 
-// When llm feature is disabled, create a dummy trait for type compatibility
-#[cfg(not(feature = "llm"))]
-#[allow(dead_code)]
-trait LLMProvider: Send + Sync {}
-
 pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
     let user_clone = user;

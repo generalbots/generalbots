@@ -20,6 +20,7 @@ impl SecretPaths {
     pub const EMAIL: &'static str = "gbo/email";
     pub const LLM: &'static str = "gbo/llm";
     pub const ENCRYPTION: &'static str = "gbo/encryption";
+    pub const JWT: &'static str = "gbo/jwt";
     pub const MEET: &'static str = "gbo/meet";
     pub const ALM: &'static str = "gbo/alm";
     pub const VECTORDB: &'static str = "gbo/vectordb";
@@ -268,6 +269,10 @@ impl SecretsManager {
 
     pub async fn get_encryption_key(&self) -> Result<String> {
         self.get_value(SecretPaths::ENCRYPTION, "master_key").await
+    }
+
+    pub async fn get_jwt_secret(&self) -> Result<String> {
+        self.get_value(SecretPaths::JWT, "secret").await
     }
 
     pub async fn put_secret(&self, path: &str, data: HashMap<String, String>) -> Result<()> {
