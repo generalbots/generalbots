@@ -135,6 +135,13 @@ fn extract_initial_admin_from_log(log_path: &std::path::Path) -> Option<(String,
     None
 }
 
+/// Admin credentials structure
+#[cfg(feature = "directory")]
+struct AdminCredentials {
+    email: String,
+    password: String,
+}
+
 /// Initialize Directory (Zitadel) with default admin user and OAuth application
 /// This should be called after Zitadel has started and is responding
 #[cfg(feature = "directory")]
@@ -159,96 +166,91 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
         }
     }
 
-    // Try multiple approaches to get initial admin credentials
-    let log_path = PathBuf::from(&stack_path).join("logs/zitadel.log");
+    // Try to get credentials from multiple sources
+    let credentials = get_admin_credentials(&stack_path).await?;
 
-    // Approach 1: Try to extract credentials from Zitadel log
-    let admin_credentials = extract_initial_admin_from_log(&log_path);
-
-    // Approach 2: Try well-known default credentials for initial Zitadel setup
-    // Zitadel's default initial admin credentials (if any)
-    let default_credentials = [
-        // Try common default patterns
-        ("admin@localhost", "Password1!"),
-        ("zitadel-admin@localhost", "Password1!"),
-        ("admin", "admin"),
-    ];
-
-    // Find working credentials
-    let working_credentials = if let Some((email, password)) = admin_credentials {
-        log::info!("Using credentials extracted from Zitadel log");
-        Some((email, password))
-    } else {
-        // Try default credentials
-        log::info!("Attempting to authenticate with default Zitadel credentials...");
-        let mut found = None;
-        for (email, password) in default_credentials.iter() {
-            if let Ok(true) = test_zitadel_credentials(&base_url, email, password).await {
-                log::info!("Successfully authenticated with default credentials: {}", email);
-                found = Some((email.to_string(), password.to_string()));
-                break;
-            }
-        }
-        found
-    };
-
-    let mut directory_setup = if let Some((email, password)) = working_credentials {
-        log::info!("Using admin credentials for Directory setup: {}", email);
-        crate::core::package_manager::setup::DirectorySetup::with_admin_credentials(
-            base_url,
-            config_path.clone(),
-            email,
-            password,
-        )
-    } else {
-        // No credentials found - provide helpful error message
-        log::error!("═══════════════════════════════════════════════════════════════");
-        log::error!("❌ FAILED TO GET ZITADEL ADMIN CREDENTIALS");
-        log::error!("═══════════════════════════════════════════════════════════════");
-        log::error!("Could not extract credentials from Zitadel logs at:",);
-        log::error!("  {}", log_path.display());
-        log::error!("");
-        log::error!("Please check the Zitadel logs manually for initial admin credentials:");
-        log::error!("  tail -100 {}", log_path.display());
-        log::error!("");
-        log::error!("Then create the config file manually at:");
-        log::error!("  {}", config_path.display());
-        log::error!("═══════════════════════════════════════════════════════════════");
-
-        anyhow::bail!(
-            "Failed to obtain Zitadel admin credentials. Check logs at {}",
-            log_path.display()
-        );
-    };
+    let mut directory_setup = crate::core::package_manager::setup::DirectorySetup::with_admin_credentials(
+        base_url,
+        config_path.clone(),
+        credentials.email,
+        credentials.password,
+    );
 
     directory_setup.initialize().await
         .map_err(|e| anyhow::anyhow!("Failed to initialize directory: {}", e))
 }
 
-/// Test if Zitadel credentials are valid by attempting to get an access token
+/// Get admin credentials from multiple sources
 #[cfg(feature = "directory")]
-async fn test_zitadel_credentials(base_url: &str, username: &str, password: &str) -> anyhow::Result<bool> {
-    use reqwest::Client;
+async fn get_admin_credentials(stack_path: &str) -> anyhow::Result<AdminCredentials> {
+    // Approach 1: Read from ~/.gb-setup-credentials (most reliable - from first bootstrap)
+    if let Some(creds) = read_saved_credentials() {
+        log::info!("Using credentials from ~/.gb-setup-credentials");
+        return Ok(creds);
+    }
 
-    let client = Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .unwrap_or_else(|_| Client::new());
+    // Approach 2: Try to extract from Zitadel logs (fallback)
+    let log_path = std::path::PathBuf::from(stack_path).join("logs/directory/zitadel.log");
+    if let Some((email, password)) = extract_initial_admin_from_log(&log_path) {
+        log::info!("Using credentials extracted from Zitadel log");
+        return Ok(AdminCredentials { email, password });
+    }
 
-    let token_url = format!("{}/oauth/v2/token", base_url);
-    let params = [
-        ("grant_type", "password".to_string()),
-        ("username", username.to_string()),
-        ("password", password.to_string()),
-        ("scope", "openid profile email".to_string()),
-    ];
+    // Approach 3: Error with helpful message
+    log::error!("═══════════════════════════════════════════════════════════════");
+    log::error!("❌ FAILED TO GET ZITADEL ADMIN CREDENTIALS");
+    log::error!("═══════════════════════════════════════════════════════════════");
+    log::error!("Could not find credentials in:");
+    log::error!("  - ~/.gb-setup-credentials");
+    log::error!("  - {}/logs/directory/zitadel.log", stack_path);
+    log::error!("");
+    log::error!("SOLUTION: Run a fresh bootstrap to create initial admin user:");
+    log::error!("  1. Delete .env and botserver-stack/conf/system/.bootstrap_completed");
+    log::error!("  2. Run: ./reset.sh");
+    log::error!("  3. Admin credentials will be displayed and saved");
+    log::error!("═══════════════════════════════════════════════════════════════");
 
-    let response = client
-        .post(&token_url)
-        .form(&params)
-        .send()
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to test credentials: {}", e))?;
+    anyhow::bail!("No admin credentials found. Run fresh bootstrap to create them.")
+}
 
-    Ok(response.status().is_success())
+/// Read credentials from ~/.gb-setup-credentials file
+#[cfg(feature = "directory")]
+fn read_saved_credentials() -> Option<AdminCredentials> {
+    let home = std::env::var("HOME").ok()?;
+    let creds_path = std::path::PathBuf::from(&home).join(".gb-setup-credentials");
+
+    if !creds_path.exists() {
+        return None;
+    }
+
+    let content = std::fs::read_to_string(&creds_path).ok()?;
+
+    // Parse credentials from file
+    let mut username = None;
+    let mut password = None;
+    let mut email = None;
+
+    for line in content.lines() {
+        if line.contains("Username:") {
+            username = line.split("Username:")
+                .nth(1)
+                .map(|s| s.trim().to_string());
+        }
+        if line.contains("Password:") {
+            password = line.split("Password:")
+                .nth(1)
+                .map(|s| s.trim().to_string());
+        }
+        if line.contains("Email:") {
+            email = line.split("Email:")
+                .nth(1)
+                .map(|s| s.trim().to_string());
+        }
+    }
+
+    if let (Some(_username), Some(password), Some(email)) = (username, password, email) {
+        Some(AdminCredentials { email, password })
+    } else {
+        None
+    }
 }
