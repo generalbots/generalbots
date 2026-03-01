@@ -8,6 +8,8 @@ pub mod intent_compiler;
 pub mod safety_layer;
 pub mod task_manifest;
 pub mod task_types;
+pub mod agent_executor;
+pub mod container_session;
 
 pub use app_generator::{
     AppGenerator, AppStructure, FileType, GeneratedApp, GeneratedFile, GeneratedPage, PageType,
@@ -38,6 +40,8 @@ pub use task_types::{AutoTask, AutoTaskStatus, ExecutionMode, TaskPriority};
 pub use intent_classifier::{ClassifiedIntent, IntentClassifier, IntentType};
 pub use intent_compiler::{CompiledIntent, IntentCompiler};
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};
+pub use agent_executor::*;
+pub use container_session::*;
 
 use crate::core::urls::ApiUrls;
 use crate::core::shared::state::AppState;
