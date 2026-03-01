@@ -290,7 +290,7 @@ impl ApiUrls {
     pub const MONITORING_LLM: &'static str = "/api/ui/monitoring/llm";
     pub const MONITORING_HEALTH: &'static str = "/api/ui/monitoring/health";
     pub const MONITORING_ALERTS: &'static str = "/api/monitoring/alerts";
-    
+
     // Monitoring - Metrics & Widgets
     pub const MONITORING_TIMESTAMP: &'static str = "/api/ui/monitoring/timestamp";
     pub const MONITORING_BOTS: &'static str = "/api/ui/monitoring/bots";
@@ -479,7 +479,7 @@ impl ApiUrls {
 pub struct InternalUrls;
 
 impl InternalUrls {
-    pub const DIRECTORY_BASE: &'static str = "http://localhost:9000";
+    pub const DIRECTORY_BASE: &'static str = "http://localhost:8300";
     pub const DATABASE: &'static str = "postgres://localhost:5432";
     pub const CACHE: &'static str = "redis://localhost:6379";
     pub const DRIVE: &'static str = "https://localhost:9100";

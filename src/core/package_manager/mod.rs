@@ -147,7 +147,7 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
     let base_url = "http://localhost:8300".to_string();
     let config_path = PathBuf::from(&stack_path).join("conf/system/directory_config.json");
 
-    // Check if config already exists
+    // Check if config already exists with valid OAuth client
     if config_path.exists() {
         if let Ok(content) = std::fs::read_to_string(&config_path) {
             if let Ok(config) = serde_json::from_str::<crate::core::package_manager::setup::DirectoryConfig>(&content) {
@@ -159,12 +159,41 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
         }
     }
 
-    // Try to get initial admin credentials from Zitadel log
+    // Try multiple approaches to get initial admin credentials
     let log_path = PathBuf::from(&stack_path).join("logs/zitadel.log");
+
+    // Approach 1: Try to extract credentials from Zitadel log
     let admin_credentials = extract_initial_admin_from_log(&log_path);
 
-    let mut directory_setup = if let Some((email, password)) = admin_credentials {
-        log::info!("Using initial admin credentials from log for OAuth client creation");
+    // Approach 2: Try well-known default credentials for initial Zitadel setup
+    // Zitadel's default initial admin credentials (if any)
+    let default_credentials = [
+        // Try common default patterns
+        ("admin@localhost", "Password1!"),
+        ("zitadel-admin@localhost", "Password1!"),
+        ("admin", "admin"),
+    ];
+
+    // Find working credentials
+    let working_credentials = if let Some((email, password)) = admin_credentials {
+        log::info!("Using credentials extracted from Zitadel log");
+        Some((email, password))
+    } else {
+        // Try default credentials
+        log::info!("Attempting to authenticate with default Zitadel credentials...");
+        let mut found = None;
+        for (email, password) in default_credentials.iter() {
+            if let Ok(true) = test_zitadel_credentials(&base_url, email, password).await {
+                log::info!("Successfully authenticated with default credentials: {}", email);
+                found = Some((email.to_string(), password.to_string()));
+                break;
+            }
+        }
+        found
+    };
+
+    let mut directory_setup = if let Some((email, password)) = working_credentials {
+        log::info!("Using admin credentials for Directory setup: {}", email);
         crate::core::package_manager::setup::DirectorySetup::with_admin_credentials(
             base_url,
             config_path.clone(),
@@ -172,17 +201,54 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
             password,
         )
     } else {
-        log::warn!(
-            "Could not extract initial admin credentials from Zitadel log at {}. \
-             OAuth client creation may fail. Check if Zitadel has started properly.",
+        // No credentials found - provide helpful error message
+        log::error!("═══════════════════════════════════════════════════════════════");
+        log::error!("❌ FAILED TO GET ZITADEL ADMIN CREDENTIALS");
+        log::error!("═══════════════════════════════════════════════════════════════");
+        log::error!("Could not extract credentials from Zitadel logs at:",);
+        log::error!("  {}", log_path.display());
+        log::error!("");
+        log::error!("Please check the Zitadel logs manually for initial admin credentials:");
+        log::error!("  tail -100 {}", log_path.display());
+        log::error!("");
+        log::error!("Then create the config file manually at:");
+        log::error!("  {}", config_path.display());
+        log::error!("═══════════════════════════════════════════════════════════════");
+
+        anyhow::bail!(
+            "Failed to obtain Zitadel admin credentials. Check logs at {}",
             log_path.display()
         );
-        crate::core::package_manager::setup::DirectorySetup::new(
-            base_url,
-            config_path.clone()
-        )
     };
 
     directory_setup.initialize().await
         .map_err(|e| anyhow::anyhow!("Failed to initialize directory: {}", e))
+}
+
+/// Test if Zitadel credentials are valid by attempting to get an access token
+#[cfg(feature = "directory")]
+async fn test_zitadel_credentials(base_url: &str, username: &str, password: &str) -> anyhow::Result<bool> {
+    use reqwest::Client;
+
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .unwrap_or_else(|_| Client::new());
+
+    let token_url = format!("{}/oauth/v2/token", base_url);
+    let params = [
+        ("grant_type", "password".to_string()),
+        ("username", username.to_string()),
+        ("password", password.to_string()),
+        ("scope", "openid profile email".to_string()),
+    ];
+
+    let response = client
+        .post(&token_url)
+        .form(&params)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to test credentials: {}", e))?;
+
+    Ok(response.status().is_success())
 }
