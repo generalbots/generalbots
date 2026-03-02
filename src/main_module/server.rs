@@ -373,6 +373,9 @@ pub async fn run_axum_server(
 
     api_router = api_router.merge(crate::core::oauth::routes::configure());
 
+    // Deployment routes for VibeCode platform
+    api_router = api_router.merge(crate::deployment::configure_deployment_routes());
+
     let site_path = app_state
         .config
         .as_ref()
