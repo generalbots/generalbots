@@ -34,6 +34,7 @@ pub mod contacts;
 pub mod core;
 #[cfg(feature = "designer")]
 pub mod designer;
+pub mod deployment;
 #[cfg(feature = "docs")]
 pub mod docs;
 pub mod embedded_ui;
