@@ -229,16 +229,13 @@ impl Orchestrator {
     ) -> Result<OrchestrationResult, Box<dyn std::error::Error + Send + Sync>> {
         let intent_preview = &classification.original_text
             [..classification.original_text.len().min(80)];
-        info!(
-            "Orchestrator: starting pipeline task={} intent={}",
-            self.task_id, intent_preview
-        );
+        info!("Pipeline starting - task: {}, intent: {}", self.task_id, intent_preview);
 
         self.broadcast_pipeline_start();
 
         // ── Stage 1: PLAN ──────────────────────────────────────────────────
         if let Err(e) = self.execute_plan_stage(classification).await {
-            error!("Plan stage failed: {e}");
+            error!("Stage 1 PLAN failed: {}", e);
             return Ok(self.failure_result(0, &format!("Planning failed: {e}")));
         }
 
@@ -249,7 +246,7 @@ impl Orchestrator {
         {
             Ok(pair) => pair,
             Err(e) => {
-                error!("Build stage failed: {e}");
+                error!("Stage 2 BUILD failed: {}", e);
                 return Ok(self.failure_result(1, &format!("Build failed: {e}")));
             }
         };
@@ -274,6 +271,10 @@ impl Orchestrator {
             .filter(|r| r.resource_type == "table")
             .map(|r| format!("✓ {} table created", r.name))
             .collect();
+
+        // Log final summary
+        info!("Pipeline complete - task: {}, nodes: {}, resources: {}, url: {}",
+              self.task_id, node_count, resources.len(), app_url);
 
         let message = format!(
             "Got it. Here's the plan: I broke it down in **{node_count} nodes**.\n\n{}\n\nApp deployed at **{app_url}**",
@@ -317,6 +318,8 @@ impl Orchestrator {
         &mut self,
         classification: &ClassifiedIntent,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Stage 1 PLAN starting - Agent #1 analyzing request");
+
         self.update_stage(0, StageStatus::Running);
         self.update_agent_status(1, AgentStatus::Working, Some("Analyzing request"));
         self.broadcast_thought(
@@ -353,6 +356,7 @@ impl Orchestrator {
 
         self.update_stage(0, StageStatus::Completed);
         self.update_agent_status(1, AgentStatus::Evolved, None);
+        info!("Stage 1 PLAN complete - {} nodes planned", node_count);
         Ok(())
     }
 
@@ -365,6 +369,8 @@ impl Orchestrator {
         classification: &ClassifiedIntent,
         session: &UserSession,
     ) -> Result<(String, Vec<CreatedResource>), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Stage 2 BUILD starting - Agent #2 generating code");
+
         self.update_stage(1, StageStatus::Running);
         self.update_agent_status(2, AgentStatus::Bred, Some("Preparing build"));
         self.broadcast_thought(2, "Builder agent bred. Starting code generation...");
@@ -437,9 +443,12 @@ impl Orchestrator {
 
                 self.update_stage(1, StageStatus::Completed);
                 self.update_agent_status(2, AgentStatus::Evolved, None);
+                info!("Stage 2 BUILD complete - {} resources, url: {}",
+                      resources.len(), app_url);
                 Ok((app_url, resources))
             }
             Err(e) => {
+                error!("Stage 2 BUILD failed: {}", e);
                 self.update_stage(1, StageStatus::Failed);
                 self.update_agent_status(2, AgentStatus::Failed, Some("Build failed"));
                 Err(e)
@@ -452,6 +461,8 @@ impl Orchestrator {
     // =========================================================================
 
     async fn execute_review_stage(&mut self, resources: &[CreatedResource]) {
+        info!("Stage 3 REVIEW starting - Agent #3 checking code quality");
+
         self.update_stage(2, StageStatus::Running);
         self.update_agent_status(3, AgentStatus::Bred, Some("Starting review"));
         self.broadcast_thought(
@@ -486,6 +497,7 @@ impl Orchestrator {
 
         self.update_stage(2, StageStatus::Completed);
         self.update_agent_status(3, AgentStatus::Evolved, None);
+        info!("Stage 3 REVIEW complete - all checks passed");
     }
 
     // =========================================================================
@@ -493,6 +505,8 @@ impl Orchestrator {
     // =========================================================================
 
     async fn execute_deploy_stage(&mut self, app_url: &str) {
+        info!("Stage 4 DEPLOY starting - Agent #4 deploying to {}", app_url);
+
         self.update_stage(3, StageStatus::Running);
         self.update_agent_status(4, AgentStatus::Bred, Some("Preparing deploy"));
         self.broadcast_thought(
@@ -518,6 +532,7 @@ impl Orchestrator {
 
         self.update_stage(3, StageStatus::Completed);
         self.update_agent_status(4, AgentStatus::Evolved, None);
+        info!("Stage 4 DEPLOY complete - app live at {}", app_url);
     }
 
     // =========================================================================
@@ -525,6 +540,8 @@ impl Orchestrator {
     // =========================================================================
 
     async fn execute_monitor_stage(&mut self, app_url: &str) {
+        info!("Stage 5 MONITOR starting - Agent #1 setting up monitoring");
+
         self.update_stage(4, StageStatus::Running);
         self.broadcast_thought(
             1,
@@ -544,6 +561,7 @@ impl Orchestrator {
         self.broadcast_activity(1, "monitor_complete", &activity);
 
         self.update_stage(4, StageStatus::Completed);
+        info!("Stage 5 MONITOR complete - monitoring active");
     }
 
     // =========================================================================

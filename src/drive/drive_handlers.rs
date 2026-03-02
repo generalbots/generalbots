@@ -186,6 +186,8 @@ pub async fn write_file(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?;
 
+    log::info!("User system created resource: drive_file {}", key);
+
     Ok(Json(serde_json::json!({"success": true})))
 }
 
@@ -206,6 +208,10 @@ pub async fn delete_file(
         .send()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?;
+
+    // Technically a deletion, but we could log it as an audit change or leave it out
+    // The plan specifies resource creation: `info!("User {} created resource: {}", user_id, resource_id);`
+    log::info!("User system deleted resource: drive_file {}", file_id);
 
     Ok(Json(serde_json::json!({"success": true})))
 }
@@ -238,6 +244,8 @@ pub async fn create_folder(
         .send()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?;
+
+    log::info!("User system created resource: drive_folder {}", key);
 
     Ok(Json(serde_json::json!({"success": true})))
 }

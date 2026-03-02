@@ -50,7 +50,7 @@ impl LocalFileMonitor {
     }
 
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        trace!("Starting local file monitor for /opt/gbo/data/*.gbai directories");
+        info!("Local file monitor started - watching /opt/gbo/data/*.gbai directories");
 
         // Create data directory if it doesn't exist
         if let Err(e) = tokio::fs::create_dir_all(&self.data_dir).await {
@@ -68,7 +68,7 @@ impl LocalFileMonitor {
             monitor.monitoring_loop().await;
         });
 
-        trace!("Local file monitor started");
+        debug!("Local file monitor successfully initialized");
         Ok(())
     }
 
@@ -116,7 +116,7 @@ impl LocalFileMonitor {
                     EventKind::Create(_) | EventKind::Modify(_) | EventKind::Any => {
                         for path in &event.paths {
                             if self.is_gbdialog_file(path) {
-                                trace!("Detected change: {:?}", path);
+                                debug!("Detected change in: {:?}", path);
                                 if let Err(e) = self.compile_local_file(path).await {
                                     error!("Failed to compile {:?}: {}", path, e);
                                 }
@@ -126,7 +126,7 @@ impl LocalFileMonitor {
                     EventKind::Remove(_) => {
                         for path in &event.paths {
                             if self.is_gbdialog_file(path) {
-                                trace!("File removed: {:?}", path);
+                                debug!("File removed: {:?}", path);
                                 self.remove_file_state(path).await;
                             }
                         }
@@ -167,7 +167,7 @@ impl LocalFileMonitor {
     }
 
     async fn scan_and_compile_all(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        debug!("[LOCAL_MONITOR] Scanning /opt/gbo/data for .gbai directories");
+        trace!("Scanning directory: {:?}", self.data_dir);
 
         let entries = match tokio::fs::read_dir(&self.data_dir).await {
             Ok(e) => e,
@@ -203,7 +203,7 @@ impl LocalFileMonitor {
     }
 
     async fn compile_gbdialog(&self, bot_name: &str, gbdialog_path: &Path) -> Result<(), Box<dyn Error + Send + Sync>> {
-        debug!("[LOCAL_MONITOR] Processing .gbdialog for bot: {}", bot_name);
+        info!("Compiling bot: {}", bot_name);
 
         let entries = tokio::fs::read_dir(gbdialog_path).await?;
         let mut entries = entries;
@@ -231,7 +231,7 @@ impl LocalFileMonitor {
                 };
 
                 if should_compile {
-                    trace!("Compiling: {:?}", path);
+                    debug!("Recompiling {:?} - modification detected", path);
                     if let Err(e) = self.compile_local_file(&path).await {
                         error!("Failed to compile {:?}: {}", path, e);
                     }

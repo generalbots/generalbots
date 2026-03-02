@@ -184,7 +184,7 @@ async fn main() -> std::io::Result<()> {
                 e
             );
         } else {
-            info!("SecretsManager initialized - fetching secrets from Vault");
+            info!("Secrets loaded from Vault");
         }
     } else {
         trace!("Bootstrap not complete - skipping early SecretsManager init");
@@ -195,6 +195,7 @@ async fn main() -> std::io::Result<()> {
          aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_sdk_s3=off,aws_config=off,\
          aws_credential_types=off,aws_http=off,aws_sig_auth=off,aws_types=off,\
          mio=off,tokio=off,tokio_util=off,tower=off,tower_http=off,\
+         tokio_tungstenite=off,tungstenite=off,\
          reqwest=off,hyper=off,hyper_util=off,h2=off,\
          rustls=off,rustls_pemfile=off,tokio_rustls=off,\
          tracing=off,tracing_core=off,tracing_subscriber=off,\
@@ -290,6 +291,7 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
     let pool = init_database(&progress_tx).await?;
+    info!("Database initialized - PostgreSQL connected");
     let refreshed_cfg = load_config(&pool).await?;
     let config = std::sync::Arc::new(refreshed_cfg.clone());
 
@@ -379,7 +381,7 @@ async fn main() -> std::io::Result<()> {
     trace!("Initial data setup task spawned");
     trace!("All system threads started, starting HTTP server...");
 
-    info!("Starting HTTP server on port {}...", config.server.port);
+    info!("Server started on port {}", config.server.port);
     if let Err(e) = run_axum_server(app_state, config.server.port, worker_count).await {
         error!("Failed to start HTTP server: {}", e);
         std::process::exit(1);
@@ -392,5 +394,3 @@ async fn main() -> std::io::Result<()> {
 
     Ok(())
 }
-
-
