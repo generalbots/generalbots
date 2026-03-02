@@ -188,6 +188,9 @@ impl SessionManager {
                 error!("Failed to create session in database: {}", e);
                 e
             })?;
+        
+        log::info!("User {} created resource: session {}", verified_uid, inserted.id);
+        
         Ok(inserted)
     }
 

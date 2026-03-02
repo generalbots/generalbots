@@ -302,7 +302,7 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
                             // Test with PING
                             match redis::cmd("PING").query::<String>(&mut conn) {
                                 Ok(response) if response == "PONG" => {
-                                    log::info!("Cache connection verified: PONG");
+                                    log::info!("Cache initialized - Valkey connected");
                                     Ok(Some(Arc::new(client)))
                                 }
                                 Ok(response) => {

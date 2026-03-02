@@ -273,8 +273,11 @@ impl BotOrchestrator {
         }
 
         info!(
-            "Bot mounting complete: {} bots processed ({} created, {} already existed)",
-            bots_mounted,
+            "BotServer ready - {} bots loaded",
+            bots_mounted
+        );
+        log::debug!(
+            "Bot mounting details: {} created, {} already existed",
             bots_created,
             bots_mounted - bots_created
         );
@@ -393,7 +396,7 @@ impl BotOrchestrator {
         .execute(&mut conn)
         .map_err(|e| format!("Failed to create bot: {e}"))?;
 
-        info!("Created bot '{}' with ID '{}'", bot_name, bot_id);
+        info!("User system created resource: bot {}", bot_id);
         Ok(())
     }
 

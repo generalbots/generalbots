@@ -146,9 +146,9 @@ impl BootstrapManager {
             }
         }
 
-        if pm.is_installed("minio") {
+        if pm.is_installed("drive") {
             info!("Starting MinIO...");
-            match pm.start("minio") {
+            match pm.start("drive") {
                 Ok(_child) => {
                     info!("MinIO started");
                 }

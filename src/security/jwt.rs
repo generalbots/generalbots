@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{debug, info};
+use tracing::info;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -490,14 +490,14 @@ impl JwtManager {
             claims.session_id,
         )?;
 
-        debug!("Refreshed tokens for user {user_id}");
+        info!("Tokens refreshed for user {}", user_id);
         Ok(new_pair)
     }
 
     pub async fn revoke_token(&self, jti: &str) -> Result<()> {
         let mut blacklist = self.blacklist.write().await;
         blacklist.insert(jti.to_string());
-        debug!("Revoked token {jti}");
+        info!("Token revoked: {}", jti);
         Ok(())
     }
 
