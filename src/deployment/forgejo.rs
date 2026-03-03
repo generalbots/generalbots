@@ -1,9 +1,10 @@
-use git2::{Repository, Oid, Signature, Time};
+use git2::{Repository, Signature};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use super::{DeploymentError, GeneratedApp};
+use super::{DeploymentError, GeneratedApp, GeneratedFile};
+use super::types::{AppType, DeploymentEnvironment};
 
 pub struct ForgejoClient {
     base_url: String,
@@ -129,17 +130,20 @@ impl ForgejoClient {
         Ok(oid.to_string())
     }
 
-    /// Create CI/CD workflow for the app
+    /// Create CI/CD workflow for the app based on Phase 2.5 app types
     pub async fn create_cicd_workflow(
         &self,
         repo_url: &str,
-        app_type: AppType,
-        build_config: BuildConfig,
+        app_type: &AppType,
+        environment: &DeploymentEnvironment,
     ) -> Result<(), DeploymentError> {
         let workflow = match app_type {
-            AppType::Htmx => self.generate_htmx_workflow(build_config),
-            AppType::React => self.generate_react_workflow(build_config),
-            AppType::Vue => self.generate_vue_workflow(build_config),
+            AppType::GbNative { .. } => self.generate_gb_native_workflow(environment),
+            AppType::Custom { framework, node_version, build_command, output_directory } => {
+                self.generate_custom_workflow(framework, node_version.as_deref().unwrap_or("20"),
+                    build_command.as_deref().unwrap_or("npm run build"),
+                    output_directory.as_deref().unwrap_or("dist"), environment)
+            }
         };
 
         // Create workflow file
@@ -193,106 +197,11 @@ impl ForgejoClient {
         }
     }
 
-    fn generate_htmx_workflow(&self, _config: BuildConfig) -> String {
-        r#"name: Deploy HTMX App
 
-on:
-  push:
-    branches: [main, develop]
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
 
-      - name: Install dependencies
-        run: npm ci
 
-      - name: Build
-        run: npm run build
-
-      - name: Deploy to server
-        run: |
-          echo "Deploying HTMX app to production..."
-          # Add deployment commands here
-"#.to_string()
-    }
-
-    fn generate_react_workflow(&self, _config: BuildConfig) -> String {
-        r#"name: Deploy React App
-
-on:
-  push:
-    branches: [main, develop]
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build React app
-        run: npm run build
-
-      - name: Run tests
-        run: npm test
-
-      - name: Deploy to production
-        run: |
-          echo "Deploying React app to production..."
-          # Add deployment commands here
-"#.to_string()
-    }
-
-    fn generate_vue_workflow(&self, _config: BuildConfig) -> String {
-        r#"name: Deploy Vue App
-
-on:
-  push:
-    branches: [main, develop]
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Vue app
-        run: npm run build
-
-      - name: Run tests
-        run: npm test
-
-      - name: Deploy to production
-        run: |
-          echo "Deploying Vue app to production..."
-          # Add deployment commands here
-"#.to_string()
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -318,29 +227,7 @@ struct CreateRepoRequest {
     readme: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum AppType {
-    Htmx,
-    React,
-    Vue,
-}
-
-#[derive(Debug, Clone)]
-pub struct BuildConfig {
-    pub node_version: String,
-    pub build_command: String,
-    pub output_dir: String,
-}
-
-impl Default for BuildConfig {
-    fn default() -> Self {
-        Self {
-            node_version: "20".to_string(),
-            build_command: "npm run build".to_string(),
-            output_dir: "dist".to_string(),
-        }
-    }
-}
+// AppType and related types are now defined in types.rs
 
 #[derive(Debug)]
 pub enum ForgejoError {
@@ -358,6 +245,92 @@ impl std::fmt::Display for ForgejoError {
             ForgejoError::ApiError(msg) => write!(f, "API error: {}", msg),
             ForgejoError::GitError(msg) => write!(f, "Git error: {}", msg),
         }
+    }
+}
+
+// =============================================================================
+// CI/CD Workflow Generation for Phase 2.5
+// =============================================================================
+
+impl ForgejoClient {
+    /// Generate CI/CD workflow for GB Native apps
+    fn generate_gb_native_workflow(&self, environment: &DeploymentEnvironment) -> String {
+        let env_name = environment.to_string();
+        format!(r#"name: Deploy GB Native App
+
+on:
+  push:
+    branches: [ main, {env_name} ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+        env:
+          NODE_ENV: production
+          GB_ENV: {env_name}
+
+      - name: Deploy to GB Platform
+        run: |
+          echo "Deploying to GB Platform ({env_name})"
+          # GB Platform deployment logic here
+        env:
+          GB_DEPLOYMENT_TOKEN: ${{{{ secrets.GB_DEPLOYMENT_TOKEN }}}}
+"#)
+    }
+
+    /// Generate CI/CD workflow for Custom apps
+    fn generate_custom_workflow(&self, framework: &str, node_version: &str,
+        build_command: &str, output_dir: &str, environment: &DeploymentEnvironment) -> String {
+        let env_name = environment.to_string();
+        format!(r#"name: Deploy Custom {framework} App
+
+on:
+  push:
+    branches: [ main, {env_name} ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '{node_version}'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build {framework} app
+        run: {build_command}
+        env:
+          NODE_ENV: production
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-output
+          path: {output_dir}
+
+      - name: Deploy to custom hosting
+        run: |
+          echo "Deploying {framework} app to {env_name}"
+          # Custom deployment logic here
+"#)
     }
 }
 
