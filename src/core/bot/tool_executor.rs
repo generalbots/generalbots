@@ -340,28 +340,30 @@ impl ToolExecutor {
 
     /// Get the path to a tool's .bas file
     fn get_tool_bas_path(bot_name: &str, tool_name: &str) -> std::path::PathBuf {
-        let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-
-        // Try data directory first
-        let data_path = Path::new(&home_dir)
-            .join("data")
+        // Try source directory first (/opt/gbo/data - primary location for bot source files)
+        let source_path = Path::new("/opt/gbo/data")
             .join(format!("{}.gbai", bot_name))
             .join(format!("{}.gbdialog", bot_name))
             .join(format!("{}.bas", tool_name));
 
-        if data_path.exists() {
-            return data_path;
+        if source_path.exists() {
+            return source_path;
         }
 
-        // Try work directory (for development/testing)
-        let work_path = Path::new(&home_dir)
-            .join("gb")
-            .join("work")
+        // Try compiled work directory (botserver-stack/data/system/work relative to current dir)
+        let work_path = std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join("botserver-stack/data/system/work")
             .join(format!("{}.gbai", bot_name))
             .join(format!("{}.gbdialog", bot_name))
             .join(format!("{}.bas", tool_name));
 
-        work_path
+        if work_path.exists() {
+            return work_path;
+        }
+
+        // Fallback to source path for error messages (even if it doesn't exist)
+        source_path
     }
 }
 
