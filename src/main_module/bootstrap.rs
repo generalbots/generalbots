@@ -748,6 +748,9 @@ fn init_llm_provider(
         let embedding_model = config_manager
             .get_config(&bot_id, "embedding-model", Some("all-MiniLM-L6-v2"))
             .unwrap_or_else(|_| "all-MiniLM-L6-v2".to_string());
+        let embedding_key = config_manager
+            .get_config(&bot_id, "embedding-key", None)
+            .ok();
         let semantic_cache_enabled = config_manager
             .get_config(&bot_id, "semantic-cache-enabled", Some("true"))
             .unwrap_or_else(|_| "true".to_string())
@@ -755,12 +758,14 @@ fn init_llm_provider(
 
         info!("Embedding URL: {}", embedding_url);
         info!("Embedding Model: {}", embedding_model);
+        info!("Embedding Key: {}", if embedding_key.is_some() { "configured" } else { "not set" });
         info!("Semantic Cache Enabled: {}", semantic_cache_enabled);
 
         let embedding_service = if semantic_cache_enabled {
             Some(Arc::new(LocalEmbeddingService::new(
                 embedding_url,
                 embedding_model,
+                embedding_key,
             )) as Arc<dyn EmbeddingService>)
         } else {
             None

@@ -605,13 +605,15 @@ impl LLMProvider for CachedLLMProvider {
 pub struct LocalEmbeddingService {
     embedding_url: String,
     model: String,
+    api_key: Option<String>,
 }
 
 impl LocalEmbeddingService {
-    pub fn new(embedding_url: String, model: String) -> Self {
+    pub fn new(embedding_url: String, model: String, api_key: Option<String>) -> Self {
         Self {
             embedding_url,
             model,
+            api_key,
         }
     }
 }
@@ -623,12 +625,37 @@ impl EmbeddingService for LocalEmbeddingService {
         text: &str,
     ) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
         let client = reqwest::Client::new();
-        let response = client
-            .post(format!("{}/embedding", self.embedding_url))
-            .json(&serde_json::json!({
+
+        // Determine if URL already includes endpoint path
+        let url = if self.embedding_url.contains("/pipeline/") ||
+                   self.embedding_url.contains("/v1/") ||
+                   self.embedding_url.ends_with("/embeddings") {
+            self.embedding_url.clone()
+        } else {
+            format!("{}/embedding", self.embedding_url)
+        };
+
+        let mut request = client.post(&url);
+
+        // Add authorization header if API key is provided
+        if let Some(ref api_key) = self.api_key {
+            request = request.header("Authorization", format!("Bearer {}", api_key));
+        }
+
+        // Determine request body format based on URL
+        let request_body = if self.embedding_url.contains("huggingface.co") {
+            serde_json::json!({
+                "inputs": text,
+            })
+        } else {
+            serde_json::json!({
                 "input": text,
                 "model": self.model,
-            }))
+            })
+        };
+
+        let response = request
+            .json(&request_body)
             .send()
             .await?;
 
@@ -659,15 +686,29 @@ impl EmbeddingService for LocalEmbeddingService {
             return Err(format!("Embedding service error: {}", error).into());
         }
 
-        let embedding = result["data"][0]["embedding"]
-            .as_array()
-            .ok_or_else(|| {
-                debug!("Invalid embedding response format. Expected data[0].embedding array. Got: {}", response_text);
-                format!("Invalid embedding response format - Expected data[0].embedding array, got: {}", response_text)
-            })?
-            .iter()
-            .filter_map(|v| v.as_f64().map(|f| f as f32))
-            .collect();
+        // Try multiple response formats
+        let embedding = if let Some(arr) = result.as_array() {
+            // HuggingFace format: direct array [0.1, 0.2, ...]
+            arr.iter()
+                .filter_map(|v| v.as_f64().map(|f| f as f32))
+                .collect()
+        } else if let Some(data) = result.get("data") {
+            // OpenAI/Standard format: {"data": [{"embedding": [...]}]}
+            data[0]["embedding"]
+                .as_array()
+                .ok_or_else(|| {
+                    debug!("Invalid embedding response format. Expected data[0].embedding array. Got: {}", response_text);
+                    format!("Invalid embedding response format - Expected data[0].embedding array, got: {}", response_text)
+                })?
+                .iter()
+                .filter_map(|v| v.as_f64().map(|f| f as f32))
+                .collect()
+        } else {
+            return Err(format!(
+                "Invalid embedding response format - Expected array or data[0].embedding, got: {}",
+                response_text
+            ).into());
+        };
 
         Ok(embedding)
     }
