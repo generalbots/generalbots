@@ -266,7 +266,7 @@ impl DriveMonitor {
         tokio::spawn(async move {
             let mut consecutive_processing_failures = 0;
             trace!("Starting periodic monitoring loop for bot {}", self_clone.bot_id);
-            
+
             let is_processing_state = self_clone.is_processing.load(std::sync::atomic::Ordering::SeqCst);
             trace!("is_processing state at loop start: {} for bot {}", is_processing_state, self_clone.bot_id);
 
@@ -630,7 +630,7 @@ impl DriveMonitor {
                                             Err(_) => String::new(),
                                         };
                                         let normalized_new_value = Self::normalize_config_value(new_value);
-                                        
+
                                         if normalized_old_value != normalized_new_value {
                                             trace!(
                                                 "Detected change in {} (old: {}, new: {})",
@@ -956,13 +956,10 @@ impl DriveMonitor {
             use crate::core::kb::website_crawler_service::WebsiteCrawlerService;
             use diesel::prelude::*;
 
-            let kb_manager = match _kb_manager {
-                Some(kb) => kb,
-                None => {
-                    warn!("Knowledge base manager not available, skipping website crawl");
-                    return Ok(());
-                }
-            };
+            if _kb_manager.is_none() {
+                warn!("Knowledge base manager not available, skipping website crawl");
+                return Ok(());
+            }
 
             let mut conn = _db_pool.get()?;
 
@@ -1008,7 +1005,7 @@ impl DriveMonitor {
             };
 
             // Create a temporary crawler service to use its crawl_website method
-            let crawler_service = WebsiteCrawlerService::new(_db_pool.clone(), kb_manager);
+            let crawler_service = WebsiteCrawlerService::new(_db_pool.clone());
             match crawler_service.crawl_single_website(website_record).await {
                 Ok(_) => {},
                 Err(e) => return Err(format!("Website crawl failed: {}", e).into()),

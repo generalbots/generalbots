@@ -530,17 +530,19 @@ pub fn parse_hex_color(hex: &str) -> Option<(u8, u8, u8)> {
 pub fn truncate_text_for_model(text: &str, model: &str, max_tokens: usize) -> String {
     let chars_per_token = estimate_chars_per_token(model);
     let max_chars = max_tokens * chars_per_token;
-    
-    if text.len() <= max_chars {
-        text.to_string()
+
+    if text.chars().count() <= max_chars {
+        return text.to_string();
+    }
+
+    // Get first max_chars characters safely (UTF-8 aware)
+    let truncated: String = text.chars().take(max_chars).collect();
+
+    // Try to truncate at word boundary
+    if let Some(last_space_idx) = truncated.rfind(' ') {
+        truncated[..last_space_idx].to_string()
     } else {
-        // Try to truncate at word boundary
-        let truncated = &text[..max_chars];
-        if let Some(last_space) = truncated.rfind(' ') {
-            text[..last_space].to_string()
-        } else {
-            truncated.to_string()
-        }
+        truncated
     }
 }
 

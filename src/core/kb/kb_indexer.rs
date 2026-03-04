@@ -22,7 +22,7 @@ pub struct QdrantConfig {
 impl Default for QdrantConfig {
     fn default() -> Self {
         Self {
-            url: "https://localhost:6333".to_string(),
+            url: "http://localhost:6333".to_string(),
             api_key: None,
             timeout_secs: 30,
         }
@@ -33,8 +33,8 @@ impl QdrantConfig {
     pub fn from_config(pool: DbPool, bot_id: &Uuid) -> Self {
         let config_manager = ConfigManager::new(pool);
         let url = config_manager
-            .get_config(bot_id, "vectordb-url", Some("https://localhost:6333"))
-            .unwrap_or_else(|_| "https://localhost:6333".to_string());
+            .get_config(bot_id, "vectordb-url", Some("http://localhost:6333"))
+            .unwrap_or_else(|_| "http://localhost:6333".to_string());
         Self {
             url,
             api_key: None,
@@ -173,7 +173,7 @@ impl KbIndexer {
 
         // Process documents in iterator to avoid keeping all in memory
         let doc_iter = documents.into_iter();
-        
+
         for (doc_path, chunks) in doc_iter {
             if chunks.is_empty() {
                 debug!("Skipping document with no chunks: {}", doc_path);
@@ -187,23 +187,23 @@ impl KbIndexer {
                 let (processed, chunks_count) = self.process_document_batch(&collection_name, &mut batch_docs).await?;
                 indexed_documents += processed;
                 total_chunks += chunks_count;
-                
+
                 // Clear batch and force memory cleanup
                 batch_docs.clear();
                 batch_docs.shrink_to_fit();
-                
+
                 // Yield control to prevent blocking
                 tokio::task::yield_now().await;
-                
+
                 // Memory pressure check - more aggressive
                 let current_mem = MemoryStats::current();
                 if current_mem.rss_bytes > 1_500_000_000 { // 1.5GB threshold (reduced)
-                    warn!("High memory usage detected: {}, forcing cleanup", 
+                    warn!("High memory usage detected: {}, forcing cleanup",
                           MemoryStats::format_bytes(current_mem.rss_bytes));
-                    
+
                     // Force garbage collection hint
                     std::hint::black_box(&batch_docs);
-                    
+
                     // Add delay to allow memory cleanup
                     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
                 }
@@ -263,10 +263,10 @@ impl KbIndexer {
             // Process chunks in smaller sub-batches to prevent memory exhaustion
             const CHUNK_BATCH_SIZE: usize = 20; // Process 20 chunks at a time
             let chunk_batches = chunks.chunks(CHUNK_BATCH_SIZE);
-            
+
             for chunk_batch in chunk_batches {
                 trace!("Processing chunk batch of {} chunks", chunk_batch.len());
-                
+
                 let embeddings = match self
                     .embedding_generator
                     .generate_embeddings(chunk_batch)
@@ -281,7 +281,7 @@ impl KbIndexer {
 
                 let points = Self::create_qdrant_points(&doc_path, embeddings)?;
                 self.upsert_points(collection_name, points).await?;
-                
+
                 // Yield control between chunk batches
                 tokio::task::yield_now().await;
             }
@@ -293,7 +293,7 @@ impl KbIndexer {
 
             total_chunks += chunks.len();
             processed_count += 1;
-            
+
             // Force memory cleanup after each document
             std::hint::black_box(&chunks);
         }
@@ -303,19 +303,54 @@ impl KbIndexer {
 
     async fn ensure_collection_exists(&self, collection_name: &str) -> Result<()> {
         let check_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
+        let required_dims = self.embedding_generator.get_dimensions();
 
         let response = self.http_client.get(&check_url).send().await?;
 
         if response.status().is_success() {
-            info!("Collection {} already exists", collection_name);
-            return Ok(());
+            // Check if the existing collection has the correct vector size
+            let info_json: serde_json::Value = response.json().await?;
+            let existing_dims = info_json["result"]["config"]["params"]["vectors"]["size"]
+                .as_u64()
+                .map(|d| d as usize);
+
+            match existing_dims {
+                Some(dims) if dims == required_dims => {
+                    trace!("Collection {} already exists with correct dims ({})", collection_name, required_dims);
+                    return Ok(());
+                }
+                Some(dims) => {
+                    warn!(
+                        "Collection {} exists with dim={} but embedding requires dim={}. \
+                        Recreating collection.",
+                        collection_name, dims, required_dims
+                    );
+                    // Delete the stale collection so we can recreate it
+                    let delete_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
+                    let del_resp = self.http_client.delete(&delete_url).send().await?;
+                    if !del_resp.status().is_success() {
+                        let err = del_resp.text().await.unwrap_or_default();
+                        return Err(anyhow::anyhow!(
+                            "Failed to delete stale collection {}: {}",
+                            collection_name, err
+                        ));
+                    }
+                    info!("Deleted stale collection {} (was dim={})", collection_name, dims);
+                }
+                None => {
+                    // Could not read dims – recreate to be safe
+                    warn!("Could not read dims for collection {}, recreating", collection_name);
+                    let delete_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
+                    let _ = self.http_client.delete(&delete_url).send().await;
+                }
+            }
         }
 
-        info!("Creating collection: {}", collection_name);
+        info!("Creating collection {} with dim={}", collection_name, required_dims);
 
         let config = CollectionConfig {
             vectors: VectorConfig {
-                size: 384,
+                size: required_dims,
                 distance: "Cosine".to_string(),
             },
             replication_factor: 1,

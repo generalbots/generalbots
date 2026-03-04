@@ -247,6 +247,13 @@ pub async fn run_axum_server(
         api_router = api_router.merge(crate::research::configure_research_routes());
         api_router = api_router.merge(crate::research::ui::configure_research_ui_routes());
     }
+    #[cfg(any(feature = "research", feature = "llm"))]
+    {
+        api_router = api_router.route(
+            "/api/website/force-recrawl",
+            post(crate::core::kb::website_crawler_service::handle_force_recrawl)
+        );
+    }
     #[cfg(feature = "sources")]
     {
         api_router = api_router.merge(crate::sources::configure_sources_routes());

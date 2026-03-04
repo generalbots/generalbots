@@ -294,7 +294,7 @@ impl BootstrapManager {
         }
 
         // Install other core components (names must match 3rdparty.toml)
-		let core_components = ["tables", "cache", "drive", "directory", "llm"];
+		let core_components = ["tables", "cache", "drive", "directory", "llm", "vector_db"];
         for component in core_components {
             if !pm.is_installed(component) {
                 info!("Installing {}...", component);

@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::shared::utils::DbPool;
+use crate::core::kb::{EmbeddingConfig, KbIndexer, QdrantConfig};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionKbAssociation {
@@ -238,56 +239,83 @@ impl KbContextManager {
         Ok(kb_contexts)
     }
 
-    async fn search_single_collection(
-        &self,
-        collection_name: &str,
-        display_name: &str,
-        query: &str,
-        max_results: usize,
-        max_tokens: usize,
-    ) -> Result<KbContext> {
-        debug!("Searching collection '{}' with query: {}", collection_name, query);
+        async fn search_single_collection(
+            &self,
+            collection_name: &str,
+            display_name: &str,
+            query: &str,
+            max_results: usize,
+            max_tokens: usize,
+        ) -> Result<KbContext> {
+            debug!("Searching collection '{}' with query: {}", collection_name, query);
 
-        let search_results = self
-            .kb_manager
-            .search_collection(collection_name, query, max_results)
-            .await?;
+            // Extract bot_name from collection_name (format: "{bot_name}_{kb_name}")
+            let bot_name = collection_name.split('_').next().unwrap_or("default");
 
-        let mut kb_search_results = Vec::new();
-        let mut total_tokens = 0;
+            // Get bot_id from bot_name
+            let bot_id = self.get_bot_id_by_name(bot_name).await?;
 
-        for result in search_results {
-            let tokens = estimate_tokens(&result.content);
+            // Load embedding config from database for this bot
+            let embedding_config = EmbeddingConfig::from_bot_config(&self.db_pool, &bot_id);
+            let qdrant_config = QdrantConfig::default();
 
-            if total_tokens + tokens > max_tokens {
-                debug!(
-                    "Skipping result due to token limit ({} + {} > {})",
-                    total_tokens, tokens, max_tokens
-                );
-                break;
+            // Create a temporary indexer with bot-specific config
+            let indexer = KbIndexer::new(embedding_config, qdrant_config);
+
+            // Use the bot-specific indexer for search
+            let search_results = indexer
+                .search(collection_name, query, max_results)
+                .await?;
+
+            let mut kb_search_results = Vec::new();
+            let mut total_tokens = 0;
+
+            for result in search_results {
+                let tokens = estimate_tokens(&result.content);
+
+                if total_tokens + tokens > max_tokens {
+                    debug!(
+                        "Skipping result due to token limit ({} + {} > {})",
+                        total_tokens, tokens, max_tokens
+                    );
+                    break;
+                }
+
+                kb_search_results.push(KbSearchResult {
+                    content: result.content,
+                    document_path: result.document_path,
+                    score: result.score,
+                    chunk_tokens: tokens,
+                });
+
+                total_tokens += tokens;
+
+                if result.score < 0.6 {
+                    debug!("Skipping low-relevance result (score: {})", result.score);
+                    break;
+                }
             }
 
-            kb_search_results.push(KbSearchResult {
-                content: result.content,
-                document_path: result.document_path,
-                score: result.score,
-                chunk_tokens: tokens,
-            });
-
-            total_tokens += tokens;
-
-            if result.score < 0.6 {
-                debug!("Skipping low-relevance result (score: {})", result.score);
-                break;
-            }
+            Ok(KbContext {
+                kb_name: display_name.to_string(),
+                search_results: kb_search_results,
+                total_tokens,
+            })
         }
 
-        Ok(KbContext {
-            kb_name: display_name.to_string(),
-            search_results: kb_search_results,
-            total_tokens,
-        })
-    }
+        async fn get_bot_id_by_name(&self, bot_name: &str) -> Result<Uuid> {
+            use crate::core::shared::models::schema::bots::dsl::*;
+
+            let mut conn = self.db_pool.get()?;
+
+            let bot_uuid: Uuid = bots
+                .filter(name.eq(bot_name))
+                .select(id)
+                .first(&mut conn)
+                .map_err(|e| anyhow::anyhow!("Failed to find bot '{}': {}", bot_name, e))?;
+
+            Ok(bot_uuid)
+        }
 
     async fn search_single_kb(
         &self,
@@ -373,7 +401,7 @@ impl KbContextManager {
 
         context_parts.push("\n--- End Knowledge Base Context ---\n".to_string());
         let full_context = context_parts.join("\n");
-        
+
         // Truncate KB context to fit within token limits (max 400 tokens for KB context)
         crate::core::shared::utils::truncate_text_for_model(&full_context, "local", 400)
     }

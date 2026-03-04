@@ -28,6 +28,7 @@ pub fn set_embedding_server_ready(ready: bool) {
 pub struct EmbeddingConfig {
     pub embedding_url: String,
     pub embedding_model: String,
+    pub embedding_key: Option<String>,
     pub dimensions: usize,
     pub batch_size: usize,
     pub timeout_seconds: u64,
@@ -39,8 +40,9 @@ impl Default for EmbeddingConfig {
     fn default() -> Self {
         Self {
             embedding_url: "http://localhost:8082".to_string(),
-            embedding_model: "bge-small-en-v1.5".to_string(),
-            dimensions: 384,
+            embedding_model: "BAAI/bge-multilingual-gemma2".to_string(),
+            embedding_key: None,
+            dimensions: 2048,
             batch_size: 16,
             timeout_seconds: 60,
             max_concurrent_requests: 1,
@@ -61,13 +63,14 @@ impl EmbeddingConfig {
     /// embedding-dimensions,384
     /// embedding-batch-size,16
     /// embedding-timeout,60
+    /// embedding-key,hf_xxxxx (for HuggingFace API)
     pub fn from_bot_config(pool: &DbPool, _bot_id: &uuid::Uuid) -> Self {
         use crate::core::shared::models::schema::bot_configuration::dsl::*;
         use diesel::prelude::*;
 
         let embedding_url = match pool.get() {
             Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(bot_id))
+                .filter(bot_id.eq(_bot_id))
                 .filter(config_key.eq("embedding-url"))
                 .select(config_value)
                 .first::<String>(&mut conn)
@@ -78,18 +81,29 @@ impl EmbeddingConfig {
 
         let embedding_model = match pool.get() {
             Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(bot_id))
+                .filter(bot_id.eq(_bot_id))
                 .filter(config_key.eq("embedding-model"))
                 .select(config_value)
                 .first::<String>(&mut conn)
                 .ok()
                 .filter(|s| !s.is_empty()),
             Err(_) => None,
-        }.unwrap_or_else(|| "bge-small-en-v1.5".to_string());
+        }.unwrap_or_else(|| "BAAI/bge-multilingual-gemma2".to_string());
+
+        let embedding_key = match pool.get() {
+            Ok(mut conn) => bot_configuration
+                .filter(bot_id.eq(_bot_id))
+                .filter(config_key.eq("embedding-key"))
+                .select(config_value)
+                .first::<String>(&mut conn)
+                .ok()
+                .filter(|s| !s.is_empty()),
+            Err(_) => None,
+        };
 
         let dimensions = match pool.get() {
             Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(bot_id))
+                .filter(bot_id.eq(_bot_id))
                 .filter(config_key.eq("embedding-dimensions"))
                 .select(config_value)
                 .first::<String>(&mut conn)
@@ -100,7 +114,7 @@ impl EmbeddingConfig {
 
         let batch_size = match pool.get() {
             Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(bot_id))
+                .filter(bot_id.eq(_bot_id))
                 .filter(config_key.eq("embedding-batch-size"))
                 .select(config_value)
                 .first::<String>(&mut conn)
@@ -111,7 +125,7 @@ impl EmbeddingConfig {
 
         let timeout_seconds = match pool.get() {
             Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(bot_id))
+                .filter(bot_id.eq(_bot_id))
                 .filter(config_key.eq("embedding-timeout"))
                 .select(config_value)
                 .first::<String>(&mut conn)
@@ -122,7 +136,7 @@ impl EmbeddingConfig {
 
         let max_concurrent_requests = match pool.get() {
             Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(bot_id))
+                .filter(bot_id.eq(_bot_id))
                 .filter(config_key.eq("embedding-concurrent"))
                 .select(config_value)
                 .first::<String>(&mut conn)
@@ -134,6 +148,7 @@ impl EmbeddingConfig {
         Self {
             embedding_url,
             embedding_model,
+            embedding_key,
             dimensions,
             batch_size,
             timeout_seconds,
@@ -143,7 +158,9 @@ impl EmbeddingConfig {
     }
 
     fn detect_dimensions(model: &str) -> usize {
-        if model.contains("small") || model.contains("MiniLM") {
+        if model.contains("gemma") || model.contains("Gemma") {
+            2048
+        } else if model.contains("small") || model.contains("MiniLM") {
             384
         } else if model.contains("base") || model.contains("mpnet") {
             768
@@ -183,6 +200,25 @@ struct LlamaCppEmbeddingItem {
 // Hugging Face/SentenceTransformers format (simple array)
 type HuggingFaceEmbeddingResponse = Vec<Vec<f32>>;
 
+// Scaleway/OpenAI-compatible format (object with data array)
+#[derive(Debug, Deserialize)]
+struct ScalewayEmbeddingResponse {
+    data: Vec<ScalewayEmbeddingData>,
+    #[serde(default)]
+    model: Option<String>,
+    #[serde(default)]
+    usage: Option<EmbeddingUsage>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ScalewayEmbeddingData {
+    embedding: Vec<f32>,
+    #[serde(default)]
+    index: usize,
+    #[serde(default)]
+    object: Option<String>,
+}
+
 // Generic embedding service format (object with embeddings key)
 #[derive(Debug, Deserialize)]
 struct GenericEmbeddingResponse {
@@ -197,6 +233,7 @@ struct GenericEmbeddingResponse {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum EmbeddingResponse {
+    Scaleway(ScalewayEmbeddingResponse),       // Scaleway/OpenAI-compatible format
     OpenAI(OpenAIEmbeddingResponse),           // Most common: OpenAI, Claude, etc.
     LlamaCpp(Vec<LlamaCppEmbeddingItem>),      // llama.cpp server
     HuggingFace(HuggingFaceEmbeddingResponse), // Simple array format
@@ -258,6 +295,16 @@ impl KbEmbeddingGenerator {
     }
 
     pub async fn check_health(&self) -> bool {
+        // For HuggingFace and other remote APIs, skip health check and mark as ready
+        // These APIs don't have a /health endpoint and we verified they work during setup
+        if self.config.embedding_url.contains("huggingface.co") ||
+           self.config.embedding_url.contains("api.") ||
+           self.config.embedding_key.is_some() {
+            info!("Remote embedding API detected ({}), marking as ready", self.config.embedding_url);
+            set_embedding_server_ready(true);
+            return true;
+        }
+
         let health_url = format!("{}/health", self.config.embedding_url);
 
         match tokio::time::timeout(
@@ -272,6 +319,7 @@ impl KbEmbeddingGenerator {
                 is_healthy
             }
             Ok(Err(e)) => {
+                warn!("Health check failed for primary URL: {}", e);
                 let alt_url = &self.config.embedding_url;
                 match tokio::time::timeout(
                     Duration::from_secs(5),
@@ -284,14 +332,18 @@ impl KbEmbeddingGenerator {
                         }
                         is_healthy
                     }
-                    _ => {
-                        warn!("Health check failed: {}", e);
+                    Ok(Err(_)) => {
+                        set_embedding_server_ready(false);
+                        false
+                    }
+                    Err(_) => {
+                        set_embedding_server_ready(false);
                         false
                     }
                 }
             }
             Err(_) => {
-                warn!("Health check timed out");
+                set_embedding_server_ready(false);
                 false
             }
         }
@@ -311,12 +363,17 @@ impl KbEmbeddingGenerator {
             }
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
-
         warn!("Embedding server not available after {}s", max_wait_secs);
         false
     }
+    /// Get the configured embedding dimensions
+    pub fn get_dimensions(&self) -> usize {
+        self.config.dimensions
+    }
 
     pub async fn generate_embeddings(
+
+
         &self,
         chunks: &[TextChunk],
     ) -> Result<Vec<(TextChunk, Embedding)>> {
@@ -356,12 +413,14 @@ impl KbEmbeddingGenerator {
                 Ok(Ok(embeddings)) => embeddings,
                 Ok(Err(e)) => {
                     warn!("Batch {} failed: {}", batch_num + 1, e);
-                    break;
+                    // Continue with next batch instead of breaking completely
+                    continue;
                 }
                 Err(_) => {
                     warn!("Batch {} timed out after {}s",
                           batch_num + 1, self.config.timeout_seconds);
-                    break;
+                    // Continue with next batch instead of breaking completely
+                    continue;
                 }
             };
 
@@ -429,24 +488,120 @@ impl KbEmbeddingGenerator {
             .map(|text| crate::core::shared::utils::truncate_text_for_model(text, &self.config.embedding_model, 600))
             .collect();
 
-        let request = EmbeddingRequest {
-            input: truncated_texts,
-            model: self.config.embedding_model.clone(),
+        // Detect API format based on URL pattern
+        // Scaleway (OpenAI-compatible): https://router.huggingface.co/scaleway/v1/embeddings
+        // HuggingFace Inference (old): https://router.huggingface.co/hf-inference/models/.../pipeline/feature-extraction
+        let is_scaleway = self.config.embedding_url.contains("/scaleway/v1/embeddings");
+        let is_hf_inference = self.config.embedding_url.contains("/hf-inference/") ||
+                             self.config.embedding_url.contains("/pipeline/feature-extraction");
+
+        let response = if is_hf_inference {
+            // HuggingFace Inference API (old format): {"inputs": "text"}
+            // Process one text at a time for HuggingFace Inference
+            let mut all_embeddings = Vec::new();
+
+            for text in &truncated_texts {
+                let hf_request = serde_json::json!({
+                    "inputs": text
+                });
+
+                let request_size = serde_json::to_string(&hf_request)
+                    .map(|s| s.len())
+                    .unwrap_or(0);
+                trace!("Sending HuggingFace Inference request to {} (size: {} bytes)",
+                      self.config.embedding_url, request_size);
+
+                let mut request_builder = self.client
+                    .post(&self.config.embedding_url)
+                    .json(&hf_request);
+
+                // Add Authorization header if API key is provided
+                if let Some(ref api_key) = self.config.embedding_key {
+                    request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+                }
+
+                let resp = request_builder
+                    .send()
+                    .await
+                    .context("Failed to send request to HuggingFace Inference embedding service")?;
+
+                let status = resp.status();
+                if !status.is_success() {
+                    let error_bytes = resp.bytes().await.unwrap_or_default();
+                    let error_text = String::from_utf8_lossy(&error_bytes[..error_bytes.len().min(1024)]);
+                    return Err(anyhow::anyhow!(
+                        "HuggingFace Inference embedding service error {}: {}",
+                        status,
+                        error_text
+                    ));
+                }
+
+                let response_bytes = resp.bytes().await
+                    .context("Failed to read HuggingFace Inference embedding response bytes")?;
+
+                trace!("Received HuggingFace Inference response: {} bytes", response_bytes.len());
+
+                if response_bytes.len() > 50 * 1024 * 1024 {
+                    return Err(anyhow::anyhow!(
+                        "Embedding response too large: {} bytes (max 50MB)",
+                        response_bytes.len()
+                    ));
+                }
+
+                // Parse HuggingFace Inference response (single array for single input)
+                let embedding_vec: Vec<f32> = serde_json::from_slice(&response_bytes)
+                    .with_context(|| {
+                        let preview = std::str::from_utf8(&response_bytes)
+                            .map(|s| if s.len() > 200 { &s[..200] } else { s })
+                            .unwrap_or("<invalid utf8>");
+                        format!("Failed to parse HuggingFace Inference embedding response. Preview: {}", preview)
+                    })?;
+
+                all_embeddings.push(Embedding {
+                    vector: embedding_vec,
+                    dimensions: self.config.dimensions,
+                    model: self.config.embedding_model.clone(),
+                    tokens_used: None,
+                });
+            }
+
+            return Ok(all_embeddings);
+        } else {
+            // Standard embedding service format (OpenAI-compatible, Scaleway, llama.cpp, local server, etc.)
+            // This includes Scaleway which uses OpenAI-compatible format: {"input": [texts], "model": "model-name"}
+            let request = EmbeddingRequest {
+                input: truncated_texts,
+                model: self.config.embedding_model.clone(),
+            };
+
+            let request_size = serde_json::to_string(&request)
+                .map(|s| s.len())
+                .unwrap_or(0);
+
+            // Log the API format being used
+            if is_scaleway {
+                trace!("Sending Scaleway (OpenAI-compatible) request to {} (size: {} bytes)",
+                      self.config.embedding_url, request_size);
+            } else {
+                trace!("Sending standard embedding request to {} (size: {} bytes)",
+                      self.config.embedding_url, request_size);
+            }
+
+            // Build request
+            let mut request_builder = self.client
+                .post(&self.config.embedding_url)
+                .json(&request);
+
+            // Add Authorization header if API key is provided (for Scaleway, OpenAI, etc.)
+            if let Some(ref api_key) = self.config.embedding_key {
+                request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+            }
+
+            request_builder
+                .send()
+                .await
+                .context("Failed to send request to embedding service")?
         };
-
-        let request_size = serde_json::to_string(&request)
-            .map(|s| s.len())
-            .unwrap_or(0);
-        trace!("Sending request to {} (size: {} bytes)",
-              self.config.embedding_url, request_size);
-
-        let response = self
-            .client
-            .post(format!("{}/embedding", self.config.embedding_url))
-            .json(&request)
-            .send()
-            .await
-            .context("Failed to send request to embedding service")?;
 
         let status = response.status();
         if !status.is_success() {
@@ -528,6 +683,18 @@ impl KbEmbeddingGenerator {
                         dimensions: self.config.dimensions,
                         model: generic_response.model.clone().unwrap_or_else(|| self.config.embedding_model.clone()),
                         tokens_used: generic_response.usage.as_ref().map(|u| u.total_tokens),
+                    });
+                }
+                embeddings
+            }
+            EmbeddingResponse::Scaleway(scaleway_response) => {
+                let mut embeddings = Vec::with_capacity(scaleway_response.data.len());
+                for data in scaleway_response.data {
+                    embeddings.push(Embedding {
+                        vector: data.embedding,
+                        dimensions: self.config.dimensions,
+                        model: scaleway_response.model.clone().unwrap_or_else(|| self.config.embedding_model.clone()),
+                        tokens_used: scaleway_response.usage.as_ref().map(|u| u.total_tokens),
                     });
                 }
                 embeddings

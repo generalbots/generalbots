@@ -108,7 +108,7 @@ impl LocalFileMonitor {
         trace!("Watching directory: {:?}", self.data_dir);
 
         while self.is_processing.load(Ordering::SeqCst) {
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            tokio::time::sleep(Duration::from_secs(60)).await;
 
             // Process events from the watcher
             while let Ok(event) = rx.try_recv() {
@@ -134,21 +134,16 @@ impl LocalFileMonitor {
                     _ => {}
                 }
             }
-
-            // Periodic scan to catch any missed changes
-            if let Err(e) = self.scan_and_compile_all().await {
-                error!("Scan failed: {}", e);
-            }
         }
 
         trace!("Monitoring loop ended");
     }
 
     async fn polling_loop(&self) {
-        trace!("Using polling fallback (checking every 10s)");
+        trace!("Using polling fallback (checking every 60s)");
 
         while self.is_processing.load(Ordering::SeqCst) {
-            tokio::time::sleep(Duration::from_secs(10)).await;
+            tokio::time::sleep(Duration::from_secs(60)).await;
 
             if let Err(e) = self.scan_and_compile_all().await {
                 error!("Scan failed: {}", e);
@@ -203,8 +198,6 @@ impl LocalFileMonitor {
     }
 
     async fn compile_gbdialog(&self, bot_name: &str, gbdialog_path: &Path) -> Result<(), Box<dyn Error + Send + Sync>> {
-        info!("Compiling bot: {}", bot_name);
-
         let entries = tokio::fs::read_dir(gbdialog_path).await?;
         let mut entries = entries;
 
@@ -231,6 +224,7 @@ impl LocalFileMonitor {
                 };
 
                 if should_compile {
+                    info!("Compiling bot: {}", bot_name);
                     debug!("Recompiling {:?} - modification detected", path);
                     if let Err(e) = self.compile_local_file(&path).await {
                         error!("Failed to compile {:?}: {}", path, e);
