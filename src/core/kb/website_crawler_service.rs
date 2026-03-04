@@ -1,10 +1,12 @@
 use crate::core::config::ConfigManager;
 use crate::core::kb::web_crawler::{WebCrawler, WebsiteCrawlConfig};
-use crate::core::kb::KnowledgeBaseManager;
+use crate::core::kb::embedding_generator::EmbeddingConfig;
+use crate::core::kb::kb_indexer::{KbIndexer, QdrantConfig};
+
 use crate::core::shared::state::AppState;
 use crate::core::shared::utils::DbPool;
 use diesel::prelude::*;
-use log::{error, trace, warn};
+use log::{error, info, trace, warn};
 use regex;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -14,17 +16,15 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub struct WebsiteCrawlerService {
     db_pool: DbPool,
-    kb_manager: Arc<KnowledgeBaseManager>,
     check_interval: Duration,
     running: Arc<tokio::sync::RwLock<bool>>,
     active_crawls: Arc<tokio::sync::RwLock<HashSet<String>>>,
 }
 
 impl WebsiteCrawlerService {
-    pub fn new(db_pool: DbPool, kb_manager: Arc<KnowledgeBaseManager>) -> Self {
+    pub fn new(db_pool: DbPool) -> Self {
         Self {
             db_pool,
-            kb_manager,
             check_interval: Duration::from_secs(60),
             running: Arc::new(tokio::sync::RwLock::new(false)),
             active_crawls: Arc::new(tokio::sync::RwLock::new(HashSet::new())),
@@ -36,6 +36,20 @@ impl WebsiteCrawlerService {
 
         tokio::spawn(async move {
             trace!("Website crawler service started");
+
+            // Reset any rows stuck at crawl_status=2 (in-progress) from a previous
+            // crash or restart — they are no longer actually being crawled.
+            if let Ok(mut conn) = service.db_pool.get() {
+                let reset = diesel::sql_query(
+                    "UPDATE website_crawls SET crawl_status = 0 WHERE crawl_status = 2"
+                )
+                .execute(&mut conn);
+                match reset {
+                    Ok(n) if n > 0 => info!("Reset {} stale in-progress crawl(s) to pending", n),
+                    Ok(_) => {}
+                    Err(e) => warn!("Could not reset stale crawl statuses: {}", e),
+                }
+            }
 
             let mut ticker = interval(service.check_interval);
 
@@ -111,13 +125,12 @@ impl WebsiteCrawlerService {
                 .execute(&mut conn)?;
 
             // Process one website at a time to control memory usage
-            let kb_manager = Arc::clone(&self.kb_manager);
             let db_pool = self.db_pool.clone();
             let active_crawls = Arc::clone(&self.active_crawls);
 
             trace!("Processing website: {}", website.url);
 
-            match Self::crawl_website(website, kb_manager, db_pool, active_crawls).await {
+            match Self::crawl_website(website, db_pool, active_crawls).await {
                 Ok(_) => {
                     trace!("Successfully processed website crawl");
                 }
@@ -138,7 +151,6 @@ impl WebsiteCrawlerService {
 
     async fn crawl_website(
         website: WebsiteCrawlRecord,
-        kb_manager: Arc<KnowledgeBaseManager>,
         db_pool: DbPool,
         active_crawls: Arc<tokio::sync::RwLock<HashSet<String>>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -152,19 +164,21 @@ impl WebsiteCrawlerService {
             active.insert(website.url.clone());
         }
 
-        // Ensure cleanup on exit
         let url_for_cleanup = website.url.clone();
         let active_crawls_cleanup = Arc::clone(&active_crawls);
 
-        // Manual cleanup instead of scopeguard
-        let cleanup = || {
-            let url = url_for_cleanup.clone();
-            let active = Arc::clone(&active_crawls_cleanup);
-            tokio::spawn(async move {
-                active.write().await.remove(&url);
-            });
-        };
+        // Always remove from active_crawls at the end, regardless of success or error.
+        let result = Self::do_crawl_website(website, db_pool).await;
 
+        active_crawls_cleanup.write().await.remove(&url_for_cleanup);
+
+        result
+    }
+
+    async fn do_crawl_website(
+        website: WebsiteCrawlRecord,
+        db_pool: DbPool,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         trace!("Starting crawl for website: {}", website.url);
 
         let config_manager = ConfigManager::new(db_pool.clone());
@@ -225,6 +239,14 @@ impl WebsiteCrawlerService {
 
                 tokio::fs::create_dir_all(&work_path).await?;
 
+                // Load embedding config: DB settings + Vault API key at gbo/{bot_name}.
+                let embedding_config = embedding_config_with_vault(&db_pool, &website.bot_id, &bot_name).await;
+                info!("Using embedding URL: {} for bot {}", embedding_config.embedding_url, bot_name);
+
+                // Create bot-specific KB indexer with correct embedding config
+                let qdrant_config = QdrantConfig::default();
+                let bot_indexer = KbIndexer::new(embedding_config, qdrant_config);
+
                 // Process pages in small batches to prevent memory exhaustion
                 const BATCH_SIZE: usize = 5;
                 let total_pages = pages.len();
@@ -259,8 +281,9 @@ impl WebsiteCrawlerService {
                     // Process this batch immediately to free memory
                     if batch_idx == 0 || (batch_idx + 1) % 2 == 0 {
                         // Index every 2 batches to prevent memory buildup
-                        match kb_manager.index_kb_folder(&bot_name, &kb_name, &work_path).await {
-                            Ok(_) => trace!("Indexed batch {} successfully", batch_idx + 1),
+                        match bot_indexer.index_kb_folder(&bot_name, &kb_name, &work_path).await {
+                            Ok(result) => trace!("Indexed batch {} successfully: {} docs, {} chunks",
+                                batch_idx + 1, result.documents_processed, result.chunks_indexed),
                             Err(e) => warn!("Failed to index batch {}: {}", batch_idx + 1, e),
                         }
 
@@ -270,7 +293,7 @@ impl WebsiteCrawlerService {
                 }
 
                 // Final indexing for any remaining content
-                kb_manager
+                bot_indexer
                     .index_kb_folder(&bot_name, &kb_name, &work_path)
                     .await?;
 
@@ -296,7 +319,7 @@ impl WebsiteCrawlerService {
                     "Successfully recrawled {}, next crawl: {:?}",
                     website.url, config.next_crawl
                 );
-                cleanup();
+                Ok(())
             }
             Err(e) => {
                 error!("Failed to crawl {}: {}", website.url, e);
@@ -312,11 +335,9 @@ impl WebsiteCrawlerService {
                 .bind::<diesel::sql_types::Uuid, _>(&website.id)
                 .execute(&mut conn)?;
 
-                cleanup();
+                Err(e.into())
             }
         }
-
-        Ok(())
     }
 
     fn scan_and_register_websites_from_scripts(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -370,7 +391,7 @@ impl WebsiteCrawlerService {
         &self,
         website: WebsiteCrawlRecord,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        Self::crawl_website(website, Arc::clone(&self.kb_manager), self.db_pool.clone(), Arc::clone(&self.active_crawls)).await
+        Self::crawl_website(website, self.db_pool.clone(), Arc::clone(&self.active_crawls)).await
     }
 
     fn scan_directory_for_websites(
@@ -471,13 +492,138 @@ fn sanitize_url_for_kb(url: &str) -> String {
         .to_lowercase()
 }
 
+/// Force recrawl a specific website immediately
+/// Updates next_crawl to NOW() and triggers immediate crawl
+pub async fn force_recrawl_website(
+    db_pool: crate::core::shared::utils::DbPool,
+    bot_id: uuid::Uuid,
+    url: String,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    use diesel::prelude::*;
+
+    let mut conn = db_pool.get()?;
+
+    // Update next_crawl to NOW() to mark for immediate recrawl
+    let rows_updated = diesel::sql_query(
+        "UPDATE website_crawls
+         SET next_crawl = NOW(),
+             crawl_status = 0,
+             error_message = NULL
+         WHERE bot_id = $1 AND url = $2"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(&bot_id)
+    .bind::<diesel::sql_types::Text, _>(&url)
+    .execute(&mut conn)?;
+
+    if rows_updated == 0 {
+        return Err(format!("Website not found: bot_id={}, url={}", bot_id, url).into());
+    }
+
+    trace!("Updated next_crawl to NOW() for website: {}", url);
+
+    // Get the website record for immediate crawling
+    #[derive(diesel::QueryableByName)]
+    struct WebsiteRecord {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: uuid::Uuid,
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        bot_id: uuid::Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        url: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        expires_policy: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        refresh_policy: String,
+        #[diesel(sql_type = diesel::sql_types::Integer)]
+        max_depth: i32,
+        #[diesel(sql_type = diesel::sql_types::Integer)]
+        max_pages: i32,
+    }
+
+    let website: WebsiteRecord = diesel::sql_query(
+        "SELECT id, bot_id, url, expires_policy, refresh_policy, max_depth, max_pages
+         FROM website_crawls
+         WHERE bot_id = $1 AND url = $2"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(&bot_id)
+    .bind::<diesel::sql_types::Text, _>(&url)
+    .get_result(&mut conn)?;
+
+    // Convert to WebsiteCrawlRecord
+    let website_record = WebsiteCrawlRecord {
+        id: website.id,
+        bot_id: website.bot_id,
+        url: website.url.clone(),
+        expires_policy: website.expires_policy,
+        refresh_policy: Some(website.refresh_policy),
+        max_depth: website.max_depth,
+        max_pages: website.max_pages,
+        next_crawl: None,
+        crawl_status: Some(0),
+    };
+
+    // Trigger immediate crawl
+    let active_crawls = Arc::new(tokio::sync::RwLock::new(HashSet::new()));
+
+    trace!("Starting immediate crawl for website: {}", url);
+
+    match WebsiteCrawlerService::crawl_website(website_record, db_pool, active_crawls).await {
+        Ok(_) => {
+            let msg = format!("Successfully triggered immediate recrawl for website: {}", url);
+            info!("{}", msg);
+            Ok(msg)
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to crawl website {}: {}", url, e);
+            error!("{}", error_msg);
+            Err(error_msg.into())
+        }
+    }
+}
+
+/// API Handler for force recrawl endpoint
+/// POST /api/website/force-recrawl
+/// Body: {"bot_id": "uuid", "url": "https://example.com"}
+pub async fn handle_force_recrawl(
+    axum::extract::State(state): axum::extract::State<std::sync::Arc<AppState>>,
+    axum::Json(payload): axum::Json<ForceRecrawlRequest>,
+) -> Result<axum::Json<serde_json::Value>, (axum::http::StatusCode, axum::Json<serde_json::Value>)> {
+    use crate::security::error_sanitizer::log_and_sanitize_str;
+
+    match force_recrawl_website(
+        state.conn.clone(),
+        payload.bot_id,
+        payload.url.clone(),
+    ).await {
+        Ok(msg) => Ok(axum::Json(serde_json::json!({
+            "success": true,
+            "message": msg,
+            "bot_id": payload.bot_id,
+            "url": payload.url
+        }))),
+        Err(e) => {
+            let sanitized = log_and_sanitize_str(&e.to_string(), "force_recrawl", None);
+            Err((
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(serde_json::json!({"error": sanitized}))
+            ))
+        }
+    }
+}
+
+/// Request payload for force recrawl endpoint
+#[derive(serde::Deserialize)]
+pub struct ForceRecrawlRequest {
+    pub bot_id: uuid::Uuid,
+    pub url: String,
+}
+
 pub async fn ensure_crawler_service_running(
     state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if let Some(kb_manager) = &state.kb_manager {
+    if let Some(_kb_manager) = &state.kb_manager {
         let service = Arc::new(WebsiteCrawlerService::new(
             state.conn.clone(),
-            Arc::clone(kb_manager),
         ));
 
         drop(service.start());
@@ -490,3 +636,33 @@ pub async fn ensure_crawler_service_running(
         Ok(())
     }
 }
+
+/// Build an `EmbeddingConfig` for a bot, reading most settings from the DB
+/// but **overriding the API key from Vault** (per-bot path `gbo/{bot_name}` → `embedding-key`)
+/// when available. Falls back transparently to the DB value when Vault is unavailable.
+async fn embedding_config_with_vault(
+    pool: &DbPool,
+    bot_id: &uuid::Uuid,
+    bot_name: &str,
+) -> EmbeddingConfig {
+    // Start from the DB-backed config (URL, model, dimensions, etc.)
+    let mut config = EmbeddingConfig::from_bot_config(pool, bot_id);
+
+    // Try to upgrade the API key from Vault using the per-bot secret path.
+    if let Some(secrets) = crate::core::shared::utils::get_secrets_manager().await {
+        let per_bot_path = format!("gbo/{}", bot_name);
+        match secrets.get_value(&per_bot_path, "embedding-key").await {
+            Ok(key) if !key.is_empty() => {
+                trace!("Loaded embedding key from Vault path {} for bot {}", per_bot_path, bot_name);
+                config.embedding_key = Some(key);
+            }
+            Ok(_) => {} // Key present but empty — keep DB value
+            Err(e) => {
+                trace!("Vault embedding-key not found at {} ({}), using DB value", per_bot_path, e);
+            }
+        }
+    }
+
+    config
+}
+

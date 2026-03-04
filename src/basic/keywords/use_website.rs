@@ -478,6 +478,10 @@ fn associate_website_with_session_refresh(
             register_website_for_crawling_with_refresh(&mut conn, &user.bot_id, url, refresh_interval)
                 .map_err(|e| format!("Failed to register website: {}", e))?;
 
+            // ADD TO SESSION EVEN IF CRAWL IS PENDING!
+            // Otherwise kb_context will think the session has no website associated if start.bas only runs once.
+            add_website_to_session(&mut conn, &user.id, &user.bot_id, url, &collection_name)?;
+
             return Ok(format!(
                 "Website {} has been registered for crawling (refresh: {}). It will be available once crawling completes.",
                 url, refresh_interval
