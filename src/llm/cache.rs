@@ -632,10 +632,39 @@ impl EmbeddingService for LocalEmbeddingService {
             .send()
             .await?;
 
-        let result: Value = response.json().await?;
+        let status = response.status();
+        let response_text = response.text().await?;
+
+        if !status.is_success() {
+            debug!(
+                "Embedding service HTTP error {}: {}",
+                status,
+                response_text
+            );
+            return Err(format!(
+                "Embedding service returned HTTP {}: {}",
+                status,
+                response_text
+            ).into());
+        }
+
+        let result: Value = serde_json::from_str(&response_text)
+            .map_err(|e| {
+                debug!("Failed to parse embedding JSON: {} - Response: {}", e, response_text);
+                format!("Failed to parse embedding response JSON: {} - Response: {}", e, response_text)
+            })?;
+
+        if let Some(error) = result.get("error") {
+            debug!("Embedding service returned error: {}", error);
+            return Err(format!("Embedding service error: {}", error).into());
+        }
+
         let embedding = result["data"][0]["embedding"]
             .as_array()
-            .ok_or("Invalid embedding response")?
+            .ok_or_else(|| {
+                debug!("Invalid embedding response format. Expected data[0].embedding array. Got: {}", response_text);
+                format!("Invalid embedding response format - Expected data[0].embedding array, got: {}", response_text)
+            })?
             .iter()
             .filter_map(|v| v.as_f64().map(|f| f as f32))
             .collect();
