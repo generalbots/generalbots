@@ -343,7 +343,11 @@ impl WebsiteCrawlerService {
     fn scan_and_register_websites_from_scripts(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         trace!("Scanning .bas files for USE WEBSITE commands");
 
-        let work_dir = std::path::Path::new("work");
+        // Use the correct work directory path instead of plain "work"
+        let work_dir = std::env::current_dir()
+            .unwrap_or_else(|_| std::path::PathBuf::from("."))
+            .join("botserver-stack/data/system/work");
+
         if !work_dir.exists() {
             return Ok(());
         }
@@ -400,7 +404,7 @@ impl WebsiteCrawlerService {
         bot_id: uuid::Uuid,
         conn: &mut diesel::PgConnection,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let website_regex = regex::Regex::new(r#"(?i)(?:USE\s+WEBSITE\s+"([^"]+)"\s+REFRESH\s+"([^"]+)")|(?:USE_WEBSITE\s*\(\s*"([^"]+)"\s*(?:,\s*"([^"]+)"\s*)?\))"#)?;
+        let website_regex = regex::Regex::new(r#"(?i)(?:USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?)|(?:USE_WEBSITE\s*\(\s*"([^"]+)"\s*(?:,\s*"([^"]+)"\s*)?\))"#)?;
 
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;

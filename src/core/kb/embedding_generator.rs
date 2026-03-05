@@ -214,8 +214,10 @@ struct ScalewayEmbeddingResponse {
 struct ScalewayEmbeddingData {
     embedding: Vec<f32>,
     #[serde(default)]
+    #[allow(dead_code)]
     index: usize,
     #[serde(default)]
+    #[allow(dead_code)]
     object: Option<String>,
 }
 
@@ -229,6 +231,44 @@ struct GenericEmbeddingResponse {
     usage: Option<EmbeddingUsage>,
 }
 
+// Cloudflare AI Workers format
+#[derive(Debug, Serialize)]
+struct CloudflareEmbeddingRequest {
+    text: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CloudflareEmbeddingResponse {
+    result: CloudflareResult,
+    success: bool,
+    #[serde(default)]
+    errors: Vec<CloudflareError>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CloudflareResult {
+    data: Vec<Vec<f32>>,
+    #[serde(default)]
+    meta: Option<CloudflareMeta>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CloudflareMeta {
+    #[serde(default)]
+    #[allow(dead_code)]
+    cost_metric_name_1: Option<String>,
+    #[serde(default)]
+    cost_metric_value_1: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CloudflareError {
+    #[serde(default)]
+    code: i32,
+    #[serde(default)]
+    message: String,
+}
+
 // Universal response wrapper - tries formats in order of likelihood
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
@@ -238,6 +278,7 @@ enum EmbeddingResponse {
     LlamaCpp(Vec<LlamaCppEmbeddingItem>),      // llama.cpp server
     HuggingFace(HuggingFaceEmbeddingResponse), // Simple array format
     Generic(GenericEmbeddingResponse),         // Generic services
+    Cloudflare(CloudflareEmbeddingResponse),   // Cloudflare AI Workers
 }
 
 #[derive(Debug, Deserialize)]
@@ -489,13 +530,40 @@ impl KbEmbeddingGenerator {
             .collect();
 
         // Detect API format based on URL pattern
+        // Cloudflare AI: https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/baai/bge-m3
         // Scaleway (OpenAI-compatible): https://router.huggingface.co/scaleway/v1/embeddings
         // HuggingFace Inference (old): https://router.huggingface.co/hf-inference/models/.../pipeline/feature-extraction
+        let is_cloudflare = self.config.embedding_url.contains("api.cloudflare.com/client/v4/accounts");
         let is_scaleway = self.config.embedding_url.contains("/scaleway/v1/embeddings");
         let is_hf_inference = self.config.embedding_url.contains("/hf-inference/") ||
                              self.config.embedding_url.contains("/pipeline/feature-extraction");
 
-        let response = if is_hf_inference {
+        let response = if is_cloudflare {
+            // Cloudflare AI Workers API format: {"text": ["text1", "text2", ...]}
+            let cf_request = CloudflareEmbeddingRequest {
+                text: truncated_texts,
+            };
+
+            let request_size = serde_json::to_string(&cf_request)
+                .map(|s| s.len())
+                .unwrap_or(0);
+            trace!("Sending Cloudflare AI request to {} (size: {} bytes)",
+                  self.config.embedding_url, request_size);
+
+            let mut request_builder = self.client
+                .post(&self.config.embedding_url)
+                .json(&cf_request);
+
+            // Add Authorization header if API key is provided
+            if let Some(ref api_key) = self.config.embedding_key {
+                request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+            }
+
+            request_builder
+                .send()
+                .await
+                .context("Failed to send request to Cloudflare AI embedding service")?
+        } else if is_hf_inference {
             // HuggingFace Inference API (old format): {"inputs": "text"}
             // Process one text at a time for HuggingFace Inference
             let mut all_embeddings = Vec::new();
@@ -695,6 +763,26 @@ impl KbEmbeddingGenerator {
                         dimensions: self.config.dimensions,
                         model: scaleway_response.model.clone().unwrap_or_else(|| self.config.embedding_model.clone()),
                         tokens_used: scaleway_response.usage.as_ref().map(|u| u.total_tokens),
+                    });
+                }
+                embeddings
+            }
+            EmbeddingResponse::Cloudflare(cf_response) => {
+                if !cf_response.success {
+                    let error_msg = cf_response.errors.first()
+                        .map(|e| format!("{}: {}", e.code, e.message))
+                        .unwrap_or_else(|| "Unknown Cloudflare error".to_string());
+                    return Err(anyhow::anyhow!("Cloudflare AI error: {}", error_msg));
+                }
+                let mut embeddings = Vec::with_capacity(cf_response.result.data.len());
+                for embedding_vec in cf_response.result.data {
+                    embeddings.push(Embedding {
+                        vector: embedding_vec,
+                        dimensions: self.config.dimensions,
+                        model: self.config.embedding_model.clone(),
+                        tokens_used: cf_response.result.meta.as_ref().and_then(|m| {
+                            m.cost_metric_value_1.map(|v| v as usize)
+                        }),
                     });
                 }
                 embeddings
