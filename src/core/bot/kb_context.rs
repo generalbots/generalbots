@@ -239,6 +239,25 @@ impl KbContextManager {
         Ok(kb_contexts)
     }
 
+        async fn get_collection_dimension(&self, qdrant_config: &QdrantConfig, collection_name: &str) -> Result<Option<usize>> {
+            let http_client = crate::core::shared::utils::create_tls_client(Some(10));
+            let check_url = format!("{}/collections/{}", qdrant_config.url, collection_name);
+
+            let response = http_client.get(&check_url).send().await?;
+
+            if !response.status().is_success() {
+                debug!("Could not get collection info for '{}', using default dimension", collection_name);
+                return Ok(None);
+            }
+
+            let info_json: serde_json::Value = response.json().await?;
+            let dimension = info_json["result"]["config"]["params"]["vectors"]["size"]
+                .as_u64()
+                .map(|d| d as usize);
+
+            Ok(dimension)
+        }
+
         async fn search_single_collection(
             &self,
             collection_name: &str,
@@ -256,8 +275,22 @@ impl KbContextManager {
             let bot_id = self.get_bot_id_by_name(bot_name).await?;
 
             // Load embedding config from database for this bot
-            let embedding_config = EmbeddingConfig::from_bot_config(&self.db_pool, &bot_id);
+            let mut embedding_config = EmbeddingConfig::from_bot_config(&self.db_pool, &bot_id);
             let qdrant_config = QdrantConfig::default();
+
+            // Query Qdrant to get the collection's actual vector dimension
+            let collection_dimension = self.get_collection_dimension(&qdrant_config, collection_name).await?;
+
+            // Override the embedding config dimension to match the collection
+            if let Some(dim) = collection_dimension {
+                if dim != embedding_config.dimensions {
+                    debug!(
+                        "Overriding embedding dimension from {} to {} to match collection '{}'",
+                        embedding_config.dimensions, dim, collection_name
+                    );
+                    embedding_config.dimensions = dim;
+                }
+            }
 
             // Create a temporary indexer with bot-specific config
             let indexer = KbIndexer::new(embedding_config, qdrant_config);
@@ -290,7 +323,7 @@ impl KbContextManager {
 
                 total_tokens += tokens;
 
-                if result.score < 0.6 {
+                if result.score < 0.4 {
                     debug!("Skipping low-relevance result (score: {})", result.score);
                     break;
                 }
@@ -355,7 +388,7 @@ impl KbContextManager {
 
             total_tokens += tokens;
 
-            if result.score < 0.7 {
+            if result.score < 0.5 {
                 debug!("Skipping low-relevance result (score: {})", result.score);
                 break;
             }

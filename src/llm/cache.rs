@@ -629,6 +629,7 @@ impl EmbeddingService for LocalEmbeddingService {
         // Determine if URL already includes endpoint path
         let url = if self.embedding_url.contains("/pipeline/") ||
                    self.embedding_url.contains("/v1/") ||
+                   self.embedding_url.contains("/ai/run/") ||
                    self.embedding_url.ends_with("/embeddings") {
             self.embedding_url.clone()
         } else {
@@ -646,6 +647,11 @@ impl EmbeddingService for LocalEmbeddingService {
         let request_body = if self.embedding_url.contains("huggingface.co") {
             serde_json::json!({
                 "inputs": text,
+            })
+        } else if self.embedding_url.contains("/ai/run/") {
+            // Cloudflare AI format
+            serde_json::json!({
+                "text": text,
             })
         } else {
             serde_json::json!({
@@ -692,6 +698,31 @@ impl EmbeddingService for LocalEmbeddingService {
             arr.iter()
                 .filter_map(|v| v.as_f64().map(|f| f as f32))
                 .collect()
+        } else if let Some(result_obj) = result.get("result") {
+            // Cloudflare AI format: {"result": {"data": [[...]]}}
+            if let Some(data) = result_obj.get("data") {
+                if let Some(data_arr) = data.as_array() {
+                    if let Some(first) = data_arr.first() {
+                        if let Some(embedding_arr) = first.as_array() {
+                            embedding_arr
+                                .iter()
+                                .filter_map(|v| v.as_f64().map(|f| f as f32))
+                                .collect()
+                        } else {
+                            data_arr
+                                .iter()
+                                .filter_map(|v| v.as_f64().map(|f| f as f32))
+                                .collect()
+                        }
+                    } else {
+                        return Err("Empty data array in Cloudflare response".into());
+                    }
+                } else {
+                    return Err(format!("Invalid Cloudflare response format - Expected result.data array, got: {}", response_text).into());
+                }
+            } else {
+                return Err(format!("Invalid Cloudflare response format - Expected result.data, got: {}", response_text).into());
+            }
         } else if let Some(data) = result.get("data") {
             // OpenAI/Standard format: {"data": [{"embedding": [...]}]}
             data[0]["embedding"]
