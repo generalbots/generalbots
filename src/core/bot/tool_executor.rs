@@ -37,7 +37,10 @@ pub struct ToolExecutor;
 impl ToolExecutor {
     /// Log tool execution errors to a dedicated log file
     fn log_tool_error(bot_name: &str, tool_name: &str, error_msg: &str) {
-        let log_path = Path::new("work").join(format!("{}_tool_errors.log", bot_name));
+        let log_path = std::env::current_dir()
+            .unwrap_or_else(|_| std::path::PathBuf::from("."))
+            .join("botserver-stack/data/system/work")
+            .join(format!("{}_tool_errors.log", bot_name));
 
         // Create work directory if it doesn't exist
         if let Some(parent) = log_path.parent() {
