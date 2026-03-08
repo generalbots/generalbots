@@ -699,18 +699,133 @@ async fn route_to_bot(
         const MAX_WHATSAPP_LENGTH: usize = 4000;
         const MIN_FLUSH_PARAGRAPHS: usize = 3;
 
-        /// Check if a line is a list item
-        fn is_list_item(line: &str) -> bool {
+        /// Check if a line is a list item (numbered: "1. ", "10. ", etc.)
+        fn is_numbered_list_item(line: &str) -> bool {
             let trimmed = line.trim();
-            trimmed.starts_with("- ")
-                || trimmed.starts_with("* ")
-                || trimmed.starts_with("• ")
-                || trimmed.chars().next().map(|c| c.is_numeric()).unwrap_or(false)
+            // Must start with digit(s) followed by '.' or ')' and then space or end
+            let chars: Vec<char> = trimmed.chars().collect();
+            let mut i = 0;
+            // Skip digits
+            while i < chars.len() && chars[i].is_numeric() {
+                i += 1;
+            }
+            // Must have at least one digit and be followed by '.' or ')' then space
+            i > 0 && i < chars.len() && (chars[i] == '.' || chars[i] == ')')
+                && (i + 1 >= chars.len() || chars[i + 1] == ' ')
+        }
+
+        /// Check if a line is a bullet list item
+        fn is_bullet_list_item(line: &str) -> bool {
+            let trimmed = line.trim();
+            trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("• ")
+        }
+
+        /// Check if a line is any type of list item
+        fn is_list_item(line: &str) -> bool {
+            is_numbered_list_item(line) || is_bullet_list_item(line)
         }
 
         /// Check if buffer contains a list (any line starting with list marker)
         fn contains_list(text: &str) -> bool {
             text.lines().any(is_list_item)
+        }
+
+        /// Check if buffer looks like it might be starting a list
+        /// (header followed by blank line, or ends with partial list item)
+        fn looks_like_list_start(text: &str) -> bool {
+            let lines: Vec<&str> = text.lines().collect();
+            if lines.len() < 2 {
+                return false;
+            }
+            // Check if last non-empty line looks like a header (short, ends with ':')
+            let last_content = lines.iter().rev().find(|l| !l.trim().is_empty());
+            if let Some(line) = last_content {
+                let trimmed = line.trim();
+                // Header pattern: short line ending with ':'
+                if trimmed.len() < 50 && trimmed.ends_with(':') {
+                    return true;
+                }
+                // Partial list item: starts with number but incomplete
+                if trimmed.chars().next().map(|c| c.is_numeric()).unwrap_or(false) {
+                    return true;
+                }
+            }
+            false
+        }
+
+        /// Check if a list appears to have ended (had list items, but last lines are not list items)
+        fn looks_like_list_end(text: &str) -> bool {
+            let lines: Vec<&str> = text.lines().collect();
+            if lines.len() < 3 {
+                return false;
+            }
+
+            // Check if there's at least one list item in the text
+            let has_list_items = lines.iter().any(|l| is_list_item(l));
+            if !has_list_items {
+                return false;
+            }
+
+            // Check if the last 2+ non-empty lines are NOT list items
+            let non_empty_lines: Vec<&str> = lines.iter().rev()
+                .copied()
+                .filter(|l| !l.trim().is_empty())
+                .take(2)
+                .collect();
+
+            if non_empty_lines.len() < 2 {
+                return false;
+            }
+
+            // If the last 2 non-empty lines are not list items, the list has likely ended
+            non_empty_lines.iter().all(|l| !is_list_item(l))
+        }
+
+        /// Split text into (before_list, list_and_after)
+        /// Returns everything before the first list item, and everything from the list item onwards
+        fn split_text_before_list(text: &str) -> (String, String) {
+            let lines: Vec<&str> = text.lines().collect();
+            let mut list_start_idx = None;
+
+            // Find the first list item
+            for (idx, line) in lines.iter().enumerate() {
+                if is_list_item(line) {
+                    list_start_idx = Some(idx);
+                    break;
+                }
+            }
+
+            match list_start_idx {
+                Some(idx) => {
+                    let before = lines[..idx].join("\n");
+                    let rest = lines[idx..].join("\n");
+                    (before, rest)
+                }
+                None => (text.to_string(), String::new())
+            }
+        }
+
+        /// Split text into (list, after_list)
+        /// Extracts the list portion and any text after it
+        fn split_list_from_text(text: &str) -> (String, String) {
+            let lines: Vec<&str> = text.lines().collect();
+            let mut list_end_idx = lines.len();
+
+            // Find where the list ends (first non-list item after list starts)
+            let mut found_list = false;
+            for (idx, line) in lines.iter().enumerate() {
+                if is_list_item(line) {
+                    found_list = true;
+                } else if found_list && !line.trim().is_empty() {
+                    // Found non-empty, non-list line after list items
+                    list_end_idx = idx;
+                    break;
+                }
+            }
+
+            let list = lines[..list_end_idx].join("\n");
+            let after = lines[list_end_idx..].join("\n");
+            (list, after)
         }
 
         /// Send a WhatsApp message part
@@ -753,22 +868,51 @@ async fn route_to_bot(
                 buffer.push_str(&response.content);
             }
 
-            // SIMPLE LOGIC:
-            // 1. If buffer contains a list, ONLY flush when is_final or too long
-            // 2. If no list, use normal paragraph-based flushing
+            // IMPROVED LOGIC:
+            // 1. If buffer contains a list OR looks like list is starting, wait for final/too long
+            // 2. Otherwise, use normal paragraph-based flushing
 
             let has_list = contains_list(&buffer);
+            let maybe_list_start = !has_list && looks_like_list_start(&buffer);
+            let list_ended = has_list && looks_like_list_end(&buffer);
 
-            debug!(
-                "WA stream: is_final={}, has_list={}, buffer_len={}, buffer_preview={:?}",
-                is_final, has_list, buffer.len(), &buffer.chars().take(100).collect::<String>()
+            info!(
+                "WA stream: is_final={}, has_list={}, maybe_start={}, list_ended={}, len={}, preview={:?}",
+                is_final, has_list, maybe_list_start, list_ended, buffer.len(), &buffer.chars().take(80).collect::<String>()
             );
 
-            if has_list {
-                // With lists: only flush when final or too long
-                // This ensures the ENTIRE list is sent as one message
-                if is_final || buffer.len() >= MAX_WHATSAPP_LENGTH {
-                    info!("WA sending list message, len={}", buffer.len());
+            if has_list || maybe_list_start {
+                // With lists: isolate them as separate messages
+                if list_ended {
+                    info!("WA list ended, isolating list message");
+
+                    // Step 1: Split text before list
+                    let (text_before, rest) = split_text_before_list(&buffer);
+
+                    // Step 2: Send text before list (if not empty)
+                    if !text_before.trim().is_empty() {
+                        info!("WA sending text before list, len={}", text_before.len());
+                        send_part(&adapter_for_send, &phone, text_before, false).await;
+                    }
+
+                    // Step 3: Split list from text after
+                    let (list, text_after) = split_list_from_text(&rest);
+
+                    // Step 4: Send list (isolated)
+                    if !list.trim().is_empty() {
+                        info!("WA sending isolated list, len={}", list.len());
+                        send_part(&adapter_for_send, &phone, list, false).await;
+                    }
+
+                    // Step 5: Keep text after in buffer
+                    buffer = text_after;
+
+                    if !buffer.trim().is_empty() {
+                        debug!("WA keeping text after list in buffer, len={}", buffer.len());
+                    }
+                } else if is_final || buffer.len() >= MAX_WHATSAPP_LENGTH {
+                    // Final message or buffer too long - send everything
+                    info!("WA sending list message (final/overflow), len={}, has_list={}", buffer.len(), has_list);
                     if buffer.len() > MAX_WHATSAPP_LENGTH {
                         let parts = adapter_for_send.split_message_smart(&buffer, MAX_WHATSAPP_LENGTH);
                         for part in parts {
@@ -781,7 +925,6 @@ async fn route_to_bot(
                 } else {
                     debug!("WA waiting for more list content (buffer len={})", buffer.len());
                 }
-                // Otherwise: wait for more content (don't flush mid-list)
             } else {
                 // No list: use normal paragraph-based flushing
                 let paragraph_count = buffer
@@ -1725,5 +1868,400 @@ mod tests {
         assert!(!value.statuses.is_empty());
         assert_eq!(value.statuses.len(), 1);
         assert_eq!(value.statuses[0].status, "sent");
+    }
+
+    // ==================== List Detection Tests ====================
+
+    /// Helper function to test numbered list item detection
+    fn is_numbered_list_item(line: &str) -> bool {
+        let trimmed = line.trim();
+        let chars: Vec<char> = trimmed.chars().collect();
+        let mut i = 0;
+        while i < chars.len() && chars[i].is_numeric() {
+            i += 1;
+        }
+        i > 0 && i < chars.len() && (chars[i] == '.' || chars[i] == ')')
+            && (i + 1 >= chars.len() || chars[i + 1] == ' ')
+    }
+
+    fn is_bullet_list_item(line: &str) -> bool {
+        let trimmed = line.trim();
+        trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("• ")
+    }
+
+    fn is_list_item(line: &str) -> bool {
+        is_numbered_list_item(line) || is_bullet_list_item(line)
+    }
+
+    fn contains_list(text: &str) -> bool {
+        text.lines().any(is_list_item)
+    }
+
+    fn looks_like_list_start(text: &str) -> bool {
+        let lines: Vec<&str> = text.lines().collect();
+        if lines.len() < 2 {
+            return false;
+        }
+        let last_content = lines.iter().rev().find(|l| !l.trim().is_empty());
+        if let Some(line) = last_content {
+            let trimmed = line.trim();
+            if trimmed.len() < 50 && trimmed.ends_with(':') {
+                return true;
+            }
+            if trimmed.chars().next().map(|c| c.is_numeric()).unwrap_or(false) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn looks_like_list_end(text: &str) -> bool {
+        let lines: Vec<&str> = text.lines().collect();
+        if lines.len() < 3 {
+            return false;
+        }
+
+        // Check if there's at least one list item in the text
+        let has_list_items = lines.iter().any(|l| is_list_item(l));
+        if !has_list_items {
+            return false;
+        }
+
+        // Check if the last 2+ non-empty lines are NOT list items
+        let non_empty_lines: Vec<&str> = lines.iter().rev()
+            .copied()
+            .filter(|l| !l.trim().is_empty())
+            .take(2)
+            .collect();
+
+        if non_empty_lines.len() < 2 {
+            return false;
+        }
+
+        // If the last 2 non-empty lines are not list items, the list has likely ended
+        non_empty_lines.iter().all(|l| !is_list_item(l))
+    }
+
+    /// Split text into (before_list, list_and_after)
+    /// Returns everything before the first list item, and everything from the list item onwards
+    fn split_text_before_list(text: &str) -> (String, String) {
+        let lines: Vec<&str> = text.lines().collect();
+        let mut list_start_idx = None;
+
+        // Find the first list item
+        for (idx, line) in lines.iter().enumerate() {
+            if is_list_item(line) {
+                list_start_idx = Some(idx);
+                break;
+            }
+        }
+
+        match list_start_idx {
+            Some(idx) => {
+                let before = lines[..idx].join("\n");
+                let rest = lines[idx..].join("\n");
+                (before, rest)
+            }
+            None => (text.to_string(), String::new())
+        }
+    }
+
+    /// Split text into (list, after_list)
+    /// Extracts the list portion and any text after it
+    fn split_list_from_text(text: &str) -> (String, String) {
+        let lines: Vec<&str> = text.lines().collect();
+        let mut list_end_idx = lines.len();
+
+        // Find where the list ends (first non-list item after list starts)
+        let mut found_list = false;
+        for (idx, line) in lines.iter().enumerate() {
+            if is_list_item(line) {
+                found_list = true;
+            } else if found_list && !line.trim().is_empty() {
+                // Found non-empty, non-list line after list items
+                list_end_idx = idx;
+                break;
+            }
+        }
+
+        let list = lines[..list_end_idx].join("\n");
+        let after = lines[list_end_idx..].join("\n");
+        (list, after)
+    }
+
+    #[test]
+    fn test_numbered_list_detection() {
+        // Valid numbered list items
+        assert!(is_numbered_list_item("1. Item"));
+        assert!(is_numbered_list_item("1. Item with text"));
+        assert!(is_numbered_list_item("10. Tenth item"));
+        assert!(is_numbered_list_item("1) Item with parenthesis"));
+        assert!(is_numbered_list_item("  1. Indented item")); // trim works
+
+        // Invalid - not numbered list items
+        assert!(!is_numbered_list_item("Item 1")); // number at end
+        assert!(!is_numbered_list_item("2024 was a year")); // year in sentence
+        assert!(!is_numbered_list_item("1.Item")); // no space after dot
+        assert!(!is_numbered_list_item("Item")); // no number
+        assert!(!is_numbered_list_item("")); // empty
+    }
+
+    #[test]
+    fn test_bullet_list_detection() {
+        // Valid bullet list items
+        assert!(is_bullet_list_item("- Item"));
+        assert!(is_bullet_list_item("* Item"));
+        assert!(is_bullet_list_item("• Item"));
+        assert!(is_bullet_list_item("  - Indented item"));
+
+        // Invalid
+        assert!(!is_bullet_list_item("Item - with dash"));
+        assert!(!is_bullet_list_item("-Item")); // no space after dash
+    }
+
+    #[test]
+    fn test_contains_list() {
+        // Contains numbered list
+        assert!(contains_list("Some text\n1. First item\n2. Second item"));
+
+        // Contains bullet list
+        assert!(contains_list("- Item 1\n- Item 2"));
+
+        // No list
+        assert!(!contains_list("Just regular text"));
+        assert!(!contains_list("2024 was a great year")); // year should not trigger
+
+        // Mixed content with list
+        assert!(contains_list("Here are the options:\n\n1. Option A\n2. Option B"));
+    }
+
+    #[test]
+    fn test_looks_like_list_start() {
+        // Header followed by content looks like list start
+        assert!(looks_like_list_start("Aulas Disponíveis:\n\n"));
+        assert!(looks_like_list_start("Options:\n\nSome content"));
+
+        // Number at start looks like potential list
+        assert!(looks_like_list_start("Some text\n1"));
+
+        // Regular text doesn't look like list start
+        assert!(!looks_like_list_start("Just regular text"));
+        assert!(!looks_like_list_start("Single line"));
+    }
+
+    #[test]
+    fn test_full_list_scenario() {
+        // Simulate the exact scenario from the bug report
+        let content = r#"Aulas Disponíveis:
+
+1. Aula de Violão - Aprenda a tocar violão do básico ao avançado
+2. Aula de Piano - Desenvolva suas habilidades no piano
+3. Aula de Canto - Técnicas vocais para todos os níveis
+4. Aula de Teatro - Expressão corporal e interpretação
+5. Aula de Dança - Diversos estilos de dança
+6. Aula de Desenho - Técnicas de desenho e pintura
+7. Aula de Inglês - Aprenda inglês de forma dinâmica
+8. Aula de Robótica - Introdução à robótica e programação
+
+Estou à disposição para ajudar com mais informações!"#;
+
+        // Should detect list
+        assert!(contains_list(content), "Should detect numbered list in content");
+
+        // Count list items
+        let list_items: Vec<&str> = content.lines().filter(|l| is_list_item(l)).collect();
+        assert_eq!(list_items.len(), 8, "Should detect all 8 list items");
+
+        // Verify each item is detected
+        for (i, item) in list_items.iter().enumerate() {
+            assert!(item.starts_with(&format!("{}.", i + 1)),
+                "Item {} should start with '{}.'", i + 1, i + 1);
+        }
+
+        // NEW: Should detect that list has ended (content after list)
+        assert!(looks_like_list_end(content), "Should detect list has ended");
+    }
+
+    #[test]
+    fn test_looks_like_list_end() {
+        // List with content after - should detect as ended
+        let with_content_after = r#"Cursos disponíveis:
+
+1. Ensino Fundamental I
+2. Ensino Fundamental II
+3. Ensino Médio
+
+Entre em contato para mais informações."#;
+        assert!(looks_like_list_end(with_content_after), "Should detect list ended with content after");
+
+        // List with multiple paragraphs after
+        let with_multiple_after = r#"Opções:
+
+1. Opção A
+2. Opção B
+3. Opção C
+
+Texto adicional aqui.
+
+Mais um parágrafo."#;
+        assert!(looks_like_list_end(with_multiple_after), "Should detect list ended with multiple paragraphs");
+
+        // List still in progress - should NOT detect as ended
+        let in_progress = r#"Cursos:
+
+1. Curso A
+2. Curso B
+3."#;
+        assert!(!looks_like_list_end(in_progress), "Should NOT detect list ended (still in progress)");
+
+        // List with only one line after (need 2+ to confirm end)
+        let one_line_after = r#"Cursos:
+
+1. Curso A
+2. Curso B
+
+Uma linha apenas."#;
+        // This has 2 non-empty lines after (empty line + text), so it should detect as ended
+        assert!(looks_like_list_end(one_line_after), "Should detect list ended with 2+ non-empty lines after");
+
+        // No list at all
+        let no_list = "Apenas texto normal sem lista.";
+        assert!(!looks_like_list_end(no_list), "Should NOT detect list ended (no list present)");
+
+        // List with blank lines after (but no content)
+        let list_with_blanks = r#"Lista:
+
+1. Item 1
+2. Item 2
+
+
+"#;
+        assert!(!looks_like_list_end(list_with_blanks), "Should NOT detect list ended (only blank lines after)");
+    }
+
+    #[test]
+    fn test_split_text_before_list() {
+        // Text with list in the middle
+        let text1 = "Texto antes da lista\n\n1. Primeiro item\n2. Segundo item\n\nTexto depois";
+        let (before, rest) = split_text_before_list(text1);
+        assert_eq!(before, "Texto antes da lista\n");
+        assert!(rest.starts_with("1. Primeiro item"));
+
+        // List at the start (no text before)
+        let text2 = "1. Item 1\n2. Item 2";
+        let (before, rest) = split_text_before_list(text2);
+        assert_eq!(before, "");
+        assert_eq!(rest, "1. Item 1\n2. Item 2");
+
+        // No list at all
+        let text3 = "Apenas texto sem lista";
+        let (before, rest) = split_text_before_list(text3);
+        assert_eq!(before, "Apenas texto sem lista");
+        assert_eq!(rest, "");
+
+        // Multiple paragraphs before list
+        let text4 = "Parágrafo 1\n\nParágrafo 2\n\n1. Item";
+        let (before, rest) = split_text_before_list(text4);
+        assert_eq!(before, "Parágrafo 1\n\nParágrafo 2\n");
+        assert_eq!(rest, "1. Item");
+
+        // Bullet list
+        let text5 = "Introdução\n- Item 1\n- Item 2";
+        let (before, rest) = split_text_before_list(text5);
+        assert_eq!(before, "Introdução");
+        assert!(rest.starts_with("- Item 1"));
+    }
+
+    #[test]
+    fn test_split_list_from_text() {
+        // List with text after
+        let text1 = "1. Primeiro item\n2. Segundo item\n\nTexto depois da lista";
+        let (list, after) = split_list_from_text(text1);
+        assert_eq!(list, "1. Primeiro item\n2. Segundo item\n");
+        assert_eq!(after, "Texto depois da lista");
+
+        // List at the end (no text after)
+        let text2 = "1. Item 1\n2. Item 2";
+        let (list, after) = split_list_from_text(text2);
+        assert_eq!(list, "1. Item 1\n2. Item 2");
+        assert_eq!(after, "");
+
+        // List only
+        let text3 = "1. Item";
+        let (list, after) = split_list_from_text(text3);
+        assert_eq!(list, "1. Item");
+        assert_eq!(after, "");
+
+        // List with blank lines after
+        let text4 = "1. Item 1\n2. Item 2\n\n\nTexto";
+        let (list, after) = split_list_from_text(text4);
+        assert_eq!(list, "1. Item 1\n2. Item 2\n\n");
+        assert_eq!(after, "Texto");
+
+        // Bullet list with text after
+        let text5 = "- Item 1\n- Item 2\n\nConclusão";
+        let (list, after) = split_list_from_text(text5);
+        assert_eq!(list, "- Item 1\n- Item 2\n");
+        assert_eq!(after, "Conclusão");
+
+        // Multiple paragraphs after list
+        let text6 = "1. Item\n\nTexto 1\n\nTexto 2";
+        let (list, after) = split_list_from_text(text6);
+        assert_eq!(list, "1. Item\n");
+        assert_eq!(after, "Texto 1\n\nTexto 2");
+    }
+
+    #[test]
+    fn test_list_isolation_scenario() {
+        // Test the complete scenario from zap.md example
+        let full_text = r#"Olá! 😊
+
+Infelizmente, não tenho a informação específica sobre o horário de funcionamento da Escola Salesiana no momento.
+
+Para obter essa informação, você pode:
+1. *Entrar em contato com a secretaria* - Posso te ajudar
+2. *Agendar uma visita* - Assim você conhece a escola
+
+Gostaria que eu te ajudasse?"#;
+
+        // Step 1: Split text before list
+        let (text_before, rest) = split_text_before_list(full_text);
+        assert!(text_before.contains("Olá!"));
+        assert!(text_before.contains("Para obter essa informação, você pode:"));
+        assert!(rest.starts_with("1. *Entrar em contato"));
+
+        // Step 2: Split list from text after
+        let (list, text_after) = split_list_from_text(&rest);
+        assert!(list.starts_with("1. *Entrar em contato"));
+        assert!(list.contains("2. *Agendar uma visita"));
+        assert!(text_after.contains("Gostaria que eu te ajudasse?"));
+    }
+
+    #[test]
+    fn test_partial_list_streaming() {
+        // Simulate streaming chunks arriving
+        let chunks = vec![
+            "Aulas Disponíveis:\n\n",
+            "1. Aula de Violão\n\n",
+            "2. Aula de Piano\n\n",
+            "3. Aula de Canto\n\n",
+        ];
+
+        let mut buffer = String::new();
+        for (i, chunk) in chunks.iter().enumerate() {
+            buffer.push_str(chunk);
+
+            // After first chunk, should detect potential list start
+            if i == 0 {
+                assert!(looks_like_list_start(&buffer) || contains_list(&buffer),
+                    "After chunk 0, should detect list start or contain list");
+            }
+
+            // After second chunk onwards, should detect list
+            if i >= 1 {
+                assert!(contains_list(&buffer),
+                    "After chunk {}, should detect list", i);
+            }
+        }
     }
 }

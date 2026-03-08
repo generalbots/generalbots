@@ -50,6 +50,65 @@ impl WhatsAppAdapter {
         }
     }
 
+    /// Sanitize Markdown text for WhatsApp compatibility
+    /// WhatsApp only supports: *bold*, _italic_, ~strikethrough~, ```monospace```
+    /// Does NOT support: headers (###), links [text](url), checkboxes, etc.
+    pub fn sanitize_for_whatsapp(text: &str) -> String {
+        let mut result = text.to_string();
+
+        // Remove Markdown headers (### ## # at start of lines)
+        result = regex::Regex::new(r"(?m)^#{1,6}\s*")
+            .map(|re| re.replace_all(&result, "").to_string())
+            .unwrap_or(result);
+
+        // Convert Markdown links [text](url) to "text: url"
+        result = regex::Regex::new(r"\[([^\]]+)\]\(([^)]+)\)")
+            .map(|re| re.replace_all(&result, "$1: $2").to_string())
+            .unwrap_or(result);
+
+        // Remove image syntax ![alt](url) - just keep alt text
+        result = regex::Regex::new(r"!\[([^\]]*)\]\([^)]+\)")
+            .map(|re| re.replace_all(&result, "$1").to_string())
+            .unwrap_or(result);
+
+        // Remove checkbox syntax [ ] and [x]
+        result = regex::Regex::new(r"\[[ x]\]")
+            .map(|re| re.replace_all(&result, "•").to_string())
+            .unwrap_or(result);
+
+        // Remove horizontal rules (--- or ***)
+        result = regex::Regex::new(r"(?m)^[-*]{3,}\s*$")
+            .map(|re| re.replace_all(&result, "").to_string())
+            .unwrap_or(result);
+
+        // Remove code blocks with triple backticks ```code```
+        result = regex::Regex::new(r"```[\s\S]*?```")
+            .map(|re| re.replace_all(&result, "").to_string())
+            .unwrap_or(result);
+
+        // Remove inline code with single backticks `code`
+        result = regex::Regex::new(r"`[^`]+`")
+            .map(|re| re.replace_all(&result, "").to_string())
+            .unwrap_or(result);
+
+        // Remove HTML tags if any
+        result = regex::Regex::new(r"<[^>]+>")
+            .map(|re| re.replace_all(&result, "").to_string())
+            .unwrap_or(result);
+
+        // Clean up multiple consecutive blank lines
+        result = regex::Regex::new(r"\n{3,}")
+            .map(|re| re.replace_all(&result, "\n\n").to_string())
+            .unwrap_or(result);
+
+        // Clean up trailing whitespace on lines
+        result = regex::Regex::new(r"[ \t]+$")
+            .map(|re| re.replace_all(&result, "").to_string())
+            .unwrap_or(result);
+
+        result.trim().to_string()
+    }
+
     async fn send_whatsapp_message(
         &self,
         to: &str,
@@ -368,6 +427,154 @@ impl WhatsAppAdapter {
         }
     }
 
+    /// Smart message splitting for WhatsApp's character limit.
+    /// Splits at paragraph boundaries, keeping lists together.
+    /// Groups up to 3 paragraphs per message when possible.
+    pub fn split_message_smart(&self, content: &str, max_length: usize) -> Vec<String> {
+        let mut parts = Vec::new();
+        let mut current_part = String::new();
+        let mut paragraph_count = 0;
+
+        // Split content into blocks (paragraphs or list items)
+        let lines: Vec<&str> = content.lines().collect();
+        let mut i = 0;
+
+        while i < lines.len() {
+            let line = lines[i];
+            let is_list_item = line.trim().starts_with("- ")
+                || line.trim().starts_with("* ")
+                || line.trim().starts_with("• ")
+                || line.trim().starts_with(|c: char| c.is_numeric());
+
+            // Check if this is the start of a list
+            if is_list_item {
+                // Flush current part if it has content and adding list would exceed limit
+                if !current_part.is_empty() {
+                    // If we have 3+ paragraphs, flush
+                    if paragraph_count >= 3 || current_part.len() + line.len() > max_length {
+                        parts.push(current_part.trim().to_string());
+                        current_part = String::new();
+                        paragraph_count = 0;
+                    }
+                }
+
+                // Collect entire list as one block
+                let mut list_block = String::new();
+                while i < lines.len() {
+                    let list_line = lines[i];
+                    let is_still_list = list_line.trim().starts_with("- ")
+                        || list_line.trim().starts_with("* ")
+                        || list_line.trim().starts_with("• ")
+                        || list_line.trim().starts_with(|c: char| c.is_numeric())
+                        || (list_line.trim().is_empty() && i + 1 < lines.len() && {
+                            let next = lines[i + 1];
+                            next.trim().starts_with("- ")
+                                || next.trim().starts_with("* ")
+                                || next.trim().starts_with("• ")
+                        });
+
+                    if is_still_list || (list_line.trim().is_empty() && !list_block.is_empty()) {
+                        if list_block.len() + list_line.len() + 1 > max_length {
+                            // List is too long, split it
+                            if !list_block.is_empty() {
+                                if !current_part.is_empty() {
+                                    parts.push(current_part.trim().to_string());
+                                    current_part = String::new();
+                                }
+                                parts.push(list_block.trim().to_string());
+                                list_block = String::new();
+                            }
+                        }
+                        if !list_line.trim().is_empty() {
+                            if !list_block.is_empty() {
+                                list_block.push('\n');
+                            }
+                            list_block.push_str(list_line);
+                        }
+                        i += 1;
+                    } else {
+                        break;
+                    }
+                }
+
+                if !list_block.is_empty() {
+                    if !current_part.is_empty() && current_part.len() + list_block.len() + 1 <= max_length {
+                        current_part.push('\n');
+                        current_part.push_str(&list_block);
+                    } else {
+                        if !current_part.is_empty() {
+                            parts.push(current_part.trim().to_string());
+                        }
+                        parts.push(list_block.trim().to_string());
+                        current_part = String::new();
+                        paragraph_count = 0;
+                    }
+                }
+                continue;
+            }
+
+            // Regular paragraph
+            if !line.trim().is_empty() {
+                if !current_part.is_empty() {
+                    current_part.push('\n');
+                }
+                current_part.push_str(line);
+                paragraph_count += 1;
+
+                // Flush if we have 3 paragraphs or exceeded max length
+                if paragraph_count >= 3 || current_part.len() > max_length {
+                    parts.push(current_part.trim().to_string());
+                    current_part = String::new();
+                    paragraph_count = 0;
+                }
+            } else if !current_part.is_empty() {
+                // Empty line marks paragraph end
+                paragraph_count += 1;
+                if paragraph_count >= 3 {
+                    parts.push(current_part.trim().to_string());
+                    current_part = String::new();
+                    paragraph_count = 0;
+                }
+            }
+
+            i += 1;
+        }
+
+        // Don't forget the last part
+        if !current_part.trim().is_empty() {
+            parts.push(current_part.trim().to_string());
+        }
+
+        // Handle edge case: if a single part exceeds max_length, force split
+        let mut final_parts = Vec::new();
+        for part in parts {
+            if part.len() <= max_length {
+                final_parts.push(part);
+            } else {
+                // Hard split at max_length, trying to break at word boundary
+                let mut remaining = part.as_str();
+                while !remaining.is_empty() {
+                    if remaining.len() <= max_length {
+                        final_parts.push(remaining.to_string());
+                        break;
+                    }
+                    // Find last space before max_length
+                    let split_pos = remaining[..max_length]
+                        .rfind(' ')
+                        .unwrap_or(max_length);
+                    final_parts.push(remaining[..split_pos].to_string());
+                    remaining = remaining[split_pos..].trim();
+                }
+            }
+        }
+
+        if final_parts.is_empty() {
+            final_parts.push(content.to_string());
+        }
+
+        final_parts
+    }
+
     pub fn verify_webhook(&self, token: &str) -> bool {
         token == self.webhook_verify_token
     }
@@ -405,14 +612,43 @@ impl ChannelAdapter for WhatsAppAdapter {
             return Err("WhatsApp not configured".into());
         }
 
-        let message_id = self
-            .send_whatsapp_message(&response.user_id, &response.content)
-            .await?;
+        // WhatsApp has a 4096 character limit per message
+        // Split message at paragraph/list boundaries
+        const MAX_WHATSAPP_LENGTH: usize = 4000; // Leave some buffer
 
-        info!(
-            "WhatsApp message sent to {}: {} (message_id: {})",
-            response.user_id, response.content, message_id
-        );
+        // Sanitize Markdown for WhatsApp compatibility
+        let sanitized_content = Self::sanitize_for_whatsapp(&response.content);
+
+        if sanitized_content.len() <= MAX_WHATSAPP_LENGTH {
+            // Message fits in one part
+            let message_id = self
+                .send_whatsapp_message(&response.user_id, &sanitized_content)
+                .await?;
+
+            info!(
+                "WhatsApp message sent to {}: {} (message_id: {})",
+                response.user_id, &sanitized_content.chars().take(100).collect::<String>(), message_id
+            );
+        } else {
+            // Split message at appropriate boundaries
+            let parts = self.split_message_smart(&sanitized_content, MAX_WHATSAPP_LENGTH);
+
+            for (i, part) in parts.iter().enumerate() {
+                let message_id = self
+                    .send_whatsapp_message(&response.user_id, part)
+                    .await?;
+
+                info!(
+                    "WhatsApp message part {}/{} sent to {}: {} (message_id: {})",
+                    i + 1, parts.len(), response.user_id, &part.chars().take(50).collect::<String>(), message_id
+                );
+
+                // Small delay between messages to avoid rate limiting
+                if i < parts.len() - 1 {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                }
+            }
+        }
 
         Ok(())
     }
