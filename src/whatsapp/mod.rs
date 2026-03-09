@@ -1107,21 +1107,16 @@ async fn route_to_bot(
             // Rate limiting is handled by WhatsAppAdapter::send_whatsapp_message
         }
 
-        // Use the shared LLM hallucination detector
-        let mut hallucination_detector = crate::llm::hallucination_detector::HallucinationDetector::default();
+        // Use the shared LLM hallucination detector (simple: 50+ repetitions = hallucination)
+        let detector = crate::llm::hallucination_detector::HallucinationDetector::default();
 
         while let Some(response) = rx.recv().await {
             let is_final = response.is_complete;
 
             if !response.content.is_empty() {
-                buffer.push_str(&response.content);
-
-                // Check for hallucination using the shared LLM detector
-                if hallucination_detector.check(&response.content, &buffer) {
-                    warn!(
-                        "WA hallucination detected: {:?}, stopping stream",
-                        hallucination_detector.get_detected_pattern()
-                    );
+                // Check for hallucination (50+ repetitions of same pattern)
+                if detector.check(&response.content).await {
+                    warn!("WA hallucination detected: {:?}, stopping stream", response.content);
                     // Send what we have and stop
                     if !buffer.trim().is_empty() {
                         let clean_buffer = buffer.trim_end();
