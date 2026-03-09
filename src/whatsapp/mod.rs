@@ -625,7 +625,7 @@ async fn process_incoming_message(
         }
     }
 
-    let (session, is_new) = find_or_create_session(&state, bot_id, &phone, &name).await?;
+    let (session, is_new) = find_or_create_session(&state, &effective_bot_id, &phone, &name).await?;
 
     let needs_human = check_needs_human(&session);
 
@@ -1104,16 +1104,31 @@ async fn route_to_bot(
             if let Err(e) = adapter.send_message(wa_response).await {
                 log::error!("Failed to send WhatsApp response part: {}", e);
             }
-
-            // Small delay between parts to avoid rate limiting
-            tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+            // Rate limiting is handled by WhatsAppAdapter::send_whatsapp_message
         }
+
+        // Use the shared LLM hallucination detector
+        let mut hallucination_detector = crate::llm::hallucination_detector::HallucinationDetector::default();
 
         while let Some(response) = rx.recv().await {
             let is_final = response.is_complete;
 
             if !response.content.is_empty() {
                 buffer.push_str(&response.content);
+
+                // Check for hallucination using the shared LLM detector
+                if hallucination_detector.check(&response.content, &buffer) {
+                    warn!(
+                        "WA hallucination detected: {:?}, stopping stream",
+                        hallucination_detector.get_detected_pattern()
+                    );
+                    // Send what we have and stop
+                    if !buffer.trim().is_empty() {
+                        let clean_buffer = buffer.trim_end();
+                        send_part(&adapter_for_send, &phone, clean_buffer.to_string(), true).await;
+                    }
+                    break;
+                }
             }
 
             // IMPROVED LOGIC:

@@ -4,17 +4,22 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::core::bot::channels::ChannelAdapter;
+use crate::core::bot::channels::whatsapp_rate_limiter::WhatsAppRateLimiter;
 use crate::core::config::ConfigManager;
 use crate::core::shared::models::BotResponse;
 use crate::core::shared::utils::DbPool;
 
-#[derive(Debug)]
+/// Global rate limiter for WhatsApp API (shared across all adapters)
+static WHATSAPP_RATE_LIMITER: std::sync::OnceLock<WhatsAppRateLimiter> = std::sync::OnceLock::new();
+
+#[derive(Debug, Clone)]
 pub struct WhatsAppAdapter {
     api_key: String,
     phone_number_id: String,
     webhook_verify_token: String,
     _business_account_id: String,
     api_version: String,
+    rate_limiter: &'static WhatsAppRateLimiter,
 }
 
 impl WhatsAppAdapter {
@@ -41,12 +46,27 @@ impl WhatsAppAdapter {
             .get_config(&bot_id, "whatsapp-api-version", Some("v17.0"))
             .unwrap_or_else(|_| "v17.0".to_string());
 
+        // Get rate limit tier from config (default to Tier 1 for safety)
+        let tier_str = config_manager
+            .get_config(&bot_id, "whatsapp-rate-tier", None)
+            .unwrap_or_else(|_| "1".to_string());
+        let tier = match tier_str.as_str() {
+            "1" | "tier1" => super::whatsapp_rate_limiter::WhatsAppTier::Tier1,
+            "2" | "tier2" => super::whatsapp_rate_limiter::WhatsAppTier::Tier2,
+            "3" | "tier3" => super::whatsapp_rate_limiter::WhatsAppTier::Tier3,
+            "4" | "tier4" => super::whatsapp_rate_limiter::WhatsAppTier::Tier4,
+            _ => super::whatsapp_rate_limiter::WhatsAppTier::Tier1,
+        };
+
         Self {
             api_key,
             phone_number_id,
             webhook_verify_token: verify_token,
             _business_account_id: business_account_id,
             api_version,
+            rate_limiter: WHATSAPP_RATE_LIMITER.get_or_init(|| {
+                super::whatsapp_rate_limiter::WhatsAppRateLimiter::from_tier(tier)
+            }),
         }
     }
 
@@ -114,6 +134,9 @@ impl WhatsAppAdapter {
         to: &str,
         message: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        // Wait for rate limiter before making API call
+        self.rate_limiter.acquire().await;
+
         let client = reqwest::Client::new();
 
         let url = format!(
@@ -157,6 +180,9 @@ impl WhatsAppAdapter {
         language_code: &str,
         components: Vec<serde_json::Value>,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        // Wait for rate limiter before making API call
+        self.rate_limiter.acquire().await;
+
         let client = reqwest::Client::new();
 
         let url = format!(
@@ -643,9 +669,9 @@ impl ChannelAdapter for WhatsAppAdapter {
                     i + 1, parts.len(), response.user_id, &part.chars().take(50).collect::<String>(), message_id
                 );
 
-                // Small delay between messages to avoid rate limiting
+                // Use rate limiter to wait before sending next message
                 if i < parts.len() - 1 {
-                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                    self.rate_limiter.acquire().await;
                 }
             }
         }
