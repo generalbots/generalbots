@@ -9,6 +9,7 @@ pub mod cache;
 pub mod claude;
 pub mod episodic_memory;
 pub mod glm;
+pub mod hallucination_detector;
 pub mod llm_models;
 pub mod local;
 pub mod rate_limiter;

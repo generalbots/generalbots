@@ -458,7 +458,7 @@ impl BotOrchestrator {
                         .get_config(&session.bot_id, "system-prompt", Some("You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response."))
                         .unwrap_or_else(|_| "You are a helpful assistant.".to_string());
 
-                    trace!("Loaded system-prompt for bot {}: {}", session.bot_id, &system_prompt[..system_prompt.len().min(100)]);
+                    info!("Loaded system-prompt for bot {}: {}", session.bot_id, &system_prompt[..system_prompt.len().min(200)]);
 
                     Ok((session, context_data, history, model, key, system_prompt))
                 },
