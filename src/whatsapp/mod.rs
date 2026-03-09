@@ -273,7 +273,21 @@ pub async fn handle_webhook(
         for change in entry.changes {
             debug!("Change field: {}", change.field);
             if change.field == "messages" {
-                debug!("Processing 'messages' field change for bot {}", bot_id);
+                // ==================== Phone Number ID Based Routing ====================
+                // Try to resolve bot by phone_number_id from webhook metadata
+                let effective_bot_id = if let Some(ref phone_id) = change.value.metadata.phone_number_id {
+                    if let Some(routed_bot_id) = resolve_bot_by_phone_number_id(&state, phone_id).await {
+                        info!("Phone number ID routing: {} -> bot {}", phone_id, routed_bot_id);
+                        routed_bot_id
+                    } else {
+                        debug!("No bot found for phone_number_id {}, using default", phone_id);
+                        bot_id
+                    }
+                } else {
+                    bot_id
+                };
+
+                debug!("Processing 'messages' field change for bot {}", effective_bot_id);
                 debug!("Contacts count: {}", change.value.contacts.len());
                 let contact = change.value.contacts.first();
                 let contact_name = contact.map(|c| c.profile.name.clone());
@@ -284,14 +298,14 @@ pub async fn handle_webhook(
                     debug!("Message ID: {}, Type: {}, From: {}", message.id, message.message_type, message.from);
                     if let Err(e) = process_incoming_message(
                         state.clone(),
-                        &bot_id,
+                        &effective_bot_id,
                         &message,
                         contact_name.clone(),
                         contact_phone.clone(),
                     )
                     .await
                     {
-                        error!("Failed to process WhatsApp message for bot {}: {}", bot_id, e);
+                        error!("Failed to process WhatsApp message for bot {}: {}", effective_bot_id, e);
                     }
                 }
 
@@ -306,6 +320,49 @@ pub async fn handle_webhook(
     }
 
     StatusCode::OK
+}
+
+// ==================== Phone Number ID → Bot Routing ====================
+
+/// Resolve bot by whatsapp-phone-number-id from webhook metadata.
+/// This allows automatic routing based on which WhatsApp phone number received the message.
+async fn resolve_bot_by_phone_number_id(
+    state: &Arc<AppState>,
+    phone_number_id: &str,
+) -> Option<Uuid> {
+    if phone_number_id.is_empty() {
+        return None;
+    }
+
+    let conn = state.conn.clone();
+    let search_id = phone_number_id.to_string();
+
+    let result = tokio::task::spawn_blocking(move || {
+        use crate::core::shared::models::schema::{bots, bot_configuration};
+        use diesel::prelude::*;
+
+        let mut db_conn = conn.get().ok()?;
+
+        // Find bot with matching whatsapp-phone-number-id
+        let bot_id: Option<Uuid> = bot_configuration::table
+            .inner_join(bots::table.on(bot_configuration::bot_id.eq(bots::id)))
+            .filter(bots::is_active.eq(true))
+            .filter(bot_configuration::config_key.eq("whatsapp-phone-number-id"))
+            .filter(bot_configuration::config_value.eq(&search_id))
+            .select(bot_configuration::bot_id)
+            .first(&mut db_conn)
+            .ok();
+
+        bot_id
+    })
+    .await
+    .ok()?;
+
+    if let Some(bot_id) = result {
+        info!("Resolved phone_number_id {} to bot {}", phone_number_id, bot_id);
+        return Some(bot_id);
+    }
+    None
 }
 
 // ==================== Phone → Bot Routing Cache Functions ====================
