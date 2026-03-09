@@ -19,9 +19,11 @@ use governor::{
     state::{InMemoryState, NotKeyed},
     Quota, RateLimiter,
 };
+use std::collections::HashMap;
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use tokio::time::sleep;
 
 /// WhatsApp throughput tier levels (matches Meta's tiers)
@@ -146,11 +148,13 @@ type Limiter = RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware
 ///
 /// Uses token bucket algorithm via governor crate.
 /// Thread-safe and async-friendly.
+/// Implements per-recipient rate limiting (1 msg/sec per phone number).
 #[derive(Debug)]
 pub struct WhatsAppRateLimiter {
     limiter: Arc<Limiter>,
     config: WhatsAppRateLimitConfig,
     min_delay: Duration,
+    per_recipient_limiters: Arc<Mutex<HashMap<String, Arc<Limiter>>>>,
 }
 
 impl WhatsAppRateLimiter {
@@ -181,6 +185,7 @@ impl WhatsAppRateLimiter {
             limiter: Arc::new(RateLimiter::direct(quota)),
             config,
             min_delay,
+            per_recipient_limiters: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -210,6 +215,38 @@ impl WhatsAppRateLimiter {
                 return;
             }
         }
+    }
+
+    /// Wait until a message can be sent to a specific recipient (async)
+    ///
+    /// Enforces 1 message per second per phone number (Meta requirement).
+    pub async fn acquire_for_recipient(&self, phone_number: &str) {
+        if !self.config.enabled {
+            return;
+        }
+
+        // Get or create per-recipient limiter (1 msg/sec)
+        let recipient_limiter = {
+            let mut limiters = self.per_recipient_limiters.lock().await;
+            limiters
+                .entry(phone_number.to_string())
+                .or_insert_with(|| {
+                    let quota = Quota::per_second(NonZeroU32::new(1).unwrap());
+                    Arc::new(RateLimiter::direct(quota))
+                })
+                .clone()
+        };
+
+        // Wait for recipient-specific rate limit
+        loop {
+            if recipient_limiter.check().is_ok() {
+                break;
+            }
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        // Also wait for global rate limit
+        self.acquire().await;
     }
 
     /// Try to acquire with timeout
@@ -262,6 +299,7 @@ impl Clone for WhatsAppRateLimiter {
             limiter: Arc::clone(&self.limiter),
             config: self.config.clone(),
             min_delay: self.min_delay,
+            per_recipient_limiters: Arc::clone(&self.per_recipient_limiters),
         }
     }
 }

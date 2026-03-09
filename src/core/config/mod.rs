@@ -473,6 +473,13 @@ impl ConfigManager {
         let mut conn = self
             .get_conn()
             .map_err(|e| format!("Failed to acquire connection: {}", e))?;
+
+        // Delete all existing config keys for this bot to ensure clean sync
+        diesel::sql_query("DELETE FROM bot_configuration WHERE bot_id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .execute(&mut conn)
+            .map_err(|e| format!("Failed to delete existing config: {}", e))?;
+
         let mut updated = 0;
         for line in content.lines().skip(1) {
             let parts: Vec<&str> = line.split(',').collect();
@@ -480,13 +487,13 @@ impl ConfigManager {
                 let key = parts[0].trim();
                 let value = parts[1].trim();
                 let new_id: uuid::Uuid = uuid::Uuid::new_v4();
-                diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()")
+                diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string')")
  .bind::<diesel::sql_types::Uuid, _>(new_id)
  .bind::<diesel::sql_types::Uuid, _>(bot_id)
  .bind::<diesel::sql_types::Text, _>(key)
  .bind::<diesel::sql_types::Text, _>(value)
  .execute(&mut conn)
- .map_err(|e| format!("Failed to update config: {}", e))?;
+ .map_err(|e| format!("Failed to insert config: {}", e))?;
                 updated += 1;
             }
         }

@@ -2,6 +2,7 @@ pub mod instagram;
 pub mod teams;
 pub mod telegram;
 pub mod whatsapp;
+pub mod whatsapp_queue;
 pub mod whatsapp_rate_limiter;
 
 use crate::core::shared::models::BotResponse;

@@ -4,13 +4,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::core::bot::channels::ChannelAdapter;
-use crate::core::bot::channels::whatsapp_rate_limiter::WhatsAppRateLimiter;
+use crate::core::bot::channels::whatsapp_queue::{QueuedWhatsAppMessage, WhatsAppMessageQueue};
 use crate::core::config::ConfigManager;
 use crate::core::shared::models::BotResponse;
 use crate::core::shared::utils::DbPool;
+use std::sync::Arc;
 
-/// Global rate limiter for WhatsApp API (shared across all adapters)
-static WHATSAPP_RATE_LIMITER: std::sync::OnceLock<WhatsAppRateLimiter> = std::sync::OnceLock::new();
+/// Global WhatsApp message queue (shared across all adapters)
+static WHATSAPP_QUEUE: std::sync::OnceLock<Arc<WhatsAppMessageQueue>> = std::sync::OnceLock::new();
 
 #[derive(Debug, Clone)]
 pub struct WhatsAppAdapter {
@@ -19,12 +20,12 @@ pub struct WhatsAppAdapter {
     webhook_verify_token: String,
     _business_account_id: String,
     api_version: String,
-    rate_limiter: &'static WhatsAppRateLimiter,
+    queue: &'static Arc<WhatsAppMessageQueue>,
 }
 
 impl WhatsAppAdapter {
     pub fn new(pool: DbPool, bot_id: Uuid) -> Self {
-        let config_manager = ConfigManager::new(pool);
+        let config_manager = ConfigManager::new(pool.clone());
 
         let api_key = config_manager
             .get_config(&bot_id, "whatsapp-api-key", None)
@@ -46,17 +47,10 @@ impl WhatsAppAdapter {
             .get_config(&bot_id, "whatsapp-api-version", Some("v17.0"))
             .unwrap_or_else(|_| "v17.0".to_string());
 
-        // Get rate limit tier from config (default to Tier 1 for safety)
-        let tier_str = config_manager
-            .get_config(&bot_id, "whatsapp-rate-tier", None)
-            .unwrap_or_else(|_| "1".to_string());
-        let tier = match tier_str.as_str() {
-            "1" | "tier1" => super::whatsapp_rate_limiter::WhatsAppTier::Tier1,
-            "2" | "tier2" => super::whatsapp_rate_limiter::WhatsAppTier::Tier2,
-            "3" | "tier3" => super::whatsapp_rate_limiter::WhatsAppTier::Tier3,
-            "4" | "tier4" => super::whatsapp_rate_limiter::WhatsAppTier::Tier4,
-            _ => super::whatsapp_rate_limiter::WhatsAppTier::Tier1,
-        };
+        // Get Redis URL from config
+        let redis_url = config_manager
+            .get_config(&bot_id, "redis-url", Some("redis://127.0.0.1:6379"))
+            .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
         Self {
             api_key,
@@ -64,8 +58,18 @@ impl WhatsAppAdapter {
             webhook_verify_token: verify_token,
             _business_account_id: business_account_id,
             api_version,
-            rate_limiter: WHATSAPP_RATE_LIMITER.get_or_init(|| {
-                super::whatsapp_rate_limiter::WhatsAppRateLimiter::from_tier(tier)
+            queue: WHATSAPP_QUEUE.get_or_init(|| {
+                let queue = WhatsAppMessageQueue::new(&redis_url)
+                    .unwrap_or_else(|e| {
+                        error!("Failed to create WhatsApp queue: {}", e);
+                        panic!("WhatsApp queue initialization failed");
+                    });
+                let queue = Arc::new(queue);
+                let worker_queue = Arc::clone(&queue);
+                tokio::spawn(async move {
+                    worker_queue.start_worker().await;
+                });
+                queue
             }),
         }
     }
@@ -134,43 +138,20 @@ impl WhatsAppAdapter {
         to: &str,
         message: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        // Wait for rate limiter before making API call
-        self.rate_limiter.acquire().await;
+        // Enqueue message instead of sending directly
+        let queued_msg = QueuedWhatsAppMessage {
+            to: to.to_string(),
+            message: message.to_string(),
+            api_key: self.api_key.clone(),
+            phone_number_id: self.phone_number_id.clone(),
+            api_version: self.api_version.clone(),
+        };
 
-        let client = reqwest::Client::new();
+        self.queue.enqueue(queued_msg).await
+            .map_err(|e| format!("Failed to enqueue WhatsApp message: {}", e))?;
 
-        let url = format!(
-            "https://graph.facebook.com/{}/{}/messages",
-            self.api_version, self.phone_number_id
-        );
-
-        let payload = serde_json::json!({
-            "messaging_product": "whatsapp",
-            "to": to,
-            "type": "text",
-            "text": {
-                "body": message
-            }
-        });
-
-        let response = client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .json(&payload)
-            .send()
-            .await?;
-
-        if response.status().is_success() {
-            let result: serde_json::Value = response.json().await?;
-            Ok(result["messages"][0]["id"]
-                .as_str()
-                .unwrap_or("")
-                .to_string())
-        } else {
-            let error_text = response.text().await?;
-            Err(format!("WhatsApp API error: {}", error_text).into())
-        }
+        info!("WhatsApp message enqueued for {}: {}", to, &message.chars().take(50).collect::<String>());
+        Ok("queued".to_string())
     }
 
     pub async fn send_template_message(
@@ -668,11 +649,7 @@ impl ChannelAdapter for WhatsAppAdapter {
                     "WhatsApp message part {}/{} sent to {}: {} (message_id: {})",
                     i + 1, parts.len(), response.user_id, &part.chars().take(50).collect::<String>(), message_id
                 );
-
-                // Use rate limiter to wait before sending next message
-                if i < parts.len() - 1 {
-                    self.rate_limiter.acquire().await;
-                }
+                // Rate limiting is now handled inside send_whatsapp_message (per-recipient)
             }
         }
 
