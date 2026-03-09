@@ -161,9 +161,7 @@ impl WhatsAppAdapter {
         language_code: &str,
         components: Vec<serde_json::Value>,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        // Wait for rate limiter before making API call
-        self.rate_limiter.acquire().await;
-
+        // Enqueue template message
         let client = reqwest::Client::new();
 
         let url = format!(
