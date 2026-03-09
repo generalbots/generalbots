@@ -76,9 +76,10 @@ impl WhatsAppMessageQueue {
     async fn process_next(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut conn = self.redis_client.get_multiplexed_async_connection().await?;
         
-        let result: Option<String> = conn.blpop(Self::QUEUE_KEY, 5.0).await?;
+        // BLPOP returns (key, value) tuple
+        let result: Option<(String, String)> = conn.blpop(Self::QUEUE_KEY, 5.0).await?;
         
-        if let Some(json) = result {
+        if let Some((_key, json)) = result {
             let msg: QueuedWhatsAppMessage = serde_json::from_str(&json)?;
             
             // Check and enforce rate limit for this recipient
