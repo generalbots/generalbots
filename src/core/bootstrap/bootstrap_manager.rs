@@ -160,15 +160,28 @@ impl BootstrapManager {
 
         if pm.is_installed("directory") {
             // Wait for Zitadel to be ready - it might have been started during installation
-            // Give it up to 60 seconds before trying to start it ourselves
+            // Use incremental backoff: check frequently at first, then slow down
             let mut directory_already_running = zitadel_health_check();
             if !directory_already_running {
-                info!("Zitadel not responding to health check, waiting up to 60s for it to start...");
-                for i in 0..30 {
-                    sleep(Duration::from_secs(2)).await;
-                    if zitadel_health_check() {
-                        info!("Zitadel/Directory service is now responding (waited {}s)", (i + 1) * 2);
-                        directory_already_running = true;
+                info!("Zitadel not responding to health check, waiting with incremental backoff...");
+                // Check intervals: 1s x5, 2s x5, 5s x5, 10s x3 = ~60s total
+                let intervals: [(u64, u32); 4] = [(1, 5), (2, 5), (5, 5), (10, 3)];
+                let mut total_waited: u64 = 0;
+                for (interval_secs, count) in intervals {
+                    for i in 0..count {
+                        if zitadel_health_check() {
+                            info!("Zitadel/Directory service is now responding (waited {}s)", total_waited);
+                            directory_already_running = true;
+                            break;
+                        }
+                        sleep(Duration::from_secs(interval_secs)).await;
+                        total_waited += interval_secs;
+                        // Show incremental progress every ~10s
+                        if total_waited % 10 == 0 || i == 0 {
+                            info!("Zitadel health check: {}s elapsed, retrying...", total_waited);
+                        }
+                    }
+                    if directory_already_running {
                         break;
                     }
                 }

@@ -69,6 +69,7 @@ pub async fn run_axum_server(
             .add_anonymous_path("/api/client-errors")
             .add_anonymous_path("/ws")
             .add_anonymous_path("/auth")
+            .add_anonymous_path("/webhook/whatsapp") // WhatsApp webhook for Meta verification
             .add_public_path("/static")
             .add_public_path("/favicon.ico")
             .add_public_path("/suite")

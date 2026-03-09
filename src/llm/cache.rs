@@ -275,7 +275,7 @@ impl CachedLLMProvider {
         }
 
         if self.config.semantic_matching && self.embedding_service.is_some() {
-            if let Some(similar) = self.find_similar_cached(prompt, messages, model).await {
+            if let Some(similar) = self.find_similar_cached(prompt, messages, model, self.config.similarity_threshold).await {
                 info!(
                     "Cache hit (semantic match) for prompt: ~{} tokens",
                     estimate_token_count(prompt)
@@ -296,6 +296,7 @@ impl CachedLLMProvider {
         prompt: &str,
         messages: &Value,
         model: &str,
+        threshold: f32,
     ) -> Option<CachedResponse> {
         let embedding_service = self.embedding_service.as_ref()?;
 
@@ -305,9 +306,40 @@ impl CachedLLMProvider {
             messages
         };
 
-        let combined_context = format!("{}\n{}", prompt, actual_messages);
+        // Extract ONLY the latest user question for semantic matching
+        // This prevents false positives from matching on old conversation history
+        let latest_user_question = if let Some(msgs) = actual_messages.as_array() {
+            // Find the last message with role "user"
+            msgs.iter()
+                .rev()
+                .find_map(|msg| {
+                    if msg.get("role").and_then(|r| r.as_str()) == Some("user") {
+                        msg.get("content").and_then(|c| c.as_str())
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or("")
+        } else {
+            ""
+        };
 
-        let prompt_embedding = match embedding_service.get_embedding(&combined_context).await {
+        // Use only the latest user question for semantic matching, not the full history
+        // The prompt contains system context, so we combine with latest question
+        let semantic_query = if latest_user_question.is_empty() {
+            prompt.to_string()
+        } else {
+            format!("{}\n{}", prompt, latest_user_question)
+        };
+
+        // Debug: log the text being sent for embedding
+        debug!(
+            "Embedding request text (len={}, using latest user question): {}",
+            semantic_query.len(),
+            &semantic_query.chars().take(200).collect::<String>()
+        );
+
+        let prompt_embedding = match embedding_service.get_embedding(&semantic_query).await {
             Ok(emb) => emb,
             Err(e) => {
                 debug!("Failed to get embedding for prompt: {}", e);
@@ -343,7 +375,7 @@ impl CachedLLMProvider {
                             .compute_similarity(&prompt_embedding, cached_embedding)
                             .await;
 
-                        if similarity >= self.config.similarity_threshold
+                        if similarity >= threshold
                             && best_match.as_ref().is_none_or(|(_, s)| *s < similarity)
                         {
                             best_match = Some((cached.clone(), similarity));
@@ -390,8 +422,30 @@ impl CachedLLMProvider {
         };
 
         let embedding = if let Some(ref service) = self.embedding_service {
-            let combined_context = format!("{}\n{}", prompt, actual_messages);
-            service.get_embedding(&combined_context).await.ok()
+            // Extract ONLY the latest user question for embedding
+            // Same logic as find_similar_cached to ensure consistency
+            let latest_user_question = if let Some(msgs) = actual_messages.as_array() {
+                msgs.iter()
+                    .rev()
+                    .find_map(|msg| {
+                        if msg.get("role").and_then(|r| r.as_str()) == Some("user") {
+                            msg.get("content").and_then(|c| c.as_str())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or("")
+            } else {
+                ""
+            };
+
+            let semantic_query = if latest_user_question.is_empty() {
+                prompt.to_string()
+            } else {
+                format!("{}\n{}", prompt, latest_user_question)
+            };
+
+            service.get_embedding(&semantic_query).await.ok()
         } else {
             None
         };
@@ -520,7 +574,7 @@ impl LLMProvider for CachedLLMProvider {
         }
 
         if bot_cache_config.semantic_matching && self.embedding_service.is_some() {
-            if let Some(cached) = self.find_similar_cached(prompt, messages, model).await {
+            if let Some(cached) = self.find_similar_cached(prompt, messages, model, bot_cache_config.similarity_threshold).await {
                 info!(
                     "Cache hit (semantic match) for bot {} with similarity threshold {}",
                     bot_id, bot_cache_config.similarity_threshold
@@ -616,6 +670,31 @@ impl LocalEmbeddingService {
             api_key,
         }
     }
+
+    /// Generate a deterministic hash-based embedding for fallback
+    fn hash_embedding(&self, text: &str) -> Vec<f32> {
+        const EMBEDDING_DIM: usize = 384; // Match common embedding dimensions
+        let mut embedding = vec![0.0f32; EMBEDDING_DIM];
+
+        let hash = Sha256::digest(text.as_bytes());
+
+        // Use hash bytes to seed the embedding
+        for (i, byte) in hash.iter().cycle().take(EMBEDDING_DIM * 4).enumerate() {
+            let idx = i % EMBEDDING_DIM;
+            let value = (*byte as f32 - 128.0) / 128.0;
+            embedding[idx] += value * 0.1;
+        }
+
+        // Normalize
+        let norm: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
+        if norm > 0.0 {
+            for val in &mut embedding {
+                *val /= norm;
+            }
+        }
+
+        embedding
+    }
 }
 
 #[async_trait]
@@ -636,13 +715,6 @@ impl EmbeddingService for LocalEmbeddingService {
             format!("{}/embedding", self.embedding_url)
         };
 
-        let mut request = client.post(&url);
-
-        // Add authorization header if API key is provided
-        if let Some(ref api_key) = self.api_key {
-            request = request.header("Authorization", format!("Bearer {}", api_key));
-        }
-
         // Determine request body format based on URL
         let request_body = if self.embedding_url.contains("huggingface.co") {
             serde_json::json!({
@@ -660,88 +732,131 @@ impl EmbeddingService for LocalEmbeddingService {
             })
         };
 
-        let response = request
-            .json(&request_body)
-            .send()
-            .await?;
+        // Retry logic with exponential backoff
+        const MAX_RETRIES: u32 = 3;
+        const INITIAL_DELAY_MS: u64 = 500;
 
-        let status = response.status();
-        let response_text = response.text().await?;
-
-        if !status.is_success() {
-            debug!(
-                "Embedding service HTTP error {}: {}",
-                status,
-                response_text
-            );
-            return Err(format!(
-                "Embedding service returned HTTP {}: {}",
-                status,
-                response_text
-            ).into());
-        }
-
-        let result: Value = serde_json::from_str(&response_text)
-            .map_err(|e| {
-                debug!("Failed to parse embedding JSON: {} - Response: {}", e, response_text);
-                format!("Failed to parse embedding response JSON: {} - Response: {}", e, response_text)
-            })?;
-
-        if let Some(error) = result.get("error") {
-            debug!("Embedding service returned error: {}", error);
-            return Err(format!("Embedding service error: {}", error).into());
-        }
-
-        // Try multiple response formats
-        let embedding = if let Some(arr) = result.as_array() {
-            // HuggingFace format: direct array [0.1, 0.2, ...]
-            arr.iter()
-                .filter_map(|v| v.as_f64().map(|f| f as f32))
-                .collect()
-        } else if let Some(result_obj) = result.get("result") {
-            // Cloudflare AI format: {"result": {"data": [[...]]}}
-            if let Some(data) = result_obj.get("data") {
-                if let Some(data_arr) = data.as_array() {
-                    if let Some(first) = data_arr.first() {
-                        if let Some(embedding_arr) = first.as_array() {
-                            embedding_arr
-                                .iter()
-                                .filter_map(|v| v.as_f64().map(|f| f as f32))
-                                .collect()
-                        } else {
-                            data_arr
-                                .iter()
-                                .filter_map(|v| v.as_f64().map(|f| f as f32))
-                                .collect()
-                        }
-                    } else {
-                        return Err("Empty data array in Cloudflare response".into());
-                    }
-                } else {
-                    return Err(format!("Invalid Cloudflare response format - Expected result.data array, got: {}", response_text).into());
-                }
-            } else {
-                return Err(format!("Invalid Cloudflare response format - Expected result.data, got: {}", response_text).into());
+        for attempt in 0..MAX_RETRIES {
+            if attempt > 0 {
+                let delay_ms = INITIAL_DELAY_MS * (1 << (attempt - 1)); // 500, 1000, 2000
+                debug!("Embedding service retry attempt {}/{} after {}ms", attempt + 1, MAX_RETRIES, delay_ms);
+                tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
             }
-        } else if let Some(data) = result.get("data") {
-            // OpenAI/Standard format: {"data": [{"embedding": [...]}]}
-            data[0]["embedding"]
-                .as_array()
-                .ok_or_else(|| {
-                    debug!("Invalid embedding response format. Expected data[0].embedding array. Got: {}", response_text);
-                    format!("Invalid embedding response format - Expected data[0].embedding array, got: {}", response_text)
-                })?
-                .iter()
-                .filter_map(|v| v.as_f64().map(|f| f as f32))
-                .collect()
-        } else {
-            return Err(format!(
-                "Invalid embedding response format - Expected array or data[0].embedding, got: {}",
-                response_text
-            ).into());
-        };
 
-        Ok(embedding)
+            let mut request = client.post(&url);
+
+            // Add authorization header if API key is provided
+            if let Some(ref api_key) = self.api_key {
+                request = request.header("Authorization", format!("Bearer {}", api_key));
+            }
+
+            match request
+                .json(&request_body)
+                .timeout(std::time::Duration::from_secs(30))
+                .send()
+                .await
+            {
+                Ok(response) => {
+                    let status = response.status();
+                    let response_text = match response.text().await {
+                        Ok(t) => t,
+                        Err(e) => {
+                            debug!("Failed to read response body: {}", e);
+                            continue;
+                        }
+                    };
+
+                    if !status.is_success() {
+                        debug!(
+                            "Embedding service HTTP error {} (attempt {}/{}): {}",
+                            status, attempt + 1, MAX_RETRIES, response_text
+                        );
+                        // Retry on 5xx errors
+                        if status.as_u16() >= 500 {
+                            continue;
+                        }
+                        // Non-retriable error
+                        return Err(format!(
+                            "Embedding service returned HTTP {}: {}",
+                            status, response_text
+                        ).into());
+                    }
+
+                    // Success - parse response
+                    let result: Value = match serde_json::from_str(&response_text) {
+                        Ok(r) => r,
+                        Err(e) => {
+                            debug!("Failed to parse embedding JSON: {} - Response: {}", e, response_text);
+                            return Err(format!("Failed to parse embedding response JSON: {} - Response: {}", e, response_text).into());
+                        }
+                    };
+
+                    if let Some(error) = result.get("error") {
+                        debug!("Embedding service returned error: {}", error);
+                        return Err(format!("Embedding service error: {}", error).into());
+                    }
+
+                    // Try multiple response formats
+                    let embedding = if let Some(arr) = result.as_array() {
+                        // HuggingFace format: direct array [0.1, 0.2, ...]
+                        arr.iter()
+                            .filter_map(|v| v.as_f64().map(|f| f as f32))
+                            .collect()
+                    } else if let Some(result_obj) = result.get("result") {
+                        // Cloudflare AI format: {"result": {"data": [[...]]}}
+                        if let Some(data) = result_obj.get("data") {
+                            if let Some(data_arr) = data.as_array() {
+                                if let Some(first) = data_arr.first() {
+                                    if let Some(embedding_arr) = first.as_array() {
+                                        embedding_arr
+                                            .iter()
+                                            .filter_map(|v| v.as_f64().map(|f| f as f32))
+                                            .collect()
+                                    } else {
+                                        data_arr
+                                            .iter()
+                                            .filter_map(|v| v.as_f64().map(|f| f as f32))
+                                            .collect()
+                                    }
+                                } else {
+                                    return Err("Empty data array in Cloudflare response".into());
+                                }
+                            } else {
+                                return Err(format!("Invalid Cloudflare response format - Expected result.data array, got: {}", response_text).into());
+                            }
+                        } else {
+                            return Err(format!("Invalid Cloudflare response format - Expected result.data, got: {}", response_text).into());
+                        }
+                    } else if let Some(data) = result.get("data") {
+                        // OpenAI/Standard format: {"data": [{"embedding": [...]}]}
+                        data[0]["embedding"]
+                            .as_array()
+                            .ok_or_else(|| {
+                                debug!("Invalid embedding response format. Expected data[0].embedding array. Got: {}", response_text);
+                                format!("Invalid embedding response format - Expected data[0].embedding array, got: {}", response_text)
+                            })?
+                            .iter()
+                            .filter_map(|v| v.as_f64().map(|f| f as f32))
+                            .collect()
+                    } else {
+                        return Err(format!(
+                            "Invalid embedding response format - Expected array or data[0].embedding, got: {}",
+                            response_text
+                        ).into());
+                    };
+
+                    return Ok(embedding);
+                }
+                Err(e) => {
+                    // Network error - retry
+                    debug!("Embedding service network error (attempt {}/{}): {}", attempt + 1, MAX_RETRIES, e);
+                }
+            }
+        }
+
+        // All retries exhausted - use hash-based fallback
+        debug!("Embedding service failed after all retries, using hash-based fallback");
+        Ok(self.hash_embedding(text))
     }
 
     async fn compute_similarity(&self, embedding1: &[f32], embedding2: &[f32]) -> f32 {

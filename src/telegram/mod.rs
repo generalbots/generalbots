@@ -401,17 +401,36 @@ async fn route_to_bot(
     let chat_id_clone = chat_id.to_string();
 
     tokio::spawn(async move {
-        while let Some(response) = rx.recv().await {
-            let tg_response = BotResponse::new(
-                response.bot_id,
-                response.session_id,
-                chat_id_clone.clone(),
-                response.content,
-                "telegram",
-            );
+        // Buffer to accumulate streaming chunks
+        let mut accumulated_content = String::new();
+        let mut chunk_count = 0u32;
 
-            if let Err(e) = adapter.send_message(tg_response).await {
-                error!("Failed to send Telegram response: {}", e);
+        while let Some(response) = rx.recv().await {
+            // Accumulate content from each chunk
+            if !response.content.is_empty() {
+                accumulated_content.push_str(&response.content);
+                chunk_count += 1;
+            }
+
+            // Send when complete or as fallback after 5 chunks
+            if response.is_complete || chunk_count >= 5 {
+                if !accumulated_content.is_empty() {
+                    let tg_response = BotResponse::new(
+                        response.bot_id,
+                        response.session_id,
+                        chat_id_clone.clone(),
+                        accumulated_content.clone(),
+                        "telegram",
+                    );
+
+                    if let Err(e) = adapter.send_message(tg_response).await {
+                        error!("Failed to send Telegram response: {}", e);
+                    }
+
+                    // Reset buffer after sending
+                    accumulated_content.clear();
+                    chunk_count = 0;
+                }
             }
         }
     });

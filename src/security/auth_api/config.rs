@@ -30,6 +30,7 @@ impl Default for AuthConfig {
                 "/api/auth/refresh".to_string(),
                 "/oauth".to_string(),
                 "/auth/callback".to_string(),
+                "/webhook/whatsapp".to_string(),
             ],
             public_paths: vec![
                 "/".to_string(),

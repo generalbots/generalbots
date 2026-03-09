@@ -399,6 +399,7 @@ impl RbacManager {
                 continue;
             }
 
+            // Check allow_anonymous FIRST before authentication check
             if route.allow_anonymous {
                 let result = AccessDecisionResult::allow("Anonymous access allowed")
                     .with_rule(route.path_pattern.clone());
@@ -406,6 +407,7 @@ impl RbacManager {
                 return result;
             }
 
+            // Only check authentication after confirming route is not anonymous
             if !user.is_authenticated() {
                 let result = AccessDecisionResult::deny("Authentication required");
                 return result;
@@ -948,6 +950,10 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/product", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/bot/config", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/i18n/**", "GET", "").with_anonymous(true),
+
+        // WhatsApp webhook - anonymous for Meta verification and message delivery
+        RoutePermission::new("/webhook/whatsapp/:bot_id", "GET", "").with_anonymous(true),
+        RoutePermission::new("/webhook/whatsapp/:bot_id", "POST", "").with_anonymous(true),
 
         // Auth routes - login must be anonymous
         RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),

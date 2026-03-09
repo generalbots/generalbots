@@ -337,6 +337,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     users,
     website_crawls,
     bots,
+    bot_configuration,
     organizations,
     organization_invitations,
 );
