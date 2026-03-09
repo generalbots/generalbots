@@ -416,7 +416,7 @@ impl BotOrchestrator {
         let session_id = Uuid::parse_str(&message.session_id)?;
         let message_content = message.content.clone();
 
-        let (session, context_data, history, model, key) = {
+        let (session, context_data, history, model, key, system_prompt) = {
             let state_clone = self.state.clone();
             tokio::task::spawn_blocking(
                 move || -> Result<_, Box<dyn std::error::Error + Send + Sync>> {
@@ -453,14 +453,24 @@ impl BotOrchestrator {
                         .get_config(&session.bot_id, "llm-key", Some(""))
                         .unwrap_or_default();
 
-                    Ok((session, context_data, history, model, key))
+                    // Load system-prompt from config.csv, fallback to default
+                    let system_prompt = config_manager
+                        .get_config(&session.bot_id, "system-prompt", Some("You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response."))
+                        .unwrap_or_else(|_| "You are a helpful assistant.".to_string());
+
+                    trace!("Loaded system-prompt for bot {}: {}", session.bot_id, &system_prompt[..system_prompt.len().min(100)]);
+
+                    Ok((session, context_data, history, model, key, system_prompt))
                 },
             )
             .await??
         };
 
-        let system_prompt = "You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response.".to_string();
         let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+
+        trace!("Built messages array with {} items, first message role: {:?}",
+            messages.as_array().map(|a| a.len()).unwrap_or(0),
+            messages.as_array().and_then(|a| a.first()).and_then(|m| m.get("role")));
 
         // Get bot name for KB and tool injection
         let bot_name_for_context = {
@@ -643,10 +653,10 @@ impl BotOrchestrator {
         let mut in_analysis = false;
         let mut tool_call_buffer = String::new(); // Accumulate potential tool call JSON chunks
         let mut accumulating_tool_call = false; // Track if we're currently accumulating a tool call
-        let mut tool_was_executed = false; // Track if a tool was executed to avoid duplicate final message
         let handler = llm_models::get_handler(&model);
 
         trace!("Using model handler for {}", model);
+        trace!("Receiving LLM stream chunks...");
 
         #[cfg(feature = "nvidia")]
         {
@@ -670,7 +680,6 @@ impl BotOrchestrator {
         }
 
         while let Some(chunk) = stream_rx.recv().await {
-            trace!("Received LLM chunk: {:?}", chunk);
 
             // ===== GENERIC TOOL EXECUTION =====
             // Add chunk to tool_call_buffer and try to parse
@@ -815,7 +824,6 @@ impl BotOrchestrator {
                 // Clear the tool_call_buffer since we found and executed a tool call
                 tool_call_buffer.clear();
                 accumulating_tool_call = false; // Reset accumulation flag
-                tool_was_executed = true; // Mark that a tool was executed
                 // Continue to next chunk
                 continue;
             }
@@ -957,6 +965,8 @@ impl BotOrchestrator {
             }
         }
 
+        trace!("LLM stream complete. Full response: {}", full_response);
+
         let state_for_save = self.state.clone();
         let full_response_clone = full_response.clone();
         tokio::task::spawn_blocking(
@@ -977,9 +987,10 @@ impl BotOrchestrator {
         #[cfg(not(feature = "chat"))]
         let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
 
-        // When a tool was executed, the content was already sent as streaming chunks
-        // (pre-tool text + tool result). Sending full_response again would duplicate it.
-        let final_content = if tool_was_executed { String::new() } else { full_response };
+        // Content was already sent as streaming chunks.
+        // Sending full_response again would duplicate it (especially for WhatsApp which accumulates buffer).
+        // The final response is just a signal that streaming is complete - it should not contain content.
+        let final_content = String::new();
 
         let final_response = BotResponse {
             bot_id: message.bot_id,

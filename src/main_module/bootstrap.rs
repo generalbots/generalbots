@@ -752,14 +752,21 @@ fn init_llm_provider(
             .get_config(&bot_id, "embedding-key", None)
             .ok();
         let semantic_cache_enabled = config_manager
-            .get_config(&bot_id, "semantic-cache-enabled", Some("true"))
+            .get_config(&bot_id, "llm-cache-semantic", Some("true"))
             .unwrap_or_else(|_| "true".to_string())
             .to_lowercase() == "true";
+
+        let similarity_threshold = config_manager
+            .get_config(&bot_id, "llm-cache-threshold", Some("0.85"))
+            .unwrap_or_else(|_| "0.85".to_string())
+            .parse::<f32>()
+            .unwrap_or(0.85);
 
         info!("Embedding URL: {}", embedding_url);
         info!("Embedding Model: {}", embedding_model);
         info!("Embedding Key: {}", if embedding_key.is_some() { "configured" } else { "not set" });
         info!("Semantic Cache Enabled: {}", semantic_cache_enabled);
+        info!("Cache Similarity Threshold: {}", similarity_threshold);
 
         let embedding_service = if semantic_cache_enabled {
             Some(Arc::new(LocalEmbeddingService::new(
@@ -774,7 +781,7 @@ fn init_llm_provider(
         let cache_config = CacheConfig {
             ttl: 3600,
             semantic_matching: semantic_cache_enabled,
-            similarity_threshold: 0.85,
+            similarity_threshold,
             max_similarity_checks: 100,
             key_prefix: "llm_cache".to_string(),
         };

@@ -1,4 +1,4 @@
-use crate::core::bot::BotOrchestrator;
+use crate::core::bot::{BotOrchestrator, get_default_bot};
 use crate::core::bot::channels::whatsapp::WhatsAppAdapter;
 use crate::core::bot::channels::ChannelAdapter;
 use crate::core::config::ConfigManager;
@@ -178,12 +178,48 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/whatsapp/send", post(send_message))
 }
 
+/// Resolve bot_id string to Uuid.
+/// - "default" → returns UUID of the default bot
+/// - Valid UUID string → returns the UUID
+/// - Otherwise → returns error response
+async fn resolve_bot_id(
+    bot_id_str: &str,
+    state: &Arc<AppState>,
+) -> Result<Uuid, (StatusCode, String)> {
+    if bot_id_str == "default" {
+        let conn = state.conn.clone();
+        let bot_id = tokio::task::spawn_blocking(move || {
+            let mut db_conn = conn.get().ok()?;
+            let (id, _) = get_default_bot(&mut db_conn);
+            Some(id)
+        })
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_else(Uuid::nil);
+
+        if bot_id.is_nil() {
+            return Err((StatusCode::NOT_FOUND, "Default bot not found".to_string()));
+        }
+        info!("Resolved 'default' to bot_id: {}", bot_id);
+        Ok(bot_id)
+    } else {
+        Uuid::parse_str(bot_id_str)
+            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid bot ID: {}", e)))
+    }
+}
+
 pub async fn verify_webhook(
     State(state): State<Arc<AppState>>,
-    Path(bot_id): Path<Uuid>,
+    Path(bot_id_str): Path<String>,
     Query(params): Query<WebhookVerifyQuery>,
 ) -> impl IntoResponse {
-    info!("WhatsApp webhook verification request received for bot {}", bot_id);
+    let bot_id = match resolve_bot_id(&bot_id_str, &state).await {
+        Ok(id) => id,
+        Err(err) => return err,
+    };
+
+    info!("WhatsApp webhook verification request received for bot {} (input: {})", bot_id, bot_id_str);
 
     let mode = params.mode.unwrap_or_default();
     let token = params.verify_token.unwrap_or_default();
@@ -207,9 +243,14 @@ pub async fn verify_webhook(
 
 pub async fn handle_webhook(
     State(state): State<Arc<AppState>>,
-    Path(bot_id): Path<Uuid>,
+    Path(bot_id_str): Path<String>,
     body: axum::body::Bytes,
 ) -> impl IntoResponse {
+    let bot_id = match resolve_bot_id(&bot_id_str, &state).await {
+        Ok(id) => id,
+        Err(err) => return err.0,
+    };
+
     debug!("Raw webhook body: {}", String::from_utf8_lossy(&body));
 
     let payload: WhatsAppWebhook = match serde_json::from_slice(&body) {
@@ -267,6 +308,110 @@ pub async fn handle_webhook(
     StatusCode::OK
 }
 
+// ==================== Phone → Bot Routing Cache Functions ====================
+
+/// Get the cached bot_id for a phone number from the routing cache
+async fn get_cached_bot_for_phone(state: &Arc<AppState>, phone: &str) -> Option<Uuid> {
+    let cache = state.cache.as_ref()?;
+    let mut conn = cache.get_multiplexed_async_connection().await.ok()?;
+    let key = format!("wa_phone_bot:{}", phone);
+
+    let bot_id_str: Option<String> = redis::cmd("GET")
+        .arg(&key)
+        .query_async(&mut conn)
+        .await
+        .ok()
+        .flatten();
+
+    if let Some(bot_id_str) = bot_id_str {
+        if let Ok(bot_id) = Uuid::parse_str(&bot_id_str) {
+            debug!("Found cached bot {} for phone {}", bot_id, phone);
+            return Some(bot_id);
+        }
+    }
+    None
+}
+
+/// Set the bot_id for a phone number in the routing cache
+async fn set_cached_bot_for_phone(state: &Arc<AppState>, phone: &str, bot_id: Uuid) {
+    if let Some(cache) = &state.cache {
+        if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+            let key = format!("wa_phone_bot:{}", phone);
+            // Cache for 24 hours (86400 seconds)
+            let result: Result<(), _> = redis::cmd("SET")
+                .arg(&key)
+                .arg(bot_id.to_string())
+                .arg("EX")
+                .arg(86400)
+                .query_async(&mut conn)
+                .await;
+            if let Err(e) = result {
+                error!("Failed to cache bot for phone {}: {}", phone, e);
+            } else {
+                info!("Cached bot {} for phone {}", bot_id, phone);
+            }
+        }
+    }
+}
+
+// ==================== WhatsApp ID Routing Functions ====================
+
+/// Check if the message text is a whatsapp-id routing command.
+/// Returns the bot_id if a matching bot is found with that whatsapp-id.
+async fn check_whatsapp_id_routing(
+    state: &Arc<AppState>,
+    message_text: &str,
+) -> Option<Uuid> {
+    let text = message_text.trim().to_lowercase();
+
+    // Skip empty messages or messages that are too long (whatsapp-id should be short)
+    if text.is_empty() || text.len() > 50 {
+        return None;
+    }
+
+    // Skip messages that look like regular sentences (contain spaces or common punctuation)
+    if text.contains(' ') || text.contains('.') || text.contains('?') || text.contains('!') {
+        return None;
+    }
+
+    // Search for a bot with matching whatsapp-id in config
+    let conn = state.conn.clone();
+    let search_text = text.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        use crate::core::shared::models::schema::{bots, bot_configuration};
+        use diesel::prelude::*;
+
+        let mut db_conn = conn.get().ok()?;
+
+        // Find all active bots with whatsapp-id config
+        let bot_ids_with_whatsapp_id: Vec<(Uuid, String)> = bot_configuration::table
+            .inner_join(bots::table.on(bot_configuration::bot_id.eq(bots::id)))
+            .filter(bots::is_active.eq(true))
+            .filter(bot_configuration::config_key.eq("whatsapp-id"))
+            .select((bot_configuration::bot_id, bot_configuration::config_value))
+            .load::<(Uuid, String)>(&mut db_conn)
+            .ok()?;
+
+        // Find matching bot
+        for (bot_id, whatsapp_id) in bot_ids_with_whatsapp_id {
+            if whatsapp_id.to_lowercase() == search_text {
+                return Some(bot_id);
+            }
+        }
+        None
+    })
+    .await
+    .ok()
+    .flatten();
+
+    if let Some(bot_id) = result {
+        info!("Found bot {} matching whatsapp-id: {}", bot_id, text);
+    }
+
+    result
+}
+
 async fn process_incoming_message(
     state: Arc<AppState>,
     bot_id: &Uuid,
@@ -302,11 +447,6 @@ async fn process_incoming_message(
         .unwrap_or_else(|| message.from.clone());
     let name = contact_name.clone().unwrap_or_else(|| phone.clone());
 
-    info!(
-        "Processing WhatsApp message from {} ({}) for bot {}: type={}",
-        name, phone, bot_id, message.message_type
-    );
-
     let content = extract_message_content(message);
     debug!("Extracted content from WhatsApp message: '{}'", content);
 
@@ -315,12 +455,63 @@ async fn process_incoming_message(
         return Ok(());
     }
 
+    // ==================== Dynamic Bot Routing ====================
+    // Check if this is a whatsapp-id routing command (e.g., "cristo", "salesianos")
+    let mut effective_bot_id = *bot_id;
+
+    if let Some(routed_bot_id) = check_whatsapp_id_routing(&state, &content).await {
+        // User typed a whatsapp-id command - switch to that bot
+        info!(
+            "Routing WhatsApp user {} from bot {} to bot {} (whatsapp-id: {})",
+            phone, bot_id, routed_bot_id, content
+        );
+        effective_bot_id = routed_bot_id;
+        set_cached_bot_for_phone(&state, &phone, routed_bot_id).await;
+
+        // Send confirmation message
+        let adapter = WhatsAppAdapter::new(state.conn.clone(), effective_bot_id);
+        let bot_response = BotResponse {
+            bot_id: effective_bot_id.to_string(),
+            session_id: Uuid::nil().to_string(),
+            user_id: phone.clone(),
+            channel: "whatsapp".to_string(),
+            content: format!("✅ Bot alterado para: {}", content),
+            message_type: MessageType::BOT_RESPONSE,
+            stream_token: None,
+            is_complete: true,
+            suggestions: vec![],
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
+        if let Err(e) = adapter.send_message(bot_response).await {
+            error!("Failed to send routing confirmation: {}", e);
+        }
+        return Ok(());
+    }
+
+    // Check if there's a cached bot for this phone number
+    if let Some(cached_bot_id) = get_cached_bot_for_phone(&state, &phone).await {
+        if cached_bot_id != *bot_id {
+            info!(
+                "Using cached bot {} for phone {} (webhook bot: {})",
+                cached_bot_id, phone, bot_id
+            );
+            effective_bot_id = cached_bot_id;
+        }
+    }
+
+    info!(
+        "Processing WhatsApp message from {} ({}) for bot {}: type={}",
+        name, phone, effective_bot_id, message.message_type
+    );
+
     // Handle /clear command - available to all users
     if content.trim().to_lowercase() == "/clear" {
-        let adapter = WhatsAppAdapter::new(state.conn.clone(), *bot_id);
+        let adapter = WhatsAppAdapter::new(state.conn.clone(), effective_bot_id);
 
         // Find and clear the user's session
-        match find_or_create_session(&state, bot_id, &phone, &name).await {
+        match find_or_create_session(&state, &effective_bot_id, &phone, &name).await {
             Ok((session, _)) => {
                 // Clear message history for this session
                 if let Err(e) = clear_session_history(&state, &session.id).await {
@@ -328,7 +519,7 @@ async fn process_incoming_message(
                 }
 
                 let bot_response = BotResponse {
-                    bot_id: bot_id.to_string(),
+                    bot_id: effective_bot_id.to_string(),
                     session_id: session.id.to_string(),
                     user_id: phone.clone(),
                     channel: "whatsapp".to_string(),
@@ -355,9 +546,9 @@ async fn process_incoming_message(
 
     if content.starts_with('/') {
         if let Some(response) = process_attendant_command(&state, &phone, &content).await {
-            let adapter = WhatsAppAdapter::new(state.conn.clone(), *bot_id);
+            let adapter = WhatsAppAdapter::new(state.conn.clone(), effective_bot_id);
             let bot_response = BotResponse {
-                bot_id: bot_id.to_string(),
+                bot_id: effective_bot_id.to_string(),
                 session_id: Uuid::nil().to_string(),
                 user_id: phone.clone(),
                 channel: "whatsapp".to_string(),
