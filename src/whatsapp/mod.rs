@@ -1124,6 +1124,9 @@ async fn route_to_bot(
                     }
                     break;
                 }
+
+                // Add response content to buffer
+                buffer.push_str(&response.content);
             }
 
             // IMPROVED LOGIC:
