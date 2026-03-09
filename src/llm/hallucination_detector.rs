@@ -45,10 +45,10 @@ impl Default for HallucinationConfig {
         Self {
             min_text_length: 50,
             pattern_lengths: vec![3, 4, 5, 6, 8, 10, 15, 20],
-            consecutive_threshold: 5,
-            occurrence_threshold: 8,
+            consecutive_threshold: 10,  // Increased from 5 to 10
+            occurrence_threshold: 15,   // Increased from 8 to 15
             recent_text_window: 500,
-            identical_token_threshold: 10,
+            identical_token_threshold: 15,  // Increased from 10 to 15
             ignore_words: DEFAULT_IGNORE_WORDS.iter().map(|s| s.to_string()).collect(),
         }
     }
@@ -156,6 +156,11 @@ impl HallucinationDetector {
             let pattern_str = pattern.trim();
 
             if pattern_str.is_empty() || pattern_str.len() < 2 {
+                continue;
+            }
+
+            // Ignore common Markdown separators
+            if pattern_str == "---" || pattern_str == "***" || pattern_str == "___" {
                 continue;
             }
 
