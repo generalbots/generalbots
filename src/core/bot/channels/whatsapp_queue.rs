@@ -35,6 +35,7 @@ struct RecipientState {
     burst_started: Option<Instant>,
 }
 
+#[derive(Debug)]
 pub struct WhatsAppMessageQueue {
     redis_client: redis::Client,
     recipient_states: Arc<Mutex<HashMap<String, RecipientState>>>,
@@ -58,7 +59,7 @@ impl WhatsAppMessageQueue {
         let json = serde_json::to_string(&msg).map_err(|e| {
             redis::RedisError::from((redis::ErrorKind::TypeError, "JSON serialization failed", e.to_string()))
         })?;
-        conn.rpush(Self::QUEUE_KEY, json).await?;
+        conn.rpush::<_, _, ()>(Self::QUEUE_KEY, json).await?;
         Ok(())
     }
 
@@ -143,8 +144,6 @@ impl WhatsAppMessageQueue {
             burst_count: 0,
             burst_started: None,
         });
-
-        let now = Instant::now();
         
         // Reset burst if window expired
         if let Some(burst_start) = state.burst_started {
