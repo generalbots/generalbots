@@ -49,7 +49,21 @@ impl HallucinationDetector {
 
     /// Check if a pattern is hallucinating (repeating 50+ times)
     pub async fn check(&self, pattern: &str) -> bool {
-        if pattern.trim().is_empty() || pattern.len() < 3 {
+        let trimmed = pattern.trim();
+        
+        // Ignore short patterns
+        if trimmed.is_empty() || trimmed.len() < 3 {
+            return false;
+        }
+
+        // Ignore Markdown formatting patterns
+        let md_patterns = ["**", "__", "*", "_", "`", "~~", "---", "***"];
+        if md_patterns.iter().any(|p| trimmed == *p) {
+            return false;
+        }
+
+        // Ignore patterns that are just Markdown formatting (e.g., " **", "* ", "__")
+        if trimmed.chars().all(|c| c == '*' || c == '_' || c == '`' || c == '~' || c == '-') {
             return false;
         }
 
@@ -60,11 +74,11 @@ impl HallucinationDetector {
         counts.retain(|_, (_, time)| now.duration_since(*time) < self.config.window);
 
         // Increment count for this pattern
-        let (count, _) = counts.entry(pattern.to_string()).or_insert((0, now));
+        let (count, _) = counts.entry(trimmed.to_string()).or_insert((0, now));
         *count += 1;
 
         if *count >= self.config.threshold {
-            warn!("Hallucination detected: pattern {:?} repeated {} times", pattern, count);
+            warn!("Hallucination detected: pattern {:?} repeated {} times", trimmed, count);
             true
         } else {
             false
