@@ -426,7 +426,7 @@ impl BotOrchestrator {
                     }
                     .ok_or("Session not found")?;
 
-                    {
+                    if !message.content.trim().is_empty() {
                         let mut sm = state_clone.session_manager.blocking_lock();
                         sm.save_message(session.id, user_id, 1, &message.content, 1)?;
                     }
@@ -590,6 +590,38 @@ impl BotOrchestrator {
                     }
                 }
             } // End of if should_execute_start_bas
+
+            // If message content is empty, we stop here after potentially running start.bas.
+            // This happens when the bot is activated by its name in WhatsApp, where an empty string is sent as a signal.
+            if message_content.trim().is_empty() {
+                let user_id_str = message.user_id.clone();
+                let session_id_str = message.session_id.clone();
+                
+                #[cfg(feature = "chat")]
+                let suggestions = get_suggestions(self.state.cache.as_ref(), &user_id_str, &session_id_str);
+                #[cfg(not(feature = "chat"))]
+                let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
+
+                let final_response = BotResponse {
+                    bot_id: message.bot_id,
+                    user_id: message.user_id,
+                    session_id: message.session_id,
+                    channel: message.channel,
+                    content: String::new(),
+                    message_type: MessageType::BOT_RESPONSE,
+                    stream_token: None,
+                    is_complete: true,
+                    suggestions,
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
+                };
+
+                if let Err(e) = response_tx.send(final_response).await {
+                    warn!("Failed to send final response for empty content: {}", e);
+                }
+                return Ok(());
+            }
 
             if let Some(kb_manager) = self.state.kb_manager.as_ref() {
                 if let Err(e) = inject_kb_context(
