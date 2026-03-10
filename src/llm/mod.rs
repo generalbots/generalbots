@@ -423,6 +423,9 @@ impl LLMProvider for OpenAIClient {
 
         let handler = get_handler(model);
         let mut stream = response.bytes_stream();
+        
+        // Accumulate tool calls here because OpenAI streams them in fragments
+        let mut active_tool_calls: Vec<serde_json::Value> = Vec::new();
 
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result?;
@@ -439,18 +442,54 @@ impl LLMProvider for OpenAIClient {
 
                         // Handle standard OpenAI tool_calls
                         if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
-                            for tool_call in tool_calls {
-                                // We send the tool_call object as a JSON string so stream_response
-                                // can buffer it and parse it using ToolExecutor::parse_tool_call
-                                if let Some(func) = tool_call.get("function") {
-                                    if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
-                                        let _ = tx.send(args.to_string()).await;
+                            for tool_delta in tool_calls {
+                                if let Some(index) = tool_delta["index"].as_u64() {
+                                    let idx = index as usize;
+                                    if active_tool_calls.len() <= idx {
+                                        active_tool_calls.resize(idx + 1, serde_json::json!({
+                                            "id": "",
+                                            "type": "function",
+                                            "function": {
+                                                "name": "",
+                                                "arguments": ""
+                                            }
+                                        }));
+                                    }
+                                    
+                                    let current = &mut active_tool_calls[idx];
+                                    
+                                    if let Some(id) = tool_delta["id"].as_str() {
+                                        current["id"] = serde_json::Value::String(id.to_string());
+                                    }
+                                    
+                                    if let Some(func) = tool_delta.get("function") {
+                                        if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
+                                            current["function"]["name"] = serde_json::Value::String(name.to_string());
+                                        }
+                                        if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
+                                            if let Some(existing_args) = current["function"]["arguments"].as_str() {
+                                                let mut new_args = existing_args.to_string();
+                                                new_args.push_str(args);
+                                                current["function"]["arguments"] = serde_json::Value::String(new_args);
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
+        }
+        
+        // Send accumulated tool calls when stream finishes
+        for tool_call in active_tool_calls {
+            if !tool_call["function"]["name"].as_str().unwrap_or("").is_empty() {
+                let tool_call_json = serde_json::json!({
+                    "type": "tool_call",
+                    "content": tool_call
+                }).to_string();
+                let _ = tx.send(tool_call_json).await;
             }
         }
 

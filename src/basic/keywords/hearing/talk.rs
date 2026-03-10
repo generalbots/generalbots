@@ -34,11 +34,29 @@ pub async fn execute_talk(
         }
     }
 
+    let channel = user_session
+        .context_data
+        .get("channel")
+        .and_then(|v| v.as_str())
+        .unwrap_or("web")
+        .to_string();
+
+    let target_user_id = if channel == "whatsapp" {
+        user_session
+            .context_data
+            .get("phone")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    } else {
+        user_session.user_id.to_string()
+    };
+
     let response = BotResponse {
         bot_id: user_session.bot_id.to_string(),
-        user_id: user_session.user_id.to_string(),
+        user_id: target_user_id.clone(),
         session_id: user_session.id.to_string(),
-        channel: "web".to_string(),
+        channel: channel.clone(),
         content: message,
         message_type: MessageType::BOT_RESPONSE,
         stream_token: None,
@@ -49,20 +67,42 @@ pub async fn execute_talk(
         context_max_length: 0,
     };
 
-    let user_id = user_session.id.to_string();
     let response_clone = response.clone();
 
-    let web_adapter = Arc::clone(&state.web_adapter);
-    tokio::spawn(async move {
-        if let Err(e) = web_adapter
-            .send_message_to_session(&user_id, response_clone)
-            .await
-        {
-            error!("Failed to send TALK message via web adapter: {}", e);
-        } else {
-            trace!("TALK message sent via web adapter");
-        }
-    });
+    if channel == "whatsapp" {
+        use crate::core::bot::channels::ChannelAdapter;
+        use crate::core::bot::channels::whatsapp::WhatsAppAdapter;
+        
+        // WhatsApp expects the phone number as the target
+        let mut wa_response = response_clone;
+        wa_response.user_id = target_user_id;
+
+        let pool = state.conn.clone();
+        let bot_id = user_session.bot_id;
+        
+        tokio::spawn(async move {
+            let adapter = WhatsAppAdapter::new(pool, bot_id);
+            if let Err(e) = adapter.send_message(wa_response).await {
+                error!("Failed to send TALK message via whatsapp adapter: {}", e);
+            } else {
+                trace!("TALK message sent via whatsapp adapter");
+            }
+        });
+    } else {
+        let user_id = user_session.id.to_string();
+        let web_adapter = Arc::clone(&state.web_adapter);
+        
+        tokio::spawn(async move {
+            if let Err(e) = web_adapter
+                .send_message_to_session(&user_id, response_clone)
+                .await
+            {
+                error!("Failed to send TALK message via web adapter: {}", e);
+            } else {
+                trace!("TALK message sent via web adapter");
+            }
+        });
+    }
 
     Ok(response)
 }
