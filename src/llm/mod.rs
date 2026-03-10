@@ -303,6 +303,12 @@ impl LLMProvider for OpenAIClient {
         let status = response.status();
         if status != reqwest::StatusCode::OK {
             let error_text = response.text().await.unwrap_or_default();
+            
+            // Handle 429 rate limit with user-friendly message
+            if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                return Ok("Server is busy, please try again in a few seconds...".to_string());
+            }
+            
             error!("LLM generate error: {}", error_text);
             return Err(format!("LLM request failed with status: {}", status).into());
         }
