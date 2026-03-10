@@ -178,6 +178,8 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/whatsapp/send", post(send_message))
 }
 
+
+
 /// Resolve bot_id string to Uuid.
 /// - "default" → returns UUID of the default bot
 /// - Valid UUID string → returns the UUID
@@ -525,11 +527,32 @@ async fn process_incoming_message(
         effective_bot_id = routed_bot_id;
         set_cached_bot_for_phone(&state, &phone, routed_bot_id).await;
 
+        // Get or create session for the new bot
+        let (session, is_new) = match find_or_create_session(&state, &effective_bot_id, &phone, &name).await {
+            Ok(s) => s,
+            Err(e) => {
+                error!("Failed to create session for routed bot: {}", e);
+                return Ok(());
+            }
+        };
+
+        // Clear start.bas execution flag for new bot's session
+        if let Some(cache) = &state.cache {
+            if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+                let key = format!("start_bas_executed:{}", session.id);
+                let _: Result<(), redis::RedisError> = redis::cmd("DEL")
+                    .arg(&key)
+                    .query_async(&mut conn)
+                    .await;
+                debug!("Cleared start.bas flag {} after bot switch to {}", key, routed_bot_id);
+            }
+        }
+
         // Send confirmation message
         let adapter = WhatsAppAdapter::new(state.conn.clone(), effective_bot_id);
         let bot_response = BotResponse {
             bot_id: effective_bot_id.to_string(),
-            session_id: Uuid::nil().to_string(),
+            session_id: session.id.to_string(),
             user_id: phone.clone(),
             channel: "whatsapp".to_string(),
             content: format!("✅ Bot alterado para: {}", content),
@@ -544,6 +567,13 @@ async fn process_incoming_message(
         if let Err(e) = adapter.send_message(bot_response).await {
             error!("Failed to send routing confirmation: {}", e);
         }
+
+        // Execute start.bas immediately by calling route_to_bot
+        info!("Executing start.bas for bot '{}' via route_to_bot", routed_bot_id);
+        if let Err(e) = route_to_bot(&state, &session, "", is_new).await {
+            error!("Failed to execute start.bas for bot switch: {}", e);
+        }
+
         return Ok(());
     }
 

@@ -755,8 +755,8 @@ fn init_llm_provider(
             .get_config(&bot_id, "embedding-key", None)
             .ok();
         let semantic_cache_enabled = config_manager
-            .get_config(&bot_id, "llm-cache-semantic", Some("true"))
-            .unwrap_or_else(|_| "true".to_string())
+            .get_config(&bot_id, "llm-cache-semantic", Some("false"))
+            .unwrap_or_else(|_| "false".to_string())
             .to_lowercase() == "true";
 
         let similarity_threshold = config_manager

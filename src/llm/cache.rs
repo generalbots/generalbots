@@ -206,8 +206,8 @@ impl CachedLLMProvider {
                 .unwrap_or(self.config.ttl);
 
             let semantic_enabled = config_manager
-                .get_config(&bot_uuid, "llm-cache-semantic", Some("true"))
-                .unwrap_or_else(|_| "true".to_string())
+                .get_config(&bot_uuid, "llm-cache-semantic", Some("false"))
+                .unwrap_or_else(|_| "false".to_string())
                 .to_lowercase()
                 == "true";
 
