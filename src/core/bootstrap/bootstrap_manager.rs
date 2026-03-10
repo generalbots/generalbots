@@ -159,38 +159,15 @@ impl BootstrapManager {
         }
 
         if pm.is_installed("directory") {
-            // Wait for Zitadel to be ready - it might have been started during installation
-            // Use very aggressive backoff for fastest startup detection
-            let mut directory_already_running = zitadel_health_check();
-            if !directory_already_running {
-                info!("Zitadel not responding to health check, waiting...");
-                // Check every 500ms for fast detection (was: 1s, 2s, 5s, 10s)
-                let mut checks = 0;
-                let max_checks = 120; // 60 seconds max
-                while checks < max_checks {
-                    if zitadel_health_check() {
-                        info!("Zitadel/Directory service is now responding (checked {} times)", checks);
-                        directory_already_running = true;
-                        break;
-                    }
-                    sleep(Duration::from_millis(500)).await;
-                    checks += 1;
-                    // Log progress every 10 checks (5 seconds)
-                    if checks % 10 == 0 {
-                        info!("Zitadel health check: {}s elapsed, retrying...", checks / 2);
-                    }
-                }
-            }
+            // Check once if Zitadel is already running
+            let directory_already_running = zitadel_health_check();
 
             if directory_already_running {
                 info!("Zitadel/Directory service is already running");
 
                 // Create OAuth client if config doesn't exist (even when already running)
-                // Check both Vault and file system for existing config
                 let config_path = self.stack_dir("conf/system/directory_config.json");
-                let has_config = config_path.exists();
-
-                if !has_config {
+                if !config_path.exists() {
                     info!("Creating OAuth client for Directory service...");
                     match crate::core::package_manager::setup_directory().await {
                         Ok(_) => info!("OAuth client created successfully"),
@@ -200,6 +177,7 @@ impl BootstrapManager {
                     info!("Directory config already exists, skipping OAuth setup");
                 }
             } else {
+                // Not running — start it immediately, then wait for it to become ready
                 info!("Starting Zitadel/Directory service...");
                 match pm.start("directory") {
                     Ok(_child) => {
@@ -208,13 +186,17 @@ impl BootstrapManager {
                         for i in 0..150 {
                             sleep(Duration::from_secs(2)).await;
                             if zitadel_health_check() {
-                                info!("Zitadel/Directory service is responding");
+                                info!("Zitadel/Directory service is responding after {}s", (i + 1) * 2);
                                 zitadel_ready = true;
                                 break;
                             }
-                            if i == 149 {
-                                warn!("Zitadel/Directory service did not respond after 300 seconds");
+                            // Log progress every 15 checks (30 seconds)
+                            if i % 15 == 14 {
+                                info!("Zitadel health check: {}s elapsed, retrying...", (i + 1) * 2);
                             }
+                        }
+                        if !zitadel_ready {
+                            warn!("Zitadel/Directory service did not respond after 300 seconds");
                         }
 
                         // Create OAuth client if Zitadel is ready and config doesn't exist

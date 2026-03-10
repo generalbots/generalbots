@@ -473,6 +473,7 @@ pub async fn create_app_state(
             Some(llm_model.clone())
         },
         Some(llm_endpoint_path.clone()),
+        None,
     );
 
     #[cfg(feature = "llm")]
@@ -487,10 +488,12 @@ pub async fn create_app_state(
               llm_url,
               if llm_model.is_empty() { "(default)" } else { &llm_model },
               llm_endpoint_path.clone());
+        #[cfg(feature = "llm")]
         dynamic_llm_provider.update_from_config(
             &llm_url,
             if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
             Some(llm_endpoint_path),
+            None,
         ).await;
         info!("DynamicLLMProvider initialized successfully");
     }

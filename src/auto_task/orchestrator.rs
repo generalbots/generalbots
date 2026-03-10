@@ -659,7 +659,7 @@ impl Orchestrator {
         if !classification.entities.features.is_empty() {
             for feature in &classification.entities.features {
                 let slug =
-                    feature.to_lowercase().replace(' ', "_").replace('-', "_");
+                    feature.to_lowercase().replace([' ', '-'], "_");
                 tasks.push(PipelineSubTask {
                     name: feature.clone(),
                     description: format!(
@@ -681,7 +681,7 @@ impl Orchestrator {
             let inferred = infer_features_from_intent(&lower);
             for feature in &inferred {
                 let slug =
-                    feature.to_lowercase().replace(' ', "_").replace('-', "_");
+                    feature.to_lowercase().replace([' ', '-'], "_");
                 tasks.push(PipelineSubTask {
                     name: feature.clone(),
                     description: format!("Build {} UI with HTMX", feature),
@@ -897,7 +897,7 @@ impl Orchestrator {
         let event = TaskProgressEvent::new(
             &self.task_id,
             step,
-            &format!("Mantis #{agent_id} activity"),
+            format!("Mantis #{agent_id} activity"),
         )
         .with_event_type("agent_activity")
         .with_activity(activity.clone());

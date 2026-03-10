@@ -214,7 +214,7 @@ pub async fn ensure_llama_servers_running(
     log_jemalloc_stats();
 
     trace!("ensure_llama_servers_running EXIT OK (non-blocking)");
-    return Ok(());
+    Ok(())
 
     // OLD BLOCKING CODE - REMOVED TO PREVENT HTTP SERVER BLOCKING
     /*

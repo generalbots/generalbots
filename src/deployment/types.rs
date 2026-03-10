@@ -75,17 +75,14 @@ pub struct DeploymentConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum DeploymentEnvironment {
+    #[default]
     Development,
     Staging,
     Production,
 }
 
-impl Default for DeploymentEnvironment {
-    fn default() -> Self {
-        DeploymentEnvironment::Development
-    }
-}
 
 impl std::fmt::Display for DeploymentEnvironment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -594,7 +594,10 @@ pub fn register_website_for_crawling_with_refresh(
     Ok(())
 }
 
-/// Update refresh policy if the new interval is shorter than the existing one
+/// Update refresh policy if the new interval is shorter than the existing one.
+/// When the policy is updated, triggers an immediate crawl by setting next_crawl=NOW()
+/// and crawl_status=0, ensuring the website is recrawled on the next crawler cycle
+/// regardless of the previous schedule.
 fn update_refresh_policy_if_shorter(
     conn: &mut PgConnection,
     bot_id: &Uuid,
@@ -636,7 +639,7 @@ fn update_refresh_policy_if_shorter(
         let expires_policy = days_to_expires_policy(new_days);
 
         diesel::sql_query(
-            "UPDATE website_crawls SET refresh_policy = $3, expires_policy = $4
+            "UPDATE website_crawls SET refresh_policy = $3, expires_policy = $4, next_crawl = NOW(), crawl_status = 0
              WHERE bot_id = $1 AND url = $2"
         )
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
@@ -645,6 +648,8 @@ fn update_refresh_policy_if_shorter(
         .bind::<diesel::sql_types::Text, _>(expires_policy)
         .execute(conn)
         .map_err(|e| format!("Failed to update refresh policy: {}", e))?;
+
+        info!("Refresh policy updated to {} for {} - immediate crawl scheduled", refresh_interval, url);
     }
 
     Ok(())

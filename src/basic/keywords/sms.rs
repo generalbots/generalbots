@@ -47,18 +47,15 @@ pub enum SmsProvider {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum SmsPriority {
     Low,
+    #[default]
     Normal,
     High,
     Urgent,
 }
 
-impl Default for SmsPriority {
-    fn default() -> Self {
-        Self::Normal
-    }
-}
 
 impl From<&str> for SmsPriority {
     fn from(s: &str) -> Self {

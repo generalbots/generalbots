@@ -83,16 +83,20 @@ fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<AppStat
     }
 }
 
-fn save_email_tracking_record(
-    conn: diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+struct EmailTrackingParams<'a> {
     tracking_id: Uuid,
     account_id: Uuid,
     bot_id: Uuid,
-    from_email: &str,
-    to_email: &str,
-    cc: Option<&str>,
-    bcc: Option<&str>,
-    subject: &str,
+    from_email: &'a str,
+    to_email: &'a str,
+    cc: Option<&'a str>,
+    bcc: Option<&'a str>,
+    subject: &'a str,
+}
+
+fn save_email_tracking_record(
+    conn: diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    params: EmailTrackingParams,
 ) -> Result<(), String> {
     let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {e}"))?;
 
@@ -101,14 +105,14 @@ fn save_email_tracking_record(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())"
     )
     .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
-    .bind::<diesel::sql_types::Text, _>(tracking_id.to_string())
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .bind::<diesel::sql_types::Uuid, _>(account_id)
-    .bind::<diesel::sql_types::Text, _>(from_email)
-    .bind::<diesel::sql_types::Text, _>(to_email)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(cc)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(bcc)
-    .bind::<diesel::sql_types::Text, _>(subject)
+    .bind::<diesel::sql_types::Text, _>(params.tracking_id.to_string())
+    .bind::<diesel::sql_types::Uuid, _>(params.bot_id)
+    .bind::<diesel::sql_types::Uuid, _>(params.account_id)
+    .bind::<diesel::sql_types::Text, _>(params.from_email)
+    .bind::<diesel::sql_types::Text, _>(params.to_email)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(params.cc)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(params.bcc)
+    .bind::<diesel::sql_types::Text, _>(params.subject)
     .execute(&mut db_conn)
     .map_err(|e| format!("Failed to save tracking record: {e}"))?;
 
@@ -368,14 +372,16 @@ pub async fn send_email(
         let _ = tokio::task::spawn_blocking(move || {
             save_email_tracking_record(
                 conn,
-                tracking_id,
-                account_uuid,
-                Uuid::nil(),
-                &from_email,
-                &to_email,
-                cc_clone.as_deref(),
-                bcc_clone.as_deref(),
-                &subject,
+                EmailTrackingParams {
+                    tracking_id,
+                    account_id: account_uuid,
+                    bot_id: Uuid::nil(),
+                    from_email: &from_email,
+                    to_email: &to_email,
+                    cc: cc_clone.as_deref(),
+                    bcc: bcc_clone.as_deref(),
+                    subject: &subject,
+                },
             )
         })
         .await;

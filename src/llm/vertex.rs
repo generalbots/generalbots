@@ -470,7 +470,7 @@ impl LLMProvider for VertexClient {
                             } else {
                                 // --- Native Gemini JSON format ---
                                 // It usually arrives as raw JSON objects, sometimes with leading commas or brackets in a stream array
-                                let trimmed = line.trim_start_matches(|c| c == ',' || c == '[' || c == ']').trim_end_matches(']');
+                                let trimmed = line.trim_start_matches([',', '[', ']']).trim_end_matches(']');
                                 if trimmed.is_empty() { continue; }
                                 
                                 if let Ok(json) = serde_json::from_str::<Value>(trimmed) {

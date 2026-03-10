@@ -350,9 +350,9 @@ async fn execute_send_mail(
 
         if email_service
             .send_email(
-                &to,
-                &subject,
-                &body,
+                to,
+                subject,
+                body,
                 if attachments.is_empty() {
                     None
                 } else {
