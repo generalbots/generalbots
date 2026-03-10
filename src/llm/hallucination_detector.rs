@@ -58,7 +58,7 @@ impl HallucinationDetector {
 
         // Ignore Markdown formatting patterns
         let md_patterns = ["**", "__", "*", "_", "`", "~~", "---", "***"];
-        if md_patterns.iter().any(|p| trimmed == *p) {
+        if md_patterns.contains(&trimmed) {
             return false;
         }
 

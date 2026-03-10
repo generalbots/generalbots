@@ -183,7 +183,7 @@ impl ConfigWatcher {
                                             };
 
                                             info!("ConfigWatcher: Refreshing LLM provider with URL={}, model={}, endpoint={:?}", base_url, llm_model, endpoint_path);
-                                            dynamic_llm.update_from_config(base_url, Some(llm_model), endpoint_path.map(|s| s.to_string())).await;
+                                            dynamic_llm.update_from_config(base_url, Some(llm_model), endpoint_path.map(|s| s.to_string()), None).await;
                                         }
                                     }
                                 }

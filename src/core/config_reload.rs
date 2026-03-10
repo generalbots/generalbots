@@ -38,7 +38,7 @@ pub async fn reload_config(
     // Update LLM provider
     if let Some(dynamic_llm) = &state.dynamic_llm_provider {
         dynamic_llm
-            .update_from_config(&llm_url, Some(llm_model.clone()), Some(llm_endpoint_path.clone()))
+            .update_from_config(&llm_url, Some(llm_model.clone()), Some(llm_endpoint_path.clone()), None)
             .await;
         
         Ok(Json(json!({

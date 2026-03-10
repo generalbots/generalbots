@@ -49,16 +49,20 @@ pub fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<App
     }
 }
 
+pub struct EmailTrackingParams<'a> {
+    pub tracking_id: Uuid,
+    pub account_id: Uuid,
+    pub bot_id: Uuid,
+    pub from_email: &'a str,
+    pub to_email: &'a str,
+    pub cc: Option<&'a str>,
+    pub bcc: Option<&'a str>,
+    pub subject: &'a str,
+}
+
 pub fn save_email_tracking_record(
     conn: crate::core::shared::utils::DbPool,
-    tracking_id: Uuid,
-    account_id: Uuid,
-    bot_id: Uuid,
-    from_email: &str,
-    to_email: &str,
-    cc: Option<&str>,
-    bcc: Option<&str>,
-    subject: &str,
+    params: EmailTrackingParams,
 ) -> Result<(), String> {
     let mut db_conn = conn
         .get()
@@ -73,19 +77,19 @@ pub fn save_email_tracking_record(
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, false)"
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
-    .bind::<diesel::sql_types::Uuid, _>(tracking_id)
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .bind::<diesel::sql_types::Uuid, _>(account_id)
-    .bind::<diesel::sql_types::Text, _>(from_email)
-    .bind::<diesel::sql_types::Text, _>(to_email)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(cc)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(bcc)
-    .bind::<diesel::sql_types::Text, _>(subject)
+    .bind::<diesel::sql_types::Uuid, _>(params.tracking_id)
+    .bind::<diesel::sql_types::Uuid, _>(params.bot_id)
+    .bind::<diesel::sql_types::Uuid, _>(params.account_id)
+    .bind::<diesel::sql_types::Text, _>(params.from_email)
+    .bind::<diesel::sql_types::Text, _>(params.to_email)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(params.cc)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(params.bcc)
+    .bind::<diesel::sql_types::Text, _>(params.subject)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .execute(&mut db_conn)
     .map_err(|e| format!("Failed to save tracking record: {}", e))?;
 
-    debug!("Saved email tracking record: tracking_id={}", tracking_id);
+    debug!("Saved email tracking record: tracking_id={}", params.tracking_id);
     Ok(())
 }
 

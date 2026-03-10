@@ -28,8 +28,10 @@ use tokio::time::sleep;
 
 /// WhatsApp throughput tier levels (matches Meta's tiers)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum WhatsAppTier {
     /// Tier 1: New phone numbers (40 msg/s, 1000 conv/day)
+    #[default]
     Tier1,
     /// Tier 2: Medium quality (80 msg/s, 10000 conv/day)
     Tier2,
@@ -39,11 +41,6 @@ pub enum WhatsAppTier {
     Tier4,
 }
 
-impl Default for WhatsAppTier {
-    fn default() -> Self {
-        Self::Tier1
-    }
-}
 
 impl WhatsAppTier {
     /// Get messages per second for this tier

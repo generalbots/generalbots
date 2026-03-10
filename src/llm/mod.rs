@@ -162,12 +162,19 @@ impl OpenAIClient {
     }
     pub fn new(_api_key: String, base_url: Option<String>, endpoint_path: Option<String>) -> Self {
         let base = base_url.unwrap_or_else(|| "https://api.openai.com".to_string());
+        let trimmed_base = base.trim_end_matches('/').to_string();
 
-        // For z.ai API, use different endpoint path
+        // Detect if the base URL already contains a completions path
+        let has_v1_path = trimmed_base.contains("/v1/chat/completions");
+        let has_chat_path = !has_v1_path && trimmed_base.contains("/chat/completions");
+
         let endpoint = if let Some(path) = endpoint_path {
             path
-        } else if base.contains("z.ai") || base.contains("/v4") {
-            "/chat/completions".to_string()  // z.ai uses /chat/completions, not /v1/chat/completions
+        } else if has_v1_path || (has_chat_path && !trimmed_base.contains("z.ai")) {
+            // Path already in base_url, use empty endpoint
+            "".to_string()
+        } else if trimmed_base.contains("z.ai") || trimmed_base.contains("/v4") {
+            "/chat/completions".to_string() // z.ai uses /chat/completions, not /v1/chat/completions
         } else {
             "/v1/chat/completions".to_string()
         };
@@ -416,7 +423,7 @@ impl LLMProvider for OpenAIClient {
                                 let _ = tx.send(processed).await;
                             }
                         }
-                        
+
                         // Handle standard OpenAI tool_calls
                         if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
                             for tool_call in tool_calls {
@@ -450,7 +457,7 @@ pub fn start_llm_services(state: &std::sync::Arc<crate::core::shared::state::App
     info!("LLM services started (episodic memory scheduler)");
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LLMProviderType {
     OpenAI,
     Claude,
@@ -524,12 +531,18 @@ pub fn create_llm_provider(
     }
 }
 
+/// Create LLM provider from URL with optional explicit provider type override.
+/// If explicit_provider is Some, it takes precedence over URL-based detection.
 pub fn create_llm_provider_from_url(
     url: &str,
     model: Option<String>,
     endpoint_path: Option<String>,
+    explicit_provider: Option<LLMProviderType>,
 ) -> std::sync::Arc<dyn LLMProvider> {
-    let provider_type = LLMProviderType::from(url);
+    let provider_type = explicit_provider.as_ref().map(|p| *p).unwrap_or_else(|| LLMProviderType::from(url));
+    if explicit_provider.is_some() {
+        info!("Using explicit LLM provider type: {:?} for URL: {}", provider_type, url);
+    }
     create_llm_provider(provider_type, url.to_string(), model, endpoint_path)
 }
 
@@ -555,8 +568,9 @@ impl DynamicLLMProvider {
         url: &str,
         model: Option<String>,
         endpoint_path: Option<String>,
+        explicit_provider: Option<LLMProviderType>,
     ) {
-        let new_provider = create_llm_provider_from_url(url, model, endpoint_path);
+        let new_provider = create_llm_provider_from_url(url, model, endpoint_path, explicit_provider);
         self.update_provider(new_provider).await;
     }
 

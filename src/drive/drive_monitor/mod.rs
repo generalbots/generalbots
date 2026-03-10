@@ -693,6 +693,7 @@ impl DriveMonitor {
                                                     &effective_url,
                                                     Some(effective_model),
                                                     Some(effective_endpoint_path),
+                                                    None,
                                                 )
                                                 .await;
                                             trace!("Dynamic LLM provider updated with new configuration");

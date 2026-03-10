@@ -25,7 +25,7 @@ impl ContainerSession {
         // Launch the container (this might take a moment if the image isn't cached locally)
         info!("Launching LXC container: {}", container_name);
         let launch_status = Command::new("lxc")
-            .args(&["launch", "ubuntu:22.04", &container_name])
+            .args(["launch", "ubuntu:22.04", &container_name])
             .output()
             .await
             .map_err(|e| format!("Failed to execute lxc launch: {}", e))?;
@@ -50,7 +50,7 @@ impl ContainerSession {
         info!("Starting terminal session in container: {}", self.container_name);
         
         let mut child = Command::new("lxc")
-            .args(&["exec", &self.container_name, "--", "bash"])
+            .args(["exec", &self.container_name, "--", "bash"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -115,7 +115,7 @@ impl ContainerSession {
 
         // Clean up container
         let status = Command::new("lxc")
-            .args(&["delete", &self.container_name, "--force"])
+            .args(["delete", &self.container_name, "--force"])
             .output()
             .await
             .map_err(|e| format!("Failed to delete container: {}", e))?;

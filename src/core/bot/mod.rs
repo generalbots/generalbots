@@ -416,7 +416,7 @@ impl BotOrchestrator {
         let session_id = Uuid::parse_str(&message.session_id)?;
         let message_content = message.content.clone();
 
-        let (session, context_data, history, model, key, system_prompt, bot_llm_url) = {
+        let (session, context_data, history, model, key, system_prompt, bot_llm_url, explicit_llm_provider) = {
             let state_clone = self.state.clone();
             tokio::task::spawn_blocking(
                 move || -> Result<_, Box<dyn std::error::Error + Send + Sync>> {
@@ -458,6 +458,12 @@ impl BotOrchestrator {
                         .get_bot_config_value(&session.bot_id, "llm-url")
                         .ok();
 
+                    // Load explicit llm-provider from config.csv (e.g., "openai", "bedrock", "claude")
+                    // This allows overriding auto-detection from URL
+                    let explicit_llm_provider = config_manager
+                        .get_bot_config_value(&session.bot_id, "llm-provider")
+                        .ok();
+
                     // Load system-prompt from config.csv, fallback to default
                     let system_prompt = config_manager
                         .get_config(&session.bot_id, "system-prompt", Some("You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response."))
@@ -465,7 +471,7 @@ impl BotOrchestrator {
 
                     info!("Loaded system-prompt for bot {}: {}", session.bot_id, &system_prompt[..system_prompt.len().min(500)]);
 
-                    Ok((session, context_data, history, model, key, system_prompt, bot_llm_url))
+                    Ok((session, context_data, history, model, key, system_prompt, bot_llm_url, explicit_llm_provider))
                 },
             )
             .await??
@@ -624,7 +630,13 @@ impl BotOrchestrator {
         // Use bot-specific LLM provider if the bot has its own llm-url configured
         let llm: std::sync::Arc<dyn crate::llm::LLMProvider> = if let Some(ref url) = bot_llm_url {
             info!("Bot has custom llm-url: {}, creating per-bot LLM provider", url);
-            crate::llm::create_llm_provider_from_url(url, Some(model.clone()), None)
+            // Parse explicit provider type if configured (e.g., "openai", "bedrock", "claude")
+            let explicit_type = explicit_llm_provider.as_ref().map(|p| {
+                let parsed: crate::llm::LLMProviderType = p.as_str().into();
+                info!("Using explicit llm-provider config: {:?} for bot {}", parsed, session.bot_id);
+                parsed
+            });
+            crate::llm::create_llm_provider_from_url(url, Some(model.clone()), None, explicit_type)
         } else {
             self.state.llm_provider.clone()
         };
