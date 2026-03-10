@@ -160,29 +160,24 @@ impl BootstrapManager {
 
         if pm.is_installed("directory") {
             // Wait for Zitadel to be ready - it might have been started during installation
-            // Use incremental backoff: check frequently at first, then slow down
+            // Use very aggressive backoff for fastest startup detection
             let mut directory_already_running = zitadel_health_check();
             if !directory_already_running {
-                info!("Zitadel not responding to health check, waiting with incremental backoff...");
-                // Check intervals: 1s x5, 2s x5, 5s x5, 10s x3 = ~60s total
-                let intervals: [(u64, u32); 4] = [(1, 5), (2, 5), (5, 5), (10, 3)];
-                let mut total_waited: u64 = 0;
-                for (interval_secs, count) in intervals {
-                    for i in 0..count {
-                        if zitadel_health_check() {
-                            info!("Zitadel/Directory service is now responding (waited {}s)", total_waited);
-                            directory_already_running = true;
-                            break;
-                        }
-                        sleep(Duration::from_secs(interval_secs)).await;
-                        total_waited += interval_secs;
-                        // Show incremental progress every ~10s
-                        if total_waited % 10 == 0 || i == 0 {
-                            info!("Zitadel health check: {}s elapsed, retrying...", total_waited);
-                        }
-                    }
-                    if directory_already_running {
+                info!("Zitadel not responding to health check, waiting...");
+                // Check every 500ms for fast detection (was: 1s, 2s, 5s, 10s)
+                let mut checks = 0;
+                let max_checks = 120; // 60 seconds max
+                while checks < max_checks {
+                    if zitadel_health_check() {
+                        info!("Zitadel/Directory service is now responding (checked {} times)", checks);
+                        directory_already_running = true;
                         break;
+                    }
+                    sleep(Duration::from_millis(500)).await;
+                    checks += 1;
+                    // Log progress every 10 checks (5 seconds)
+                    if checks % 10 == 0 {
+                        info!("Zitadel health check: {}s elapsed, retrying...", checks / 2);
                     }
                 }
             }

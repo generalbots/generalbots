@@ -207,16 +207,27 @@ pub enum BotExistsResult {
 /// Check if Zitadel directory is healthy
 pub fn zitadel_health_check() -> bool {
     // Check if Zitadel is responding on port 8300
-    if let Ok(output) = Command::new("curl")
-        .args(["-f", "-s", "--connect-timeout", "2", "http://localhost:8300/debug/healthz"])
-        .output()
-    {
-        if output.status.success() {
-            return true;
+    // Use very short timeout for fast startup detection
+    let output = Command::new("curl")
+        .args(["-f", "-s", "--connect-timeout", "1", "-m", "2", "http://localhost:8300/debug/healthz"])
+        .output();
+
+    match output {
+        Ok(result) => {
+            if result.status.success() {
+                let response = String::from_utf8_lossy(&result.stdout);
+                debug!("Zitadel health check response: {}", response);
+                return response.trim() == "ok";
+            }
+            let stderr = String::from_utf8_lossy(&result.stderr);
+            debug!("Zitadel health check failed: {}", stderr);
+        }
+        Err(e) => {
+            debug!("Zitadel health check error: {}", e);
         }
     }
 
-    // Fallback: just check if port 8300 is listening
+    // Fast fallback: just check if port 8300 is listening
     match Command::new("nc")
         .args(["-z", "-w", "1", "127.0.0.1", "8300"])
         .output()

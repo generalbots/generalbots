@@ -23,7 +23,7 @@ impl LlmAssistConfig {
 
         if let Ok(content) = std::fs::read_to_string(&path) {
             for line in content.lines() {
-                let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+                let parts: Vec<&str> = line.splitn(2, ',').map(|s| s.trim()).collect();
 
                 if parts.len() < 2 {
                     continue;
