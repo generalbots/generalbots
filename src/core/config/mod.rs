@@ -482,7 +482,7 @@ impl ConfigManager {
 
         let mut updated = 0;
         for line in content.lines().skip(1) {
-            let parts: Vec<&str> = line.split(',').collect();
+            let parts: Vec<&str> = line.splitn(2, ',').collect();
             if parts.len() >= 2 {
                 let key = parts[0].trim();
                 let value = parts[1].trim();

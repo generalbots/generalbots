@@ -416,7 +416,7 @@ impl BotOrchestrator {
         let session_id = Uuid::parse_str(&message.session_id)?;
         let message_content = message.content.clone();
 
-        let (session, context_data, history, model, key, system_prompt) = {
+        let (session, context_data, history, model, key, system_prompt, bot_llm_url) = {
             let state_clone = self.state.clone();
             tokio::task::spawn_blocking(
                 move || -> Result<_, Box<dyn std::error::Error + Send + Sync>> {
@@ -453,14 +453,19 @@ impl BotOrchestrator {
                         .get_config(&session.bot_id, "llm-key", Some(""))
                         .unwrap_or_default();
 
+                    // Load bot-specific llm-url (may differ from global default)
+                    let bot_llm_url = config_manager
+                        .get_bot_config_value(&session.bot_id, "llm-url")
+                        .ok();
+
                     // Load system-prompt from config.csv, fallback to default
                     let system_prompt = config_manager
                         .get_config(&session.bot_id, "system-prompt", Some("You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response."))
-                        .unwrap_or_else(|_| "You are a helpful assistant.".to_string());
+                        .unwrap_or_else(|_| "You are a helpful General Bots assistant.".to_string());
 
-                    info!("Loaded system-prompt for bot {}: {}", session.bot_id, &system_prompt[..system_prompt.len().min(200)]);
+                    info!("Loaded system-prompt for bot {}: {}", session.bot_id, &system_prompt[..system_prompt.len().min(500)]);
 
-                    Ok((session, context_data, history, model, key, system_prompt))
+                    Ok((session, context_data, history, model, key, system_prompt, bot_llm_url))
                 },
             )
             .await??
@@ -615,7 +620,14 @@ impl BotOrchestrator {
         }
 
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
-        let llm = self.state.llm_provider.clone();
+
+        // Use bot-specific LLM provider if the bot has its own llm-url configured
+        let llm: std::sync::Arc<dyn crate::llm::LLMProvider> = if let Some(ref url) = bot_llm_url {
+            info!("Bot has custom llm-url: {}, creating per-bot LLM provider", url);
+            crate::llm::create_llm_provider_from_url(url, Some(model.clone()), None)
+        } else {
+            self.state.llm_provider.clone()
+        };
 
         let model_clone = model.clone();
         let key_clone = key.clone();

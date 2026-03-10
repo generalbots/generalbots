@@ -880,12 +880,30 @@ async fn start_drive_monitors(
         .await
         .unwrap_or_default();
 
+        let local_dev_bots = tokio::task::spawn_blocking(move || {
+            let mut bots = std::collections::HashSet::new();
+            let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "/opt/gbo/data".to_string());
+            if let Ok(entries) = std::fs::read_dir(data_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().and_then(|e| e.to_str()).map(|e| e.eq_ignore_ascii_case("gbai")).unwrap_or(false) {
+                        if let Some(bot_name) = path.file_stem().and_then(|s| s.to_str()) {
+                            bots.insert(bot_name.to_string());
+                        }
+                    }
+                }
+            }
+            bots
+        })
+        .await
+        .unwrap_or_default();
+
         info!("Found {} active bots to monitor", bots_to_monitor.len());
 
         for (bot_id, bot_name) in bots_to_monitor {
-            // Skip default bot - it's managed locally via ConfigWatcher
-            if bot_name == "default" {
-                info!("Skipping DriveMonitor for 'default' bot - managed via ConfigWatcher");
+            // Skip default bot and local dev bots - they are managed locally
+            if bot_name == "default" || local_dev_bots.contains(&bot_name) {
+                info!("Skipping DriveMonitor for '{}' bot - managed locally via ConfigWatcher/LocalFileMonitor", bot_name);
                 continue;
             }
 

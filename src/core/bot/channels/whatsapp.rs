@@ -503,7 +503,7 @@ impl WhatsAppAdapter {
                 }
 
                 if !list_block.is_empty() {
-                    if !current_part.is_empty() && current_part.len() + list_block.len() + 1 <= max_length {
+                    if !current_part.is_empty() && current_part.len() + list_block.len() < max_length {
                         current_part.push('\n');
                         current_part.push_str(&list_block);
                     } else {

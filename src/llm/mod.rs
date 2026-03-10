@@ -14,11 +14,15 @@ pub mod llm_models;
 pub mod local;
 pub mod rate_limiter;
 pub mod smart_router;
+pub mod vertex;
+pub mod bedrock;
 
 pub use claude::ClaudeClient;
 pub use glm::GLMClient;
 pub use llm_models::get_handler;
 pub use rate_limiter::{ApiRateLimiter, RateLimits};
+pub use vertex::VertexTokenManager;
+pub use bedrock::BedrockClient;
 
 #[async_trait]
 pub trait LLMProvider: Send + Sync {
@@ -248,14 +252,16 @@ impl LLMProvider for OpenAIClient {
         // GLM-4.7 has 202750 tokens, other models vary
         let context_limit = if model.contains("glm-4") || model.contains("GLM-4") {
             202750
-        } else if model.contains("gpt-4") {
-            128000
+        } else if model.contains("gemini") {
+            1000000 // Google Gemini models have 1M+ token context
+        } else if model.contains("gpt-oss") || model.contains("gpt-4") {
+            128000 // Cerebras gpt-oss models and GPT-4 variants
         } else if model.contains("gpt-3.5") {
             16385
         } else if model.starts_with("http://localhost:808") || model == "local" {
             768 // Local llama.cpp server context limit
         } else {
-            4096 // Default conservative limit
+            32768 // Default conservative limit for modern models
         };
 
         let messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
@@ -329,14 +335,16 @@ impl LLMProvider for OpenAIClient {
         // GLM-4.7 has 202750 tokens, other models vary
         let context_limit = if model.contains("glm-4") || model.contains("GLM-4") {
             202750
-        } else if model.contains("gpt-4") {
-            128000
+        } else if model.contains("gemini") {
+            1000000 // Google Gemini models have 1M+ token context
+        } else if model.contains("gpt-oss") || model.contains("gpt-4") {
+            128000 // Cerebras gpt-oss models and GPT-4 variants
         } else if model.contains("gpt-3.5") {
             16385
         } else if model.starts_with("http://localhost:808") || model == "local" {
             768 // Local llama.cpp server context limit
         } else {
-            4096 // Default conservative limit
+            32768 // Default conservative limit for modern models
         };
 
         let messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
@@ -448,6 +456,8 @@ pub enum LLMProviderType {
     Claude,
     AzureClaude,
     GLM,
+    Bedrock,
+    Vertex,
 }
 
 impl From<&str> for LLMProviderType {
@@ -461,6 +471,10 @@ impl From<&str> for LLMProviderType {
             }
         } else if lower.contains("z.ai") || lower.contains("glm") {
             Self::GLM
+        } else if lower.contains("bedrock") {
+            Self::Bedrock
+        } else if lower.contains("googleapis.com") || lower.contains("vertex") || lower.contains("generativelanguage") {
+            Self::Vertex
         } else {
             Self::OpenAI
         }
@@ -497,6 +511,15 @@ pub fn create_llm_provider(
         LLMProviderType::GLM => {
             info!("Creating GLM/z.ai LLM provider with URL: {}", base_url);
             std::sync::Arc::new(GLMClient::new(base_url))
+        }
+        LLMProviderType::Bedrock => {
+            info!("Creating Bedrock LLM provider with exact URL: {}", base_url);
+            std::sync::Arc::new(BedrockClient::new(base_url))
+        }
+        LLMProviderType::Vertex => {
+            info!("Creating Vertex/Gemini LLM provider with URL: {}", base_url);
+            // Re-export the struct if we haven't already
+            std::sync::Arc::new(crate::llm::vertex::VertexClient::new(base_url, endpoint_path))
         }
     }
 }
