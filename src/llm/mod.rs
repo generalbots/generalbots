@@ -404,6 +404,13 @@ impl LLMProvider for OpenAIClient {
         let status = response.status();
         if status != reqwest::StatusCode::OK {
             let error_text = response.text().await.unwrap_or_default();
+            
+            // Handle 429 rate limit with user-friendly message
+            if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                let _ = tx.send("Server is busy, please try again in a few seconds...".to_string()).await;
+                return Err("Rate limit exceeded".into());
+            }
+            
             error!("LLM generate_stream error: {}", error_text);
             return Err(format!("LLM request failed with status: {}", status).into());
         }
