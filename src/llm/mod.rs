@@ -214,21 +214,39 @@ impl OpenAIClient {
         history: &[(String, String)],
     ) -> Value {
         let mut messages = Vec::new();
+        
+        let mut system_parts = Vec::new();
         if !system_prompt.is_empty() {
-            messages.push(serde_json::json!({
-                "role": "system",
-                "content": Self::sanitize_utf8(system_prompt)
-            }));
+            system_parts.push(Self::sanitize_utf8(system_prompt));
         }
         if !context_data.is_empty() {
+            system_parts.push(Self::sanitize_utf8(context_data));
+        }
+        
+        for (role, content) in history {
+            if role == "episodic" || role == "compact" {
+                system_parts.push(format!("[Previous conversation summary]: {}", Self::sanitize_utf8(content)));
+            }
+        }
+        
+        if !system_parts.is_empty() {
             messages.push(serde_json::json!({
                 "role": "system",
-                "content": Self::sanitize_utf8(context_data)
+                "content": system_parts.join("\n\n")
             }));
         }
+
         for (role, content) in history {
+            let normalized_role = match role.as_str() {
+                "user" => "user",
+                "assistant" => "assistant",
+                "system" => "system",
+                "episodic" | "compact" => continue, // Already added to system prompt
+                _ => "user", // Fallback Default
+            };
+            
             messages.push(serde_json::json!({
-                "role": role,
+                "role": normalized_role,
                 "content": Self::sanitize_utf8(content)
             }));
         }
