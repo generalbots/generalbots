@@ -176,6 +176,7 @@ pub fn fetch_folder_changes(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     fn apply_filters(events: Vec<FolderChangeEvent>, filters: &Option<FileFilters>) -> Vec<FolderChangeEvent> {
         let Some(ref filters) = filters else {
