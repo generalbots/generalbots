@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::super::whatsapp_queue::*;
+    use crate::core::bot::channels::whatsapp_queue::*;
     use std::sync::Arc;
     use tokio::time::Duration;
 
@@ -20,40 +20,8 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[tokio::test]
-    async fn test_per_recipient_rate_limit() {
-        let queue = Arc::new(WhatsAppMessageQueue::new("redis://127.0.0.1:6379").unwrap());
-        
-        let msg1 = QueuedWhatsAppMessage {
-            to: "+5511999999999".to_string(),
-            message: "Message 1".to_string(),
-            api_key: "test_key".to_string(),
-            phone_number_id: "123456".to_string(),
-            api_version: "v17.0".to_string(),
-        };
-
-        let msg2 = QueuedWhatsAppMessage {
-            to: "+5511999999999".to_string(),
-            message: "Message 2".to_string(),
-            api_key: "test_key".to_string(),
-            phone_number_id: "123456".to_string(),
-            api_version: "v17.0".to_string(),
-        };
-
-        queue.enqueue(msg1).await.unwrap();
-        queue.enqueue(msg2).await.unwrap();
-
-        let start = std::time::Instant::now();
-        
-        // Process both messages
-        let _ = queue.process_next().await;
-        let _ = queue.process_next().await;
-
-        let elapsed = start.elapsed();
-        
-        // Should take at least 6 seconds due to Meta rate limiting
-        assert!(elapsed >= Duration::from_secs(6));
-    }
+    // Note: test_per_recipient_rate_limit removed because we now allow per-recipient bursting.
+    // Throttling is handled reactively via 131056 error code.
 
     #[tokio::test]
     async fn test_different_recipients_no_delay() {
