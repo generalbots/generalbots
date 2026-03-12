@@ -1,4 +1,5 @@
 use crate::core::bot::{BotOrchestrator, get_default_bot};
+use crate::multimodal::BotModelsClient;
 use crate::core::bot::channels::whatsapp::WhatsAppAdapter;
 use crate::core::bot::channels::ChannelAdapter;
 use crate::core::config::ConfigManager;
@@ -506,11 +507,29 @@ async fn process_incoming_message(
         .unwrap_or_else(|| message.from.clone());
     let name = contact_name.clone().unwrap_or_else(|| phone.clone());
 
-    let content = extract_message_content(message);
-    debug!("Extracted content from WhatsApp message: '{}'", content);
+    let mut content = extract_message_content(message);
+    
+    // Auto-transcribe audio if BotModels is enabled
+    if message.message_type == "audio" {
+        if let Some(audio) = &message.audio {
+            info!("Received audio message {}, attempting transcription for bot {}", audio.id, bot_id);
+            match process_audio_message(&state, bot_id, audio).await {
+                Ok(transcription) => {
+                    info!("Audio transcription successful: '{}'", transcription);
+                    content = transcription;
+                },
+                Err(e) => {
+                    error!("Audio transcription failed: {}. Continuing with placeholder.", e);
+                    content = "[Áudio]".to_string();
+                }
+            }
+        }
+    }
+
+    debug!("Final WhatsApp message content: '{}'", content);
 
     if content.is_empty() {
-        warn!("Empty message content from WhatsApp, skipping. Message: {:?}", message);
+        warn!("Empty content after processing WhatsApp message type {}", message.message_type);
         return Ok(());
     }
 
@@ -971,6 +990,8 @@ async fn route_to_bot(
 
     let phone_for_error = phone.clone();
     let adapter_for_send = WhatsAppAdapter::new(state.conn.clone(), session.bot_id);
+    let bot_id_for_voice = session.bot_id;
+    let state_clone = state.clone();
 
     tokio::spawn(async move {
         let mut buffer = String::new();
@@ -1241,6 +1262,44 @@ async fn route_to_bot(
                         send_part(&adapter_for_send, &phone, buffer.clone(), is_final).await;
                     }
                     buffer.clear();
+                }
+            }
+
+            if is_final && !buffer.trim().is_empty() {
+                let final_text = buffer.trim().to_string();
+                let state_for_voice = state_clone.clone();
+                let phone_for_voice = phone.clone();
+
+                let config_manager = ConfigManager::new(state_for_voice.conn.clone());
+                let voice_response = config_manager
+                    .get_config(&bot_id_for_voice, "whatsapp-voice-response", Some("false"))
+                    .unwrap_or_else(|_| "false".to_string())
+                    .to_lowercase()
+                    == "true";
+
+                if voice_response && !final_text.is_empty() {
+                    info!("Voice response enabled, generating TTS for: {}", &final_text.chars().take(50).collect::<String>());
+
+                    let client = BotModelsClient::from_state(&state_for_voice, &bot_id_for_voice);
+
+                    if !client.is_enabled() {
+                        warn!("BotModels not enabled, skipping voice response");
+                    } else {
+                        match client.generate_audio(&final_text, None, None).await {
+                            Ok(audio_url) => {
+                                info!("TTS generated: {}", audio_url);
+                                let wa_adapter = WhatsAppAdapter::new(state_for_voice.conn.clone(), bot_id_for_voice);
+                                if let Err(e) = wa_adapter.send_voice_message(&phone_for_voice, &audio_url).await {
+                                    error!("Failed to send voice message: {}", e);
+                                } else {
+                                    info!("Voice message sent successfully to {}", phone_for_voice);
+                                }
+                            }
+                            Err(e) => {
+                                error!("Failed to generate TTS: {}", e);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1623,6 +1682,32 @@ async fn get_default_bot_id(state: &Arc<AppState>) -> Uuid {
     .ok()
     .flatten()
     .unwrap_or_else(Uuid::nil)
+}
+
+async fn process_audio_message(
+    state: &Arc<AppState>,
+    bot_id: &Uuid,
+    audio: &WhatsAppMedia,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let adapter = WhatsAppAdapter::new(state.conn.clone(), *bot_id);
+    let binary = adapter.download_media(&audio.id).await?;
+    
+    let bot_models = BotModelsClient::from_state(state, bot_id);
+    if !bot_models.is_enabled() {
+        return Err("BotModels not enabled for transcription".into());
+    }
+    
+    // Save to temp file
+    let temp_name = format!("/tmp/whatsapp_audio_{}.ogg", audio.id);
+    tokio::fs::write(&temp_name, binary).await?;
+    
+    info!("Sending WhatsApp audio {} to BotModels for transcription", audio.id);
+    let transcription = bot_models.speech_to_text(&temp_name).await?;
+    
+    // Clean up
+    let _ = tokio::fs::remove_file(&temp_name).await;
+    
+    Ok(transcription)
 }
 
 #[cfg(test)]

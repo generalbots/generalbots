@@ -385,18 +385,44 @@ impl BotOrchestrator {
             return Ok(());
         }
 
+        // Ensure default tenant exists (use fixed ID for consistency)
+        let default_tenant_id = "00000000-0000-0000-0000-000000000001";
+        sql_query(&format!(
+            "INSERT INTO tenants (id, name, slug, created_at) \
+             VALUES ('{}', 'Default Tenant', 'default', NOW()) \
+             ON CONFLICT (slug) DO NOTHING",
+            default_tenant_id
+        ))
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to ensure tenant exists: {e}"))?;
+
+        // Ensure default organization exists (use fixed ID for consistency)
+        let default_org_id = "00000000-0000-0000-0000-000000000001";
+        sql_query(&format!(
+            "INSERT INTO organizations (org_id, tenant_id, name, slug, created_at) \
+             VALUES ('{}', '{}', 'Default Org', 'default', NOW()) \
+             ON CONFLICT (org_id) DO NOTHING",
+            default_org_id, default_tenant_id
+        ))
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to ensure organization exists: {e}"))?;
+
+        // Use hardcoded org_id for simplicity
+        let org_id = default_org_id;
+
         let bot_id = Uuid::new_v4();
 
         sql_query(
-            "INSERT INTO bots (id, name, llm_provider, context_provider, is_active, created_at, updated_at)
-             VALUES ($1, $2, 'openai', 'website', true, NOW(), NOW())"
+            "INSERT INTO bots (id, org_id, name, llm_provider, context_provider, is_active, created_at, updated_at)
+             VALUES ($1, $2::uuid, $3, 'openai', 'website', true, NOW(), NOW())"
         )
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Text, _>(org_id)
         .bind::<diesel::sql_types::Text, _>(bot_name)
         .execute(&mut conn)
         .map_err(|e| format!("Failed to create bot: {e}"))?;
 
-        info!("User system created resource: bot {}", bot_id);
+        info!("User system created resource: bot {} with org_id {}", bot_id, org_id);
         Ok(())
     }
 

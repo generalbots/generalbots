@@ -4,7 +4,7 @@ use super::error::ContactsError;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::IntoResponse,
+    routing::{get, post, put, delete},
     Json, Router,
 };
 use std::sync::Arc;

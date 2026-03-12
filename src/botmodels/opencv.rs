@@ -630,7 +630,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bounding_box_serialization() {
+    fn test_bounding_box_serialization() -> Result<(), Box<dyn std::error::Error>> {
         let bbox = BoundingBox {
             x: 100,
             y: 150,
@@ -638,13 +638,14 @@ mod tests {
             height: 250,
         };
 
-        let json = serde_json::to_string(&bbox).unwrap();
-        let deserialized: BoundingBox = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&bbox)?;
+        let deserialized: BoundingBox = serde_json::from_str(&json)?;
 
         assert_eq!(deserialized.x, bbox.x);
         assert_eq!(deserialized.y, bbox.y);
         assert_eq!(deserialized.width, bbox.width);
         assert_eq!(deserialized.height, bbox.height);
+        Ok(())
     }
 
     #[test]

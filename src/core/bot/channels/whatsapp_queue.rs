@@ -127,7 +127,7 @@ impl WhatsAppMessageQueue {
             warn!("Burst capacity exhausted for {}: waiting {}s cooling off", recipient, wait_secs);
             sleep(Duration::from_secs(wait_secs as u64)).await;
             // Advance TFT if we waited (now has changed)
-            new_tft = chrono::Utc::now().timestamp() + (new_tft - (now + wait_secs as i64));
+            new_tft = chrono::Utc::now().timestamp() + (new_tft - (now + wait_secs));
         }
         
         // Store the new Theoretical Finish Time with TTL to clean up Redis

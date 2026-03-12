@@ -1,11 +1,23 @@
 diesel::table! {
-    organizations (org_id) {
-        org_id -> Uuid,
+    tenants (id) {
+        id -> Uuid,
         name -> Text,
         slug -> Text,
         created_at -> Timestamptz,
     }
 }
+
+diesel::table! {
+    organizations (org_id) {
+        org_id -> Uuid,
+        tenant_id -> Uuid,
+        name -> Text,
+        slug -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::joinable!(organizations -> tenants (tenant_id));
 
 diesel::table! {
     organization_invitations (id) {
@@ -28,6 +40,7 @@ diesel::table! {
 diesel::table! {
     bots (id) {
         id -> Uuid,
+        org_id -> Nullable<Uuid>,
         name -> Varchar,
         description -> Nullable<Text>,
         llm_provider -> Varchar,
@@ -37,10 +50,11 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         is_active -> Nullable<Bool>,
-        tenant_id -> Nullable<Uuid>,
         database_name -> Nullable<Varchar>,
     }
 }
+
+diesel::joinable!(bots -> organizations (org_id));
 
 diesel::table! {
     system_automations (id) {

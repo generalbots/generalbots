@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::core::shared::models::schema::{
     bot_configuration, bot_memories, bots, clicks, message_history, organizations,
-    system_automations, user_login_tokens, user_preferences, user_sessions, users,
+    system_automations, tenants, user_login_tokens, user_preferences, user_sessions, users,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,7 +97,17 @@ pub struct Bot {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub is_active: Option<bool>,
-    pub tenant_id: Option<Uuid>,
+    pub org_id: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[diesel(table_name = tenants)]
+#[diesel(primary_key(id))]
+pub struct Tenant {
+    pub id: Uuid,
+    pub name: String,
+    pub slug: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
@@ -105,6 +115,7 @@ pub struct Bot {
 #[diesel(primary_key(org_id))]
 pub struct Organization {
     pub org_id: Uuid,
+    pub tenant_id: Uuid,
     pub name: String,
     pub slug: String,
     pub created_at: DateTime<Utc>,
@@ -153,7 +164,6 @@ pub struct UserLoginToken {
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = user_preferences)]
 pub struct UserPreference {
-
     pub id: Uuid,
     pub user_id: Uuid,
     pub preference_key: String,
@@ -163,7 +173,7 @@ pub struct UserPreference {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
-#[diesel(table_name = clicks)] 
+#[diesel(table_name = clicks)]
 pub struct Click {
     pub id: Uuid,
     pub campaign_id: String,

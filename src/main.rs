@@ -35,6 +35,8 @@ pub mod core;
 #[cfg(feature = "designer")]
 pub mod designer;
 pub mod deployment;
+pub mod api;
+pub mod browser;
 #[cfg(feature = "docs")]
 pub mod docs;
 pub mod embedded_ui;

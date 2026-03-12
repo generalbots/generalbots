@@ -64,6 +64,9 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "pg_ctl",
         "createdb",
         "psql",
+        // Forgejo ALM commands
+        "forgejo",
+        "forgejo-runner",
         // Security protection tools
         "lynis",
         "rkhunter",

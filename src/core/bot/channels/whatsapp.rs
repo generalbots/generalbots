@@ -20,6 +20,7 @@ pub struct WhatsAppAdapter {
     webhook_verify_token: String,
     _business_account_id: String,
     api_version: String,
+    voice_response: bool,
     queue: &'static Arc<WhatsAppMessageQueue>,
 }
 
@@ -47,6 +48,12 @@ impl WhatsAppAdapter {
             .get_config(&bot_id, "whatsapp-api-version", Some("v17.0"))
             .unwrap_or_else(|_| "v17.0".to_string());
 
+        let voice_response = config_manager
+            .get_config(&bot_id, "whatsapp-voice-response", Some("false"))
+            .unwrap_or_else(|_| "false".to_string())
+            .to_lowercase()
+            == "true";
+
         // Get Redis URL from config
         let redis_url = config_manager
             .get_config(&bot_id, "redis-url", Some("redis://127.0.0.1:6379"))
@@ -58,6 +65,7 @@ impl WhatsAppAdapter {
             webhook_verify_token: verify_token,
             _business_account_id: business_account_id,
             api_version,
+            voice_response,
             queue: WHATSAPP_QUEUE.get_or_init(|| {
                 let queue = WhatsAppMessageQueue::new(&redis_url)
                     .unwrap_or_else(|e| {
@@ -429,6 +437,115 @@ impl WhatsAppAdapter {
         } else {
             let error_text = response.text().await?;
             Err(format!("Failed to upload media: {}", error_text).into())
+        }
+    }
+
+    pub async fn download_media(
+        &self,
+        media_id: &str,
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+
+        // 1. Get media URL
+        let url = format!(
+            "https://graph.facebook.com/{}/{}",
+            self.api_version, media_id
+        );
+
+        let response = client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await?;
+            return Err(format!("Failed to get media URL: {}", error_text).into());
+        }
+
+        let media_info: serde_json::Value = response.json().await?;
+        let download_url = media_info["url"]
+            .as_str()
+            .ok_or_else(|| "Media URL not found in response")?;
+
+        // 2. Download the binary
+        let download_response = client
+            .get(download_url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", "Mozilla/5.0") // Meta requires a User-Agent sometimes
+            .send()
+            .await?;
+
+        if !download_response.status().is_success() {
+            let error_text = download_response.text().await?;
+            return Err(format!("Failed to download media binary: {}", error_text).into());
+        }
+
+        let binary_data = download_response.bytes().await?;
+        Ok(binary_data.to_vec())
+    }
+
+    pub async fn send_voice_message(
+        &self,
+        to: &str,
+        audio_url: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+
+        info!("Sending voice message to {} from URL: {}", to, audio_url);
+
+        let audio_data = if audio_url.starts_with("http") {
+            let response = client.get(audio_url).send().await?;
+            if !response.status().is_success() {
+                return Err(format!("Failed to download audio from {}: {:?}", audio_url, response.status()).into());
+            }
+            response.bytes().await?.to_vec()
+        } else {
+            tokio::fs::read(audio_url).await?
+        };
+
+        let temp_path = format!("/tmp/whatsapp_voice_{}.mp3", uuid::Uuid::new_v4());
+        tokio::fs::write(&temp_path, &audio_data).await?;
+
+        let media_id = match self.upload_media(&temp_path, "audio/mpeg").await {
+            Ok(id) => id,
+            Err(e) => {
+                let _ = tokio::fs::remove_file(&temp_path).await;
+                return Err(format!("Failed to upload voice: {}", e).into());
+            }
+        };
+
+        let _ = tokio::fs::remove_file(&temp_path).await;
+
+        let url = format!(
+            "https://graph.facebook.com/{}/{}/messages",
+            self.api_version, self.phone_number_id
+        );
+
+        let payload = serde_json::json!({
+            "messaging_product": "whatsapp",
+            "to": to,
+            "type": "audio",
+            "audio": {
+                "id": media_id
+            }
+        });
+
+        let response = client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Content-Type", "application/json")
+            .json(&payload)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            let result: serde_json::Value = response.json().await?;
+            info!("Voice message sent successfully: {:?}", result);
+            Ok(result["messages"][0]["id"].as_str().unwrap_or("").to_string())
+        } else {
+            let error_text = response.text().await?;
+            Err(format!("WhatsApp voice API error: {}", error_text).into())
         }
     }
 

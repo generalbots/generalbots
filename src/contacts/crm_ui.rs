@@ -25,12 +25,23 @@ pub struct SearchQuery {
 }
 
 fn get_bot_context(state: &AppState) -> (Uuid, Uuid) {
+    use diesel::prelude::*;
+    use crate::core::shared::schema::bots;
+
     let Ok(mut conn) = state.conn.get() else {
         return (Uuid::nil(), Uuid::nil());
     };
     let (bot_id, _bot_name) = get_default_bot(&mut conn);
-    let org_id = Uuid::nil();
-    (org_id, bot_id)
+    
+    // Get org_id using diesel query
+    let bot_org_id = bots::table
+        .filter(bots::id.eq(bot_id))
+        .select(bots::org_id)
+        .first::<Option<Uuid>>(&mut conn)
+        .unwrap_or(None)
+        .unwrap_or(Uuid::nil());
+    
+    (bot_org_id, bot_id)
 }
 
 pub fn configure_crm_routes() -> Router<Arc<AppState>> {
@@ -38,6 +49,7 @@ pub fn configure_crm_routes() -> Router<Arc<AppState>> {
         .route("/api/ui/crm/count", get(handle_crm_count))
         .route("/api/ui/crm/pipeline", get(handle_crm_pipeline))
         .route("/api/ui/crm/leads", get(handle_crm_leads))
+        .route("/api/ui/crm/leads/:id", get(handle_lead_detail))
         .route("/api/ui/crm/opportunities", get(handle_crm_opportunities))
         .route("/api/ui/crm/contacts", get(handle_crm_contacts))
         .route("/api/ui/crm/accounts", get(handle_crm_accounts))
@@ -123,7 +135,8 @@ async fn handle_crm_pipeline(
                 </div>
                 <div class=\"pipeline-card-actions\">
                     <button class=\"btn-sm\" hx-put=\"/api/crm/leads/{}/stage?stage=qualified\" hx-swap=\"none\">Qualify</button>
-                    <button class=\"btn-sm btn-secondary\" hx-get=\"/api/crm/leads/{}\" hx-target=\"#detail-panel\">View</button>
+                    <button class=\"btn-sm btn-accent\" hx-post=\"/api/crm/leads/{}/convert\" hx-swap=\"none\">Convert</button>
+                    <button class=\"btn-sm btn-secondary\" hx-get=\"/api/ui/crm/leads/{}\" hx-target=\"#detail-panel\">View</button>
                 </div>
             </div>",
             lead.id,
@@ -131,6 +144,7 @@ async fn handle_crm_pipeline(
             value_str,
             contact_name,
             lead.probability,
+            lead.id,
             lead.id,
             lead.id
         ));
@@ -198,6 +212,72 @@ async fn handle_crm_leads(State(state): State<Arc<AppState>>) -> impl IntoRespon
             lead.id
         ));
     }
+
+    Html(html)
+}
+
+use axum::extract::Path;
+
+async fn handle_lead_detail(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    let Ok(mut conn) = state.conn.get() else {
+        return Html("<div class='detail-error'>Database error</div>".to_string());
+    };
+
+    let (org_id, bot_id) = get_bot_context(&state);
+
+    let lead = match crm_leads::table
+        .filter(crm_leads::id.eq(id))
+        .filter(crm_leads::org_id.eq(org_id))
+        .filter(crm_leads::bot_id.eq(bot_id))
+        .first::<CrmLead>(&mut conn)
+        .optional()
+    {
+        Ok(Some(lead)) => lead,
+        _ => return Html("<div class='detail-error'>Lead not found</div>".to_string()),
+    };
+
+    let mut html = String::new();
+    html.push_str("<div class='detail-header'><h3>");
+    html.push_str(&html_escape(&lead.title));
+    html.push_str("</h3><button class='detail-close' onclick=\"document.getElementById('detail-panel').classList.remove('open')\">×</button></div><div class='detail-body'>");
+
+    let value_str = lead.value.map(|v| format!("${}", v)).unwrap_or_else(|| "-".to_string());
+    html.push_str("<div class='detail-field'><label>Value:</label><span>");
+    html.push_str(&value_str);
+    html.push_str("</span></div>");
+
+    html.push_str("<div class='detail-field'><label>Stage:</label><span class='stage-badge stage-");
+    html.push_str(&lead.stage);
+    html.push_str("'>");
+    html.push_str(&lead.stage);
+    html.push_str("</span></div>");
+
+    let source = lead.source.as_deref().unwrap_or("-");
+    html.push_str("<div class='detail-field'><label>Source:</label><span>");
+    html.push_str(source);
+    html.push_str("</span></div>");
+
+    html.push_str("<div class='detail-field'><label>Probability:</label><span>");
+    html.push_str(&lead.probability.to_string());
+    html.push_str("%</span></div>");
+
+    let description = lead.description.as_deref().unwrap_or("-");
+    html.push_str("<div class='detail-field'><label>Description:</label><span>");
+    html.push_str(&html_escape(description));
+    html.push_str("</span></div>");
+
+    let created = lead.created_at.format("%Y-%m-%d %H:%M").to_string();
+    html.push_str("<div class='detail-field'><label>Created:</label><span>");
+    html.push_str(&created);
+    html.push_str("</span></div>");
+
+    html.push_str("</div><div class='detail-actions'>");
+    html.push_str("<button class='btn-sm'>Edit</button>");
+    html.push_str("<button class='btn-sm btn-danger'>Delete</button>");
+    html.push_str("</div>");
 
     Html(html)
 }

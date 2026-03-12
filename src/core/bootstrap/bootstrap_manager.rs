@@ -226,9 +226,27 @@ impl BootstrapManager {
             match pm.start("alm") {
                 Ok(_child) => {
                     info!("ALM service started");
+                    // Wait briefly for ALM to initialize its DB
+                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    match crate::core::package_manager::setup_alm().await {
+                        Ok(_) => info!("ALM setup and runner generation successful"),
+                        Err(e) => warn!("ALM setup failed: {}", e),
+                    }
                 }
                 Err(e) => {
                     warn!("Failed to start ALM service: {}", e);
+                }
+            }
+        }
+
+        if pm.is_installed("alm-ci") {
+            info!("Starting ALM CI (Forgejo Runner) service...");
+            match pm.start("alm-ci") {
+                Ok(_child) => {
+                    info!("ALM CI service started");
+                }
+                Err(e) => {
+                    warn!("Failed to start ALM CI service: {}", e);
                 }
             }
         }
@@ -284,7 +302,7 @@ impl BootstrapManager {
         }
 
         // Install other core components (names must match 3rdparty.toml)
-		let core_components = ["tables", "cache", "drive", "directory", "llm", "vector_db"];
+		let core_components = ["tables", "cache", "drive", "directory", "llm", "vector_db", "alm", "alm-ci"];
         for component in core_components {
             if !pm.is_installed(component) {
                 info!("Installing {}...", component);

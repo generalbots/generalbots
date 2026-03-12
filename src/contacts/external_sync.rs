@@ -6,6 +6,8 @@ use crate::contacts::microsoft_client::MicrosoftClient;
 
 use chrono::{DateTime, Utc};
 use log::{debug, error, warn};
+use reqwest::StatusCode;
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
