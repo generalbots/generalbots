@@ -465,6 +465,30 @@ impl Default for CspBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::{body::Body, http::{Request, StatusCode}, response::IntoResponse, routing::get, Router};
+    use tower::ServiceExt;
+
+    async fn dummy_handler() -> impl IntoResponse {
+        (StatusCode::OK, "Hello, world!")
+    }
+
+    #[tokio::test]
+    async fn test_security_headers_middleware_application() {
+        let config = SecurityHeadersConfig::default();
+        let app = Router::new()
+            .route("/", get(dummy_handler))
+            .layer(axum::middleware::from_fn(security_headers_middleware))
+            .layer(axum::Extension(config));
+            
+        let request = Request::builder().uri("/").body(Body::empty()).unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        
+        // Ensure standard security headers are applied
+        assert!(response.headers().contains_key("content-security-policy"));
+        assert_eq!(response.headers().get("x-frame-options").unwrap(), "DENY");
+        assert_eq!(response.headers().get("x-content-type-options").unwrap(), "nosniff");
+        assert_eq!(response.headers().get("x-powered-by").unwrap(), "General Bots");
+    }
 
     #[test]
     fn test_default_config() {

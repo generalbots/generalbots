@@ -574,7 +574,7 @@ impl PackageManager {
                     ("HOME".to_string(), "{{DATA_PATH}}".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 3000 --cert {{CONF_PATH}}/system/certificates/alm/server.crt --key {{CONF_PATH}}/system/certificates/alm/server.key".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 3000 --cert {{CONF_PATH}}/system/certificates/alm/server.crt --key {{CONF_PATH}}/system/certificates/alm/server.key > {{LOGS_PATH}}/forgejo.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:3000 >/dev/null 2>&1".to_string(),
             },
         );
@@ -614,7 +614,7 @@ impl PackageManager {
                     env
                 },
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml > {{LOGS_PATH}}/forgejo-runner.log 2>&1 &".to_string(),
                 check_cmd: "ps -ef | grep forgejo-runner | grep -v grep | grep {{BIN_PATH}} >/dev/null 2>&1".to_string(),
             },
         );

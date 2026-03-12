@@ -401,6 +401,7 @@ pub async fn app_gate_middleware(
         p if p.starts_with("/api/admin") => Some("admin"),
         p if p.starts_with("/api/monitoring") => Some("monitoring"),
         p if p.starts_with("/api/settings") => Some("settings"),
+        p if p.starts_with("/api/crm") || p.starts_with("/api/contacts") || p.starts_with("/api/people") => Some("people"),
         p if p.starts_with("/api/ui/calendar") => Some("calendar"),
         p if p.starts_with("/api/ui/mail") => Some("mail"),
         p if p.starts_with("/api/ui/drive") => Some("drive"),
@@ -416,6 +417,7 @@ pub async fn app_gate_middleware(
         p if p.starts_with("/api/ui/admin") => Some("admin"),
         p if p.starts_with("/api/ui/monitoring") => Some("monitoring"),
         p if p.starts_with("/api/ui/settings") => Some("settings"),
+        p if p.starts_with("/api/ui/crm") || p.starts_with("/api/ui/contacts") || p.starts_with("/api/ui/people") => Some("people"),
         _ => None, // Allow all other paths
     };
 

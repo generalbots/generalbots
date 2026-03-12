@@ -3,6 +3,7 @@ pub mod component;
 pub mod installer;
 pub mod os;
 pub mod setup;
+pub mod alm_setup;
 pub use cache::{CacheResult, DownloadCache};
 pub use installer::PackageManager;
 pub mod cli;
@@ -44,6 +45,7 @@ pub fn get_all_components() -> Vec<ComponentInfo> {
         },
     ]
 }
+pub use alm_setup::setup_alm;
 
 
 

@@ -270,11 +270,11 @@ pub async fn download_file(
 
     let body = resp.body.collect().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?.into_bytes();
 
-    Ok(Response::builder()
+    Response::builder()
         .header(header::CONTENT_TYPE, "application/octet-stream")
         .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{}\"", file_id.split('/').next_back().unwrap_or("file")))
         .body(Body::from(body))
-        .unwrap())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))
 }
 
 // Stubs for others (list_shared, etc.)

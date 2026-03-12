@@ -1,5 +1,6 @@
 use super::types::*;
 use super::error::ContactsError;
+use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz, Uuid as DieselUuid};

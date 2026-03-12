@@ -384,6 +384,13 @@ pub async fn run_axum_server(
     // Deployment routes for VibeCode platform
     api_router = api_router.merge(crate::deployment::configure_deployment_routes());
 
+    // BotCoder IDE APIs
+    api_router = api_router.merge(crate::api::editor::configure_editor_routes());
+    api_router = api_router.merge(crate::api::database::configure_database_routes());
+    api_router = api_router.merge(crate::api::git::configure_git_routes());
+    api_router = api_router.merge(crate::api::terminal::configure_terminal_routes());
+    api_router = api_router.merge(crate::browser::api::configure_browser_routes());
+
     let site_path = app_state
         .config
         .as_ref()

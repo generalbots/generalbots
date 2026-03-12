@@ -460,8 +460,7 @@ impl BasicCompiler {
             .ok();
         }
 
-        let website_regex = Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#)
-            .unwrap_or_else(|_| Regex::new(r"").unwrap());
+        let website_regex = Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#)?;
 
         for line in source.lines() {
             let trimmed = line.trim();
