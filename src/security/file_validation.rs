@@ -48,8 +48,6 @@ pub struct FileValidationConfig {
     pub block_executables: bool,
     pub check_magic_bytes: bool,
     defang_pdf: bool,
-    #[allow(dead_code)]
-    scan_for_malware: bool,
 }
 
 impl Default for FileValidationConfig {
@@ -67,7 +65,6 @@ impl Default for FileValidationConfig {
             block_executables: true,
             check_magic_bytes: true,
             defang_pdf: true,
-            scan_for_malware: false,
         }
     }
 }

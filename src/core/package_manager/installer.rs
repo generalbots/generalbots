@@ -4,7 +4,6 @@ use crate::core::package_manager::{InstallMode, OsType};
 use crate::security::command_guard::SafeCommand;
 use anyhow::{Context, Result};
 use log::{error, info, trace, warn};
-use once_cell::sync::Lazy;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -22,15 +21,25 @@ struct ThirdPartyConfig {
     components: HashMap<String, ComponentEntry>,
 }
 
-static THIRDPARTY_CONFIG: Lazy<ThirdPartyConfig> = Lazy::new(|| {
-    let toml_str = include_str!("../../../3rdparty.toml");
-    toml::from_str(toml_str).unwrap_or_else(|e| {
-        panic!("Failed to parse embedded 3rdparty.toml: {e}")
+static THIRDPARTY_CONFIG: std::sync::OnceLock<ThirdPartyConfig> = std::sync::OnceLock::new();
+
+fn get_thirdparty_config() -> &'static ThirdPartyConfig {
+    THIRDPARTY_CONFIG.get_or_init(|| {
+        let toml_str = include_str!("../../../3rdparty.toml");
+        match toml::from_str::<ThirdPartyConfig>(toml_str) {
+            Ok(config) => config,
+            Err(e) => {
+                error!("CRITICAL: Failed to parse embedded 3rdparty.toml: {e}");
+                ThirdPartyConfig {
+                    components: HashMap::new(),
+                }
+            }
+        }
     })
-});
+}
 
 fn get_component_url(name: &str) -> Option<String> {
-    THIRDPARTY_CONFIG
+    get_thirdparty_config()
         .components
         .get(name)
         .map(|c| c.url.clone())
@@ -1366,8 +1375,8 @@ EOF"#.to_string(),
         info!("Waiting for Vault to start...");
         std::thread::sleep(std::time::Duration::from_secs(3));
 
-        let vault_addr = std::env::var("VAULT_ADDR")
-            .unwrap_or_else(|_| "https://localhost:8200".to_string());
+        let vault_addr =
+            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
         let ca_cert = conf_path.join("system/certificates/ca/ca.crt");
 
         // Initialize Vault
@@ -1391,8 +1400,8 @@ EOF"#.to_string(),
         }
 
         let init_output = String::from_utf8_lossy(&output.stdout);
-        let init_json_val: serde_json::Value = serde_json::from_str(&init_output)
-            .context("Failed to parse Vault init output")?;
+        let init_json_val: serde_json::Value =
+            serde_json::from_str(&init_output).context("Failed to parse Vault init output")?;
 
         let unseal_keys = init_json_val["unseal_keys_b64"]
             .as_array()
@@ -1402,10 +1411,7 @@ EOF"#.to_string(),
             .context("No root token in output")?;
 
         // Save init.json
-        std::fs::write(
-            &init_json,
-            serde_json::to_string_pretty(&init_json_val)?
-        )?;
+        std::fs::write(&init_json, serde_json::to_string_pretty(&init_json_val)?)?;
         info!("Created {}", init_json.display());
 
         // Create .env file with Vault credentials
@@ -1427,9 +1433,7 @@ VAULT_CACERT={}
             if existing.contains("VAULT_ADDR=") {
                 warn!(".env already contains VAULT_ADDR, not overwriting");
             } else {
-                let mut file = std::fs::OpenOptions::new()
-                    .append(true)
-                    .open(&env_file)?;
+                let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
                 file.write_all(env_content.as_bytes())?;
                 info!("Appended Vault config to .env");
             }
@@ -1508,8 +1512,8 @@ VAULT_CACERT={}
 
         let conf_path = self.base_path.join("conf");
         let ca_cert = conf_path.join("system/certificates/ca/ca.crt");
-        let vault_addr = std::env::var("VAULT_ADDR")
-            .unwrap_or_else(|_| "https://localhost:8200".to_string());
+        let vault_addr =
+            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
 
         let env_content = format!(
             r#"
@@ -1528,9 +1532,7 @@ VAULT_CACERT={}
             if existing.contains("VAULT_ADDR=") {
                 return Ok(());
             }
-            let mut file = std::fs::OpenOptions::new()
-                .append(true)
-                .open(&env_file)?;
+            let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
             use std::io::Write;
             file.write_all(env_content.as_bytes())?;
         } else {

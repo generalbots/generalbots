@@ -369,6 +369,11 @@ pub async fn run_axum_server(
         api_router = api_router.merge(crate::whatsapp::configure());
     }
 
+    #[cfg(feature = "marketing")]
+    {
+        api_router = api_router.merge(crate::marketing::configure_marketing_routes());
+    }
+
     #[cfg(feature = "telegram")]
     {
         api_router = api_router.merge(crate::telegram::configure());

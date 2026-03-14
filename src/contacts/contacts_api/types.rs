@@ -36,9 +36,10 @@ pub struct Contact {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ContactStatus {
+    #[default]
     Active,
     Inactive,
     Lead,
@@ -57,12 +58,6 @@ impl std::fmt::Display for ContactStatus {
             Self::Prospect => write!(f, "prospect"),
             Self::Archived => write!(f, "archived"),
         }
-    }
-}
-
-impl Default for ContactStatus {
-    fn default() -> Self {
-        Self::Active
     }
 }
 

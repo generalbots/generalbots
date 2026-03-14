@@ -387,6 +387,8 @@ pub struct AppState {
     pub task_progress_broadcast: Option<broadcast::Sender<TaskProgressEvent>>,
     pub billing_alert_broadcast: Option<broadcast::Sender<BillingAlertNotification>>,
     pub task_manifests: Arc<std::sync::RwLock<HashMap<String, TaskManifest>>>,
+    #[cfg(feature = "terminal")]
+    pub terminal_manager: Arc<crate::api::terminal::TerminalManager>,
     #[cfg(feature = "project")]
     pub project_service: Arc<RwLock<ProjectService>>,
     #[cfg(feature = "compliance")]
@@ -431,6 +433,8 @@ impl Clone for AppState {
             task_progress_broadcast: self.task_progress_broadcast.clone(),
             billing_alert_broadcast: self.billing_alert_broadcast.clone(),
             task_manifests: Arc::clone(&self.task_manifests),
+            #[cfg(feature = "terminal")]
+            terminal_manager: Arc::clone(&self.terminal_manager),
             #[cfg(feature = "project")]
             project_service: Arc::clone(&self.project_service),
             #[cfg(feature = "compliance")]

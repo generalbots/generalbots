@@ -15,6 +15,58 @@ use crate::core::shared::schema::people::people as people_table;
 use crate::core::shared::schema::{people_departments, people_teams, people_time_off};
 use crate::core::shared::state::AppState;
 
+#[derive(Queryable)]
+struct PersonListRow {
+    id: Uuid,
+    first_name: String,
+    last_name: Option<String>,
+    email: Option<String>,
+    job_title: Option<String>,
+    department: Option<String>,
+    avatar_url: Option<String>,
+    is_active: bool,
+}
+
+#[derive(Queryable)]
+struct PersonCardRow {
+    id: Uuid,
+    first_name: String,
+    last_name: Option<String>,
+    email: Option<String>,
+    job_title: Option<String>,
+    department: Option<String>,
+    avatar_url: Option<String>,
+    phone: Option<String>,
+}
+
+#[derive(Queryable)]
+struct PersonDetailRow {
+    id: Uuid,
+    first_name: String,
+    last_name: Option<String>,
+    email: Option<String>,
+    phone: Option<String>,
+    mobile: Option<String>,
+    job_title: Option<String>,
+    department: Option<String>,
+    office_location: Option<String>,
+    avatar_url: Option<String>,
+    bio: Option<String>,
+    hire_date: Option<chrono::NaiveDate>,
+    is_active: bool,
+    last_seen_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Queryable)]
+struct PersonSearchRow {
+    id: Uuid,
+    first_name: String,
+    last_name: Option<String>,
+    email: Option<String>,
+    job_title: Option<String>,
+    avatar_url: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Default)]
 pub struct PeopleQuery {
     pub department: Option<String>,
@@ -57,7 +109,7 @@ async fn handle_people_list(
 ) -> Html<String> {
     let pool = state.conn.clone();
 
-    let result: Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, bool)>> = tokio::task::spawn_blocking(move || -> Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, bool)>> {
+    let result: Option<Vec<PersonListRow>> = tokio::task::spawn_blocking(move || -> Option<Vec<PersonListRow>> {
         let mut conn = pool.get().ok()?;
         let (bot_id, _) = get_default_bot(&mut conn);
 
@@ -100,7 +152,7 @@ async fn handle_people_list(
                 people_table::avatar_url,
                 people_table::is_active,
             ))
-            .load::<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, bool)>(&mut conn)
+            .load::<PersonListRow>(&mut conn)
             .ok()
     })
     .await
@@ -124,12 +176,14 @@ async fn handle_people_list(
                     <tbody>"##
             );
 
-            for (id, first_name, last_name, email, job_title, department, avatar_url, is_active) in persons {
-                let full_name = format!("{} {}", first_name, last_name.unwrap_or_default());
-                let email_str = email.unwrap_or_else(|| "-".to_string());
-                let title_str = job_title.unwrap_or_else(|| "-".to_string());
-                let dept_str = department.unwrap_or_else(|| "-".to_string());
-                let avatar = avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
+            for row in persons {
+                let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_default());
+                let email_str = row.email.unwrap_or_else(|| "-".to_string());
+                let title_str = row.job_title.unwrap_or_else(|| "-".to_string());
+                let dept_str = row.department.unwrap_or_else(|| "-".to_string());
+                let avatar = row.avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
+                let is_active = row.is_active;
+                let id = row.id;
                 let status_class = if is_active { "status-active" } else { "status-inactive" };
                 let status_text = if is_active { "Active" } else { "Inactive" };
 
@@ -178,7 +232,7 @@ async fn handle_people_cards(
 ) -> Html<String> {
     let pool = state.conn.clone();
 
-    let result: Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)>> = tokio::task::spawn_blocking(move || -> Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)>> {
+    let result: Option<Vec<PersonCardRow>> = tokio::task::spawn_blocking(move || -> Option<Vec<PersonCardRow>> {
         let mut conn = pool.get().ok()?;
         let (bot_id, _) = get_default_bot(&mut conn);
 
@@ -207,7 +261,7 @@ async fn handle_people_cards(
                 people_table::avatar_url,
                 people_table::phone,
             ))
-            .load::<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)>(&mut conn)
+            .load::<PersonCardRow>(&mut conn)
             .ok()
     })
     .await
@@ -218,13 +272,14 @@ async fn handle_people_cards(
         Some(persons) if !persons.is_empty() => {
             let mut html = String::from(r##"<div class="people-cards-grid">"##);
 
-            for (id, first_name, last_name, email, job_title, department, avatar_url, phone) in persons {
-                let full_name = format!("{} {}", first_name, last_name.unwrap_or_default());
-                let email_str = email.unwrap_or_default();
-                let title_str = job_title.unwrap_or_else(|| "Team Member".to_string());
-                let dept_str = department.unwrap_or_default();
-                let avatar = avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
-                let phone_str = phone.unwrap_or_default();
+            for row in persons {
+                let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_default());
+                let email_str = row.email.unwrap_or_default();
+                let title_str = row.job_title.unwrap_or_else(|| "Team Member".to_string());
+                let dept_str = row.department.unwrap_or_default();
+                let avatar = row.avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
+                let phone_str = row.phone.unwrap_or_default();
+                let id = row.id;
 
                 html.push_str(&format!(
                     r##"<div class="person-card" data-id="{id}" hx-get="/api/ui/people/{id}" hx-target="#person-detail">
@@ -310,7 +365,7 @@ async fn handle_person_detail(
 ) -> Html<String> {
     let pool = state.conn.clone();
 
-    let result: Option<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<chrono::NaiveDate>, bool, Option<DateTime<Utc>>)> = tokio::task::spawn_blocking(move || -> Option<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<chrono::NaiveDate>, bool, Option<DateTime<Utc>>)> {
+    let result: Option<PersonDetailRow> = tokio::task::spawn_blocking(move || -> Option<PersonDetailRow> {
         let mut conn = pool.get().ok()?;
 
         people_table::table
@@ -331,7 +386,7 @@ async fn handle_person_detail(
                 people_table::is_active,
                 people_table::last_seen_at,
             ))
-            .first::<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<chrono::NaiveDate>, bool, Option<DateTime<Utc>>)>(&mut conn)
+            .first::<PersonDetailRow>(&mut conn)
             .ok()
     })
     .await
@@ -339,18 +394,20 @@ async fn handle_person_detail(
     .flatten();
 
     match result {
-        Some((id, first_name, last_name, email, phone, mobile, job_title, department, office, avatar_url, bio, hire_date, is_active, last_seen)) => {
-            let full_name = format!("{} {}", first_name, last_name.unwrap_or_default());
-            let email_str = email.unwrap_or_else(|| "-".to_string());
-            let phone_str = phone.unwrap_or_else(|| "-".to_string());
-            let mobile_str = mobile.unwrap_or_else(|| "-".to_string());
-            let title_str = job_title.unwrap_or_else(|| "-".to_string());
-            let dept_str = department.unwrap_or_else(|| "-".to_string());
-            let office_str = office.unwrap_or_else(|| "-".to_string());
-            let avatar = avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
-            let bio_str = bio.unwrap_or_else(|| "No bio available".to_string());
-            let hire_str = hire_date.map(|d| d.format("%B %d, %Y").to_string()).unwrap_or_else(|| "-".to_string());
-            let last_seen_str = last_seen.map(|d| d.format("%Y-%m-%d %H:%M").to_string()).unwrap_or_else(|| "Never".to_string());
+        Some(row) => {
+            let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_default());
+            let email_str = row.email.unwrap_or_else(|| "-".to_string());
+            let phone_str = row.phone.unwrap_or_else(|| "-".to_string());
+            let mobile_str = row.mobile.unwrap_or_else(|| "-".to_string());
+            let title_str = row.job_title.unwrap_or_else(|| "-".to_string());
+            let dept_str = row.department.unwrap_or_else(|| "-".to_string());
+            let office_str = row.office_location.unwrap_or_else(|| "-".to_string());
+            let avatar = row.avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
+            let bio_str = row.bio.unwrap_or_else(|| "No bio available".to_string());
+            let hire_str = row.hire_date.map(|d| d.format("%B %d, %Y").to_string()).unwrap_or_else(|| "-".to_string());
+            let last_seen_str = row.last_seen_at.map(|d| d.format("%Y-%m-%d %H:%M").to_string()).unwrap_or_else(|| "Never".to_string());
+            let is_active = row.is_active;
+            let id = row.id;
             let status_class = if is_active { "status-active" } else { "status-inactive" };
             let status_text = if is_active { "Active" } else { "Inactive" };
 
@@ -638,7 +695,7 @@ async fn handle_people_search(
     let pool = state.conn.clone();
     let search_term = format!("%{q}%");
 
-    let result: Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>)>> = tokio::task::spawn_blocking(move || -> Option<Vec<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>)>> {
+    let result: Option<Vec<PersonSearchRow>> = tokio::task::spawn_blocking(move || -> Option<Vec<PersonSearchRow>> {
         let mut conn = pool.get().ok()?;
         let (bot_id, _) = get_default_bot(&mut conn);
 
@@ -660,7 +717,7 @@ async fn handle_people_search(
                 people_table::job_title,
                 people_table::avatar_url,
             ))
-            .load::<(Uuid, String, Option<String>, Option<String>, Option<String>, Option<String>)>(&mut conn)
+            .load::<PersonSearchRow>(&mut conn)
             .ok()
     })
     .await
@@ -671,11 +728,12 @@ async fn handle_people_search(
         Some(persons) if !persons.is_empty() => {
             let mut html = String::from(r##"<div class="search-results">"##);
 
-            for (id, first_name, last_name, email, job_title, avatar_url) in persons {
-                let full_name = format!("{} {}", first_name, last_name.unwrap_or_default());
-                let email_str: String = email.unwrap_or_default();
-                let title_str: String = job_title.unwrap_or_default();
-                let avatar: String = avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
+            for row in persons {
+                let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_default());
+                let email_str: String = row.email.unwrap_or_default();
+                let title_str: String = row.job_title.unwrap_or_default();
+                let avatar: String = row.avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
+                let id = row.id;
 
                 html.push_str(&format!(
                     r##"<div class="search-result-item" hx-get="/api/ui/people/{id}" hx-target="#person-detail">

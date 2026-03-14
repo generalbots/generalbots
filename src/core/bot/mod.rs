@@ -387,7 +387,7 @@ impl BotOrchestrator {
 
         // Ensure default tenant exists (use fixed ID for consistency)
         let default_tenant_id = "00000000-0000-0000-0000-000000000001";
-        sql_query(&format!(
+        sql_query(format!(
             "INSERT INTO tenants (id, name, slug, created_at) \
              VALUES ('{}', 'Default Tenant', 'default', NOW()) \
              ON CONFLICT (slug) DO NOTHING",
@@ -398,7 +398,7 @@ impl BotOrchestrator {
 
         // Ensure default organization exists (use fixed ID for consistency)
         let default_org_id = "00000000-0000-0000-0000-000000000001";
-        sql_query(&format!(
+        sql_query(format!(
             "INSERT INTO organizations (org_id, tenant_id, name, slug, created_at) \
              VALUES ('{}', '{}', 'Default Org', 'default', NOW()) \
              ON CONFLICT (org_id) DO NOTHING",

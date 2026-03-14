@@ -48,6 +48,8 @@ pub mod maintenance;
 #[cfg(feature = "monitoring")]
 pub mod monitoring;
 pub mod multimodal;
+#[cfg(feature = "marketing")]
+pub mod marketing;
 #[cfg(feature = "paper")]
 pub mod paper;
 #[cfg(feature = "people")]
