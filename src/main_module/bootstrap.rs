@@ -592,6 +592,8 @@ pub async fn create_app_state(
         task_progress_broadcast: Some(task_progress_tx),
         billing_alert_broadcast: None,
         task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
+        #[cfg(feature = "terminal")]
+        terminal_manager: crate::api::terminal::TerminalManager::new(),
         #[cfg(feature = "project")]
         project_service: Arc::new(tokio::sync::RwLock::new(
             crate::project::ProjectService::new(),

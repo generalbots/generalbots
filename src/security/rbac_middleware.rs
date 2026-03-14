@@ -1129,6 +1129,26 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/contacts/**", "PUT", ""),
         RoutePermission::new("/api/contacts/**", "DELETE", ""),
 
+        // Marketing / Campaigns
+        RoutePermission::new("/api/marketing/**", "GET", ""),
+        RoutePermission::new("/api/marketing/**", "POST", ""),
+        RoutePermission::new("/api/marketing/**", "PUT", ""),
+        RoutePermission::new("/api/marketing/**", "DELETE", ""),
+
+        // CRM Campaigns
+        RoutePermission::new("/api/crm/campaigns/**", "GET", ""),
+        RoutePermission::new("/api/crm/campaigns/**", "POST", ""),
+        RoutePermission::new("/api/crm/campaigns/**", "PUT", ""),
+        RoutePermission::new("/api/crm/campaigns/**", "DELETE", ""),
+        RoutePermission::new("/api/crm/lists/**", "GET", ""),
+        RoutePermission::new("/api/crm/lists/**", "POST", ""),
+        RoutePermission::new("/api/crm/lists/**", "PUT", ""),
+        RoutePermission::new("/api/crm/lists/**", "DELETE", ""),
+        RoutePermission::new("/api/crm/templates/**", "GET", ""),
+        RoutePermission::new("/api/crm/templates/**", "POST", ""),
+        RoutePermission::new("/api/crm/templates/**", "PUT", ""),
+        RoutePermission::new("/api/crm/templates/**", "DELETE", ""),
+
         // Billing / Products
         RoutePermission::new("/api/billing/**", "GET", ""),
         RoutePermission::new("/api/billing/**", "POST", ""),

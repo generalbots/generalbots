@@ -3,6 +3,7 @@ use crate::auto_task::get_designer_error_context;
 use crate::core::shared::state::AppState;
 use crate::core::shared::get_content_type;
 use axum::{extract::State, response::IntoResponse, Json};
+use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -170,6 +171,7 @@ pub fn get_designer_session(
 ) -> Result<crate::core::shared::models::UserSession, Box<dyn std::error::Error + Send + Sync>> {
     use crate::core::shared::models::schema::bots::dsl::*;
     use crate::core::shared::models::UserSession;
+    use diesel::prelude::*;
 
     let mut conn = state.conn.get()?;
 

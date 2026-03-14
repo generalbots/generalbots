@@ -11,7 +11,7 @@ use crate::core::shared::utils::DbPool;
 use std::sync::Arc;
 
 /// Global WhatsApp message queue (shared across all adapters)
-static WHATSAPP_QUEUE: std::sync::OnceLock<Arc<WhatsAppMessageQueue>> = std::sync::OnceLock::new();
+static WHATSAPP_QUEUE: std::sync::OnceLock<Option<Arc<WhatsAppMessageQueue>>> = std::sync::OnceLock::new();
 
 #[derive(Debug, Clone)]
 pub struct WhatsAppAdapter {
@@ -20,8 +20,8 @@ pub struct WhatsAppAdapter {
     webhook_verify_token: String,
     _business_account_id: String,
     api_version: String,
-    voice_response: bool,
-    queue: &'static Arc<WhatsAppMessageQueue>,
+    _voice_response: bool,
+    queue: Option<&'static Arc<WhatsAppMessageQueue>>,
 }
 
 impl WhatsAppAdapter {
@@ -65,20 +65,24 @@ impl WhatsAppAdapter {
             webhook_verify_token: verify_token,
             _business_account_id: business_account_id,
             api_version,
-            voice_response,
+            _voice_response: voice_response,
             queue: WHATSAPP_QUEUE.get_or_init(|| {
-                let queue = WhatsAppMessageQueue::new(&redis_url)
-                    .unwrap_or_else(|e| {
-                        error!("Failed to create WhatsApp queue: {}", e);
-                        panic!("WhatsApp queue initialization failed");
-                    });
-                let queue = Arc::new(queue);
-                let worker_queue = Arc::clone(&queue);
-                tokio::spawn(async move {
-                    worker_queue.start_worker().await;
-                });
-                queue
-            }),
+                let queue_res = WhatsAppMessageQueue::new(&redis_url);
+                match queue_res {
+                    Ok(q) => {
+                        let q_arc = Arc::new(q);
+                        let worker_queue = Arc::clone(&q_arc);
+                        tokio::spawn(async move {
+                            worker_queue.start_worker().await;
+                        });
+                        Some(q_arc)
+                    }
+                    Err(e) => {
+                        error!("FATAL: Failed to create WhatsApp queue: {}. WhatsApp features will be disabled.", e);
+                        None
+                    }
+                }
+            }).as_ref(),
         }
     }
 
@@ -155,7 +159,12 @@ impl WhatsAppAdapter {
             api_version: self.api_version.clone(),
         };
 
-        self.queue.enqueue(queued_msg).await
+        let queue = self.queue.ok_or_else(|| {
+            error!("WhatsApp queue not available (was initialization failed?)");
+            "WhatsApp queue not available"
+        })?;
+
+        queue.enqueue(queued_msg).await
             .map_err(|e| format!("Failed to enqueue WhatsApp message: {}", e))?;
 
         info!("WhatsApp message enqueued for {}: {}", to, &message.chars().take(50).collect::<String>());
@@ -466,7 +475,7 @@ impl WhatsAppAdapter {
         let media_info: serde_json::Value = response.json().await?;
         let download_url = media_info["url"]
             .as_str()
-            .ok_or_else(|| "Media URL not found in response")?;
+            .ok_or("Media URL not found in response")?;
 
         // 2. Download the binary
         let download_response = client

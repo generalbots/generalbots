@@ -316,7 +316,7 @@ impl ScriptService {
             }
         }
     }
-    fn preprocess_basic_script(&self, script: &str) -> String {
+    fn preprocess_basic_script(&self, script: &str) -> Result<String, String> {
         let _ = self; // silence unused self warning - kept for API consistency
         let script = preprocess_switch(script);
 
@@ -346,10 +346,9 @@ impl ScriptService {
             }
             if trimmed.starts_with("NEXT") {
                 if let Some(expected_indent) = for_stack.pop() {
-                    assert!(
-                        (current_indent - 4) == expected_indent,
-                        "NEXT without matching FOR EACH"
-                    );
+                    if (current_indent - 4) != expected_indent {
+                        return Err("NEXT without matching FOR EACH (indentation mismatch)".to_string());
+                    }
                     current_indent -= 4;
                     result.push_str(&" ".repeat(current_indent));
                     result.push_str("}\n");
@@ -360,7 +359,7 @@ impl ScriptService {
                     continue;
                 }
                 log::error!("NEXT without matching FOR EACH");
-                return result;
+                return Err("NEXT without matching FOR EACH".to_string());
             }
             if trimmed == "EXIT FOR" {
                 result.push_str(&" ".repeat(current_indent));
@@ -555,11 +554,16 @@ impl ScriptService {
             }
             result.push('\n');
         }
-        assert!(for_stack.is_empty(), "Unclosed FOR EACH loop");
-        result
+        if !for_stack.is_empty() {
+            return Err("Unclosed FOR EACH loop".to_string());
+        }
+        Ok(result)
     }
     pub fn compile(&self, script: &str) -> Result<rhai::AST, Box<EvalAltResult>> {
-        let processed_script = self.preprocess_basic_script(script);
+        let processed_script = match self.preprocess_basic_script(script) {
+            Ok(s) => s,
+            Err(e) => return Err(Box::new(EvalAltResult::ErrorRuntime(Dynamic::from(e), rhai::Position::NONE))),
+        };
         trace!("Processed Script:\n{}", processed_script);
         match self.engine.compile(&processed_script) {
             Ok(ast) => Ok(ast),
@@ -711,73 +715,7 @@ impl ScriptService {
         Ok(())
     }
 
-    /// Convert FORMAT(expr, pattern) to FORMAT expr pattern (custom syntax format)
-    /// Also handles RANDOM and other functions that need space-separated arguments
-    /// This properly handles nested function calls by counting parentheses
-    #[allow(dead_code)]
-    fn convert_format_syntax(script: &str) -> String {
-        let mut result = String::new();
-        let mut chars = script.chars().peekable();
-        let mut i = 0;
-        let bytes = script.as_bytes();
 
-        while i < bytes.len() {
-            // Check if this is the start of FORMAT(
-            if i + 6 <= bytes.len()
-                && bytes[i..i+6].eq_ignore_ascii_case(b"FORMAT")
-                && i + 7 < bytes.len()
-                && bytes[i + 6] == b'('
-            {
-                // Found FORMAT( - now parse the arguments
-                let mut paren_depth = 1;
-                let mut j = i + 7; // Start after FORMAT(
-                let mut comma_pos = None;
-
-                // Find the arguments by tracking parentheses
-                while j < bytes.len() && paren_depth > 0 {
-                    match bytes[j] {
-                        b'(' => paren_depth += 1,
-                        b')' => {
-                            paren_depth -= 1;
-                            if paren_depth == 0 {
-                                break;
-                            }
-                        }
-                        b',' => {
-                            if paren_depth == 1 {
-                                // This is the comma separating FORMAT's arguments
-                                comma_pos = Some(j);
-                            }
-                        }
-                        _ => {}
-                    }
-                    j += 1;
-                }
-
-                if let Some(comma) = comma_pos {
-                    // Extract the two arguments
-                    let expr = &script[i + 7..comma].trim();
-                    let pattern = &script[comma + 1..j].trim();
-
-                    // Convert to Rhai space-separated syntax
-                    // Remove quotes from pattern if present, then add them back in the right format
-                    let pattern_clean = pattern.trim_matches('"').trim_matches('\'');
-                    result.push_str(&format!("FORMAT ({expr}) (\"{pattern_clean}\")"));
-
-                    i = j + 1;
-                    continue;
-                }
-            }
-
-            // Copy the character as-is
-            if let Some(c) = chars.next() {
-                result.push(c);
-            }
-            i += 1;
-        }
-
-        result
-    }
 
     /// Convert a single TALK line with ${variable} substitution to proper TALK syntax
     /// Handles: "Hello ${name}" → TALK "Hello " + name

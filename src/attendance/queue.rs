@@ -461,14 +461,16 @@ pub async fn assign_conversation(
         move || {
             let mut db_conn = conn
                 .get()
-                .map_err(|e| format!("Failed to get database connection: {}", e))?;
+                .map_err(|e| format!("Failed to get database connection: {e}"))?;
 
             use crate::core::shared::models::schema::user_sessions;
 
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
                 .first(&mut db_conn)
-                .map_err(|e| format!("Session not found: {}", e))?;
+                .map_err(|e| format!("Session not found: {e}"))?;
+
+            let bot_id = session.bot_id;
 
             let mut ctx = session.context_data;
             ctx["assigned_to"] = serde_json::json!(attendant_id.to_string());
@@ -478,10 +480,211 @@ pub async fn assign_conversation(
             diesel::update(user_sessions::table.filter(user_sessions::id.eq(session_id)))
                 .set(user_sessions::context_data.eq(&ctx))
                 .execute(&mut db_conn)
-                .map_err(|e| format!("Failed to update session: {}", e))?;
+                .map_err(|e| format!("Failed to update session: {e}"))?;
+
+            let webhook_data = serde_json::json!({
+                "session_id": session_id,
+                "attendant_id": attendant_id,
+                "assigned_at": Utc::now().to_rfc3339()
+            });
+
+            crate::attendance::webhooks::emit_webhook_event(
+                &mut db_conn,
+                bot_id,
+                "session.assigned",
+                webhook_data,
+            );
 
             Ok::<(), String>(())
         }
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                "session_id": request.session_id,
+                "attendant_id": request.attendant_id,
+                "assigned_at": Utc::now().to_rfc3339()
+            })),
+        ),
+        Ok(Err(e)) => {
+            error!("Assignment error: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "success": false,
+                    "error": e
+                })),
+            )
+        }
+        Err(e) => {
+            error!("Assignment error: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "success": false,
+                    "error": format!("{:?}", e)
+                })),
+            )
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SkillBasedAssignRequest {
+    pub session_id: Uuid,
+    pub required_skills: Vec<String>,
+    pub channel: Option<String>,
+}
+
+pub async fn assign_by_skill(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<SkillBasedAssignRequest>,
+) -> impl IntoResponse {
+    info!(
+        "Skill-based assignment for session {} with skills {:?}",
+        request.session_id, request.required_skills
+    );
+
+    let result = tokio::task::spawn_blocking({
+        let conn = state.conn.clone();
+        let session_id = request.session_id;
+        let required_skills = request.required_skills.clone();
+        let channel_filter = request.channel.clone();
+
+        move || {
+            let mut db_conn = conn
+                .get()
+                .map_err(|e| format!("Failed to get database connection: {e}"))?;
+
+            use crate::core::shared::models::schema::user_sessions;
+
+            let session: UserSession = user_sessions::table
+                .filter(user_sessions::id.eq(session_id))
+                .first(&mut db_conn)
+                .map_err(|e| format!("Session not found: {e}"))?;
+
+            let bot_id = session.bot_id;
+            
+            let csv_path = format!("/opt/gbo/data/{}/attendants.csv", bot_id);
+            let mut best_attendant: Option<AttendantCSV> = None;
+            let mut best_score: i32 = -1;
+
+            if let Ok(contents) = std::fs::read_to_string(&csv_path) {
+                for line in contents.lines().skip(1) {
+                    let fields: Vec<&str> = line.split(',').collect();
+                    if fields.len() < 3 {
+                        continue;
+                    }
+
+                    let attendant = AttendantCSV {
+                        id: fields[0].to_string(),
+                        name: fields[1].to_string(),
+                        channel: fields.get(2).cloned().unwrap_or("").to_string(),
+                        preferences: fields.get(3).cloned().unwrap_or("").to_string(),
+                        department: fields.get(4).cloned().map(String::from),
+                        aliases: fields.get(5).cloned().map(String::from),
+                        phone: fields.get(6).cloned().map(String::from),
+                        email: fields.get(7).cloned().map(String::from),
+                        teams: fields.get(8).cloned().map(String::from),
+                        google: fields.get(9).cloned().map(String::from),
+                    };
+
+                    if let Some(ref ch) = channel_filter {
+                        if attendant.channel != *ch && !attendant.channel.is_empty() {
+                            continue;
+                        }
+                    }
+
+                    let prefs = attendant.preferences.to_lowercase();
+                    let mut score = 0;
+
+                    for skill in &required_skills {
+                        if prefs.contains(&skill.to_lowercase()) {
+                            score += 10;
+                        }
+                    }
+
+                    if prefs.contains("general") || prefs.is_empty() {
+                        score += 1;
+                    }
+
+                    if score > best_score {
+                        best_score = score;
+                        best_attendant = Some(attendant);
+                    }
+                }
+            }
+
+            if let Some(attendant) = best_attendant {
+                if let Ok(attendant_uuid) = Uuid::parse_str(&attendant.id) {
+                    let mut ctx = session.context_data;
+                    ctx["assigned_to"] = serde_json::json!(attendant.id.clone());
+                    ctx["assigned_to_name"] = serde_json::json!(attendant.name.clone());
+                    ctx["assigned_at"] = serde_json::json!(Utc::now().to_rfc3339());
+                    ctx["status"] = serde_json::json!("assigned");
+                    ctx["assignment_reason"] = serde_json::json!("skill_based");
+
+                    diesel::update(user_sessions::table.filter(user_sessions::id.eq(session_id)))
+                        .set(user_sessions::context_data.eq(&ctx))
+                        .execute(&mut db_conn)
+                        .map_err(|e| format!("Failed to update session: {e}"))?;
+
+                    return Ok::<(), String>(Some(attendant));
+                }
+            }
+
+            Ok::<Option<AttendantCSV>, String>(None)
+        }
+    })
+    .await;
+
+    match result {
+        Ok(Ok(Some(attendant))) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                "session_id": request.session_id,
+                "assigned_to": attendant.id,
+                "assigned_to_name": attendant.name,
+                "assignment_type": "skill_based",
+                "assigned_at": Utc::now().to_rfc3339()
+            })),
+        ),
+        Ok(Ok(None)) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                "session_id": request.session_id,
+                "message": "No attendant found with matching skills",
+                "assignment_type": "skill_based"
+            })),
+        ),
+        Ok(Err(e)) => {
+            error!("Skill-based assignment error: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "success": false,
+                    "error": e
+                })),
+            )
+        }
+        Err(e) => {
+            error!("Skill-based assignment error: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "success": false,
+                    "error": format!("{:?}", e)
+                })),
+            )
+        }
+    }
+}
     })
     .await;
 
@@ -557,7 +760,22 @@ pub async fn transfer_conversation(
                     user_sessions::updated_at.eq(Utc::now()),
                 ))
                 .execute(&mut db_conn)
-                .map_err(|e| format!("Failed to update session: {}", e))?;
+                .map_err(|e| format!("Failed to update session: {e}"))?;
+
+            let webhook_data = serde_json::json!({
+                "session_id": session_id,
+                "from_attendant": request.from_attendant_id,
+                "to_attendant": to_attendant,
+                "reason": reason,
+                "transferred_at": Utc::now().to_rfc3339()
+            });
+
+            crate::attendance::webhooks::emit_webhook_event(
+                &mut db_conn,
+                session.bot_id,
+                "session.transferred",
+                webhook_data,
+            );
 
             Ok::<(), String>(())
         }
@@ -636,7 +854,19 @@ pub async fn resolve_conversation(
                     user_sessions::updated_at.eq(Utc::now()),
                 ))
                 .execute(&mut db_conn)
-                .map_err(|e| format!("Failed to update session: {}", e))?;
+                .map_err(|e| format!("Failed to update session: {e}"))?;
+
+            let webhook_data = serde_json::json!({
+                "session_id": session_id,
+                "resolved_at": Utc::now().to_rfc3339()
+            });
+
+            crate::attendance::webhooks::emit_webhook_event(
+                &mut db_conn,
+                session.bot_id,
+                "session.resolved",
+                webhook_data,
+            );
 
             Ok::<(), String>(())
         }
@@ -759,4 +989,178 @@ pub async fn get_insights(
             )
         }
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct KanbanColumn {
+    pub id: String,
+    pub title: String,
+    pub items: Vec<QueueItem>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct KanbanBoard {
+    pub columns: Vec<KanbanColumn>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct KanbanQuery {
+    pub bot_id: Option<Uuid>,
+    pub channel: Option<String>,
+}
+
+pub async fn get_kanban(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<KanbanQuery>,
+) -> Result<Json<KanbanBoard>, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    let bot_id = query.bot_id.unwrap_or_else(|| {
+        let (id, _) = crate::core::bot::get_default_bot(&mut conn);
+        id
+    });
+
+    use crate::core::shared::models::schema::user_sessions::dsl::*;
+
+    let sessions: Vec<UserSession> = user_sessions
+        .filter(bot_id.eq(bot_id))
+        .filter(context_data.contains("status"))
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+
+    let mut new_items = Vec::new();
+    let mut waiting_items = Vec::new();
+    let mut active_items = Vec::new();
+    let mut pending_customer_items = Vec::new();
+    let mut resolved_items = Vec::new();
+
+    for session in sessions {
+        let status = session
+            .context_data
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("new")
+            .to_string();
+
+        let assigned_to = session.attendant_id;
+        let assigned_to_name = session
+            .context_data
+            .get("attendant_name")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+
+        let last_message = session
+            .context_data
+            .get("last_message")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        let last_message_time = session
+            .context_data
+            .get("last_message_time")
+            .and_then(|v| v.as_str())
+            .map(String::from)
+            .unwrap_or_else(|| session.created_at.to_rfc3339());
+
+        let waiting_time = Utc::now()
+            .signed_duration_since(session.created_at)
+            .num_seconds();
+
+        let priority = session
+            .context_data
+            .get("priority")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0) as i32;
+
+        let channel = session
+            .context_data
+            .get("channel")
+            .and_then(|v| v.as_str())
+            .unwrap_or("web")
+            .to_string();
+
+        let user_name = session
+            .context_data
+            .get("user_name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Anonymous")
+            .to_string();
+
+        let user_email = session
+            .context_data
+            .get("user_email")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+
+        let item = QueueItem {
+            session_id: session.id,
+            user_id: session.user_id,
+            bot_id: session.bot_id,
+            channel,
+            user_name,
+            user_email,
+            last_message,
+            last_message_time,
+            waiting_time_seconds: waiting_time,
+            priority,
+            status: match status.as_str() {
+                "waiting" => QueueStatus::Waiting,
+                "assigned" => QueueStatus::Assigned,
+                "active" => QueueStatus::Active,
+                "resolved" => QueueStatus::Resolved,
+                "abandoned" => QueueStatus::Abandoned,
+                _ => QueueStatus::Waiting,
+            },
+            assigned_to,
+            assigned_to_name,
+        };
+
+        if let Some(ref ch) = query.channel {
+            if item.channel != *ch {
+                continue;
+            }
+        }
+
+        match status.as_str() {
+            "new" | "waiting" => new_items.push(item),
+            "pending_customer" => pending_customer_items.push(item),
+            "assigned" => waiting_items.push(item),
+            "active" => active_items.push(item),
+            "resolved" | "closed" | "abandoned" => resolved_items.push(item),
+            _ => new_items.push(item),
+        }
+    }
+
+    let columns = vec![
+        KanbanColumn {
+            id: "new".to_string(),
+            title: "New".to_string(),
+            items: new_items,
+        },
+        KanbanColumn {
+            id: "waiting".to_string(),
+            title: "Waiting".to_string(),
+            items: waiting_items,
+        },
+        KanbanColumn {
+            id: "active".to_string(),
+            title: "Active".to_string(),
+            items: active_items,
+        },
+        KanbanColumn {
+            id: "pending_customer".to_string(),
+            title: "Pending Customer".to_string(),
+            items: pending_customer_items,
+        },
+        KanbanColumn {
+            id: "resolved".to_string(),
+            title: "Resolved".to_string(),
+            items: resolved_items,
+        },
+    ];
+
+    Ok(Json(KanbanBoard { columns }))
 }

@@ -215,6 +215,8 @@ impl ApiUrls {
     pub const ATTENDANCE_RESOLVE: &'static str = "/api/attendance/resolve/:session_id";
     pub const ATTENDANCE_INSIGHTS: &'static str = "/api/attendance/insights";
     pub const ATTENDANCE_RESPOND: &'static str = "/api/attendance/respond";
+    pub const ATTENDANCE_KANBAN: &'static str = "/api/attendance/kanban";
+    pub const ATTENDANCE_ASSIGN_BY_SKILL: &'static str = "/api/attendance/assign/by-skill";
     pub const ATTENDANCE_LLM_TIPS: &'static str = "/api/attendance/llm/tips";
     pub const ATTENDANCE_LLM_POLISH: &'static str = "/api/attendance/llm/polish";
     pub const ATTENDANCE_LLM_SMART_REPLIES: &'static str = "/api/attendance/llm/smart-replies";
@@ -299,7 +301,8 @@ impl ApiUrls {
     pub const MONITORING_ACTIVITY_LATEST: &'static str = "/api/ui/monitoring/activity/latest";
     pub const MONITORING_METRIC_SESSIONS: &'static str = "/api/ui/monitoring/metric/sessions";
     pub const MONITORING_METRIC_MESSAGES: &'static str = "/api/ui/monitoring/metric/messages";
-    pub const MONITORING_METRIC_RESPONSE_TIME: &'static str = "/api/ui/monitoring/metric/response_time";
+    pub const MONITORING_METRIC_RESPONSE_TIME: &'static str =
+        "/api/ui/monitoring/metric/response_time";
     pub const MONITORING_TREND_SESSIONS: &'static str = "/api/ui/monitoring/trend/sessions";
     pub const MONITORING_RATE_MESSAGES: &'static str = "/api/ui/monitoring/rate/messages";
     pub const MONITORING_SESSIONS_PANEL: &'static str = "/api/ui/monitoring/sessions";
@@ -396,6 +399,8 @@ impl ApiUrls {
     pub const SOURCES_MCP_TEST: &'static str = "/api/ui/sources/mcp/:name/test";
     pub const SOURCES_MCP_SCAN: &'static str = "/api/ui/sources/mcp/scan";
     pub const SOURCES_MCP_EXAMPLES: &'static str = "/api/ui/sources/mcp/examples";
+    pub const SOURCES_API_KEYS: &'static str = "/api/ui/sources/api-keys";
+    pub const SOURCES_API_KEYS_BY_ID: &'static str = "/api/ui/sources/api-keys/:id";
     pub const SOURCES_MENTIONS: &'static str = "/api/ui/sources/mentions";
     pub const SOURCES_TOOLS: &'static str = "/api/ui/sources/tools";
 
@@ -473,6 +478,12 @@ impl ApiUrls {
     pub const WS_CHAT: &'static str = "/ws/chat";
     pub const WS_NOTIFICATIONS: &'static str = "/ws/notifications";
     pub const WS_ATTENDANT: &'static str = "/ws/attendant";
+
+    // Terminal endpoints
+    pub const TERMINAL_WS: &'static str = "/api/terminal/ws";
+    pub const TERMINAL_LIST: &'static str = "/api/terminal/list";
+    pub const TERMINAL_CREATE: &'static str = "/api/terminal/create";
+    pub const TERMINAL_KILL: &'static str = "/api/terminal/kill";
 }
 
 #[derive(Debug)]

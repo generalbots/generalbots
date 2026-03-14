@@ -17,6 +17,9 @@ pub enum TriggerKind {
     Webhook = 4,
     EmailReceived = 5,
     FolderChange = 6,
+    DealStageChange = 7,
+    ContactChange = 8,
+    EmailOpened = 9,
 }
 
 impl TriggerKind {
@@ -29,6 +32,9 @@ impl TriggerKind {
             4 => Some(Self::Webhook),
             5 => Some(Self::EmailReceived),
             6 => Some(Self::FolderChange),
+            7 => Some(Self::DealStageChange),
+            8 => Some(Self::ContactChange),
+            9 => Some(Self::EmailOpened),
             _ => None,
         }
     }

@@ -118,6 +118,16 @@ pub struct UpdateTaskContactRequest {
     pub notes: Option<String>,
 }
 
+pub struct TaskAssignmentParams<'a> {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub contact_id: Uuid,
+    pub role: &'a TaskContactRole,
+    pub assigned_by: Uuid,
+    pub notes: Option<&'a str>,
+    pub assigned_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskContactsQuery {
     pub role: Option<TaskContactRole>,
@@ -136,6 +146,23 @@ pub struct ContactTasksQuery {
     pub offset: Option<u32>,
     pub sort_by: Option<TaskSortField>,
     pub sort_order: Option<SortOrder>,
+}
+
+#[derive(Queryable)]
+pub struct ContactRow {
+    pub id: Uuid,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub email: Option<String>,
+    pub company: Option<String>,
+    pub job_title: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ContactTaskPriority {
+    Low,
+    Normal,
+    High,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -364,15 +391,15 @@ impl TasksIntegrationService {
         let role = request.role.clone().unwrap_or_default();
 
         // Create assignment in database
-        self.create_task_contact_assignment(
+        self.create_task_contact_assignment(TaskAssignmentParams {
             id,
             task_id,
-            request.contact_id,
-            &role,
+            contact_id: request.contact_id,
+            role: &role,
             assigned_by,
-            request.notes.as_deref(),
-            now,
-        )
+            notes: request.notes.as_deref(),
+            assigned_at: now,
+        })
         .await?;
 
         // Send notification if requested
@@ -388,7 +415,7 @@ impl TasksIntegrationService {
         self.log_contact_activity(
             request.contact_id,
             TaskActivityType::Assigned,
-            &format!("Assigned to task"),
+            "Assigned to task",
             task_id,
         )
         .await?;
@@ -760,13 +787,7 @@ impl TasksIntegrationService {
 
     async fn create_task_contact_assignment(
         &self,
-        _id: Uuid,
-        _task_id: Uuid,
-        _contact_id: Uuid,
-        _role: &TaskContactRole,
-        _assigned_by: Uuid,
-        _notes: Option<&str>,
-        _assigned_at: DateTime<Utc>,
+        _params: TaskAssignmentParams<'_>,
     ) -> Result<(), TasksIntegrationError> {
         // Insert into task_contacts table
         Ok(())
@@ -865,9 +886,8 @@ impl TasksIntegrationService {
 
             let mut task_contacts = Vec::new();
 
-            if let Ok((tid, assigned_to, created_at)) = task_row {
-                if let Some(assignee_id) = assigned_to {
-                    // Look up person -> email -> contact
+            if let Ok((tid, Some(assignee_id), created_at)) = task_row {
+                // Look up person -> email -> contact
                     let person_email: Result<Option<String>, _> = people_table::table
                         .filter(people_table::id.eq(assignee_id))
                         .select(people_table::email)
@@ -894,7 +914,6 @@ impl TasksIntegrationService {
                             });
                         }
                     }
-                }
             }
 
             Ok(task_contacts)
@@ -922,7 +941,21 @@ impl TasksIntegrationService {
                 db_query = db_query.filter(tasks_table::status.eq(status));
             }
 
-            let rows: Vec<(Uuid, String, Option<String>, String, String, Option<DateTime<Utc>>, Option<Uuid>, i32, DateTime<Utc>, DateTime<Utc>)> = db_query
+            #[derive(Queryable)]
+            struct TaskRow {
+                id: Uuid,
+                title: String,
+                description: Option<String>,
+                status: String,
+                priority: String,
+                due_date: Option<DateTime<Utc>>,
+                project_id: Option<Uuid>,
+                progress: i32,
+                created_at: DateTime<Utc>,
+                updated_at: DateTime<Utc>,
+            }
+
+            let rows: Vec<TaskRow> = db_query
                 .order(tasks_table::created_at.desc())
                 .select((
                     tasks_table::id,
@@ -944,7 +977,7 @@ impl TasksIntegrationService {
                 ContactTaskWithDetails {
                     task_contact: TaskContact {
                         id: Uuid::new_v4(),
-                        task_id: row.0,
+                        task_id: row.id,
                         contact_id,
                         role: TaskContactRole::Assignee,
                         assigned_at: Utc::now(),
@@ -954,17 +987,17 @@ impl TasksIntegrationService {
                         notes: None,
                     },
                     task: TaskSummary {
-                        id: row.0,
-                        title: row.1,
-                        description: row.2,
-                        status: row.3,
-                        priority: row.4,
-                        due_date: row.5,
-                        project_id: row.6,
+                        id: row.id,
+                        title: row.title,
+                        description: row.description,
+                        status: row.status,
+                        priority: row.priority,
+                        due_date: row.due_date,
+                        project_id: row.project_id,
                         project_name: None,
-                        progress: row.7 as u8,
-                        created_at: row.8,
-                        updated_at: row.9,
+                        progress: row.progress as u8,
+                        created_at: row.created_at,
+                        updated_at: row.updated_at,
                     },
                 }
             }).collect();
@@ -1104,7 +1137,7 @@ impl TasksIntegrationService {
                 query = query.filter(crm_contacts_table::id.ne(*exc));
             }
 
-            let rows: Vec<(Uuid, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = query
+            let rows: Vec<ContactRow> = query
                 .select((
                     crm_contacts_table::id,
                     crm_contacts_table::first_name,
@@ -1119,13 +1152,13 @@ impl TasksIntegrationService {
 
             let contacts = rows.into_iter().map(|row| {
                 let summary = ContactSummary {
-                    id: row.0,
-                    first_name: row.1.unwrap_or_default(),
-                    last_name: row.2.unwrap_or_default(),
-                    email: row.3,
+                    id: row.id,
+                    first_name: row.first_name.unwrap_or_default(),
+                    last_name: row.last_name.unwrap_or_default(),
+                    email: row.email,
                     phone: None,
-                    company: row.4,
-                    job_title: row.5,
+                    company: row.company,
+                    job_title: row.job_title,
                     avatar_url: None,
                 };
                 let workload = ContactWorkload {
@@ -1164,7 +1197,9 @@ impl TasksIntegrationService {
                 query = query.filter(crm_contacts_table::id.ne(*exc));
             }
 
-            let rows: Vec<(Uuid, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = query
+
+
+            let rows: Vec<ContactRow> = query
                 .select((
                     crm_contacts_table::id,
                     crm_contacts_table::first_name,
@@ -1179,13 +1214,13 @@ impl TasksIntegrationService {
 
             let contacts = rows.into_iter().map(|row| {
                 let summary = ContactSummary {
-                    id: row.0,
-                    first_name: row.1.unwrap_or_default(),
-                    last_name: row.2.unwrap_or_default(),
-                    email: row.3,
+                    id: row.id,
+                    first_name: row.first_name.unwrap_or_default(),
+                    last_name: row.last_name.unwrap_or_default(),
+                    email: row.email,
                     phone: None,
-                    company: row.4,
-                    job_title: row.5,
+                    company: row.company,
+                    job_title: row.job_title,
                     avatar_url: None,
                 };
                 let workload = ContactWorkload {
@@ -1224,7 +1259,9 @@ impl TasksIntegrationService {
                 query = query.filter(crm_contacts_table::id.ne(*exc));
             }
 
-            let rows: Vec<(Uuid, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = query
+
+
+            let rows: Vec<ContactRow> = query
                 .select((
                     crm_contacts_table::id,
                     crm_contacts_table::first_name,
@@ -1239,13 +1276,13 @@ impl TasksIntegrationService {
 
             let contacts = rows.into_iter().map(|row| {
                 let summary = ContactSummary {
-                    id: row.0,
-                    first_name: row.1.unwrap_or_default(),
-                    last_name: row.2.unwrap_or_default(),
-                    email: row.3,
+                    id: row.id,
+                    first_name: row.first_name.unwrap_or_default(),
+                    last_name: row.last_name.unwrap_or_default(),
+                    email: row.email,
                     phone: None,
-                    company: row.4,
-                    job_title: row.5,
+                    company: row.company,
+                    job_title: row.job_title,
                     avatar_url: None,
                 };
                 let workload = ContactWorkload {
@@ -1283,9 +1320,9 @@ impl TasksIntegrationService {
 mod tests {
     #[test]
     fn test_task_type_display() {
-        assert_eq!(format!("{:?}", ContactTaskType::FollowUp), "FollowUp");
-        assert_eq!(format!("{:?}", ContactTaskType::Meeting), "Meeting");
-        assert_eq!(format!("{:?}", ContactTaskType::Call), "Call");
+        assert_eq!(format!("{:?}", TaskActivityType::Assigned), "Assigned");
+        assert_eq!(format!("{:?}", TaskActivityType::Completed), "Completed");
+        assert_eq!(format!("{:?}", TaskActivityType::Updated), "Updated");
     }
 
     #[test]

@@ -10,7 +10,7 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "people", "automation", "drive", "tasks", "cache", "directory", "llm", "crawler", "browser", "terminal", "editor", "mail", "whatsapp"]
+default = ["chat", "people", "automation", "drive", "tasks", "cache", "directory", "llm", "crawler", "browser", "terminal", "editor", "mail", "whatsapp", "designer", "marketing"]
 
 browser = ["automation", "drive", "cache"]
 terminal = ["automation", "drive", "cache"]
@@ -31,6 +31,7 @@ people = ["automation", "drive", "cache"]
 mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap"]
 meet = ["automation", "drive", "cache"]
 social = ["automation", "drive", "cache"]
+marketing = ["people", "automation", "drive", "cache"]
 
 # Productivity
 calendar = ["automation", "drive", "cache"]

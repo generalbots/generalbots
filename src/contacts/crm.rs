@@ -14,9 +14,10 @@ use uuid::Uuid;
 
 use crate::core::bot::get_default_bot;
 use crate::core::shared::schema::{
-    crm_accounts, crm_activities, crm_contacts, crm_leads, crm_notes, crm_opportunities,
-    crm_pipeline_stages,
+    crm_accounts, crm_activities, crm_contacts, crm_deals, crm_leads,
+    crm_notes, crm_opportunities, crm_pipeline_stages,
 };
+use crate::core::shared::schema::marketing_campaigns;
 use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
@@ -88,6 +89,42 @@ pub struct CrmPipelineStage {
     pub is_lost: bool,
     pub color: Option<String>,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
+#[diesel(table_name = crm_deals)]
+pub struct CrmDeal {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
+    pub contact_id: Option<Uuid>,
+    pub account_id: Option<Uuid>,
+    pub am_id: Option<Uuid>,
+    pub owner_id: Option<Uuid>,
+    pub lead_id: Option<Uuid>,
+    pub title: Option<String>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub value: Option<f64>,
+    pub currency: Option<String>,
+    pub stage_id: Option<Uuid>,
+    pub stage: Option<String>,
+    pub probability: i32,
+    pub source: Option<String>,
+    pub segment_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub expected_close_date: Option<NaiveDate>,
+    pub actual_close_date: Option<NaiveDate>,
+    pub period: Option<i32>,
+    pub deal_date: Option<NaiveDate>,
+    pub closed_at: Option<DateTime<Utc>>,
+    pub lost_reason: Option<String>,
+    pub won: Option<bool>,
+    pub notes: Option<String>,
+    pub tags: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub custom_fields: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
@@ -280,6 +317,46 @@ pub struct CloseOpportunityRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct CreateDealRequest {
+    pub title: Option<String>,
+    pub name: Option<String>,
+    pub contact_id: Option<Uuid>,
+    pub account_id: Option<Uuid>,
+    pub owner_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub value: Option<f64>,
+    pub currency: Option<String>,
+    pub stage: Option<String>,
+    pub probability: Option<i32>,
+    pub source: Option<String>,
+    pub expected_close_date: Option<String>,
+    pub description: Option<String>,
+    pub notes: Option<String>,
+    pub tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateDealRequest {
+    pub title: Option<String>,
+    pub name: Option<String>,
+    pub contact_id: Option<Uuid>,
+    pub account_id: Option<Uuid>,
+    pub owner_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub value: Option<f64>,
+    pub currency: Option<String>,
+    pub stage: Option<String>,
+    pub probability: Option<i32>,
+    pub source: Option<String>,
+    pub expected_close_date: Option<String>,
+    pub description: Option<String>,
+    pub lost_reason: Option<String>,
+    pub won: Option<bool>,
+    pub notes: Option<String>,
+    pub tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CreateActivityRequest {
     pub activity_type: String,
     pub subject: Option<String>,
@@ -297,6 +374,8 @@ pub struct ListQuery {
     pub stage: Option<String>,
     pub status: Option<String>,
     pub owner_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub source: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
@@ -319,12 +398,53 @@ pub struct StageStats {
     pub value: f64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
+#[diesel(table_name = marketing_campaigns)]
+pub struct CrmCampaign {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
+    pub deal_id: Option<Uuid>,
+    pub name: String,
+    pub status: String,
+    pub channel: String,
+    pub content_template: serde_json::Value,
+    pub scheduled_at: Option<DateTime<Utc>>,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub metrics: serde_json::Value,
+    pub budget: Option<f64>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateCampaignRequest {
+    pub name: String,
+    pub channel: String,
+    pub deal_id: Option<Uuid>,
+    pub content_template: Option<serde_json::Value>,
+    pub scheduled_at: Option<String>,
+    pub budget: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateCampaignRequest {
+    pub name: Option<String>,
+    pub status: Option<String>,
+    pub channel: Option<String>,
+    pub content_template: Option<serde_json::Value>,
+    pub scheduled_at: Option<String>,
+    pub budget: Option<f64>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct CrmStats {
     pub total_contacts: i64,
     pub total_accounts: i64,
     pub total_leads: i64,
     pub total_opportunities: i64,
+    pub total_campaigns: i64,
     pub pipeline_value: f64,
     pub won_this_month: i64,
     pub conversion_rate: f64,
@@ -393,6 +513,13 @@ pub async fn create_contact(
         .values(&contact)
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+
+    crate::marketing::triggers::trigger_contact_change(
+        &mut conn,
+        id,
+        "created",
+        bot_id,
+    );
 
     Ok(Json(contact))
 }
@@ -651,7 +778,7 @@ pub struct CreateLeadForm {
 pub async fn create_lead_form(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateLeadForm>,
-) -> Result<Json<CrmLead>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     log::info!("create_lead_form JSON: {:?}", req);
     
     let mut conn = state.conn.get().map_err(|e| {
@@ -682,33 +809,43 @@ pub async fn create_lead_form(
     // TODO: Fix by either adding bot to organizations or making org_id nullable
     let contact_id: Option<Uuid> = None;
 
-    let value = req.value.map(|v| v);
+    let value = req.value;
 
-    let lead = CrmLead {
+    let lead = CrmDeal {
         id,
         org_id: effective_org_id,
         bot_id,
         contact_id,
         account_id: None,
-        title,
+        am_id: None,
+        lead_id: None,
+        title: Some(title),
+        name: None,
         description: req.description,
         value,
         currency: Some("USD".to_string()),
         stage_id: None,
-        stage: "new".to_string(),
+        stage: Some("new".to_string()),
         probability: 10,
         source: req.source.clone(),
+        segment_id: None,
+        department_id: None,
         expected_close_date: None,
+        actual_close_date: None,
+        period: None,
+        deal_date: None,
         owner_id: None,
         lost_reason: None,
+        won: None,
         tags: vec![],
         custom_fields: serde_json::json!({}),
         created_at: now,
-        updated_at: now,
+        updated_at: Some(now),
         closed_at: None,
+        notes: None,
     };
 
-    diesel::insert_into(crm_leads::table)
+    diesel::insert_into(crm_deals::table)
         .values(&lead)
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert lead error: {e}")))?;
@@ -719,7 +856,7 @@ pub async fn create_lead_form(
 pub async fn create_lead(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateLeadRequest>,
-) -> Result<Json<CrmLead>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
@@ -731,33 +868,43 @@ pub async fn create_lead(
     let expected_close = req.expected_close_date
         .and_then(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok());
 
-    let value = req.value.map(|v| v);
+    let value = req.value;
 
-    let lead = CrmLead {
+    let lead = CrmDeal {
         id,
         org_id,
         bot_id,
         contact_id: req.contact_id,
         account_id: req.account_id,
-        title: req.title,
+        am_id: None,
+        lead_id: None,
+        title: Some(req.title),
+        name: None,
         description: req.description,
         value,
         currency: req.currency.or(Some("USD".to_string())),
         stage_id: None,
-        stage: "new".to_string(),
+        stage: Some("new".to_string()),
         probability: 10,
         source: req.source,
+        segment_id: None,
+        department_id: None,
         expected_close_date: expected_close,
+        actual_close_date: None,
+        period: None,
+        deal_date: None,
         owner_id: None,
         lost_reason: None,
+        won: None,
         tags: vec![],
         custom_fields: serde_json::json!({}),
         created_at: now,
-        updated_at: now,
+        updated_at: Some(now),
         closed_at: None,
+        notes: None,
     };
 
-    diesel::insert_into(crm_leads::table)
+    diesel::insert_into(crm_deals::table)
         .values(&lead)
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
@@ -768,7 +915,7 @@ pub async fn create_lead(
 pub async fn list_leads(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<CrmLead>>, (StatusCode, String)> {
+) -> Result<Json<Vec<CrmDeal>>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
@@ -777,22 +924,30 @@ pub async fn list_leads(
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    let mut q = crm_leads::table
-        .filter(crm_leads::org_id.eq(org_id))
-        .filter(crm_leads::bot_id.eq(bot_id))
+    let mut q = crm_deals::table
+        .filter(crm_deals::org_id.eq(org_id))
+        .filter(crm_deals::bot_id.eq(bot_id))
         .into_boxed();
 
     if let Some(stage) = query.stage {
-        q = q.filter(crm_leads::stage.eq(stage));
+        q = q.filter(crm_deals::stage.eq(stage));
     }
 
     if let Some(search) = query.search {
         let pattern = format!("%{search}%");
-        q = q.filter(crm_leads::title.ilike(pattern));
+        q = q.filter(crm_deals::title.ilike(pattern));
     }
 
-    let leads: Vec<CrmLead> = q
-        .order(crm_leads::created_at.desc())
+    if let Some(department_id) = query.department_id {
+        q = q.filter(crm_deals::department_id.eq(department_id));
+    }
+
+    if let Some(source) = query.source {
+        q = q.filter(crm_deals::source.eq(source));
+    }
+
+    let leads: Vec<CrmDeal> = q
+        .order(crm_deals::created_at.desc())
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
@@ -804,13 +959,13 @@ pub async fn list_leads(
 pub async fn get_lead(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<CrmLead>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let lead: CrmLead = crm_leads::table
-        .filter(crm_leads::id.eq(id))
+    let lead: CrmDeal = crm_deals::table
+        .filter(crm_deals::id.eq(id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Lead not found".to_string()))?;
 
@@ -821,21 +976,21 @@ pub async fn update_lead(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateLeadRequest>,
-) -> Result<Json<CrmLead>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
     let now = Utc::now();
 
-    diesel::update(crm_leads::table.filter(crm_leads::id.eq(id)))
-        .set(crm_leads::updated_at.eq(now))
+    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        .set(crm_deals::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if let Some(title) = req.title {
-        diesel::update(crm_leads::table.filter(crm_leads::id.eq(id)))
-            .set(crm_leads::title.eq(title))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::title.eq(title))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
@@ -851,25 +1006,25 @@ pub async fn update_lead(
             _ => req.probability.unwrap_or(0),
         };
 
-        diesel::update(crm_leads::table.filter(crm_leads::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
             .set((
-                crm_leads::stage.eq(&stage),
-                crm_leads::probability.eq(probability),
+                crm_deals::stage.eq(&stage),
+                crm_deals::probability.eq(probability),
             ))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
         if stage == "won" || stage == "lost" {
-            diesel::update(crm_leads::table.filter(crm_leads::id.eq(id)))
-                .set(crm_leads::closed_at.eq(Some(now)))
+            diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+                .set(crm_deals::closed_at.eq(Some(now)))
                 .execute(&mut conn)
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
         }
     }
 
     if let Some(lost_reason) = req.lost_reason {
-        diesel::update(crm_leads::table.filter(crm_leads::id.eq(id)))
-            .set(crm_leads::lost_reason.eq(lost_reason))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::lost_reason.eq(lost_reason))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
@@ -886,13 +1041,21 @@ pub async fn update_lead_stage(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Query(query): Query<LeadStageQuery>,
-) -> Result<Json<CrmLead>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
     let now = Utc::now();
     let stage = query.stage;
+
+    let old_stage: Option<Option<String>> = crm_deals::table
+        .filter(crm_deals::id.eq(id))
+        .select(crm_deals::stage)
+        .first(&mut conn)
+        .ok();
+
+    let old_stage_str = old_stage.flatten();
 
     let probability = match stage.as_str() {
         "new" => 10,
@@ -905,20 +1068,33 @@ pub async fn update_lead_stage(
         _ => 25,
     };
 
-    diesel::update(crm_leads::table.filter(crm_leads::id.eq(id)))
+    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
         .set((
-            crm_leads::stage.eq(&stage),
-            crm_leads::probability.eq(probability),
-            crm_leads::updated_at.eq(now),
+            crm_deals::stage.eq(&stage),
+            crm_deals::probability.eq(probability),
+            crm_deals::updated_at.eq(now),
         ))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if stage == "won" || stage == "lost" || stage == "converted" {
-        diesel::update(crm_leads::table.filter(crm_leads::id.eq(id)))
-            .set(crm_leads::closed_at.eq(Some(now)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::closed_at.eq(Some(now)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(old) = old_stage_str {
+        if old != stage {
+            let (_org_id, bot_id) = get_bot_context(&state);
+            crate::marketing::triggers::trigger_deal_stage_change(
+                &mut conn,
+                id,
+                &old,
+                &stage,
+                bot_id,
+            );
+        }
     }
 
     get_lead(State(state), Path(id)).await
@@ -932,7 +1108,7 @@ pub async fn delete_lead(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    diesel::delete(crm_leads::table.filter(crm_leads::id.eq(id)))
+    diesel::delete(crm_deals::table.filter(crm_deals::id.eq(id)))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
 
@@ -942,53 +1118,62 @@ pub async fn delete_lead(
 pub async fn convert_lead_to_opportunity(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<CrmOpportunity>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let lead: CrmLead = crm_leads::table
-        .filter(crm_leads::id.eq(id))
+    let lead: CrmDeal = crm_deals::table
+        .filter(crm_deals::id.eq(id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Lead not found".to_string()))?;
 
     let opp_id = Uuid::new_v4();
     let now = Utc::now();
 
-    let opportunity = CrmOpportunity {
+    let opportunity = CrmDeal {
         id: opp_id,
         org_id: lead.org_id,
         bot_id: lead.bot_id,
         lead_id: Some(lead.id),
         account_id: lead.account_id,
         contact_id: lead.contact_id,
+        am_id: None,
+        title: lead.title.clone(),
         name: lead.title.clone(),
         description: lead.description.clone(),
-        value: lead.value.clone(),
+        value: lead.value,
         currency: lead.currency.clone(),
         stage_id: None,
-        stage: "qualification".to_string(),
+        stage: Some("qualification".to_string()),
         probability: 25,
         source: lead.source.clone(),
+        segment_id: None,
+        department_id: None,
         expected_close_date: lead.expected_close_date,
         actual_close_date: None,
+        period: None,
+        deal_date: None,
         won: None,
         owner_id: lead.owner_id,
+        lost_reason: None,
+        closed_at: None,
+        notes: None,
         tags: lead.tags.clone(),
         custom_fields: lead.custom_fields.clone(),
         created_at: now,
-        updated_at: now,
+        updated_at: Some(now),
     };
 
-    diesel::insert_into(crm_opportunities::table)
+    diesel::insert_into(crm_deals::table)
         .values(&opportunity)
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
 
-    diesel::update(crm_leads::table.filter(crm_leads::id.eq(id)))
+    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
         .set((
-            crm_leads::stage.eq("converted"),
-            crm_leads::closed_at.eq(Some(now)),
+            crm_deals::stage.eq("converted"),
+            crm_deals::closed_at.eq(Some(now)),
         ))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
@@ -999,7 +1184,7 @@ pub async fn convert_lead_to_opportunity(
 pub async fn create_opportunity(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateOpportunityRequest>,
-) -> Result<Json<CrmOpportunity>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
@@ -1011,7 +1196,7 @@ pub async fn create_opportunity(
     let expected_close = req.expected_close_date
         .and_then(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok());
 
-    let value = req.value.map(|v| v);
+    let value = req.value;
     let stage = req.stage.unwrap_or_else(|| "qualification".to_string());
 
     let probability = match stage.as_str() {
@@ -1023,32 +1208,41 @@ pub async fn create_opportunity(
         _ => 25,
     };
 
-    let opportunity = CrmOpportunity {
+    let opportunity = CrmDeal {
         id,
         org_id,
         bot_id,
         lead_id: req.lead_id,
         account_id: req.account_id,
         contact_id: req.contact_id,
-        name: req.name,
+        am_id: None,
+        title: None,
+        name: Some(req.name),
         description: req.description,
         value,
         currency: req.currency.or(Some("USD".to_string())),
         stage_id: None,
-        stage,
+        stage: Some(stage),
         probability,
         source: None,
+        segment_id: None,
+        department_id: None,
         expected_close_date: expected_close,
         actual_close_date: None,
+        period: None,
+        deal_date: None,
         won: None,
         owner_id: None,
+        lost_reason: None,
+        closed_at: None,
+        notes: None,
         tags: vec![],
         custom_fields: serde_json::json!({}),
         created_at: now,
-        updated_at: now,
+        updated_at: Some(now),
     };
 
-    diesel::insert_into(crm_opportunities::table)
+    diesel::insert_into(crm_deals::table)
         .values(&opportunity)
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
@@ -1059,7 +1253,7 @@ pub async fn create_opportunity(
 pub async fn list_opportunities(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<CrmOpportunity>>, (StatusCode, String)> {
+) -> Result<Json<Vec<CrmDeal>>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
@@ -1068,22 +1262,30 @@ pub async fn list_opportunities(
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    let mut q = crm_opportunities::table
-        .filter(crm_opportunities::org_id.eq(org_id))
-        .filter(crm_opportunities::bot_id.eq(bot_id))
+    let mut q = crm_deals::table
+        .filter(crm_deals::org_id.eq(org_id))
+        .filter(crm_deals::bot_id.eq(bot_id))
         .into_boxed();
 
     if let Some(stage) = query.stage {
-        q = q.filter(crm_opportunities::stage.eq(stage));
+        q = q.filter(crm_deals::stage.eq(stage));
     }
 
     if let Some(search) = query.search {
         let pattern = format!("%{search}%");
-        q = q.filter(crm_opportunities::name.ilike(pattern));
+        q = q.filter(crm_deals::name.ilike(pattern));
     }
 
-    let opportunities: Vec<CrmOpportunity> = q
-        .order(crm_opportunities::created_at.desc())
+    if let Some(department_id) = query.department_id {
+        q = q.filter(crm_deals::department_id.eq(department_id));
+    }
+
+    if let Some(source) = query.source {
+        q = q.filter(crm_deals::source.eq(source));
+    }
+
+    let opportunities: Vec<CrmDeal> = q
+        .order(crm_deals::created_at.desc())
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
@@ -1095,13 +1297,13 @@ pub async fn list_opportunities(
 pub async fn get_opportunity(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<CrmOpportunity>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let opp: CrmOpportunity = crm_opportunities::table
-        .filter(crm_opportunities::id.eq(id))
+    let opp: CrmDeal = crm_deals::table
+        .filter(crm_deals::id.eq(id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Opportunity not found".to_string()))?;
 
@@ -1112,21 +1314,21 @@ pub async fn update_opportunity(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateOpportunityRequest>,
-) -> Result<Json<CrmOpportunity>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
     let now = Utc::now();
 
-    diesel::update(crm_opportunities::table.filter(crm_opportunities::id.eq(id)))
-        .set(crm_opportunities::updated_at.eq(now))
+    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        .set(crm_deals::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if let Some(name) = req.name {
-        diesel::update(crm_opportunities::table.filter(crm_opportunities::id.eq(id)))
-            .set(crm_opportunities::name.eq(name))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::name.eq(name))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
@@ -1141,10 +1343,10 @@ pub async fn update_opportunity(
             _ => req.probability.unwrap_or(25),
         };
 
-        diesel::update(crm_opportunities::table.filter(crm_opportunities::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
             .set((
-                crm_opportunities::stage.eq(&stage),
-                crm_opportunities::probability.eq(probability),
+                crm_deals::stage.eq(&stage),
+                crm_deals::probability.eq(probability),
             ))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
@@ -1157,7 +1359,7 @@ pub async fn close_opportunity(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(req): Json<CloseOpportunityRequest>,
-) -> Result<Json<CrmOpportunity>, (StatusCode, String)> {
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
@@ -1170,13 +1372,13 @@ pub async fn close_opportunity(
     let stage = if req.won { "won" } else { "lost" };
     let probability = if req.won { 100 } else { 0 };
 
-    diesel::update(crm_opportunities::table.filter(crm_opportunities::id.eq(id)))
+    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
         .set((
-            crm_opportunities::won.eq(Some(req.won)),
-            crm_opportunities::stage.eq(stage),
-            crm_opportunities::probability.eq(probability),
-            crm_opportunities::actual_close_date.eq(Some(close_date)),
-            crm_opportunities::updated_at.eq(now),
+            crm_deals::won.eq(Some(req.won)),
+            crm_deals::stage.eq(stage),
+            crm_deals::probability.eq(probability),
+            crm_deals::actual_close_date.eq(Some(close_date)),
+            crm_deals::updated_at.eq(now),
         ))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
@@ -1192,7 +1394,301 @@ pub async fn delete_opportunity(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    diesel::delete(crm_opportunities::table.filter(crm_opportunities::id.eq(id)))
+    diesel::delete(crm_deals::table.filter(crm_deals::id.eq(id)))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn list_deals(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ListQuery>,
+) -> Result<Json<Vec<CrmDeal>>, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    let (org_id, bot_id) = get_bot_context(&state);
+    let limit = query.limit.unwrap_or(50);
+    let offset = query.offset.unwrap_or(0);
+
+    let mut q = crm_deals::table
+        .filter(crm_deals::org_id.eq(org_id))
+        .filter(crm_deals::bot_id.eq(bot_id))
+        .into_boxed();
+
+    if let Some(stage) = query.stage {
+        q = q.filter(crm_deals::stage.eq(stage));
+    }
+
+    if let Some(search) = query.search {
+        let pattern = format!("%{search}%");
+        q = q.filter(crm_deals::title.ilike(pattern.clone()).or(crm_deals::name.ilike(pattern)));
+    }
+
+    if let Some(department_id) = query.department_id {
+        q = q.filter(crm_deals::department_id.eq(department_id));
+    }
+
+    if let Some(source) = query.source {
+        q = q.filter(crm_deals::source.eq(source));
+    }
+
+    if let Some(owner_id) = query.owner_id {
+        q = q.filter(crm_deals::owner_id.eq(owner_id));
+    }
+
+    if let Some(status) = query.status {
+        match status.as_str() {
+            "open" => {
+                q = q.filter(crm_deals::closed_at.is_null());
+            }
+            "closed" => {
+                q = q.filter(crm_deals::closed_at.is_not_null());
+            }
+            "won" => {
+                q = q.filter(crm_deals::won.eq(true));
+            }
+            "lost" => {
+                q = q.filter(crm_deals::won.eq(false));
+            }
+            _ => {}
+        }
+    }
+
+    let deals: Vec<CrmDeal> = q
+        .order(crm_deals::created_at.desc())
+        .limit(limit)
+        .offset(offset)
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+
+    Ok(Json(deals))
+}
+
+pub async fn create_deal(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateDealRequest>,
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    let (org_id, bot_id) = get_bot_context(&state);
+    let id = Uuid::new_v4();
+    let now = Utc::now();
+
+    let expected_close = req.expected_close_date
+        .and_then(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok());
+
+    let stage = req.stage.unwrap_or_else(|| "new".to_string());
+    let probability = match stage.as_str() {
+        "new" => 10,
+        "qualified" => 25,
+        "proposal" => 50,
+        "negotiation" => 75,
+        "won" => 100,
+        "lost" => 0,
+        _ => req.probability.unwrap_or(10),
+    };
+
+    let deal = CrmDeal {
+        id,
+        org_id,
+        bot_id,
+        contact_id: req.contact_id,
+        account_id: req.account_id,
+        am_id: None,
+        lead_id: None,
+        owner_id: req.owner_id,
+        title: req.title,
+        name: req.name,
+        description: req.description,
+        value: req.value,
+        currency: req.currency.or(Some("USD".to_string())),
+        stage_id: None,
+        stage: Some(stage.clone()),
+        probability,
+        source: req.source,
+        segment_id: None,
+        department_id: req.department_id,
+        expected_close_date: expected_close,
+        actual_close_date: None,
+        period: None,
+        deal_date: None,
+        lost_reason: None,
+        won: if stage == "won" {
+            Some(true)
+        } else if stage == "lost" {
+            Some(false)
+        } else {
+            None
+        },
+        tags: req.tags.unwrap_or_default(),
+        custom_fields: serde_json::json!({}),
+        created_at: now,
+        updated_at: Some(now),
+        closed_at: if stage == "won" || stage == "lost" {
+            Some(now)
+        } else {
+            None
+        },
+        notes: req.notes,
+    };
+
+    diesel::insert_into(crm_deals::table)
+        .values(&deal)
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert deal error: {e}")))?;
+
+    Ok(Json(deal))
+}
+
+pub async fn get_deal(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    let deal: CrmDeal = crm_deals::table
+        .filter(crm_deals::id.eq(id))
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Deal not found".to_string()))?;
+
+    Ok(Json(deal))
+}
+
+pub async fn update_deal(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    Json(req): Json<UpdateDealRequest>,
+) -> Result<Json<CrmDeal>, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    let now = Utc::now();
+
+    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        .set(crm_deals::updated_at.eq(now))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+
+    if let Some(title) = req.title {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::title.eq(title))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(name) = req.name {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::name.eq(name))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(value) = req.value {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::value.eq(value))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(currency) = req.currency {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::currency.eq(currency))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(stage) = req.stage {
+        let probability = match stage.as_str() {
+            "new" => 10,
+            "qualified" => 25,
+            "proposal" => 50,
+            "negotiation" => 75,
+            "won" => 100,
+            "lost" => 0,
+            _ => req.probability.unwrap_or(0),
+        };
+
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set((
+                crm_deals::stage.eq(&stage),
+                crm_deals::probability.eq(probability),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+
+        if stage == "won" || stage == "lost" {
+            diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+                .set(crm_deals::closed_at.eq(Some(now)))
+                .execute(&mut conn)
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        }
+    }
+
+    if let Some(department_id) = req.department_id {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::department_id.eq(department_id))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(owner_id) = req.owner_id {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::owner_id.eq(owner_id))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(lost_reason) = req.lost_reason {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::lost_reason.eq(lost_reason))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(won) = req.won {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set((
+                crm_deals::won.eq(won),
+                crm_deals::closed_at.eq(Some(now)),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(notes) = req.notes {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::notes.eq(notes))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    if let Some(tags) = req.tags {
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            .set(crm_deals::tags.eq(tags))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+
+    get_deal(State(state), Path(id)).await
+}
+
+pub async fn delete_deal(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    diesel::delete(crm_deals::table.filter(crm_deals::id.eq(id)))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
 
@@ -1307,26 +1803,26 @@ pub async fn get_crm_stats(
         .get_result(&mut conn)
         .unwrap_or(0);
 
-    let total_leads: i64 = crm_leads::table
-        .filter(crm_leads::org_id.eq(org_id))
-        .filter(crm_leads::bot_id.eq(bot_id))
-        .filter(crm_leads::closed_at.is_null())
+    let total_leads: i64 = crm_deals::table
+        .filter(crm_deals::org_id.eq(org_id))
+        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::closed_at.is_null())
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
-    let total_opportunities: i64 = crm_opportunities::table
-        .filter(crm_opportunities::org_id.eq(org_id))
-        .filter(crm_opportunities::bot_id.eq(bot_id))
-        .filter(crm_opportunities::won.is_null())
+    let total_opportunities: i64 = crm_deals::table
+        .filter(crm_deals::org_id.eq(org_id))
+        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::won.is_null())
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
-    let won_this_month: i64 = crm_opportunities::table
-        .filter(crm_opportunities::org_id.eq(org_id))
-        .filter(crm_opportunities::bot_id.eq(bot_id))
-        .filter(crm_opportunities::won.eq(Some(true)))
+    let won_this_month: i64 = crm_deals::table
+        .filter(crm_deals::org_id.eq(org_id))
+        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::won.eq(Some(true)))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
@@ -1336,6 +1832,7 @@ pub async fn get_crm_stats(
         total_accounts,
         total_leads,
         total_opportunities,
+        total_campaigns: 0,
         pipeline_value: 0.0,
         won_this_month,
         conversion_rate: if total_leads > 0 {
@@ -1390,30 +1887,40 @@ pub async fn import_from_postgres(
         .map_err(|e| log_and_sanitize(&e, "external pg leads query", None))?;
 
     for el in ext_leads {
-        let l = CrmLead {
+        let l = CrmDeal {
             id: Uuid::new_v4(),
             org_id,
             bot_id,
             contact_id: None,
             account_id: None,
-            title: el.title,
+            am_id: None,
+            lead_id: None,
+            title: Some(el.title.clone()),
+            name: Some(el.title),
             description: el.description,
             value: el.value,
             currency: Some("USD".to_string()),
             stage_id: None,
-            stage: el.stage.unwrap_or_else(|| "new".to_string()),
+            stage: Some(el.stage.unwrap_or_else(|| "new".to_string())),
             probability: 10,
             source: el.source,
+            segment_id: None,
+            department_id: None,
             expected_close_date: None,
+            actual_close_date: None,
+            period: None,
+            deal_date: None,
+            won: None,
             owner_id: None,
             lost_reason: None,
+            closed_at: None,
+            notes: None,
             tags: vec![],
             custom_fields: serde_json::json!({}),
             created_at: now,
-            updated_at: now,
-            closed_at: None,
+            updated_at: Some(now),
         };
-        let _ = diesel::insert_into(crm_leads::table).values(&l).execute(&mut conn).map_err(|e| log_and_sanitize(&e, "insert lead", None))?;
+        let _ = diesel::insert_into(crm_deals::table).values(&l).execute(&mut conn).map_err(|e| log_and_sanitize(&e, "insert lead", None))?;
     }
 
     #[derive(QueryableByName, Debug)]
@@ -1435,31 +1942,40 @@ pub async fn import_from_postgres(
         .map_err(|e| log_and_sanitize(&e, "external pg opps query", None))?;
 
     for eo in ext_opps {
-        let op = CrmOpportunity {
+        let op = CrmDeal {
             id: Uuid::new_v4(),
             org_id,
             bot_id,
             lead_id: None,
             account_id: None,
             contact_id: None,
-            name: eo.name,
+            am_id: None,
+            title: None,
+            name: Some(eo.name),
             description: eo.description,
             value: eo.value,
             currency: Some("USD".to_string()),
             stage_id: None,
-            stage: eo.stage.unwrap_or_else(|| "qualification".to_string()),
+            stage: Some(eo.stage.unwrap_or_else(|| "qualification".to_string())),
             probability: eo.probability.unwrap_or(25),
             source: None,
+            segment_id: None,
+            department_id: None,
             expected_close_date: None,
             actual_close_date: None,
+            period: None,
+            deal_date: None,
             won: None,
             owner_id: None,
+            lost_reason: None,
+            closed_at: None,
+            notes: None,
             tags: vec![],
             custom_fields: serde_json::json!({}),
             created_at: now,
-            updated_at: now,
+            updated_at: Some(now),
         };
-        let _ = diesel::insert_into(crm_opportunities::table).values(&op).execute(&mut conn).map_err(|e| log_and_sanitize(&e, "insert opp", None))?;
+        let _ = diesel::insert_into(crm_deals::table).values(&op).execute(&mut conn).map_err(|e| log_and_sanitize(&e, "insert opp", None))?;
     }
 
     Ok(Json(serde_json::json!({
@@ -1487,17 +2003,17 @@ async fn handle_crm_count_api(
     let stage = query.stage.unwrap_or_else(|| "all".to_string());
 
     let count: i64 = if stage == "all" || stage.is_empty() {
-        crm_leads::table
-            .filter(crm_leads::org_id.eq(org_id))
-            .filter(crm_leads::bot_id.eq(bot_id))
+        crm_deals::table
+            .filter(crm_deals::org_id.eq(org_id))
+            .filter(crm_deals::bot_id.eq(bot_id))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0)
     } else {
-        crm_leads::table
-            .filter(crm_leads::org_id.eq(org_id))
-            .filter(crm_leads::bot_id.eq(bot_id))
-            .filter(crm_leads::stage.eq(&stage))
+        crm_deals::table
+            .filter(crm_deals::org_id.eq(org_id))
+            .filter(crm_deals::bot_id.eq(bot_id))
+            .filter(crm_deals::stage.eq(&stage))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0)
@@ -1518,11 +2034,11 @@ async fn handle_crm_pipeline_api(
     let org_id = Uuid::nil();
     let stage = query.stage.unwrap_or_else(|| "new".to_string());
 
-    let leads: Vec<CrmLead> = crm_leads::table
-        .filter(crm_leads::org_id.eq(org_id))
-        .filter(crm_leads::bot_id.eq(bot_id))
-        .filter(crm_leads::stage.eq(&stage))
-        .order(crm_leads::created_at.desc())
+    let leads: Vec<CrmDeal> = crm_deals::table
+        .filter(crm_deals::org_id.eq(org_id))
+        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::stage.eq(&stage))
+        .order(crm_deals::created_at.desc())
         .limit(20)
         .load(&mut conn)
         .unwrap_or_default();
@@ -1557,7 +2073,7 @@ async fn handle_crm_pipeline_api(
                 </div>
             </div>"##,
             lead.id,
-            html_escape(&lead.title),
+            html_escape(lead.title.as_deref().unwrap_or("")),
             value_str,
             contact_name,
             lead.probability,
@@ -1580,6 +2096,7 @@ fn html_escape(s: &str) -> String {
         .replace('\'', "&#x27;")
 }
 
+
 pub fn configure_crm_api_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/crm/import/postgres", post(import_from_postgres))
@@ -1596,7 +2113,128 @@ pub fn configure_crm_api_routes() -> Router<Arc<AppState>> {
         .route("/api/crm/opportunities", get(list_opportunities).post(create_opportunity))
         .route("/api/crm/opportunities/:id", get(get_opportunity).put(update_opportunity).delete(delete_opportunity))
         .route("/api/crm/opportunities/:id/close", post(close_opportunity))
+        .route("/api/crm/deals", get(list_deals).post(create_deal))
+        .route("/api/crm/deals/:id", get(get_deal).put(update_deal).delete(delete_deal))
         .route("/api/crm/activities", get(list_activities).post(create_activity))
         .route("/api/crm/pipeline/stages", get(get_pipeline_stages))
         .route("/api/crm/stats", get(get_crm_stats))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    #[test]
+    fn test_crm_deal_struct_has_department_id() {
+        let deal = CrmDeal {
+            id: Uuid::new_v4(),
+            org_id: Uuid::new_v4(),
+            bot_id: Uuid::new_v4(),
+            contact_id: None,
+            account_id: None,
+            am_id: None,
+            owner_id: None,
+            lead_id: None,
+            title: Some("Test Deal".to_string()),
+            name: None,
+            description: None,
+            value: Some(10000.0),
+            currency: Some("USD".to_string()),
+            stage_id: None,
+            stage: Some("new".to_string()),
+            probability: 10,
+            source: Some("WEBSITE".to_string()),
+            segment_id: None,
+            department_id: Some(Uuid::new_v4()),
+            expected_close_date: None,
+            actual_close_date: None,
+            period: None,
+            deal_date: None,
+            closed_at: None,
+            lost_reason: None,
+            won: None,
+            notes: None,
+            tags: vec![],
+            created_at: chrono::Utc::now(),
+            updated_at: None,
+            custom_fields: serde_json::json!({}),
+        };
+        
+        assert!(deal.department_id.is_some());
+        assert_eq!(deal.stage, Some("new".to_string()));
+        assert_eq!(deal.probability, 10);
+    }
+
+    #[test]
+    fn test_list_query_deserialization() {
+        let query_str = "stage=new&department_id=550e8400-e29b-41d4-a716-446655440000&source=WEBSITE&limit=50&offset=0";
+        let query: ListQuery = serde_urlencoded::from_str(query_str).unwrap();
+        
+        assert_eq!(query.stage, Some("new".to_string()));
+        assert_eq!(query.department_id.is_some(), true);
+        assert_eq!(query.source, Some("WEBSITE".to_string()));
+        assert_eq!(query.limit, Some(50));
+        assert_eq!(query.offset, Some(0));
+    }
+
+    #[test]
+    fn test_list_query_optional_fields() {
+        let query_str = "search=acme";
+        let query: ListQuery = serde_urlencoded::from_str(query_str).unwrap();
+        
+        assert_eq!(query.search, Some("acme".to_string()));
+        assert_eq!(query.department_id, None);
+        assert_eq!(query.source, None);
+    }
+
+    #[test]
+    fn test_crm_deal_stage_probabilities() {
+        let stages = vec![
+            ("new", 10),
+            ("qualified", 30),
+            ("proposal", 50),
+            ("negotiation", 70),
+            ("won", 100),
+            ("lost", 0),
+        ];
+        
+        for (stage, expected_prob) in stages {
+            let deal = CrmDeal {
+                id: Uuid::new_v4(),
+                org_id: Uuid::new_v4(),
+                bot_id: Uuid::new_v4(),
+                contact_id: None,
+                account_id: None,
+                am_id: None,
+                owner_id: None,
+                lead_id: None,
+                title: Some(format!("Test {}", stage)),
+                name: None,
+                description: None,
+                value: Some(1000.0),
+                currency: Some("USD".to_string()),
+                stage_id: None,
+                stage: Some(stage.to_string()),
+                probability: expected_prob,
+                source: None,
+                segment_id: None,
+                department_id: None,
+                expected_close_date: None,
+                actual_close_date: None,
+                period: None,
+                deal_date: None,
+                closed_at: None,
+                lost_reason: None,
+                won: if stage == "won" { Some(true) } else if stage == "lost" { Some(false) } else { None },
+                notes: None,
+                tags: vec![],
+                created_at: chrono::Utc::now(),
+                updated_at: None,
+                custom_fields: serde_json::json!({}),
+            };
+            
+            assert_eq!(deal.probability, expected_prob);
+        }
+    }
 }

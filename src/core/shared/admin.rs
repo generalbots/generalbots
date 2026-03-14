@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "mail", allow(unused_imports))]
+
 use axum::{Router, routing::{get, post}};
 use std::sync::Arc;
 

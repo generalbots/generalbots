@@ -1,5 +1,7 @@
 pub mod drive;
 pub mod keyword_services;
+pub mod sla;
+pub mod webhooks;
 #[cfg(feature = "llm")]
 pub mod llm_types;
 #[cfg(feature = "llm")]
@@ -69,14 +71,19 @@ pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
         .route(ApiUrls::ATTENDANCE_QUEUE, get(queue::list_queue))
         .route(ApiUrls::ATTENDANCE_ATTENDANTS, get(queue::list_attendants))
         .route(ApiUrls::ATTENDANCE_ASSIGN, post(queue::assign_conversation))
+        .route(ApiUrls::ATTENDANCE_ASSIGN_BY_SKILL, post(queue::assign_by_skill))
         .route(
             ApiUrls::ATTENDANCE_TRANSFER,
             post(queue::transfer_conversation),
         )
         .route(ApiUrls::ATTENDANCE_RESOLVE, post(queue::resolve_conversation))
         .route(ApiUrls::ATTENDANCE_INSIGHTS, get(queue::get_insights))
+        .route(ApiUrls::ATTENDANCE_KANBAN, get(queue::get_kanban))
         .route(ApiUrls::ATTENDANCE_RESPOND, post(attendant_respond))
-        .route(ApiUrls::WS_ATTENDANT, get(attendant_websocket_handler));
+        .route(ApiUrls::WS_ATTENDANT, get(attendant_websocket_handler))
+        .route("/api/attendance/webhooks", get(webhooks::list_webhooks).post(webhooks::create_webhook))
+        .route("/api/attendance/webhooks/:id", get(webhooks::get_webhook).put(webhooks::update_webhook).delete(webhooks::delete_webhook))
+        .route("/api/attendance/webhooks/:id/test", post(webhooks::test_webhook));
 
     #[cfg(feature = "llm")]
     let router = router

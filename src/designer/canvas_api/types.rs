@@ -330,9 +330,10 @@ pub struct Layer {
     pub z_index: i32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum BlendMode {
+    #[default]
     Normal,
     Multiply,
     Screen,
@@ -345,12 +346,6 @@ pub enum BlendMode {
     SoftLight,
     Difference,
     Exclusion,
-}
-
-impl Default for BlendMode {
-    fn default() -> Self {
-        Self::Normal
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -437,7 +437,6 @@ impl BasicCompiler {
         };
         let source = source.as_str();
         let mut has_schedule = false;
-        let mut _has_webhook = false;
         let script_name = Path::new(source_path)
             .file_stem()
             .and_then(|s| s.to_str())
@@ -482,9 +481,7 @@ impl BasicCompiler {
                 if parts.len() >= 3 {
                     #[cfg(feature = "tasks")]
                     {
-                        #[allow(unused_variables, unused_mut)]
                         let cron = parts[1];
-                        #[allow(unused_variables, unused_mut)]
                         let mut conn = self
                             .state
                             .conn
@@ -506,7 +503,6 @@ impl BasicCompiler {
             }
 
             if normalized.starts_with("WEBHOOK") {
-                _has_webhook = true;
                 let parts: Vec<&str> = normalized.split('"').collect();
                 if parts.len() >= 2 {
                     let endpoint = parts[1];

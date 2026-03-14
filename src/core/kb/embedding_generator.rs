@@ -213,12 +213,6 @@ struct ScalewayEmbeddingResponse {
 #[derive(Debug, Deserialize)]
 struct ScalewayEmbeddingData {
     embedding: Vec<f32>,
-    #[serde(default)]
-    #[allow(dead_code)]
-    index: usize,
-    #[serde(default)]
-    #[allow(dead_code)]
-    object: Option<String>,
 }
 
 // Generic embedding service format (object with embeddings key)
@@ -254,9 +248,6 @@ struct CloudflareResult {
 
 #[derive(Debug, Deserialize)]
 struct CloudflareMeta {
-    #[serde(default)]
-    #[allow(dead_code)]
-    cost_metric_name_1: Option<String>,
     #[serde(default)]
     cost_metric_value_1: Option<f64>,
 }

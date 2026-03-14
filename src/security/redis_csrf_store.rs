@@ -33,8 +33,6 @@ impl RedisCsrfStore {
 
 pub struct RedisCsrfManager {
     store: RedisCsrfStore,
-    #[allow(dead_code)]
-    secret: Vec<u8>,
 }
 
 impl RedisCsrfManager {
@@ -45,10 +43,7 @@ impl RedisCsrfManager {
 
         let store = RedisCsrfStore::new(redis_url, config).await?;
 
-        Ok(Self {
-            store,
-            secret: secret.to_vec(),
-        })
+        Ok(Self { store })
     }
 
     pub async fn generate_token(&self) -> Result<CsrfToken> {

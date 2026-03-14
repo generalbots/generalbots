@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use diesel::sql_types::{Bool, Double, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid};
 use uuid::Uuid;
 
-use crate::designer::canvas_api::types::{Canvas, CanvasTemplate, Layer, CanvasElement};
+use crate::designer::canvas_api::types::{Canvas, CanvasElement, Layer};
 
 #[derive(QueryableByName)]
 pub struct CanvasRow {
