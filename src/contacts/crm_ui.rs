@@ -10,7 +10,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::core::bot::get_default_bot;
-use crate::contacts::crm::{CrmAccount, CrmContact, CrmLead, CrmOpportunity};
+use crate::contacts::crm::{CrmAccount, CrmContact, CrmDeal, CrmLead, CrmOpportunity};
 use crate::core::shared::schema::{crm_accounts, crm_contacts, crm_leads, crm_opportunities};
 use crate::core::shared::state::AppState;
 
@@ -51,6 +51,7 @@ pub fn configure_crm_routes() -> Router<Arc<AppState>> {
         .route("/api/ui/crm/leads", get(handle_crm_leads))
         .route("/api/ui/crm/leads/:id", get(handle_lead_detail))
         .route("/api/ui/crm/opportunities", get(handle_crm_opportunities))
+        .route("/api/ui/crm/deals", get(handle_crm_deals))
         .route("/api/ui/crm/contacts", get(handle_crm_contacts))
         .route("/api/ui/crm/accounts", get(handle_crm_accounts))
         .route("/api/ui/crm/search", get(handle_crm_search))
@@ -338,6 +339,67 @@ async fn handle_crm_opportunities(State(state): State<Arc<AppState>>) -> impl In
             opp.id,
             opp.id,
             opp.id
+        ));
+    }
+
+    Html(html)
+}
+
+async fn handle_crm_deals(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    use crate::core::shared::schema::crm_deals;
+
+    let Ok(mut conn) = state.conn.get() else {
+        return Html(render_empty_table("deals", "💰", "No deals yet", "Create your first deal"));
+    };
+
+    let (org_id, bot_id) = get_bot_context(&state);
+
+    let deals: Vec<CrmDeal> = crm_deals::table
+        .filter(crm_deals::org_id.eq(org_id))
+        .filter(crm_deals::bot_id.eq(bot_id))
+        .order(crm_deals::created_at.desc())
+        .limit(50)
+        .load(&mut conn)
+        .unwrap_or_default();
+
+    if deals.is_empty() {
+        return Html(render_empty_table("deals", "💰", "No deals yet", "Create your first deal"));
+    }
+
+    let mut html = String::new();
+    for deal in deals {
+        let value_str = deal
+            .value
+            .map(|v| format!("${}", v))
+            .unwrap_or_else(|| "-".to_string());
+        let expected_close = deal
+            .expected_close_date
+            .map(|d: chrono::NaiveDate| d.to_string())
+            .unwrap_or_else(|| "-".to_string());
+        let stage = deal.stage.as_deref().unwrap_or("new");
+        let probability = deal.probability;
+
+        html.push_str(&format!(
+            "<tr class=\"deal-row\" data-id=\"{}\">
+                <td><input type=\"checkbox\" class=\"row-select\" value=\"{}\"></td>
+                <td class=\"deal-title\">{}</td>
+                <td>{}</td>
+                <td><span class=\"stage-badge stage-{}\">{}</span></td>
+                <td>{}%</td>
+                <td>{}</td>
+                <td class=\"actions\">
+                    <button class=\"btn-icon\" hx-get=\"/api/crm/deals/{}\" hx-target=\"#detail-panel\" title=\"View\">👁</button>
+                </td>
+            </tr>",
+            deal.id,
+            deal.id,
+            html_escape(&deal.title.clone().unwrap_or_default()),
+            value_str,
+            stage,
+            stage,
+            probability,
+            expected_close,
+            deal.id
         ));
     }
 

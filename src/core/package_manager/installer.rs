@@ -1442,13 +1442,17 @@ VAULT_CACERT={}
             info!("Created .env with Vault config");
         }
 
-        // Create vault-unseal-keys file
-        let unseal_keys_file = std::path::PathBuf::from("vault-unseal-keys");
+        // Create vault-unseal-keys file in botserver directory (next to .env)
+        let unseal_keys_file = self.base_path.join("vault-unseal-keys");
         let keys_content: String = unseal_keys
             .iter()
             .enumerate()
             .map(|(i, key): (usize, &serde_json::Value)| {
-                format!("Unseal Key {}: {}\n", i + 1, key.as_str().unwrap_or(""))
+                format!(
+                    "VAULT_UNSEAL_KEY_{}={}\n",
+                    i + 1,
+                    key.as_str().unwrap_or("")
+                )
             })
             .collect();
 
@@ -1489,7 +1493,7 @@ VAULT_CACERT={}
 
         info!("Vault initialized and unsealed successfully");
         info!("✓ Created .env with VAULT_ADDR, VAULT_TOKEN");
-        info!("✓ Created vault-unseal-keys (chmod 600)");
+        info!("✓ Created /opt/gbo/secrets/vault-unseal-keys (chmod 600)");
 
         Ok(())
     }

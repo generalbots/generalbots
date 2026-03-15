@@ -1,6 +1,6 @@
 use axum::{
     extract::{
-        query::Query,
+        Query,
         State,
         WebSocketUpgrade,
     },
@@ -9,6 +9,7 @@ use axum::{
     Json, Router,
 };
 use axum::extract::ws::{Message, WebSocket};
+use futures_util::{SinkExt, StreamExt};
 use log::{error, info, warn};
 use std::{
     collections::HashMap,
@@ -17,12 +18,13 @@ use std::{
 };
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-    process::{Child, ChildStdin, Command},
+    process::{Child, ChildStdin},
     sync::{mpsc, Mutex, RwLock},
 };
 
 use crate::core::shared::state::AppState;
 use crate::core::urls::ApiUrls;
+use crate::security::command_guard::SafeCommand;
 
 pub fn configure_terminal_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -47,6 +49,7 @@ pub struct TerminalSession {
     process: Option<Child>,
     stdin: Option<Arc<Mutex<ChildStdin>>>,
     output_tx: mpsc::Sender<TerminalOutput>,
+    output_rx: Option<mpsc::Receiver<TerminalOutput>>,
 }
 
 #[derive(Debug, Clone)]
@@ -63,7 +66,7 @@ impl TerminalSession {
             session_id.chars().take(12).collect::<String>()
         );
 
-        let (output_tx, _) = mpsc::channel(100);
+        let (output_tx, output_rx) = mpsc::channel(100);
 
         Self {
             session_id: session_id.to_string(),
@@ -71,11 +74,12 @@ impl TerminalSession {
             process: None,
             stdin: None,
             output_tx,
+            output_rx: Some(output_rx),
         }
     }
 
-    pub fn output_receiver(&self) -> mpsc::Receiver<TerminalOutput> {
-        self.output_tx.clone().receiver()
+    pub fn take_output_receiver(&mut self) -> Option<mpsc::Receiver<TerminalOutput>> {
+        self.output_rx.take()
     }
 
     pub async fn start(&mut self) -> Result<(), String> {
@@ -85,10 +89,9 @@ impl TerminalSession {
 
         info!("Starting LXC container: {}", self.container_name);
 
-        let launch_output = Command::new("lxc")
-            .args(["launch", "ubuntu:22.04", &self.container_name, "-e"])
-            .output()
-            .await
+        let safe_cmd = SafeCommand::new("lxc").map_err(|e| format!("{}", e))?;
+        let safe_cmd = safe_cmd.args(&["launch", "ubuntu:22.04", &self.container_name, "-e"]).map_err(|e| format!("{}", e))?;
+        let launch_output = safe_cmd.execute_async().await
             .map_err(|e| format!("Failed to launch container: {}", e))?;
 
         if !launch_output.status.success() {
@@ -102,7 +105,10 @@ impl TerminalSession {
 
         info!("Starting bash shell in container: {}", self.container_name);
 
-        let mut child = Command::new("lxc")
+        // SafeCommand doesn't support async piped I/O for interactive terminals.
+        // Security: container_name is validated (alphanumeric + dash only), commands run
+        // inside an isolated LXC container, not on the host.
+        let mut child = tokio::process::Command::new("lxc")
             .args(["exec", &self.container_name, "--", "bash", "-l"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -175,15 +181,13 @@ impl TerminalSession {
             let _ = child.kill().await;
         }
 
-        let _ = Command::new("lxc")
-            .args(["stop", &self.container_name, "-f"])
-            .output()
-            .await;
+        let safe_cmd = SafeCommand::new("lxc").map_err(|e| format!("{}", e))?;
+        let _ = safe_cmd.args(&["stop", &self.container_name, "-f"]).map_err(|e| format!("{}", e))?
+            .execute_async().await;
 
-        let _ = Command::new("lxc")
-            .args(["delete", &self.container_name, "-f"])
-            .output()
-            .await;
+        let safe_cmd = SafeCommand::new("lxc").map_err(|e| format!("{}", e))?;
+        let _ = safe_cmd.args(&["delete", &self.container_name, "-f"]).map_err(|e| format!("{}", e))?
+            .execute_async().await;
 
         info!("Container {} destroyed", self.container_name);
         Ok(())
@@ -191,7 +195,7 @@ impl TerminalSession {
 }
 
 pub struct TerminalManager {
-    sessions: RwLock<HashMap<String, TerminalSession>>,
+    sessions: RwLock<HashMap<String, Arc<Mutex<TerminalSession>>>>,
 }
 
 impl TerminalManager {
@@ -218,41 +222,46 @@ impl TerminalManager {
             created_at: chrono::Utc::now().to_rfc3339(),
         };
 
-        sessions.insert(session_id.to_string(), session);
+        sessions.insert(session_id.to_string(), Arc::new(Mutex::new(session)));
 
         Ok(info)
     }
 
-    pub async fn get_session(&self, session_id: &str) -> Option<TerminalSession> {
+    pub async fn get_session(&self, session_id: &str) -> Option<Arc<Mutex<TerminalSession>>> {
         let sessions = self.sessions.read().await;
         sessions.get(session_id).cloned()
     }
 
     pub async fn kill_session(&self, session_id: &str) -> Result<(), String> {
         let mut sessions = self.sessions.write().await;
-        if let Some(mut session) = sessions.remove(session_id) {
-            session.kill().await?;
+        if let Some(session) = sessions.remove(session_id) {
+            let mut s = session.lock().await;
+            s.kill().await?;
         }
         Ok(())
     }
 
     pub async fn list_sessions(&self) -> Vec<TerminalInfo> {
         let sessions = self.sessions.read().await;
-        sessions
-            .values()
-            .map(|s| TerminalInfo {
-                session_id: s.session_id.clone(),
-                container_name: s.container_name.clone(),
+        let mut result = Vec::new();
+        for s in sessions.values() {
+            let session = s.lock().await;
+            result.push(TerminalInfo {
+                session_id: session.session_id.clone(),
+                container_name: session.container_name.clone(),
                 status: "running".to_string(),
                 created_at: chrono::Utc::now().to_rfc3339(),
-            })
-            .collect()
+            });
+        }
+        result
     }
 }
 
 impl Default for TerminalManager {
     fn default() -> Self {
-        Self::new()
+        Self {
+            sessions: RwLock::new(HashMap::new()),
+        }
     }
 }
 
@@ -271,7 +280,7 @@ pub async fn terminal_ws(
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|e| format!("Time error: {}", e))
-            .unwrap_or_else(|_| std::time::Duration::ZERO)
+            .unwrap_or(std::time::Duration::ZERO)
             .as_millis();
         format!("term-{}", timestamp)
     });
@@ -316,14 +325,25 @@ async fn handle_terminal_ws(
         }
     };
 
-    let Some(mut session) = session else {
+    let Some(session_arc) = session else {
         error!("Failed to get session after creation");
         return;
     };
 
-    let output_rx = session.output_receiver();
-    let session_id_clone = session_id.clone();
-    let terminal_manager_clone = terminal_manager.clone();
+    let output_rx = {
+        let mut session = session_arc.lock().await;
+        match session.take_output_receiver() {
+            Some(rx) => rx,
+            None => {
+                error!("Failed to take output receiver");
+                return;
+            }
+        }
+    };
+    let _session_id_clone = session_id.clone();
+    let _terminal_manager_clone = terminal_manager.clone();
+    let _session_arc_for_send = session_arc.clone();
+    let _session_arc_for_recv = session_arc.clone();
 
     let mut send_task = tokio::spawn(async move {
         let mut rx = output_rx;
@@ -351,10 +371,10 @@ async fn handle_terminal_ws(
     let session_id_clone2 = session_id.clone();
     let terminal_manager_clone2 = terminal_manager.clone();
     let mut recv_task = tokio::spawn(async move {
-        while let Some(msg) = receiver.recv().await {
+        while let Some(msg) = receiver.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
-                    if let Some(session) = terminal_manager_clone2.get_session(&session_id_clone2).await {
+                    if let Some(session_arc) = terminal_manager_clone2.get_session(&session_id_clone2).await {
                         let trimmed = text.trim();
                         if trimmed.is_empty() {
                             continue;
@@ -372,18 +392,22 @@ async fn handle_terminal_ws(
                                     parts[1].parse::<u16>(),
                                     parts[2].parse::<u16>(),
                                 ) {
+                                    let session = session_arc.lock().await;
                                     let _ = session.resize(cols, rows).await;
                                 }
                             }
                             continue;
                         }
 
-                        if let Err(e) = session.send_command(trimmed).await {
-                            error!("Failed to send command: {}", e);
+                        {
+                            let session = session_arc.lock().await;
+                            if let Err(e) = session.send_command(trimmed).await {
+                                error!("Failed to send command: {}", e);
+                            }
                         }
                     }
                 }
-                Ok(WsMessage::Close(_)) => break,
+                Ok(Message::Close(_)) => break,
                 Err(e) => {
                     error!("WebSocket error: {}", e);
                     break;
@@ -423,7 +447,7 @@ pub async fn create_terminal(
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|e| format!("Time error: {}", e))
-            .unwrap_or_else(|_| std::time::Duration::ZERO)
+            .unwrap_or(std::time::Duration::ZERO)
             .as_millis();
         format!("term-{}", timestamp)
     });

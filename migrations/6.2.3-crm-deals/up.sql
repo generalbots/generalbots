@@ -15,7 +15,7 @@ CREATE TABLE crm_deal_segments (
 
 -- Insert default segments (from gb.rob data)
 INSERT INTO crm_deal_segments (org_id, bot_id, name) 
-SELECT org_id, id FROM bots LIMIT 1;
+SELECT org_id, id, 'Default' FROM bots LIMIT 1;
 
 -- 2. Create main deals table
 CREATE TABLE crm_deals (
@@ -70,7 +70,7 @@ CREATE TABLE crm_deals (
 );
 
 -- 3. Add deal_id to crm_activities (for history migration)
-ALTER TABLE crm_activities ADD COLUMN deal_id uuid REFERENCES crm_deals(id);
+-- ALTER TABLE crm_activities ADD COLUMN deal_id uuid REFERENCES crm_deals(id);
 
 -- 4. Create indexes
 CREATE INDEX idx_crm_deals_org_bot ON crm_deals(org_id, bot_id);

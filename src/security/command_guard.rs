@@ -79,6 +79,14 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "visudo",
         "id",
         "netsh",
+        // LLM local servers
+        "llama-server",
+        "ollama",
+        // Python
+        "python",
+        "python3",
+        "python3.11",
+        "python3.12",
     ])
 });
 
@@ -111,6 +119,12 @@ impl std::fmt::Display for CommandGuardError {
     }
 }
 
+impl From<CommandGuardError> for String {
+    fn from(val: CommandGuardError) -> Self {
+        val.to_string()
+    }
+}
+
 impl std::error::Error for CommandGuardError {}
 
 pub struct SafeCommand {
@@ -119,6 +133,8 @@ pub struct SafeCommand {
     working_dir: Option<PathBuf>,
     allowed_paths: Vec<PathBuf>,
     envs: HashMap<String, String>,
+    stdout: Option<std::process::Stdio>,
+    stderr: Option<std::process::Stdio>,
 }
 
 impl SafeCommand {
@@ -143,6 +159,8 @@ impl SafeCommand {
                 std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/")),
             ],
             envs: HashMap::new(),
+            stdout: None,
+            stderr: None,
         })
     }
 
@@ -257,6 +275,16 @@ impl SafeCommand {
         Ok(self)
     }
 
+    pub fn stdout(mut self, stdout: std::process::Stdio) -> Self {
+        self.stdout = Some(stdout);
+        self
+    }
+
+    pub fn stderr(mut self, stderr: std::process::Stdio) -> Self {
+        self.stderr = Some(stderr);
+        self
+    }
+
     pub fn execute(&self) -> Result<Output, CommandGuardError> {
         let mut cmd = std::process::Command::new(&self.command);
         cmd.args(&self.args);
@@ -331,12 +359,20 @@ impl SafeCommand {
             .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
     }
 
-    pub fn spawn(&self) -> Result<Child, CommandGuardError> {
+    pub fn spawn(&mut self) -> Result<Child, CommandGuardError> {
         let mut cmd = std::process::Command::new(&self.command);
         cmd.args(&self.args);
 
         if let Some(ref dir) = self.working_dir {
             cmd.current_dir(dir);
+        }
+
+        if let Some(stdout) = self.stdout.take() {
+            cmd.stdout(stdout);
+        }
+
+        if let Some(stderr) = self.stderr.take() {
+            cmd.stderr(stderr);
         }
 
         cmd.env_clear();

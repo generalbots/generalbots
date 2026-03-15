@@ -249,7 +249,7 @@ pub struct CampaignSendResult {
 fn render_template(template: &str, variables: &serde_json::Value) -> String {
     let mut result = template.to_string();
     
-    if let Ok(obj) = variables.as_object() {
+    if let Some(obj) = variables.as_object() {
         for (key, value) in obj {
             let placeholder = format!("{{{}}}", key);
             let replacement = value.as_str().unwrap_or("");
@@ -277,8 +277,8 @@ async fn generate_ai_content(
 
 async fn send_via_email(
     to_email: &str,
-    subject: &str,
-    body: &str,
+    _subject: &str,
+    _body: &str,
     bot_id: Uuid,
 ) -> Result<(), String> {
     log::info!("Sending email to {} via bot {}", to_email, bot_id);
@@ -287,7 +287,7 @@ async fn send_via_email(
 
 async fn send_via_whatsapp(
     to_phone: &str,
-    body: &str,
+    _body: &str,
     bot_id: Uuid,
 ) -> Result<(), String> {
     log::info!("Sending WhatsApp to {} via bot {}", to_phone, bot_id);
@@ -296,7 +296,7 @@ async fn send_via_whatsapp(
 
 async fn send_via_telegram(
     to_chat_id: &str,
-    body: &str,
+    _body: &str,
     bot_id: Uuid,
 ) -> Result<(), String> {
     log::info!("Sending Telegram to {} via bot {}", to_chat_id, bot_id);
@@ -305,7 +305,7 @@ async fn send_via_telegram(
 
 async fn send_via_sms(
     to_phone: &str,
-    body: &str,
+    _body: &str,
     bot_id: Uuid,
 ) -> Result<(), String> {
     log::info!("Sending SMS to {} via bot {}", to_phone, bot_id);
@@ -331,7 +331,7 @@ pub async fn send_campaign(
     
     let mut recipient_ids: Vec<Uuid> = Vec::new();
 
-    if let Some(list_id) = req.list_id {
+    if let Some(_list_id) = req.list_id {
         use crate::core::shared::schema::crm_contacts;
         
         let contacts: Vec<Uuid> = crm_contacts::table
@@ -384,18 +384,18 @@ pub async fn send_campaign(
     };
 
     for contact_id in recipient_ids {
-        let contact: Option<(String, Option<String>, Option<String>)> = crm_contacts::table
+        let contact = crm_contacts::table
             .filter(crm_contacts::id.eq(contact_id))
             .select((crm_contacts::email, crm_contacts::phone, crm_contacts::first_name))
-            .first(&mut conn)
+            .first::<(Option<String>, Option<String>, Option<String>)>(&mut conn)
             .ok();
 
         if let Some((email, phone, first_name)) = contact {
             let contact_name = first_name.unwrap_or("Customer".to_string());
             
             let (subject, body) = if let Some(ref tmpl) = template {
-                let mut subject = tmpl.subject.clone().unwrap_or_default();
-                let mut body = tmpl.body.clone().unwrap_or_default();
+                let mut subject = tmpl.subject.clone();
+                let mut body = tmpl.body.clone();
 
                 let variables = serde_json::json!({
                     "name": contact_name,

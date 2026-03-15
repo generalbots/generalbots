@@ -1,8 +1,9 @@
+use crate::security::command_guard::SafeCommand;
 use log::{info, warn};
 use std::process::Stdio;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{Child, ChildStdin, Command};
+use tokio::process::{Child, ChildStdin};
 use tokio::sync::{mpsc, Mutex};
 
 #[derive(Debug)]
@@ -24,10 +25,9 @@ impl ContainerSession {
         
         // Launch the container (this might take a moment if the image isn't cached locally)
         info!("Launching LXC container: {}", container_name);
-        let launch_status = Command::new("lxc")
-            .args(["launch", "ubuntu:22.04", &container_name])
-            .output()
-            .await
+        let safe_cmd = SafeCommand::new("lxc").map_err(|e| format!("{}", e))?;
+        let safe_cmd = safe_cmd.args(&["launch", "ubuntu:22.04", &container_name]).map_err(|e| format!("{}", e))?;
+        let launch_status = safe_cmd.execute_async().await
             .map_err(|e| format!("Failed to execute lxc launch: {}", e))?;
 
         if !launch_status.status.success() {
@@ -49,7 +49,10 @@ impl ContainerSession {
     pub async fn start_terminal(&mut self, tx: mpsc::Sender<TerminalOutput>) -> Result<(), String> {
         info!("Starting terminal session in container: {}", self.container_name);
         
-        let mut child = Command::new("lxc")
+        // SafeCommand doesn't support async piped I/O, so we use tokio::process::Command directly.
+        // Security: container_name is derived from session_id (not user input), and commands run
+        // inside an isolated LXC container, not on the host.
+        let mut child = tokio::process::Command::new("lxc")
             .args(["exec", &self.container_name, "--", "bash"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -114,10 +117,9 @@ impl ContainerSession {
         }
 
         // Clean up container
-        let status = Command::new("lxc")
-            .args(["delete", &self.container_name, "--force"])
-            .output()
-            .await
+        let safe_cmd = SafeCommand::new("lxc").map_err(|e| format!("{}", e))?;
+        let safe_cmd = safe_cmd.args(&["delete", &self.container_name, "--force"]).map_err(|e| format!("{}", e))?;
+        let status = safe_cmd.execute_async().await
             .map_err(|e| format!("Failed to delete container: {}", e))?;
 
         if !status.status.success() {
