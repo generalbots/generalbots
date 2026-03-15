@@ -13,18 +13,42 @@ use vaultrs::kv2;
 pub struct SecretPaths;
 
 impl SecretPaths {
-    pub const DIRECTORY: &'static str = "gbo/directory";
-    pub const TABLES: &'static str = "gbo/tables";
-    pub const DRIVE: &'static str = "gbo/drive";
-    pub const CACHE: &'static str = "gbo/cache";
-    pub const EMAIL: &'static str = "gbo/email";
-    pub const LLM: &'static str = "gbo/llm";
-    pub const ENCRYPTION: &'static str = "gbo/encryption";
-    pub const JWT: &'static str = "gbo/jwt";
-    pub const MEET: &'static str = "gbo/meet";
-    pub const ALM: &'static str = "gbo/alm";
-    pub const VECTORDB: &'static str = "gbo/vectordb";
-    pub const OBSERVABILITY: &'static str = "gbo/observability";
+    // System-wide paths (global fallback)
+    pub const DIRECTORY: &'static str = "gbo/system/directory";
+    pub const TABLES: &'static str = "gbo/system/tables";
+    pub const DRIVE: &'static str = "gbo/system/drive";
+    pub const CACHE: &'static str = "gbo/system/cache";
+    pub const EMAIL: &'static str = "gbo/system/email";
+    pub const LLM: &'static str = "gbo/system/llm";
+    pub const ENCRYPTION: &'static str = "gbo/system/encryption";
+    pub const JWT: &'static str = "gbo/system/jwt";
+    pub const MEET: &'static str = "gbo/system/meet";
+    pub const ALM: &'static str = "gbo/system/alm";
+    pub const VECTORDB: &'static str = "gbo/system/vectordb";
+    pub const OBSERVABILITY: &'static str = "gbo/system/observability";
+    pub const SECURITY: &'static str = "gbo/system/security";
+    pub const CLOUD: &'static str = "gbo/system/cloud";
+    pub const APP: &'static str = "gbo/system/app";
+    pub const MODELS: &'static str = "gbo/system/models";
+
+    // Tenant infrastructure (per-cluster)
+    pub fn tenant_infrastructure(tenant: &str) -> String {
+        format!("gbo/tenants/{}/infrastructure", tenant)
+    }
+    pub fn tenant_config(tenant: &str) -> String {
+        format!("gbo/tenants/{}/config", tenant)
+    }
+
+    // Organization (per-customer)
+    pub fn org_bot(org_id: &str, bot_id: &str) -> String {
+        format!("gbo/orgs/{}/bots/{}", org_id, bot_id)
+    }
+    pub fn org_user(org_id: &str, user_id: &str) -> String {
+        format!("gbo/orgs/{}/users/{}", org_id, user_id)
+    }
+    pub fn org_config(org_id: &str) -> String {
+        format!("gbo/orgs/{}/config", org_id)
+    }
 }
 
 struct CachedSecret {
@@ -334,61 +358,93 @@ impl SecretsManager {
     fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
         let mut secrets = HashMap::new();
 
-        match path {
-            SecretPaths::TABLES => {
+        // Normalize path to handle both old and new formats
+        let normalized = if path.starts_with("gbo/system/") {
+            path.strip_prefix("gbo/system/").unwrap_or(path)
+        } else {
+            path
+        };
+
+        match normalized {
+            "tables" | "gbo/tables" | "system/tables" => {
                 secrets.insert("host".into(), "localhost".into());
                 secrets.insert("port".into(), "5432".into());
                 secrets.insert("database".into(), "botserver".into());
                 secrets.insert("username".into(), "gbuser".into());
                 secrets.insert("password".into(), "changeme".into());
             }
-            SecretPaths::DIRECTORY => {
+            "directory" | "gbo/directory" | "system/directory" => {
                 secrets.insert("url".into(), "http://localhost:9000".into());
                 secrets.insert("project_id".into(), String::new());
                 secrets.insert("client_id".into(), String::new());
                 secrets.insert("client_secret".into(), String::new());
             }
-            SecretPaths::DRIVE => {
-                secrets.insert("accesskey".into(), String::new());
-                secrets.insert("secret".into(), String::new());
+            "drive" | "gbo/drive" | "system/drive" => {
+                secrets.insert("host".into(), "localhost".into());
+                secrets.insert("port".into(), "9000".into());
+                secrets.insert("accesskey".into(), "minioadmin".into());
+                secrets.insert("secret".into(), "minioadmin".into());
             }
-            SecretPaths::CACHE => {
+            "cache" | "gbo/cache" | "system/cache" => {
+                secrets.insert("host".into(), "localhost".into());
+                secrets.insert("port".into(), "6379".into());
                 secrets.insert("password".into(), String::new());
             }
-            SecretPaths::EMAIL => {
+            "email" | "gbo/email" | "system/email" => {
                 secrets.insert("smtp_host".into(), String::new());
                 secrets.insert("smtp_port".into(), "587".into());
-                secrets.insert("username".into(), String::new());
-                secrets.insert("password".into(), String::new());
-                secrets.insert("from_address".into(), String::new());
+                secrets.insert("smtp_user".into(), String::new());
+                secrets.insert("smtp_password".into(), String::new());
+                secrets.insert("smtp_from".into(), String::new());
             }
-            SecretPaths::LLM => {
+            "llm" | "gbo/llm" | "system/llm" => {
+                secrets.insert("url".into(), "http://localhost:8081".into());
+                secrets.insert("model".into(), "gpt-4".into());
                 secrets.insert("openai_key".into(), String::new());
                 secrets.insert("anthropic_key".into(), String::new());
                 secrets.insert("ollama_url".into(), "http://localhost:11434".into());
             }
-            SecretPaths::ENCRYPTION => {
+            "encryption" | "gbo/encryption" | "system/encryption" => {
                 secrets.insert("master_key".into(), String::new());
             }
-            SecretPaths::MEET => {
-                secrets.insert("jitsi_url".into(), "https://meet.jit.si".into());
+            "meet" | "gbo/meet" | "system/meet" => {
+                secrets.insert("url".into(), "http://localhost:7880".into());
                 secrets.insert("app_id".into(), String::new());
                 secrets.insert("app_secret".into(), String::new());
             }
-            SecretPaths::VECTORDB => {
+            "vectordb" | "gbo/vectordb" | "system/vectordb" => {
                 secrets.insert("url".into(), "http://localhost:6333".into());
                 secrets.insert("api_key".into(), String::new());
             }
-            SecretPaths::OBSERVABILITY => {
+            "observability" | "gbo/observability" | "system/observability" => {
                 secrets.insert("url".into(), "http://localhost:8086".into());
                 secrets.insert("org".into(), "system".into());
                 secrets.insert("bucket".into(), "metrics".into());
                 secrets.insert("token".into(), String::new());
             }
-            SecretPaths::ALM => {
+            "alm" | "gbo/alm" | "system/alm" => {
                 secrets.insert("url".into(), "http://localhost:9000".into());
-                secrets.insert("username".into(), String::new());
-                secrets.insert("password".into(), String::new());
+                secrets.insert("token".into(), String::new());
+                secrets.insert("default_org".into(), String::new());
+            }
+            "security" | "gbo/security" | "system/security" => {
+                secrets.insert("require_auth".into(), "true".into());
+                secrets.insert("anonymous_paths".into(), String::new());
+            }
+            "cloud" | "gbo/cloud" | "system/cloud" => {
+                secrets.insert("region".into(), "us-east-1".into());
+                secrets.insert("access_key".into(), String::new());
+                secrets.insert("secret_key".into(), String::new());
+            }
+            "app" | "gbo/app" | "system/app" => {
+                secrets.insert("url".into(), "http://localhost:8080".into());
+                secrets.insert("environment".into(), "development".into());
+            }
+            "jwt" | "gbo/jwt" | "system/jwt" => {
+                secrets.insert("secret".into(), String::new());
+            }
+            "models" | "gbo/models" | "system/models" => {
+                secrets.insert("url".into(), "http://localhost:8001".into());
             }
             _ => {
                 log::debug!("No default values for secret path: {}", path);
@@ -396,6 +452,110 @@ impl SecretsManager {
         }
 
         Ok(secrets)
+    }
+
+    // ============ TENANT INFRASTRUCTURE ============
+    
+    /// Get database config with tenant fallback to system
+    pub async fn get_database_config_for_tenant(&self, tenant: &str) -> Result<(String, u16, String, String, String)> {
+        // Try tenant first
+        let tenant_path = SecretPaths::tenant_infrastructure(tenant);
+        if let Ok(s) = self.get_secret(&format!("{}/tables", tenant_path)).await {
+            return Ok((
+                s.get("host").cloned().unwrap_or_else(|| "localhost".into()),
+                s.get("port").and_then(|p| p.parse().ok()).unwrap_or(5432),
+                s.get("database").cloned().unwrap_or_else(|| "botserver".into()),
+                s.get("username").cloned().unwrap_or_else(|| "gbuser".into()),
+                s.get("password").cloned().unwrap_or_default(),
+            ));
+        }
+        // Fallback to system
+        self.get_database_config().await
+    }
+
+    /// Get drive config with tenant fallback to system
+    pub async fn get_drive_config_for_tenant(&self, tenant: &str) -> Result<(String, String, String, String)> {
+        let tenant_path = SecretPaths::tenant_infrastructure(tenant);
+        if let Ok(s) = self.get_secret(&format!("{}/drive", tenant_path)).await {
+            return Ok((
+                s.get("host").cloned().unwrap_or_else(|| "localhost".into()),
+                s.get("port").cloned().unwrap_or_else(|| "9000".into()),
+                s.get("accesskey").cloned().unwrap_or_default(),
+                s.get("secret").cloned().unwrap_or_default(),
+            ));
+        }
+        self.get_drive_credentials().await
+    }
+
+    /// Get cache config with tenant fallback to system
+    pub async fn get_cache_config_for_tenant(&self, tenant: &str) -> Result<(String, u16, Option<String>)> {
+        let tenant_path = SecretPaths::tenant_infrastructure(tenant);
+        if let Ok(s) = self.get_secret(&format!("{}/cache", tenant_path)).await {
+            return Ok((
+                s.get("host").cloned().unwrap_or_else(|| "localhost".into()),
+                s.get("port").and_then(|p| p.parse().ok()).unwrap_or(6379),
+                s.get("password").cloned(),
+            ));
+        }
+        let url = self.get_secret(SecretPaths::CACHE).await?
+            .get("url").cloned();
+        let host = url.as_ref().map(|u| u.split("://").nth(1).unwrap_or("localhost").split(':').next().unwrap_or("localhost")).unwrap_or("localhost").to_string();
+        let port = url.as_ref().and_then(|u| u.split(':').nth(1)).and_then(|p| p.parse().ok()).unwrap_or(6379);
+        Ok((host, port, None))
+    }
+
+    /// Get SMTP config with tenant fallback to system
+    pub async fn get_smtp_config_for_tenant(&self, tenant: &str) -> Result<HashMap<String, String>> {
+        let tenant_path = SecretPaths::tenant_infrastructure(tenant);
+        if let Ok(s) = self.get_secret(&format!("{}/email", tenant_path)).await {
+            return Ok(s);
+        }
+        self.get_secret(SecretPaths::EMAIL).await
+    }
+
+    /// Get LLM config with tenant fallback to system
+    pub async fn get_llm_config_for_tenant(&self, tenant: &str) -> Result<HashMap<String, String>> {
+        let tenant_path = SecretPaths::tenant_infrastructure(tenant);
+        if let Ok(s) = self.get_secret(&format!("{}/llm", tenant_path)).await {
+            return Ok(s);
+        }
+        self.get_secret(SecretPaths::LLM).await
+    }
+
+    // ============ ORG BOT/USER SECRETS ============
+
+    /// Get bot email credentials
+    pub async fn get_bot_email_config(&self, org_id: &str, bot_id: &str) -> Result<HashMap<String, String>> {
+        let path = SecretPaths::org_bot(org_id, bot_id);
+        if let Ok(s) = self.get_secret(&format!("{}/email", path)).await {
+            return Ok(s);
+        }
+        // Fallback to system email
+        self.get_secret(SecretPaths::EMAIL).await
+    }
+
+    /// Get bot WhatsApp credentials
+    pub async fn get_bot_whatsapp_config(&self, org_id: &str, bot_id: &str) -> Result<Option<HashMap<String, String>>> {
+        let path = SecretPaths::org_bot(org_id, bot_id);
+        Ok(self.get_secret(&format!("{}/whatsapp", path)).await.ok())
+    }
+
+    /// Get bot LLM config (overrides tenant/system)
+    pub async fn get_bot_llm_config(&self, org_id: &str, bot_id: &str) -> Result<Option<HashMap<String, String>>> {
+        let path = SecretPaths::org_bot(org_id, bot_id);
+        Ok(self.get_secret(&format!("{}/llm", path)).await.ok())
+    }
+
+    /// Get user email credentials
+    pub async fn get_user_email_config(&self, org_id: &str, user_id: &str) -> Result<Option<HashMap<String, String>>> {
+        let path = SecretPaths::org_user(org_id, user_id);
+        Ok(self.get_secret(&format!("{}/email", path)).await.ok())
+    }
+
+    /// Get user OAuth credentials
+    pub async fn get_user_oauth_config(&self, org_id: &str, user_id: &str, provider: &str) -> Result<Option<HashMap<String, String>>> {
+        let path = SecretPaths::org_user(org_id, user_id);
+        Ok(self.get_secret(&format!("{}/oauth/{}", path, provider)).await.ok())
     }
 }
 
