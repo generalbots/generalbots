@@ -11,22 +11,21 @@ use reqwest::Client;
 use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::path::PathBuf;
-fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
-    let cmd_res = SafeCommand::new("lxc").and_then(|c| c.args(args));
 
-    match cmd_res {
-        Ok(cmd) => match cmd.execute() {
-            Ok(output) => Some(output),
-            Err(e) => {
-                log::error!("Failed to execute lxc command '{:?}': {}", args, e);
-                None
-            }
-        },
-        Err(e) => {
-            log::error!("Failed to build lxc command '{:?}': {}", args, e);
-            None
-        }
-    }
+fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("lxc")
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
+}
+
+fn safe_lxc_exec_in_container(container: &str, command: &str) -> Option<std::process::Output> {
+    let output = std::process::Command::new("lxc")
+        .args(["exec", container, "--", "bash", "-c", command])
+        .output()
+        .ok()?;
+    
+    Some(output)
 }
 
 fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
@@ -215,15 +214,6 @@ impl PackageManager {
         self.exec_in_container(
             &container_name,
             "mkdir -p /opt/gbo/bin /opt/gbo/data /opt/gbo/conf /opt/gbo/logs",
-        )?;
-
-        self.exec_in_container(
-            &container_name,
-            "echo 'nameserver 8.8.8.8' > /etc/resolv.conf",
-        )?;
-        self.exec_in_container(
-            &container_name,
-            "echo 'nameserver 8.8.4.4' >> /etc/resolv.conf",
         )?;
 
         self.exec_in_container(&container_name, "apt-get update -qq")?;
@@ -1114,7 +1104,7 @@ Store credentials in Vault:
     }
     pub fn exec_in_container(&self, container: &str, command: &str) -> Result<()> {
         info!("Executing in container {}: {}", container, command);
-        let output = safe_lxc(&["exec", container, "--", "bash", "-c", command])
+        let output = safe_lxc_exec_in_container(container, command)
             .ok_or_else(|| anyhow::anyhow!("Failed to execute lxc command"))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

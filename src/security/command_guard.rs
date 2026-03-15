@@ -297,9 +297,12 @@ impl SafeCommand {
 
         // Build PATH with standard locations plus botserver-stack/bin/shared
         let mut path_entries = vec![
+            "/snap/bin".to_string(),
             "/usr/local/bin".to_string(),
             "/usr/bin".to_string(),
             "/bin".to_string(),
+            "/usr/sbin".to_string(),
+            "/sbin".to_string(),
         ];
 
         // Add botserver-stack/bin/shared to PATH if it exists
