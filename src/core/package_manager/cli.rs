@@ -84,7 +84,7 @@ pub async fn run() -> Result<()> {
         }
         "install" => {
             if args.len() < 3 {
-                eprintln!("Usage: botserver install <component> [--container] [--tenant <name>]");
+                eprintln!("Usage: botserver install <component> [--container] [--container-only] [--tenant <name>]");
                 return Ok(());
             }
             let component = &args[2];
@@ -99,17 +99,26 @@ pub async fn run() -> Result<()> {
             } else {
                 InstallMode::Local
             };
+            let container_only = args.contains(&"--container-only".to_string());
             let tenant = if let Some(idx) = args.iter().position(|a| a == "--tenant") {
                 args.get(idx + 1).cloned()
             } else {
                 None
             };
-            let pm = PackageManager::new(mode, tenant)?;
-            let result = pm.install(component).await?;
-            println!("* Component '{}' installed successfully", component);
+            let pm = PackageManager::new(mode.clone(), tenant)?;
+
+            let result = if container_only && mode == InstallMode::Container {
+                Some(pm.install_container_only(component)?)
+            } else {
+                pm.install(component).await?
+            };
 
             if let Some(install_result) = result {
                 install_result.print();
+                if container_only {
+                    println!("\n* Container created successfully (--container-only mode)");
+                    println!("* Run without --container-only to complete installation");
+                }
             }
         }
         "remove" => {
