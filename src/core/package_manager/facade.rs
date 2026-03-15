@@ -12,11 +12,7 @@ use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::path::PathBuf;
 fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
-    let mut cmd_res = SafeCommand::new("lxc").and_then(|c| c.args(args));
-
-    if std::path::Path::new("/tmp/lxd.sock").exists() {
-        cmd_res = cmd_res.and_then(|c| c.env("LXD_SOCKET", "/tmp/lxd.sock"));
-    }
+    let cmd_res = SafeCommand::new("lxc").and_then(|c| c.args(args));
 
     match cmd_res {
         Ok(cmd) => match cmd.execute() {
@@ -34,11 +30,7 @@ fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
 }
 
 fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
-    let mut cmd_res = SafeCommand::new("lxd").and_then(|c| c.args(args));
-
-    if std::path::Path::new("/tmp/lxd.sock").exists() {
-        cmd_res = cmd_res.and_then(|c| c.env("LXD_SOCKET", "/tmp/lxd.sock"));
-    }
+    let cmd_res = SafeCommand::new("lxd").and_then(|c| c.args(args));
 
     cmd_res.ok().and_then(|cmd| cmd.execute().ok())
 }
@@ -1099,17 +1091,11 @@ Store credentials in Vault:
                 .replace("{{DB_PASSWORD}}", &db_password);
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
-                let mut cmd = SafeCommand::new("bash")
+                let cmd = SafeCommand::new("bash")
                     .and_then(|c| c.arg("-c"))
                     .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
                     .and_then(|c| c.working_dir(&bin_path))
                     .map_err(|e| anyhow::anyhow!("Failed to build bash command: {}", e))?;
-
-                if std::path::Path::new("/tmp/lxd.sock").exists() {
-                    cmd = cmd
-                        .env("LXD_SOCKET", "/tmp/lxd.sock")
-                        .map_err(|e| anyhow::anyhow!("Failed to set env: {}", e))?;
-                }
 
                 let output = cmd.execute().with_context(|| {
                     format!("Failed to execute command for component '{}'", component)
