@@ -29,8 +29,9 @@ jobs:
           # Clone botserver separately
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
 
-          # Create symlink to botui in botserver directory
-          ln -sf ../botui botserver/botui
+          # Create symlink to botui in botserver directory (expects ../../../../botui from src/designer/canvas_api/)
+          cd botserver
+          ln -sf ../botui botui
 
           # Remove all members except botserver and botlib from workspace
           sed -i '/"botapp",/d' Cargo.toml
