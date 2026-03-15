@@ -5,6 +5,8 @@ use std::process::{Child, ChildStdin, ChildStdout, Stdio};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
+use crate::security::command_guard::SafeCommand;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PythonFaceDetection {
     pub face_id: String,
@@ -195,15 +197,20 @@ impl PythonFaceBridge {
             return Ok(());
         }
 
-        let mut child = std::process::Command::new(&self.config.python_path)
-            .arg(&self.config.script_path)
-            .arg("--model")
-            .arg(self.config.model.as_str())
-            .arg(if self.config.gpu_enabled { "--gpu" } else { "--cpu" })
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
+        let python_cmd = std::path::Path::new(&self.config.python_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("python3");
+
+        let mut command = SafeCommand::new(python_cmd).map_err(|e| PythonBridgeError::ProcessSpawnFailed(e.to_string()))?;
+        command = command.arg(&self.config.script_path).map_err(|e| PythonBridgeError::ProcessSpawnFailed(e.to_string()))?;
+        command = command.arg("--model").map_err(|e| PythonBridgeError::ProcessSpawnFailed(e.to_string()))?;
+        command = command.arg(self.config.model.as_str()).map_err(|e| PythonBridgeError::ProcessSpawnFailed(e.to_string()))?;
+        command = command.arg(if self.config.gpu_enabled { "--gpu" } else { "--cpu" }).map_err(|e| PythonBridgeError::ProcessSpawnFailed(e.to_string()))?;
+        command = command.stdout(Stdio::piped());
+        command = command.stderr(Stdio::piped());
+
+        let mut child = command.spawn()
             .map_err(|e| PythonBridgeError::ProcessSpawnFailed(e.to_string()))?;
 
         let stdin = child

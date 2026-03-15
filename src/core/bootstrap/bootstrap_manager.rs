@@ -3,9 +3,9 @@ use crate::core::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgres
 use crate::core::bootstrap::bootstrap_utils::{cache_health_check, safe_pkill, vault_health_check, vector_db_health_check, zitadel_health_check};
 use crate::core::config::AppConfig;
 use crate::core::package_manager::{InstallMode, PackageManager};
+use crate::security::command_guard::SafeCommand;
 use log::{info, warn};
 use std::path::PathBuf;
-use std::process::Command;
 use tokio::time::{sleep, Duration};
 
 impl BootstrapManager {
@@ -252,15 +252,22 @@ impl BootstrapManager {
         }
 
         // Caddy is the web server
-        match Command::new("caddy")
-            .arg("validate")
-            .arg("--config")
-            .arg("/etc/caddy/Caddyfile")
-            .output()
-        {
-            Ok(_) => info!("Caddy configuration is valid"),
+        let caddy_cmd = SafeCommand::new("caddy")
+            .and_then(|c| c.arg("validate"))
+            .and_then(|c| c.arg("--config"))
+            .and_then(|c| c.arg("/etc/caddy/Caddyfile"));
+        
+        match caddy_cmd {
+            Ok(cmd) => {
+                match cmd.execute() {
+                    Ok(_) => info!("Caddy configuration is valid"),
+                    Err(e) => {
+                        warn!("Caddy configuration error: {:?}", e);
+                    }
+                }
+            }
             Err(e) => {
-                warn!("Caddy configuration error: {:?}", e);
+                warn!("Failed to create caddy command: {:?}", e);
             }
         }
 

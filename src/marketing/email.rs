@@ -1,0 +1,391 @@
+use axum::{
+    extract::State,
+    http::StatusCode,
+    Json,
+};
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use lettre::{message::Mailbox, Address, Message, SmtpTransport, Transport};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use uuid::Uuid;
+
+use crate::core::config::ConfigManager;
+use crate::core::shared::schema::{
+    email_tracking, marketing_campaigns, marketing_recipients,
+};
+use crate::core::shared::state::AppState;
+use crate::marketing::campaigns::CrmCampaign;
+
+const SMTP_SERVER_KEY: &str = "email-server";
+const SMTP_PORT_KEY: &str = "email-port";
+const FROM_EMAIL_KEY: &str = "email-from";
+const DEFAULT_SMTP_SERVER: &str = "smtp.gmail.com";
+const DEFAULT_SMTP_PORT: u16 = 587;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmailCampaignPayload {
+    pub to: String,
+    pub subject: String,
+    pub body_html: Option<String>,
+    pub body_text: Option<String>,
+    pub campaign_id: Option<Uuid>,
+    pub recipient_id: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmailSendResult {
+    pub success: bool,
+    pub message_id: Option<String>,
+    pub tracking_id: Option<Uuid>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmailTrackingRecord {
+    pub id: Uuid,
+    pub recipient_id: Option<Uuid>,
+    pub campaign_id: Option<Uuid>,
+    pub message_id: Option<String>,
+    pub open_token: Option<Uuid>,
+    pub opened: bool,
+    pub opened_at: Option<DateTime<Utc>>,
+    pub clicked: bool,
+    pub clicked_at: Option<DateTime<Utc>>,
+    pub ip_address: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CampaignMetrics {
+    pub total_sent: i64,
+    pub total_delivered: i64,
+    pub total_failed: i64,
+    pub total_opened: i64,
+    pub total_clicked: i64,
+    pub open_rate: f64,
+    pub click_rate: f64,
+    pub bounce_rate: f64,
+}
+
+fn get_smtp_config(state: &AppState, bot_id: Uuid) -> Result<(String, u16, String, String, String), String> {
+    let config = ConfigManager::new(state.conn.clone());
+
+    let smtp_server = config
+        .get_config(&bot_id, SMTP_SERVER_KEY, Some(DEFAULT_SMTP_SERVER))
+        .unwrap_or_else(|_| DEFAULT_SMTP_SERVER.to_string());
+
+    let smtp_port = config
+        .get_config(&bot_id, SMTP_PORT_KEY, Some("587"))
+        .unwrap_or_else(|_| "587".to_string())
+        .parse::<u16>()
+        .unwrap_or(DEFAULT_SMTP_PORT);
+
+    let from_email = config
+        .get_config(&bot_id, FROM_EMAIL_KEY, Some("noreply@generalbots.com"))
+        .unwrap_or_else(|_| "noreply@generalbots.com".to_string());
+
+    let smtp_username = config
+        .get_config(&bot_id, "email-username", None)
+        .unwrap_or_default();
+
+    let smtp_password = config
+        .get_config(&bot_id, "email-password", None)
+        .unwrap_or_default();
+
+    Ok((smtp_server, smtp_port, from_email, smtp_username, smtp_password))
+}
+
+fn inject_tracking_pixel(html: &str, token: Uuid, base_url: &str) -> String {
+    let pixel_url = format!("{}/api/marketing/track/open/{}", base_url, token);
+    let pixel = format!(
+        r#"<img src="{}" width="1" height="1" alt="" style="display:none;visibility:hidden;border:0;" />"#,
+        pixel_url
+    );
+
+    if html.to_lowercase().contains("</body>") {
+        html.replace("</body>", &format!("{}</body>", pixel))
+            .replace("</BODY>", &format!("{}</BODY>", pixel))
+    } else {
+        format!("{}{}", html, pixel)
+    }
+}
+
+fn wrap_tracking_links(html: &str, tracking_id: Uuid, base_url: &str) -> String {
+    let wrapped = html.replace(
+        "href=\"",
+        &format!("href=\"{}/api/marketing/track/click/{}/", base_url, tracking_id),
+    );
+    wrapped.replace(
+        "href='",
+        &format!("href='{}/api/marketing/track/click/{}/", base_url, tracking_id),
+    )
+}
+
+pub async fn send_campaign_email(
+    state: &Arc<AppState>,
+    bot_id: Uuid,
+    payload: EmailCampaignPayload,
+) -> Result<EmailSendResult, String> {
+    let (smtp_server, smtp_port, from_email, username, password) =
+        get_smtp_config(state, bot_id)?;
+
+    let open_token = Uuid::new_v4();
+    let tracking_id = Uuid::new_v4();
+
+    let config = ConfigManager::new(state.conn.clone());
+    let base_url = config
+        .get_config(&bot_id, "server-url", Some("http://localhost:3000"))
+        .unwrap_or_else(|_| "http://localhost:3000".to_string());
+
+    let body_html = payload
+        .body_html
+        .map(|html| wrap_tracking_links(&html, tracking_id, &base_url))
+        .map(|html| inject_tracking_pixel(&html, open_token, &base_url));
+
+    let mut conn = state.conn.get().map_err(|e| format!("DB connection failed: {}", e))?;
+
+    let tracking_record = EmailTrackingRecord {
+        id: tracking_id,
+        recipient_id: payload.recipient_id,
+        campaign_id: payload.campaign_id,
+        message_id: None,
+        open_token: Some(open_token),
+        opened: false,
+        opened_at: None,
+        clicked: false,
+        clicked_at: None,
+        ip_address: None,
+    };
+
+    diesel::insert_into(email_tracking::table)
+        .values((
+            email_tracking::id.eq(tracking_record.id),
+            email_tracking::recipient_id.eq(tracking_record.recipient_id),
+            email_tracking::campaign_id.eq(tracking_record.campaign_id),
+            email_tracking::open_token.eq(tracking_record.open_token),
+            email_tracking::open_tracking_enabled.eq(true),
+            email_tracking::opened.eq(false),
+            email_tracking::clicked.eq(false),
+            email_tracking::created_at.eq(Utc::now()),
+        ))
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to create tracking record: {}", e))?;
+
+    let from = from_email
+        .parse::<Address>()
+        .map_err(|e| format!("Invalid from address: {}", e))?;
+    let to = payload
+        .to
+        .parse::<Address>()
+        .map_err(|e| format!("Invalid to address: {}", e))?;
+
+    let builder = Message::builder()
+        .from(Mailbox::new(Some("Campaign".to_string()), from))
+        .to(Mailbox::new(None, to))
+        .subject(&payload.subject);
+
+    let mail = if let Some(html) = &body_html {
+        builder
+            .header(lettre::message::header::ContentType::TEXT_HTML)
+            .body(html.clone())
+            .map_err(|e| format!("Failed to build HTML email: {}", e))?
+    } else if let Some(text) = &payload.body_text {
+        builder
+            .header(lettre::message::header::ContentType::TEXT_PLAIN)
+            .body(text.clone())
+            .map_err(|e| format!("Failed to build text email: {}", e))?
+    } else {
+        return Err("No email body provided".to_string());
+    };
+
+    let mut mailer = SmtpTransport::relay(&smtp_server)
+        .map_err(|e| format!("SMTP relay error: {}", e))?
+        .port(smtp_port);
+
+    if !username.is_empty() && !password.is_empty() {
+        mailer = mailer
+            .credentials(lettre::transport::smtp::authentication::Credentials::new(
+                username,
+                password,
+            ))
+            .authentication(vec![lettre::transport::smtp::authentication::Mechanism::Login]);
+    }
+
+    let mailer = mailer.build();
+
+    match mailer.send(&mail) {
+        Ok(_) => {
+            let message_id = format!("<{}@campaign>", tracking_id);
+            diesel::update(email_tracking::table.filter(email_tracking::id.eq(tracking_id)))
+                .set(email_tracking::message_id.eq(Some(message_id.clone())))
+                .execute(&mut conn)
+                .ok();
+
+            if let Some(recipient_id) = payload.recipient_id {
+                diesel::update(marketing_recipients::table.filter(marketing_recipients::id.eq(recipient_id)))
+                    .set((
+                        marketing_recipients::status.eq("sent"),
+                        marketing_recipients::sent_at.eq(Some(Utc::now())),
+                    ))
+                    .execute(&mut conn)
+                    .ok();
+            }
+
+            Ok(EmailSendResult {
+                success: true,
+                message_id: Some(message_id),
+                tracking_id: Some(tracking_id),
+                error: None,
+            })
+        }
+        Err(e) => {
+            if let Some(recipient_id) = payload.recipient_id {
+                diesel::update(marketing_recipients::table.filter(marketing_recipients::id.eq(recipient_id)))
+                    .set((
+                        marketing_recipients::status.eq("failed"),
+                        marketing_recipients::failed_at.eq(Some(Utc::now())),
+                        marketing_recipients::error_message.eq(Some(e.to_string())),
+                    ))
+                    .execute(&mut conn)
+                    .ok();
+            }
+
+            Ok(EmailSendResult {
+                success: false,
+                message_id: None,
+                tracking_id: Some(tracking_id),
+                error: Some(e.to_string()),
+            })
+        }
+    }
+}
+
+pub async fn get_campaign_email_metrics(
+    state: &Arc<AppState>,
+    campaign_id: Uuid,
+) -> Result<CampaignMetrics, String> {
+    let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+
+    let results: Vec<(Option<bool>, Option<bool>)> = email_tracking::table
+        .filter(email_tracking::campaign_id.eq(campaign_id))
+        .select((email_tracking::opened, email_tracking::clicked))
+        .load(&mut conn)
+        .map_err(|e| format!("Query error: {}", e))?;
+
+    let total = results.len() as i64;
+    let opened = results.iter().filter(|(o, _)| o.unwrap_or(false)).count() as i64;
+    let clicked = results.iter().filter(|(_, c)| c.unwrap_or(false)).count() as i64;
+
+    let recipients: Vec<(String, Option<DateTime<Utc>>)> = marketing_recipients::table
+        .filter(marketing_recipients::campaign_id.eq(campaign_id))
+        .filter(marketing_recipients::channel.eq("email"))
+        .select((marketing_recipients::status, marketing_recipients::sent_at))
+        .load(&mut conn)
+        .map_err(|e| format!("Query error: {}", e))?;
+
+    let sent = recipients.iter().filter(|(s, _)| s == "sent").count() as i64;
+    let failed = recipients.iter().filter(|(s, _)| s == "failed").count() as i64;
+    let delivered = sent;
+
+    Ok(CampaignMetrics {
+        total_sent: total,
+        total_delivered: delivered,
+        total_failed: failed,
+        total_opened: opened,
+        total_clicked: clicked,
+        open_rate: if delivered > 0 { (opened as f64 / delivered as f64) * 100.0 } else { 0.0 },
+        click_rate: if delivered > 0 { (clicked as f64 / delivered as f64) * 100.0 } else { 0.0 },
+        bounce_rate: if sent > 0 { (failed as f64 / sent as f64) * 100.0 } else { 0.0 },
+    })
+}
+
+pub async fn send_bulk_campaign_emails(
+    state: &Arc<AppState>,
+    campaign_id: Uuid,
+    contacts: Vec<(Uuid, String, String)>,
+) -> Result<(i32, i32), String> {
+    let mut sent = 0;
+    let mut failed = 0;
+
+    let campaign: CrmCampaign = marketing_campaigns::table
+        .filter(marketing_campaigns::id.eq(campaign_id))
+        .first(&mut *state.conn.get().map_err(|e| format!("DB error: {}", e))?)
+        .map_err(|_| "Campaign not found")?;
+
+    let subject = campaign
+        .content_template
+        .get("subject")
+        .and_then(|s| s.as_str())
+        .unwrap_or("Newsletter")
+        .to_string();
+
+    let body_html = campaign
+        .content_template
+        .get("body")
+        .and_then(|b| b.as_str())
+        .map(String::from);
+
+    for (contact_id, email, name) in contacts {
+        let personalized_body = body_html.as_ref().map(|html| {
+            html.replace("{{name}}", &name)
+                .replace("{{email}}", &email)
+        });
+
+        let payload = EmailCampaignPayload {
+            to: email,
+            subject: subject.clone(),
+            body_html: personalized_body.clone(),
+            body_text: None,
+            campaign_id: Some(campaign_id),
+            recipient_id: Some(contact_id),
+        };
+
+        match send_campaign_email(state, campaign.bot_id, payload).await {
+            Ok(result) => {
+                if result.success {
+                    sent += 1;
+                } else {
+                    failed += 1;
+                    log::error!("Email send failed: {:?}", result.error);
+                }
+            }
+            Err(e) => {
+                failed += 1;
+                log::error!("Email error: {}", e);
+            }
+        }
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+    }
+
+    Ok((sent, failed))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SendEmailRequest {
+    pub to: String,
+    pub subject: String,
+    pub body_html: Option<String>,
+    pub body_text: Option<String>,
+}
+
+pub async fn send_email_api(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<SendEmailRequest>,
+) -> Result<Json<EmailSendResult>, (StatusCode, String)> {
+    let bot_id = Uuid::nil();
+
+    let payload = EmailCampaignPayload {
+        to: req.to,
+        subject: req.subject,
+        body_html: req.body_html,
+        body_text: req.body_text,
+        campaign_id: None,
+        recipient_id: None,
+    };
+
+    match send_campaign_email(&state, bot_id, payload).await {
+        Ok(result) => Ok(Json(result)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
+    }
+}

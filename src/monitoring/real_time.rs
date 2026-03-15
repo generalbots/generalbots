@@ -6,6 +6,8 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use uuid::Uuid;
 
+use crate::security::command_guard::SafeCommand;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MetricType {
     Counter,
@@ -592,9 +594,9 @@ impl MetricsCollector {
     async fn collect_disk_usage(&self) -> f64 {
         #[cfg(target_os = "linux")]
         {
-            if let Ok(output) = std::process::Command::new("df")
+            if let Ok(output) = SafeCommand::new("df")?
                 .args(["-h", "/"])
-                .output()
+                .execute()
             {
                 if let Ok(stdout) = String::from_utf8(output.stdout) {
                     if let Some(line) = stdout.lines().nth(1) {

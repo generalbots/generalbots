@@ -1,6 +1,6 @@
 // Bootstrap utility functions
+use crate::security::command_guard::SafeCommand;
 use log::{debug, info, warn};
-use std::process::Command;
 
 /// Get list of processes to kill
 pub fn get_processes_to_kill() -> Vec<(&'static str, Vec<&'static str>)> {
@@ -36,7 +36,9 @@ pub fn safe_pkill(pattern: &[&str], extra_args: &[&str]) {
     let mut args: Vec<&str> = extra_args.to_vec();
     args.extend(pattern);
 
-    let result = Command::new("pkill").args(&args).output();
+    let result = SafeCommand::new("pkill")
+        .and_then(|c| c.args(&args))
+        .and_then(|c| c.execute());
 
     match result {
         Ok(output) => {
@@ -50,10 +52,10 @@ pub fn safe_pkill(pattern: &[&str], extra_args: &[&str]) {
 
 /// Grep for process safely
 pub fn safe_pgrep(pattern: &str) -> String {
-    match Command::new("pgrep")
-        .arg("-a")
-        .arg(pattern)
-        .output()
+    match SafeCommand::new("pgrep")
+        .and_then(|c| c.arg("-a"))
+        .and_then(|c| c.arg(pattern))
+        .and_then(|c| c.execute())
     {
         Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
         Err(e) => {
@@ -65,18 +67,15 @@ pub fn safe_pgrep(pattern: &str) -> String {
 
 /// Execute curl command safely
 pub fn safe_curl(url: &str) -> String {
-    format!(
-        "curl -f -s --connect-timeout 5 {}",
-        url
-    )
+    format!("curl -f -s --connect-timeout 5 {}", url)
 }
 
 /// Execute shell command safely
 pub fn safe_sh_command(command: &str) -> String {
-    match Command::new("sh")
-        .arg("-c")
-        .arg(command)
-        .output()
+    match SafeCommand::new("sh")
+        .and_then(|c| c.arg("-c"))
+        .and_then(|c| c.arg(command))
+        .and_then(|c| c.execute())
     {
         Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
         Err(e) => {
@@ -88,17 +87,14 @@ pub fn safe_sh_command(command: &str) -> String {
 
 /// Check if vault is healthy
 pub fn vault_health_check() -> bool {
-    // Check if vault server is responding
-    // For now, always return false
     false
 }
 
 /// Check if Valkey/Redis cache is healthy
 pub fn cache_health_check() -> bool {
-    // Try valkey-cli first (preferred for Valkey installations)
-    if let Ok(output) = Command::new("valkey-cli")
-        .args(["-h", "127.0.0.1", "-p", "6379", "ping"])
-        .output()
+    if let Ok(output) = SafeCommand::new("valkey-cli")
+        .and_then(|c| c.args(&["-h", "127.0.0.1", "-p", "6379", "ping"]))
+        .and_then(|c| c.execute())
     {
         if output.status.success() {
             let response = String::from_utf8_lossy(&output.stdout);
@@ -108,10 +104,9 @@ pub fn cache_health_check() -> bool {
         }
     }
 
-    // Try redis-cli as fallback (for Redis installations)
-    if let Ok(output) = Command::new("redis-cli")
-        .args(["-h", "127.0.0.1", "-p", "6379", "ping"])
-        .output()
+    if let Ok(output) = SafeCommand::new("redis-cli")
+        .and_then(|c| c.args(&["-h", "127.0.0.1", "-p", "6379", "ping"]))
+        .and_then(|c| c.execute())
     {
         if output.status.success() {
             let response = String::from_utf8_lossy(&output.stdout);
@@ -121,25 +116,24 @@ pub fn cache_health_check() -> bool {
         }
     }
 
-    // If CLI tools are not available, try TCP connection test using nc (netcat)
-    // nc -z tests if port is open without sending data
-    match Command::new("nc")
-        .args(["-z", "-w", "1", "127.0.0.1", "6379"])
-        .output()
+    match SafeCommand::new("nc")
+        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "6379"]))
+        .and_then(|c| c.execute())
     {
         Ok(output) => output.status.success(),
         Err(_) => {
-            // Final fallback: try /dev/tcp with actual PING test
-            match Command::new("bash")
-                .arg("-c")
-                .arg(
-                    "exec 3<>/dev/tcp/127.0.0.1/6379 2>/dev/null && \
+            match SafeCommand::new("bash")
+                .and_then(|c| c.arg("-c"))
+                .and_then(|c| {
+                    c.arg(
+                        "exec 3<>/dev/tcp/127.0.0.1/6379 2>/dev/null && \
                      echo -e 'PING\r\n' >&3 && \
                      read -t 1 response <&3 && \
                      [[ \"$response\" == *PONG* ]] && \
                      exec 3>&-",
-                )
-                .output()
+                    )
+                })
+                .and_then(|c| c.execute())
             {
                 Ok(output) => output.status.success(),
                 Err(_) => false,
@@ -150,20 +144,17 @@ pub fn cache_health_check() -> bool {
 
 /// Check if Qdrant vector database is healthy
 pub fn vector_db_health_check() -> bool {
-    // Qdrant has a /healthz endpoint, use curl to check
-    // Try both HTTP and HTTPS
     let urls = [
         "http://localhost:6333/healthz",
         "https://localhost:6333/healthz",
     ];
 
     for url in &urls {
-        if let Ok(output) = Command::new("curl")
-            .args(["-f", "-s", "--connect-timeout", "2", "-k", url])
-            .output()
+        if let Ok(output) = SafeCommand::new("curl")
+            .and_then(|c| c.args(&["-f", "-s", "--connect-timeout", "2", "-k", url]))
+            .and_then(|c| c.execute())
         {
             if output.status.success() {
-                // Qdrant healthz returns "OK" or JSON with status
                 let response = String::from_utf8_lossy(&output.stdout);
                 if response.contains("OK") || response.contains("\"status\":\"ok\"") {
                     return true;
@@ -172,10 +163,9 @@ pub fn vector_db_health_check() -> bool {
         }
     }
 
-    // Fallback: just check if port 6333 is listening
-    match Command::new("nc")
-        .args(["-z", "-w", "1", "127.0.0.1", "6333"])
-        .output()
+    match SafeCommand::new("nc")
+        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "6333"]))
+        .and_then(|c| c.execute())
     {
         Ok(output) => output.status.success(),
         Err(_) => false,
@@ -184,15 +174,12 @@ pub fn vector_db_health_check() -> bool {
 
 /// Get current user safely
 pub fn safe_fuser() -> String {
-    // Return shell command that uses $USER environment variable
     "fuser -M '($USER)'".to_string()
 }
 
 /// Dump all component logs
 pub fn dump_all_component_logs(component: &str) {
     info!("Dumping logs for component: {}", component);
-    // This would read from systemd journal or log files
-    // For now, just a placeholder
 }
 
 /// Result type for bot existence check
@@ -202,15 +189,21 @@ pub enum BotExistsResult {
     BotNotFound,
 }
 
-
-
 /// Check if Zitadel directory is healthy
 pub fn zitadel_health_check() -> bool {
-    // Check if Zitadel is responding on port 8300
-    // Use very short timeout for fast startup detection
-    let output = Command::new("curl")
-        .args(["-f", "-s", "--connect-timeout", "1", "-m", "2", "http://localhost:8300/debug/healthz"])
-        .output();
+    let output = SafeCommand::new("curl")
+        .and_then(|c| {
+            c.args(&[
+                "-f",
+                "-s",
+                "--connect-timeout",
+                "1",
+                "-m",
+                "2",
+                "http://localhost:8300/debug/healthz",
+            ])
+        })
+        .and_then(|c| c.execute());
 
     match output {
         Ok(result) => {
@@ -227,10 +220,9 @@ pub fn zitadel_health_check() -> bool {
         }
     }
 
-    // Fast fallback: just check if port 8300 is listening
-    match Command::new("nc")
-        .args(["-z", "-w", "1", "127.0.0.1", "8300"])
-        .output()
+    match SafeCommand::new("nc")
+        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "8300"]))
+        .and_then(|c| c.execute())
     {
         Ok(output) => output.status.success(),
         Err(_) => false,

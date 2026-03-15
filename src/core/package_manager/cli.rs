@@ -1133,17 +1133,17 @@ async fn verify_rotation(component: &str) -> Result<()> {
             println!("  Testing connection to {}@{}:{}...", user, host, port);
 
             // Use psql to test connection
-            let result = std::process::Command::new("psql")
-                .args([
-                    "-h", &host,
-                    "-p", &port,
-                    "-U", &user,
-                    "-d", &db,
-                    "-c", "SELECT 1;",
-                    "-t", "-q"  // Tuples only, quiet mode
-                ])
-                .env("PGPASSWORD", &pass)
-                .output();
+            let mut cmd = SafeCommand::new("psql").map_err(|e| anyhow::anyhow!("{}", e))?;
+            cmd = cmd.args(&[
+                "-h", &host,
+                "-p", &port,
+                "-U", &user,
+                "-d", &db,
+                "-c", "SELECT 1;",
+                "-t", "-q"  // Tuples only, quiet mode
+            ]).map_err(|e| anyhow::anyhow!("{}", e))?;
+            cmd = cmd.env("PGPASSWORD", &pass).map_err(|e| anyhow::anyhow!("{}", e))?;
+            let result = cmd.execute();
 
             match result {
                 Ok(output) if output.status.success() => {

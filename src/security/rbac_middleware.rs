@@ -996,6 +996,24 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/files/**", "PUT", ""),
         RoutePermission::new("/api/files/**", "DELETE", ""),
 
+        // Editor
+        RoutePermission::new("/api/editor/**", "GET", ""),
+        RoutePermission::new("/api/editor/**", "POST", ""),
+        RoutePermission::new("/api/editor/**", "PUT", ""),
+        RoutePermission::new("/api/editor/**", "DELETE", ""),
+
+        // Database
+        RoutePermission::new("/api/database/**", "GET", ""),
+        RoutePermission::new("/api/database/**", "POST", ""),
+        RoutePermission::new("/api/database/**", "PUT", ""),
+        RoutePermission::new("/api/database/**", "DELETE", ""),
+
+        // Git
+        RoutePermission::new("/api/git/**", "GET", ""),
+        RoutePermission::new("/api/git/**", "POST", ""),
+        RoutePermission::new("/api/git/**", "PUT", ""),
+        RoutePermission::new("/api/git/**", "DELETE", ""),
+
         // Mail
         RoutePermission::new("/api/mail/**", "GET", ""),
         RoutePermission::new("/api/mail/**", "POST", ""),

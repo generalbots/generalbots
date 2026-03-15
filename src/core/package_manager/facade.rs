@@ -424,7 +424,7 @@ impl PackageManager {
 
         let env_file = PathBuf::from(".env");
         let env_content = format!(
-            "\n# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\nVAULT_UNSEAL_KEYS_FILE=vault-unseal-keys\n",
+            "\n# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\n",
             ip, root_token
         );
 

@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use diesel::PgConnection;
 use log::{debug, info, warn};
 use std::collections::HashMap;
 use std::env;
@@ -6,6 +7,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Arc as StdArc;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 use vaultrs::kv2;
 
@@ -484,7 +486,13 @@ impl SecretsManager {
                 s.get("secret").cloned().unwrap_or_default(),
             ));
         }
-        self.get_drive_credentials().await
+        let s = self.get_secret(SecretPaths::DRIVE).await?;
+        Ok((
+            s.get("host").cloned().unwrap_or_else(|| "localhost".into()),
+            s.get("port").cloned().unwrap_or_else(|| "9000".into()),
+            s.get("accesskey").cloned().unwrap_or_default(),
+            s.get("secret").cloned().unwrap_or_default(),
+        ))
     }
 
     /// Get cache config with tenant fallback to system
@@ -522,6 +530,24 @@ impl SecretsManager {
         self.get_secret(SecretPaths::LLM).await
     }
 
+    /// Get directory (Zitadel) config with tenant fallback to system
+    pub async fn get_directory_config_for_tenant(&self, tenant: &str) -> Result<HashMap<String, String>> {
+        let tenant_path = SecretPaths::tenant_infrastructure(tenant);
+        if let Ok(s) = self.get_secret(&format!("{}/directory", tenant_path)).await {
+            return Ok(s);
+        }
+        self.get_secret(SecretPaths::DIRECTORY).await
+    }
+
+    /// Get models config with tenant fallback to system
+    pub async fn get_models_config_for_tenant(&self, tenant: &str) -> Result<HashMap<String, String>> {
+        let tenant_path = SecretPaths::tenant_infrastructure(tenant);
+        if let Ok(s) = self.get_secret(&format!("{}/models", tenant_path)).await {
+            return Ok(s);
+        }
+        self.get_secret(SecretPaths::MODELS).await
+    }
+
     // ============ ORG BOT/USER SECRETS ============
 
     /// Get bot email credentials
@@ -546,6 +572,12 @@ impl SecretsManager {
         Ok(self.get_secret(&format!("{}/llm", path)).await.ok())
     }
 
+    /// Get bot API keys (openai, anthropic, custom)
+    pub async fn get_bot_api_keys_config(&self, org_id: &str, bot_id: &str) -> Result<Option<HashMap<String, String>>> {
+        let path = SecretPaths::org_bot(org_id, bot_id);
+        Ok(self.get_secret(&format!("{}/api-keys", path)).await.ok())
+    }
+
     /// Get user email credentials
     pub async fn get_user_email_config(&self, org_id: &str, user_id: &str) -> Result<Option<HashMap<String, String>>> {
         let path = SecretPaths::org_user(org_id, user_id);
@@ -556,6 +588,52 @@ impl SecretsManager {
     pub async fn get_user_oauth_config(&self, org_id: &str, user_id: &str, provider: &str) -> Result<Option<HashMap<String, String>>> {
         let path = SecretPaths::org_user(org_id, user_id);
         Ok(self.get_secret(&format!("{}/oauth/{}", path, provider)).await.ok())
+    }
+
+    // ============ TENANT-AWARE METHODS (org_id -> tenant -> secrets) ============
+
+    /// Get database config for an organization (resolves tenant from org, then gets infra)
+    pub async fn get_database_config_for_org(&self, conn: &mut PgConnection, org_id: Uuid) -> Result<(String, u16, String, String, String)> {
+        let tenant_id = self.get_tenant_id_for_org(conn, org_id)?;
+        self.get_database_config_for_tenant(&tenant_id).await
+    }
+
+    /// Get drive config for an organization
+    pub async fn get_drive_config_for_org(&self, conn: &mut PgConnection, org_id: Uuid) -> Result<(String, String, String, String)> {
+        let tenant_id = self.get_tenant_id_for_org(conn, org_id)?;
+        self.get_drive_config_for_tenant(&tenant_id).await
+    }
+
+    /// Get cache config for an organization
+    pub async fn get_cache_config_for_org(&self, conn: &mut PgConnection, org_id: Uuid) -> Result<(String, u16, Option<String>)> {
+        let tenant_id = self.get_tenant_id_for_org(conn, org_id)?;
+        self.get_cache_config_for_tenant(&tenant_id).await
+    }
+
+    /// Get SMTP config for an organization
+    pub async fn get_smtp_config_for_org(&self, conn: &mut PgConnection, org_id: Uuid) -> Result<HashMap<String, String>> {
+        let tenant_id = self.get_tenant_id_for_org(conn, org_id)?;
+        self.get_smtp_config_for_tenant(&tenant_id).await
+    }
+
+    /// Get LLM config for an organization
+    pub async fn get_llm_config_for_org(&self, conn: &mut PgConnection, org_id: Uuid) -> Result<HashMap<String, String>> {
+        let tenant_id = self.get_tenant_id_for_org(conn, org_id)?;
+        self.get_llm_config_for_tenant(&tenant_id).await
+    }
+
+    /// Get tenant_id for an organization from database
+    pub fn get_tenant_id_for_org(&self, conn: &mut PgConnection, org_id: Uuid) -> Result<String> {
+        use diesel::prelude::*;
+        use crate::core::shared::schema::organizations;
+
+        let result: Option<Uuid> = organizations::table
+            .filter(organizations::org_id.eq(org_id))
+            .select(organizations::tenant_id)
+            .first::<Uuid>(conn)
+            .ok();
+
+        Ok(result.map(|t| t.to_string()).unwrap_or_else(|| "default".to_string()))
     }
 }
 
