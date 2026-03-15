@@ -163,6 +163,72 @@ impl PackageManager {
         self.run_commands(post_cmds, "local", &component.name)?;
         Ok(())
     }
+    pub fn install_container_only(&self, component_name: &str) -> Result<InstallResult> {
+        let container_name = format!("{}-{}", self.tenant, component_name);
+
+        let _ = safe_lxd(&["init", "--auto"]);
+
+        let images = [
+            "ubuntu:24.04",
+            "ubuntu:22.04",
+            "images:debian/12",
+            "images:debian/11",
+        ];
+
+        let mut last_error = String::new();
+        let mut success = false;
+
+        for image in &images {
+            info!("Attempting to create container with image: {}", image);
+            let output = safe_lxc(&[
+                "launch",
+                image,
+                &container_name,
+                "-c",
+                "security.privileged=true",
+            ]);
+
+            let output = match output {
+                Some(o) => o,
+                None => continue,
+            };
+
+            if output.status.success() {
+                info!("Successfully created container with image: {}", image);
+                success = true;
+                break;
+            }
+            last_error = String::from_utf8_lossy(&output.stderr).to_string();
+            warn!("Failed to create container with {}: {}", image, last_error);
+
+            let _ = safe_lxc(&["delete", &container_name, "--force"]);
+        }
+
+        if !success {
+            return Err(anyhow::anyhow!(
+                "LXC container creation failed with all images. Last error: {}",
+                last_error
+            ));
+        }
+
+        std::thread::sleep(std::time::Duration::from_secs(15));
+
+        let container_ip = Self::get_container_ip(&container_name)?;
+
+        info!("Container '{}' created successfully at IP: {}", container_name, container_ip);
+
+        Ok(InstallResult {
+            component: component_name.to_string(),
+            container_name: container_name.clone(),
+            container_ip: container_ip.clone(),
+            ports: vec![],
+            env_vars: std::collections::HashMap::new(),
+            connection_info: format!(
+                "Container '{}' created successfully at IP: {}\nRun without --container-only to complete installation.",
+                container_name, container_ip
+            ),
+        })
+    }
     pub fn install_container(&self, component: &ComponentConfig) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component.name);
 
@@ -214,6 +280,15 @@ impl PackageManager {
         self.exec_in_container(
             &container_name,
             "mkdir -p /opt/gbo/bin /opt/gbo/data /opt/gbo/conf /opt/gbo/logs",
+        )?;
+
+        self.exec_in_container(
+            &container_name,
+            "echo 'nameserver 8.8.8.8' > /etc/resolv.conf",
+        )?;
+        self.exec_in_container(
+            &container_name,
+            "echo 'nameserver 8.8.4.4' >> /etc/resolv.conf",
         )?;
 
         self.exec_in_container(&container_name, "apt-get update -qq")?;
