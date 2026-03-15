@@ -84,3 +84,7 @@ pub mod project;
 #[cfg(feature = "dashboards")]
 pub mod dashboards;
 
+// Email integration (always available)
+pub mod email_integration;
+pub use self::email_integration::*;
+
