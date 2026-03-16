@@ -126,6 +126,8 @@ pub mod clear_kb;
 #[cfg(feature = "vectordb")]
 pub mod kb_statistics;
 #[cfg(feature = "vectordb")]
+pub mod think_kb;
+#[cfg(feature = "vectordb")]
 pub mod use_kb;
 
 // ===== DRIVE FEATURE KEYWORDS =====
@@ -265,6 +267,7 @@ pub fn get_all_keywords() -> Vec<String> {
         "SET USER MEMORY".to_string(),
         "USER FACTS".to_string(),
         "CLEAR KB".to_string(),
+        "THINK KB".to_string(),
         "USE KB".to_string(),
         "USE ACCOUNT".to_string(),
         "USE WEBSITE".to_string(),

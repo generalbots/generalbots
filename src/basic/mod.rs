@@ -97,6 +97,8 @@ use self::keywords::save_from_unstructured::save_from_unstructured_keyword;
 #[cfg(feature = "vectordb")]
 use self::keywords::clear_kb::register_clear_kb_keyword;
 #[cfg(feature = "vectordb")]
+use self::keywords::think_kb::register_think_kb_keyword;
+#[cfg(feature = "vectordb")]
 use self::keywords::use_kb::register_use_kb_keyword;
 
 // ===== DRIVE FEATURE IMPORTS =====
@@ -238,6 +240,7 @@ impl ScriptService {
         {
             let _ = register_use_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
             let _ = register_clear_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
+            let _ = register_think_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
         }
 
         // ===== DRIVE FEATURE KEYWORDS =====
