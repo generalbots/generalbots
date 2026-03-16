@@ -24,7 +24,7 @@ use crate::core::shared::state::AppState;
 use crate::basic::keywords::add_suggestion::get_suggestions;
 use axum::extract::ws::{Message, WebSocket};
 use axum::{
-    extract::{ws::WebSocketUpgrade, Extension, Query, State},
+    extract::{ws::WebSocketUpgrade, Extension, Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
 };
@@ -385,30 +385,36 @@ impl BotOrchestrator {
             return Ok(());
         }
 
-        // Ensure default tenant exists (use fixed ID for consistency)
-        let default_tenant_id = "00000000-0000-0000-0000-000000000001";
-        sql_query(format!(
+        // Ensure default tenant exists
+        sql_query(
             "INSERT INTO tenants (id, name, slug, created_at) \
-             VALUES ('{}', 'Default Tenant', 'default', NOW()) \
-             ON CONFLICT (slug) DO NOTHING",
-            default_tenant_id
-        ))
+             VALUES ('00000000-0000-0000-0000-000000000001', 'Default Tenant', 'default', NOW()) \
+             ON CONFLICT (slug) DO NOTHING"
+        )
         .execute(&mut conn)
-        .map_err(|e| format!("Failed to ensure tenant exists: {e}"))?;
+        .ok();
 
-        // Ensure default organization exists (use fixed ID for consistency)
-        let default_org_id = "00000000-0000-0000-0000-000000000001";
-        sql_query(format!(
+        // Ensure default organization exists (with default slug or use existing)
+        sql_query(
             "INSERT INTO organizations (org_id, tenant_id, name, slug, created_at) \
-             VALUES ('{}', '{}', 'Default Org', 'default', NOW()) \
-             ON CONFLICT (org_id) DO NOTHING",
-            default_org_id, default_tenant_id
-        ))
+             VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Default Organization', 'default', NOW()) \
+             ON CONFLICT (slug) DO NOTHING"
+        )
         .execute(&mut conn)
-        .map_err(|e| format!("Failed to ensure organization exists: {e}"))?;
+        .ok();
 
-        // Use hardcoded org_id for simplicity
-        let org_id = default_org_id;
+        // Get default organization by slug
+        #[derive(diesel::QueryableByName)]
+        #[diesel(check_for_backend(diesel::pg::Pg))]
+        struct OrgResult {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            org_id: uuid::Uuid,
+        }
+
+        let org_result: OrgResult = sql_query("SELECT org_id FROM organizations WHERE slug = 'default' LIMIT 1")
+            .get_result(&mut conn)
+            .map_err(|e| format!("Failed to get default organization: {e}"))?;
+        let org_id = org_result.org_id.to_string();
 
         let bot_id = Uuid::new_v4();
 
@@ -417,7 +423,7 @@ impl BotOrchestrator {
              VALUES ($1, $2::uuid, $3, 'openai', 'website', true, NOW(), NOW())"
         )
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
-        .bind::<diesel::sql_types::Text, _>(org_id)
+        .bind::<diesel::sql_types::Text, _>(org_id.clone())
         .bind::<diesel::sql_types::Text, _>(bot_name)
         .execute(&mut conn)
         .map_err(|e| format!("Failed to create bot: {e}"))?;
@@ -1145,6 +1151,7 @@ pub async fn websocket_handler(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
+    info!("websocket_handler: Received request with params: {:?}", params);
     let session_id = params
         .get("session_id")
         .and_then(|s| Uuid::parse_str(s).ok());
@@ -1159,6 +1166,8 @@ pub async fn websocket_handler(
     // Allow anonymous connections for desktop UI - create UUIDs if not provided
     let session_id = session_id.unwrap_or_else(Uuid::new_v4);
     let user_id = user_id.unwrap_or_else(Uuid::new_v4);
+
+    info!("WebSocket: session_id from params = {:?}, user_id = {:?}", session_id, user_id);
 
     // Look up bot_id from bot_name
     let bot_id = {
@@ -1189,6 +1198,19 @@ pub async fn websocket_handler(
 
     ws.on_upgrade(move |socket| handle_websocket(socket, state, session_id, user_id, bot_id))
         .into_response()
+}
+
+pub async fn websocket_handler_with_bot(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<AppState>>,
+    Path(bot_name): Path<String>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let mut params = params;
+    if !bot_name.is_empty() {
+        params.insert("bot_name".to_string(), bot_name);
+    }
+    websocket_handler(ws, State(state), Query(params)).await
 }
 
 async fn handle_websocket(
@@ -1333,16 +1355,21 @@ async fn handle_websocket(
                         tokio::spawn(async move {
                             let session_result = {
                                 let mut sm = state_for_start.session_manager.lock().await;
-                                sm.get_session_by_id(session_id)
+                                let by_id = sm.get_session_by_id(session_id);
+                                match by_id {
+                                    Ok(Some(s)) => Ok(Some(s)),
+                                    _ => sm.get_or_create_user_session(user_id, bot_id, "Chat Session"),
+                                }
                             };
 
                             if let Ok(Some(session)) = session_result {
-                                info!("Executing start.bas for bot {} on session {}", bot_name, session_id);
+                                info!("start.bas: Found session {} for websocket session {}", session.id, session_id);
 
                                 // Clone state_for_start for use in Redis SET after execution
                                 let state_for_redis = state_for_start.clone();
 
                                 let result = tokio::task::spawn_blocking(move || {
+                                    info!("start.bas: Creating ScriptService with session.id={}", session.id);
                                     let mut script_service = crate::basic::ScriptService::new(
                                         state_for_start.clone(),
                                         session.clone()
