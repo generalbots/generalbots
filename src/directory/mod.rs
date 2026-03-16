@@ -48,10 +48,13 @@ pub async fn auth_handler(
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     let bot_name = params.get("bot_name").cloned().unwrap_or_default();
+    let existing_user_id = params
+        .get("user_id")
+        .and_then(|s| Uuid::parse_str(s).ok());
 
     let user_id = {
         let mut sm = state.session_manager.lock().await;
-        match sm.get_or_create_anonymous_user(None) {
+        match sm.get_or_create_anonymous_user(existing_user_id) {
             Ok(id) => id,
             Err(e) => {
                 error!("Failed to create anonymous user: {}", e);
