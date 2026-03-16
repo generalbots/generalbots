@@ -1,7 +1,7 @@
 use crate::core::shared::message_types::MessageType;
 use crate::core::shared::models::{BotResponse, UserSession};
 use crate::core::shared::state::AppState;
-use log::{error, trace};
+use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 
@@ -12,11 +12,13 @@ pub async fn execute_talk(
     user_session: UserSession,
     message: String,
 ) -> Result<BotResponse, Box<dyn std::error::Error + Send + Sync>> {
+    info!("TALK called with message: {}", message);
     let mut suggestions = Vec::new();
 
     if let Some(redis_client) = &state.cache {
         if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await {
             let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
+            info!("TALK: Fetching suggestions from Redis key: {}", redis_key);
 
             let suggestions_json: Result<Vec<String>, _> = redis::cmd("LRANGE")
                 .arg(redis_key.as_str())
@@ -26,12 +28,17 @@ pub async fn execute_talk(
                 .await;
 
             if let Ok(suggestions_list) = suggestions_json {
+                info!("TALK: Got {} suggestions from Redis", suggestions_list.len());
                 suggestions = suggestions_list
                     .into_iter()
                     .filter_map(|s| serde_json::from_str(&s).ok())
                     .collect();
+            } else {
+                info!("TALK: No suggestions found in Redis");
             }
         }
+    } else {
+        info!("TALK: No cache configured");
     }
 
     let channel = user_session
