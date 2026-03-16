@@ -525,6 +525,114 @@ impl PackageManager {
         Ok(())
     }
 
+    pub fn generate_env_from_vault(container_name: &str) -> Result<String> {
+        let container_ip = Self::get_container_ip(container_name)?;
+
+        info!("Generating .env from vault at {}", container_ip);
+
+        let output = safe_lxc(&[
+            "exec",
+            container_name,
+            "--",
+            "bash",
+            "-c",
+            "cat /opt/gbo/data/core/raft/raft_state 2>/dev/null || echo 'not_initialized'",
+        ]);
+
+        let initialized = match output {
+            Some(o) => o.status.success(),
+            None => false,
+        };
+
+        if !initialized {
+            return Err(anyhow::anyhow!(
+                "Vault in container {} is not initialized. Please initialize it first with: \
+                lxc exec {} -- /opt/gbo/bin/vault operator init -key-shares=1 -key-threshold=1",
+                container_name, container_name
+            ));
+        }
+
+        let unseal_output = safe_lxc(&[
+            "exec",
+            container_name,
+            "--",
+            "bash",
+            "-c",
+            "VAULT_ADDR=http://127.0.0.1:8200 vault status -format=json",
+        ]);
+
+        let sealed = match unseal_output {
+            Some(o) if o.status.success() => {
+                let status: serde_json::Value = serde_json::from_str(
+                    &String::from_utf8_lossy(&o.stdout)
+                ).unwrap_or_default();
+                status["sealed"].as_bool().unwrap_or(true)
+            }
+            _ => true,
+        };
+
+        if sealed {
+            return Err(anyhow::anyhow!(
+                "Vault in container {} is sealed. Please unseal it first with: \
+                lxc exec {} -- /opt/gbo/bin/vault operator unseal <key>",
+                container_name, container_name
+            ));
+        }
+
+        let token_output = safe_lxc(&[
+            "exec",
+            container_name,
+            "--",
+            "bash",
+            "-c",
+            "cat /root/.vault-token 2>/dev/null || echo ''",
+        ]);
+
+        let root_token = match token_output {
+            Some(o) => String::from_utf8_lossy(&o.stdout).trim().to_string(),
+            None => String::new(),
+        };
+
+        if root_token.is_empty() {
+            return Err(anyhow::anyhow!(
+                "Could not find root token in vault container. Please ensure vault is properly initialized."
+            ));
+        }
+
+        let env_content = format!(
+            "# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\n",
+            container_ip, root_token
+        );
+
+        let env_file = PathBuf::from(".env");
+        if env_file.exists() {
+            let existing = std::fs::read_to_string(&env_file)?;
+
+            if existing.contains("VAULT_ADDR=") {
+                info!(".env already contains VAULT_ADDR, updating...");
+                let updated: String = existing
+                    .lines()
+                    .filter(|line| !line.starts_with("VAULT_ADDR=") && !line.starts_with("VAULT_TOKEN="))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                std::fs::write(&env_file, format!("{}\n{}", updated.trim(), env_content))?;
+            } else {
+                let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
+                use std::io::Write;
+                file.write_all(env_content.as_bytes())?;
+            }
+        } else {
+            std::fs::write(&env_file, env_content.trim_start())?;
+        }
+
+        info!("Generated .env with Vault config from container {}", container_name);
+
+        Ok(format!(
+            "VAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}",
+            container_ip, root_token
+        ))
+    }
+
     fn generate_connection_info(
         &self,
         component: &str,

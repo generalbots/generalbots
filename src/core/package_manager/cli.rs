@@ -121,6 +121,25 @@ pub async fn run() -> Result<()> {
                 }
             }
         }
+        "setup-env" => {
+            let vault_container = args.get(2).map(|s| s.as_str()).unwrap_or("vault");
+            let container_name = vault_container.to_string();
+
+            println!("* Generating .env from vault container: {}", container_name);
+
+            match PackageManager::generate_env_from_vault(&container_name) {
+                Ok(env_vars) => {
+                    println!("* Successfully generated .env from vault");
+                    println!("\nGenerated configuration:");
+                    println!("{}", env_vars);
+                    println!("\nYou can now start botserver with: botserver start");
+                }
+                Err(e) => {
+                    eprintln!("x Failed to generate .env: {}", e);
+                    return Err(anyhow::anyhow!("Setup env failed: {}", e));
+                }
+            }
+        }
         "remove" => {
             if args.len() < 3 {
                 eprintln!("Usage: botserver remove <component> [--container] [--tenant <name>]");
@@ -289,6 +308,7 @@ fn print_usage() {
     println!("  start                Start all installed components");
     println!("  stop                 Stop all components");
     println!("  restart              Restart all components");
+    println!("  setup-env            Generate .env from running vault container");
     println!("  vault <subcommand>   Manage Vault secrets");
     println!("  rotate-secret <comp> Rotate a component's credentials");
     println!("                      (tables, drive, cache, email, directory, encryption, jwt)");
@@ -299,6 +319,7 @@ fn print_usage() {
     println!();
     println!("Options:");
     println!("  --container          Use container mode (LXC)");
+    println!("  --container-only     Create container only, don't complete installation");
     println!("  --tenant <name>      Specify tenant name");
     println!();
     println!("Security Protection (requires root):");
