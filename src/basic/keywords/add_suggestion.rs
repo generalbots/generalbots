@@ -311,8 +311,13 @@ fn add_tool_suggestion(
     params: Option<Vec<String>>,
     button_text: &str,
 ) -> Result<(), Box<rhai::EvalAltResult>> {
+    info!(
+        "ADD_SUGGESTION_TOOL called: tool={}, button={}",
+        tool_name, button_text
+    );
     if let Some(cache_client) = cache {
         let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
+        info!("Adding suggestion to Redis key: {}", redis_key);
 
         // Create action object and serialize it to JSON string
         let action_obj = json!({
@@ -345,9 +350,7 @@ fn add_tool_suggestion(
             Ok(length) => {
                 info!(
                     "Added tool suggestion '{}' to session {}, total: {}",
-                    tool_name,
-                    user_session.id,
-                    length
+                    tool_name, user_session.id, length
                 );
             }
             Err(e) => error!("Failed to add tool suggestion to Redis: {}", e),
@@ -394,8 +397,13 @@ pub fn get_suggestions(
                         let suggestion = crate::core::shared::models::Suggestion {
                             text: json["text"].as_str().unwrap_or("").to_string(),
                             context: json["context"].as_str().map(|s| s.to_string()),
-                            action: json.get("action").and_then(|v| serde_json::to_string(v).ok()),
-                            icon: json.get("icon").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                            action: json
+                                .get("action")
+                                .and_then(|v| serde_json::to_string(v).ok()),
+                            icon: json
+                                .get("icon")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string()),
                         };
                         suggestions.push(suggestion);
                     }
