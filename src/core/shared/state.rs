@@ -376,6 +376,8 @@ pub struct AppState {
     pub auth_service: Arc<tokio::sync::Mutex<AuthService>>,
     pub channels: Arc<tokio::sync::Mutex<HashMap<String, Arc<dyn ChannelAdapter>>>>,
     pub response_channels: Arc<tokio::sync::Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
+    /// Blocking channels for HEAR: session_id → sender. Rhai thread blocks on receiver.
+    pub hear_channels: Arc<std::sync::Mutex<HashMap<uuid::Uuid, std::sync::mpsc::SyncSender<String>>>>,
     pub web_adapter: Arc<WebChannelAdapter>,
     pub voice_adapter: Arc<VoiceAdapter>,
     #[cfg(any(feature = "research", feature = "llm"))]
@@ -636,6 +638,7 @@ impl Default for AppState {
             auth_service: Arc::new(tokio::sync::Mutex::new(create_mock_auth_service())),
             channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            hear_channels: Arc::new(std::sync::Mutex::new(HashMap::new())),
             web_adapter: Arc::new(WebChannelAdapter::new()),
             voice_adapter: Arc::new(VoiceAdapter::new()),
             #[cfg(any(feature = "research", feature = "llm"))]

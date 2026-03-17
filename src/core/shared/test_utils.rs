@@ -216,6 +216,7 @@ impl TestAppStateBuilder {
             auth_service: Arc::new(tokio::sync::Mutex::new(create_mock_auth_service())),
             channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            hear_channels: Arc::new(std::sync::Mutex::new(HashMap::new())),
             web_adapter: Arc::new(WebChannelAdapter::new()),
             voice_adapter: Arc::new(VoiceAdapter::new()),
             #[cfg(any(feature = "research", feature = "llm"))]
