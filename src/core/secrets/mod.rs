@@ -198,15 +198,6 @@ impl SecretsManager {
     }
 
     pub fn get_value_blocking(&self, path: &str, key: &str, default: &str) -> String {
-        // Try to get synchronously using blocking call
-        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
-            if let Ok(secrets) = runtime.block_on(self.get_secret(path)) {
-                if let Some(value) = secrets.get(key) {
-                    return value.clone();
-                }
-            }
-        }
-        // Fallback to env defaults
         if let Ok(secrets) = Self::get_from_env(path) {
             if let Some(value) = secrets.get(key) {
                 return value.clone();
@@ -216,32 +207,26 @@ impl SecretsManager {
     }
 
     pub fn get_drive_config(&self) -> (String, String, String) {
-        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
-            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::DRIVE)) {
-                return (
-                    secrets.get("host").cloned().unwrap_or_else(|| "localhost:9100".into()),
-                    secrets.get("accesskey").cloned().unwrap_or_else(|| "minioadmin".into()),
-                    secrets.get("secret").cloned().unwrap_or_else(|| "minioadmin".into()),
-                );
-            }
+        if let Ok(secrets) = Self::get_from_env(SecretPaths::DRIVE) {
+            return (
+                secrets.get("host").cloned().unwrap_or_else(|| "localhost:9100".to_string()),
+                secrets.get("accesskey").cloned().unwrap_or_else(|| "minioadmin".to_string()),
+                secrets.get("secret").cloned().unwrap_or_else(|| "minioadmin".to_string()),
+            );
         }
-        // Fallback
         ("localhost:9100".to_string(), "minioadmin".to_string(), "minioadmin".to_string())
     }
 
     pub fn get_database_config_sync(&self) -> (String, u16, String, String, String) {
-        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
-            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::TABLES)) {
-                return (
-                    secrets.get("host").cloned().unwrap_or_else(|| "localhost".into()),
-                    secrets.get("port").and_then(|p| p.parse().ok()).unwrap_or(5432),
-                    secrets.get("database").cloned().unwrap_or_else(|| "botserver".into()),
-                    secrets.get("username").cloned().unwrap_or_else(|| "gbuser".into()),
-                    secrets.get("password").cloned().unwrap_or_default(),
-                );
-            }
+        if let Ok(secrets) = Self::get_from_env(SecretPaths::TABLES) {
+            return (
+                secrets.get("host").cloned().unwrap_or_else(|| "localhost".to_string()),
+                secrets.get("port").and_then(|p| p.parse().ok()).unwrap_or(5432),
+                secrets.get("database").cloned().unwrap_or_else(|| "botserver".to_string()),
+                secrets.get("username").cloned().unwrap_or_else(|| "gbuser".to_string()),
+                secrets.get("password").cloned().unwrap_or_default(),
+            );
         }
-        // Fallback
         ("localhost".to_string(), 5432, "botserver".to_string(), "gbuser".to_string(), "changeme".to_string())
     }
 
