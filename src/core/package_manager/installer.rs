@@ -255,7 +255,7 @@ impl PackageManager {
                     ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9100 --console-address :9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
                 check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
             },
         );
@@ -338,7 +338,7 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --bind 127.0.0.1 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
                 check_cmd: "{{BIN_PATH}}/bin/valkey-cli ping 2>/dev/null | grep -q PONG".to_string(),
             },
         );
