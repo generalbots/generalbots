@@ -15,6 +15,9 @@ use crate::core::shared::schema::{
 use crate::core::shared::state::AppState;
 use crate::marketing::campaigns::CrmCampaign;
 
+type RecipientTimestamps = (Option<DateTime<Utc>>, Option<DateTime<Utc>>, Option<DateTime<Utc>>);
+type EmailTimestamps = (Option<DateTime<Utc>>, Option<DateTime<Utc>>);
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CampaignMetrics {
     pub campaign_id: Uuid,
@@ -251,7 +254,7 @@ pub async fn get_time_series_metrics(
 ) -> Result<Vec<TimeSeriesMetric>, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-    let recipients: Vec<(Option<DateTime<Utc>>, Option<DateTime<Utc>>, Option<DateTime<Utc>>)> =
+    let recipients: Vec<RecipientTimestamps> =
         marketing_recipients::table
             .filter(marketing_recipients::campaign_id.eq(campaign_id))
             .select((
@@ -281,7 +284,7 @@ pub async fn get_time_series_metrics(
         }
     }
 
-    let email_events: Vec<(Option<DateTime<Utc>>, Option<DateTime<Utc>>)> =
+    let email_events: Vec<EmailTimestamps> =
         email_tracking::table
             .filter(email_tracking::campaign_id.eq(campaign_id))
             .select((email_tracking::opened_at, email_tracking::clicked_at))

@@ -12,6 +12,7 @@ use tokio::sync::RwLock;
 use tracing::warn;
 
 use super::manager::{ProtectionConfig, ProtectionManager, ProtectionTool, ScanResult, ToolStatus};
+use super::security_fix::{run_security_fix, run_security_status, SecurityFixReport};
 use crate::core::shared::state::AppState;
 
 static PROTECTION_MANAGER: OnceLock<Arc<RwLock<ProtectionManager>>> = OnceLock::new();
@@ -71,6 +72,8 @@ struct ActionResponse {
 pub fn configure_protection_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/security/protection/status", get(get_all_status))
+        .route("/api/security/fix", post(security_fix_handler))
+        .route("/api/security/fix/status", get(security_fix_status_handler))
         .route(
             "/api/security/protection/:tool/status",
             get(get_tool_status),
@@ -379,6 +382,22 @@ async fn remove_from_quarantine(
             ))
         }
     }
+}
+
+async fn security_fix_handler(
+) -> Result<Json<ApiResponse<SecurityFixReport>>, (StatusCode, Json<ApiResponse<()>>)> {
+    let report = run_security_fix().await;
+    if report.success {
+        Ok(Json(ApiResponse::success(report)))
+    } else {
+        // Still return 200 with partial results so caller can inspect each step
+        Ok(Json(ApiResponse::success(report)))
+    }
+}
+
+async fn security_fix_status_handler(
+) -> Result<Json<ApiResponse<SecurityFixReport>>, (StatusCode, Json<ApiResponse<()>>)> {
+    Ok(Json(ApiResponse::success(run_security_status().await)))
 }
 
 #[cfg(test)]
