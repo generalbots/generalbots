@@ -26,6 +26,37 @@ port     = pop3,pop3s,imap,imaps,submission,465,sieve
 logpath  = %(dovecot_log)s
 "#;
 
+/// jail.local for the proxy container (Caddy) — no sshd, only HTTP flood
+const PROXY_JAIL_LOCAL: &str = r#"[DEFAULT]
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+
+[caddy-http-flood]
+enabled   = true
+filter    = caddy
+logpath   = /opt/gbo/logs/access.log
+maxretry  = 100
+findtime  = 60s
+bantime   = 1h
+action    = iptables-multiport[name=caddy, port="80,443", protocol=tcp]
+"#;
+
+/// Disable the debian default sshd jail (proxy has no sshd)
+const PROXY_DEFAULTS_DEBIAN: &str = r#"[sshd]
+enabled = false
+"#;
+
+/// fail2ban filter for Caddy JSON access log
+const CADDY_FILTER: &str = r#"[Definition]
+failregex = ^.*"remote_ip":"<HOST>".*"status":4[0-9][0-9].*$
+            ^.*"client_ip":"<HOST>".*"status":4[0-9][0-9].*$
+ignoreregex =
+datepattern = {"ts":\s*%%s
+"#;
+
+const PROXY_CONTAINER: &str = "pragmatismo-proxy";
+
 pub struct Fail2banManager;
 
 impl Fail2banManager {
@@ -38,6 +69,68 @@ impl Fail2banManager {
         Self::restart_service(&mut log).await?;
 
         Ok(log)
+    }
+
+    /// Install and configure fail2ban in the proxy (Caddy) LXC container.
+    pub async fn apply_proxy() -> Result<String> {
+        let mut log = String::new();
+
+        // Install fail2ban inside the proxy container
+        Self::lxc_exec(PROXY_CONTAINER, &["apt-get", "install", "-y", "--fix-missing", "fail2ban"])
+            .await
+            .context("failed to install fail2ban in proxy container")?;
+
+        // Write caddy filter
+        std::fs::write("/tmp/gb-caddy-filter.conf", CADDY_FILTER)
+            .context("failed to write caddy filter to /tmp")?;
+        SafeCommand::new("lxc")?
+            .arg("file")?
+            .arg("push")?
+            .arg("/tmp/gb-caddy-filter.conf")?
+            .arg(&format!("{PROXY_CONTAINER}/etc/fail2ban/filter.d/caddy.conf"))?
+            .execute()
+            .context("lxc file push caddy filter failed")?;
+
+        // Disable default sshd jail (no sshd in proxy)
+        std::fs::write("/tmp/gb-proxy-defaults.conf", PROXY_DEFAULTS_DEBIAN)
+            .context("failed to write proxy defaults to /tmp")?;
+        SafeCommand::new("lxc")?
+            .arg("file")?
+            .arg("push")?
+            .arg("/tmp/gb-proxy-defaults.conf")?
+            .arg(&format!("{PROXY_CONTAINER}/etc/fail2ban/jail.d/defaults-debian.conf"))?
+            .execute()
+            .context("lxc file push proxy defaults failed")?;
+
+        // Write proxy jail.local
+        std::fs::write("/tmp/gb-proxy-jail.local", PROXY_JAIL_LOCAL)
+            .context("failed to write proxy jail.local to /tmp")?;
+        SafeCommand::new("lxc")?
+            .arg("file")?
+            .arg("push")?
+            .arg("/tmp/gb-proxy-jail.local")?
+            .arg(&format!("{PROXY_CONTAINER}/etc/fail2ban/jail.local"))?
+            .execute()
+            .context("lxc file push proxy jail.local failed")?;
+
+        // Enable and restart
+        Self::lxc_exec(PROXY_CONTAINER, &["systemctl", "enable", "--now", "fail2ban"]).await?;
+        Self::lxc_exec(PROXY_CONTAINER, &["systemctl", "restart", "fail2ban"]).await?;
+
+        log.push_str("fail2ban configured in proxy container (caddy-http-flood jail)\n");
+        info!("fail2ban proxy jail applied");
+        Ok(log)
+    }
+
+    async fn lxc_exec(container: &str, cmd: &[&str]) -> Result<std::process::Output> {
+        let mut c = SafeCommand::new("lxc")?
+            .arg("exec")?
+            .arg(container)?
+            .arg("--")?;
+        for arg in cmd {
+            c = c.arg(arg)?;
+        }
+        c.execute().context("lxc exec failed")
     }
 
     pub async fn status() -> Result<String> {
