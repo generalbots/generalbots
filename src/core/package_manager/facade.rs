@@ -409,27 +409,52 @@ impl PackageManager {
     }
 
     fn assign_static_ip(container_name: &str) -> Result<String> {
-        // Pick a deterministic IP from the last 2 bytes of the MAC address to avoid collisions.
+        // Discover the host bridge gateway and subnet dynamically from the container's default route.
+        // The container already has IPv6 + a link on eth0, so we can read the bridge from the host.
+        let bridge_info = std::process::Command::new("ip")
+            .args(["-4", "addr", "show", "lxdbr0"])
+            .output()
+            .ok()
+            .and_then(|o| {
+                let out = String::from_utf8_lossy(&o.stdout).to_string();
+                // Extract "10.x.x.x/prefix" from "inet 10.x.x.x/24 ..."
+                out.lines()
+                    .find(|l| l.contains("inet "))
+                    .and_then(|l| l.split_whitespace().nth(1))
+                    .map(|s| s.to_string())
+            });
+
+        let (gateway, prefix) = match bridge_info.as_deref().and_then(|cidr| {
+            let (ip, pfx_str) = cidr.split_once('/')?;
+            let parts: Vec<&str> = ip.split('.').collect();
+            let base = format!("{}.{}.{}.", parts[0], parts[1], parts[2]);
+            let pfx = pfx_str.parse::<u8>().ok()?;
+            Some((ip.to_string(), format!("{base}{{octet}}/{pfx}")))
+        }) {
+            Some(pair) => pair,
+            None => return Err(anyhow::anyhow!("Cannot determine lxdbr0 subnet")),
+        };
+
+        // Derive last octet from MAC to avoid collisions (range 100-249).
         let mac_out = safe_lxc(&["exec", container_name, "--", "cat", "/sys/class/net/eth0/address"]);
-        let last_octet = mac_out
+        let octet = mac_out
             .and_then(|o| o.status.success().then(|| String::from_utf8_lossy(&o.stdout).trim().to_string()))
             .and_then(|mac| {
                 let parts: Vec<&str> = mac.split(':').collect();
                 let a = u8::from_str_radix(parts.get(4)?, 16).ok()?;
                 let b = u8::from_str_radix(parts.get(5)?, 16).ok()?;
-                // Map into 100-250 range to avoid gateway (.1) and broadcast (.255)
-                Some(100u16 + ((u16::from(a) * 256 + u16::from(b)) % 150) as u16)
+                Some(100u16 + (u16::from(a) * 256 + u16::from(b)) % 150)
             })
             .unwrap_or(100);
 
-        let ip = format!("10.43.228.{last_octet}");
-        let cidr = format!("{ip}/24");
+        let cidr = prefix.replace("{octet}", &octet.to_string());
+        let ip = cidr.split('/').next().unwrap_or("").to_string();
 
         safe_lxc(&["exec", container_name, "--", "ip", "addr", "add", &cidr, "dev", "eth0"]);
-        safe_lxc(&["exec", container_name, "--", "ip", "route", "add", "default", "via", "10.43.228.1"]);
+        safe_lxc(&["exec", container_name, "--", "ip", "route", "add", "default", "via", &gateway]);
         safe_lxc(&["exec", container_name, "--", "bash", "-c",
             &format!("printf 'nameserver 8.8.8.8\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf && \
-                      printf '#!/bin/sh\\nip addr add {cidr} dev eth0 2>/dev/null||true\\nip route add default via 10.43.228.1 2>/dev/null||true\\nexit 0\\n' > /etc/rc.local && \
+                      printf '#!/bin/sh\\nip addr add {cidr} dev eth0 2>/dev/null||true\\nip route add default via {gateway} 2>/dev/null||true\\nexit 0\\n' > /etc/rc.local && \
                       chmod +x /etc/rc.local && systemctl enable rc-local 2>/dev/null||true")]);
 
         info!("Assigned static IP {} to container '{}'", ip, container_name);

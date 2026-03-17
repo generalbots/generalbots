@@ -14,3 +14,4 @@ docs/book
 *.rdb
 botserver-installers
 .git-rewrite
+vault-unseal-keys
