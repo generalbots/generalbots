@@ -377,43 +377,63 @@ impl PackageManager {
     }
 
     fn get_container_ip(container_name: &str) -> Result<String> {
-        std::thread::sleep(std::time::Duration::from_secs(2));
+        // Poll up to 30s for DHCP to assign an IPv4
+        for _ in 0..15 {
+            std::thread::sleep(std::time::Duration::from_secs(2));
 
-        let output = safe_lxc(&["list", container_name, "-c", "4", "--format", "csv"]);
+            if let Some(o) = safe_lxc(&["list", container_name, "-c", "4", "--format", "csv"]) {
+                if o.status.success() {
+                    let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                    let ip = out.split([' ', '(']).next().unwrap_or("").trim();
+                    if !ip.is_empty() && ip.contains('.') {
+                        return Ok(ip.to_string());
+                    }
+                }
+            }
 
-        let output = match output {
-            Some(o) => o,
-            None => return Ok("unknown".to_string()),
-        };
-
-        if output.status.success() {
-            let ip_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
-
-            if !ip_output.is_empty() {
-                let ip = ip_output.split([' ', '(']).next().unwrap_or("").trim();
-                if !ip.is_empty() && ip.contains('.') {
-                    return Ok(ip.to_string());
+            if let Some(o) = safe_lxc(&["exec", container_name, "--", "hostname", "-I"]) {
+                if o.status.success() {
+                    let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                    if let Some(ip) = out.split_whitespace().find(|s| s.contains('.')) {
+                        return Ok(ip.to_string());
+                    }
                 }
             }
         }
 
-        let output = safe_lxc(&["exec", container_name, "--", "hostname", "-I"]);
+        // DHCP failed (common in privileged containers where systemd-networkd can't run).
+        // Assign a static IP on the lxdbr0 bridge (10.43.228.0/24).
+        warn!("DHCP timeout for '{}', assigning static IP via lxdbr0", container_name);
+        let static_ip = Self::assign_static_ip(container_name)?;
+        Ok(static_ip)
+    }
 
-        let output = match output {
-            Some(o) => o,
-            None => return Ok("unknown".to_string()),
-        };
+    fn assign_static_ip(container_name: &str) -> Result<String> {
+        // Pick a deterministic IP from the last 2 bytes of the MAC address to avoid collisions.
+        let mac_out = safe_lxc(&["exec", container_name, "--", "cat", "/sys/class/net/eth0/address"]);
+        let last_octet = mac_out
+            .and_then(|o| o.status.success().then(|| String::from_utf8_lossy(&o.stdout).trim().to_string()))
+            .and_then(|mac| {
+                let parts: Vec<&str> = mac.split(':').collect();
+                let a = u8::from_str_radix(parts.get(4)?, 16).ok()?;
+                let b = u8::from_str_radix(parts.get(5)?, 16).ok()?;
+                // Map into 100-250 range to avoid gateway (.1) and broadcast (.255)
+                Some(100u16 + ((u16::from(a) * 256 + u16::from(b)) % 150) as u16)
+            })
+            .unwrap_or(100);
 
-        if output.status.success() {
-            let ip_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if let Some(ip) = ip_output.split_whitespace().next() {
-                if ip.contains('.') {
-                    return Ok(ip.to_string());
-                }
-            }
-        }
+        let ip = format!("10.43.228.{last_octet}");
+        let cidr = format!("{ip}/24");
 
-        Ok("unknown".to_string())
+        safe_lxc(&["exec", container_name, "--", "ip", "addr", "add", &cidr, "dev", "eth0"]);
+        safe_lxc(&["exec", container_name, "--", "ip", "route", "add", "default", "via", "10.43.228.1"]);
+        safe_lxc(&["exec", container_name, "--", "bash", "-c",
+            &format!("printf 'nameserver 8.8.8.8\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf && \
+                      printf '#!/bin/sh\\nip addr add {cidr} dev eth0 2>/dev/null||true\\nip route add default via 10.43.228.1 2>/dev/null||true\\nexit 0\\n' > /etc/rc.local && \
+                      chmod +x /etc/rc.local && systemctl enable rc-local 2>/dev/null||true")]);
+
+        info!("Assigned static IP {} to container '{}'", ip, container_name);
+        Ok(ip)
     }
 
     fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
