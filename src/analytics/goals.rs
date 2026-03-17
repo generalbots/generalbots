@@ -112,6 +112,7 @@ pub struct Objective {
     pub id: Uuid,
     pub organization_id: Uuid,
     pub owner_id: Uuid,
+    pub owner_name: Option<String>,
     pub parent_id: Option<Uuid>,
     pub title: String,
     pub description: String,
@@ -402,6 +403,7 @@ pub struct CreateObjectiveRequest {
     pub parent_id: Option<Uuid>,
     pub visibility: Option<Visibility>,
     pub tags: Option<Vec<String>>,
+    pub owner_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -465,6 +467,7 @@ fn record_to_objective(record: ObjectiveRecord) -> Objective {
         id: record.id,
         organization_id: record.org_id,
         owner_id: record.owner_id,
+        owner_name: None,
         parent_id: record.parent_id,
         title: record.title,
         description: record.description.unwrap_or_default(),
@@ -589,11 +592,13 @@ pub async fn list_objectives(
 
 pub async fn create_objective(
     State(state): State<Arc<AppState>>,
+    user: crate::security::auth::AuthenticatedUser,
     Json(req): Json<CreateObjectiveRequest>,
 ) -> Result<Json<Objective>, GoalsError> {
     let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
-    let owner_id = Uuid::nil();
+    let owner_id = req.owner_id.unwrap_or(user.user_id);
+    let owner_name = Some(user.username.clone());
     let now = Utc::now();
 
     let tags: Vec<Option<String>> = req.tags.unwrap_or_default().into_iter().map(Some).collect();
@@ -632,7 +637,9 @@ pub async fn create_objective(
     .map_err(|e| GoalsError::Database(e.to_string()))??;
 
     info!("Created objective: {} ({})", record.title, record.id);
-    Ok(Json(record_to_objective(record)))
+    let mut obj = record_to_objective(record);
+    obj.owner_name = owner_name;
+    Ok(Json(obj))
 }
 
 pub async fn get_objective(
@@ -760,12 +767,13 @@ pub async fn list_key_results(
 
 pub async fn create_key_result(
     State(state): State<Arc<AppState>>,
+    user: crate::security::auth::AuthenticatedUser,
     Path(objective_id): Path<Uuid>,
     Json(req): Json<CreateKeyResultRequest>,
 ) -> Result<Json<KeyResult>, GoalsError> {
     let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
-    let owner_id = Uuid::nil();
+    let owner_id = user.user_id;
     let now = Utc::now();
 
     let start_value = req.start_value.unwrap_or(0.0);
@@ -889,12 +897,13 @@ pub async fn delete_key_result(
 
 pub async fn create_check_in(
     State(state): State<Arc<AppState>>,
+    user: crate::security::auth::AuthenticatedUser,
     Path(key_result_id): Path<Uuid>,
     Json(req): Json<CreateCheckInRequest>,
 ) -> Result<Json<CheckIn>, GoalsError> {
     let pool = state.conn.clone();
     let (org_id, bot_id) = get_bot_context();
-    let user_id = Uuid::nil();
+    let user_id = user.user_id;
     let now = Utc::now();
 
     let pool_clone = pool.clone();

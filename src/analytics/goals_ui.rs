@@ -288,8 +288,32 @@ pub async fn dashboard_stats(State(state): State<Arc<AppState>>) -> Html<String>
     }
 }
 
-pub async fn new_objective_form() -> Html<String> {
-    Html(r##"<div class="modal-header">
+pub async fn new_objective_form(
+    State(state): State<Arc<AppState>>,
+) -> Html<String> {
+    use crate::core::shared::models::schema::users;
+    use diesel::prelude::*;
+
+    let pool = state.conn.clone();
+    let users_list = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().ok()?;
+        users::table
+            .select((users::id, users::username))
+            .order(users::username.asc())
+            .load::<(uuid::Uuid, String)>(&mut conn)
+            .ok()
+    })
+    .await
+    .ok()
+    .flatten()
+    .unwrap_or_default();
+
+    let owner_options: String = users_list
+        .iter()
+        .map(|(id, name)| format!(r#"<option value="{id}">{name}</option>"#))
+        .collect();
+
+    Html(format!(r##"<div class="modal-header">
         <h3>New Objective</h3>
         <button class="btn-close" onclick="closeModal()">&times;</button>
     </div>
@@ -301,6 +325,13 @@ pub async fn new_objective_form() -> Html<String> {
         <div class="form-group">
             <label>Description</label>
             <textarea name="description" rows="3" placeholder="Describe the objective in detail"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Owner</label>
+            <select name="owner_id">
+                <option value="">Assign to me (default)</option>
+                {owner_options}
+            </select>
         </div>
         <div class="form-group">
             <label>Period</label>
@@ -336,7 +367,7 @@ pub async fn new_objective_form() -> Html<String> {
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
             <button type="submit" class="btn btn-primary">Create Objective</button>
         </div>
-    </form>"##.to_string())
+    </form>"##))
 }
 
 pub async fn recent_checkins(State(state): State<Arc<AppState>>) -> Html<String> {
