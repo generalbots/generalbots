@@ -169,7 +169,55 @@ basic/
 
 ---
 
-## Open Source Alternatives Considered
+## Keyword Compatibility
+
+### Category A — Workflow steps (implement as `Step` variants)
+`TALK`, `HEAR`, `SET`, `IF/ELSE/END IF`, `SEND MAIL`, `SEND TEMPLATE`, `SCHEDULE`,
+`SAVE`/`INSERT`/`UPDATE`, `GET`, `FIND`, `SEARCH`, `USE KB`, `USE TOOL`, `REMEMBER`,
+`HTTP GET/POST/PUT/DELETE`, `WAIT`, `TRANSFER TO HUMAN`, `CREATE TASK`, `BOOK`, `SCORE LEAD`
+
+### Category B — Pure expressions (Rhai as calculator, no step boundary)
+`math/*`, `datetime/*`, `string_functions`, `arrays/*`, `core_functions`, `validation/*`, `FORMAT`
+→ Stored as expression strings in Step, evaluated at runtime via `engine.eval_expression_with_scope()`
+
+### Category C — Rhai-only (scripts using these stay in Rhai mode, no `#workflow`)
+`code_sandbox`, `use_website`, `face_api`, `on_change`, `on_email`, `webhook`,
+`procedures` (FUNCTION/SUB/CALL), `for_next` (FOR EACH loops), `switch_case`, `events`, `orchestration`
+
+A script with any Category C keyword cannot use `#workflow`. The compiler detects this and errors early.
+
+---
+
+## How Compilation Works Without Rhai
+
+Workflow compiler is a **line-by-line parser**, not a Rhai AST walk:
+
+```
+Input line              → Step variant
+─────────────────────────────────────────────────────
+TALK "Hello ${name}"   → Step::Talk { template }
+HEAR description        → Step::Hear { var, input_type }
+SET x = score + 1       → Step::Set  { var, expr: "score + 1" }
+IF score > 10 THEN      → Step::If   { cond: "score > 10", then_steps, else_steps }
+SEND MAIL to, s, b      → Step::SendMail { to, subject, body }
+USE TOOL path           → Step::UseTool { path, args }
+```
+
+Expressions (`score + 1`, `score > 10`) are stored as **raw strings** in the Step struct.
+At runtime, Rhai evaluates them as pure expressions — no custom syntax, no side effects:
+
+```rust
+let mut engine = Engine::new(); // no register_custom_syntax calls
+let mut scope = Scope::new();
+for (k, v) in &variables { scope.push_dynamic(k, v.clone()); }
+let result = engine.eval_expression_with_scope::<Dynamic>(&mut scope, expr)?;
+```
+
+Rhai remains a dependency but is used only as a math/string expression evaluator (~5 lines of code at runtime). All custom keyword machinery is bypassed entirely.
+
+---
+
+
 
 | Engine | Lang | Latency | RAM | Rust SDK | Verdict |
 |--------|------|---------|-----|----------|---------|
