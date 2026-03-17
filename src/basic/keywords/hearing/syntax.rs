@@ -1,5 +1,6 @@
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
+use diesel::prelude::*;
 use log::trace;
 use rhai::{Dynamic, Engine, EvalAltResult};
 use serde_json::json;
@@ -48,11 +49,33 @@ fn hear_block(state: &Arc<AppState>, session_id: uuid::Uuid, variable_name: &str
 
     trace!("HEAR {variable_name}: blocking thread, waiting for user input");
 
-    // Block the Rhai thread (runs in spawn_blocking, so this is safe)
-    match rx.recv() {
+    // Block the Rhai thread (runs in spawn_blocking, so this is safe).
+    // Timeout is configurable via bot config "hear-timeout-secs", default 1 hour.
+    let timeout_secs: u64 = state.conn.get().ok()
+        .and_then(|mut conn| {
+            #[derive(diesel::QueryableByName)]
+            struct Row { #[diesel(sql_type = diesel::sql_types::Text)] config_value: String }
+            diesel::sql_query(
+                "SELECT config_value FROM bot_configuration WHERE config_key = 'hear-timeout-secs' LIMIT 1"
+            ).load::<Row>(&mut conn).ok()
+            .and_then(|rows| rows.into_iter().next())
+            .and_then(|r| r.config_value.parse().ok())
+        })
+        .unwrap_or(3600);
+
+    match rx.recv_timeout(std::time::Duration::from_secs(timeout_secs)) {
         Ok(value) => {
             trace!("HEAR {variable_name}: received '{value}', resuming script");
             Ok(value.into())
+        }
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+            if let Ok(mut map) = state.hear_channels.lock() {
+                map.remove(&session_id);
+            }
+            Err(Box::new(EvalAltResult::ErrorRuntime(
+                format!("HEAR timed out after {timeout_secs}s").into(),
+                rhai::Position::NONE,
+            )))
         }
         Err(_) => Err(Box::new(EvalAltResult::ErrorRuntime(
             "HEAR channel closed".into(),
