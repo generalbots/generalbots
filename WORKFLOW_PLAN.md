@@ -169,7 +169,23 @@ basic/
 
 ---
 
-## Key Invariants
+## Open Source Alternatives Considered
+
+| Engine | Lang | Latency | RAM | Rust SDK | Verdict |
+|--------|------|---------|-----|----------|---------|
+| **Custom (this plan)** | Rust | ~1ms | 0 extra | Native | ✅ Best fit |
+| **[Restate](https://restate.dev)** | Rust server | ~5ms | ~50MB | ✅ official | Fallback option |
+| **[Rhythm](https://github.com/maxnorth/rhythm)** | Rust | ~2ms | ~10MB | Native | Experimental |
+| **Temporal** | Go+Java | ~20ms | ~500MB | ❌ | Too heavy |
+| **Windmill** | Rust+TS | ~10ms | ~200MB | ❌ | Wrong abstraction |
+
+**Why custom over Restate:** Restate requires its own server as a proxy between HTTP requests and handlers — adds a network hop and an extra process. The custom plan uses PostgreSQL already running in the stack, zero extra infrastructure.
+
+**Escape hatch:** The `Step` enum in this plan maps 1:1 to Restate workflow steps. If the custom engine proves too complex to maintain, migration to Restate is mechanical — swap `WorkflowEngine::execute_step` internals, keep the compiler and Step enum unchanged.
+
+---
+
+
 
 - **No re-run ever.** Steps before current_step are skipped on resume.
 - **Rhai never removed entirely** — used for expression eval only.
