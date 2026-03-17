@@ -18,6 +18,8 @@ use std::fmt::Write as FmtWrite;
 use std::sync::Arc;
 #[cfg(feature = "llm")]
 use tokio::sync::RwLock;
+#[cfg(feature = "llm")]
+use crate::llm::observability::{ObservabilityManager, ObservabilityConfig, QuickStats};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable)]
 pub struct AnalyticsStats {
@@ -135,7 +137,7 @@ pub fn configure_analytics_routes() -> Router<Arc<AppState>> {
         .route(ApiUrls::ANALYTICS_CHAT, post(handle_analytics_chat));
 
     #[cfg(feature = "llm")]
-    let router = router
+    let router: Router<Arc<AppState>> = router
         .route(ApiUrls::ANALYTICS_LLM_STATS, get(handle_llm_stats))
         .route(ApiUrls::ANALYTICS_BUDGET_STATUS, get(handle_budget_status));
 
