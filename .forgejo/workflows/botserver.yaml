@@ -20,15 +20,10 @@ jobs:
 
       - name: Setup Workspace
         run: |
-          # Clone the main gb repository
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
           cd workspace
           git submodule update --init --depth 1 botlib
-
-          # Clone botserver separately
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
-
-          # Remove all members except botserver and botlib from workspace
           sed -i '/"botapp",/d' Cargo.toml
           sed -i '/"botdevice",/d' Cargo.toml
           sed -i '/"bottest",/d' Cargo.toml
@@ -38,12 +33,9 @@ jobs:
           sed -i '/"botplugin",/d' Cargo.toml
           sed -i '/"bottemplates",/d' Cargo.toml
 
-
-
-
       - name: Install system dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get update -qq
           sudo apt-get install -y libpq-dev libssl-dev liblzma-dev pkg-config
 
       - name: Install Rust
@@ -53,16 +45,12 @@ jobs:
 
       - name: Install sccache
         run: |
-          wget https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz
+          wget -q https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz
           tar xzf sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz
           mv sccache-v0.8.2-x86_64-unknown-linux-musl/sccache $HOME/.cargo/bin/sccache
           chmod +x $HOME/.cargo/bin/sccache
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           $HOME/.cargo/bin/sccache --start-server || true
-
-
-      - name: Setup environment
-        run: sudo cp /opt/gbo/bin/system/.env . 2>/dev/null || true
 
       - name: Build BotServer
         working-directory: workspace
@@ -73,17 +61,11 @@ jobs:
 
       - name: Save build log
         if: always()
-        run: |
-          sudo mkdir -p /opt/gbo/logs
-          sudo cp /tmp/build.log /opt/gbo/logs/botserver-$(date +%Y%m%d-%H%M%S).log || true
+        run: sudo cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
-      - name: Deploy
+      - name: Deploy via SSH
         working-directory: workspace
         run: |
-          lxc exec bot:pragmatismo-system -- systemctl stop system || true
-          
-          sudo cp target/debug/botserver /opt/gbo/bin/system/
-          sudo chmod +x /opt/gbo/bin/system/botserver
-          
-          lxc exec bot:pragmatismo-system -- systemctl start system || true
-          
+          ssh -o StrictHostKeyChecking=no pragmatismo-system "systemctl stop system.service || true"
+          scp -o StrictHostKeyChecking=no target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver
+          ssh -o StrictHostKeyChecking=no pragmatismo-system "chmod +x /opt/gbo/bin/botserver && systemctl start system.service"
