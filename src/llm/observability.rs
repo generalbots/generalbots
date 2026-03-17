@@ -45,7 +45,9 @@ pub struct LLMRequestMetrics {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum RequestType {
+    #[default]
     Chat,
     Completion,
     Embedding,
@@ -56,11 +58,6 @@ pub enum RequestType {
     AudioGeneration,
 }
 
-impl Default for RequestType {
-    fn default() -> Self {
-        Self::Chat
-    }
-}
 
 impl std::fmt::Display for RequestType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -225,17 +222,14 @@ pub enum TraceEventType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum TraceStatus {
     Ok,
     Error,
+    #[default]
     InProgress,
 }
 
-impl Default for TraceStatus {
-    fn default() -> Self {
-        Self::InProgress
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct ObservabilityConfig {

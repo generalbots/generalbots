@@ -59,7 +59,7 @@ pub async fn extract_lead_from_email(
         .split('@')
         .nth(1)
         .and_then(|d| d.split('.').next())
-        .map(|c| capitalize(c));
+        .map(capitalize);
 
     Ok(Json(LeadExtractionResponse {
         first_name,
