@@ -252,8 +252,9 @@ pub async fn run() -> Result<()> {
                     vault_migrate(env_file).await?;
                 }
                 "put" => {
-                    if args.len() < 5 {
-                        eprintln!("Usage: botserver vault put <path> <key=value> [key=value...]");
+                    if args.len() < 4 {
+                        eprintln!("Usage: botserver vault put <path> [key=value] [key=value...]");
+                        eprintln!("       botserver vault put <path> (interactive mode - prompts for keys)");
                         return Ok(());
                     }
                     let path = &args[3];
@@ -610,20 +611,59 @@ async fn vault_put(path: &str, kvs: &[&str]) -> Result<()> {
     }
 
     let mut data: HashMap<String, String> = HashMap::new();
-    for kv in kvs {
-        if let Some((k, v)) = kv.split_once('=') {
-            data.insert(k.to_string(), v.to_string());
-        } else {
-            eprintln!("Invalid key=value pair: {}", kv);
+
+    // If no key=value provided, enter interactive mode
+    if kvs.is_empty() {
+        println!("\n=== Interactive Vault Store ===");
+        println!("Path: {}", path);
+        println!("Enter values (press Enter with empty key to finish):\n");
+        
+        loop {
+            print!("Key: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+            let mut key = String::new();
+            std::io::stdin().read_line(&mut key)?;
+            let key = key.trim().to_string();
+            
+            if key.is_empty() {
+                break;
+            }
+            
+            print!("Value: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+            let mut value = String::new();
+            std::io::stdin().read_line(&mut value)?;
+            let value = value.trim().to_string();
+            
+            if value.is_empty() {
+                eprintln!("Value cannot be empty, skipping '{}'", key);
+                continue;
+            }
+            
+            data.insert(key.clone(), value);
+            println!("* Saved '{}'\n", key);
+        }
+        
+        if data.is_empty() {
+            return Err(anyhow::anyhow!("No values provided"));
+        }
+    } else {
+        // Command line mode
+        for kv in kvs {
+            if let Some((k, v)) = kv.split_once('=') {
+                data.insert(k.to_string(), v.to_string());
+            } else {
+                eprintln!("Invalid key=value pair: {}", kv);
+            }
+        }
+
+        if data.is_empty() {
+            return Err(anyhow::anyhow!("No valid key=value pairs provided"));
         }
     }
 
-    if data.is_empty() {
-        return Err(anyhow::anyhow!("No valid key=value pairs provided"));
-    }
-
-    manager.put_secret(path, data).await?;
-    println!("* Stored {} key(s) at {}", kvs.len(), path);
+    manager.put_secret(path, data.clone()).await?;
+    println!("\n✓ Stored {} key(s) at {}", data.len(), path);
 
     Ok(())
 }
