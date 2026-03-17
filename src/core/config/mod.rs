@@ -9,6 +9,7 @@ pub use model_routing_config::{ModelRoutingConfig, RoutingStrategy, TaskType};
 pub use sse_config::SseConfig;
 pub use user_memory_config::UserMemoryConfig;
 
+use crate::core::secrets::SecretsManager;
 use crate::core::shared::utils::DbPool;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
@@ -277,10 +278,24 @@ impl AppConfig {
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(default)
         };
+
+        // Read from Vault with fallback to defaults
+        let secrets = SecretsManager::from_env().ok();
+        let (drive_server, drive_access, drive_secret) = secrets
+            .as_ref()
+            .map(|s| s.get_drive_config())
+            .unwrap_or_else(|| {
+                (
+                    crate::core::urls::InternalUrls::DRIVE.to_string(),
+                    "minioadmin".to_string(),
+                    "minioadmin".to_string(),
+                )
+            });
+
         let drive = DriveConfig {
-            server: crate::core::urls::InternalUrls::DRIVE.to_string(),
-            access_key: String::new(),
-            secret_key: String::new(),
+            server: drive_server,
+            access_key: drive_access,
+            secret_key: drive_secret,
         };
         let email = EmailConfig {
             server: get_str("EMAIL_IMAP_SERVER", "imap.gmail.com"),
@@ -315,10 +330,23 @@ impl AppConfig {
         })
     }
     pub fn from_env() -> Result<Self, anyhow::Error> {
+        // Read from Vault with fallback to defaults
+        let secrets = SecretsManager::from_env().ok();
+        let (drive_server, drive_access, drive_secret) = secrets
+            .as_ref()
+            .map(|s| s.get_drive_config())
+            .unwrap_or_else(|| {
+                (
+                    crate::core::urls::InternalUrls::DRIVE.to_string(),
+                    "minioadmin".to_string(),
+                    "minioadmin".to_string(),
+                )
+            });
+
         let minio = DriveConfig {
-            server: crate::core::urls::InternalUrls::DRIVE.to_string(),
-            access_key: String::new(),
-            secret_key: String::new(),
+            server: drive_server,
+            access_key: drive_access,
+            secret_key: drive_secret,
         };
         let email = EmailConfig {
             server: "imap.gmail.com".to_string(),

@@ -28,7 +28,7 @@ fn hear_block(state: &Arc<AppState>, session_id: uuid::Uuid, variable_name: &str
     // Mark session as waiting and store metadata in Redis (for UI hints like menus)
     let state_clone = Arc::clone(state);
     let var = variable_name.to_string();
-    let _ = tokio::runtime::Handle::current().block_on(async move {
+    tokio::runtime::Handle::current().block_on(async move {
         {
             let mut sm = state_clone.session_manager.lock().await;
             sm.mark_waiting(session_id);
@@ -207,7 +207,7 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                 // Store suggestions in Redis for UI
                 let state_for_suggestions = Arc::clone(&state_clone);
                 let opts_clone = options.clone();
-                let _ = tokio::runtime::Handle::current().block_on(async move {
+                tokio::runtime::Handle::current().block_on(async move {
                     if let Some(redis) = &state_for_suggestions.cache {
                         if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
                             let key = format!("suggestions:{session_id}:{session_id}");

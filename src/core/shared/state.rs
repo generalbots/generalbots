@@ -426,6 +426,7 @@ impl Clone for AppState {
             kb_manager: self.kb_manager.clone(),
             channels: Arc::clone(&self.channels),
             response_channels: Arc::clone(&self.response_channels),
+            hear_channels: Arc::clone(&self.hear_channels),
             web_adapter: Arc::clone(&self.web_adapter),
             voice_adapter: Arc::clone(&self.voice_adapter),
             #[cfg(feature = "tasks")]

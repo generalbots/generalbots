@@ -197,6 +197,54 @@ impl SecretsManager {
             .ok_or_else(|| anyhow!("Key '{}' not found in '{}'", key, path))
     }
 
+    pub fn get_value_blocking(&self, path: &str, key: &str, default: &str) -> String {
+        // Try to get synchronously using blocking call
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(path)) {
+                if let Some(value) = secrets.get(key) {
+                    return value.clone();
+                }
+            }
+        }
+        // Fallback to env defaults
+        if let Ok(secrets) = Self::get_from_env(path) {
+            if let Some(value) = secrets.get(key) {
+                return value.clone();
+            }
+        }
+        default.to_string()
+    }
+
+    pub fn get_drive_config(&self) -> (String, String, String) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::DRIVE)) {
+                return (
+                    secrets.get("host").cloned().unwrap_or_else(|| "localhost:9100".into()),
+                    secrets.get("accesskey").cloned().unwrap_or_else(|| "minioadmin".into()),
+                    secrets.get("secret").cloned().unwrap_or_else(|| "minioadmin".into()),
+                );
+            }
+        }
+        // Fallback
+        ("localhost:9100".to_string(), "minioadmin".to_string(), "minioadmin".to_string())
+    }
+
+    pub fn get_database_config_sync(&self) -> (String, u16, String, String, String) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::TABLES)) {
+                return (
+                    secrets.get("host").cloned().unwrap_or_else(|| "localhost".into()),
+                    secrets.get("port").and_then(|p| p.parse().ok()).unwrap_or(5432),
+                    secrets.get("database").cloned().unwrap_or_else(|| "botserver".into()),
+                    secrets.get("username").cloned().unwrap_or_else(|| "gbuser".into()),
+                    secrets.get("password").cloned().unwrap_or_default(),
+                );
+            }
+        }
+        // Fallback
+        ("localhost".to_string(), 5432, "botserver".to_string(), "gbuser".to_string(), "changeme".to_string())
+    }
+
     pub async fn get_drive_credentials(&self) -> Result<(String, String)> {
         let s = self.get_secret(SecretPaths::DRIVE).await?;
         Ok((
@@ -297,8 +345,122 @@ impl SecretsManager {
         self.get_value(SecretPaths::ENCRYPTION, "master_key").await
     }
 
-    pub async fn get_jwt_secret(&self) -> Result<String> {
-        self.get_value(SecretPaths::JWT, "secret").await
+    pub fn get_cache_config(&self) -> (String, u16, Option<String>) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::CACHE)) {
+                return (
+                    secrets.get("host").cloned().unwrap_or_else(|| "localhost".into()),
+                    secrets.get("port").and_then(|p| p.parse().ok()).unwrap_or(6379),
+                    secrets.get("password").cloned(),
+                );
+            }
+        }
+        ("localhost".to_string(), 6379, None)
+    }
+
+    pub fn get_directory_config_sync(&self) -> (String, String, String, String) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::DIRECTORY)) {
+                return (
+                    secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:9000".into()),
+                    secrets.get("project_id").cloned().unwrap_or_default(),
+                    secrets.get("client_id").cloned().unwrap_or_default(),
+                    secrets.get("client_secret").cloned().unwrap_or_default(),
+                );
+            }
+        }
+        ("http://localhost:9000".to_string(), String::new(), String::new(), String::new())
+    }
+
+    pub fn get_email_config(&self) -> (String, u16, String, String, String) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::EMAIL)) {
+                return (
+                    secrets.get("smtp_host").cloned().unwrap_or_else(|| "smtp.gmail.com".into()),
+                    secrets.get("smtp_port").and_then(|p| p.parse().ok()).unwrap_or(587),
+                    secrets.get("smtp_user").cloned().unwrap_or_default(),
+                    secrets.get("smtp_password").cloned().unwrap_or_default(),
+                    secrets.get("smtp_from").cloned().unwrap_or_default(),
+                );
+            }
+        }
+        ("smtp.gmail.com".to_string(), 587, String::new(), String::new(), String::new())
+    }
+
+    pub fn get_llm_config(&self) -> (String, String, Option<String>, Option<String>, String) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::LLM)) {
+                return (
+                    secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:8081".into()),
+                    secrets.get("model").cloned().unwrap_or_else(|| "gpt-4".into()),
+                    secrets.get("openai_key").cloned(),
+                    secrets.get("anthropic_key").cloned(),
+                    secrets.get("ollama_url").cloned().unwrap_or_else(|| "http://localhost:11434".into()),
+                );
+            }
+        }
+        ("http://localhost:8081".to_string(), "gpt-4".to_string(), None, None, "http://localhost:11434".to_string())
+    }
+
+    pub fn get_meet_config(&self) -> (String, String, String) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::MEET)) {
+                return (
+                    secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:7880".into()),
+                    secrets.get("app_id").cloned().unwrap_or_default(),
+                    secrets.get("app_secret").cloned().unwrap_or_default(),
+                );
+            }
+        }
+        ("http://localhost:7880".to_string(), String::new(), String::new())
+    }
+
+    pub fn get_vectordb_config_sync(&self) -> (String, Option<String>) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::VECTORDB)) {
+                return (
+                    secrets.get("url").cloned().unwrap_or_else(|| "https://localhost:6334".into()),
+                    secrets.get("api_key").cloned(),
+                );
+            }
+        }
+        ("https://localhost:6334".to_string(), None)
+    }
+
+    pub fn get_observability_config_sync(&self) -> (String, String, String, String) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::OBSERVABILITY)) {
+                return (
+                    secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:8086".into()),
+                    secrets.get("org").cloned().unwrap_or_else(|| "system".into()),
+                    secrets.get("bucket").cloned().unwrap_or_else(|| "metrics".into()),
+                    secrets.get("token").cloned().unwrap_or_default(),
+                );
+            }
+        }
+        ("http://localhost:8086".to_string(), "system".to_string(), "metrics".to_string(), String::new())
+    }
+
+    pub fn get_alm_config(&self) -> (String, String, String) {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::ALM)) {
+                return (
+                    secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:9000".into()),
+                    secrets.get("token").cloned().unwrap_or_default(),
+                    secrets.get("default_org").cloned().unwrap_or_default(),
+                );
+            }
+        }
+        ("http://localhost:9000".to_string(), String::new(), String::new())
+    }
+
+    pub fn get_jwt_secret_sync(&self) -> String {
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::JWT)) {
+                return secrets.get("secret").cloned().unwrap_or_default();
+            }
+        }
+        String::new()
     }
 
     pub async fn put_secret(&self, path: &str, data: HashMap<String, String>) -> Result<()> {

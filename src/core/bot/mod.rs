@@ -450,7 +450,7 @@ impl BotOrchestrator {
 
         // If a HEAR is blocking the script thread for this session, deliver the input
         // directly and return — the script continues from where it paused.
-        if crate::basic::keywords::hearing::syntax::deliver_hear_input(
+        if crate::basic::keywords::hearing::deliver_hear_input(
             &self.state,
             session_id,
             message_content.clone(),
