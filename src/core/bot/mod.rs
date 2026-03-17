@@ -448,6 +448,17 @@ impl BotOrchestrator {
         let session_id = Uuid::parse_str(&message.session_id)?;
         let message_content = message.content.clone();
 
+        // If a HEAR is blocking the script thread for this session, deliver the input
+        // directly and return — the script continues from where it paused.
+        if crate::basic::keywords::hearing::syntax::deliver_hear_input(
+            &self.state,
+            session_id,
+            message_content.clone(),
+        ) {
+            trace!("HEAR: delivered input to blocking script for session {session_id}");
+            return Ok(());
+        }
+
         let (session, context_data, history, model, key, system_prompt, bot_llm_url, explicit_llm_provider) = {
             let state_clone = self.state.clone();
             tokio::task::spawn_blocking(

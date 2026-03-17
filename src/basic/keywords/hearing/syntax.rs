@@ -1,7 +1,7 @@
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
 use log::trace;
-use rhai::{Engine, EvalAltResult};
+use rhai::{Dynamic, Engine, EvalAltResult};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -9,10 +9,67 @@ use super::types::InputType;
 
 pub fn hear_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_hear_basic(Arc::clone(&state), user.clone(), engine);
-
     register_hear_as_type(Arc::clone(&state), user.clone(), engine);
-
     register_hear_as_menu(state, user, engine);
+}
+
+/// Block the Rhai thread until the user sends input.
+/// Registers a sync_channel receiver in AppState::hear_channels keyed by session_id,
+/// then blocks. The async message handler calls `deliver_hear_input` to unblock it.
+fn hear_block(state: &Arc<AppState>, session_id: uuid::Uuid, variable_name: &str, wait_data: serde_json::Value) -> Result<Dynamic, Box<EvalAltResult>> {
+    let (tx, rx) = std::sync::mpsc::sync_channel::<String>(1);
+
+    // Register the sender so the async handler can find it
+    if let Ok(mut map) = state.hear_channels.lock() {
+        map.insert(session_id, tx);
+    }
+
+    // Mark session as waiting and store metadata in Redis (for UI hints like menus)
+    let state_clone = Arc::clone(state);
+    let var = variable_name.to_string();
+    let _ = tokio::runtime::Handle::current().block_on(async move {
+        {
+            let mut sm = state_clone.session_manager.lock().await;
+            sm.mark_waiting(session_id);
+        }
+        if let Some(redis) = &state_clone.cache {
+            if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
+                let key = format!("hear:{session_id}:{var}");
+                let _: Result<(), _> = redis::cmd("SET")
+                    .arg(&key)
+                    .arg(wait_data.to_string())
+                    .arg("EX")
+                    .arg(3600)
+                    .query_async(&mut conn)
+                    .await;
+            }
+        }
+    });
+
+    trace!("HEAR {variable_name}: blocking thread, waiting for user input");
+
+    // Block the Rhai thread (runs in spawn_blocking, so this is safe)
+    match rx.recv() {
+        Ok(value) => {
+            trace!("HEAR {variable_name}: received '{value}', resuming script");
+            Ok(value.into())
+        }
+        Err(_) => Err(Box::new(EvalAltResult::ErrorRuntime(
+            "HEAR channel closed".into(),
+            rhai::Position::NONE,
+        ))),
+    }
+}
+
+/// Called by the async message handler when the user sends a reply.
+/// Unblocks the waiting Rhai thread.
+pub fn deliver_hear_input(state: &AppState, session_id: uuid::Uuid, value: String) -> bool {
+    if let Ok(mut map) = state.hear_channels.lock() {
+        if let Some(tx) = map.remove(&session_id) {
+            return tx.send(value).is_ok();
+        }
+    }
+    false
 }
 
 fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -20,60 +77,23 @@ fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Eng
     let state_clone = Arc::clone(&state);
 
     engine
-        .register_custom_syntax(["HEAR", "$ident$"], true, move |_context, inputs| {
+        .register_custom_syntax(["HEAR", "$ident$"], true, move |context, inputs| {
             let variable_name = inputs[0]
                 .get_string_value()
                 .ok_or_else(|| Box::new(EvalAltResult::ErrorRuntime(
-                    "Expected identifier as string".into(),
+                    "Expected identifier".into(),
                     rhai::Position::NONE,
                 )))?
                 .to_lowercase();
 
-            trace!(
-                "HEAR command waiting for user input to store in variable: {}",
-                variable_name
-            );
+            let value = hear_block(&state_clone, session_id, &variable_name, json!({
+                "variable": variable_name,
+                "type": "any",
+                "waiting": true
+            }))?;
 
-            let state_for_spawn = Arc::clone(&state_clone);
-            let session_id_clone = session_id;
-
-            tokio::spawn(async move {
-                trace!(
-                    "HEAR: Setting session {} to wait for input for variable '{}'",
-                    session_id_clone,
-                    variable_name
-                );
-
-                {
-                    let mut session_manager = state_for_spawn.session_manager.lock().await;
-                    session_manager.mark_waiting(session_id_clone);
-                }
-
-                if let Some(redis_client) = &state_for_spawn.cache {
-                    if let Ok(conn) = redis_client.get_multiplexed_async_connection().await {
-                        let mut conn = conn;
-                        let key = format!("hear:{session_id_clone}:{variable_name}");
-                        let wait_data = json!({
-                            "variable": variable_name,
-                            "type": "any",
-                            "waiting": true,
-                            "retry_count": 0
-                        });
-                        let _: Result<(), _> = redis::cmd("SET")
-                            .arg(key)
-                            .arg(wait_data.to_string())
-                            .arg("EX")
-                            .arg(3600)
-                            .query_async(&mut conn)
-                            .await;
-                    }
-                }
-            });
-
-            Err(Box::new(EvalAltResult::ErrorRuntime(
-                "Waiting for user input".into(),
-                rhai::Position::NONE,
-            )))
+            context.scope_mut().set_or_push(&variable_name, value.clone());
+            Ok(value)
         })
         .expect("valid syntax registration");
 }
@@ -86,7 +106,7 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
         .register_custom_syntax(
             ["HEAR", "$ident$", "AS", "$ident$"],
             true,
-            move |_context, inputs| {
+            move |context, inputs| {
                 let variable_name = inputs[0]
                     .get_string_value()
                     .ok_or_else(|| Box::new(EvalAltResult::ErrorRuntime(
@@ -102,47 +122,15 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
                     )))?
                     .to_string();
 
-                let _input_type = InputType::parse_type(&type_name);
+                let value = hear_block(&state_clone, session_id, &variable_name, json!({
+                    "variable": variable_name,
+                    "type": type_name.to_lowercase(),
+                    "waiting": true,
+                    "max_retries": 3
+                }))?;
 
-                trace!("HEAR {variable_name} AS {type_name} - waiting for validated input");
-
-                let state_for_spawn = Arc::clone(&state_clone);
-                let session_id_clone = session_id;
-                let var_name_clone = variable_name;
-                let type_clone = type_name;
-
-                tokio::spawn(async move {
-                    {
-                        let mut session_manager = state_for_spawn.session_manager.lock().await;
-                        session_manager.mark_waiting(session_id_clone);
-                    }
-
-                    if let Some(redis_client) = &state_for_spawn.cache {
-                        if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await
-                        {
-                            let key = format!("hear:{session_id_clone}:{var_name_clone}");
-                            let wait_data = json!({
-                                "variable": var_name_clone,
-                                "type": type_clone.to_lowercase(),
-                                "waiting": true,
-                                "retry_count": 0,
-                                "max_retries": 3
-                            });
-                            let _: Result<(), _> = redis::cmd("SET")
-                                .arg(key)
-                                .arg(wait_data.to_string())
-                                .arg("EX")
-                                .arg(3600)
-                                .query_async(&mut conn)
-                                .await;
-                        }
-                    }
-                });
-
-                Err(Box::new(EvalAltResult::ErrorRuntime(
-                    "Waiting for user input".into(),
-                    rhai::Position::NONE,
-                )))
+                context.scope_mut().set_or_push(&variable_name, value.clone());
+                Ok(value)
             },
         )
         .expect("valid syntax registration");
@@ -193,48 +181,17 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                     )));
                 }
 
-                trace!("HEAR {} AS MENU with options: {:?}", variable_name, options);
-
-                let state_for_spawn = Arc::clone(&state_clone);
-                let session_id_clone = session_id;
-                let var_name_clone = variable_name;
-                let options_clone = options;
-
-                tokio::spawn(async move {
-                    {
-                        let mut session_manager = state_for_spawn.session_manager.lock().await;
-                        session_manager.mark_waiting(session_id_clone);
-                    }
-
-                    if let Some(redis_client) = &state_for_spawn.cache {
-                        if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await
-                        {
-                            let key = format!("hear:{session_id_clone}:{var_name_clone}");
-                            let wait_data = json!({
-                                "variable": var_name_clone,
-                                "type": "menu",
-                                "options": options_clone,
-                                "waiting": true,
-                                "retry_count": 0
-                            });
-                            let _: Result<(), _> = redis::cmd("SET")
-                                .arg(key)
-                                .arg(wait_data.to_string())
-                                .arg("EX")
-                                .arg(3600)
-                                .query_async(&mut conn)
-                                .await;
-
-                            let suggestions_key =
-                                format!("suggestions:{session_id_clone}:{session_id_clone}");
-                            for opt in &options_clone {
-                                let suggestion = json!({
-                                    "text": opt,
-                                    "value": opt
-                                });
+                // Store suggestions in Redis for UI
+                let state_for_suggestions = Arc::clone(&state_clone);
+                let opts_clone = options.clone();
+                let _ = tokio::runtime::Handle::current().block_on(async move {
+                    if let Some(redis) = &state_for_suggestions.cache {
+                        if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
+                            let key = format!("suggestions:{session_id}:{session_id}");
+                            for opt in &opts_clone {
                                 let _: Result<(), _> = redis::cmd("RPUSH")
-                                    .arg(&suggestions_key)
-                                    .arg(suggestion.to_string())
+                                    .arg(&key)
+                                    .arg(json!({"text": opt, "value": opt}).to_string())
                                     .query_async(&mut conn)
                                     .await;
                             }
@@ -242,10 +199,15 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                     }
                 });
 
-                Err(Box::new(EvalAltResult::ErrorRuntime(
-                    "Waiting for user input".into(),
-                    rhai::Position::NONE,
-                )))
+                let value = hear_block(&state_clone, session_id, &variable_name, json!({
+                    "variable": variable_name,
+                    "type": "menu",
+                    "options": options,
+                    "waiting": true
+                }))?;
+
+                context.scope_mut().set_or_push(&variable_name, value.clone());
+                Ok(value)
             },
         )
         .expect("valid syntax registration");

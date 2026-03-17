@@ -576,6 +576,7 @@ pub async fn create_app_state(
             map
         })),
         response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+        hear_channels: Arc::new(std::sync::Mutex::new(HashMap::new())),
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
         #[cfg(any(feature = "research", feature = "llm"))]
