@@ -135,7 +135,18 @@ impl BasicCompiler {
         let ast_content = self.preprocess_basic(&source_with_suggestions, source_path, self.bot_id)?;
         fs::write(&ast_path, &ast_content).map_err(|e| format!("Failed to write AST file: {e}"))?;
         let (mcp_json, tool_json) = if tool_def.parameters.is_empty() {
-            (None, None)
+            // No parameters — generate minimal mcp.json so USE TOOL can find this tool
+            let mcp = Self::generate_mcp_tool(&tool_def)?;
+            let openai = Self::generate_openai_tool(&tool_def)?;
+            let mcp_path = format!("{output_dir}/{file_name}.mcp.json");
+            let tool_path = format!("{output_dir}/{file_name}.tool.json");
+            let mcp_json_str = serde_json::to_string_pretty(&mcp)?;
+            fs::write(&mcp_path, mcp_json_str)
+                .map_err(|e| format!("Failed to write MCP JSON: {e}"))?;
+            let tool_json_str = serde_json::to_string_pretty(&openai)?;
+            fs::write(&tool_path, tool_json_str)
+                .map_err(|e| format!("Failed to write tool JSON: {e}"))?;
+            (Some(mcp), Some(openai))
         } else {
             let mcp = Self::generate_mcp_tool(&tool_def)?;
             let openai = Self::generate_openai_tool(&tool_def)?;
