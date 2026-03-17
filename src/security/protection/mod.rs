@@ -1,12 +1,19 @@
 pub mod api;
+pub mod caddy_hardener;
 pub mod chkrootkit;
+pub mod fail2ban;
+pub mod firewall;
 pub mod installer;
 pub mod lmd;
 pub mod lynis;
 pub mod manager;
 pub mod rkhunter;
+pub mod security_fix;
+pub mod sudoers;
 pub mod suricata;
 
 pub use api::configure_protection_routes;
 pub use installer::{InstallResult, ProtectionInstaller, UninstallResult, VerifyResult};
 pub use manager::{ProtectionManager, ProtectionTool, ToolStatus};
+pub use security_fix::{run_security_fix, run_security_status, SecurityFixReport};
+pub use sudoers::print_bootstrap_instructions;
