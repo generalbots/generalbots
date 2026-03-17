@@ -12,6 +12,7 @@ pub mod glm;
 pub mod hallucination_detector;
 pub mod llm_models;
 pub mod local;
+pub mod observability;
 pub mod rate_limiter;
 pub mod smart_router;
 pub mod vertex;
