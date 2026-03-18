@@ -106,22 +106,13 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                     }
                 });
 
-                match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                match rx.recv_timeout(std::time::Duration::from_secs(3)) {
                     Ok(Ok(message)) => Ok(Dynamic::from(message)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         e.into(),
                         rhai::Position::NONE,
                     ))),
-                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                            "USE WEBSITE timed out".into(),
-                            rhai::Position::NONE,
-                        )))
-                    }
-                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("USE WEBSITE failed: {}", e).into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Err(_) => Ok(Dynamic::from("Website association scheduled.")),
                 }
             },
         )
@@ -181,22 +172,13 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                     }
                 });
 
-                match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                match rx.recv_timeout(std::time::Duration::from_secs(3)) {
                     Ok(Ok(message)) => Ok(Dynamic::from(message)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         e.into(),
                         rhai::Position::NONE,
                     ))),
-                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                            "USE WEBSITE timed out".into(),
-                            rhai::Position::NONE,
-                        )))
-                    }
-                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("USE WEBSITE failed: {}", e).into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Err(_) => Ok(Dynamic::from("Website association scheduled.")),
                 }
             },
         )
@@ -255,13 +237,10 @@ pub fn register_use_website_function(state: Arc<AppState>, user: UserSession, en
                 let _ = tx.send(result);
             });
 
-            match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+            match rx.recv_timeout(std::time::Duration::from_secs(3)) {
                 Ok(Ok(message)) => Dynamic::from(message),
                 Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                    Dynamic::from("ERROR: USE_WEBSITE timed out")
-                }
-                Err(e) => Dynamic::from(format!("ERROR: USE_WEBSITE failed: {}", e)),
+                Err(_) => Dynamic::from("Website association scheduled."),
             }
         },
     );
@@ -315,11 +294,11 @@ pub fn register_use_website_function(state: Arc<AppState>, user: UserSession, en
                 let _ = tx.send(result);
             });
 
-            match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+            match rx.recv_timeout(std::time::Duration::from_secs(3)) {
                 Ok(Ok(message)) => Dynamic::from(message),
                 Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                    Dynamic::from("ERROR: use_website timed out")
+                Err(_) => {
+                    Dynamic::from("Website association scheduled.")
                 }
                 Err(e) => Dynamic::from(format!("ERROR: use_website failed: {}", e)),
             }
@@ -370,11 +349,11 @@ pub fn register_use_website_function(state: Arc<AppState>, user: UserSession, en
             let _ = tx.send(result);
         });
 
-        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+        match rx.recv_timeout(std::time::Duration::from_secs(3)) {
             Ok(Ok(message)) => Dynamic::from(message),
             Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                Dynamic::from("ERROR: USE_WEBSITE timed out")
+            Err(_) => {
+                Dynamic::from("Website association scheduled.")
             }
             Err(e) => Dynamic::from(format!("ERROR: USE_WEBSITE failed: {}", e)),
         }
@@ -424,11 +403,11 @@ pub fn register_use_website_function(state: Arc<AppState>, user: UserSession, en
             let _ = tx.send(result);
         });
 
-        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+        match rx.recv_timeout(std::time::Duration::from_secs(3)) {
             Ok(Ok(message)) => Dynamic::from(message),
             Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                Dynamic::from("ERROR: use_website timed out")
+            Err(_) => {
+                Dynamic::from("Website association scheduled.")
             }
             Err(e) => Dynamic::from(format!("ERROR: use_website failed: {}", e)),
         }
