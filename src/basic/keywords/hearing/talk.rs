@@ -17,7 +17,7 @@ pub async fn execute_talk(
 
     if let Some(redis_client) = &state.cache {
         if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await {
-            let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
+            let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
             info!("TALK: Fetching suggestions from Redis key: {}", redis_key);
 
             let suggestions_json: Result<Vec<String>, _> = redis::cmd("LRANGE")
