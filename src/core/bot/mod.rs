@@ -1374,8 +1374,11 @@ async fn handle_websocket(
 
                         let state_for_start = state.clone();
                         let _tx_for_start = tx.clone();
+                        let mut send_ready_rx = send_ready_rx;
 
                         tokio::spawn(async move {
+                            let _ = send_ready_rx.recv().await;
+                            
                             let session_result = {
                                 let mut sm = state_for_start.session_manager.lock().await;
                                 let by_id = sm.get_session_by_id(session_id);
@@ -1442,6 +1445,8 @@ async fn handle_websocket(
         }
     }
 
+    let (send_ready_tx, mut send_ready_rx) = tokio::sync::mpsc::channel::<()>(1);
+
     let mut send_task = tokio::spawn(async move {
         while let Some(response) = rx.recv().await {
             if let Ok(json_str) = serde_json::to_string(&response) {
@@ -1451,6 +1456,8 @@ async fn handle_websocket(
             }
         }
     });
+
+    let _ = send_ready_tx.send(()).await;
 
     let state_clone = state.clone();
     let mut recv_task = tokio::spawn(async move {
