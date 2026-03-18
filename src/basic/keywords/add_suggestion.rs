@@ -25,7 +25,7 @@ pub fn clear_suggestions_keyword(
     engine
         .register_custom_syntax(["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
-                let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
+                let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
                 let mut conn: redis::Connection = match cache_client.get_connection() {
                     Ok(conn) => conn,
                     Err(e) => {
@@ -200,7 +200,7 @@ fn add_context_suggestion(
     button_text: &str,
 ) -> Result<(), Box<rhai::EvalAltResult>> {
     if let Some(cache_client) = cache {
-        let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
+        let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
 
         let suggestion = json!({
             "type": "context",
@@ -236,7 +236,7 @@ fn add_context_suggestion(
 
                 let active_key = format!(
                     "active_context:{}:{}",
-                    user_session.user_id, user_session.id
+                    user_session.bot_id, user_session.id
                 );
 
                 let _: Result<i64, redis::RedisError> = redis::cmd("HSET")
@@ -261,7 +261,7 @@ fn add_text_suggestion(
     button_text: &str,
 ) -> Result<(), Box<rhai::EvalAltResult>> {
     if let Some(cache_client) = cache {
-        let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
+        let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
 
         let suggestion = json!({
             "type": "text_value",
@@ -316,7 +316,7 @@ fn add_tool_suggestion(
         tool_name, button_text
     );
     if let Some(cache_client) = cache {
-        let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
+        let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
         info!("Adding suggestion to Redis key: {}", redis_key);
 
         // Create action object and serialize it to JSON string
