@@ -1318,6 +1318,8 @@ async fn handle_websocket(
         }
     }
 
+    let (send_ready_tx, send_ready_rx) = tokio::sync::mpsc::channel::<()>(1);
+
     // Execute start.bas automatically on connection (similar to auth.ast pattern)
     {
         let bot_name_result = {
@@ -1444,8 +1446,6 @@ async fn handle_websocket(
             } // End of if should_execute_start_bas
         }
     }
-
-    let (send_ready_tx, mut send_ready_rx) = tokio::sync::mpsc::channel::<()>(1);
 
     let mut send_task = tokio::spawn(async move {
         while let Some(response) = rx.recv().await {
