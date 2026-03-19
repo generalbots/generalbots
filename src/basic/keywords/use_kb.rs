@@ -103,14 +103,14 @@ fn add_kb_to_session(
         (kb_result.folder_path, kb_result.qdrant_collection)
     } else {
         let default_path = format!("work/{}/{}.gbkb/{}", bot_name, bot_name, kb_name);
-        let default_collection = format!("{}_{}", bot_name, kb_name);
+        let kb_id = Uuid::new_v4();
+        let default_collection = format!("{}_{}_{}", bot_name, kb_id, kb_name);
 
         warn!(
             "KB '{}' not found in kb_collections for bot {}. Using default path: {}",
             kb_name, bot_name, default_path
         );
 
-        let kb_id = Uuid::new_v4();
         diesel::sql_query(
             "INSERT INTO kb_collections (id, bot_id, name, folder_path, qdrant_collection, document_count)
              VALUES ($1, $2, $3, $4, $5, 0)

@@ -432,9 +432,11 @@ fn associate_website_with_session_refresh(
         .get_result(&mut conn)
         .map_err(|e| format!("Failed to get bot name: {}", e))?;
 
+    let bot_id_short = user.bot_id.to_string().chars().take(8).collect::<String>();
     let collection_name = format!(
-        "{}_website_{}",
+        "{}_{}_website_{}",
         bot_name_result.name,
+        bot_id_short,
         sanitize_url_for_collection(url)
     );
 

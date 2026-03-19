@@ -123,6 +123,7 @@ impl KbContextManager {
     pub async fn search_active_kbs(
         &self,
         session_id: Uuid,
+        bot_id: Uuid,
         bot_name: &str,
         query: &str,
         max_results_per_kb: usize,
@@ -153,6 +154,7 @@ impl KbContextManager {
 
             match self
                 .search_single_kb(
+                    bot_id,
                     bot_name,
                     &kb_assoc.kb_name,
                     query,
@@ -352,6 +354,7 @@ impl KbContextManager {
 
     async fn search_single_kb(
         &self,
+        bot_id: Uuid,
         bot_name: &str,
         kb_name: &str,
         query: &str,
@@ -362,7 +365,7 @@ impl KbContextManager {
 
         let search_results = self
             .kb_manager
-            .search(bot_name, kb_name, query, max_results)
+            .search(bot_id, bot_name, kb_name, query, max_results)
             .await?;
 
         let mut kb_search_results = Vec::new();
@@ -468,6 +471,7 @@ pub async fn inject_kb_context(
     kb_manager: Arc<KnowledgeBaseManager>,
     db_pool: DbPool,
     session_id: Uuid,
+    bot_id: Uuid,
     bot_name: &str,
     user_query: &str,
     messages: &mut serde_json::Value,
@@ -476,7 +480,7 @@ pub async fn inject_kb_context(
     let context_manager = KbContextManager::new(kb_manager.clone(), db_pool.clone());
 
     let kb_contexts = context_manager
-        .search_active_kbs(session_id, bot_name, user_query, 5, max_context_tokens / 2)
+        .search_active_kbs(session_id, bot_id, bot_name, user_query, 5, max_context_tokens / 2)
         .await?;
 
     let website_contexts = context_manager

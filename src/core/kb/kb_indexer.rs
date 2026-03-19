@@ -116,6 +116,7 @@ impl KbIndexer {
 
     pub async fn index_kb_folder(
         &self,
+        bot_id: Uuid,
         bot_name: &str,
         kb_name: &str,
         kb_path: &Path,
@@ -145,12 +146,13 @@ impl KbIndexer {
                 self.qdrant_config.url
             );
             return Err(anyhow::anyhow!(
-                "Qdrant vector database not available at {}. Start the vector_db service to enable KB indexing.",
+                "Qdrant vector database is not available at {}. Start the vector_db service to enable KB indexing.",
                 self.qdrant_config.url
             ));
         }
 
-        let collection_name = format!("{}_{}", bot_name, kb_name);
+        let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
+        let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
 
         self.ensure_collection_exists(&collection_name).await?;
 
@@ -746,7 +748,7 @@ impl KbFolderMonitor {
         Self { indexer, work_root }
     }
 
-    pub async fn process_gbkb_folder(&self, bot_name: &str, kb_folder: &Path) -> Result<()> {
+    pub async fn process_gbkb_folder(&self, bot_id: Uuid, bot_name: &str, kb_folder: &Path) -> Result<()> {
         let kb_name = kb_folder
             .file_name()
             .and_then(|n| n.to_str())
@@ -762,7 +764,7 @@ impl KbFolderMonitor {
 
         let result = self
             .indexer
-            .index_kb_folder(bot_name, kb_name, &local_path)
+            .index_kb_folder(bot_id, bot_name, kb_name, &local_path)
             .await?;
 
         info!(

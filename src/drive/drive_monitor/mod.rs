@@ -1171,6 +1171,7 @@ impl DriveMonitor {
                         }
 
                         let kb_manager = Arc::clone(&self.kb_manager);
+                        let bot_id = self.bot_id;
                         let bot_name_owned = bot_name.to_string();
                         let kb_name_owned = kb_name.to_string();
                         let kb_folder_owned = kb_folder_path.clone();
@@ -1185,7 +1186,7 @@ impl DriveMonitor {
 
                             let result = tokio::time::timeout(
                                 Duration::from_secs(KB_INDEXING_TIMEOUT_SECS),
-                                kb_manager.handle_gbkb_change(&bot_name_owned, &kb_folder_owned),
+                                kb_manager.handle_gbkb_change(bot_id, &bot_name_owned, &kb_folder_owned),
                             )
                             .await;
 
@@ -1274,7 +1275,7 @@ impl DriveMonitor {
                 let kb_prefix = format!("{}{}/", gbkb_prefix, kb_name);
                 if !file_states.keys().any(|k| k.starts_with(&kb_prefix)) {
                     #[cfg(any(feature = "research", feature = "llm"))]
-                    if let Err(e) = self.kb_manager.clear_kb(bot_name, kb_name).await {
+                    if let Err(e) = self.kb_manager.clear_kb(self.bot_id, bot_name, kb_name).await {
                         log::error!("Failed to clear KB {}: {}", kb_name, e);
                     }
 

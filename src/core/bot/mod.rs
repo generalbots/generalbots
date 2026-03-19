@@ -692,6 +692,7 @@ impl BotOrchestrator {
                     kb_manager.clone(),
                     self.state.conn.clone(),
                     session_id,
+                    session.bot_id,
                     &bot_name_for_context,
                     &message_content,
                     &mut messages,
