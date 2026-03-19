@@ -49,6 +49,7 @@ pub mod llm_keyword;
 #[cfg(feature = "llm")]
 pub mod llm_macros;
 pub mod math;
+pub mod detect;
 #[cfg(feature = "automation")]
 pub mod mcp_client;
 #[cfg(feature = "automation")]
@@ -207,6 +208,7 @@ pub fn get_all_keywords() -> Vec<String> {
         "CLEAR TOOLS".to_string(),
         "CREATE SITE".to_string(),
         "CREATE TASK".to_string(),
+        "DETECT".to_string(),
         "USE TOOL".to_string(),
         "AGGREGATE".to_string(),
         "DELETE".to_string(),

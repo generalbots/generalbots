@@ -1,4 +1,5 @@
 use crate::basic::compiler::BasicCompiler;
+use crate::core::kb::{EmbeddingConfig, KnowledgeBaseManager};
 use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{debug, error, info, trace, warn};
@@ -26,6 +27,8 @@ pub struct LocalFileMonitor {
     work_root: PathBuf,
     file_states: Arc<RwLock<HashMap<String, LocalFileState>>>,
     is_processing: Arc<AtomicBool>,
+    #[cfg(any(feature = "research", feature = "llm"))]
+    kb_manager: Option<Arc<KnowledgeBaseManager>>,
 }
 
 impl LocalFileMonitor {
@@ -38,6 +41,15 @@ impl LocalFileMonitor {
         // Use /opt/gbo/data as the base directory for source files
         let data_dir = PathBuf::from("/opt/gbo/data");
 
+        #[cfg(any(feature = "research", feature = "llm"))]
+        let kb_manager = match &state.kb_manager {
+            Some(km) => Some(Arc::clone(km)),
+            None => {
+                debug!("KB manager not available in LocalFileMonitor");
+                None
+            }
+        };
+
         trace!("Initializing with data_dir: {:?}, work_root: {:?}", data_dir, work_root);
 
         Self {
@@ -46,6 +58,8 @@ impl LocalFileMonitor {
             work_root,
             file_states: Arc::new(RwLock::new(HashMap::new())),
             is_processing: Arc::new(AtomicBool::new(false)),
+            #[cfg(any(feature = "research", feature = "llm"))]
+            kb_manager,
         }
     }
 
@@ -191,6 +205,75 @@ impl LocalFileMonitor {
                 if gbdialog_path.exists() {
                     self.compile_gbdialog(bot_name, &gbdialog_path).await?;
                 }
+
+                // Index .gbkb folders
+                #[cfg(any(feature = "research", feature = "llm"))]
+                {
+                    if let Some(ref kb_manager) = self.kb_manager {
+                        let gbkb_path = path.join(format!("{}.gbkb", bot_name));
+                        if gbkb_path.exists() {
+                            if let Err(e) = self.index_gbkb_folder(bot_name, &gbkb_path, kb_manager).await {
+                                error!("Failed to index .gbkb folder {:?}: {}", gbkb_path, e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    #[cfg(any(feature = "research", feature = "llm"))]
+    async fn index_gbkb_folder(
+        &self,
+        bot_name: &str,
+        gbkb_path: &Path,
+        _kb_manager: &Arc<KnowledgeBaseManager>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        info!("Indexing .gbkb folder for bot {}: {:?}", bot_name, gbkb_path);
+
+        // Get bot_id from database
+        let bot_id = {
+            use crate::core::shared::models::schema::bots::dsl::*;
+            let mut conn = self.state.conn.get()
+                .map_err(|e| format!("Failed to get DB connection: {}", e))?;
+
+            bots.filter(name.eq(bot_name))
+                .select(id)
+                .first::<Uuid>(&mut *conn)
+                .map_err(|e| format!("Failed to get bot_id for '{}': {}", bot_name, e))?
+        };
+
+        // Load bot-specific embedding config from database
+        let embedding_config = EmbeddingConfig::from_bot_config(&self.state.conn, &bot_id);
+        info!("Using embedding config for bot '{}': URL={}, model={}", 
+              bot_name, embedding_config.embedding_url, embedding_config.embedding_model);
+
+        // Create a temporary KbIndexer with the bot-specific config
+        let qdrant_config = crate::core::kb::QdrantConfig::default();
+        let indexer = crate::core::kb::KbIndexer::new(embedding_config, qdrant_config);
+
+        // Index each KB folder inside .gbkb (e.g., carta, proc)
+        let entries = tokio::fs::read_dir(gbkb_path).await?;
+        let mut entries = entries;
+
+        while let Some(entry) = entries.next_entry().await? {
+            let kb_folder_path = entry.path();
+
+            if kb_folder_path.is_dir() {
+                if let Some(kb_name) = kb_folder_path.file_name().and_then(|n| n.to_str()) {
+                    info!("Indexing KB '{}' for bot '{}'", kb_name, bot_name);
+
+                    if let Err(e) = indexer.index_kb_folder(
+                        bot_id,
+                        bot_name,
+                        kb_name,
+                        &kb_folder_path,
+                    ).await {
+                        error!("Failed to index KB '{}' for bot '{}': {}", kb_name, bot_name, e);
+                    }
+                }
             }
         }
 
@@ -327,6 +410,8 @@ impl Clone for LocalFileMonitor {
             work_root: self.work_root.clone(),
             file_states: Arc::clone(&self.file_states),
             is_processing: Arc::clone(&self.is_processing),
+            #[cfg(any(feature = "research", feature = "llm"))]
+            kb_manager: self.kb_manager.clone(),
         }
     }
 }

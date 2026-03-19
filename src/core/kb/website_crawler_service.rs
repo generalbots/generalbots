@@ -281,7 +281,7 @@ impl WebsiteCrawlerService {
                     // Process this batch immediately to free memory
                     if batch_idx == 0 || (batch_idx + 1) % 2 == 0 {
                         // Index every 2 batches to prevent memory buildup
-                        match bot_indexer.index_kb_folder(&bot_name, &kb_name, &work_path).await {
+                        match bot_indexer.index_kb_folder(website.bot_id, &bot_name, &kb_name, &work_path).await {
                             Ok(result) => trace!("Indexed batch {} successfully: {} docs, {} chunks",
                                 batch_idx + 1, result.documents_processed, result.chunks_indexed),
                             Err(e) => warn!("Failed to index batch {}: {}", batch_idx + 1, e),
@@ -294,7 +294,7 @@ impl WebsiteCrawlerService {
 
                 // Final indexing for any remaining content
                 bot_indexer
-                    .index_kb_folder(&bot_name, &kb_name, &work_path)
+                    .index_kb_folder(website.bot_id, &bot_name, &kb_name, &work_path)
                     .await?;
 
                 config.calculate_next_crawl();

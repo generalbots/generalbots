@@ -39,6 +39,7 @@ pub fn register_think_kb_keyword(
         );
 
         let session_id = session_clone.id;
+        let bot_id = session_clone.bot_id;
         let bot_name = session_clone.bot_name.clone();
         let kb_manager = match &state_clone.kb_manager {
             Some(manager) => Arc::clone(manager),
@@ -52,7 +53,7 @@ pub fn register_think_kb_keyword(
         // Execute KB search in blocking thread
         let result = std::thread::spawn(move || {
             tokio::runtime::Handle::current().block_on(async {
-                think_kb_search(kb_manager, db_pool, session_id, &bot_name, &query).await
+                think_kb_search(kb_manager, db_pool, session_id, bot_id, &bot_name, &query).await
             })
         })
         .join();
@@ -92,6 +93,7 @@ async fn think_kb_search(
     kb_manager: Arc<KnowledgeBaseManager>,
     db_pool: crate::core::shared::utils::DbPool,
     session_id: uuid::Uuid,
+    bot_id: uuid::Uuid,
     bot_name: &str,
     query: &str,
 ) -> Result<serde_json::Value, String> {
@@ -99,7 +101,7 @@ async fn think_kb_search(
 
     // Search active KBs with reasonable limits
     let kb_contexts = context_manager
-        .search_active_kbs(session_id, bot_name, query, 10, 2000)
+        .search_active_kbs(session_id, bot_id, bot_name, query, 10, 2000)
         .await
         .map_err(|e| format!("KB search failed: {}", e))?;
 

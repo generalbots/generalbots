@@ -18,6 +18,7 @@ use log::{error, info, warn};
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct KnowledgeBaseManager {
@@ -48,6 +49,7 @@ impl KnowledgeBaseManager {
 
     pub async fn index_kb_folder(
         &self,
+        bot_id: Uuid,
         bot_name: &str,
         kb_name: &str,
         kb_path: &Path,
@@ -61,7 +63,7 @@ impl KnowledgeBaseManager {
 
         let result = self
             .indexer
-            .index_kb_folder(bot_name, kb_name, kb_path)
+            .index_kb_folder(bot_id, bot_name, kb_name, kb_path)
             .await?;
 
         info!(
@@ -74,12 +76,14 @@ impl KnowledgeBaseManager {
 
     pub async fn search(
         &self,
+        bot_id: Uuid,
         bot_name: &str,
         kb_name: &str,
         query: &str,
         limit: usize,
     ) -> Result<Vec<SearchResult>> {
-        let collection_name = format!("{}_{}", bot_name, kb_name);
+        let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
+        let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
         self.indexer.search(&collection_name, query, limit).await
     }
 
@@ -96,7 +100,7 @@ impl KnowledgeBaseManager {
         self.processor.process_document(file_path).await
     }
 
-    pub async fn handle_gbkb_change(&self, bot_name: &str, kb_folder: &Path) -> Result<()> {
+    pub async fn handle_gbkb_change(&self, bot_id: Uuid, bot_name: &str, kb_folder: &Path) -> Result<()> {
         info!(
             "Handling .gbkb folder change for bot {} at {}",
             bot_name,
@@ -104,11 +108,12 @@ impl KnowledgeBaseManager {
         );
 
         let monitor = self.monitor.read().await;
-        monitor.process_gbkb_folder(bot_name, kb_folder).await
+        monitor.process_gbkb_folder(bot_id, bot_name, kb_folder).await
     }
 
-    pub async fn clear_kb(&self, bot_name: &str, kb_name: &str) -> Result<()> {
-        let collection_name = format!("{}_{}", bot_name, kb_name);
+    pub async fn clear_kb(&self, bot_id: Uuid, bot_name: &str, kb_name: &str) -> Result<()> {
+        let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
+        let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
 
         warn!("Clearing knowledge base collection: {}", collection_name);
 
@@ -124,8 +129,9 @@ impl KnowledgeBaseManager {
         }
     }
 
-    pub async fn get_kb_stats(&self, bot_name: &str, kb_name: &str) -> Result<KbStatistics> {
-        let collection_name = format!("{}_{}", bot_name, kb_name);
+    pub async fn get_kb_stats(&self, bot_id: Uuid, bot_name: &str, kb_name: &str) -> Result<KbStatistics> {
+        let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
+        let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
 
         let collection_info = self.indexer.get_collection_info(&collection_name).await?;
 
@@ -168,6 +174,7 @@ impl DriveMonitorIntegration {
 
     pub async fn on_gbkb_folder_changed(
         &self,
+        bot_id: Uuid,
         bot_name: &str,
         folder_path: &Path,
         change_type: ChangeType,
@@ -180,12 +187,12 @@ impl DriveMonitorIntegration {
                     folder_path.display()
                 );
                 self.kb_manager
-                    .handle_gbkb_change(bot_name, folder_path)
+                    .handle_gbkb_change(bot_id, bot_name, folder_path)
                     .await
             }
             ChangeType::Deleted => {
                 if let Some(kb_name) = folder_path.file_name().and_then(|n| n.to_str()) {
-                    self.kb_manager.clear_kb(bot_name, kb_name).await
+                    self.kb_manager.clear_kb(bot_id, bot_name, kb_name).await
                 } else {
                     Err(anyhow::anyhow!("Invalid KB folder path"))
                 }

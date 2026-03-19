@@ -55,6 +55,7 @@ use self::keywords::web_data::register_web_data_keywords;
 use self::keywords::webhook::webhook_keyword;
 #[cfg(feature = "llm")]
 use self::keywords::llm_keyword::llm_keyword;
+use self::keywords::detect::detect_keyword;
 use self::keywords::on::on_keyword;
 use self::keywords::print::print_keyword;
 use self::keywords::set::set_keyword;
@@ -146,6 +147,7 @@ impl ScriptService {
         format_keyword(&mut engine);
         #[cfg(feature = "llm")]
         llm_keyword(state.clone(), user.clone(), &mut engine);
+        detect_keyword(state.clone(), user.clone(), &mut engine);
         get_keyword(state.clone(), user.clone(), &mut engine);
         set_keyword(&state, user.clone(), &mut engine);
         wait_keyword(&state, user.clone(), &mut engine);
