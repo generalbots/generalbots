@@ -367,13 +367,13 @@ fn add_tool_suggestion(
 /// Note: This function clears suggestions from Redis after fetching them to prevent duplicates
 pub fn get_suggestions(
     cache: Option<&Arc<redis::Client>>,
-    user_id: &str,
+    bot_id: &str,
     session_id: &str,
 ) -> Vec<crate::core::shared::models::Suggestion> {
     let mut suggestions = Vec::new();
 
     if let Some(cache_client) = cache {
-        let redis_key = format!("suggestions:{}:{}", user_id, session_id);
+        let redis_key = format!("suggestions:{}:{}", bot_id, session_id);
 
         let mut conn = match cache_client.get_connection() {
             Ok(conn) => conn,

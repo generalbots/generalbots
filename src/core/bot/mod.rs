@@ -475,11 +475,20 @@ impl BotOrchestrator {
             let state_clone = self.state.clone();
             tokio::task::spawn_blocking(
                 move || -> Result<_, Box<dyn std::error::Error + Send + Sync>> {
-                    let session = {
+                    let mut session = {
                         let mut sm = state_clone.session_manager.blocking_lock();
                         sm.get_session_by_id(session_id)?
                     }
                     .ok_or("Session not found")?;
+
+                    // Store WebSocket session_id in context for TALK routing
+                    if let serde_json::Value::Object(ref mut map) = session.context_data {
+                        map.insert("websocket_session_id".to_string(), serde_json::Value::String(session_id.to_string()));
+                    } else {
+                        let mut map = serde_json::Map::new();
+                        map.insert("websocket_session_id".to_string(), serde_json::Value::String(session_id.to_string()));
+                        session.context_data = serde_json::Value::Object(map);
+                    }
 
                     if !message.content.trim().is_empty() {
                         let mut sm = state_clone.session_manager.blocking_lock();
@@ -649,11 +658,11 @@ impl BotOrchestrator {
             // If message content is empty, we stop here after potentially running start.bas.
             // This happens when the bot is activated by its name in WhatsApp, where an empty string is sent as a signal.
             if message_content.trim().is_empty() {
-                let user_id_str = message.user_id.clone();
+                let bot_id_str = message.bot_id.clone();
                 let session_id_str = message.session_id.clone();
                 
                 #[cfg(feature = "chat")]
-                let suggestions = get_suggestions(self.state.cache.as_ref(), &user_id_str, &session_id_str);
+                let suggestions = get_suggestions(self.state.cache.as_ref(), &bot_id_str, &session_id_str);
                 #[cfg(not(feature = "chat"))]
                 let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
 
@@ -1089,12 +1098,12 @@ impl BotOrchestrator {
         )
         .await??;
 
-        // Extract user_id and session_id before moving them into BotResponse
-        let user_id_str = message.user_id.clone();
+        // Extract bot_id and session_id before moving them into BotResponse
+        let bot_id_str = message.bot_id.clone();
         let session_id_str = message.session_id.clone();
 
         #[cfg(feature = "chat")]
-        let suggestions = get_suggestions(self.state.cache.as_ref(), &user_id_str, &session_id_str);
+        let suggestions = get_suggestions(self.state.cache.as_ref(), &bot_id_str, &session_id_str);
         #[cfg(not(feature = "chat"))]
         let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
 
@@ -1375,7 +1384,9 @@ async fn handle_websocket(
                         );
 
                         let state_for_start = state.clone();
-                        let _tx_for_start = tx.clone();
+                        let tx_for_start = tx.clone();
+                        let bot_id_str = bot_id.to_string();
+                        let session_id_str = session_id.to_string();
                         let mut send_ready_rx = send_ready_rx;
 
                         tokio::spawn(async move {
@@ -1390,8 +1401,17 @@ async fn handle_websocket(
                                 }
                             };
 
-                            if let Ok(Some(session)) = session_result {
+                            if let Ok(Some(mut session)) = session_result {
                                 info!("start.bas: Found session {} for websocket session {}", session.id, session_id);
+
+                                // Store WebSocket session_id in context so TALK can route messages correctly
+                                if let serde_json::Value::Object(ref mut map) = session.context_data {
+                                    map.insert("websocket_session_id".to_string(), serde_json::Value::String(session_id.to_string()));
+                                } else {
+                                    let mut map = serde_json::Map::new();
+                                    map.insert("websocket_session_id".to_string(), serde_json::Value::String(session_id.to_string()));
+                                    session.context_data = serde_json::Value::Object(map);
+                                }
 
                                 // Clone state_for_start for use in Redis SET after execution
                                 let state_for_redis = state_for_start.clone();
@@ -1428,6 +1448,42 @@ async fn handle_websocket(
                                                     .query_async(&mut conn)
                                                     .await;
                                                 info!("Marked start.bas as executed for session {}", session_id);
+                                            }
+                                        }
+
+                                        // Fetch suggestions from Redis and send to frontend
+                                        let user_id_str = user_id.to_string();
+                                        let suggestions = get_suggestions(state_for_redis.cache.as_ref(), &bot_id_str, &session_id_str);
+                                        if !suggestions.is_empty() {
+                                            info!("Sending {} suggestions to frontend for session {}", suggestions.len(), session_id);
+                                            let response = BotResponse {
+                                                bot_id: bot_id_str.clone(),
+                                                user_id: user_id_str.clone(),
+                                                session_id: session_id_str.clone(),
+                                                channel: "Chat".to_string(),
+                                                content: String::new(),
+                                                message_type: MessageType::BOT_RESPONSE,
+                                                stream_token: None,
+                                                is_complete: true,
+                                                suggestions,
+                                                context_name: None,
+                                                context_length: 0,
+                                                context_max_length: 0,
+                                            };
+                                            let _ = tx_for_start.send(response).await;
+
+                                            // Clear suggestions and start_bas_executed key to allow re-run on next page load
+                                            if let Some(cache) = &state_for_redis.cache {
+                                                if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+                                                    let suggestions_key = format!("suggestions:{}:{}", bot_id_str, session_id_str);
+                                                    let start_bas_key = format!("start_bas_executed:{}:{}", server_epoch(), session_id_str);
+                                                    let _: Result<(), redis::RedisError> = redis::cmd("DEL")
+                                                        .arg(&suggestions_key)
+                                                        .arg(&start_bas_key)
+                                                        .query_async(&mut conn)
+                                                        .await;
+                                                    info!("Cleared suggestions and start_bas_executed from Redis for session {}", session_id);
+                                                }
                                             }
                                         }
                                     }

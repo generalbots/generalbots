@@ -161,6 +161,7 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
 
 fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
+    let bot_id = user.bot_id;
     let state_clone = Arc::clone(&state);
 
     engine
@@ -207,10 +208,11 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                 // Store suggestions in Redis for UI
                 let state_for_suggestions = Arc::clone(&state_clone);
                 let opts_clone = options.clone();
+                let bot_id_clone = bot_id;
                 tokio::runtime::Handle::current().block_on(async move {
                     if let Some(redis) = &state_for_suggestions.cache {
                         if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-                            let key = format!("suggestions:{session_id}:{session_id}");
+                            let key = format!("suggestions:{}:{}", bot_id_clone, session_id);
                             for opt in &opts_clone {
                                 let _: Result<(), _> = redis::cmd("RPUSH")
                                     .arg(&key)

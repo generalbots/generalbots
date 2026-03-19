@@ -1181,3 +1181,131 @@ pub fn configure_goals_routes() -> Router<Arc<AppState>> {
         .route("/api/goals/templates", get(list_templates))
         .route("/api/goals/ai/suggest", post(ai_suggest))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    #[test]
+    fn test_objective_record_creation() {
+        let now = Utc::now();
+        let objective = ObjectiveRecord {
+            id: Uuid::new_v4(),
+            org_id: Uuid::new_v4(),
+            bot_id: Uuid::new_v4(),
+            owner_id: Uuid::new_v4(),
+            parent_id: None,
+            title: "Test Objective".to_string(),
+            description: Some("Test description".to_string()),
+            period: "Q1 2025".to_string(),
+            period_start: None,
+            period_end: None,
+            status: "draft".to_string(),
+            progress: BigDecimal::from(0),
+            visibility: "team".to_string(),
+            weight: BigDecimal::from(1),
+            tags: vec![Some("test".to_string())],
+            created_at: now,
+            updated_at: now,
+        };
+
+        assert_eq!(objective.title, "Test Objective");
+        assert_eq!(objective.status, "draft");
+        assert_eq!(objective.progress, BigDecimal::from(0));
+    }
+
+    #[test]
+    fn test_key_result_record_creation() {
+        let now = Utc::now();
+        let key_result = KeyResultRecord {
+            id: Uuid::new_v4(),
+            org_id: Uuid::new_v4(),
+            bot_id: Uuid::new_v4(),
+            objective_id: Uuid::new_v4(),
+            owner_id: Uuid::new_v4(),
+            title: "Test Key Result".to_string(),
+            description: Some("Test KR description".to_string()),
+            metric_type: "numeric".to_string(),
+            start_value: BigDecimal::from(0),
+            target_value: BigDecimal::from(100),
+            current_value: BigDecimal::from(0),
+            unit: Some("units".to_string()),
+            weight: BigDecimal::from(1),
+            status: "not_started".to_string(),
+            due_date: None,
+            scoring_type: "linear".to_string(),
+            created_at: now,
+            updated_at: now,
+        };
+
+        assert_eq!(key_result.title, "Test Key Result");
+        assert_eq!(key_result.metric_type, "numeric");
+        assert_eq!(key_result.target_value, BigDecimal::from(100));
+        assert_eq!(key_result.status, "not_started");
+    }
+
+    #[test]
+    fn test_check_in_record_creation() {
+        let now = Utc::now();
+        let check_in = CheckInRecord {
+            id: Uuid::new_v4(),
+            org_id: Uuid::new_v4(),
+            bot_id: Uuid::new_v4(),
+            key_result_id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            previous_value: Some(BigDecimal::from(0)),
+            new_value: BigDecimal::from(50),
+            note: Some("Progress update".to_string()),
+            confidence: Some("high".to_string()),
+            blockers: Some("No blockers".to_string()),
+            created_at: now,
+        };
+
+        assert_eq!(check_in.new_value, BigDecimal::from(50));
+        assert_eq!(check_in.confidence, Some("high".to_string()));
+    }
+
+    #[test]
+    fn test_goal_template_creation() {
+        let template = GoalTemplate {
+            id: Uuid::new_v4(),
+            organization_id: Uuid::new_v4(),
+            name: "Test Template".to_string(),
+            description: Some("Test template description".to_string()),
+            category: Some("product".to_string()),
+            objective_template: ObjectiveTemplate {
+                title: "Template Objective".to_string(),
+                description: "Template objective description".to_string(),
+            },
+            key_result_templates: vec![KeyResultTemplate {
+                title: "Template KR".to_string(),
+                description: "Template KR description".to_string(),
+                metric_type: "numeric".to_string(),
+                start_value: BigDecimal::from(0),
+                target_value: BigDecimal::from(100),
+                unit: Some("units".to_string()),
+            }],
+            is_system: false,
+            created_at: Utc::now(),
+        };
+
+        assert_eq!(template.name, "Test Template");
+        assert_eq!(template.objective_template.title, "Template Objective");
+        assert_eq!(template.key_result_templates.len(), 1);
+        assert!(!template.is_system);
+    }
+
+    #[test]
+    fn test_goals_error_display() {
+        let db_error = GoalsError::Database("Connection failed".to_string());
+        assert!(format!("{}", db_error).contains("Database error"));
+
+        let not_found = GoalsError::NotFound("Objective not found".to_string());
+        assert!(format!("{}", not_found).contains("not found"));
+
+        let validation = GoalsError::Validation("Invalid input".to_string());
+        assert!(format!("{}", validation).contains("Validation error"));
+    }
+}

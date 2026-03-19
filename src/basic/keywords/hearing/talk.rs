@@ -13,33 +13,6 @@ pub async fn execute_talk(
     message: String,
 ) -> Result<BotResponse, Box<dyn std::error::Error + Send + Sync>> {
     info!("TALK called with message: {}", message);
-    let mut suggestions = Vec::new();
-
-    if let Some(redis_client) = &state.cache {
-        if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await {
-            let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
-            info!("TALK: Fetching suggestions from Redis key: {}", redis_key);
-
-            let suggestions_json: Result<Vec<String>, _> = redis::cmd("LRANGE")
-                .arg(redis_key.as_str())
-                .arg(0)
-                .arg(-1)
-                .query_async(&mut conn)
-                .await;
-
-            if let Ok(suggestions_list) = suggestions_json {
-                info!("TALK: Got {} suggestions from Redis", suggestions_list.len());
-                suggestions = suggestions_list
-                    .into_iter()
-                    .filter_map(|s| serde_json::from_str(&s).ok())
-                    .collect();
-            } else {
-                info!("TALK: No suggestions found in Redis");
-            }
-        }
-    } else {
-        info!("TALK: No cache configured");
-    }
 
     let channel = user_session
         .context_data
@@ -68,7 +41,7 @@ pub async fn execute_talk(
         message_type: MessageType::BOT_RESPONSE,
         stream_token: None,
         is_complete: true,
-        suggestions,
+        suggestions: Vec::new(),
         context_name: None,
         context_length: 0,
         context_max_length: 0,
@@ -96,17 +69,24 @@ pub async fn execute_talk(
             }
         });
     } else {
-        let user_id = user_session.id.to_string();
+        // Use WebSocket session_id from context if available, otherwise fall back to session.id
+        let target_session_id = user_session
+            .context_data
+            .get("websocket_session_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&user_session.id.to_string())
+            .to_string();
+        
         let web_adapter = Arc::clone(&state.web_adapter);
         
         tokio::spawn(async move {
             if let Err(e) = web_adapter
-                .send_message_to_session(&user_id, response_clone)
+                .send_message_to_session(&target_session_id, response_clone)
                 .await
             {
                 error!("Failed to send TALK message via web adapter: {}", e);
             } else {
-                trace!("TALK message sent via web adapter");
+                trace!("TALK message sent via web adapter to session {}", target_session_id);
             }
         });
     }
