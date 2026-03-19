@@ -13,29 +13,33 @@ fn parse_refresh_interval(interval: &str) -> Result<i32, String> {
 
     // Match patterns like "1d", "7d", "2w", "1m", "1y", etc.
     if interval_lower.ends_with('d') {
-        let days: i32 = interval_lower[..interval_lower.len()-1]
+        let days: i32 = interval_lower[..interval_lower.len() - 1]
             .parse()
             .map_err(|_| format!("Invalid days format: {}", interval))?;
         Ok(days)
     } else if interval_lower.ends_with('w') {
-        let weeks: i32 = interval_lower[..interval_lower.len()-1]
+        let weeks: i32 = interval_lower[..interval_lower.len() - 1]
             .parse()
             .map_err(|_| format!("Invalid weeks format: {}", interval))?;
         Ok(weeks * 7)
     } else if interval_lower.ends_with('m') {
-        let months: i32 = interval_lower[..interval_lower.len()-1]
+        let months: i32 = interval_lower[..interval_lower.len() - 1]
             .parse()
             .map_err(|_| format!("Invalid months format: {}", interval))?;
         Ok(months * 30) // Approximate month as 30 days
     } else if interval_lower.ends_with('y') {
-        let years: i32 = interval_lower[..interval_lower.len()-1]
+        let years: i32 = interval_lower[..interval_lower.len() - 1]
             .parse()
             .map_err(|_| format!("Invalid years format: {}", interval))?;
         Ok(years * 365) // Approximate year as 365 days
     } else {
         // Try to parse as plain number (assume days)
-        interval.parse()
-            .map_err(|_| format!("Invalid refresh interval format: {}. Use format like '1d', '1w', '1m', '1y'", interval))
+        interval.parse().map_err(|_| {
+            format!(
+                "Invalid refresh interval format: {}. Use format like '1d', '1w', '1m', '1y'",
+                interval
+            )
+        })
     }
 }
 
@@ -192,118 +196,109 @@ pub fn register_use_website_function(state: Arc<AppState>, user: UserSession, en
     let user_clone = user.clone();
 
     // Register USE_WEBSITE(url, refresh) with both parameters (uppercase)
-    engine.register_fn(
-        "USE_WEBSITE",
-        move |url: &str, refresh: &str| -> Dynamic {
-            trace!(
-                "USE_WEBSITE function called: {} REFRESH {} for session: {}",
-                url,
-                refresh,
-                user_clone.id
+    engine.register_fn("USE_WEBSITE", move |url: &str, refresh: &str| -> Dynamic {
+        trace!(
+            "USE_WEBSITE function called: {} REFRESH {} for session: {}",
+            url,
+            refresh,
+            user_clone.id
+        );
+
+        let is_valid = url.starts_with("http://") || url.starts_with("https://");
+        if !is_valid {
+            return Dynamic::from(format!(
+                "ERROR: Invalid URL format: {}. Must start with http:// or https://",
+                url
+            ));
+        }
+
+        let state_for_task = Arc::clone(&state_clone);
+        let user_for_task = user_clone.clone();
+        let url_for_task = url.to_string();
+        let refresh_for_task = refresh.to_string();
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        std::thread::spawn(move || {
+            let _rt = match tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build()
+            {
+                Ok(_rt) => _rt,
+                Err(e) => {
+                    let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                    return;
+                }
+            };
+            let result = associate_website_with_session_refresh(
+                &state_for_task,
+                &user_for_task,
+                &url_for_task,
+                &refresh_for_task,
             );
+            let _ = tx.send(result);
+        });
 
-            let is_valid = url.starts_with("http://") || url.starts_with("https://");
-            if !is_valid {
-                return Dynamic::from(format!(
-                    "ERROR: Invalid URL format: {}. Must start with http:// or https://",
-                    url
-                ));
-            }
-
-            let state_for_task = Arc::clone(&state_clone);
-            let user_for_task = user_clone.clone();
-            let url_for_task = url.to_string();
-            let refresh_for_task = refresh.to_string();
-            let (tx, rx) = std::sync::mpsc::channel();
-
-            std::thread::spawn(move || {
-                let _rt = match tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(2)
-                    .enable_all()
-                    .build()
-                {
-                    Ok(_rt) => _rt,
-                    Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
-                        return;
-                    }
-                };
-                let result = associate_website_with_session_refresh(
-                    &state_for_task,
-                    &user_for_task,
-                    &url_for_task,
-                    &refresh_for_task,
-                );
-                let _ = tx.send(result);
-            });
-
-            match rx.recv_timeout(std::time::Duration::from_secs(3)) {
-                Ok(Ok(message)) => Dynamic::from(message),
-                Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-                Err(_) => Dynamic::from("Website association scheduled."),
-            }
-        },
-    );
+        match rx.recv_timeout(std::time::Duration::from_secs(3)) {
+            Ok(Ok(message)) => Dynamic::from(message),
+            Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
+            Err(_) => Dynamic::from("Website association scheduled."),
+        }
+    });
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
     // Register use_website(url, refresh) with both parameters (lowercase for preprocessor)
-    engine.register_fn(
-        "use_website",
-        move |url: &str, refresh: &str| -> Dynamic {
-            trace!(
-                "use_website function called: {} REFRESH {} for session: {}",
-                url,
-                refresh,
-                user_clone2.id
-            );
+    engine.register_fn("use_website", move |url: &str, refresh: &str| -> Dynamic {
+        trace!(
+            "use_website function called: {} REFRESH {} for session: {}",
+            url,
+            refresh,
+            user_clone2.id
+        );
 
-            let is_valid = url.starts_with("http://") || url.starts_with("https://");
-            if !is_valid {
-                return Dynamic::from(format!(
-                    "ERROR: Invalid URL format: {}. Must start with http:// or https://",
-                    url
-                ));
-            }
+        let is_valid = url.starts_with("http://") || url.starts_with("https://");
+        if !is_valid {
+            return Dynamic::from(format!(
+                "ERROR: Invalid URL format: {}. Must start with http:// or https://",
+                url
+            ));
+        }
 
-            let state_for_task = Arc::clone(&state_clone2);
-            let user_for_task = user_clone2.clone();
-            let url_for_task = url.to_string();
-            let refresh_for_task = refresh.to_string();
-            let (tx, rx) = std::sync::mpsc::channel();
+        let state_for_task = Arc::clone(&state_clone2);
+        let user_for_task = user_clone2.clone();
+        let url_for_task = url.to_string();
+        let refresh_for_task = refresh.to_string();
+        let (tx, rx) = std::sync::mpsc::channel();
 
-            std::thread::spawn(move || {
-                let _rt = match tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(2)
-                    .enable_all()
-                    .build()
-                {
-                    Ok(_rt) => _rt,
-                    Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
-                        return;
-                    }
-                };
-                let result = associate_website_with_session_refresh(
-                    &state_for_task,
-                    &user_for_task,
-                    &url_for_task,
-                    &refresh_for_task,
-                );
-                let _ = tx.send(result);
-            });
-
-            match rx.recv_timeout(std::time::Duration::from_secs(3)) {
-                Ok(Ok(message)) => Dynamic::from(message),
-                Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-                Err(_) => {
-                    Dynamic::from("Website association scheduled.")
+        std::thread::spawn(move || {
+            let _rt = match tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build()
+            {
+                Ok(_rt) => _rt,
+                Err(e) => {
+                    let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                    return;
                 }
-                Err(e) => Dynamic::from(format!("ERROR: use_website failed: {}", e)),
-            }
-        },
-    );
+            };
+            let result = associate_website_with_session_refresh(
+                &state_for_task,
+                &user_for_task,
+                &url_for_task,
+                &refresh_for_task,
+            );
+            let _ = tx.send(result);
+        });
+
+        match rx.recv_timeout(std::time::Duration::from_secs(3)) {
+            Ok(Ok(message)) => Dynamic::from(message),
+            Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
+            Err(_) => Dynamic::from("Website association scheduled."),
+        }
+    });
 
     let state_clone3 = Arc::clone(&state);
     let user_clone3 = user.clone();
@@ -341,21 +336,15 @@ pub fn register_use_website_function(state: Arc<AppState>, user: UserSession, en
                     return;
                 }
             };
-            let result = associate_website_with_session(
-                &state_for_task,
-                &user_for_task,
-                &url_for_task,
-            );
+            let result =
+                associate_website_with_session(&state_for_task, &user_for_task, &url_for_task);
             let _ = tx.send(result);
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(3)) {
             Ok(Ok(message)) => Dynamic::from(message),
             Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-            Err(_) => {
-                Dynamic::from("Website association scheduled.")
-            }
-            Err(e) => Dynamic::from(format!("ERROR: USE_WEBSITE failed: {}", e)),
+            Err(_) => Dynamic::from("Website association scheduled."),
         }
     });
 
@@ -395,21 +384,15 @@ pub fn register_use_website_function(state: Arc<AppState>, user: UserSession, en
                     return;
                 }
             };
-            let result = associate_website_with_session(
-                &state_for_task,
-                &user_for_task,
-                &url_for_task,
-            );
+            let result =
+                associate_website_with_session(&state_for_task, &user_for_task, &url_for_task);
             let _ = tx.send(result);
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(3)) {
             Ok(Ok(message)) => Dynamic::from(message),
             Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-            Err(_) => {
-                Dynamic::from("Website association scheduled.")
-            }
-            Err(e) => Dynamic::from(format!("ERROR: use_website failed: {}", e)),
+            Err(_) => Dynamic::from("Website association scheduled."),
         }
     });
 
@@ -430,7 +413,10 @@ fn associate_website_with_session_refresh(
     url: &str,
     refresh_interval: &str,
 ) -> Result<String, String> {
-    info!("Associating website {} with session {} (refresh: {})", url, user.id, refresh_interval);
+    info!(
+        "Associating website {} with session {} (refresh: {})",
+        url, user.id, refresh_interval
+    );
 
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
@@ -440,22 +426,34 @@ fn associate_website_with_session_refresh(
         #[diesel(sql_type = diesel::sql_types::Text)]
         name: String,
     }
-    
+
     let bot_name_result: BotName = diesel::sql_query("SELECT name FROM bots WHERE id = $1")
         .bind::<diesel::sql_types::Uuid, _>(&user.bot_id)
         .get_result(&mut conn)
         .map_err(|e| format!("Failed to get bot name: {}", e))?;
 
-    let collection_name = format!("{}_website_{}", bot_name_result.name, sanitize_url_for_collection(url));
+    let collection_name = format!(
+        "{}_website_{}",
+        bot_name_result.name,
+        sanitize_url_for_collection(url)
+    );
 
     let website_status = check_website_crawl_status(&mut conn, &user.bot_id, url)?;
 
     match website_status {
         WebsiteCrawlStatus::NotRegistered => {
             // Auto-register website for crawling instead of failing
-            info!("Website {} not registered, auto-registering for crawling with refresh: {}", url, refresh_interval);
-            register_website_for_crawling_with_refresh(&mut conn, &user.bot_id, url, refresh_interval)
-                .map_err(|e| format!("Failed to register website: {}", e))?;
+            info!(
+                "Website {} not registered, auto-registering for crawling with refresh: {}",
+                url, refresh_interval
+            );
+            register_website_for_crawling_with_refresh(
+                &mut conn,
+                &user.bot_id,
+                url,
+                refresh_interval,
+            )
+            .map_err(|e| format!("Failed to register website: {}", e))?;
 
             // ADD TO SESSION EVEN IF CRAWL IS PENDING!
             // Otherwise kb_context will think the session has no website associated if start.bas only runs once.
@@ -569,7 +567,10 @@ pub fn register_website_for_crawling_with_refresh(
         .execute(conn)
         .map_err(|e| format!("Failed to register website for crawling: {}", e))?;
 
-    info!("Website {} registered for crawling for bot {} with refresh policy: {}", url, bot_id, refresh_interval);
+    info!(
+        "Website {} registered for crawling for bot {} with refresh policy: {}",
+        url, bot_id, refresh_interval
+    );
     Ok(())
 }
 
@@ -591,7 +592,7 @@ fn update_refresh_policy_if_shorter(
     }
 
     let current = diesel::sql_query(
-        "SELECT refresh_policy FROM website_crawls WHERE bot_id = $1 AND url = $2"
+        "SELECT refresh_policy FROM website_crawls WHERE bot_id = $1 AND url = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .bind::<diesel::sql_types::Text, _>(url)
@@ -628,7 +629,10 @@ fn update_refresh_policy_if_shorter(
         .execute(conn)
         .map_err(|e| format!("Failed to update refresh policy: {}", e))?;
 
-        info!("Refresh policy updated to {} for {} - immediate crawl scheduled", refresh_interval, url);
+        info!(
+            "Refresh policy updated to {} for {} - immediate crawl scheduled",
+            refresh_interval, url
+        );
     }
 
     Ok(())
@@ -648,7 +652,12 @@ pub fn execute_use_website_preprocessing_with_refresh(
     bot_id: Uuid,
     refresh_interval: &str,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    trace!("Preprocessing USE_WEBSITE: {}, bot_id: {:?}, refresh: {}", url, bot_id, refresh_interval);
+    trace!(
+        "Preprocessing USE_WEBSITE: {}, bot_id: {:?}, refresh: {}",
+        url,
+        bot_id,
+        refresh_interval
+    );
 
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err(format!(

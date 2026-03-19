@@ -4,7 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use log::error;
+use log::{error, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -51,6 +51,12 @@ pub async fn auth_handler(
     let existing_user_id = params
         .get("user_id")
         .and_then(|s| Uuid::parse_str(s).ok());
+    let existing_session_id = params
+        .get("session_id")
+        .and_then(|s| Uuid::parse_str(s).ok());
+    
+    info!("Auth handler called: bot_name={}, existing_user_id={:?}, existing_session_id={:?}", 
+          bot_name, existing_user_id, existing_session_id);
 
     let user_id = {
         let mut sm = state.session_manager.lock().await;
@@ -118,21 +124,63 @@ pub async fn auth_handler(
 
     let session = {
         let mut sm = state.session_manager.lock().await;
-        match sm.get_or_create_user_session(user_id, bot_id, "Auth Session") {
-            Ok(Some(sess)) => sess,
-            Ok(None) => {
-                error!("Failed to create session");
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": "Failed to create session" })),
-                );
+        
+        // Try to get existing session by ID first
+        if let Some(existing_session_id) = existing_session_id {
+            info!("Attempting to get existing session: {}", existing_session_id);
+            match sm.get_session_by_id(existing_session_id) {
+                Ok(Some(sess)) => {
+                    info!("Successfully retrieved existing session: {}", sess.id);
+                    sess
+                }
+                Ok(None) => {
+                    // Session not found, create a new one
+                    info!("Session {} not found in database, creating new session", existing_session_id);
+                    match sm.create_session(user_id, bot_id, "Auth Session") {
+                        Ok(sess) => sess,
+                        Err(e) => {
+                            error!("Failed to create session: {}", e);
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(serde_json::json!({ "error": e.to_string() })),
+                            );
+                        }
+                    }
+                }
+                Err(e) => {
+                    // Error getting session, create a new one
+                    error!("Error getting session {}: {}", existing_session_id, e);
+                    match sm.create_session(user_id, bot_id, "Auth Session") {
+                        Ok(sess) => sess,
+                        Err(e) => {
+                            error!("Failed to create session: {}", e);
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(serde_json::json!({ "error": e.to_string() })),
+                            );
+                        }
+                    }
+                }
             }
-            Err(e) => {
-                error!("Failed to create session: {}", e);
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": e.to_string() })),
-                );
+        } else {
+            // No session_id provided, get or create session
+            info!("No session_id provided, getting or creating session for user {}", user_id);
+            match sm.get_or_create_user_session(user_id, bot_id, "Auth Session") {
+                Ok(Some(sess)) => sess,
+                Ok(None) => {
+                    error!("Failed to create session");
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(serde_json::json!({ "error": "Failed to create session" })),
+                    );
+                }
+                Err(e) => {
+                    error!("Failed to create session: {}", e);
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(serde_json::json!({ "error": e.to_string() })),
+                    );
+                }
             }
         }
     };
