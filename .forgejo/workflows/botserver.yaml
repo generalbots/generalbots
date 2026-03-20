@@ -67,9 +67,15 @@ jobs:
       - name: Deploy via SSH
         working-directory: workspace
         run: |
-          ssh -o StrictHostKeyChecking=no pragmatismo-system "pkill -f /opt/gbo/bin/botserver || true; sleep 2"
-          scp -v -o StrictHostKeyChecking=no target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver 2>&1 | tee /tmp/deploy.log
-          ssh -o StrictHostKeyChecking=no pragmatismo-system "chmod +x /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &"
+          set +e
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 pragmatismo-system "pkill -f /opt/gbo/bin/botserver; sleep 2" 2>&1 | tee /tmp/deploy.log
+          echo "--- scp start ---" >> /tmp/deploy.log
+          scp -o StrictHostKeyChecking=no target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver 2>&1 | tee -a /tmp/deploy.log
+          SCP_EXIT=${PIPESTATUS[0]}
+          echo "scp exit: $SCP_EXIT" >> /tmp/deploy.log
+          if [ "$SCP_EXIT" = "0" ]; then
+            ssh -o StrictHostKeyChecking=no pragmatismo-system "chmod +x /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &" 2>&1 | tee -a /tmp/deploy.log
+          fi
 
       - name: Save deploy log
         if: always()
