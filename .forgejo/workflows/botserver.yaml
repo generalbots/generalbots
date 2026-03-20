@@ -68,5 +68,9 @@ jobs:
         working-directory: workspace
         run: |
           ssh -o StrictHostKeyChecking=no pragmatismo-system "pkill -f /opt/gbo/bin/botserver || true; sleep 2"
-          scp -o StrictHostKeyChecking=no target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver
+          scp -v -o StrictHostKeyChecking=no target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver 2>&1 | tee /tmp/deploy.log
           ssh -o StrictHostKeyChecking=no pragmatismo-system "chmod +x /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &"
+
+      - name: Save deploy log
+        if: always()
+        run: sudo cp /tmp/deploy.log /tmp/deploy-$(date +%Y%m%d-%H%M%S).log || true
