@@ -10,7 +10,7 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "people", "automation", "drive", "tasks", "cache", "directory", "llm", "crawler", "browser", "terminal", "editor", "mail", "whatsapp", "designer", "marketing", "goals", "analytics"]
+default = ["chat", "people", "automation", "drive", "tasks", "cache", "directory", "llm", "crawler", "browser", "terminal", "editor", "mail", "whatsapp", "designer", "marketing", "goals", "analytics", "vectordb", "research"]
 
 browser = ["automation", "drive", "cache"]
 terminal = ["automation", "drive", "cache"]

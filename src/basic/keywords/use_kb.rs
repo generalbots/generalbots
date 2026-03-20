@@ -38,17 +38,20 @@ pub fn register_use_kb_keyword(
     let state_clone = Arc::clone(&state);
     let session_clone = Arc::clone(&session);
 
+    let session_clone_for_syntax = session_clone.clone();
+    let state_clone_for_syntax = state_clone.clone();
+
     engine.register_custom_syntax(["USE", "KB", "$expr$"], true, move |context, inputs| {
         let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
 
         info!(
             "USE KB keyword executed - KB: {}, Session: {}",
-            kb_name, session_clone.id
+            kb_name, session_clone_for_syntax.id
         );
 
-        let session_id = session_clone.id;
-        let bot_id = session_clone.bot_id;
-        let conn = state_clone.conn.clone();
+        let session_id = session_clone_for_syntax.id;
+        let bot_id = session_clone_for_syntax.bot_id;
+        let conn = state_clone_for_syntax.conn.clone();
         let kb_name_clone = kb_name.clone();
 
         let result =
@@ -57,7 +60,10 @@ pub fn register_use_kb_keyword(
 
         match result {
             Ok(Ok(_)) => {
-                info!(" KB '{}' added to session {}", kb_name, session_clone.id);
+                info!(
+                    " KB '{}' added to session {}",
+                    kb_name, session_clone_for_syntax.id
+                );
                 Ok(Dynamic::UNIT)
             }
             Ok(Err(e)) => {
@@ -70,6 +76,79 @@ pub fn register_use_kb_keyword(
             }
         }
     })?;
+
+    let session_clone2 = session_clone.clone();
+    let state_clone2 = state_clone.clone();
+
+    info!(
+        "Registering USE_KB function for session: {}",
+        session_clone.id
+    );
+
+    let session_clone_lower = session_clone.clone();
+    let state_clone_lower = state_clone.clone();
+
+    engine.register_fn("use_kb", move |kb_name: &str| -> Dynamic {
+        info!(
+            "use_kb function called - KB: {}, Session: {}",
+            kb_name, session_clone_lower.id
+        );
+
+        let session_id = session_clone_lower.id;
+        let bot_id = session_clone_lower.bot_id;
+        let conn = state_clone_lower.conn.clone();
+        let kb_name_clone = kb_name.to_string();
+
+        let result =
+            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, &kb_name_clone))
+                .join();
+
+        match result {
+            Ok(Ok(_)) => {
+                info!(" use_kb '{}' added to session {}", kb_name, session_id);
+                Dynamic::UNIT
+            }
+            Ok(Err(e)) => {
+                error!("Failed to add KB '{}': {}", kb_name, e);
+                Dynamic::from(format!("USE_KB failed: {}", e))
+            }
+            Err(e) => {
+                error!("Thread panic in USE_KB: {:?}", e);
+                Dynamic::from("USE_KB failed: thread panic")
+            }
+        }
+    });
+
+    engine.register_fn("USE_KB", move |kb_name: &str| -> Dynamic {
+        info!(
+            "USE_KB function called - KB: {}, Session: {}",
+            kb_name, session_clone2.id
+        );
+
+        let session_id = session_clone2.id;
+        let bot_id = session_clone2.bot_id;
+        let conn = state_clone2.conn.clone();
+        let kb_name_clone = kb_name.to_string();
+
+        let result =
+            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, &kb_name_clone))
+                .join();
+
+        match result {
+            Ok(Ok(_)) => {
+                info!(" USE_KB '{}' added to session {}", kb_name, session_id);
+                Dynamic::UNIT
+            }
+            Ok(Err(e)) => {
+                error!("Failed to add KB '{}': {}", kb_name, e);
+                Dynamic::from(format!("USE_KB failed: {}", e))
+            }
+            Err(e) => {
+                error!("Thread panic in USE_KB: {:?}", e);
+                Dynamic::from("USE_KB failed: thread panic")
+            }
+        }
+    });
 
     Ok(())
 }
