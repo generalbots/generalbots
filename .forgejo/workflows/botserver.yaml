@@ -66,6 +66,6 @@ jobs:
       - name: Deploy via SSH
         working-directory: workspace
         run: |
-          ssh -o StrictHostKeyChecking=no pragmatismo-system "systemctl stop system.service || true"
+          ssh -o StrictHostKeyChecking=no pragmatismo-system "pkill -f /opt/gbo/bin/botserver || true; sleep 2"
           scp -o StrictHostKeyChecking=no target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver
-          ssh -o StrictHostKeyChecking=no pragmatismo-system "chmod +x /opt/gbo/bin/botserver && systemctl start system.service"
+          ssh -o StrictHostKeyChecking=no pragmatismo-system "chmod +x /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &"
