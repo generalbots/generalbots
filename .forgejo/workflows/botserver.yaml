@@ -23,7 +23,8 @@ jobs:
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
           cd workspace
           git submodule update --init --depth 1 botlib
-          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver-ci
+          rm -rf botserver && mv botserver-ci botserver
           sed -i '/"botapp",/d' Cargo.toml
           sed -i '/"botdevice",/d' Cargo.toml
           sed -i '/"bottest",/d' Cargo.toml
