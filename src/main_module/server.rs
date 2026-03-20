@@ -66,6 +66,7 @@ pub async fn run_axum_server(
             .add_anonymous_path("/api/auth/refresh")
             .add_anonymous_path("/api/auth/bootstrap")
             .add_anonymous_path("/api/bot/config")
+            .add_anonymous_path("/api/suggestions")
             .add_anonymous_path("/api/client-errors")
             .add_anonymous_path("/ws")
             .add_anonymous_path("/auth")
