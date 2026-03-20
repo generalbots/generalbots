@@ -339,7 +339,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --bind 127.0.0.1 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
-                check_cmd: "{{BIN_PATH}}/bin/valkey-cli ping 2>/dev/null | grep -q PONG".to_string(),
+                check_cmd: "pgrep -x valkey-server >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -876,7 +876,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/qdrant --config-path {{CONF_PATH}}/vector_db/config.yaml > {{LOGS_PATH}}/qdrant.log 2>&1 &".to_string(),
-                check_cmd: "curl -sfk https://localhost:6333/collections >/dev/null 2>&1".to_string(),
+                check_cmd: "pgrep -x qdrant >/dev/null 2>&1".to_string(),
             },
         );
     }
