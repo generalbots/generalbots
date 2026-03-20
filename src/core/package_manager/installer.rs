@@ -1122,6 +1122,27 @@ EOF"#.to_string(),
                     .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e));
             }
 
+            // Generate qdrant config.yaml if missing
+            if component.name == "vector_db" {
+                let qdrant_conf = conf_path.join("vector_db/config.yaml");
+                if !qdrant_conf.exists() {
+                    let storage = data_path.join("storage");
+                    let snapshots = data_path.join("snapshots");
+                    let _ = std::fs::create_dir_all(&storage);
+                    let _ = std::fs::create_dir_all(&snapshots);
+                    let yaml = format!(
+                        "storage:\n  storage_path: {}\n  snapshots_path: {}\n\nservice:\n  host: 0.0.0.0\n  http_port: 6333\n  grpc_port: 6334\n  enable_tls: false\n\nlog_level: INFO\n",
+                        storage.display(),
+                        snapshots.display()
+                    );
+                    if let Err(e) = std::fs::write(&qdrant_conf, yaml) {
+                        warn!("Failed to write qdrant config: {}", e);
+                    } else {
+                        info!("Generated qdrant config at {}", qdrant_conf.display());
+                    }
+                }
+            }
+
             let rendered_cmd = component
                 .exec_cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())

@@ -13,6 +13,7 @@
 //!   - confidence: Overall confidence score (0.0 to 1.0)
 
 use crate::core::bot::kb_context::KbContextManager;
+use diesel::prelude::*;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
@@ -40,7 +41,6 @@ pub fn register_think_kb_keyword(
 
         let session_id = session_clone.id;
         let bot_id = session_clone.bot_id;
-        let bot_name = session_clone.bot_name.clone();
         let kb_manager = match &state_clone.kb_manager {
             Some(manager) => Arc::clone(manager),
             None => {
@@ -53,7 +53,7 @@ pub fn register_think_kb_keyword(
         // Execute KB search in blocking thread
         let result = std::thread::spawn(move || {
             tokio::runtime::Handle::current().block_on(async {
-                think_kb_search(kb_manager, db_pool, session_id, bot_id, &bot_name, &query).await
+                think_kb_search(kb_manager, db_pool, session_id, bot_id, &query).await
             })
         })
         .join();
@@ -94,14 +94,23 @@ async fn think_kb_search(
     db_pool: crate::core::shared::utils::DbPool,
     session_id: uuid::Uuid,
     bot_id: uuid::Uuid,
-    bot_name: &str,
     query: &str,
 ) -> Result<serde_json::Value, String> {
+    use crate::core::shared::models::schema::bots;
+    
+    let bot_name = {
+        let mut conn = db_pool.get().map_err(|e| format!("DB error: {}", e))?;
+        diesel::QueryDsl::filter(bots::table, bots::id.eq(bot_id))
+            .select(bots::name)
+            .first::<String>(&mut *conn)
+            .map_err(|e| format!("Failed to get bot name for id {}: {}", bot_id, e))?
+    };
+
     let context_manager = KbContextManager::new(kb_manager, db_pool);
 
     // Search active KBs with reasonable limits
     let kb_contexts = context_manager
-        .search_active_kbs(session_id, bot_id, bot_name, query, 10, 2000)
+        .search_active_kbs(session_id, bot_id, &bot_name, query, 10, 2000)
         .await
         .map_err(|e| format!("KB search failed: {}", e))?;
 
