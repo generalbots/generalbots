@@ -34,44 +34,13 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                     rhai::Position::NONE,
                 )));
             }
-            let state_for_task = Arc::clone(&state_clone);
-            let user_for_task = user_clone.clone();
-            let tool_name_for_task = tool_name;
-            let (tx, rx) = std::sync::mpsc::channel();
-            std::thread::spawn(move || {
-                let rt = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(2)
-                    .enable_all()
-                    .build();
-                let send_err = if let Ok(_rt) = rt {
-                    let result = associate_tool_with_session(
-                        &state_for_task,
-                        &user_for_task,
-                        &tool_name_for_task,
-                    );
-                    tx.send(result).err()
-                } else {
-                    tx.send(Err("Failed to build tokio runtime".to_string()))
-                        .err()
-                };
-                if send_err.is_some() {
-                    error!("Failed to send result from thread");
-                }
+            let result = tokio::task::block_in_place(|| {
+                associate_tool_with_session(&state_clone, &user_clone, &tool_name)
             });
-            match rx.recv_timeout(std::time::Duration::from_secs(10)) {
-                Ok(Ok(message)) => Ok(Dynamic::from(message)),
-                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    e.into(),
-                    rhai::Position::NONE,
-                ))),
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                    Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "USE TOOL timed out".into(),
-                        rhai::Position::NONE,
-                    )))
-                }
+            match result {
+                Ok(message) => Ok(Dynamic::from(message)),
                 Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("USE TOOL failed: {}", e).into(),
+                    e.into(),
                     rhai::Position::NONE,
                 ))),
             }
@@ -101,37 +70,12 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         if tool_name.is_empty() {
             return Dynamic::from("ERROR: Invalid tool name");
         }
-        let state_for_task = Arc::clone(&state_clone2);
-        let user_for_task = user_clone2.clone();
-        let tool_name_for_task = tool_name;
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(2)
-                .enable_all()
-                .build();
-            let send_err = if let Ok(_rt) = rt {
-                let result = associate_tool_with_session(
-                    &state_for_task,
-                    &user_for_task,
-                    &tool_name_for_task,
-                );
-                tx.send(result).err()
-            } else {
-                tx.send(Err("Failed to build tokio runtime".to_string()))
-                    .err()
-            };
-            if send_err.is_some() {
-                error!("Failed to send result from thread");
-            }
+        let result = tokio::task::block_in_place(|| {
+            associate_tool_with_session(&state_clone2, &user_clone2, &tool_name)
         });
-        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
-            Ok(Ok(message)) => Dynamic::from(message),
-            Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                Dynamic::from("ERROR: use_tool timed out")
-            }
-            Err(e) => Dynamic::from(format!("ERROR: use_tool failed: {}", e)),
+        match result {
+            Ok(message) => Dynamic::from(message),
+            Err(e) => Dynamic::from(format!("ERROR: {}", e)),
         }
     });
 
@@ -158,37 +102,12 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         if tool_name.is_empty() {
             return Dynamic::from("ERROR: Invalid tool name");
         }
-        let state_for_task = Arc::clone(&state_clone3);
-        let user_for_task = user_clone3.clone();
-        let tool_name_for_task = tool_name;
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(2)
-                .enable_all()
-                .build();
-            let send_err = if let Ok(_rt) = rt {
-                let result = associate_tool_with_session(
-                    &state_for_task,
-                    &user_for_task,
-                    &tool_name_for_task,
-                );
-                tx.send(result).err()
-            } else {
-                tx.send(Err("Failed to build tokio runtime".to_string()))
-                    .err()
-            };
-            if send_err.is_some() {
-                error!("Failed to send result from thread");
-            }
+        let result = tokio::task::block_in_place(|| {
+            associate_tool_with_session(&state_clone3, &user_clone3, &tool_name)
         });
-        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
-            Ok(Ok(message)) => Dynamic::from(message),
-            Ok(Err(e)) => Dynamic::from(format!("ERROR: {}", e)),
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                Dynamic::from("ERROR: USE_TOOL timed out")
-            }
-            Err(e) => Dynamic::from(format!("ERROR: USE_TOOL failed: {}", e)),
+        match result {
+            Ok(message) => Dynamic::from(message),
+            Err(e) => Dynamic::from(format!("ERROR: {}", e)),
         }
     });
 }
