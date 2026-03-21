@@ -1,24 +1,12 @@
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
 use log::{error, info, trace};
-use once_cell::sync::Lazy;
 use rhai::{Dynamic, Engine};
 use serde_json::json;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
-static REDIS_CONN: Lazy<Mutex<Option<redis::Connection>>> = Lazy::new(|| Mutex::new(None));
-
 fn get_redis_connection(cache_client: &Arc<redis::Client>) -> Option<redis::Connection> {
-    if let Ok(mut guard) = REDIS_CONN.lock() {
-        if let Some(ref mut conn) = *guard {
-            match redis::cmd("PING").query::<String>(conn) {
-                Ok(_) => return Some(conn.clone()),
-                Err(_) => *guard = None,
-            }
-        }
-    }
-
     let timeout = Duration::from_millis(50);
     cache_client.get_connection_with_timeout(timeout).ok()
 }
