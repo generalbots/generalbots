@@ -1,0 +1,12 @@
+{
+  "type": "function",
+  "function": {
+    "name": "tables",
+    "description": "",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  }
+}

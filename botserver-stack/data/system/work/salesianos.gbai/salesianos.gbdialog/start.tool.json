@@ -1,0 +1,12 @@
+{
+  "type": "function",
+  "function": {
+    "name": "start",
+    "description": "",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  }
+}

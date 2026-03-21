@@ -1,0 +1,60 @@
+{
+  "name": "inscricao",
+  "description": "Fazer inscrição para a Escola Salesiana (Confirmar todos os dados com o usuário antes de executar a ferramenta)",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "dataNascimento": {
+        "type": "string",
+        "description": "Data de nascimento (formato ISO: YYYY-MM-DD)",
+        "example": "2015-03-15",
+        "format": "date"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email para contato",
+        "example": "maria.santos@example.com"
+      },
+      "endereco": {
+        "type": "string",
+        "description": "Endereço completo",
+        "example": "Rua das Flores, 123 - Centro"
+      },
+      "nomeCompleto": {
+        "type": "string",
+        "description": "Nome completo do aluno",
+        "example": "João Silva Santos"
+      },
+      "telefone": {
+        "type": "string",
+        "description": "Telefone com DDD",
+        "example": "(21) 99999-9999"
+      },
+      "turno": {
+        "type": "string",
+        "description": "Turno: MANHA ou TARDE",
+        "example": "MANHA"
+      },
+      "serie": {
+        "type": "string",
+        "description": "Série desejada",
+        "example": "8º ano"
+      },
+      "nomeResponsavel": {
+        "type": "string",
+        "description": "Nome do responsável",
+        "example": "Maria Silva Santos"
+      }
+    },
+    "required": [
+      "nomeCompleto",
+      "dataNascimento",
+      "nomeResponsavel",
+      "telefone",
+      "email",
+      "endereco",
+      "serie",
+      "turno"
+    ]
+  }
+}

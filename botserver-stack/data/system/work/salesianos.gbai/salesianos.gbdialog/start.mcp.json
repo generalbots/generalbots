@@ -1,0 +1,9 @@
+{
+  "name": "start",
+  "description": "",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  }
+}
