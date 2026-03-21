@@ -36,8 +36,13 @@ jobs:
           else
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
-          # Write minimal Cargo.toml workspace
-          printf '[workspace]\nmembers = ["botlib", "botserver"]\nresolver = "2"\n\n[workspace.lints.rust]\nunsafe_code = "forbid"\n\n[workspace.lints.clippy]\nall = "warn"\n\n[profile.release]\nopt-level = "z"\nlto = true\ncodegen-units = 1\nstrip = true\npanic = "abort"\n' > Cargo.toml
+          # Get workspace Cargo.toml from gb and strip unused members
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /tmp/gb-ws
+          cp /tmp/gb-ws/Cargo.toml Cargo.toml
+          for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
+            grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
+          done
+          rm -rf /tmp/gb-ws
 
       - name: Install system dependencies
         run: |
