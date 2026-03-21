@@ -20,14 +20,7 @@ fn get_redis_connection(cache_client: &Arc<redis::Client>) -> Option<redis::Conn
     }
 
     let timeout = Duration::from_millis(50);
-    if let Ok(conn) = cache_client.get_connection_with_timeout(timeout) {
-        if let Ok(mut guard) = REDIS_CONN.lock() {
-            *guard = Some(conn.clone());
-        }
-        Some(conn)
-    } else {
-        None
-    }
+    cache_client.get_connection_with_timeout(timeout).ok()
 }
 
 #[derive(Debug, Clone)]
