@@ -20,6 +20,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+use crate::core::shared::utils::DbPool;
+
 #[derive(Debug)]
 pub struct KnowledgeBaseManager {
     indexer: Arc<KbIndexer>,
@@ -29,9 +31,34 @@ pub struct KnowledgeBaseManager {
 
 impl KnowledgeBaseManager {
     pub fn new(work_root: impl Into<std::path::PathBuf>) -> Self {
+        Self::with_default_config(work_root)
+    }
+
+    pub fn with_default_config(work_root: impl Into<std::path::PathBuf>) -> Self {
         let work_root = work_root.into();
         let embedding_config = EmbeddingConfig::from_env();
         let qdrant_config = QdrantConfig::default();
+
+        let indexer = Arc::new(KbIndexer::new(embedding_config.clone(), qdrant_config));
+        let processor = Arc::new(DocumentProcessor::default());
+        let monitor = Arc::new(RwLock::new(KbFolderMonitor::new(
+            work_root,
+            embedding_config,
+        )));
+
+        Self {
+            indexer,
+            processor,
+            monitor,
+        }
+    }
+
+    pub fn with_bot_config(work_root: impl Into<std::path::PathBuf>, pool: DbPool, bot_id: Uuid) -> Self {
+        let work_root = work_root.into();
+        let embedding_config = EmbeddingConfig::from_bot_config(&pool, &bot_id);
+        info!("KB Manager using embedding config from bot {}: url={}, model={}", 
+              bot_id, embedding_config.embedding_url, embedding_config.embedding_model);
+        let qdrant_config = QdrantConfig::from_config(pool, &bot_id);
 
         let indexer = Arc::new(KbIndexer::new(embedding_config.clone(), qdrant_config));
         let processor = Arc::new(DocumentProcessor::default());

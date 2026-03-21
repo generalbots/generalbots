@@ -509,7 +509,7 @@ pub async fn create_app_state(
     );
 
     #[cfg(any(feature = "research", feature = "llm"))]
-    let kb_manager = Arc::new(crate::core::kb::KnowledgeBaseManager::new("work"));
+    let kb_manager = Arc::new(crate::core::kb::KnowledgeBaseManager::with_bot_config("work", pool.clone(), default_bot_id));
 
     #[cfg(feature = "tasks")]
     let task_engine = Arc::new(crate::tasks::TaskEngine::new(pool.clone()));
