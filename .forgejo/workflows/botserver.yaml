@@ -88,6 +88,11 @@ jobs:
             ssh -o StrictHostKeyChecking=no pragmatismo-system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &" 2>&1 | tee -a /tmp/deploy.log
           fi
 
+      - name: Verify botserver started
+        run: |
+          sleep 10
+          ssh -o StrictHostKeyChecking=no pragmatismo-system "pgrep -f botserver && echo 'OK: botserver is running' || (echo 'ERROR: botserver not running' && cat /opt/gbo/logs/error.log | tail -20 && exit 1)"
+
       - name: Save deploy log
         if: always()
         run: sudo cp /tmp/deploy.log /tmp/deploy-$(date +%Y%m%d-%H%M%S).log || true
