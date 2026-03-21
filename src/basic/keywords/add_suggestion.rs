@@ -10,7 +10,6 @@ use std::time::Duration;
 static REDIS_CONN: Lazy<Mutex<Option<redis::Connection>>> = Lazy::new(|| Mutex::new(None));
 
 fn get_redis_connection(cache_client: &Arc<redis::Client>) -> Option<redis::Connection> {
-    // Try to reuse existing connection
     if let Ok(mut guard) = REDIS_CONN.lock() {
         if let Some(ref mut conn) = *guard {
             match redis::cmd("PING").query::<String>(conn) {
@@ -20,7 +19,6 @@ fn get_redis_connection(cache_client: &Arc<redis::Client>) -> Option<redis::Conn
         }
     }
 
-    // Create new connection
     let timeout = Duration::from_millis(50);
     if let Ok(conn) = cache_client.get_connection_with_timeout(timeout) {
         if let Ok(mut guard) = REDIS_CONN.lock() {
@@ -30,56 +28,6 @@ fn get_redis_connection(cache_client: &Arc<redis::Client>) -> Option<redis::Conn
     } else {
         None
     }
-}
-
-impl RedisPool {
-    fn new(client: &Arc<redis::Client>) -> Option<Self> {
-        let timeout = Duration::from_millis(100);
-        client
-            .get_connection_with_timeout(timeout)
-            .ok()
-            .map(|conn| Self {
-                conn: Mutex::new(Some(conn)),
-            })
-    }
-
-    fn with_connection<F, T>(&self, op: F) -> Option<T>
-    where
-        F: FnOnce(&mut redis::Connection) -> redis::RedisResult<T>,
-    {
-        let mut guard = self.conn.lock().ok()?;
-        let conn = guard.as_mut()?;
-
-        match op(conn) {
-            Ok(result) => {
-                // Connection still valid, put it back
-                Some(result)
-            }
-            Err(_) => {
-                // Connection failed, try to get a new one
-                // For simplicity, just return None and caller will retry
-                *guard = None;
-                None
-            }
-        }
-    }
-}
-
-fn get_redis_pool(cache_client: &Arc<redis::Client>) -> Option<Arc<RedisPool>> {
-    static mut POOL: Option<Arc<RedisPool>> = None;
-    static mut ONCE: std::sync::Once = std::sync::Once::INIT;
-
-    unsafe {
-        ONCE.call_once(|| {
-            POOL = RedisPool::new(cache_client).map(Arc::new);
-        });
-        POOL.clone()
-    }
-}
-
-fn get_redis_connection(cache_client: &Arc<redis::Client>) -> Option<redis::Connection> {
-    let timeout = Duration::from_millis(50);
-    cache_client.get_connection_with_timeout(timeout).ok()
 }
 
 #[derive(Debug, Clone)]
