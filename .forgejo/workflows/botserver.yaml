@@ -68,7 +68,7 @@ jobs:
       - name: Build BotServer
         working-directory: /opt/gbo/ci/botserver
         run: |
-          cargo build -p botserver -j 8 2>&1 | tee /tmp/build.log
+          cargo build -p botserver --features chat -j 8 2>&1 | tee /tmp/build.log
           ls -lh target/debug/botserver
           sccache --show-stats || true
 
