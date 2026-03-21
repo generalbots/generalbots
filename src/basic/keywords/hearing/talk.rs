@@ -84,7 +84,7 @@ pub async fn execute_talk(
                 .send_message_to_session(&target_session_id, response_clone)
                 .await
             {
-                error!("Failed to send TALK message via web adapter: {}", e);
+                trace!("No WebSocket connection for session {}: {}", target_session_id, e);
             } else {
                 trace!("TALK message sent via web adapter to session {}", target_session_id);
             }
