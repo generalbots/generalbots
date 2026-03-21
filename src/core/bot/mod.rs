@@ -567,7 +567,7 @@ impl BotOrchestrator {
             let actual_session_id = session.id.to_string();
 
             // Check if start.bas has already been executed for this session
-            let start_bas_key = format!("start_bas_executed:{}:{}", server_epoch(), actual_session_id);
+            let start_bas_key = format!("start_bas_executed:{}", actual_session_id);
             let should_execute_start_bas = if let Some(cache) = &self.state.cache {
                 if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
                     let executed: Result<Option<String>, redis::RedisError> = redis::cmd("GET")
@@ -1355,7 +1355,7 @@ async fn handle_websocket(
         if let Some(bot_name) = bot_name_result {
             // Web clients expect start.bas to execute their first screen every time they connect/reload.
             // We always run it, but we SET the start_bas_key flag right after so stream_response skips execution.
-            let start_bas_key = format!("start_bas_executed:{}:{}", server_epoch(), session_id);
+            let start_bas_key = format!("start_bas_executed:{}", session_id);
             let should_execute_start_bas = true;
 
             if should_execute_start_bas {
