@@ -4,6 +4,12 @@ use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
+use std::time::Duration;
+
+fn get_redis_connection(cache_client: &Arc<redis::Client>) -> Option<redis::Connection> {
+    let timeout = Duration::from_secs(2);
+    cache_client.get_connection_with_timeout(timeout).ok()
+}
 
 #[derive(Debug, Clone)]
 pub enum SuggestionType {
@@ -26,10 +32,10 @@ pub fn clear_suggestions_keyword(
         .register_custom_syntax(["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
                 let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
-                let mut conn: redis::Connection = match cache_client.get_connection() {
-                    Ok(conn) => conn,
-                    Err(e) => {
-                        error!("Failed to connect to cache: {}", e);
+                let mut conn = match get_redis_connection(cache_client) {
+                    Some(conn) => conn,
+                    None => {
+                        trace!("Cache not ready, skipping clear suggestions");
                         return Ok(Dynamic::UNIT);
                     }
                 };
@@ -212,10 +218,10 @@ fn add_context_suggestion(
             }
         });
 
-        let mut conn = match cache_client.get_connection() {
-            Ok(conn) => conn,
-            Err(e) => {
-                error!("Failed to connect to cache: {}", e);
+        let mut conn = match get_redis_connection(cache_client) {
+            Some(conn) => conn,
+            None => {
+                trace!("Cache not ready, skipping add context suggestion");
                 return Ok(());
             }
         };
@@ -234,10 +240,8 @@ fn add_context_suggestion(
                     length
                 );
 
-                let active_key = format!(
-                    "active_context:{}:{}",
-                    user_session.bot_id, user_session.id
-                );
+                let active_key =
+                    format!("active_context:{}:{}", user_session.bot_id, user_session.id);
 
                 let _: Result<i64, redis::RedisError> = redis::cmd("HSET")
                     .arg(&active_key)
@@ -273,10 +277,10 @@ fn add_text_suggestion(
             }
         });
 
-        let mut conn = match cache_client.get_connection() {
-            Ok(conn) => conn,
-            Err(e) => {
-                error!("Failed to connect to cache: {}", e);
+        let mut conn = match get_redis_connection(cache_client) {
+            Some(conn) => conn,
+            None => {
+                trace!("Cache not ready, skipping add text suggestion");
                 return Ok(());
             }
         };
@@ -333,10 +337,10 @@ fn add_tool_suggestion(
             "action": action_str
         });
 
-        let mut conn = match cache_client.get_connection() {
-            Ok(conn) => conn,
-            Err(e) => {
-                error!("Failed to connect to cache: {}", e);
+        let mut conn = match get_redis_connection(cache_client) {
+            Some(conn) => conn,
+            None => {
+                trace!("Cache not ready, skipping add tool suggestion");
                 return Ok(());
             }
         };
@@ -375,10 +379,10 @@ pub fn get_suggestions(
     if let Some(cache_client) = cache {
         let redis_key = format!("suggestions:{}:{}", bot_id, session_id);
 
-        let mut conn = match cache_client.get_connection() {
-            Ok(conn) => conn,
-            Err(e) => {
-                error!("Failed to connect to cache: {}", e);
+        let mut conn = match get_redis_connection(cache_client) {
+            Some(conn) => conn,
+            None => {
+                trace!("Cache not ready, returning empty suggestions");
                 return suggestions;
             }
         };
