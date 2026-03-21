@@ -1353,21 +1353,10 @@ async fn handle_websocket(
         );
 
         if let Some(bot_name) = bot_name_result {
-            // Check if start.bas has already been executed for this session
+            // Web clients expect start.bas to execute their first screen every time they connect/reload.
+            // We always run it, but we SET the start_bas_key flag right after so stream_response skips execution.
             let start_bas_key = format!("start_bas_executed:{}:{}", server_epoch(), session_id);
-            let should_execute_start_bas = if let Some(cache) = &state.cache {
-                if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-                    let executed: Result<Option<String>, redis::RedisError> = redis::cmd("GET")
-                        .arg(&start_bas_key)
-                        .query_async(&mut conn)
-                        .await;
-                    matches!(executed, Ok(None))
-                } else {
-                    true // If cache fails, try to execute
-                }
-            } else {
-                true // If no cache, try to execute
-            };
+            let should_execute_start_bas = true;
 
             if should_execute_start_bas {
                 let data_dir = "/opt/gbo/data";
@@ -1473,19 +1462,7 @@ async fn handle_websocket(
                                             };
                                             let _ = tx_for_start.send(response).await;
 
-                                            // Clear suggestions and start_bas_executed key to allow re-run on next page load
-                                            if let Some(cache) = &state_for_redis.cache {
-                                                if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-                                                    let suggestions_key = format!("suggestions:{}:{}", bot_id_str, session_id_str);
-                                                    let start_bas_key = format!("start_bas_executed:{}:{}", server_epoch(), session_id_str);
-                                                    let _: Result<(), redis::RedisError> = redis::cmd("DEL")
-                                                        .arg(&suggestions_key)
-                                                        .arg(&start_bas_key)
-                                                        .query_async(&mut conn)
-                                                        .await;
-                                                    info!("Cleared suggestions and start_bas_executed from Redis for session {}", session_id);
-                                                }
-                                            }
+
                                         }
                                     }
                                     Ok(Err(e)) => {
