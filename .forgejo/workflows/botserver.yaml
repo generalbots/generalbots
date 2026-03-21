@@ -79,7 +79,7 @@ jobs:
       - name: Deploy via SSH
         run: |
           set +e
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 pragmatismo-system "pkill -f /opt/gbo/bin/botserver; sleep 2; rm -f /opt/gbo/bin/botserver" 2>&1 | tee /tmp/deploy.log
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 pragmatismo-system "pkill -f botserver; sleep 2; rm -f /opt/gbo/bin/botserver" 2>&1 | tee /tmp/deploy.log
           echo "--- scp start ---" >> /tmp/deploy.log
           scp -o StrictHostKeyChecking=no /opt/gbo/ci/botserver/target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver 2>&1 | tee -a /tmp/deploy.log
           SCP_EXIT=${PIPESTATUS[0]}
