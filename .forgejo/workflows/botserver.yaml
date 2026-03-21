@@ -9,6 +9,8 @@ on:
 env:
   CARGO_BUILD_JOBS: 8
   CARGO_NET_RETRY: 10
+  WORKSPACE: /opt/gbo/ci/botserver
+  CARGO_TARGET_DIR: /opt/gbo/ci/botserver/target
 
 jobs:
   build:
@@ -20,19 +22,39 @@ jobs:
 
       - name: Setup Workspace
         run: |
-          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
-          cd workspace
-          git submodule update --init --depth 1 botlib
-          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver-ci
-          rm -rf botserver && mv botserver-ci botserver
-          sed -i '/"botapp",/d' Cargo.toml
-          sed -i '/"botdevice",/d' Cargo.toml
-          sed -i '/"bottest",/d' Cargo.toml
-          sed -i '/"botui",/d' Cargo.toml
-          sed -i '/"botbook",/d' Cargo.toml
-          sed -i '/"botmodels",/d' Cargo.toml
-          sed -i '/"botplugin",/d' Cargo.toml
-          sed -i '/"bottemplates",/d' Cargo.toml
+          mkdir -p $WORKSPACE
+          cd $WORKSPACE
+          # Update or clone botlib
+          if [ -d botlib/.git ]; then
+            git -C botlib fetch --depth 1 origin main && git -C botlib checkout FETCH_HEAD
+          else
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
+          fi
+          # Update or clone botserver
+          if [ -d botserver/.git ]; then
+            git -C botserver fetch --depth 1 origin main && git -C botserver checkout FETCH_HEAD
+          else
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+          fi
+          # Write minimal Cargo.toml workspace
+          cat > Cargo.toml << 'EOF'
+[workspace]
+members = ["botlib", "botserver"]
+resolver = "2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+EOF
 
       - name: Install system dependencies
         run: |
@@ -46,15 +68,17 @@ jobs:
 
       - name: Install sccache
         run: |
-          wget -q https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.8.2-x86_64-unknown-linux-musl/sccache $HOME/.cargo/bin/sccache
-          chmod +x $HOME/.cargo/bin/sccache
+          if [ ! -f $HOME/.cargo/bin/sccache ]; then
+            wget -q https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz
+            mv sccache-v0.8.2-x86_64-unknown-linux-musl/sccache $HOME/.cargo/bin/sccache
+            chmod +x $HOME/.cargo/bin/sccache
+          fi
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           $HOME/.cargo/bin/sccache --start-server || true
 
       - name: Build BotServer
-        working-directory: workspace
+        working-directory: /opt/gbo/ci/botserver
         run: |
           cargo build -p botserver -j 8 2>&1 | tee /tmp/build.log
           ls -lh target/debug/botserver
@@ -65,12 +89,11 @@ jobs:
         run: sudo cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
       - name: Deploy via SSH
-        working-directory: workspace
         run: |
           set +e
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 pragmatismo-system "pkill -f /opt/gbo/bin/botserver; sleep 2; rm -f /opt/gbo/bin/botserver" 2>&1 | tee /tmp/deploy.log
           echo "--- scp start ---" >> /tmp/deploy.log
-          scp -o StrictHostKeyChecking=no target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver 2>&1 | tee -a /tmp/deploy.log
+          scp -o StrictHostKeyChecking=no /opt/gbo/ci/botserver/target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver 2>&1 | tee -a /tmp/deploy.log
           SCP_EXIT=${PIPESTATUS[0]}
           echo "scp exit: $SCP_EXIT" >> /tmp/deploy.log
           if [ "$SCP_EXIT" = "0" ]; then
