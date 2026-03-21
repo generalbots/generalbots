@@ -38,19 +38,19 @@ CREATE TABLE IF NOT EXISTS attendance_sla_events (
 -- 4. Insert default SLA policies
 INSERT INTO attendance_sla_policies (org_id, bot_id, name, channel, priority, first_response_minutes, resolution_minutes)
 SELECT DISTINCT org_id, id as bot_id, 'Default - Urgent', NULL, 'urgent', 5, 60
-FROM bots ON CONFLICT DO NOTHING;
+FROM bots WHERE org_id IS NOT NULL ON CONFLICT DO NOTHING;
 
 INSERT INTO attendance_sla_policies (org_id, bot_id, name, channel, priority, first_response_minutes, resolution_minutes)
 SELECT DISTINCT org_id, id as bot_id, 'Default - High', NULL, 'high', 15, 240
-FROM bots ON CONFLICT DO NOTHING;
+FROM bots WHERE org_id IS NOT NULL ON CONFLICT DO NOTHING;
 
 INSERT INTO attendance_sla_policies (org_id, bot_id, name, channel, priority, first_response_minutes, resolution_minutes)
 SELECT DISTINCT org_id, id as bot_id, 'Default - Normal', NULL, 'normal', 30, 480
-FROM bots ON CONFLICT DO NOTHING;
+FROM bots WHERE org_id IS NOT NULL ON CONFLICT DO NOTHING;
 
 INSERT INTO attendance_sla_policies (org_id, bot_id, name, channel, priority, first_response_minutes, resolution_minutes)
 SELECT DISTINCT org_id, id as bot_id, 'Default - Low', NULL, 'low', 60, 1440
-FROM bots ON CONFLICT DO NOTHING;
+FROM bots WHERE org_id IS NOT NULL ON CONFLICT DO NOTHING;
 
 -- 5. Create legacy compat views for leads/opportunities (from crm-sales.md)
 CREATE OR REPLACE VIEW crm_leads_compat AS
