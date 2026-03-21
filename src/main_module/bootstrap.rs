@@ -296,8 +296,9 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         let result = tokio::task::spawn_blocking(move || {
             match redis::Client::open(cache_url_clone.as_str()) {
                 Ok(client) => {
-                    // Verify the connection actually works
-                    match client.get_connection() {
+                    // Verify the connection actually works with a strict timeout to avoid hanging on DROP rules
+                    let timeout = std::time::Duration::from_secs(3);
+                    match client.get_connection_with_timeout(timeout) {
                         Ok(mut conn) => {
                             // Test with PING
                             match redis::cmd("PING").query::<String>(&mut conn) {
