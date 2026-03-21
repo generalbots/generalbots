@@ -37,24 +37,7 @@ jobs:
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
           # Write minimal Cargo.toml workspace
-          cat > Cargo.toml << 'EOF'
-[workspace]
-members = ["botlib", "botserver"]
-resolver = "2"
-
-[workspace.lints.rust]
-unsafe_code = "forbid"
-
-[workspace.lints.clippy]
-all = "warn"
-
-[profile.release]
-opt-level = "z"
-lto = true
-codegen-units = 1
-strip = true
-panic = "abort"
-EOF
+          printf '[workspace]\nmembers = ["botlib", "botserver"]\nresolver = "2"\n\n[workspace.lints.rust]\nunsafe_code = "forbid"\n\n[workspace.lints.clippy]\nall = "warn"\n\n[profile.release]\nopt-level = "z"\nlto = true\ncodegen-units = 1\nstrip = true\npanic = "abort"\n' > Cargo.toml
 
       - name: Install system dependencies
         run: |
