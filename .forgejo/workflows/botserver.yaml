@@ -1,4 +1,4 @@
-name: BotServer CI
+name: BotServer CI/CD
 
 on:
   push:
