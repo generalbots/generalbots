@@ -76,6 +76,10 @@ jobs:
         if: always()
         run: sudo cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
+      - name: Setup hostname
+        run: |
+          ssh -o StrictHostKeyChecking=no pragmatismo-system "echo '10.16.164.33 pragmatismo-system' >> /etc/hosts" 2>/dev/null || true
+
       - name: Deploy via SSH
         run: |
           set +e
