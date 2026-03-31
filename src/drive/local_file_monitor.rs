@@ -166,13 +166,18 @@ impl LocalFileMonitor {
     }
 
     fn is_gbdialog_file(&self, path: &Path) -> bool {
-        // Check if path is something like /opt/gbo/data/*.gbai/.gbdialog/*.bas
+        // Check if path is something like /opt/gbo/data/*.gbai/*.gbdialog/*.bas
         path.extension()
             .and_then(|e| e.to_str())
             .map(|e| e.eq_ignore_ascii_case("bas"))
             .unwrap_or(false)
             && path.ancestors()
-                .any(|p| p.ends_with(".gbdialog"))
+                .any(|p| {
+                    p.file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|n| n.ends_with(".gbdialog"))
+                        .unwrap_or(false)
+                })
     }
 
     async fn scan_and_compile_all(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
