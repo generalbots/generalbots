@@ -62,17 +62,11 @@ jobs:
         if: always()
         run: sudo cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
-      - name: Deploy via SSH
+      - name: Deploy via incus
         run: |
-          set +e
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "pkill -f botserver; sleep 2; rm -f /opt/gbo/bin/botserver" 2>&1 | tee /tmp/deploy.log
-          echo "--- scp start ---" >> /tmp/deploy.log
-          scp -o StrictHostKeyChecking=no /opt/gbo/ci/botserver/target/debug/botserver system:/opt/gbo/bin/botserver 2>&1 | tee -a /tmp/deploy.log
-          SCP_EXIT=${PIPESTATUS[0]}
-          echo "scp exit: $SCP_EXIT" >> /tmp/deploy.log
-          if [ "$SCP_EXIT" = "0" ]; then
-            ssh -o StrictHostKeyChecking=no system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &" 2>&1 | tee -a /tmp/deploy.log
-          fi
+          ssh -o StrictHostKeyChecking=no system "pkill -f botserver || true; sleep 2; rm -f /opt/gbo/bin/botserver"
+          ssh administrator@63.141.255.9 "sudo incus exec alm-ci -- tar czf /tmp/botserver.tar.gz -C /opt/gbo/ci/botserver/target/debug botserver && sudo incus file pull alm-ci/tmp/botserver.tar.gz /tmp/botserver.tar.gz && sudo incus exec system -- tar xzf /tmp/botserver.tar.gz -C /opt/gbo/bin && sudo incus exec system -- rm -f /tmp/botserver.tar.gz" 2>&1 | tee /tmp/deploy.log
+          ssh -o StrictHostKeyChecking=no system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &"
 
       - name: Verify botserver started
         run: |
