@@ -31,8 +31,6 @@ jobs:
           git config --global --remove-section url."https://alm.pragmatismo.com.br/".insteadof 2>/dev/null || true
           # Ensure hosts entry for alm in CI container (required for DNS)
           echo "10.157.134.241 alm.pragmatismo.com.br" >> /etc/hosts
-          # Add Google DNS as fallback for external domains (rust-lang.org, etc)
-          echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf.tmp > /dev/null && sudo cat /etc/resolv.conf >> /etc/resolv.conf.tmp && sudo mv /etc/resolv.conf.tmp /etc/resolv.conf
 
       - name: Setup Workspace
         run: |
