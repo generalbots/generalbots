@@ -18,7 +18,19 @@ jobs:
 
     steps:
       - name: Disable SSL verification
-        run: git config --global http.sslVerify false
+        run: |
+          git config --global http.sslVerify false
+          git config --global --add safe.directory "*"
+          # Remove ALL git url replacements that redirect to internal IPs
+          git config --global --list | grep -E "^url\..*\.insteadof" | while read line; do
+            key=$(echo "$line" | cut -d= -f1)
+            git config --global --unset-all "$key" 2>/dev/null || true
+          done
+          # Also remove any old-style entries
+          git config --global --remove-section url."http://x.x.x.x:4747/".insteadof 2>/dev/null || true
+          git config --global --remove-section url."https://alm.pragmatismo.com.br/".insteadof 2>/dev/null || true
+          # Ensure hosts entry for alm in CI container (required for DNS)
+          echo "10.157.134.241 alm.pragmatismo.com.br" >> /etc/hosts
 
       - name: Setup Workspace
         run: |
@@ -79,19 +91,19 @@ jobs:
       - name: Deploy via SSH
         run: |
           set +e
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 pragmatismo-system "pkill -f botserver; sleep 2; rm -f /opt/gbo/bin/botserver" 2>&1 | tee /tmp/deploy.log
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "pkill -f botserver; sleep 2; rm -f /opt/gbo/bin/botserver" 2>&1 | tee /tmp/deploy.log
           echo "--- scp start ---" >> /tmp/deploy.log
-          scp -o StrictHostKeyChecking=no /opt/gbo/ci/botserver/target/debug/botserver pragmatismo-system:/opt/gbo/bin/botserver 2>&1 | tee -a /tmp/deploy.log
+          scp -o StrictHostKeyChecking=no /opt/gbo/ci/botserver/target/debug/botserver system:/opt/gbo/bin/botserver 2>&1 | tee -a /tmp/deploy.log
           SCP_EXIT=${PIPESTATUS[0]}
           echo "scp exit: $SCP_EXIT" >> /tmp/deploy.log
           if [ "$SCP_EXIT" = "0" ]; then
-            ssh -o StrictHostKeyChecking=no pragmatismo-system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &" 2>&1 | tee -a /tmp/deploy.log
+            ssh -o StrictHostKeyChecking=no system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &" 2>&1 | tee -a /tmp/deploy.log
           fi
 
       - name: Verify botserver started
         run: |
           sleep 10
-          ssh -o StrictHostKeyChecking=no pragmatismo-system "pgrep -f botserver && echo 'OK: botserver is running' || (echo 'ERROR: botserver not running' && cat /opt/gbo/logs/error.log | tail -20 && exit 1)"
+          ssh -o StrictHostKeyChecking=no system "pgrep -f botserver && echo 'OK: botserver is running' || (echo 'ERROR: botserver not running' && cat /opt/gbo/logs/error.log | tail -20 && exit 1)"
 
       - name: Save deploy log
         if: always()
