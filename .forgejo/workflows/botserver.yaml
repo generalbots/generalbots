@@ -21,7 +21,7 @@ jobs:
         run: |
           git config --global http.sslVerify false
           git config --global --add safe.directory "*"
-          echo "10.157.134.241 alm.pragmatismo.com.br" >> /etc/hosts
+          echo "63.141.255.9 alm.pragmatismo.com.br" >> /etc/hosts
 
       - name: Setup Workspace
         run: |
