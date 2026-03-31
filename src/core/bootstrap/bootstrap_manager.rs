@@ -127,15 +127,15 @@ impl BootstrapManager {
                 match pm.start("cache") {
                     Ok(_child) => {
                         info!("Valkey cache process started, waiting for readiness...");
-                        // Wait for cache to be ready
-                        for i in 0..12 {
+                        // Wait for cache to be ready (up to 30 seconds)
+                        for i in 0..30 {
                             sleep(Duration::from_secs(1)).await;
                             if cache_health_check() {
                                 info!("Valkey cache is responding");
                                 break;
                             }
-                            if i == 11 {
-                                warn!("Valkey cache did not respond after 12 seconds");
+                            if i == 29 {
+                                warn!("Valkey cache did not respond after 30 seconds");
                             }
                         }
                     }

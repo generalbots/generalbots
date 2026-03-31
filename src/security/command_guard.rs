@@ -92,7 +92,7 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 
 static FORBIDDEN_SHELL_CHARS: LazyLock<HashSet<char>> = LazyLock::new(|| {
     HashSet::from([
-        ';', '|', '&', '$', '`', '(', ')', '{', '}', '<', '>', '\n', '\r', '\0',
+        ';', '|', '&', '$', '`', '<', '>', '\n', '\r', '\0',
     ])
 });
 
@@ -166,6 +166,30 @@ impl SafeCommand {
 
     pub fn arg(mut self, arg: &str) -> Result<Self, CommandGuardError> {
         validate_argument(arg)?;
+        self.args.push(arg.to_string());
+        Ok(self)
+    }
+
+    pub fn trusted_arg(mut self, arg: &str) -> Result<Self, CommandGuardError> {
+        if arg.is_empty() {
+            return Err(CommandGuardError::InvalidArgument(
+                "Empty argument".to_string(),
+            ));
+        }
+        if arg.len() > 4096 {
+            return Err(CommandGuardError::InvalidArgument(
+                "Argument too long".to_string(),
+            ));
+        }
+        let dangerous_patterns = ["$(", "`", "&&", "||", ">>", "<<", ".."];
+        for pattern in dangerous_patterns {
+            if arg.contains(pattern) {
+                return Err(CommandGuardError::ShellInjectionAttempt(format!(
+                    "Dangerous pattern '{}' detected",
+                    pattern
+                )));
+            }
+        }
         self.args.push(arg.to_string());
         Ok(self)
     }

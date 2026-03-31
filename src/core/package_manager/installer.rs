@@ -1518,6 +1518,33 @@ VAULT_CACERT={}
         info!("✓ Created .env with VAULT_ADDR, VAULT_TOKEN");
         info!("✓ Created /opt/gbo/secrets/vault-unseal-keys (chmod 600)");
 
+        // Enable KV2 secrets engine at 'secret/' path
+        info!("Enabling KV2 secrets engine at 'secret/'...");
+        let enable_kv2_cmd = format!(
+            "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} secrets enable -path=secret kv-v2",
+            vault_addr,
+            root_token,
+            ca_cert.display(),
+            vault_bin.display()
+        );
+        match safe_sh_command(&enable_kv2_cmd) {
+            Some(output) => {
+                if output.status.success() {
+                    info!("KV2 secrets engine enabled at 'secret/'");
+                } else {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    if stderr.contains("path is already in use") {
+                        info!("KV2 secrets engine already enabled");
+                    } else {
+                        warn!("Failed to enable KV2 secrets engine: {}", stderr);
+                    }
+                }
+            }
+            None => {
+                warn!("Failed to execute KV2 enable command");
+            }
+        }
+
         Ok(())
     }
 
