@@ -62,7 +62,7 @@ jobs:
         if: always()
         run: sudo cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
-      - name: Deploy via rsync
+      - name: Deploy via ssh tar zstd
         run: |
           echo "=== Deploy started ==="
           echo "Checking binary exists..."
@@ -71,15 +71,15 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "echo SSH OK && pkill -f botserver || true"
           echo "Removing old binary..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "rm -f /opt/gbo/bin/botserver && echo 'Old binary removed'"
-          echo "Starting rsync transfer..."
-          rsync -avz --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30" /opt/gbo/ci/botserver/target/debug/botserver system:/opt/gbo/bin/botserver 2>&1 | tee /tmp/deploy.log
-          RSYNC_EXIT=${PIPESTATUS[0]}
-          echo "rsync exit code: $RSYNC_EXIT"
-          if [ "$RSYNC_EXIT" != "0" ]; then
-            echo "rsync FAILED with exit code $RSYNC_EXIT"
+          echo "Starting tar+zstd transfer..."
+          tar czf - -C /opt/gbo/ci/botserver/target/debug botserver | ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=15 system "tar xzf - -C /opt/gbo/bin && echo 'Transfer complete'" 2>&1 | tee /tmp/deploy.log
+          TRANSFER_EXIT=${PIPESTATUS[0]}
+          echo "Transfer exit code: $TRANSFER_EXIT"
+          if [ "$TRANSFER_EXIT" != "0" ]; then
+            echo "Transfer FAILED with exit code $TRANSFER_EXIT"
             exit 1
           fi
-          echo "rsync SUCCESS, setting permissions..."
+          echo "Transfer SUCCESS, setting permissions..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && ls -lh /opt/gbo/bin/botserver"
           echo "Starting botserver..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "cd /opt/gbo/bin && sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &"
