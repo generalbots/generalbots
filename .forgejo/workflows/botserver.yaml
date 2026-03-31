@@ -62,26 +62,23 @@ jobs:
         if: always()
         run: sudo cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
-      - name: Deploy via ssh tar zstd
+      - name: Deploy via ssh tar gzip
         run: |
+          set -e
           echo "=== Deploy started ==="
-          echo "Checking binary exists..."
+          echo "Step 1: Checking binary..."
           ls -lh /opt/gbo/ci/botserver/target/debug/botserver
-          echo "Testing SSH to system..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "echo SSH OK && pkill -f botserver || true"
-          echo "Removing old binary..."
+          echo "Step 2: Killing old botserver..."
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "pgrep -f botserver && killall botserver 2>/dev/null || echo 'No running botserver'"
+          echo "Step 3: Removing old binary..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "rm -f /opt/gbo/bin/botserver && echo 'Old binary removed'"
-          echo "Starting tar+zstd transfer..."
-          tar czf - -C /opt/gbo/ci/botserver/target/debug botserver | ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=15 system "tar xzf - -C /opt/gbo/bin && echo 'Transfer complete'" 2>&1 | tee /tmp/deploy.log
-          TRANSFER_EXIT=${PIPESTATUS[0]}
-          echo "Transfer exit code: $TRANSFER_EXIT"
-          if [ "$TRANSFER_EXIT" != "0" ]; then
-            echo "Transfer FAILED with exit code $TRANSFER_EXIT"
-            exit 1
-          fi
-          echo "Transfer SUCCESS, setting permissions..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && ls -lh /opt/gbo/bin/botserver"
-          echo "Starting botserver..."
+          echo "Step 4: Starting tar+gzip transfer..."
+          tar cf - -C /opt/gbo/ci/botserver/target/debug botserver | gzip -1 | ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=10 system "gzip -d | tar xf - -C /opt/gbo/bin && echo 'Transfer complete'"
+          echo "Step 5: Verifying transfer..."
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "ls -lh /opt/gbo/bin/botserver"
+          echo "Step 6: Setting permissions..."
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver"
+          echo "Step 7: Starting botserver..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "cd /opt/gbo/bin && sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &"
           echo "=== Deploy completed ==="
 
