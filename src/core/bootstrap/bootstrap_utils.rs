@@ -87,7 +87,29 @@ pub fn safe_sh_command(command: &str) -> String {
 
 /// Check if vault is healthy
 pub fn vault_health_check() -> bool {
-    false
+    let vault_addr =
+        std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+
+    let cmd = format!(
+        "curl -f -s --connect-timeout 2 -k {}/v1/sys/health",
+        vault_addr
+    );
+
+    let output = safe_sh_command(&cmd);
+    if output.is_empty() {
+        return false;
+    }
+
+    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&output) {
+        let sealed = json.get("sealed").and_then(|v| v.as_bool()).unwrap_or(true);
+        let initialized = json
+            .get("initialized")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        !sealed && initialized
+    } else {
+        false
+    }
 }
 
 /// Check if Valkey/Redis cache is healthy
