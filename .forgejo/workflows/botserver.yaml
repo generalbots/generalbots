@@ -17,19 +17,10 @@ jobs:
     runs-on: gbo
 
     steps:
-      - name: Disable SSL verification
+      - name: Setup Git
         run: |
           git config --global http.sslVerify false
           git config --global --add safe.directory "*"
-          # Remove ALL git url replacements that redirect to internal IPs
-          git config --global --list | grep -E "^url\..*\.insteadof" | while read line; do
-            key=$(echo "$line" | cut -d= -f1)
-            git config --global --unset-all "$key" 2>/dev/null || true
-          done
-          # Also remove any old-style entries
-          git config --global --remove-section url."http://x.x.x.x:4747/".insteadof 2>/dev/null || true
-          git config --global --remove-section url."https://alm.pragmatismo.com.br/".insteadof 2>/dev/null || true
-          # Ensure hosts entry for alm in CI container (required for DNS)
           echo "10.157.134.241 alm.pragmatismo.com.br" >> /etc/hosts
 
       - name: Setup Workspace
