@@ -65,7 +65,7 @@ jobs:
       - name: Deploy via incus
         run: |
           ssh -o StrictHostKeyChecking=no system "pkill -f botserver || true; sleep 2; rm -f /opt/gbo/bin/botserver"
-          ssh administrator@63.141.255.9 "sudo incus exec alm-ci -- tar czf /tmp/botserver.tar.gz -C /opt/gbo/ci/botserver/target/debug botserver && sudo incus file pull alm-ci/tmp/botserver.tar.gz /tmp/botserver.tar.gz && sudo incus exec system -- tar xzf /tmp/botserver.tar.gz -C /opt/gbo/bin && sudo incus exec system -- rm -f /tmp/botserver.tar.gz" 2>&1 | tee /tmp/deploy.log
+          ssh administrator@63.141.255.9 "sudo incus file push alm-ci/opt/gbo/ci/botserver/target/debug/botserver system/opt/gbo/bin/botserver" 2>&1 | tee /tmp/deploy.log
           ssh -o StrictHostKeyChecking=no system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && cd /opt/gbo/bin && nohup sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &"
 
       - name: Verify botserver started
