@@ -1387,6 +1387,15 @@ EOF"#.to_string(),
         let vault_bin = bin_path.join("vault");
         let vault_data = self.base_path.join("data/vault");
 
+        // Check if Vault data directory exists (real indicator of initialized state)
+        let vault_data_exists = vault_data.exists();
+
+        if !vault_data_exists {
+            info!("Vault data directory not found, will initialize fresh");
+        } else {
+            info!("Vault data directory found, checking health...");
+        }
+
         // Wait for Vault to be ready
         info!("Waiting for Vault to start...");
         std::thread::sleep(std::time::Duration::from_secs(3));
@@ -1395,39 +1404,41 @@ EOF"#.to_string(),
             std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
         let ca_cert = conf_path.join("system/certificates/ca/ca.crt");
 
-        // Check if Vault is already initialized via health endpoint
-        let health_cmd = format!(
-            "curl -f -s --connect-timeout 2 -k {}/v1/sys/health",
-            vault_addr
-        );
-        let health_output = safe_sh_command(&health_cmd);
+        // Only attempt recovery if data directory exists
+        if vault_data_exists {
+            // Check if Vault is already initialized via health endpoint
+            let health_cmd = format!(
+                "curl -f -s --connect-timeout 2 -k {}/v1/sys/health",
+                vault_addr
+            );
+            let health_output = safe_sh_command(&health_cmd);
 
-        let already_initialized = if let Some(ref output) = health_output {
-            if output.status.success() {
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(
-                    &String::from_utf8_lossy(&output.stdout),
-                ) {
-                    json.get("initialized")
-                        .and_then(|v| v.as_bool())
-                        .unwrap_or(false)
+            let already_initialized = if let Some(ref output) = health_output {
+                if output.status.success() {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(
+                        &String::from_utf8_lossy(&output.stdout),
+                    ) {
+                        json.get("initialized")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false)
+                    } else {
+                        false
+                    }
                 } else {
-                    false
+                    // Health endpoint returns 503 when sealed but initialized
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    stdout.contains("\"initialized\":true")
+                        || stderr.contains("\"initialized\":true")
                 }
             } else {
-                // Health endpoint returns 503 when sealed but initialized
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                stdout.contains("\"initialized\":true")
-                    || stderr.contains("\"initialized\":true")
-                    || vault_data.exists()
-            }
-        } else {
-            vault_data.exists()
-        };
+                false
+            };
 
-        if already_initialized {
-            info!("Vault already initialized (detected via health/data), skipping init");
-            return self.recover_existing_vault();
+            if already_initialized {
+                info!("Vault already initialized (detected via health/data), skipping init");
+                return self.recover_existing_vault();
+            }
         }
 
         // Initialize Vault
