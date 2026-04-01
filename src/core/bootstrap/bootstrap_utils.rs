@@ -90,25 +90,30 @@ pub fn vault_health_check() -> bool {
     let vault_addr =
         std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
 
-    let cmd = format!(
-        "curl -f -s --connect-timeout 2 -k {}/v1/sys/health",
-        vault_addr
-    );
+    let health_url = format!("{}/v1/sys/health", vault_addr);
 
-    let output = safe_sh_command(&cmd);
-    if output.is_empty() {
-        return false;
-    }
-
-    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&output) {
-        let sealed = json.get("sealed").and_then(|v| v.as_bool()).unwrap_or(true);
-        let initialized = json
-            .get("initialized")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
-        !sealed && initialized
-    } else {
-        false
+    match SafeCommand::new("curl")
+        .and_then(|c| c.args(&["-f", "-s", "--connect-timeout", "2", "-k", &health_url]))
+        .and_then(|c| c.execute())
+    {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                    let sealed = json.get("sealed").and_then(|v| v.as_bool()).unwrap_or(true);
+                    let initialized = json
+                        .get("initialized")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    return !sealed && initialized;
+                }
+            }
+            // Health endpoint returns 503 when sealed but initialized
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            stdout.contains("\"initialized\":true") || stderr.contains("\"initialized\":true")
+        }
+        Err(_) => false,
     }
 }
 
