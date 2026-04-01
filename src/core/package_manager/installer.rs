@@ -1371,11 +1371,12 @@ EOF"#.to_string(),
     /// Initialize Vault locally (non-LXC mode) and create .env file
     ///
     /// This function:
-    /// 1. Checks if Vault is already initialized
-    /// 2. If not, runs `vault operator init` to get root token and unseal keys
-    /// 3. Creates .env file with VAULT_ADDR and VAULT_TOKEN
-    /// 4. Creates vault-unseal-keys file with proper permissions
-    /// 5. Unseals Vault with 3 keys
+    /// 1. Checks if Vault is already initialized (via health endpoint or data dir)
+    /// 2. If initialized but sealed, unseals with existing keys from vault-unseal-keys
+    /// 3. If not initialized, runs `vault operator init` to get root token and unseal keys
+    /// 4. Creates .env file with VAULT_ADDR and VAULT_TOKEN
+    /// 5. Creates vault-unseal-keys file with proper permissions
+    /// 6. Unseals Vault with 3 keys
     fn initialize_vault_local(&self) -> Result<()> {
         use std::io::Write;
 
@@ -1384,15 +1385,7 @@ EOF"#.to_string(),
         let bin_path = self.base_path.join("bin/vault");
         let conf_path = self.base_path.join("conf");
         let vault_bin = bin_path.join("vault");
-
-        // Check if already initialized
-        let init_json = self.base_path.join("conf/vault/init.json");
-        if init_json.exists() {
-            info!("Vault already initialized (init.json exists), skipping initialization");
-            // Still ensure .env file exists
-            self.ensure_env_file_exists()?;
-            return Ok(());
-        }
+        let vault_data = self.base_path.join("data/vault");
 
         // Wait for Vault to be ready
         info!("Waiting for Vault to start...");
@@ -1401,6 +1394,41 @@ EOF"#.to_string(),
         let vault_addr =
             std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
         let ca_cert = conf_path.join("system/certificates/ca/ca.crt");
+
+        // Check if Vault is already initialized via health endpoint
+        let health_cmd = format!(
+            "curl -f -s --connect-timeout 2 -k {}/v1/sys/health",
+            vault_addr
+        );
+        let health_output = safe_sh_command(&health_cmd);
+
+        let already_initialized = if let Some(ref output) = health_output {
+            if output.status.success() {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(
+                    &String::from_utf8_lossy(&output.stdout),
+                ) {
+                    json.get("initialized")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false)
+                } else {
+                    false
+                }
+            } else {
+                // Health endpoint returns 503 when sealed but initialized
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                stdout.contains("\"initialized\":true")
+                    || stderr.contains("\"initialized\":true")
+                    || vault_data.exists()
+            }
+        } else {
+            vault_data.exists()
+        };
+
+        if already_initialized {
+            info!("Vault already initialized (detected via health/data), skipping init");
+            return self.recover_existing_vault();
+        }
 
         // Initialize Vault
         let init_cmd = format!(
@@ -1416,8 +1444,8 @@ EOF"#.to_string(),
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             if stderr.contains("already initialized") {
-                warn!("Vault already initialized, skipping file generation");
-                return self.ensure_env_file_exists();
+                warn!("Vault already initialized, recovering existing data");
+                return self.recover_existing_vault();
             }
             return Err(anyhow::anyhow!("Failed to initialize Vault: {}", stderr));
         }
@@ -1434,6 +1462,8 @@ EOF"#.to_string(),
             .context("No root token in output")?;
 
         // Save init.json
+        let init_json = self.base_path.join("conf/vault/init.json");
+        std::fs::create_dir_all(init_json.parent().unwrap())?;
         std::fs::write(&init_json, serde_json::to_string_pretty(&init_json_val)?)?;
         info!("Created {}", init_json.display());
 
@@ -1492,27 +1522,7 @@ VAULT_CACERT={}
         info!("Created {} (chmod 600)", unseal_keys_file.display());
 
         // Unseal Vault (need 3 keys)
-        info!("Unsealing Vault...");
-        for i in 0..3 {
-            if let Some(key) = unseal_keys.get(i) {
-                let key_str: &str = key.as_str().unwrap_or("");
-                let unseal_cmd = format!(
-                    "{} operator unseal -tls-skip-verify -address={} {}",
-                    vault_bin.display(),
-                    vault_addr,
-                    key_str
-                );
-                let unseal_output = safe_sh_command(&unseal_cmd);
-
-                if let Some(output) = unseal_output {
-                    if !output.status.success() {
-                        warn!("Unseal step {} may have failed", i + 1);
-                    }
-                } else {
-                    warn!("Unseal step {} command failed to execute", i + 1);
-                }
-            }
-        }
+        self.unseal_vault(&vault_bin, &vault_addr)?;
 
         info!("Vault initialized and unsealed successfully");
         info!("✓ Created .env with VAULT_ADDR, VAULT_TOKEN");
@@ -1545,6 +1555,135 @@ VAULT_CACERT={}
             }
         }
 
+        Ok(())
+    }
+
+    /// Recover existing Vault installation (already initialized but may be sealed)
+    fn recover_existing_vault(&self) -> Result<()> {
+        use std::io::Write;
+
+        info!("Recovering existing Vault installation...");
+
+        let vault_addr =
+            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+        let ca_cert = self.base_path.join("conf/system/certificates/ca/ca.crt");
+        let vault_bin = self.base_path.join("bin/vault/vault");
+
+        // Try to read existing unseal keys
+        let unseal_keys_file = self.base_path.join("vault-unseal-keys");
+        let unseal_keys = if unseal_keys_file.exists() {
+            info!("Found existing vault-unseal-keys file");
+            let content = std::fs::read_to_string(&unseal_keys_file)?;
+            content
+                .lines()
+                .filter_map(|line| {
+                    line.strip_prefix("VAULT_UNSEAL_KEY_")
+                        .and_then(|rest| rest.split_once('='))
+                        .map(|(_, key)| key.to_string())
+                })
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+
+        // Try to read existing init.json for root token
+        let init_json = self.base_path.join("conf/vault/init.json");
+        let root_token = if init_json.exists() {
+            let content = std::fs::read_to_string(&init_json)?;
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                json.get("root_token")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        // Unseal if we have keys
+        if !unseal_keys.is_empty() {
+            info!("Unsealing Vault with existing keys...");
+            for (i, key) in unseal_keys.iter().take(3).enumerate() {
+                let unseal_cmd = format!(
+                    "{} operator unseal -tls-skip-verify -address={} {}",
+                    vault_bin.display(),
+                    vault_addr,
+                    key
+                );
+                let unseal_output = safe_sh_command(&unseal_cmd);
+                if let Some(ref output) = unseal_output {
+                    if !output.status.success() {
+                        warn!("Unseal step {} may have failed", i + 1);
+                    }
+                }
+            }
+        }
+
+        // Create .env if we have root token
+        if let Some(token) = root_token {
+            let env_file = std::path::PathBuf::from(".env");
+            let env_content = format!(
+                r#"
+# Vault Configuration (auto-generated)
+VAULT_ADDR={}
+VAULT_TOKEN={}
+VAULT_CACERT={}
+"#,
+                vault_addr,
+                token,
+                ca_cert.display()
+            );
+
+            if env_file.exists() {
+                let existing = std::fs::read_to_string(&env_file)?;
+                if !existing.contains("VAULT_ADDR=") {
+                    let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
+                    file.write_all(env_content.as_bytes())?;
+                    info!("Appended Vault config to .env");
+                }
+            } else {
+                std::fs::write(&env_file, env_content.trim_start())?;
+                info!("Created .env with Vault config");
+            }
+        } else {
+            warn!("No root token found - Vault may need manual recovery");
+        }
+
+        info!("Vault recovery complete");
+        Ok(())
+    }
+
+    /// Unseal Vault with 3 keys
+    fn unseal_vault(&self, vault_bin: &std::path::Path, vault_addr: &str) -> Result<()> {
+        info!("Unsealing Vault...");
+        let unseal_keys_file = self.base_path.join("vault-unseal-keys");
+        if unseal_keys_file.exists() {
+            let content = std::fs::read_to_string(&unseal_keys_file)?;
+            let keys: Vec<String> = content
+                .lines()
+                .filter_map(|line| {
+                    line.strip_prefix("VAULT_UNSEAL_KEY_")
+                        .and_then(|rest| rest.split_once('='))
+                        .map(|(_, key)| key.to_string())
+                })
+                .collect();
+
+            for (i, key) in keys.iter().take(3).enumerate() {
+                let unseal_cmd = format!(
+                    "{} operator unseal -tls-skip-verify -address={} {}",
+                    vault_bin.display(),
+                    vault_addr,
+                    key
+                );
+                let unseal_output = safe_sh_command(&unseal_cmd);
+                if let Some(ref output) = unseal_output {
+                    if !output.status.success() {
+                        warn!("Unseal step {} may have failed", i + 1);
+                    }
+                }
+            }
+        }
         Ok(())
     }
 
