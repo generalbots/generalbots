@@ -1,6 +1,6 @@
 // Bootstrap manager implementation
 use crate::core::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgress};
-use crate::core::bootstrap::bootstrap_utils::{cache_health_check, safe_pkill, vault_health_check, vector_db_health_check, zitadel_health_check};
+use crate::core::bootstrap::bootstrap_utils::{alm_ci_health_check, alm_health_check, cache_health_check, drive_health_check, safe_pkill, tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check};
 use crate::core::config::AppConfig;
 use crate::core::package_manager::{InstallMode, PackageManager};
 use crate::security::command_guard::SafeCommand;
@@ -107,13 +107,18 @@ impl BootstrapManager {
         }
 
         if pm.is_installed("tables") {
-            info!("Starting PostgreSQL...");
-            match pm.start("tables") {
-                Ok(_child) => {
-                    info!("PostgreSQL started");
-                }
-                Err(e) => {
-                    warn!("Failed to start PostgreSQL: {}", e);
+            let tables_already_running = tables_health_check();
+            if tables_already_running {
+                info!("PostgreSQL is already running");
+            } else {
+                info!("Starting PostgreSQL...");
+                match pm.start("tables") {
+                    Ok(_child) => {
+                        info!("PostgreSQL started");
+                    }
+                    Err(e) => {
+                        warn!("Failed to start PostgreSQL: {}", e);
+                    }
                 }
             }
         }
@@ -127,7 +132,6 @@ impl BootstrapManager {
                 match pm.start("cache") {
                     Ok(_child) => {
                         info!("Valkey cache process started, waiting for readiness...");
-                        // Wait for cache to be ready (up to 30 seconds)
                         for i in 0..30 {
                             sleep(Duration::from_secs(1)).await;
                             if cache_health_check() {
@@ -147,25 +151,28 @@ impl BootstrapManager {
         }
 
         if pm.is_installed("drive") {
-            info!("Starting MinIO...");
-            match pm.start("drive") {
-                Ok(_child) => {
-                    info!("MinIO started");
-                }
-                Err(e) => {
-                    warn!("Failed to start MinIO: {}", e);
+            let drive_already_running = drive_health_check();
+            if drive_already_running {
+                info!("MinIO is already running");
+            } else {
+                info!("Starting MinIO...");
+                match pm.start("drive") {
+                    Ok(_child) => {
+                        info!("MinIO started");
+                    }
+                    Err(e) => {
+                        warn!("Failed to start MinIO: {}", e);
+                    }
                 }
             }
         }
 
         if pm.is_installed("directory") {
-            // Check once if Zitadel is already running
             let directory_already_running = zitadel_health_check();
 
             if directory_already_running {
                 info!("Zitadel/Directory service is already running");
 
-                // Create OAuth client if config doesn't exist (even when already running)
                 let config_path = self.stack_dir("conf/system/directory_config.json");
                 if !config_path.exists() {
                     info!("Creating OAuth client for Directory service...");
@@ -177,7 +184,6 @@ impl BootstrapManager {
                     info!("Directory config already exists, skipping OAuth setup");
                 }
             } else {
-                // Not running — start it immediately, then wait for it to become ready
                 info!("Starting Zitadel/Directory service...");
                 match pm.start("directory") {
                     Ok(_child) => {
@@ -190,7 +196,6 @@ impl BootstrapManager {
                                 zitadel_ready = true;
                                 break;
                             }
-                            // Log progress every 15 checks (30 seconds)
                             if i % 15 == 14 {
                                 info!("Zitadel health check: {}s elapsed, retrying...", (i + 1) * 2);
                             }
@@ -199,7 +204,6 @@ impl BootstrapManager {
                             warn!("Zitadel/Directory service did not respond after 300 seconds");
                         }
 
-                        // Create OAuth client if Zitadel is ready and config doesn't exist
                         if zitadel_ready {
                             let config_path = self.stack_dir("conf/system/directory_config.json");
                             if !config_path.exists() {
@@ -216,37 +220,43 @@ impl BootstrapManager {
                     }
                 }
             }
-
-            // Note: Directory (Zitadel) bootstrap is handled in main_module/bootstrap.rs
-            // where it has proper access to the admin PAT token
         }
 
         if pm.is_installed("alm") {
-            info!("Starting ALM (Forgejo) service...");
-            match pm.start("alm") {
-                Ok(_child) => {
-                    info!("ALM service started");
-                    // Wait for ALM to initialize its database
-                    tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
-                    match crate::core::package_manager::setup_alm().await {
-                        Ok(_) => info!("ALM setup and runner generation successful"),
-                        Err(e) => warn!("ALM setup failed: {}", e),
+            let alm_already_running = alm_health_check();
+            if alm_already_running {
+                info!("ALM (Forgejo) is already running");
+            } else {
+                info!("Starting ALM (Forgejo) service...");
+                match pm.start("alm") {
+                    Ok(_child) => {
+                        info!("ALM service started");
+                        tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
+                        match crate::core::package_manager::setup_alm().await {
+                            Ok(_) => info!("ALM setup and runner generation successful"),
+                            Err(e) => warn!("ALM setup failed: {}", e),
+                        }
                     }
-                }
-                Err(e) => {
-                    warn!("Failed to start ALM service: {}", e);
+                    Err(e) => {
+                        warn!("Failed to start ALM service: {}", e);
+                    }
                 }
             }
         }
 
         if pm.is_installed("alm-ci") {
-            info!("Starting ALM CI (Forgejo Runner) service...");
-            match pm.start("alm-ci") {
-                Ok(_child) => {
-                    info!("ALM CI service started");
-                }
-                Err(e) => {
-                    warn!("Failed to start ALM CI service: {}", e);
+            let alm_ci_already_running = alm_ci_health_check();
+            if alm_ci_already_running {
+                info!("ALM CI (Forgejo Runner) is already running");
+            } else {
+                info!("Starting ALM CI (Forgejo Runner) service...");
+                match pm.start("alm-ci") {
+                    Ok(_child) => {
+                        info!("ALM CI service started");
+                    }
+                    Err(e) => {
+                        warn!("Failed to start ALM CI service: {}", e);
+                    }
                 }
             }
         }

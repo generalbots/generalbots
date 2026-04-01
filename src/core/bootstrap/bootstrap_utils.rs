@@ -245,3 +245,103 @@ pub fn zitadel_health_check() -> bool {
         Err(_) => false,
     }
 }
+
+/// Check if PostgreSQL/Tables is healthy
+pub fn tables_health_check() -> bool {
+    if let Ok(output) = SafeCommand::new("pg_isready")
+        .and_then(|c| c.args(&["-h", "127.0.0.1", "-p", "5432"]))
+        .and_then(|c| c.execute())
+    {
+        return output.status.success();
+    }
+
+    let stack_path =
+        std::env::var("BOTSERVER_STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
+    let pg_isready = format!("{}/bin/tables/bin/pg_isready", stack_path);
+    if let Ok(output) = SafeCommand::new(&pg_isready)
+        .and_then(|c| c.args(&["-h", "127.0.0.1", "-p", "5432"]))
+        .and_then(|c| c.execute())
+    {
+        return output.status.success();
+    }
+
+    match SafeCommand::new("nc")
+        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "5432"]))
+        .and_then(|c| c.execute())
+    {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    }
+}
+
+/// Check if MinIO/Drive is healthy
+pub fn drive_health_check() -> bool {
+    let urls = [
+        "http://127.0.0.1:9100/minio/health/live",
+        "https://127.0.0.1:9100/minio/health/live",
+    ];
+
+    for url in &urls {
+        if let Ok(output) = SafeCommand::new("curl")
+            .and_then(|c| c.args(&["-sfk", "--connect-timeout", "2", "-m", "3", url]))
+            .and_then(|c| c.execute())
+        {
+            if output.status.success() {
+                return true;
+            }
+        }
+    }
+
+    match SafeCommand::new("nc")
+        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "9100"]))
+        .and_then(|c| c.execute())
+    {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    }
+}
+
+/// Check if ALM (Forgejo) is healthy
+pub fn alm_health_check() -> bool {
+    let urls = ["http://localhost:3000", "https://localhost:3000"];
+
+    for url in &urls {
+        if let Ok(output) = SafeCommand::new("curl")
+            .and_then(|c| c.args(&["-sfk", "--connect-timeout", "2", "-m", "3", url]))
+            .and_then(|c| c.execute())
+        {
+            if output.status.success() {
+                return true;
+            }
+        }
+    }
+
+    match SafeCommand::new("nc")
+        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "3000"]))
+        .and_then(|c| c.execute())
+    {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    }
+}
+
+/// Check if ALM CI (Forgejo Runner) is running
+pub fn alm_ci_health_check() -> bool {
+    if let Ok(output) = SafeCommand::new("pgrep")
+        .and_then(|c| c.args(&["-x", "forgejo-runner"]))
+        .and_then(|c| c.execute())
+    {
+        return output.status.success();
+    }
+
+    match SafeCommand::new("ps")
+        .and_then(|c| c.args(&["-ef"]))
+        .and_then(|c| c.execute())
+    {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            stdout.contains("forgejo-runner") && stdout.contains("daemon")
+        }
+        Err(_) => false,
+    }
+}
