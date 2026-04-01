@@ -9,6 +9,19 @@ pub use installer::PackageManager;
 pub mod cli;
 pub mod facade;
 use serde::{Serialize, Deserialize};
+use rand::Rng;
+
+/// Generate a cryptographically strong random string for passwords, tokens, etc.
+pub fn generate_random_string(length: usize) -> String {
+    let charset = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let mut rng = rand::rng();
+    (0..length)
+        .map(|_| {
+            let idx = rng.random_range(0..charset.len());
+            charset[idx] as char
+        })
+        .collect()
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InstallMode {
     Local,

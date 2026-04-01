@@ -54,6 +54,8 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "cargo",
         "redis-server",
         "redis-cli",
+        "valkey-cli",
+        "valkey-server",
         "minio",
         "chromedriver",
         "chrome",
@@ -82,7 +84,11 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         // LLM local servers
         "llama-server",
         "ollama",
+        // Secrets management
+        "vault",
         // Python
+        "nc",
+        "netcat",
         "python",
         "python3",
         "python3.11",
@@ -337,6 +343,20 @@ impl SafeCommand {
             path_entries.insert(0, shared_bin);
         }
 
+        // Add component bin directories to PATH
+        let component_bins = [
+            format!("{}/bin/cache/bin", stack_path),
+            format!("{}/bin/tables/bin", stack_path),
+            format!("{}/bin/vault", stack_path),
+            format!("{}/bin/drive", stack_path),
+            format!("{}/bin/directory", stack_path),
+        ];
+        for bin_dir in component_bins {
+            if std::path::Path::new(&bin_dir).exists() {
+                path_entries.insert(0, bin_dir);
+            }
+        }
+
         cmd.env("PATH", path_entries.join(":"));
         cmd.env("HOME", dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")));
         cmd.env("LANG", "C.UTF-8");
@@ -361,9 +381,12 @@ impl SafeCommand {
 
         // Build PATH with standard locations plus botserver-stack/bin/shared
         let mut path_entries = vec![
+            "/snap/bin".to_string(),
             "/usr/local/bin".to_string(),
             "/usr/bin".to_string(),
             "/bin".to_string(),
+            "/usr/sbin".to_string(),
+            "/sbin".to_string(),
         ];
 
         // Add botserver-stack/bin/shared to PATH if it exists
@@ -372,6 +395,20 @@ impl SafeCommand {
         let shared_bin = format!("{}/bin/shared", stack_path);
         if std::path::Path::new(&shared_bin).exists() {
             path_entries.insert(0, shared_bin);
+        }
+
+        // Add component bin directories to PATH
+        let component_bins = [
+            format!("{}/bin/cache/bin", stack_path),
+            format!("{}/bin/tables/bin", stack_path),
+            format!("{}/bin/vault", stack_path),
+            format!("{}/bin/drive", stack_path),
+            format!("{}/bin/directory", stack_path),
+        ];
+        for bin_dir in component_bins {
+            if std::path::Path::new(&bin_dir).exists() {
+                path_entries.insert(0, bin_dir);
+            }
         }
 
         cmd.env("PATH", path_entries.join(":"));
@@ -406,9 +443,12 @@ impl SafeCommand {
 
         // Build PATH with standard locations plus botserver-stack/bin/shared
         let mut path_entries = vec![
+            "/snap/bin".to_string(),
             "/usr/local/bin".to_string(),
             "/usr/bin".to_string(),
             "/bin".to_string(),
+            "/usr/sbin".to_string(),
+            "/sbin".to_string(),
         ];
 
         // Add botserver-stack/bin/shared to PATH if it exists
@@ -417,6 +457,20 @@ impl SafeCommand {
         let shared_bin = format!("{}/bin/shared", stack_path);
         if std::path::Path::new(&shared_bin).exists() {
             path_entries.insert(0, shared_bin);
+        }
+
+        // Add component bin directories to PATH
+        let component_bins = [
+            format!("{}/bin/cache/bin", stack_path),
+            format!("{}/bin/tables/bin", stack_path),
+            format!("{}/bin/vault", stack_path),
+            format!("{}/bin/drive", stack_path),
+            format!("{}/bin/directory", stack_path),
+        ];
+        for bin_dir in component_bins {
+            if std::path::Path::new(&bin_dir).exists() {
+                path_entries.insert(0, bin_dir);
+            }
         }
 
         cmd.env("PATH", path_entries.join(":"));
@@ -443,9 +497,12 @@ impl SafeCommand {
 
         // Build PATH with standard locations plus botserver-stack/bin/shared
         let mut path_entries = vec![
+            "/snap/bin".to_string(),
             "/usr/local/bin".to_string(),
             "/usr/bin".to_string(),
             "/bin".to_string(),
+            "/usr/sbin".to_string(),
+            "/sbin".to_string(),
         ];
 
         // Add botserver-stack/bin/shared to PATH if it exists
@@ -454,6 +511,20 @@ impl SafeCommand {
         let shared_bin = format!("{}/bin/shared", stack_path);
         if std::path::Path::new(&shared_bin).exists() {
             path_entries.insert(0, shared_bin);
+        }
+
+        // Add component bin directories to PATH
+        let component_bins = [
+            format!("{}/bin/cache/bin", stack_path),
+            format!("{}/bin/tables/bin", stack_path),
+            format!("{}/bin/vault", stack_path),
+            format!("{}/bin/drive", stack_path),
+            format!("{}/bin/directory", stack_path),
+        ];
+        for bin_dir in component_bins {
+            if std::path::Path::new(&bin_dir).exists() {
+                path_entries.insert(0, bin_dir);
+            }
         }
 
         cmd.env("PATH", path_entries.join(":"));

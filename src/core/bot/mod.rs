@@ -39,22 +39,10 @@ use log::{error, info, warn};
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::OnceLock;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
-
-static SERVER_START_EPOCH: OnceLock<u64> = OnceLock::new();
-
-fn server_epoch() -> u64 {
-    *SERVER_START_EPOCH.get_or_init(|| {
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0)
-    })
-}
 
 pub mod channels;
 pub mod multimedia;
