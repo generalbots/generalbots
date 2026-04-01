@@ -284,10 +284,25 @@ pub async fn load_config(
 /// Initialize Redis/Valkey cache with retry logic
 #[cfg(feature = "cache")]
 pub async fn init_redis() -> Option<Arc<redis::Client>> {
+    // Try environment variables first
     let cache_url = std::env::var("CACHE_URL")
         .or_else(|_| std::env::var("REDIS_URL"))
         .or_else(|_| std::env::var("VALKEY_URL"))
-        .unwrap_or_else(|_| "redis://localhost:6379".to_string());
+        .ok();
+
+    // If no env var, try to get credentials from Vault
+    let cache_url = if let Some(url) = cache_url {
+        url
+    } else if let Some(secrets) = crate::core::shared::utils::get_secrets_manager().await {
+        let (host, port, password) = secrets.get_cache_config();
+        if let Some(pass) = password {
+            format!("redis://:{}@{}:{}", pass, host, port)
+        } else {
+            format!("redis://{}:{}", host, port)
+        }
+    } else {
+        "redis://localhost:6379".to_string()
+    };
 
     info!("Attempting to connect to cache at: {}", cache_url);
 
