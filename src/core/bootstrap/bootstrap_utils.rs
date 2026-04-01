@@ -183,7 +183,10 @@ pub fn vector_db_health_check() -> bool {
         {
             if output.status.success() {
                 let response = String::from_utf8_lossy(&output.stdout);
-                if response.contains("OK") || response.contains("\"status\":\"ok\"") {
+                if response.contains("healthz check passed")
+                    || response.contains("OK")
+                    || response.contains("\"status\":\"ok\"")
+                {
                     return true;
                 }
             }

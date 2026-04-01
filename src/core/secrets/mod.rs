@@ -304,7 +304,7 @@ impl SecretsManager {
         Ok((
             s.get("url")
                 .cloned()
-                .unwrap_or_else(|| "https://localhost:6334".into()),
+                .unwrap_or_else(|| "http://localhost:6333".into()),
             s.get("api_key").cloned(),
         ))
     }
@@ -404,12 +404,12 @@ impl SecretsManager {
         if let Ok(runtime) = tokio::runtime::Handle::try_current() {
             if let Ok(secrets) = runtime.block_on(self.get_secret(SecretPaths::VECTORDB)) {
                 return (
-                    secrets.get("url").cloned().unwrap_or_else(|| "https://localhost:6334".into()),
+                    secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:6333".into()),
                     secrets.get("api_key").cloned(),
                 );
             }
         }
-        ("https://localhost:6334".to_string(), None)
+        ("http://localhost:6333".to_string(), None)
     }
 
     pub fn get_observability_config_sync(&self) -> (String, String, String, String) {
@@ -562,8 +562,11 @@ impl SecretsManager {
                 secrets.insert("app_secret".into(), String::new());
             }
             "vectordb" | "gbo/vectordb" | "system/vectordb" => {
-                secrets.insert("url".into(), "http://localhost:6333".into());
-                secrets.insert("api_key".into(), String::new());
+                secrets.insert("url".to_string(), "http://localhost:6333".into());
+                secrets.insert("host".to_string(), "localhost".into());
+                secrets.insert("port".to_string(), "6333".into());
+                secrets.insert("grpc_port".to_string(), "6334".into());
+                secrets.insert("api_key".to_string(), String::new());
             }
             "observability" | "gbo/observability" | "system/observability" => {
                 secrets.insert("url".into(), "http://localhost:8086".into());
