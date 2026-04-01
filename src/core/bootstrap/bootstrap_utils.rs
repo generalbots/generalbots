@@ -119,31 +119,26 @@ pub fn vault_health_check() -> bool {
 
 /// Check if Valkey/Redis cache is healthy
 pub fn cache_health_check() -> bool {
-    match SafeCommand::new("nc")
-        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "6379"]))
-        .and_then(|c| c.execute())
-    {
-        Ok(output) => {
-            if output.status.success() {
-                return true;
-            }
-        }
-        Err(_) => {}
-    }
-
-    let stack_path =
-        std::env::var("BOTSERVER_STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
-    let valkey_cli = format!("{}/bin/cache/bin/valkey-cli", stack_path);
-
-    if let Ok(output) = SafeCommand::new(&valkey_cli)
-        .and_then(|c| c.args(&["-h", "127.0.0.1", "-p", "6379", "ping"]))
+    // Primary: use ss to check if port 6379 is listening
+    if let Ok(output) = SafeCommand::new("ss")
+        .and_then(|c| c.args(&["-tlnp"]))
         .and_then(|c| c.execute())
     {
         if output.status.success() {
-            let response = String::from_utf8_lossy(&output.stdout);
-            if response.trim().to_uppercase() == "PONG" {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains(":6379") {
                 return true;
             }
+        }
+    }
+
+    // Fallback: nc if available
+    if let Ok(output) = SafeCommand::new("nc")
+        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "6379"]))
+        .and_then(|c| c.execute())
+    {
+        if output.status.success() {
+            return true;
         }
     }
 
