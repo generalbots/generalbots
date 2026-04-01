@@ -1269,17 +1269,22 @@ EOF"#.to_string(),
         }
 
         // Check if Vault is reachable before trying to fetch credentials
-        // Use -k for self-signed certs and mTLS client cert
         let client_cert = base_path.join("conf/system/certificates/botserver/client.crt");
         let client_key = base_path.join("conf/system/certificates/botserver/client.key");
-        let vault_check = safe_sh_command(&format!(
-            "curl -sfk --cert {} --key {} {}/v1/sys/health >/dev/null 2>&1",
-            client_cert.display(),
-            client_key.display(),
-            vault_addr
-        ))
-        .map(|o| o.status.success())
-        .unwrap_or(false);
+        let vault_check = SafeCommand::new("curl")
+            .and_then(|c| {
+                c.args(&[
+                    "-sfk",
+                    "--cert",
+                    &client_cert.to_string_lossy(),
+                    "--key",
+                    &client_key.to_string_lossy(),
+                    &format!("{}/v1/sys/health", vault_addr),
+                ])
+            })
+            .and_then(|c| c.execute())
+            .map(|o| o.status.success())
+            .unwrap_or(false);
 
         if !vault_check {
             trace!(
@@ -1290,7 +1295,6 @@ EOF"#.to_string(),
         }
 
         let vault_bin = base_path.join("bin/vault/vault");
-        let vault_bin_str = vault_bin.to_string_lossy();
 
         // Get CA cert path for Vault TLS
         let ca_cert_path = std::env::var("VAULT_CACERT").unwrap_or_else(|_| {
@@ -1303,53 +1307,75 @@ EOF"#.to_string(),
         trace!(
             "Fetching drive credentials from Vault at {} using {}",
             vault_addr,
-            vault_bin_str
+            vault_bin.display()
         );
-        let drive_cmd = format!(
-            "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -format=json secret/gbo/drive",
-            vault_addr, vault_token, ca_cert_path, vault_bin_str
-        );
-        match safe_sh_command(&drive_cmd) {
-            Some(output) => {
-                if output.status.success() {
-                    let json_str = String::from_utf8_lossy(&output.stdout);
-                    trace!("Vault drive response: {}", json_str);
-                    match serde_json::from_str::<serde_json::Value>(&json_str) {
-                        Ok(json) => {
-                            if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
-                                if let Some(accesskey) =
-                                    data.get("accesskey").and_then(|v| v.as_str())
-                                {
-                                    trace!("Found DRIVE_ACCESSKEY from Vault");
-                                    credentials.insert(
-                                        "DRIVE_ACCESSKEY".to_string(),
-                                        accesskey.to_string(),
-                                    );
-                                }
-                                if let Some(secret) = data.get("secret").and_then(|v| v.as_str()) {
-                                    trace!("Found DRIVE_SECRET from Vault");
-                                    credentials
-                                        .insert("DRIVE_SECRET".to_string(), secret.to_string());
-                                }
-                            } else {
-                                warn!("Vault response missing data.data field");
-                            }
+
+        // Fetch drive credentials
+        let drive_result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
+            .and_then(|c| {
+                c.env("VAULT_ADDR", &vault_addr)
+                    .and_then(|c| c.env("VAULT_TOKEN", &vault_token))
+                    .and_then(|c| c.env("VAULT_CACERT", &ca_cert_path))
+            })
+            .and_then(|c| {
+                c.args(&[
+                    "kv",
+                    "get",
+                    "-format=json",
+                    "-tls-skip-verify",
+                    "secret/gbo/drive",
+                ])
+            })
+            .and_then(|c| c.execute());
+
+        if let Ok(output) = drive_result {
+            if output.status.success() {
+                let json_str = String::from_utf8_lossy(&output.stdout);
+                trace!("Vault drive response: {}", json_str);
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                    if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
+                        if let Some(accesskey) = data.get("accesskey").and_then(|v| v.as_str()) {
+                            trace!("Found DRIVE_ACCESSKEY from Vault");
+                            credentials
+                                .insert("DRIVE_ACCESSKEY".to_string(), accesskey.to_string());
                         }
-                        Err(e) => warn!("Failed to parse Vault JSON: {}", e),
+                        if let Some(secret) = data.get("secret").and_then(|v| v.as_str()) {
+                            trace!("Found DRIVE_SECRET from Vault");
+                            credentials.insert("DRIVE_SECRET".to_string(), secret.to_string());
+                        }
+                    } else {
+                        warn!("Vault response missing data.data field");
                     }
                 } else {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    warn!("Vault drive command failed: {}", stderr);
+                    warn!("Failed to parse Vault JSON for drive");
                 }
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                warn!("Vault drive command failed: {}", stderr);
             }
-            None => warn!("Failed to execute Vault command"),
+        } else {
+            warn!("Failed to execute Vault drive command");
         }
 
-        let cache_cmd = format!(
-            "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -format=json secret/gbo/cache 2>/dev/null",
-            vault_addr, vault_token, ca_cert_path, vault_bin_str
-        );
-        if let Some(output) = safe_sh_command(&cache_cmd) {
+        // Fetch cache credentials
+        let cache_result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
+            .and_then(|c| {
+                c.env("VAULT_ADDR", &vault_addr)
+                    .and_then(|c| c.env("VAULT_TOKEN", &vault_token))
+                    .and_then(|c| c.env("VAULT_CACERT", &ca_cert_path))
+            })
+            .and_then(|c| {
+                c.args(&[
+                    "kv",
+                    "get",
+                    "-format=json",
+                    "-tls-skip-verify",
+                    "secret/gbo/cache",
+                ])
+            })
+            .and_then(|c| c.execute());
+
+        if let Ok(output) = cache_result {
             if output.status.success() {
                 if let Ok(json_str) = String::from_utf8(output.stdout) {
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
@@ -1566,6 +1592,134 @@ VAULT_CACERT={}
             }
         }
 
+        // Write default credentials to Vault for all components
+        self.seed_vault_defaults(&vault_addr, &root_token, &ca_cert, &vault_bin)?;
+
+        Ok(())
+    }
+
+    /// Seed default credentials into Vault KV2 after initialization
+    fn seed_vault_defaults(
+        &self,
+        vault_addr: &str,
+        root_token: &str,
+        ca_cert: &std::path::Path,
+        vault_bin: &std::path::Path,
+    ) -> Result<()> {
+        info!("Seeding default credentials into Vault...");
+
+        let defaults: Vec<(&str, Vec<(&str, &str)>)> = vec![
+            (
+                "secret/gbo/drive",
+                vec![
+                    ("accesskey", "minioadmin"),
+                    ("secret", "minioadmin"),
+                    ("host", "localhost"),
+                    ("port", "9000"),
+                ],
+            ),
+            (
+                "secret/gbo/cache",
+                vec![("password", ""), ("host", "localhost"), ("port", "6379")],
+            ),
+            (
+                "secret/gbo/tables",
+                vec![
+                    ("password", "changeme"),
+                    ("host", "localhost"),
+                    ("port", "5432"),
+                    ("database", "botserver"),
+                    ("username", "gbuser"),
+                ],
+            ),
+            (
+                "secret/gbo/directory",
+                vec![
+                    ("url", "http://localhost:9000"),
+                    ("project_id", ""),
+                    ("client_id", ""),
+                    ("client_secret", ""),
+                ],
+            ),
+            (
+                "secret/gbo/email",
+                vec![
+                    ("smtp_host", ""),
+                    ("smtp_port", "587"),
+                    ("smtp_user", ""),
+                    ("smtp_password", ""),
+                    ("smtp_from", ""),
+                ],
+            ),
+            (
+                "secret/gbo/llm",
+                vec![
+                    ("url", "http://localhost:8081"),
+                    ("model", "gpt-4"),
+                    ("openai_key", ""),
+                    ("anthropic_key", ""),
+                    ("ollama_url", "http://localhost:11434"),
+                ],
+            ),
+            ("secret/gbo/encryption", vec![("master_key", "")]),
+            (
+                "secret/gbo/meet",
+                vec![
+                    ("url", "http://localhost:7880"),
+                    ("app_id", ""),
+                    ("app_secret", ""),
+                ],
+            ),
+            (
+                "secret/gbo/vectordb",
+                vec![("url", "http://localhost:6333"), ("api_key", "")],
+            ),
+            ("secret/gbo/alm", vec![("url", ""), ("token", "")]),
+        ];
+
+        for (path, kv_pairs) in &defaults {
+            let mut args = vec![
+                "kv".to_string(),
+                "put".to_string(),
+                "-tls-skip-verify".to_string(),
+                format!("-address={}", vault_addr),
+                path.to_string(),
+            ];
+            for (k, v) in kv_pairs.iter() {
+                args.push(format!("{}={}", k, v));
+            }
+
+            let result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
+                .and_then(|c| {
+                    let mut cmd = c;
+                    for arg in &args {
+                        cmd = cmd.trusted_arg(arg)?;
+                    }
+                    Ok(cmd)
+                })
+                .and_then(|c| {
+                    c.env("VAULT_ADDR", vault_addr)
+                        .and_then(|c| c.env("VAULT_TOKEN", root_token))
+                        .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
+                })
+                .and_then(|c| c.execute());
+
+            match result {
+                Ok(output) => {
+                    if output.status.success() {
+                        info!("Seeded Vault defaults at {}", path);
+                    } else {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        warn!("Failed to seed {} in Vault: {}", path, stderr);
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to execute vault put for {}: {}", path, e);
+                }
+            }
+        }
+
+        info!("Vault defaults seeded successfully");
         Ok(())
     }
 
@@ -1632,7 +1786,7 @@ VAULT_CACERT={}
         }
 
         // Create .env if we have root token
-        if let Some(token) = root_token {
+        if let Some(ref token) = root_token {
             let env_file = std::path::PathBuf::from(".env");
             let env_content = format!(
                 r#"
@@ -1659,6 +1813,11 @@ VAULT_CACERT={}
             }
         } else {
             warn!("No root token found - Vault may need manual recovery");
+        }
+
+        // Seed defaults if we have a token (ensure credentials exist even during recovery)
+        if let Some(ref token) = root_token {
+            let _ = self.seed_vault_defaults(&vault_addr, token, &ca_cert, &vault_bin);
         }
 
         info!("Vault recovery complete");
