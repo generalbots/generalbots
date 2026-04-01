@@ -1268,7 +1268,6 @@ EOF"#.to_string(),
             return credentials;
         }
 
-        // Check if Vault is reachable before trying to fetch credentials
         let client_cert = base_path.join("conf/system/certificates/botserver/client.crt");
         let client_key = base_path.join("conf/system/certificates/botserver/client.key");
         let vault_check = SafeCommand::new("curl")
@@ -1295,8 +1294,6 @@ EOF"#.to_string(),
         }
 
         let vault_bin = base_path.join("bin/vault/vault");
-
-        // Get CA cert path for Vault TLS
         let ca_cert_path = std::env::var("VAULT_CACERT").unwrap_or_else(|_| {
             base_path
                 .join("conf/system/certificates/ca/ca.crt")
@@ -1304,85 +1301,43 @@ EOF"#.to_string(),
                 .to_string()
         });
 
-        trace!(
-            "Fetching drive credentials from Vault at {} using {}",
-            vault_addr,
-            vault_bin.display()
-        );
+        let services = [
+            ("drive", "secret/gbo/drive"),
+            ("cache", "secret/gbo/cache"),
+            ("tables", "secret/gbo/tables"),
+            ("vectordb", "secret/gbo/vectordb"),
+            ("directory", "secret/gbo/directory"),
+            ("llm", "secret/gbo/llm"),
+            ("meet", "secret/gbo/meet"),
+            ("alm", "secret/gbo/alm"),
+            ("encryption", "secret/gbo/encryption"),
+        ];
 
-        // Fetch drive credentials
-        let drive_result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
-            .and_then(|c| {
-                c.env("VAULT_ADDR", &vault_addr)
-                    .and_then(|c| c.env("VAULT_TOKEN", &vault_token))
-                    .and_then(|c| c.env("VAULT_CACERT", &ca_cert_path))
-            })
-            .and_then(|c| {
-                c.args(&[
-                    "kv",
-                    "get",
-                    "-format=json",
-                    "-tls-skip-verify",
-                    "secret/gbo/drive",
-                ])
-            })
-            .and_then(|c| c.execute());
+        for (service_name, vault_path) in &services {
+            let result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
+                .and_then(|c| {
+                    c.env("VAULT_ADDR", &vault_addr)
+                        .and_then(|c| c.env("VAULT_TOKEN", &vault_token))
+                        .and_then(|c| c.env("VAULT_CACERT", &ca_cert_path))
+                })
+                .and_then(|c| {
+                    c.args(&["kv", "get", "-format=json", "-tls-skip-verify", vault_path])
+                })
+                .and_then(|c| c.execute());
 
-        if let Ok(output) = drive_result {
-            if output.status.success() {
-                let json_str = String::from_utf8_lossy(&output.stdout);
-                trace!("Vault drive response: {}", json_str);
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                    if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
-                        if let Some(accesskey) = data.get("accesskey").and_then(|v| v.as_str()) {
-                            trace!("Found DRIVE_ACCESSKEY from Vault");
-                            credentials
-                                .insert("DRIVE_ACCESSKEY".to_string(), accesskey.to_string());
-                        }
-                        if let Some(secret) = data.get("secret").and_then(|v| v.as_str()) {
-                            trace!("Found DRIVE_SECRET from Vault");
-                            credentials.insert("DRIVE_SECRET".to_string(), secret.to_string());
-                        }
-                    } else {
-                        warn!("Vault response missing data.data field");
-                    }
-                } else {
-                    warn!("Failed to parse Vault JSON for drive");
-                }
-            } else {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                warn!("Vault drive command failed: {}", stderr);
-            }
-        } else {
-            warn!("Failed to execute Vault drive command");
-        }
-
-        // Fetch cache credentials
-        let cache_result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
-            .and_then(|c| {
-                c.env("VAULT_ADDR", &vault_addr)
-                    .and_then(|c| c.env("VAULT_TOKEN", &vault_token))
-                    .and_then(|c| c.env("VAULT_CACERT", &ca_cert_path))
-            })
-            .and_then(|c| {
-                c.args(&[
-                    "kv",
-                    "get",
-                    "-format=json",
-                    "-tls-skip-verify",
-                    "secret/gbo/cache",
-                ])
-            })
-            .and_then(|c| c.execute());
-
-        if let Ok(output) = cache_result {
-            if output.status.success() {
-                if let Ok(json_str) = String::from_utf8(output.stdout) {
+            if let Ok(output) = result {
+                if output.status.success() {
+                    let json_str = String::from_utf8_lossy(&output.stdout);
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
                         if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
-                            if let Some(password) = data.get("password").and_then(|v| v.as_str()) {
-                                credentials
-                                    .insert("CACHE_PASSWORD".to_string(), password.to_string());
+                            if let Some(obj) = data.as_object() {
+                                let prefix = service_name.to_uppercase();
+                                for (key, value) in obj {
+                                    if let Some(v) = value.as_str() {
+                                        let env_key = format!("{}_{}", prefix, key.to_uppercase());
+                                        credentials.insert(env_key, v.to_string());
+                                    }
+                                }
                             }
                         }
                     }
@@ -1629,6 +1584,7 @@ VAULT_CACERT={}
                     ("secret".to_string(), drive_pass),
                     ("host".to_string(), "localhost".to_string()),
                     ("port".to_string(), "9000".to_string()),
+                    ("url".to_string(), "http://localhost:9000".to_string()),
                 ],
             ),
             (
@@ -1637,6 +1593,7 @@ VAULT_CACERT={}
                     ("password".to_string(), cache_pass),
                     ("host".to_string(), "localhost".to_string()),
                     ("port".to_string(), "6379".to_string()),
+                    ("url".to_string(), "redis://localhost:6379".to_string()),
                 ],
             ),
             (
@@ -1647,12 +1604,15 @@ VAULT_CACERT={}
                     ("port".to_string(), "5432".to_string()),
                     ("database".to_string(), "botserver".to_string()),
                     ("username".to_string(), "gbuser".to_string()),
+                    ("url".to_string(), "postgres://localhost:5432".to_string()),
                 ],
             ),
             (
                 "secret/gbo/directory",
                 vec![
                     ("url".to_string(), "http://localhost:9000".to_string()),
+                    ("host".to_string(), "localhost".to_string()),
+                    ("port".to_string(), "9000".to_string()),
                     ("project_id".to_string(), "none".to_string()),
                     ("client_id".to_string(), "none".to_string()),
                     ("client_secret".to_string(), "none".to_string()),
@@ -1672,6 +1632,8 @@ VAULT_CACERT={}
                 "secret/gbo/llm",
                 vec![
                     ("url".to_string(), "http://localhost:8081".to_string()),
+                    ("host".to_string(), "localhost".to_string()),
+                    ("port".to_string(), "8081".to_string()),
                     ("model".to_string(), "gpt-4".to_string()),
                     ("openai_key".to_string(), "none".to_string()),
                     ("anthropic_key".to_string(), "none".to_string()),
@@ -1689,6 +1651,8 @@ VAULT_CACERT={}
                 "secret/gbo/meet",
                 vec![
                     ("url".to_string(), "http://localhost:7880".to_string()),
+                    ("host".to_string(), "localhost".to_string()),
+                    ("port".to_string(), "7880".to_string()),
                     ("app_id".to_string(), meet_app_id),
                     ("app_secret".to_string(), meet_app_secret),
                 ],
@@ -1697,14 +1661,20 @@ VAULT_CACERT={}
                 "secret/gbo/vectordb",
                 vec![
                     ("url".to_string(), "http://localhost:6333".to_string()),
+                    ("host".to_string(), "localhost".to_string()),
+                    ("port".to_string(), "6333".to_string()),
+                    ("grpc_port".to_string(), "6334".to_string()),
                     ("api_key".to_string(), "none".to_string()),
                 ],
             ),
             (
                 "secret/gbo/alm",
                 vec![
-                    ("url".to_string(), "none".to_string()),
+                    ("url".to_string(), "http://localhost:9000".to_string()),
+                    ("host".to_string(), "localhost".to_string()),
+                    ("port".to_string(), "9000".to_string()),
                     ("token".to_string(), alm_token),
+                    ("default_org".to_string(), "none".to_string()),
                 ],
             ),
         ];

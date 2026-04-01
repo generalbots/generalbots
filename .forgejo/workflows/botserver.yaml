@@ -78,8 +78,6 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "ls -lh /opt/gbo/bin/botserver"
           echo "Step 6: Setting permissions..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver"
-          echo "Step 7: Starting botserver..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "cd /opt/gbo/bin && sudo -u gbuser ./botserver --noconsole >> /opt/gbo/logs/error.log 2>&1 &"
           echo "=== Deploy completed ==="
 
       - name: Verify botserver started
