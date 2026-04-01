@@ -119,7 +119,11 @@ pub fn vault_health_check() -> bool {
 
 /// Check if Valkey/Redis cache is healthy
 pub fn cache_health_check() -> bool {
-    if let Ok(output) = SafeCommand::new("valkey-cli")
+    let stack_path =
+        std::env::var("BOTSERVER_STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
+    let valkey_cli = format!("{}/bin/cache/bin/valkey-cli", stack_path);
+
+    if let Ok(output) = SafeCommand::new(&valkey_cli)
         .and_then(|c| c.args(&["-h", "127.0.0.1", "-p", "6379", "ping"]))
         .and_then(|c| c.execute())
     {
@@ -148,24 +152,7 @@ pub fn cache_health_check() -> bool {
         .and_then(|c| c.execute())
     {
         Ok(output) => output.status.success(),
-        Err(_) => {
-            match SafeCommand::new("bash")
-                .and_then(|c| c.arg("-c"))
-                .and_then(|c| {
-                    c.arg(
-                        "exec 3<>/dev/tcp/127.0.0.1/6379 2>/dev/null && \
-                     echo -e 'PING\r\n' >&3 && \
-                     read -t 1 response <&3 && \
-                     [[ \"$response\" == *PONG* ]] && \
-                     exec 3>&-",
-                    )
-                })
-                .and_then(|c| c.execute())
-            {
-                Ok(output) => output.status.success(),
-                Err(_) => false,
-            }
-        }
+        Err(_) => false,
     }
 }
 
