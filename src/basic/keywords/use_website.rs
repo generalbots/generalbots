@@ -1,7 +1,7 @@
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, info, trace};
+use log::{debug, error, info, trace};
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -542,6 +542,24 @@ pub fn register_website_for_crawling_with_refresh(
     url: &str,
     refresh_interval: &str,
 ) -> Result<(), String> {
+    // Check if already registered to avoid misleading logs
+    let is_new: bool = {
+        #[derive(QueryableByName)]
+        struct ExistsRow {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            cnt: i64,
+        }
+        let result: Vec<ExistsRow> = diesel::sql_query(
+            "SELECT COUNT(*)::BIGINT as cnt FROM website_crawls WHERE bot_id = $1 AND url = $2",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Text, _>(url)
+        .load(conn)
+        .unwrap_or_default();
+
+        result.first().map(|r| r.cnt == 0).unwrap_or(true)
+    };
+
     let days = parse_refresh_interval(refresh_interval)
         .map_err(|e| format!("Invalid refresh interval: {}", e))?;
 
@@ -569,10 +587,17 @@ pub fn register_website_for_crawling_with_refresh(
         .execute(conn)
         .map_err(|e| format!("Failed to register website for crawling: {}", e))?;
 
-    info!(
-        "Website {} registered for crawling for bot {} with refresh policy: {}",
-        url, bot_id, refresh_interval
-    );
+    if is_new {
+        info!(
+            "Website {} registered for crawling for bot {} with refresh policy: {}",
+            url, bot_id, refresh_interval
+        );
+    } else {
+        debug!(
+            "Website {} already registered for crawling for bot {}, refresh policy: {}",
+            url, bot_id, refresh_interval
+        );
+    }
     Ok(())
 }
 

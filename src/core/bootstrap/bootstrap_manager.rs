@@ -87,15 +87,15 @@ impl BootstrapManager {
                 match pm.start("vector_db") {
                     Ok(_child) => {
                         info!("Vector database process started, waiting for readiness...");
-                        // Wait for vector_db to be ready
-                        for i in 0..15 {
+                        // Wait for vector_db to be ready (up to 45 seconds)
+                        for i in 0..45 {
                             sleep(Duration::from_secs(1)).await;
                             if vector_db_health_check() {
                                 info!("Vector database (Qdrant) is responding");
                                 break;
                             }
-                            if i == 14 {
-                                warn!("Vector database did not respond after 15 seconds");
+                            if i == 44 {
+                                warn!("Vector database did not respond after 45 seconds");
                             }
                         }
                     }
@@ -226,8 +226,8 @@ impl BootstrapManager {
             match pm.start("alm") {
                 Ok(_child) => {
                     info!("ALM service started");
-                    // Wait briefly for ALM to initialize its DB
-                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    // Wait for ALM to initialize its database
+                    tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
                     match crate::core::package_manager::setup_alm().await {
                         Ok(_) => info!("ALM setup and runner generation successful"),
                         Err(e) => warn!("ALM setup failed: {}", e),

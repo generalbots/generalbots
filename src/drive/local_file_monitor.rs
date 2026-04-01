@@ -21,11 +21,21 @@ struct LocalFileState {
     size: u64,
 }
 
+/// Tracks state of a KB folder for change detection
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct KbFolderState {
+    /// Combined hash of all file mtimes and sizes in the folder tree
+    content_hash: u64,
+    /// Number of files indexed last time
+    file_count: usize,
+}
+
 pub struct LocalFileMonitor {
     state: Arc<AppState>,
     data_dir: PathBuf,
     work_root: PathBuf,
     file_states: Arc<RwLock<HashMap<String, LocalFileState>>>,
+    kb_states: Arc<RwLock<HashMap<String, KbFolderState>>>,
     is_processing: Arc<AtomicBool>,
     #[cfg(any(feature = "research", feature = "llm"))]
     kb_manager: Option<Arc<KnowledgeBaseManager>>,
@@ -57,6 +67,7 @@ impl LocalFileMonitor {
             data_dir,
             work_root,
             file_states: Arc::new(RwLock::new(HashMap::new())),
+            kb_states: Arc::new(RwLock::new(HashMap::new())),
             is_processing: Arc::new(AtomicBool::new(false)),
             #[cfg(any(feature = "research", feature = "llm"))]
             kb_manager,
@@ -71,8 +82,14 @@ impl LocalFileMonitor {
             warn!("Failed to create data directory: {}", e);
         }
 
+        // Load persisted file states from disk
+        self.load_states().await;
+
         // Initial scan of all .gbai directories
         self.scan_and_compile_all().await?;
+
+        // Persist states back to disk
+        self.save_states().await;
 
         self.is_processing.store(true, Ordering::SeqCst);
 
@@ -236,8 +253,6 @@ impl LocalFileMonitor {
         gbkb_path: &Path,
         _kb_manager: &Arc<KnowledgeBaseManager>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        info!("Indexing .gbkb folder for bot {}: {:?}", bot_name, gbkb_path);
-
         // Get bot_id from database
         let bot_id = {
             use crate::core::shared::models::schema::bots::dsl::*;
@@ -252,12 +267,9 @@ impl LocalFileMonitor {
 
         // Load bot-specific embedding config from database
         let embedding_config = EmbeddingConfig::from_bot_config(&self.state.conn, &bot_id);
-        info!("Using embedding config for bot '{}': URL={}, model={}", 
-              bot_name, embedding_config.embedding_url, embedding_config.embedding_model);
 
-        // Create a temporary KbIndexer with the bot-specific config
-        let qdrant_config = crate::core::kb::QdrantConfig::default();
-        let indexer = crate::core::kb::KbIndexer::new(embedding_config, qdrant_config);
+        // Compute content hash of the entire .gbkb tree
+        let (content_hash, file_count) = self.compute_gbkb_hash(gbkb_path).await?;
 
         // Index each KB folder inside .gbkb (e.g., carta, proc)
         let entries = tokio::fs::read_dir(gbkb_path).await?;
@@ -268,7 +280,26 @@ impl LocalFileMonitor {
 
             if kb_folder_path.is_dir() {
                 if let Some(kb_name) = kb_folder_path.file_name().and_then(|n| n.to_str()) {
+                    let kb_key = format!("{}:{}", bot_name, kb_name);
+
+                    // Check if KB content changed since last index
+                    let should_index = {
+                        let states = self.kb_states.read().await;
+                        states.get(&kb_key)
+                            .map(|state| state.content_hash != content_hash || state.file_count != file_count)
+                            .unwrap_or(true)
+                    };
+
+                    if !should_index {
+                        debug!("KB '{}' for bot '{}' unchanged, skipping re-index", kb_name, bot_name);
+                        continue;
+                    }
+
                     info!("Indexing KB '{}' for bot '{}'", kb_name, bot_name);
+
+                    // Create a temporary KbIndexer with the bot-specific config
+                    let qdrant_config = crate::core::kb::QdrantConfig::default();
+                    let indexer = crate::core::kb::KbIndexer::new(embedding_config.clone(), qdrant_config);
 
                     if let Err(e) = indexer.index_kb_folder(
                         bot_id,
@@ -278,11 +309,45 @@ impl LocalFileMonitor {
                     ).await {
                         error!("Failed to index KB '{}' for bot '{}': {}", kb_name, bot_name, e);
                     }
+
+                    // Update state to mark as indexed
+                    let mut states = self.kb_states.write().await;
+                    states.insert(kb_key, KbFolderState { content_hash, file_count });
                 }
             }
         }
 
         Ok(())
+    }
+
+    /// Compute a simple hash over all file metadata in a folder tree
+    #[cfg(any(feature = "research", feature = "llm"))]
+    async fn compute_gbkb_hash(&self, root: &Path) -> Result<(u64, usize), Box<dyn Error + Send + Sync>> {
+        let mut hash: u64 = 0;
+        let mut file_count: usize = 0;
+
+        let mut stack = vec![root.to_path_buf()];
+        while let Some(dir) = stack.pop() {
+            let mut entries = tokio::fs::read_dir(&dir).await?;
+            while let Some(entry) = entries.next_entry().await? {
+                let path = entry.path();
+                if path.is_dir() {
+                    stack.push(path);
+                } else {
+                    if let Ok(meta) = tokio::fs::metadata(&path).await {
+                        let mtime = meta.modified()
+                            .map(|t| t.duration_since(SystemTime::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0))
+                            .unwrap_or(0);
+                        let size = meta.len();
+                        // Simple combinatorial hash
+                        hash = hash.wrapping_mul(31).wrapping_add(mtime.wrapping_mul(37).wrapping_add(size));
+                        file_count += 1;
+                    }
+                }
+            }
+        }
+
+        Ok((hash, file_count))
     }
 
     async fn compile_gbdialog(&self, bot_name: &str, gbdialog_path: &Path) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -400,10 +465,93 @@ impl LocalFileMonitor {
         states.remove(&file_key);
     }
 
+    /// Persist file states and KB states to disk for survival across restarts
+    async fn save_states(&self) {
+        if let Err(e) = tokio::fs::create_dir_all(&self.work_root).await {
+            warn!("Failed to create work directory: {}", e);
+            return;
+        }
+
+        // Persist file states
+        let file_states_file = self.work_root.join("local_file_states.json");
+        {
+            let states = self.file_states.read().await;
+            match serde_json::to_string_pretty(&*states) {
+                Ok(json) => {
+                    if let Err(e) = tokio::fs::write(&file_states_file, json).await {
+                        warn!("Failed to persist file states: {}", e);
+                    } else {
+                        debug!("Persisted {} file states to disk", states.len());
+                    }
+                }
+                Err(e) => warn!("Failed to serialize file states: {}", e),
+            }
+        }
+
+        // Persist KB states
+        let kb_states_file = self.work_root.join("local_kb_states.json");
+        {
+            let states = self.kb_states.read().await;
+            match serde_json::to_string_pretty(&*states) {
+                Ok(json) => {
+                    if let Err(e) = tokio::fs::write(&kb_states_file, json).await {
+                        warn!("Failed to persist KB states: {}", e);
+                    } else {
+                        debug!("Persisted {} KB states to disk", states.len());
+                    }
+                }
+                Err(e) => warn!("Failed to serialize KB states: {}", e),
+            }
+        }
+    }
+
+    /// Load file states and KB states from disk
+    async fn load_states(&self) {
+        if let Err(e) = tokio::fs::create_dir_all(&self.work_root).await {
+            warn!("Failed to create work directory: {}", e);
+        }
+
+        // Load file states
+        let file_states_file = self.work_root.join("local_file_states.json");
+        match tokio::fs::read_to_string(&file_states_file).await {
+            Ok(json) => {
+                match serde_json::from_str::<HashMap<String, LocalFileState>>(&json) {
+                    Ok(states) => {
+                        let count = states.len();
+                        *self.file_states.write().await = states;
+                        info!("Loaded {} persisted file states from disk", count);
+                    }
+                    Err(e) => warn!("Failed to parse persisted file states: {}", e),
+                }
+            }
+            Err(_) => {
+                debug!("No persisted file states found, starting fresh");
+            }
+        }
+
+        // Load KB states
+        let kb_states_file = self.work_root.join("local_kb_states.json");
+        match tokio::fs::read_to_string(&kb_states_file).await {
+            Ok(json) => {
+                match serde_json::from_str::<HashMap<String, KbFolderState>>(&json) {
+                    Ok(states) => {
+                        let count = states.len();
+                        *self.kb_states.write().await = states;
+                        info!("Loaded {} persisted KB states from disk", count);
+                    }
+                    Err(e) => warn!("Failed to parse persisted KB states: {}", e),
+                }
+            }
+            Err(_) => {
+                debug!("No persisted KB states found, starting fresh");
+            }
+        }
+    }
+
     pub async fn stop_monitoring(&self) {
         trace!("Stopping local file monitor");
         self.is_processing.store(false, Ordering::SeqCst);
-        self.file_states.write().await.clear();
+        self.save_states().await;
     }
 }
 
@@ -414,6 +562,7 @@ impl Clone for LocalFileMonitor {
             data_dir: self.data_dir.clone(),
             work_root: self.work_root.clone(),
             file_states: Arc::clone(&self.file_states),
+            kb_states: Arc::clone(&self.kb_states),
             is_processing: Arc::clone(&self.is_processing),
             #[cfg(any(feature = "research", feature = "llm"))]
             kb_manager: self.kb_manager.clone(),

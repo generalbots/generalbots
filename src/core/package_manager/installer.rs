@@ -1608,73 +1608,105 @@ VAULT_CACERT={}
     ) -> Result<()> {
         info!("Seeding default credentials into Vault...");
 
-        let defaults: Vec<(&str, Vec<(&str, &str)>)> = vec![
+        let drive_user = super::generate_random_string(16);
+        let drive_pass = super::generate_random_string(32);
+        let cache_pass = super::generate_random_string(32);
+        let db_pass = super::generate_random_string(32);
+        let master_key = super::generate_random_string(64);
+        let meet_app_id = super::generate_random_string(24);
+        let meet_app_secret = super::generate_random_string(48);
+        let alm_token = super::generate_random_string(40);
+
+        info!(
+            "Generated strong random credentials for: drive, cache, tables, encryption, meet, alm"
+        );
+
+        let defaults: Vec<(&str, Vec<(String, String)>)> = vec![
             (
                 "secret/gbo/drive",
                 vec![
-                    ("accesskey", "minioadmin"),
-                    ("secret", "minioadmin"),
-                    ("host", "localhost"),
-                    ("port", "9000"),
+                    ("accesskey".to_string(), drive_user),
+                    ("secret".to_string(), drive_pass),
+                    ("host".to_string(), "localhost".to_string()),
+                    ("port".to_string(), "9000".to_string()),
                 ],
             ),
             (
                 "secret/gbo/cache",
-                vec![("password", ""), ("host", "localhost"), ("port", "6379")],
+                vec![
+                    ("password".to_string(), cache_pass),
+                    ("host".to_string(), "localhost".to_string()),
+                    ("port".to_string(), "6379".to_string()),
+                ],
             ),
             (
                 "secret/gbo/tables",
                 vec![
-                    ("password", "changeme"),
-                    ("host", "localhost"),
-                    ("port", "5432"),
-                    ("database", "botserver"),
-                    ("username", "gbuser"),
+                    ("password".to_string(), db_pass),
+                    ("host".to_string(), "localhost".to_string()),
+                    ("port".to_string(), "5432".to_string()),
+                    ("database".to_string(), "botserver".to_string()),
+                    ("username".to_string(), "gbuser".to_string()),
                 ],
             ),
             (
                 "secret/gbo/directory",
                 vec![
-                    ("url", "http://localhost:9000"),
-                    ("project_id", ""),
-                    ("client_id", ""),
-                    ("client_secret", ""),
+                    ("url".to_string(), "http://localhost:9000".to_string()),
+                    ("project_id".to_string(), "none".to_string()),
+                    ("client_id".to_string(), "none".to_string()),
+                    ("client_secret".to_string(), "none".to_string()),
                 ],
             ),
             (
                 "secret/gbo/email",
                 vec![
-                    ("smtp_host", ""),
-                    ("smtp_port", "587"),
-                    ("smtp_user", ""),
-                    ("smtp_password", ""),
-                    ("smtp_from", ""),
+                    ("smtp_host".to_string(), "none".to_string()),
+                    ("smtp_port".to_string(), "587".to_string()),
+                    ("smtp_user".to_string(), "none".to_string()),
+                    ("smtp_password".to_string(), "none".to_string()),
+                    ("smtp_from".to_string(), "none".to_string()),
                 ],
             ),
             (
                 "secret/gbo/llm",
                 vec![
-                    ("url", "http://localhost:8081"),
-                    ("model", "gpt-4"),
-                    ("openai_key", ""),
-                    ("anthropic_key", ""),
-                    ("ollama_url", "http://localhost:11434"),
+                    ("url".to_string(), "http://localhost:8081".to_string()),
+                    ("model".to_string(), "gpt-4".to_string()),
+                    ("openai_key".to_string(), "none".to_string()),
+                    ("anthropic_key".to_string(), "none".to_string()),
+                    (
+                        "ollama_url".to_string(),
+                        "http://localhost:11434".to_string(),
+                    ),
                 ],
             ),
-            ("secret/gbo/encryption", vec![("master_key", "")]),
+            (
+                "secret/gbo/encryption",
+                vec![("master_key".to_string(), master_key)],
+            ),
             (
                 "secret/gbo/meet",
                 vec![
-                    ("url", "http://localhost:7880"),
-                    ("app_id", ""),
-                    ("app_secret", ""),
+                    ("url".to_string(), "http://localhost:7880".to_string()),
+                    ("app_id".to_string(), meet_app_id),
+                    ("app_secret".to_string(), meet_app_secret),
                 ],
             ),
             (
                 "secret/gbo/vectordb",
-                vec![("url", "http://localhost:6333"), ("api_key", "")],
+                vec![
+                    ("url".to_string(), "http://localhost:6333".to_string()),
+                    ("api_key".to_string(), "none".to_string()),
+                ],
             ),
-            ("secret/gbo/alm", vec![("url", ""), ("token", "")]),
+            (
+                "secret/gbo/alm",
+                vec![
+                    ("url".to_string(), "none".to_string()),
+                    ("token".to_string(), alm_token),
+                ],
+            ),
         ];
 
         for (path, kv_pairs) in &defaults {
