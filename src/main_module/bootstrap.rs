@@ -91,16 +91,18 @@ pub async fn run_bootstrap(
         let stack_path = std::env::var("BOTSERVER_STACK_PATH")
             .unwrap_or_else(|_| "./botserver-stack".to_string());
         let env_path = std::path::Path::new("./.env");
-        let stack_env_path = std::path::Path::new(&format!("{}/.env", stack_path));
-        let vault_init_path = std::path::Path::new(&format!("{}/conf/vault/init.json", stack_path));
-        let bootstrap_completed = (env_path.exists() || stack_env_path.exists()) && vault_init_path.exists();
+        let stack_env_path_str = format!("{}/.env", stack_path);
+        let vault_init_path_str = format!("{}/conf/vault/init.json", stack_path);
+        let stack_env_path = std::path::Path::new(&stack_env_path_str);
+        let vault_init_path = std::path::Path::new(&vault_init_path_str);
+        let env_exists = env_path.exists();
+        let stack_env_exists = stack_env_path.exists();
+        let vault_init_exists = vault_init_path.exists();
+        let bootstrap_completed = (env_exists || stack_env_exists) && vault_init_exists;
 
         info!(
             "Bootstrap check: .env exists={}, stack/.env exists={}, init.json exists={}, bootstrap_completed={}",
-            env_path.exists(),
-            stack_env_path.exists(),
-            vault_init_path.exists(),
-            bootstrap_completed
+            env_exists, stack_env_exists, vault_init_exists, bootstrap_completed
         );
 
         let cfg = if bootstrap_completed {
