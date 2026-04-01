@@ -88,13 +88,17 @@ pub async fn run_bootstrap(
         trace!("Creating BootstrapManager...");
         let mut bootstrap = BootstrapManager::new(install_mode, tenant);
 
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
         let env_path = std::path::Path::new("./.env");
-        let vault_init_path = std::path::Path::new("./botserver-stack/conf/vault/init.json");
-        let bootstrap_completed = env_path.exists() && vault_init_path.exists();
+        let stack_env_path = std::path::Path::new(&format!("{}/.env", stack_path));
+        let vault_init_path = std::path::Path::new(&format!("{}/conf/vault/init.json", stack_path));
+        let bootstrap_completed = (env_path.exists() || stack_env_path.exists()) && vault_init_path.exists();
 
         info!(
-            "Bootstrap check: .env exists={}, init.json exists={}, bootstrap_completed={}",
+            "Bootstrap check: .env exists={}, stack/.env exists={}, init.json exists={}, bootstrap_completed={}",
             env_path.exists(),
+            stack_env_path.exists(),
             vault_init_path.exists(),
             bootstrap_completed
         );
