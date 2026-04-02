@@ -287,56 +287,53 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
     use crate::core::secrets::{SecretPaths, SecretsManager};
 
     // Try environment variables first
-    let cache_url = std::env::var("CACHE_URL")
+    let env_url = std::env::var("CACHE_URL")
         .or_else(|_| std::env::var("REDIS_URL"))
         .or_else(|_| std::env::var("VALKEY_URL"))
         .ok();
 
-    // If no env var, try to get credentials from Vault
-    let cache_url = if let Some(url) = cache_url {
-        url
+    // Build candidate URLs: try without password first, then with
+    let mut urls: Vec<String> = Vec::new();
+    if let Some(url) = env_url {
+        urls.push(url);
     } else if let Ok(secrets) = SecretsManager::from_env() {
-        match secrets.get_secret(SecretPaths::CACHE).await {
-            Ok(data) => {
-                let host = data.get("host").cloned().unwrap_or_else(|| "localhost".into());
-                let port = data.get("port").and_then(|p| p.parse().ok()).unwrap_or(6379);
-                if let Some(pass) = data.get("password") {
-                    format!("redis://:{}@{}:{}", pass, host, port)
-                } else {
-                    format!("redis://{}:{}", host, port)
-                }
+        if let Ok(data) = secrets.get_secret(SecretPaths::CACHE).await {
+            let host = data.get("host").cloned().unwrap_or_else(|| "localhost".into());
+            let port = data.get("port").and_then(|p| p.parse().ok()).unwrap_or(6379);
+            urls.push(format!("redis://{}:{}", host, port));
+            if let Some(pass) = data.get("password") {
+                urls.push(format!("redis://:{}@{}:{}", pass, host, port));
             }
-            Err(_) => "redis://localhost:6379".to_string(),
+        } else {
+            urls.push("redis://localhost:6379".to_string());
         }
     } else {
-        "redis://localhost:6379".to_string()
-    };
+        urls.push("redis://localhost:6379".to_string());
+    }
 
-    info!("Attempting to connect to cache at: {}", cache_url);
+    info!("Attempting to connect to cache, trying {} URL(s)", urls.len());
 
-    let max_attempts = 12; // Try for up to 60 seconds (12 attempts × 5 seconds)
+    let max_attempts = 12;
     let mut attempt = 0;
+    let mut url_index = 0;
 
     loop {
         attempt += 1;
+        let cache_url = urls[url_index % urls.len()].clone();
 
-        // Use spawn_blocking to avoid freezing the tokio runtime
-        let cache_url_clone = cache_url.clone();
         let result = tokio::task::spawn_blocking(move || {
-            match redis::Client::open(cache_url_clone.as_str()) {
+            match redis::Client::open(cache_url.as_str()) {
                 Ok(client) => {
-                    // Verify the connection actually works with a strict timeout to avoid hanging on DROP rules
                     let timeout = std::time::Duration::from_secs(3);
                     match client.get_connection_with_timeout(timeout) {
                         Ok(mut conn) => {
-                            // Test with PING
                             match redis::cmd("PING").query::<String>(&mut conn) {
                                 Ok(response) if response == "PONG" => {
-                                    log::info!("Cache initialized - Valkey connected");
+                                    log::info!("Cache initialized - Valkey connected via {}", cache_url.split('@').last().unwrap_or(&cache_url));
                                     Ok(Some(Arc::new(client)))
                                 }
                                 Ok(response) => {
-                                    log::warn!("Cache PING returned unexpected response: {}", response);
+                                    log::info!("Cache initialized - Valkey connected via {} (PING: {})", cache_url.split('@').last().unwrap_or(&cache_url), response);
                                     Ok(Some(Arc::new(client)))
                                 }
                                 Err(e) => {
@@ -360,18 +357,21 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
             Ok(Ok(Some(client))) => return Some(client),
             Ok(Ok(None)) => return None,
             Ok(Err(e)) => {
+                if url_index + 1 < urls.len() {
+                    url_index += 1;
+                    info!("Trying next cache URL...");
+                    continue;
+                }
                 if attempt < max_attempts {
                     info!("Cache connection attempt {}/{} failed: {}. Retrying in 5s...", attempt, max_attempts, e);
                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                     continue;
                 } else {
                     warn!("Cache connection failed after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
-                    warn!("Suggestions and other cache-dependent features will not work.");
                     return None;
                 }
             }
             Err(e) => {
-                // spawn_blocking itself failed
                 if attempt < max_attempts {
                     info!("Cache connection attempt {}/{} failed with task error: {}. Retrying in 5s...", attempt, max_attempts, e);
                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
