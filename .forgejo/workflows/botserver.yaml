@@ -87,14 +87,11 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "ls -lh /opt/gbo/bin/botserver"
           echo "Step 6: Setting permissions..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver"
-          echo "Step 7: Restarting botserver service..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "pkill -f botserver || true; sleep 1; systemctl restart botserver"
-          echo "=== Deploy completed ==="
-
+ 
       - name: Verify botserver started
         run: |
           sleep 10
-          ssh -o StrictHostKeyChecking=no system "pgrep -f botserver && echo 'OK: botserver is running' || (echo 'ERROR: botserver not running' && cat /opt/gbo/logs/error.log | tail -20 && exit 1)"
+          ssh -o StrictHostKeyChecking=no system "pgrep -f botserver && echo 'OK: botserver is running' || (echo 'ERROR: botserver not running' && cat /opt/gbo/logs/err.log | tail -20 && exit 1)"
 
       - name: Save deploy log
         if: always()
