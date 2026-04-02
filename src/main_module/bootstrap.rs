@@ -284,6 +284,8 @@ pub async fn load_config(
 /// Initialize Redis/Valkey cache with retry logic
 #[cfg(feature = "cache")]
 pub async fn init_redis() -> Option<Arc<redis::Client>> {
+    use crate::core::secrets::{SecretPaths, SecretsManager};
+
     // Try environment variables first
     let cache_url = std::env::var("CACHE_URL")
         .or_else(|_| std::env::var("REDIS_URL"))
@@ -293,12 +295,18 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
     // If no env var, try to get credentials from Vault
     let cache_url = if let Some(url) = cache_url {
         url
-    } else if let Some(secrets) = crate::core::shared::utils::get_secrets_manager().await {
-        let (host, port, password) = secrets.get_cache_config();
-        if let Some(pass) = password {
-            format!("redis://:{}@{}:{}", pass, host, port)
-        } else {
-            format!("redis://{}:{}", host, port)
+    } else if let Ok(secrets) = SecretsManager::from_env() {
+        match secrets.get_secret(SecretPaths::CACHE).await {
+            Ok(data) => {
+                let host = data.get("host").cloned().unwrap_or_else(|| "localhost".into());
+                let port = data.get("port").and_then(|p| p.parse().ok()).unwrap_or(6379);
+                if let Some(pass) = data.get("password") {
+                    format!("redis://:{}@{}:{}", pass, host, port)
+                } else {
+                    format!("redis://{}:{}", host, port)
+                }
+            }
+            Err(_) => "redis://localhost:6379".to_string(),
         }
     } else {
         "redis://localhost:6379".to_string()
