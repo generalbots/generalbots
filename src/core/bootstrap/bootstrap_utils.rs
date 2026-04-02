@@ -108,7 +108,6 @@ pub fn vault_health_check() -> bool {
                     return !sealed && initialized;
                 }
             }
-            // Health endpoint returns 503 when sealed but initialized
             let stderr = String::from_utf8_lossy(&output.stderr);
             let stdout = String::from_utf8_lossy(&output.stdout);
             stdout.contains("\"initialized\":true") || stderr.contains("\"initialized\":true")
@@ -119,9 +118,32 @@ pub fn vault_health_check() -> bool {
 
 /// Check if Valkey/Redis cache is healthy
 pub fn cache_health_check() -> bool {
-    // Primary: use ss to check if port 6379 is listening
+    if let Ok(output) = SafeCommand::new("valkey-cli")
+        .and_then(|c| c.args(&["ping"]))
+        .and_then(|c| c.execute())
+    {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains("PONG") {
+                return true;
+            }
+        }
+    }
+
+    if let Ok(output) = SafeCommand::new("./botserver-stack/bin/cache/bin/valkey-cli")
+        .and_then(|c| c.args(&["ping"]))
+        .and_then(|c| c.execute())
+    {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains("PONG") {
+                return true;
+            }
+        }
+    }
+
     if let Ok(output) = SafeCommand::new("ss")
-        .and_then(|c| c.args(&["-tlnp"]))
+        .and_then(|c| c.args(&["-tln"]))
         .and_then(|c| c.execute())
     {
         if output.status.success() {
@@ -129,16 +151,6 @@ pub fn cache_health_check() -> bool {
             if stdout.contains(":6379") {
                 return true;
             }
-        }
-    }
-
-    // Fallback: nc if available
-    if let Ok(output) = SafeCommand::new("nc")
-        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "6379"]))
-        .and_then(|c| c.execute())
-    {
-        if output.status.success() {
-            return true;
         }
     }
 
@@ -154,28 +166,28 @@ pub fn vector_db_health_check() -> bool {
 
     for url in &urls {
         if let Ok(output) = SafeCommand::new("curl")
-            .and_then(|c| c.args(&["-f", "-s", "--connect-timeout", "2", "-k", url]))
+            .and_then(|c| c.args(&["-sfk", "--connect-timeout", "2", "-m", "3", url]))
             .and_then(|c| c.execute())
         {
             if output.status.success() {
-                let response = String::from_utf8_lossy(&output.stdout);
-                if response.contains("healthz check passed")
-                    || response.contains("OK")
-                    || response.contains("\"status\":\"ok\"")
-                {
-                    return true;
-                }
+                return true;
             }
         }
     }
 
-    match SafeCommand::new("nc")
-        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "6333"]))
+    if let Ok(output) = SafeCommand::new("ss")
+        .and_then(|c| c.args(&["-tln"]))
         .and_then(|c| c.execute())
     {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains(":6333") {
+                return true;
+            }
+        }
     }
+
+    false
 }
 
 /// Get current user safely
@@ -200,12 +212,11 @@ pub fn zitadel_health_check() -> bool {
     let output = SafeCommand::new("curl")
         .and_then(|c| {
             c.args(&[
-                "-f",
-                "-s",
+                "-sfk",
                 "--connect-timeout",
-                "1",
-                "-m",
                 "2",
+                "-m",
+                "3",
                 "http://localhost:8300/debug/healthz",
             ])
         })
@@ -218,21 +229,25 @@ pub fn zitadel_health_check() -> bool {
                 debug!("Zitadel health check response: {}", response);
                 return response.trim() == "ok";
             }
-            let stderr = String::from_utf8_lossy(&result.stderr);
-            debug!("Zitadel health check failed: {}", stderr);
         }
         Err(e) => {
             debug!("Zitadel health check error: {}", e);
         }
     }
 
-    match SafeCommand::new("nc")
-        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "8300"]))
+    if let Ok(output) = SafeCommand::new("ss")
+        .and_then(|c| c.args(&["-tln"]))
         .and_then(|c| c.execute())
     {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains(":8300") {
+                return true;
+            }
+        }
     }
+
+    false
 }
 
 /// Check if PostgreSQL/Tables is healthy
@@ -254,13 +269,19 @@ pub fn tables_health_check() -> bool {
         return output.status.success();
     }
 
-    match SafeCommand::new("nc")
-        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "5432"]))
+    if let Ok(output) = SafeCommand::new("ss")
+        .and_then(|c| c.args(&["-tln"]))
         .and_then(|c| c.execute())
     {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains(":5432") {
+                return true;
+            }
+        }
     }
+
+    false
 }
 
 /// Check if MinIO/Drive is healthy
@@ -281,13 +302,19 @@ pub fn drive_health_check() -> bool {
         }
     }
 
-    match SafeCommand::new("nc")
-        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "9100"]))
+    if let Ok(output) = SafeCommand::new("ss")
+        .and_then(|c| c.args(&["-tln"]))
         .and_then(|c| c.execute())
     {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains(":9100") {
+                return true;
+            }
+        }
     }
+
+    false
 }
 
 /// Check if ALM (Forgejo) is healthy
@@ -305,13 +332,19 @@ pub fn alm_health_check() -> bool {
         }
     }
 
-    match SafeCommand::new("nc")
-        .and_then(|c| c.args(&["-z", "-w", "1", "127.0.0.1", "3000"]))
+    if let Ok(output) = SafeCommand::new("ss")
+        .and_then(|c| c.args(&["-tln"]))
         .and_then(|c| c.execute())
     {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains(":3000") {
+                return true;
+            }
+        }
     }
+
+    false
 }
 
 /// Check if ALM CI (Forgejo Runner) is running
