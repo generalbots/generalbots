@@ -16,17 +16,17 @@ pub struct SecretPaths;
 
 impl SecretPaths {
     // System-wide paths (global fallback)
-    pub const DIRECTORY: &'static str = "gbo/system/directory";
-    pub const TABLES: &'static str = "gbo/system/tables";
-    pub const DRIVE: &'static str = "gbo/system/drive";
-    pub const CACHE: &'static str = "gbo/system/cache";
-    pub const EMAIL: &'static str = "gbo/system/email";
-    pub const LLM: &'static str = "gbo/system/llm";
-    pub const ENCRYPTION: &'static str = "gbo/system/encryption";
-    pub const JWT: &'static str = "gbo/system/jwt";
-    pub const MEET: &'static str = "gbo/system/meet";
-    pub const ALM: &'static str = "gbo/system/alm";
-    pub const VECTORDB: &'static str = "gbo/system/vectordb";
+    pub const DIRECTORY: &'static str = "gbo/directory";
+    pub const TABLES: &'static str = "gbo/tables";
+    pub const DRIVE: &'static str = "gbo/drive";
+    pub const CACHE: &'static str = "gbo/cache";
+    pub const EMAIL: &'static str = "gbo/email";
+    pub const LLM: &'static str = "gbo/llm";
+    pub const ENCRYPTION: &'static str = "gbo/encryption";
+    pub const JWT: &'static str = "gbo/jwt";
+    pub const MEET: &'static str = "gbo/meet";
+    pub const ALM: &'static str = "gbo/alm";
+    pub const VECTORDB: &'static str = "gbo/vectordb";
     pub const OBSERVABILITY: &'static str = "gbo/system/observability";
     pub const SECURITY: &'static str = "gbo/system/security";
     pub const CLOUD: &'static str = "gbo/system/cloud";
