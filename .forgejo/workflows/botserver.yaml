@@ -88,7 +88,7 @@ jobs:
           echo "Step 6: Setting permissions..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver"
           echo "Step 7: Restarting botserver service..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "pkill -f botserver || true; sleep 1; cd /opt/gbo/bin && sudo -u gbuser nohup ./botserver --noconsole > /opt/gbo/logs/botserver-output.log 2>&1 &"
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "pkill -f botserver || true; sleep 1; systemctl restart botserver"
           echo "=== Deploy completed ==="
 
       - name: Verify botserver started
