@@ -53,17 +53,19 @@ pub async fn get_database_url() -> Result<String> {
 pub fn get_database_url_sync() -> Result<String> {
     let guard = SECRETS_MANAGER.read().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
     if let Some(ref manager) = *guard {
-        if tokio::runtime::Handle::try_current().is_ok() {
+        let manager_clone = manager.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
-                .build()
-                .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
-            return rt.block_on(manager.get_database_url());
-        } else {
-            let rt = tokio::runtime::Runtime::new()
-                .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
-            return rt.block_on(manager.get_database_url());
-        }
+                .build();
+            let result = match rt {
+                Ok(rt) => rt.block_on(manager_clone.get_database_url()),
+                Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+            };
+            let _ = tx.send(result);
+        });
+        return rx.recv().map_err(|e| anyhow::anyhow!("Channel error: {}", e))?;
     }
 
     Err(anyhow::anyhow!(
@@ -84,15 +86,19 @@ pub fn get_secrets_manager_sync() -> Option<SecretsManager> {
 pub fn get_work_path() -> String {
     let sm = get_secrets_manager_sync();
     if let Some(sm) = sm {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .ok();
-        match rt {
-            Some(rt) => rt.block_on(sm.get_value("gbo/app", "work_path"))
-                .unwrap_or_else(|_| "./work".to_string()),
-            None => "./work".to_string(),
-        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = match rt {
+                Some(rt) => rt.block_on(sm.get_value("gbo/app", "work_path"))
+                    .unwrap_or_else(|_| "./work".to_string()),
+                None => "./work".to_string(),
+            };
+            let _ = tx.send(result);
+        });
+        rx.recv().unwrap_or_else(|_| "./work".to_string())
     } else {
         "./work".to_string()
     }
