@@ -58,7 +58,13 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
                 };
                 let fut = create_site(config, s3, bucket, bot_id, llm, params);
                 let result =
-                    tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(fut))
+                    tokio::task::block_in_place(|| {
+                        let rt = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build()
+                            .map_err(|e| format!("Runtime creation failed: {}", e))?;
+                        rt.block_on(fut)
+                    })
                         .map_err(|e| format!("Site creation failed: {}", e))?;
                 Ok(Dynamic::from(result))
             },

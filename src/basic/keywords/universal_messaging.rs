@@ -35,15 +35,22 @@ fn register_talk_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let user_for_send = user.clone();
 
                 tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        send_message_to_recipient(
-                            state_for_send,
-                            &user_for_send,
-                            &recipient,
-                            &message,
-                        )
-                        .await
-                    })
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .ok();
+                    match rt {
+                        Some(rt) => rt.block_on(async {
+                            send_message_to_recipient(
+                                state_for_send,
+                                &user_for_send,
+                                &recipient,
+                                &message,
+                            )
+                            .await
+                        }),
+                        None => Err("Failed to create runtime".into()),
+                    }
                 })
                 .map_err(|e| format!("Failed to send message: {}", e))?;
 
@@ -73,10 +80,17 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let user_for_send = Arc::clone(&user_clone);
 
                 tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        send_file_to_recipient(state_for_send, &user_for_send, &recipient, file)
-                            .await
-                    })
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .ok();
+                    match rt {
+                        Some(rt) => rt.block_on(async {
+                            send_file_to_recipient(state_for_send, &user_for_send, &recipient, file)
+                                .await
+                        }),
+                        None => Err("Failed to create runtime".into()),
+                    }
                 })
                 .map_err(|e| format!("Failed to send file: {}", e))?;
 
@@ -103,18 +117,25 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let user_for_send = Arc::clone(&user_clone2);
 
                 tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        send_file_with_caption_to_recipient(
-                            state_for_send,
-                            &user_for_send,
-                            &recipient,
-                            file,
-                            &caption,
-                        )
-                        .await
-                    })
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .ok();
+                    match rt {
+                        Some(rt) => rt.block_on(async {
+                            send_file_with_caption_to_recipient(
+                                state_for_send,
+                                &user_for_send,
+                                &recipient,
+                                file,
+                                &caption,
+                            )
+                            .await
+                        }),
+                        None => Err("Failed to create runtime".into()),
+                    }
                 })
-                .map_err(|e| format!("Failed to send file: {}", e))?;
+                .map_err(|e| format!("Failed to send file with caption: {}", e))?;
 
                 Ok(Dynamic::UNIT)
             },
@@ -139,10 +160,17 @@ fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let user_for_send = user.clone();
 
                 tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        send_to_specific_channel(state_for_send, &user_for_send, &target, &message)
-                            .await
-                    })
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .ok();
+                    match rt {
+                        Some(rt) => rt.block_on(async {
+                            send_to_specific_channel(state_for_send, &user_for_send, &target, &message)
+                                .await
+                        }),
+                        None => Err("Failed to create runtime".into()),
+                    }
                 })
                 .map_err(|e| format!("Failed to send: {}", e))?;
 
@@ -169,10 +197,17 @@ fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engi
                 let user_for_send = user.clone();
 
                 let results = tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        broadcast_message(state_for_send, &user_for_send, &message, recipients)
-                            .await
-                    })
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .ok();
+                    match rt {
+                        Some(rt) => rt.block_on(async {
+                            broadcast_message(state_for_send, &user_for_send, &message, recipients)
+                                .await
+                        }),
+                        None => Err("Failed to create runtime".into()),
+                    }
                 })
                 .map_err(|e| format!("Failed to broadcast: {}", e))?;
 

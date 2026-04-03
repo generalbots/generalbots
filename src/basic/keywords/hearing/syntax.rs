@@ -28,22 +28,29 @@ fn hear_block(state: &Arc<AppState>, session_id: uuid::Uuid, variable_name: &str
     // Mark session as waiting and store metadata in Redis (for UI hints like menus)
     let state_clone = Arc::clone(state);
     let var = variable_name.to_string();
-    tokio::runtime::Handle::current().block_on(async move {
-        {
-            let mut sm = state_clone.session_manager.lock().await;
-            sm.mark_waiting(session_id);
-        }
-        if let Some(redis) = &state_clone.cache {
-            if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-                let key = format!("hear:{session_id}:{var}");
-                let _: Result<(), _> = redis::cmd("SET")
-                    .arg(&key)
-                    .arg(wait_data.to_string())
-                    .arg("EX")
-                    .arg(3600)
-                    .query_async(&mut conn)
-                    .await;
-            }
+    tokio::task::block_in_place(|| {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        if let Ok(rt) = rt {
+            rt.block_on(async move {
+                {
+                    let mut sm = state_clone.session_manager.lock().await;
+                    sm.mark_waiting(session_id);
+                }
+                if let Some(redis) = &state_clone.cache {
+                    if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
+                        let key = format!("hear:{session_id}:{var}");
+                        let _: Result<(), _> = redis::cmd("SET")
+                            .arg(&key)
+                            .arg(wait_data.to_string())
+                            .arg("EX")
+                            .arg(3600)
+                            .query_async(&mut conn)
+                            .await;
+                    }
+                }
+            });
         }
     });
 
@@ -209,18 +216,25 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let state_for_suggestions = Arc::clone(&state_clone);
                 let opts_clone = options.clone();
                 let bot_id_clone = bot_id;
-                tokio::runtime::Handle::current().block_on(async move {
-                    if let Some(redis) = &state_for_suggestions.cache {
-                        if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-                            let key = format!("suggestions:{}:{}", bot_id_clone, session_id);
-                            for opt in &opts_clone {
-                                let _: Result<(), _> = redis::cmd("RPUSH")
-                                    .arg(&key)
-                                    .arg(json!({"text": opt, "value": opt}).to_string())
-                                    .query_async(&mut conn)
-                                    .await;
+                tokio::task::block_in_place(|| {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build();
+                    if let Ok(rt) = rt {
+                        rt.block_on(async move {
+                            if let Some(redis) = &state_for_suggestions.cache {
+                                if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
+                                    let key = format!("suggestions:{}:{}", bot_id_clone, session_id);
+                                    for opt in &opts_clone {
+                                        let _: Result<(), _> = redis::cmd("RPUSH")
+                                            .arg(&key)
+                                            .arg(json!({"text": opt, "value": opt}).to_string())
+                                            .query_async(&mut conn)
+                                            .await;
+                                    }
+                                }
                             }
-                        }
+                        });
                     }
                 });
 

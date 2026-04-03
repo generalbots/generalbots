@@ -19,15 +19,22 @@ use crate::core::shared::state::AppState;
 fn get_bot_context() -> (Uuid, Uuid) {
     let sm = crate::core::secrets::SecretsManager::from_env().ok();
     let (org_id, bot_id) = if let Some(sm) = sm {
-        let rt = tokio::runtime::Handle::current();
         tokio::task::block_in_place(|| {
-            rt.block_on(async {
-                let org = sm.get_value("gbo/analytics", "default_org_id").await
-                    .unwrap_or_else(|_| "system".to_string());
-                let bot = sm.get_value("gbo/analytics", "default_bot_id").await
-                    .unwrap_or_else(|_| "system".to_string());
-                (org, bot)
-            })
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .ok();
+            if let Some(rt) = rt {
+                rt.block_on(async {
+                    let org = sm.get_value("gbo/analytics", "default_org_id").await
+                        .unwrap_or_else(|_| "system".to_string());
+                    let bot = sm.get_value("gbo/analytics", "default_bot_id").await
+                        .unwrap_or_else(|_| "system".to_string());
+                    (org, bot)
+                })
+            } else {
+                ("system".to_string(), "system".to_string())
+            }
         })
     } else {
         ("system".to_string(), "system".to_string())

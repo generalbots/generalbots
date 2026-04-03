@@ -24,23 +24,23 @@ use serde_json::Value;
 use smartstring::SmartString;
 use std::error::Error;
 use std::sync::Arc;
+use std::sync::RwLock;
 use std::time::Duration;
 use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
-use tokio::sync::RwLock;
 
 static SECRETS_MANAGER: std::sync::LazyLock<Arc<RwLock<Option<SecretsManager>>>> =
     std::sync::LazyLock::new(|| Arc::new(RwLock::new(None)));
 
 pub async fn init_secrets_manager() -> Result<()> {
     let manager = SecretsManager::from_env()?;
-    let mut guard = SECRETS_MANAGER.write().await;
+    let mut guard = SECRETS_MANAGER.write().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
     *guard = Some(manager);
     Ok(())
 }
 
 pub async fn get_database_url() -> Result<String> {
-    let guard = SECRETS_MANAGER.read().await;
+    let guard = SECRETS_MANAGER.read().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
     if let Some(ref manager) = *guard {
         return manager.get_database_url().await;
     }
@@ -51,17 +51,14 @@ pub async fn get_database_url() -> Result<String> {
 }
 
 pub fn get_database_url_sync() -> Result<String> {
-    if let Ok(handle) = tokio::runtime::Handle::try_current() {
-        let result =
-            tokio::task::block_in_place(|| handle.block_on(async { get_database_url().await }));
-        if let Ok(url) = result {
-            return Ok(url);
-        }
-    } else {
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
-        if let Ok(url) = rt.block_on(async { get_database_url().await }) {
-            return Ok(url);
+    let guard = SECRETS_MANAGER.read().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
+    if let Some(ref manager) = *guard {
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            return handle.block_on(manager.get_database_url());
+        } else {
+            let rt = tokio::runtime::Runtime::new()
+                .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
+            return rt.block_on(manager.get_database_url());
         }
     }
 
@@ -71,28 +68,28 @@ pub fn get_database_url_sync() -> Result<String> {
 }
 
 pub async fn get_secrets_manager() -> Option<SecretsManager> {
-    let guard = SECRETS_MANAGER.read().await;
+    let guard = SECRETS_MANAGER.read().ok()?;
     guard.clone()
 }
 
 pub fn get_secrets_manager_sync() -> Option<SecretsManager> {
-    if let Ok(handle) = tokio::runtime::Handle::try_current() {
-        let result =
-            tokio::task::block_in_place(|| handle.block_on(async { get_secrets_manager().await }));
-        return result;
-    }
-    None
+    let guard = SECRETS_MANAGER.read().ok()?;
+    guard.clone()
 }
 
 pub fn get_work_path() -> String {
     let sm = get_secrets_manager_sync();
     if let Some(sm) = sm {
-        let rt = tokio::runtime::Handle::current();
         tokio::task::block_in_place(|| {
-            rt.block_on(async {
-                sm.get_value("gbo/app", "work_path").await
-                    .unwrap_or_else(|_| "./work".to_string())
-            })
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .ok();
+            match rt {
+                Some(rt) => rt.block_on(sm.get_value("gbo/app", "work_path"))
+                    .unwrap_or_else(|_| "./work".to_string()),
+                None => "./work".to_string(),
+            }
         })
     } else {
         "./work".to_string()
@@ -110,7 +107,7 @@ pub async fn create_s3_operator(
     };
 
     let (access_key, secret_key) = if config.access_key.is_empty() || config.secret_key.is_empty() {
-        let guard = SECRETS_MANAGER.read().await;
+        let guard = SECRETS_MANAGER.read().map_err(|e| format!("Lock poisoned: {}", e))?;
         if let Some(ref manager) = *guard {
             if manager.is_enabled() {
                 match manager.get_drive_credentials().await {

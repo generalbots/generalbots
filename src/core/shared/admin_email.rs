@@ -19,11 +19,18 @@ pub async fn send_invitation_email(
     let smtp = crate::core::secrets::SecretsManager::from_env()
         .ok()
         .and_then(|sm| {
-            let rt = tokio::runtime::Handle::current();
             tokio::task::block_in_place(|| {
-                rt.block_on(async {
-                    sm.get_secret(crate::core::secrets::SecretPaths::EMAIL).await.ok()
-                })
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .ok();
+                if let Some(rt) = rt {
+                    rt.block_on(async {
+                        sm.get_secret(crate::core::secrets::SecretPaths::EMAIL).await.ok()
+                    })
+                } else {
+                    None
+                }
             })
         });
 

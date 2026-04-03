@@ -16,8 +16,14 @@ pub fn create_draft_keyword(state: &AppState, _user: UserSession, engine: &mut E
 
                 let fut = execute_create_draft(&state_clone, &to, &subject, &reply_text);
                 let result =
-                    tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(fut))
-                        .map_err(|e| format!("Draft creation error: {e}"))?;
+                    tokio::task::block_in_place(|| {
+                        let rt = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build()
+                            .map_err(|e| format!("Runtime creation failed: {e}"))?;
+                        rt.block_on(fut)
+                    })
+                        .map_err(|e| format!("Draft creation failed: {e}"))?;
                 Ok(Dynamic::from(result))
             },
         )
