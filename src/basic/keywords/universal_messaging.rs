@@ -79,19 +79,21 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let state_for_send = Arc::clone(&state_clone);
                 let user_for_send = Arc::clone(&user_clone);
 
-                tokio::task::block_in_place(|| {
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
                         .enable_all()
-                        .build()
-                        .ok();
-                    match rt {
-                        Some(rt) => rt.block_on(async {
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async {
                             send_file_to_recipient(state_for_send, &user_for_send, &recipient, file)
                                 .await
                         }),
-                        None => Err("Failed to create runtime".into()),
-                    }
-                })
+                        Err(_) => Err("Failed to create runtime".into()),
+                    };
+                    let _ = tx.send(result);
+                });
+                rx.recv().unwrap_or(Err("Failed to receive result".into()))
                 .map_err(|e| format!("Failed to send file: {}", e))?;
 
                 Ok(Dynamic::UNIT)
@@ -116,13 +118,13 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let state_for_send = Arc::clone(&state_clone2);
                 let user_for_send = Arc::clone(&user_clone2);
 
-                tokio::task::block_in_place(|| {
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
                         .enable_all()
-                        .build()
-                        .ok();
-                    match rt {
-                        Some(rt) => rt.block_on(async {
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async {
                             send_file_with_caption_to_recipient(
                                 state_for_send,
                                 &user_for_send,
@@ -132,9 +134,11 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
                             )
                             .await
                         }),
-                        None => Err("Failed to create runtime".into()),
-                    }
-                })
+                        Err(_) => Err("Failed to create runtime".into()),
+                    };
+                    let _ = tx.send(result);
+                });
+                rx.recv().unwrap_or(Err("Failed to receive result".into()))
                 .map_err(|e| format!("Failed to send file with caption: {}", e))?;
 
                 Ok(Dynamic::UNIT)
@@ -159,19 +163,21 @@ fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let state_for_send = Arc::clone(&state_clone);
                 let user_for_send = user.clone();
 
-                tokio::task::block_in_place(|| {
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
                         .enable_all()
-                        .build()
-                        .ok();
-                    match rt {
-                        Some(rt) => rt.block_on(async {
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async {
                             send_to_specific_channel(state_for_send, &user_for_send, &target, &message)
                                 .await
                         }),
-                        None => Err("Failed to create runtime".into()),
-                    }
-                })
+                        Err(_) => Err("Failed to create runtime".into()),
+                    };
+                    let _ = tx.send(result);
+                });
+                rx.recv().unwrap_or(Err("Failed to receive result".into()))
                 .map_err(|e| format!("Failed to send: {}", e))?;
 
                 Ok(Dynamic::UNIT)
@@ -196,20 +202,23 @@ fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engi
                 let state_for_send = Arc::clone(&state_clone);
                 let user_for_send = user.clone();
 
-                let results = tokio::task::block_in_place(|| {
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
                         .enable_all()
-                        .build()
-                        .ok();
-                    match rt {
-                        Some(rt) => rt.block_on(async {
+                        .build();
+                    let result: Result<Dynamic, String> = match rt {
+                        Ok(rt) => rt.block_on(async {
                             broadcast_message(state_for_send, &user_for_send, &message, recipients)
                                 .await
+                                .map_err(|e| format!("{}", e))
                         }),
-                        None => Err("Failed to create runtime".into()),
-                    }
-                })
-                .map_err(|e| format!("Failed to broadcast: {}", e))?;
+                        Err(_) => Err("Failed to create runtime".into()),
+                    };
+                    let _ = tx.send(result);
+                });
+                let results = rx.recv().unwrap_or(Err("Failed to receive result".into()))
+                    .map_err(|e| format!("Failed to broadcast: {}", e))?;
 
                 Ok(results)
             },

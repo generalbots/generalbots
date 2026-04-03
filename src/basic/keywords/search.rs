@@ -72,19 +72,23 @@ pub fn search_keyword(state: &AppState, user: UserSession, engine: &mut Engine) 
                         }
                     };
 
-                    let result = tokio::task::block_in_place(|| {
+                    let (tx, rx) = std::sync::mpsc::channel();
+                    let table_str_clone = table_str.clone();
+                    let query_str_clone = query_str.clone();
+                    std::thread::spawn(move || {
                         let rt = tokio::runtime::Builder::new_current_thread()
                             .enable_all()
-                            .build()
-                            .ok();
-                        match rt {
-                            Some(rt) => rt.block_on(async {
-                                execute_search(&mut binding, &table_str, &query_str, limit_val)
+                            .build();
+                        let result = match rt {
+                            Ok(rt) => rt.block_on(async {
+                                execute_search(&mut binding, &table_str_clone, &query_str_clone, limit_val)
                             })
                             .map_err(|e| format!("Search error: {e}")),
-                            None => Err("Failed to create runtime".into()),
-                        }
-                    })?;
+                            Err(_) => Err("Failed to create runtime".into()),
+                        };
+                        let _ = tx.send(result);
+                    });
+                    let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
 
                     if let Some(results) = result.get("results") {
                         let filtered =
@@ -125,11 +129,21 @@ pub fn search_keyword(state: &AppState, user: UserSession, engine: &mut Engine) 
                     }
                 };
 
-                let result = tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current()
-                        .block_on(async { execute_search(&mut binding, &table_str, &query_str, 10) })
-                })
-                .map_err(|e| format!("Search error: {e}"))?;
+                let (tx, rx) = std::sync::mpsc::channel();
+                let table_str_clone = table_str.clone();
+                let query_str_clone = query_str.clone();
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async { execute_search(&mut binding, &table_str_clone, &query_str_clone, 10) })
+                        .map_err(|e| format!("Search error: {e}")),
+                        Err(_) => Err("Failed to create runtime".into()),
+                    };
+                    let _ = tx.send(result);
+                });
+                let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
 
                 if let Some(results) = result.get("results") {
                     let filtered = filter_fields_by_role(results.clone(), &roles, &access_info);

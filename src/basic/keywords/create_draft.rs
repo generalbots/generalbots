@@ -14,15 +14,24 @@ pub fn create_draft_keyword(state: &AppState, _user: UserSession, engine: &mut E
                 let subject = context.eval_expression_tree(&inputs[1])?.to_string();
                 let reply_text = context.eval_expression_tree(&inputs[2])?.to_string();
 
-                let fut = execute_create_draft(&state_clone, &to, &subject, &reply_text);
-                let result =
-                    tokio::task::block_in_place(|| {
-                        let rt = tokio::runtime::Builder::new_current_thread()
-                            .enable_all()
-                            .build()
-                            .map_err(|e| format!("Runtime creation failed: {e}"))?;
-                        rt.block_on(fut)
-                    })
+                let state_clone2 = state_clone.clone();
+                let to_owned = to.clone();
+                let subject_owned = subject.clone();
+                let reply_text_owned = reply_text.clone();
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async {
+                            execute_create_draft(&state_clone2, &to_owned, &subject_owned, &reply_text_owned).await
+                        }),
+                        Err(e) => Err(format!("Runtime creation failed: {e}")),
+                    };
+                    let _ = tx.send(result);
+                });
+                let result = rx.recv().unwrap_or(Err("Failed to receive result".to_string()))
                         .map_err(|e| format!("Draft creation failed: {e}"))?;
                 Ok(Dynamic::from(result))
             },

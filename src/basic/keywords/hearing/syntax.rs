@@ -28,7 +28,8 @@ fn hear_block(state: &Arc<AppState>, session_id: uuid::Uuid, variable_name: &str
     // Mark session as waiting and store metadata in Redis (for UI hints like menus)
     let state_clone = Arc::clone(state);
     let var = variable_name.to_string();
-    tokio::task::block_in_place(|| {
+    let (init_tx, init_rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build();
@@ -52,7 +53,9 @@ fn hear_block(state: &Arc<AppState>, session_id: uuid::Uuid, variable_name: &str
                 }
             });
         }
+        let _ = init_tx.send(());
     });
+    let _ = init_rx.recv();
 
     trace!("HEAR {variable_name}: blocking thread, waiting for user input");
 
@@ -216,7 +219,8 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let state_for_suggestions = Arc::clone(&state_clone);
                 let opts_clone = options.clone();
                 let bot_id_clone = bot_id;
-                tokio::task::block_in_place(|| {
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
                         .enable_all()
                         .build();
@@ -236,7 +240,9 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                             }
                         });
                     }
+                    let _ = tx.send(());
                 });
+                let _ = rx.recv();
 
                 let value = hear_block(&state_clone, session_id, &variable_name, json!({
                     "variable": variable_name,
