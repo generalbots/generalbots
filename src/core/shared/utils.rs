@@ -53,7 +53,7 @@ pub async fn get_database_url() -> Result<String> {
 pub fn get_database_url_sync() -> Result<String> {
     let guard = SECRETS_MANAGER.read().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
     if let Some(ref manager) = *guard {
-        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        if tokio::runtime::Handle::try_current().is_ok() {
             return tokio::task::block_in_place(|| {
                 let rt = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
