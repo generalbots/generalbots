@@ -86,7 +86,7 @@ jobs:
           echo "Step 2: Transferring binary..."
           timeout 60 tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | timeout 60 ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && echo 'Transfer complete'"
           echo "Step 3: Restarting botserver..."
-          timeout 30 ssh $SSH_ARGS system "killall botserver 2>/dev/null; sleep 2; cd /opt/gbo/bin && nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2>&1 & disown; echo 'Botserver started'" || echo "Restart command timed out, trying anyway..."
+          timeout 30 ssh $SSH_ARGS system "systemctl restart botserver 2>/dev/null; sleep 2; cd /opt/gbo/bin && nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2>&1 & disown; echo 'Botserver started'" || echo "Restart command timed out, trying anyway..."
           echo "=== Deploy completed ==="
 
       - name: Verify botserver started
