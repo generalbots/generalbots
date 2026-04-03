@@ -318,7 +318,7 @@ impl VectorDBIndexer {
 
                             match self.embedding_generator.generate_text_embedding(text).await {
                                 Ok(embedding) => {
-                                    if let Err(e) = email_db.index_email(&email, embedding).await {
+                                    if let Err(e) = email_db.index_email(email, embedding).await {
                                         error!("Failed to index email {}: {}", email.id, e);
                                     } else {
                                         info!(" Indexed email: {}", email.subject);
@@ -370,7 +370,7 @@ impl VectorDBIndexer {
                 for chunk in files.chunks(self.batch_size) {
                     for file in chunk {
                         let mime_type = file.mime_type.as_deref().unwrap_or("");
-                        if !FileContentExtractor::should_index(&mime_type, file.file_size) {
+                        if !FileContentExtractor::should_index(mime_type, file.file_size) {
                             continue;
                         }
 
@@ -385,7 +385,7 @@ impl VectorDBIndexer {
                             .await
                         {
                             Ok(embedding) => {
-                                if let Err(e) = drive_db.index_file(&file, embedding).await {
+                                if let Err(e) = drive_db.index_file(file, embedding).await {
                                     error!("Failed to index file {}: {}", file.id, e);
                                 } else {
                                     info!(" Indexed file: {}", file.file_name);
@@ -615,7 +615,7 @@ impl VectorDBIndexer {
             total_stats.errors += job.stats.errors;
 
             if let Some(last_run) = job.stats.last_run {
-                if total_stats.last_run.map_or(true, |lr| lr < last_run) {
+                if total_stats.last_run.is_none_or(|lr| lr < last_run) {
                     total_stats.last_run = Some(last_run);
                 }
             }

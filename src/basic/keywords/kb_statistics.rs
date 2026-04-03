@@ -227,10 +227,14 @@ async fn get_kb_statistics(
     state: &AppState,
     user: &UserSession,
 ) -> Result<KBStatistics, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone());
-    let qdrant_url = config_manager
-        .get_config(&user.bot_id, "vectordb-url", Some("https://localhost:6333"))
-        .unwrap_or_else(|_| "https://localhost:6333".to_string());
+    let qdrant_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
+        sm.get_vectordb_config_sync().0
+    } else {
+        let config_manager = ConfigManager::new(state.conn.clone());
+        config_manager
+            .get_config(&user.bot_id, "vectordb-url", Some("https://localhost:6333"))
+            .unwrap_or_else(|_| "https://localhost:6333".to_string())
+    };
     let client = create_tls_client(Some(30));
 
     let collections_response = client
@@ -282,10 +286,14 @@ async fn get_collection_statistics(
     state: &AppState,
     collection_name: &str,
 ) -> Result<CollectionStats, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone());
-    let qdrant_url = config_manager
-        .get_config(&uuid::Uuid::nil(), "vectordb-url", Some("https://localhost:6333"))
-        .unwrap_or_else(|_| "https://localhost:6333".to_string());
+    let qdrant_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
+        sm.get_vectordb_config_sync().0
+    } else {
+        let config_manager = ConfigManager::new(state.conn.clone());
+        config_manager
+            .get_config(&uuid::Uuid::nil(), "vectordb-url", Some("https://localhost:6333"))
+            .unwrap_or_else(|_| "https://localhost:6333".to_string())
+    };
     let client = create_tls_client(Some(30));
 
     let response = client
@@ -367,10 +375,14 @@ async fn list_collections(
     state: &AppState,
     user: &UserSession,
 ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone());
-    let qdrant_url = config_manager
-        .get_config(&user.bot_id, "vectordb-url", Some("https://localhost:6333"))
-        .unwrap_or_else(|_| "https://localhost:6333".to_string());
+    let qdrant_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
+        sm.get_vectordb_config_sync().0
+    } else {
+        let config_manager = ConfigManager::new(state.conn.clone());
+        config_manager
+            .get_config(&user.bot_id, "vectordb-url", Some("https://localhost:6333"))
+            .unwrap_or_else(|_| "https://localhost:6333".to_string())
+    };
     let client = create_tls_client(Some(30));
 
     let response = client
