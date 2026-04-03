@@ -86,12 +86,12 @@ jobs:
           ls -lh /opt/gbo/data/botserver/target/debug/botserver
           echo "Step 2: Backing up old binary..."
           ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak"
-          echo "Step 3: Killing old botserver..."
-          ssh $SSH_ARGS system "killall botserver"
+          echo "Step 3: Stopping botserver service..."
+          ssh $SSH_ARGS system "sudo systemctl stop botserver || true"
           echo "Step 4: Transferring new binary..."
           tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && echo 'Transfer complete'"
-          echo "Step 5: Starting botserver..."
-          ssh $SSH_ARGS system "cd /opt/gbo/bin && nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2>&1 & disown && echo 'Botserver started'"
+          echo "Step 5: Starting botserver service..."
+          ssh $SSH_ARGS system "sudo systemctl start botserver && echo 'Botserver started'"
           echo "=== Deploy completed ==="
 
       - name: Verify botserver started
