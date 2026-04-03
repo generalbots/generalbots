@@ -30,6 +30,108 @@ pub struct TlsIntegration {
 
 impl TlsIntegration {
     pub fn new(tls_enabled: bool) -> Self {
+        let (qdrant_url, _) = if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
+            sm.get_vectordb_config_sync()
+        } else {
+            ("http://localhost:6333".to_string(), None)
+        };
+        let qdrant_secure = qdrant_url.replace("http://", "https://");
+        let qdrant_port: u16 = qdrant_url
+            .split(':')
+            .last()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(6333);
+        let qdrant_tls_port: u16 = qdrant_secure
+            .split(':')
+            .last()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(6334);
+
+        let (llm_url, _, _, _, _) = if let Ok(sm) = crate::core::secrets::SecretsManager::from_env()
+        {
+            sm.get_llm_config()
+        } else {
+            (
+                "http://localhost:8081".to_string(),
+                "gpt-4".to_string(),
+                None,
+                None,
+                "http://localhost:11434".to_string(),
+            )
+        };
+        let llm_secure = llm_url.replace("http://", "https://");
+        let llm_port: u16 = llm_url
+            .split(':')
+            .last()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(8081);
+        let llm_tls_port: u16 = llm_secure
+            .split(':')
+            .last()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(8444);
+
+        let (cache_host, cache_port, _) =
+            if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
+                sm.get_cache_config()
+            } else {
+                ("localhost".to_string(), 6379, None)
+            };
+        let cache_tls_port = cache_port + 1;
+
+        let (db_host, db_port, _, _, _) =
+            if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
+                sm.get_database_config_sync()
+            } else {
+                (
+                    "localhost".to_string(),
+                    5432,
+                    "botserver".to_string(),
+                    "gbuser".to_string(),
+                    "changeme".to_string(),
+                )
+            };
+        let db_tls_port = db_port + 1;
+
+        let (drive_host, _drive_accesskey, _drive_secret) =
+            if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
+                sm.get_drive_config()
+            } else {
+                (
+                    "localhost:9100".to_string(),
+                    "minioadmin".to_string(),
+                    "minioadmin".to_string(),
+                )
+            };
+        let drive_port: u16 = drive_host
+            .split(':')
+            .last()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(9100);
+
+        let (directory_url, _, _, _) =
+            if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
+                sm.get_directory_config_sync()
+            } else {
+                (
+                    "http://localhost:9000".to_string(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                )
+            };
+        let directory_secure = directory_url.replace("http://", "https://");
+        let directory_port: u16 = directory_url
+            .split(':')
+            .last()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(9000);
+        let directory_tls_port: u16 = directory_secure
+            .split(':')
+            .last()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(8446);
+
         let mut services = HashMap::new();
 
         services.insert(
@@ -45,10 +147,10 @@ impl TlsIntegration {
         services.insert(
             "llm".to_string(),
             ServiceUrls {
-                original: "http://localhost:8081".to_string(),
-                secure: "https://localhost:8444".to_string(),
-                port: 8081,
-                tls_port: 8444,
+                original: llm_url,
+                secure: llm_secure,
+                port: llm_port,
+                tls_port: llm_tls_port,
             },
         );
 
@@ -65,50 +167,50 @@ impl TlsIntegration {
         services.insert(
             "qdrant".to_string(),
             ServiceUrls {
-                original: "http://localhost:6333".to_string(),
-                secure: "https://localhost:6334".to_string(),
-                port: 6333,
-                tls_port: 6334,
+                original: qdrant_url,
+                secure: qdrant_secure,
+                port: qdrant_port,
+                tls_port: qdrant_tls_port,
             },
         );
 
         services.insert(
             "redis".to_string(),
             ServiceUrls {
-                original: "redis://localhost:6379".to_string(),
-                secure: "rediss://localhost:6380".to_string(),
-                port: 6379,
-                tls_port: 6380,
+                original: format!("redis://{}:{}", cache_host, cache_port),
+                secure: format!("rediss://{}:{}", cache_host, cache_tls_port),
+                port: cache_port,
+                tls_port: cache_tls_port,
             },
         );
 
         services.insert(
             "postgres".to_string(),
             ServiceUrls {
-                original: "postgres://localhost:5432".to_string(),
-                secure: "postgres://localhost:5433?sslmode=require".to_string(),
-                port: 5432,
-                tls_port: 5433,
+                original: format!("postgres://{}:{}", db_host, db_port),
+                secure: format!("postgres://{}:{}?sslmode=require", db_host, db_tls_port),
+                port: db_port,
+                tls_port: db_tls_port,
             },
         );
 
         services.insert(
             "minio".to_string(),
             ServiceUrls {
-                original: "https://localhost:9100".to_string(),
-                secure: "https://localhost:9100".to_string(),
-                port: 9100,
-                tls_port: 9100,
+                original: format!("https://{}", drive_host),
+                secure: format!("https://{}", drive_host),
+                port: drive_port,
+                tls_port: drive_port,
             },
         );
 
         services.insert(
             "directory".to_string(),
             ServiceUrls {
-                original: "http://localhost:9000".to_string(),
-                secure: "https://localhost:8446".to_string(),
-                port: 9000,
-                tls_port: 8446,
+                original: directory_url,
+                secure: directory_secure,
+                port: directory_port,
+                tls_port: directory_tls_port,
             },
         );
 
@@ -123,8 +225,9 @@ impl TlsIntegration {
 
     pub fn load_ca_cert(&mut self, ca_path: &Path) -> Result<()> {
         if ca_path.exists() {
-            let ca_cert_pem = fs::read(ca_path)
-                .with_context(|| format!("Failed to read CA certificate from {}", ca_path.display()))?;
+            let ca_cert_pem = fs::read(ca_path).with_context(|| {
+                format!("Failed to read CA certificate from {}", ca_path.display())
+            })?;
 
             let ca_cert =
                 Certificate::from_pem(&ca_cert_pem).context("Failed to parse CA certificate")?;
@@ -145,11 +248,13 @@ impl TlsIntegration {
         key_path: &Path,
     ) -> Result<()> {
         if cert_path.exists() && key_path.exists() {
-            let cert = fs::read(cert_path)
-                .with_context(|| format!("Failed to read client cert from {}", cert_path.display()))?;
+            let cert = fs::read(cert_path).with_context(|| {
+                format!("Failed to read client cert from {}", cert_path.display())
+            })?;
 
-            let key = fs::read(key_path)
-                .with_context(|| format!("Failed to read client key from {}", key_path.display()))?;
+            let key = fs::read(key_path).with_context(|| {
+                format!("Failed to read client key from {}", key_path.display())
+            })?;
 
             let identity = Identity::from_pem(&[&cert[..], &key[..]].concat())
                 .context("Failed to create client identity")?;
@@ -208,8 +313,6 @@ impl TlsIntegration {
             if let Some(identity) = self.client_certs.get(service) {
                 builder = builder.identity(identity.clone());
             }
-
-
 
             if self.https_only {
                 builder = builder.https_only(true);

@@ -159,9 +159,15 @@ pub fn cache_health_check() -> bool {
 
 /// Check if Qdrant vector database is healthy
 pub fn vector_db_health_check() -> bool {
+    let qdrant_url = if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
+        sm.get_vectordb_config_sync().0
+    } else {
+        "http://localhost:6333".to_string()
+    };
+
     let urls = [
-        "http://localhost:6333/healthz",
-        "https://localhost:6333/healthz",
+        format!("{}/healthz", qdrant_url),
+        qdrant_url.replace("http://", "https://") + "/healthz",
     ];
 
     for url in &urls {

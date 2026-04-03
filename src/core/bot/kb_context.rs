@@ -278,7 +278,16 @@ impl KbContextManager {
 
             // Load embedding config from database for this bot
             let mut embedding_config = EmbeddingConfig::from_bot_config(&self.db_pool, &bot_id);
-            let qdrant_config = QdrantConfig::default();
+            let qdrant_config = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
+                let (url, api_key) = sm.get_vectordb_config_sync();
+                crate::core::kb::QdrantConfig {
+                    url,
+                    api_key,
+                    timeout_secs: 30,
+                }
+            } else {
+                crate::core::kb::QdrantConfig::default()
+            };
 
             // Query Qdrant to get the collection's actual vector dimension
             let collection_dimension = self.get_collection_dimension(&qdrant_config, collection_name).await?;

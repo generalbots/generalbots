@@ -31,13 +31,18 @@ impl Default for QdrantConfig {
 
 impl QdrantConfig {
     pub fn from_config(pool: DbPool, bot_id: &Uuid) -> Self {
-        let config_manager = ConfigManager::new(pool);
-        let url = config_manager
-            .get_config(bot_id, "vectordb-url", Some("http://localhost:6333"))
-            .unwrap_or_else(|_| "http://localhost:6333".to_string());
+        let (url, api_key) = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
+            sm.get_vectordb_config_sync()
+        } else {
+            let config_manager = ConfigManager::new(pool);
+            let url = config_manager
+                .get_config(bot_id, "vectordb-url", Some("http://localhost:6333"))
+                .unwrap_or_else(|_| "http://localhost:6333".to_string());
+            (url, None)
+        };
         Self {
             url,
-            api_key: None,
+            api_key,
             timeout_secs: 30,
         }
     }
