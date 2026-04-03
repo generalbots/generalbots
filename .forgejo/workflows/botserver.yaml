@@ -79,14 +79,15 @@ jobs:
 
       - name: Deploy via ssh tar gzip
         run: |
+          set -e
           SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
           echo "=== Deploy started ==="
           echo "Step 1: Checking binary..."
           ls -lh /opt/gbo/data/botserver/target/debug/botserver
           echo "Step 2: Backing up old binary..."
-          ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak 2>/dev/null || echo 'No previous binary to backup'"
+          ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak"
           echo "Step 3: Killing old botserver..."
-          ssh $SSH_ARGS system "killall botserver 2>/dev/null || true"
+          ssh $SSH_ARGS system "killall botserver"
           echo "Step 4: Transferring new binary..."
           tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && echo 'Transfer complete'"
           echo "Step 5: Starting botserver..."
@@ -97,7 +98,7 @@ jobs:
         run: |
           sleep 30
           SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
-          ssh $SSH_ARGS system "pgrep -f botserver >/dev/null && echo 'OK: botserver is running' || echo 'WARNING: botserver may still be starting'" || echo "Could not verify, check manually"
+          ssh $SSH_ARGS system "pgrep -f botserver >/dev/null && echo 'OK: botserver is running' || echo 'WARNING: botserver may still be starting'"
 
       - name: Save deploy log
         if: always()
