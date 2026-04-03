@@ -49,6 +49,18 @@ impl BootstrapManager {
     }
 
     pub async fn start_all(&mut self) -> anyhow::Result<()> {
+        // If VAULT_ADDR points to a remote server, skip local service startup
+        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+        let is_remote_vault = !vault_addr.is_empty()
+            && !vault_addr.contains("localhost")
+            && !vault_addr.contains("127.0.0.1");
+
+        if is_remote_vault {
+            info!("Remote Vault detected ({}), skipping local service startup", vault_addr);
+            info!("All services are assumed to be running in separate containers");
+            return Ok(());
+        }
+
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
         info!("Starting bootstrap process...");
@@ -304,6 +316,17 @@ impl BootstrapManager {
 
     /// Install all required components
     pub async fn install_all(&mut self) -> anyhow::Result<()> {
+        // If VAULT_ADDR is set and points to a remote server, skip local installation
+        // All services are assumed to be running in separate containers
+        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+        let is_remote_vault = !vault_addr.is_empty() && !vault_addr.contains("localhost") && !vault_addr.contains("127.0.0.1");
+
+        if is_remote_vault {
+            info!("Remote Vault detected ({}), skipping local service installation", vault_addr);
+            info!("All services are assumed to be running in separate containers");
+            return Ok(());
+        }
+
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
         // Install vault first (required for secrets management)
