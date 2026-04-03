@@ -54,13 +54,11 @@ pub fn get_database_url_sync() -> Result<String> {
     let guard = SECRETS_MANAGER.read().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
     if let Some(ref manager) = *guard {
         if tokio::runtime::Handle::try_current().is_ok() {
-            return tokio::task::block_in_place(|| {
-                let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
-                rt.block_on(manager.get_database_url())
-            });
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
+            return rt.block_on(manager.get_database_url());
         } else {
             let rt = tokio::runtime::Runtime::new()
                 .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
@@ -86,17 +84,15 @@ pub fn get_secrets_manager_sync() -> Option<SecretsManager> {
 pub fn get_work_path() -> String {
     let sm = get_secrets_manager_sync();
     if let Some(sm) = sm {
-        tokio::task::block_in_place(|| {
-            let rt = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .ok();
-            match rt {
-                Some(rt) => rt.block_on(sm.get_value("gbo/app", "work_path"))
-                    .unwrap_or_else(|_| "./work".to_string()),
-                None => "./work".to_string(),
-            }
-        })
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .ok();
+        match rt {
+            Some(rt) => rt.block_on(sm.get_value("gbo/app", "work_path"))
+                .unwrap_or_else(|_| "./work".to_string()),
+            None => "./work".to_string(),
+        }
     } else {
         "./work".to_string()
     }
