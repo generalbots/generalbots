@@ -56,15 +56,20 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
                     template_dir,
                     prompt,
                 };
-                let fut = create_site(config, s3, bucket, bot_id, llm, params);
-                let result =
-                    tokio::task::block_in_place(|| {
-                        let rt = tokio::runtime::Builder::new_current_thread()
-                            .enable_all()
-                            .build()
-                            .map_err(|e| format!("Runtime creation failed: {}", e))?;
-                        rt.block_on(fut)
-                    })
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async {
+                            create_site(config, s3, bucket, bot_id, llm, params).await
+                        }),
+                        Err(e) => Err(format!("Runtime creation failed: {}", e).into()),
+                    };
+                    let _ = tx.send(result);
+                });
+                let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))
                         .map_err(|e| format!("Site creation failed: {}", e))?;
                 Ok(Dynamic::from(result))
             },

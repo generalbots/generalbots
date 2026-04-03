@@ -25,23 +25,26 @@ pub mod ui;
 fn get_bot_context() -> (Uuid, Uuid) {
     let sm = crate::core::secrets::SecretsManager::from_env().ok();
     let (org_id, bot_id) = if let Some(sm) = sm {
-        tokio::task::block_in_place(|| {
+        let sm_owned = sm.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
-                .build()
-                .ok();
-            if let Some(rt) = rt {
-                rt.block_on(async {
-                    let org = sm.get_value("gbo/analytics", "default_org_id").await
+                .build();
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async move {
+                    let org = sm_owned.get_value("gbo/analytics", "default_org_id").await
                         .unwrap_or_else(|_| "system".to_string());
-                    let bot = sm.get_value("gbo/analytics", "default_bot_id").await
+                    let bot = sm_owned.get_value("gbo/analytics", "default_bot_id").await
                         .unwrap_or_else(|_| "system".to_string());
                     (org, bot)
                 })
             } else {
                 ("system".to_string(), "system".to_string())
-            }
-        })
+            };
+            let _ = tx.send(result);
+        });
+        rx.recv().unwrap_or(("system".to_string(), "system".to_string()))
     } else {
         ("system".to_string(), "system".to_string())
     };

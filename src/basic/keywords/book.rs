@@ -273,23 +273,27 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let user_for_task = user_clone2.clone();
                 let meeting_json = meeting_details.to_string();
 
-                let result = tokio::task::block_in_place(|| {
+                let (tx, rx) = std::sync::mpsc::channel();
+                let meeting_json_clone = meeting_json.clone();
+                let attendees_clone = attendees.clone();
+                std::thread::spawn(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
                         .enable_all()
-                        .build()
-                        .ok();
-                    match rt {
-                        Some(rt) => rt.block_on(async move {
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async move {
                             execute_book_meeting(
                                 &state_for_task,
                                 &user_for_task,
-                                meeting_json,
-                                attendees,
+                                meeting_json_clone,
+                                attendees_clone,
                             )
                         }),
-                        None => Err("Failed to create runtime".into()),
-                    }
+                        Err(_) => Err("Failed to create runtime".into()),
+                    };
+                    let _ = tx.send(result);
                 });
+                let result = rx.recv().unwrap_or(Err("Failed to create runtime".into()));
 
                 match result {
                     Ok(event_id) => Ok(Dynamic::from(event_id)),
@@ -324,22 +328,25 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
 
                 let state_for_task = Arc::clone(&state_clone3);
 
-                let result = tokio::task::block_in_place(|| {
+                let (tx, rx) = std::sync::mpsc::channel();
+                let date_str_clone = date_str.clone();
+                std::thread::spawn(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
                         .enable_all()
-                        .build()
-                        .ok();
-                    match rt {
-                        Some(rt) => rt.block_on(async move {
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async move {
                             check_availability(
                                 &state_for_task,
-                                &date_str,
+                                &date_str_clone,
                                 duration_minutes,
                             )
                         }),
-                        None => Err("Failed to create runtime".into()),
-                    }
+                        Err(_) => Err("Failed to create runtime".into()),
+                    };
+                    let _ = tx.send(result);
                 });
+                let result = rx.recv().unwrap_or(Err("Failed to create runtime".into()));
 
                 match result {
                     Ok(slots) => Ok(Dynamic::from(slots)),

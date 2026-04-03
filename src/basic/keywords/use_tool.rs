@@ -34,9 +34,18 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                     rhai::Position::NONE,
                 )));
             }
-            let result = tokio::task::block_in_place(|| {
-                associate_tool_with_session(&state_clone, &user_clone, &tool_name)
+            let (tx, rx) = std::sync::mpsc::channel();
+            let state_clone_1 = Arc::clone(&state_clone);
+            let user_clone_1 = user_clone.clone();
+            let tool_name_1 = tool_name.clone();
+            std::thread::spawn(move || {
+                let result =
+                    associate_tool_with_session(&state_clone_1, &user_clone_1, &tool_name_1);
+                let _ = tx.send(result);
             });
+            let result = rx
+                .recv()
+                .unwrap_or(Err("Failed to receive result".to_string()));
             match result {
                 Ok(message) => Ok(Dynamic::from(message)),
                 Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
@@ -70,9 +79,17 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         if tool_name.is_empty() {
             return Dynamic::from("ERROR: Invalid tool name");
         }
-        let result = tokio::task::block_in_place(|| {
-            associate_tool_with_session(&state_clone2, &user_clone2, &tool_name)
+        let (tx, rx) = std::sync::mpsc::channel();
+        let state_clone_2 = Arc::clone(&state_clone2);
+        let user_clone_2 = user_clone2.clone();
+        let tool_name_2 = tool_name.clone();
+        std::thread::spawn(move || {
+            let result = associate_tool_with_session(&state_clone_2, &user_clone_2, &tool_name_2);
+            let _ = tx.send(result);
         });
+        let result = rx
+            .recv()
+            .unwrap_or(Err("Failed to receive result".to_string()));
         match result {
             Ok(message) => Dynamic::from(message),
             Err(e) => Dynamic::from(format!("ERROR: {}", e)),
@@ -102,9 +119,17 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         if tool_name.is_empty() {
             return Dynamic::from("ERROR: Invalid tool name");
         }
-        let result = tokio::task::block_in_place(|| {
-            associate_tool_with_session(&state_clone3, &user_clone3, &tool_name)
+        let (tx, rx) = std::sync::mpsc::channel();
+        let state_clone_3 = Arc::clone(&state_clone3);
+        let user_clone_3 = user_clone3.clone();
+        let tool_name_3 = tool_name.clone();
+        std::thread::spawn(move || {
+            let result = associate_tool_with_session(&state_clone_3, &user_clone_3, &tool_name_3);
+            let _ = tx.send(result);
         });
+        let result = rx
+            .recv()
+            .unwrap_or(Err("Failed to receive result".to_string()));
         match result {
             Ok(message) => Dynamic::from(message),
             Err(e) => Dynamic::from(format!("ERROR: {}", e)),

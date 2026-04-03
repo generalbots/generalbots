@@ -77,7 +77,6 @@ pub async fn get_secrets_manager() -> Option<SecretsManager> {
     let guard = SECRETS_MANAGER.read().ok()?;
     guard.clone()
 }
-
 pub fn get_secrets_manager_sync() -> Option<SecretsManager> {
     let guard = SECRETS_MANAGER.read().ok()?;
     guard.clone()

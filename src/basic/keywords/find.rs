@@ -44,11 +44,21 @@ pub fn find_keyword(state: &AppState, user: UserSession, engine: &mut Engine) {
                     }
                 };
 
-                let result = tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current()
-                        .block_on(async { execute_find(&mut binding, &binding2, &binding3) })
-                })
-                .map_err(|e| format!("DB error: {e}"))?;
+                let (tx, rx) = std::sync::mpsc::channel();
+                let table_str_clone = binding2.clone();
+                let filter_str_clone = binding3.clone();
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async { execute_find(&mut binding, &table_str_clone, &filter_str_clone) })
+                        .map_err(|e| format!("DB error: {e}")),
+                        Err(_) => Err("Failed to create runtime".into()),
+                    };
+                    let _ = tx.send(result);
+                });
+                let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
 
                 if let Some(results) = result.get("results") {
                     let filtered =
