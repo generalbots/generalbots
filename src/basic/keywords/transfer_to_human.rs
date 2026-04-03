@@ -518,11 +518,27 @@ pub fn register_transfer_to_human_keyword(
                     )
                     .await
                 }),
-                Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+                Err(_) => TransferResult {
+                    success: false,
+                    status: TransferStatus::Error,
+                    queue_position: None,
+                    assigned_to: None,
+                    assigned_to_name: None,
+                    estimated_wait_seconds: None,
+                    message: "Failed to create runtime".to_string(),
+                },
             };
             let _ = tx.send(result);
         });
-        let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
+        let result = rx.recv().unwrap_or_else(|_| TransferResult {
+            success: false,
+            status: TransferStatus::Error,
+            queue_position: None,
+            assigned_to: None,
+            assigned_to_name: None,
+            estimated_wait_seconds: None,
+            message: "Channel error".to_string(),
+        });
         result.to_dynamic()
     });
 
@@ -553,11 +569,27 @@ pub fn register_transfer_to_human_keyword(
                     )
                     .await
                 }),
-                Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+                Err(_) => TransferResult {
+                    success: false,
+                    status: TransferStatus::Error,
+                    queue_position: None,
+                    assigned_to: None,
+                    assigned_to_name: None,
+                    estimated_wait_seconds: None,
+                    message: "Failed to create runtime".to_string(),
+                },
             };
             let _ = tx.send(result);
         });
-        let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
+        let result = rx.recv().unwrap_or_else(|_| TransferResult {
+            success: false,
+            status: TransferStatus::Error,
+            queue_position: None,
+            assigned_to: None,
+            assigned_to_name: None,
+            estimated_wait_seconds: None,
+            message: "Channel error".to_string(),
+        });
         result.to_dynamic()
     });
 
@@ -591,11 +623,27 @@ pub fn register_transfer_to_human_keyword(
                         )
                         .await
                     }),
-                    Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+                    Err(_) => TransferResult {
+                        success: false,
+                        status: TransferStatus::Error,
+                        queue_position: None,
+                        assigned_to: None,
+                        assigned_to_name: None,
+                        estimated_wait_seconds: None,
+                        message: "Failed to create runtime".to_string(),
+                    },
                 };
                 let _ = tx.send(result);
             });
-            let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
+            let result = rx.recv().unwrap_or_else(|_| TransferResult {
+                success: false,
+                status: TransferStatus::Error,
+                queue_position: None,
+                assigned_to: None,
+                assigned_to_name: None,
+                estimated_wait_seconds: None,
+                message: "Channel error".to_string(),
+            });
             result.to_dynamic()
         },
     );
@@ -631,11 +679,27 @@ pub fn register_transfer_to_human_keyword(
                         )
                         .await
                     }),
-                    Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+                    Err(_) => TransferResult {
+                        success: false,
+                        status: TransferStatus::Error,
+                        queue_position: None,
+                        assigned_to: None,
+                        assigned_to_name: None,
+                        estimated_wait_seconds: None,
+                        message: "Failed to create runtime".to_string(),
+                    },
                 };
                 let _ = tx.send(result);
             });
-            let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
+            let result = rx.recv().unwrap_or_else(|_| TransferResult {
+                success: false,
+                status: TransferStatus::Error,
+                queue_position: None,
+                assigned_to: None,
+                assigned_to_name: None,
+                estimated_wait_seconds: None,
+                message: "Channel error".to_string(),
+            });
             result.to_dynamic()
         },
     );
@@ -682,11 +746,27 @@ pub fn register_transfer_to_human_keyword(
                     )
                     .await
                 }),
-                Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+                Err(_) => TransferResult {
+                    success: false,
+                    status: TransferStatus::Error,
+                    queue_position: None,
+                    assigned_to: None,
+                    assigned_to_name: None,
+                    estimated_wait_seconds: None,
+                    message: "Failed to create runtime".to_string(),
+                },
             };
             let _ = tx.send(result);
         });
-        let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
+        let result = rx.recv().unwrap_or_else(|_| TransferResult {
+            success: false,
+            status: TransferStatus::Error,
+            queue_position: None,
+            assigned_to: None,
+            assigned_to_name: None,
+            estimated_wait_seconds: None,
+            message: "Channel error".to_string(),
+        });
         result.to_dynamic()
     });
 
