@@ -98,11 +98,19 @@ pub async fn run_bootstrap(
         let env_exists = env_path.exists();
         let stack_env_exists = stack_env_path.exists();
         let vault_init_exists = vault_init_path.exists();
-        let bootstrap_completed = (env_exists || stack_env_exists) && vault_init_exists;
+
+        // If VAULT_ADDR points to a remote server, treat bootstrap as completed
+        // All services are assumed to be running in separate containers
+        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+        let is_remote_vault = !vault_addr.is_empty()
+            && !vault_addr.contains("localhost")
+            && !vault_addr.contains("127.0.0.1");
+
+        let bootstrap_completed = is_remote_vault || ((env_exists || stack_env_exists) && vault_init_exists);
 
         info!(
-            "Bootstrap check: .env exists={}, stack/.env exists={}, init.json exists={}, bootstrap_completed={}",
-            env_exists, stack_env_exists, vault_init_exists, bootstrap_completed
+            "Bootstrap check: .env exists={}, stack/.env exists={}, init.json exists={}, remote_vault={}, bootstrap_completed={}",
+            env_exists, stack_env_exists, vault_init_exists, is_remote_vault, bootstrap_completed
         );
 
         let cfg = if bootstrap_completed {
