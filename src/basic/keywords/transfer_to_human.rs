@@ -498,22 +498,31 @@ pub fn register_transfer_to_human_keyword(
         let state = state_clone.clone();
         let session = user_clone.clone();
 
-        let rt = tokio::runtime::Handle::current();
-        let result = rt.block_on(async {
-            execute_transfer(
-                state,
-                &session,
-                TransferToHumanRequest {
-                    name: None,
-                    department: None,
-                    priority: None,
-                    reason: None,
-                    context: None,
-                },
-            )
-            .await
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = match rt {
+                Ok(rt) => rt.block_on(async {
+                    execute_transfer(
+                        state,
+                        &session,
+                        TransferToHumanRequest {
+                            name: None,
+                            department: None,
+                            priority: None,
+                            reason: None,
+                            context: None,
+                        },
+                    )
+                    .await
+                }),
+                Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+            };
+            let _ = tx.send(result);
         });
-
+        let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
         result.to_dynamic()
     });
 
@@ -524,22 +533,31 @@ pub fn register_transfer_to_human_keyword(
         let session = user_clone.clone();
         let name_str = name.to_string();
 
-        let rt = tokio::runtime::Handle::current();
-        let result = rt.block_on(async {
-            execute_transfer(
-                state,
-                &session,
-                TransferToHumanRequest {
-                    name: Some(name_str),
-                    department: None,
-                    priority: None,
-                    reason: None,
-                    context: None,
-                },
-            )
-            .await
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = match rt {
+                Ok(rt) => rt.block_on(async {
+                    execute_transfer(
+                        state,
+                        &session,
+                        TransferToHumanRequest {
+                            name: Some(name_str),
+                            department: None,
+                            priority: None,
+                            reason: None,
+                            context: None,
+                        },
+                    )
+                    .await
+                }),
+                Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+            };
+            let _ = tx.send(result);
         });
-
+        let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
         result.to_dynamic()
     });
 
@@ -553,22 +571,31 @@ pub fn register_transfer_to_human_keyword(
             let dept = department.to_string();
             let prio = priority.to_string();
 
-            let rt = tokio::runtime::Handle::current();
-            let result = rt.block_on(async {
-                execute_transfer(
-                    state,
-                    &session,
-                    TransferToHumanRequest {
-                        name: None,
-                        department: Some(dept),
-                        priority: Some(prio),
-                        reason: None,
-                        context: None,
-                    },
-                )
-                .await
+            let (tx, rx) = std::sync::mpsc::channel();
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build();
+                let result = match rt {
+                    Ok(rt) => rt.block_on(async {
+                        execute_transfer(
+                            state,
+                            &session,
+                            TransferToHumanRequest {
+                                name: None,
+                                department: Some(dept),
+                                priority: Some(prio),
+                                reason: None,
+                                context: None,
+                            },
+                        )
+                        .await
+                    }),
+                    Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+                };
+                let _ = tx.send(result);
             });
-
+            let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
             result.to_dynamic()
         },
     );
@@ -584,22 +611,31 @@ pub fn register_transfer_to_human_keyword(
             let prio = priority.to_string();
             let rsn = reason.to_string();
 
-            let rt = tokio::runtime::Handle::current();
-            let result = rt.block_on(async {
-                execute_transfer(
-                    state,
-                    &session,
-                    TransferToHumanRequest {
-                        name: None,
-                        department: Some(dept),
-                        priority: Some(prio),
-                        reason: Some(rsn),
-                        context: None,
-                    },
-                )
-                .await
+            let (tx, rx) = std::sync::mpsc::channel();
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build();
+                let result = match rt {
+                    Ok(rt) => rt.block_on(async {
+                        execute_transfer(
+                            state,
+                            &session,
+                            TransferToHumanRequest {
+                                name: None,
+                                department: Some(dept),
+                                priority: Some(prio),
+                                reason: Some(rsn),
+                                context: None,
+                            },
+                        )
+                        .await
+                    }),
+                    Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+                };
+                let _ = tx.send(result);
             });
-
+            let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
             result.to_dynamic()
         },
     );
@@ -626,22 +662,31 @@ pub fn register_transfer_to_human_keyword(
             .get("context")
             .and_then(|v| v.clone().try_cast::<String>());
 
-        let rt = tokio::runtime::Handle::current();
-        let result = rt.block_on(async {
-            execute_transfer(
-                state,
-                &session,
-                TransferToHumanRequest {
-                    name,
-                    department,
-                    priority,
-                    reason,
-                    context,
-                },
-            )
-            .await
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = match rt {
+                Ok(rt) => rt.block_on(async {
+                    execute_transfer(
+                        state,
+                        &session,
+                        TransferToHumanRequest {
+                            name,
+                            department,
+                            priority,
+                            reason,
+                            context,
+                        },
+                    )
+                    .await
+                }),
+                Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+            };
+            let _ = tx.send(result);
         });
-
+        let result = rx.recv().unwrap_or_else(|e| Err(anyhow::anyhow!("Channel error: {}", e)));
         result.to_dynamic()
     });
 
