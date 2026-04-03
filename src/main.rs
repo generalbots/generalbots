@@ -207,11 +207,16 @@ async fn main() -> std::io::Result<()> {
 
     let env_path_early = std::path::Path::new("./.env");
     let vault_init_path_early = std::path::Path::new("./botserver-stack/conf/vault/init.json");
-    let bootstrap_ready = env_path_early.exists() && vault_init_path_early.exists() && {
+    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+    let is_remote_vault = !vault_addr.is_empty()
+        && !vault_addr.contains("localhost")
+        && !vault_addr.contains("127.0.0.1");
+
+    let bootstrap_ready = is_remote_vault || (env_path_early.exists() && vault_init_path_early.exists() && {
         std::fs::read_to_string(env_path_early)
             .map(|content| content.contains("VAULT_TOKEN="))
             .unwrap_or(false)
-    };
+    });
 
     if bootstrap_ready {
         if let Err(e) = crate::core::shared::utils::init_secrets_manager().await {
