@@ -34,13 +34,13 @@ fn register_talk_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let state_for_send = Arc::clone(&state_clone);
                 let user_for_send = user.clone();
 
-                tokio::task::block_in_place(|| {
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
                         .enable_all()
-                        .build()
-                        .ok();
-                    match rt {
-                        Some(rt) => rt.block_on(async {
+                        .build();
+                    let result: Result<(), String> = match rt {
+                        Ok(rt) => rt.block_on(async {
                             send_message_to_recipient(
                                 state_for_send,
                                 &user_for_send,
@@ -48,11 +48,14 @@ fn register_talk_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                                 &message,
                             )
                             .await
+                            .map_err(|e| format!("{}", e))
                         }),
-                        None => Err("Failed to create runtime".into()),
-                    }
-                })
-                .map_err(|e| format!("Failed to send message: {}", e))?;
+                        Err(_) => Err("Failed to create runtime".into()),
+                    };
+                    let _ = tx.send(result);
+                });
+                rx.recv().unwrap_or(Err("Failed to receive result".into()))
+                    .map_err(|e| format!("Failed to send message: {}", e))?;
 
                 Ok(Dynamic::UNIT)
             },
