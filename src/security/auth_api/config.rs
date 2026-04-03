@@ -1,3 +1,5 @@
+use anyhow::anyhow;
+
 #[derive(Debug, Clone)]
 pub struct AuthConfig {
     pub require_auth: bool,
@@ -54,26 +56,33 @@ impl AuthConfig {
 
         if let Ok(secret) = std::env::var("VAULT_TOKEN") {
             if !secret.is_empty() {
-                let rt = tokio::runtime::Runtime::new().ok();
-                if let Some(rt) = rt {
-                    let sm = crate::core::shared::utils::get_secrets_manager_sync();
-                    if let Some(sm) = sm {
-                        if let Ok(secrets) =
-                            rt.block_on(sm.get_secret(crate::core::secrets::SecretPaths::JWT))
-                        {
-                            if let Some(s) = secrets.get("secret") {
-                                config.jwt_secret = Some(s.clone());
-                            }
-                            if let Some(r) = secrets.get("require_auth") {
-                                config.require_auth = r == "true" || r == "1";
-                            }
-                            if let Some(p) = secrets.get("anonymous_paths") {
-                                config.allow_anonymous_paths = p
-                                    .split(',')
-                                    .map(|s| s.trim().to_string())
-                                    .filter(|s| !s.is_empty())
-                                    .collect();
-                            }
+                let sm = crate::core::shared::utils::get_secrets_manager_sync();
+                if let Some(sm) = sm {
+                    let sm_clone = sm.clone();
+                    let (tx, rx) = std::sync::mpsc::channel();
+                    std::thread::spawn(move || {
+                        let rt = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build();
+                        let result = match rt {
+                            Ok(rt) => rt.block_on(sm_clone.get_secret(crate::core::secrets::SecretPaths::JWT)),
+                            Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+                        };
+                        let _ = tx.send(result);
+                    });
+                    if let Ok(Ok(secrets)) = rx.recv() {
+                        if let Some(s) = secrets.get("secret") {
+                            config.jwt_secret = Some(s.clone());
+                        }
+                        if let Some(r) = secrets.get("require_auth") {
+                            config.require_auth = r == "true" || r == "1";
+                        }
+                        if let Some(p) = secrets.get("anonymous_paths") {
+                            config.allow_anonymous_paths = p
+                                .split(',')
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty())
+                                .collect();
                         }
                     }
                 }
