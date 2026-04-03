@@ -92,9 +92,9 @@ pub fn get_work_path() -> String {
                 .enable_all()
                 .build();
             let result = match rt {
-                Some(rt) => rt.block_on(sm.get_value("gbo/app", "work_path"))
+                Ok(rt) => rt.block_on(sm.get_value("gbo/app", "work_path"))
                     .unwrap_or_else(|_| "./work".to_string()),
-                None => "./work".to_string(),
+                Err(_) => "./work".to_string(),
             };
             let _ = tx.send(result);
         });
