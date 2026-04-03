@@ -54,7 +54,13 @@ pub fn get_database_url_sync() -> Result<String> {
     let guard = SECRETS_MANAGER.read().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
     if let Some(ref manager) = *guard {
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
-            return handle.block_on(manager.get_database_url());
+            return tokio::task::block_in_place(|| {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
+                rt.block_on(manager.get_database_url())
+            });
         } else {
             let rt = tokio::runtime::Runtime::new()
                 .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
