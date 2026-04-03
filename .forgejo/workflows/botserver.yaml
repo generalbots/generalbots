@@ -9,9 +9,10 @@ on:
 env:
   CARGO_BUILD_JOBS: 8
   CARGO_NET_RETRY: 10
-  WORKSPACE: /opt/gbo/ci/botserver
-  CARGO_TARGET_DIR: /opt/gbo/ci/botserver/target
-  PATH: /root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+  RUSTC_WRAPPER: sccache
+  WORKSPACE: /opt/gbo/data/botserver
+  CARGO_TARGET_DIR: /opt/gbo/data/botserver/target
+  PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 jobs:
   build:
@@ -40,12 +41,15 @@ jobs:
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
           # Get workspace Cargo.toml from gb and strip unused members
-          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /tmp/gb-ws
-          cp /tmp/gb-ws/Cargo.toml Cargo.toml
+          if [ -d /opt/gbo/data/gb-ws/.git ]; then
+            git -C /opt/gbo/data/gb-ws fetch --depth 1 origin main && git -C /opt/gbo/data/gb-ws checkout FETCH_HEAD
+          else
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
+          fi
+          cp /opt/gbo/data/gb-ws/Cargo.toml Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
           done
-          rm -rf /tmp/gb-ws
 
       - name: Install system dependencies
         run: |
@@ -62,27 +66,29 @@ jobs:
           fi
 
       - name: Build BotServer
-        working-directory: /opt/gbo/ci/botserver
+        working-directory: /opt/gbo/data/botserver
         run: |
+          sccache --start-server 2>/dev/null || true
           cargo build -p botserver --features chat -j 8 2>&1 | tee /tmp/build.log
+          sccache --show-stats
           ls -lh target/debug/botserver
 
       - name: Save build log
         if: always()
-        run: sudo cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
+        run: cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
       - name: Deploy via ssh tar gzip
         run: |
           set -e
           echo "=== Deploy started ==="
           echo "Step 1: Checking binary..."
-          ls -lh /opt/gbo/ci/botserver/target/debug/botserver
+          ls -lh /opt/gbo/data/botserver/target/debug/botserver
           echo "Step 2: Killing old botserver..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "pgrep -f botserver && killall botserver 2>/dev/null || echo 'No running botserver'"
           echo "Step 3: Removing old binary..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "rm -f /opt/gbo/bin/botserver && echo 'Old binary removed'"
           echo "Step 4: Starting tar+gzip transfer..."
-          tar cf - -C /opt/gbo/ci/botserver/target/debug botserver | gzip -1 | ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=10 system "gzip -d | tar xf - -C /opt/gbo/bin && echo 'Transfer complete'"
+          tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=10 system "gzip -d | tar xf - -C /opt/gbo/bin && echo 'Transfer complete'"
           echo "Step 5: Verifying transfer..."
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "ls -lh /opt/gbo/bin/botserver"
           echo "Step 6: Setting permissions..."
@@ -95,4 +101,4 @@ jobs:
 
       - name: Save deploy log
         if: always()
-        run: sudo cp /tmp/deploy.log /tmp/deploy-$(date +%Y%m%d-%H%M%S).log || true
+        run: cp /tmp/deploy.log /tmp/deploy-$(date +%Y%m%d-%H%M%S).log || true
