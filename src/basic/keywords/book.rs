@@ -274,14 +274,21 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let meeting_json = meeting_details.to_string();
 
                 let result = tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async move {
-                        execute_book_meeting(
-                            &state_for_task,
-                            &user_for_task,
-                            meeting_json,
-                            attendees,
-                        )
-                    })
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .ok();
+                    match rt {
+                        Some(rt) => rt.block_on(async move {
+                            execute_book_meeting(
+                                &state_for_task,
+                                &user_for_task,
+                                meeting_json,
+                                attendees,
+                            )
+                        }),
+                        None => Err("Failed to create runtime".into()),
+                    }
                 });
 
                 match result {
@@ -318,13 +325,20 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let state_for_task = Arc::clone(&state_clone3);
 
                 let result = tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async move {
-                        check_availability(
-                            &state_for_task,
-                            &date_str,
-                            duration_minutes,
-                        )
-                    })
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .ok();
+                    match rt {
+                        Some(rt) => rt.block_on(async move {
+                            check_availability(
+                                &state_for_task,
+                                &date_str,
+                                duration_minutes,
+                            )
+                        }),
+                        None => Err("Failed to create runtime".into()),
+                    }
                 });
 
                 match result {

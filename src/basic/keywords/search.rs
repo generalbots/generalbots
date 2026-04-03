@@ -73,11 +73,18 @@ pub fn search_keyword(state: &AppState, user: UserSession, engine: &mut Engine) 
                     };
 
                     let result = tokio::task::block_in_place(|| {
-                        tokio::runtime::Handle::current().block_on(async {
-                            execute_search(&mut binding, &table_str, &query_str, limit_val)
-                        })
-                    })
-                    .map_err(|e| format!("Search error: {e}"))?;
+                        let rt = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build()
+                            .ok();
+                        match rt {
+                            Some(rt) => rt.block_on(async {
+                                execute_search(&mut binding, &table_str, &query_str, limit_val)
+                            })
+                            .map_err(|e| format!("Search error: {e}")),
+                            None => Err("Failed to create runtime".into()),
+                        }
+                    })?;
 
                     if let Some(results) = result.get("results") {
                         let filtered =

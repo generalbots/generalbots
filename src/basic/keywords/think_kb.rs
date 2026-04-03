@@ -52,9 +52,15 @@ pub fn register_think_kb_keyword(
 
         // Execute KB search in blocking thread
         let result = std::thread::spawn(move || {
-            tokio::runtime::Handle::current().block_on(async {
-                think_kb_search(kb_manager, db_pool, session_id, bot_id, &query).await
-            })
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            match rt {
+                Ok(rt) => rt.block_on(async {
+                    think_kb_search(kb_manager, db_pool, session_id, bot_id, &query).await
+                }),
+                Err(e) => Err(format!("Failed to create runtime: {}", e)),
+            }
         })
         .join();
 

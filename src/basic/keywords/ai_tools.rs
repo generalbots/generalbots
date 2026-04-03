@@ -183,7 +183,11 @@ async fn translate_text(
     text: &str,
     target_lang: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let llm_url = crate::core::shared::utils::get_secrets_manager_sync().and_then(|sm| { let rt = tokio::runtime::Handle::current(); tokio::task::block_in_place(|| rt.block_on(async { sm.get_value("gbo/llm", "url").await.ok() })) }).unwrap_or_else(|| "http://localhost:8081".to_string());
+    let llm_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager().await {
+        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "http://localhost:8081".to_string())
+    } else {
+        "http://localhost:8081".to_string()
+    };
     let prompt = format!(
         "Translate to {}. Return ONLY the translation:\n\n{}",
         target_lang, text
@@ -232,7 +236,11 @@ async fn perform_ocr(image_path: &str) -> Result<String, Box<dyn std::error::Err
 async fn analyze_sentiment(
     text: &str,
 ) -> Result<Dynamic, Box<dyn std::error::Error + Send + Sync>> {
-    let llm_url = crate::core::shared::utils::get_secrets_manager_sync().and_then(|sm| { let rt = tokio::runtime::Handle::current(); tokio::task::block_in_place(|| rt.block_on(async { sm.get_value("gbo/llm", "url").await.ok() })) }).unwrap_or_else(|| "http://localhost:8081".to_string());
+    let llm_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager().await {
+        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "http://localhost:8081".to_string())
+    } else {
+        "http://localhost:8081".to_string()
+    };
     let prompt = format!(
         r#"Analyze sentiment. Return JSON only:
 {{"sentiment":"positive/negative/neutral","score":-100 to 100,"urgent":true/false}}
@@ -337,7 +345,11 @@ async fn classify_text(
     text: &str,
     categories: &[String],
 ) -> Result<Dynamic, Box<dyn std::error::Error + Send + Sync>> {
-    let llm_url = crate::core::shared::utils::get_secrets_manager_sync().and_then(|sm| { let rt = tokio::runtime::Handle::current(); tokio::task::block_in_place(|| rt.block_on(async { sm.get_value("gbo/llm", "url").await.ok() })) }).unwrap_or_else(|| "http://localhost:8081".to_string());
+    let llm_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager().await {
+        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "http://localhost:8081".to_string())
+    } else {
+        "http://localhost:8081".to_string()
+    };
     let cats = categories.join(", ");
     let prompt = format!(
         r#"Classify into one of: {}

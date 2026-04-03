@@ -299,10 +299,16 @@ impl Extensions {
     pub fn insert_blocking<T: Send + Sync + 'static>(&self, value: T) {
         let map = self.map.clone();
         tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(async {
-                let mut guard = map.write().await;
-                guard.insert(TypeId::of::<T>(), Arc::new(value));
-            });
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .ok();
+            if let Some(rt) = rt {
+                rt.block_on(async {
+                    let mut guard = map.write().await;
+                    guard.insert(TypeId::of::<T>(), Arc::new(value));
+                });
+            }
         });
     }
 
