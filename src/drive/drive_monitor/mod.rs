@@ -1133,9 +1133,7 @@ impl DriveMonitor {
                         .join(&gbkb_prefix)
                         .join(kb_name);
 
-                    let kb_indexing_disabled = std::env::var("DISABLE_KB_INDEXING")
-                        .map(|v| v == "true" || v == "1")
-                        .unwrap_or(false);
+                    let kb_indexing_disabled = false;
 
                     if kb_indexing_disabled {
                         debug!(

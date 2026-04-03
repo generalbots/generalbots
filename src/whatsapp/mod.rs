@@ -729,7 +729,7 @@ async fn check_is_attendant(_state: &Arc<AppState>, phone: &str) -> bool {
     let phone_clone = phone.to_string();
 
     tokio::task::spawn_blocking(move || {
-        let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+        let work_path = crate::core::shared::utils::get_work_path();
 
         if let Ok(entries) = std::fs::read_dir(&work_path) {
             for entry in entries.flatten() {

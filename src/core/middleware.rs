@@ -743,8 +743,8 @@ fn validate_jwt(token: &str, secret: &str) -> Result<TokenClaims, AuthError> {
                     }
 
                     // Fallback: decode without validation for trusted internal tokens
-                    // Only do this if JWT_SKIP_VALIDATION env var is set
-                    if std::env::var("JWT_SKIP_VALIDATION").is_ok() {
+                    // Disabled in production - only dev mode
+                    if false {
                         let mut insecure_validation = Validation::new(Algorithm::HS256);
                         insecure_validation.insecure_disable_signature_validation();
                         insecure_validation.validate_exp = true;

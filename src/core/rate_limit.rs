@@ -127,33 +127,13 @@ impl RateLimitState {
 
     pub fn from_env() -> Self {
         let config = RateLimitConfig {
-            api_rps: std::env::var("RATE_LIMIT_API_RPS")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(100),
-            api_burst: std::env::var("RATE_LIMIT_API_BURST")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(200),
-            auth_rps: std::env::var("RATE_LIMIT_AUTH_RPS")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(10),
-            auth_burst: std::env::var("RATE_LIMIT_AUTH_BURST")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(20),
-            llm_rps: std::env::var("RATE_LIMIT_LLM_RPS")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(5),
-            llm_burst: std::env::var("RATE_LIMIT_LLM_BURST")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(10),
-            enabled: std::env::var("RATE_LIMIT_ENABLED")
-                .map(|v| v != "false" && v != "0")
-                .unwrap_or(true),
+            api_rps: 100,
+            api_burst: 200,
+            auth_rps: 10,
+            auth_burst: 20,
+            llm_rps: 5,
+            llm_burst: 10,
+            enabled: true,
         };
         Self::new(config)
     }

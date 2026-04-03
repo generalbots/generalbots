@@ -507,7 +507,7 @@ impl SecretsManager {
     fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
         let mut secrets = HashMap::new();
 
-        // Normalize path to handle both old and new formats
+        // Only Vault-related env vars are allowed; all other secrets must come from Vault itself
         let normalized = if path.starts_with("gbo/system/") {
             path.strip_prefix("gbo/system/").unwrap_or(path)
         } else {
@@ -516,68 +516,68 @@ impl SecretsManager {
 
         match normalized {
             "tables" | "gbo/tables" | "system/tables" => {
-                secrets.insert("host".into(), std::env::var("TABLES_SERVER").unwrap_or_else(|_| "localhost".into()));
-                secrets.insert("port".into(), std::env::var("TABLES_PORT").unwrap_or_else(|_| "5432".into()));
-                secrets.insert("database".into(), std::env::var("TABLES_DATABASE").unwrap_or_else(|_| "botserver".into()));
-                secrets.insert("username".into(), std::env::var("TABLES_USERNAME").unwrap_or_else(|_| "gbuser".into()));
-                secrets.insert("password".into(), std::env::var("TABLES_PASSWORD").unwrap_or_else(|_| "changeme".into()));
+                secrets.insert("host".into(), "localhost".into());
+                secrets.insert("port".into(), "5432".into());
+                secrets.insert("database".into(), "botserver".into());
+                secrets.insert("username".into(), "gbuser".into());
+                secrets.insert("password".into(), "changeme".into());
             }
             "directory" | "gbo/directory" | "system/directory" => {
-                secrets.insert("url".into(), std::env::var("DIRECTORY_URL").unwrap_or_else(|_| "http://localhost:9000".into()));
-                secrets.insert("project_id".into(), std::env::var("DIRECTORY_PROJECT_ID").unwrap_or_default());
-                secrets.insert("client_id".into(), std::env::var("DIRECTORY_CLIENT_ID").unwrap_or_default());
-                secrets.insert("client_secret".into(), std::env::var("DIRECTORY_CLIENT_SECRET").unwrap_or_default());
+                secrets.insert("url".into(), "http://localhost:9000".into());
+                secrets.insert("project_id".into(), String::new());
+                secrets.insert("client_id".into(), String::new());
+                secrets.insert("client_secret".into(), String::new());
             }
             "drive" | "gbo/drive" | "system/drive" => {
-                secrets.insert("host".into(), std::env::var("DRIVE_SERVER").unwrap_or_else(|_| "localhost".into()));
-                secrets.insert("port".into(), std::env::var("DRIVE_PORT").unwrap_or_else(|_| "9000".into()));
-                secrets.insert("accesskey".into(), std::env::var("DRIVE_ACCESSKEY").unwrap_or_else(|_| "minioadmin".into()));
-                secrets.insert("secret".into(), std::env::var("DRIVE_SECRET").unwrap_or_else(|_| "minioadmin".into()));
+                secrets.insert("host".into(), "localhost".into());
+                secrets.insert("port".into(), "9000".into());
+                secrets.insert("accesskey".into(), "minioadmin".into());
+                secrets.insert("secret".into(), "minioadmin".into());
             }
             "cache" | "gbo/cache" | "system/cache" => {
-                secrets.insert("host".into(), std::env::var("CACHE_SERVER").unwrap_or_else(|_| "localhost".into()));
-                secrets.insert("port".into(), std::env::var("CACHE_PORT").unwrap_or_else(|_| "6379".into()));
-                secrets.insert("password".into(), std::env::var("CACHE_PASSWORD").unwrap_or_default());
+                secrets.insert("host".into(), "localhost".into());
+                secrets.insert("port".into(), "6379".into());
+                secrets.insert("password".into(), String::new());
             }
             "email" | "gbo/email" | "system/email" => {
-                secrets.insert("smtp_host".into(), std::env::var("EMAIL_SERVER").unwrap_or_default());
-                secrets.insert("smtp_port".into(), std::env::var("EMAIL_PORT").unwrap_or_else(|_| "587".into()));
-                secrets.insert("smtp_user".into(), std::env::var("EMAIL_USER").unwrap_or_default());
-                secrets.insert("smtp_password".into(), std::env::var("EMAIL_PASSWORD").unwrap_or_default());
-                secrets.insert("smtp_from".into(), std::env::var("EMAIL_FROM").unwrap_or_default());
+                secrets.insert("smtp_host".into(), String::new());
+                secrets.insert("smtp_port".into(), "587".into());
+                secrets.insert("smtp_user".into(), String::new());
+                secrets.insert("smtp_password".into(), String::new());
+                secrets.insert("smtp_from".into(), String::new());
             }
             "llm" | "gbo/llm" | "system/llm" => {
-                secrets.insert("url".into(), std::env::var("LLM_URL").unwrap_or_else(|_| "http://localhost:8081".into()));
-                secrets.insert("model".into(), std::env::var("LLM_MODEL").unwrap_or_else(|_| "gpt-4".into()));
-                secrets.insert("openai_key".into(), std::env::var("LLM_OPENAI_KEY").unwrap_or_default());
-                secrets.insert("anthropic_key".into(), std::env::var("LLM_ANTHROPIC_KEY").unwrap_or_default());
-                secrets.insert("ollama_url".into(), std::env::var("LLM_OLLAMA_URL").unwrap_or_else(|_| "http://localhost:11434".into()));
+                secrets.insert("url".into(), "http://localhost:8081".into());
+                secrets.insert("model".into(), "gpt-4".into());
+                secrets.insert("openai_key".into(), String::new());
+                secrets.insert("anthropic_key".into(), String::new());
+                secrets.insert("ollama_url".into(), "http://localhost:11434".into());
             }
             "encryption" | "gbo/encryption" | "system/encryption" => {
-                secrets.insert("master_key".into(), std::env::var("ENCRYPTION_MASTER_KEY").unwrap_or_default());
+                secrets.insert("master_key".into(), String::new());
             }
             "meet" | "gbo/meet" | "system/meet" => {
-                secrets.insert("url".into(), std::env::var("MEET_URL").unwrap_or_else(|_| "http://localhost:7880".into()));
-                secrets.insert("app_id".into(), std::env::var("MEET_APP_ID").unwrap_or_default());
-                secrets.insert("app_secret".into(), std::env::var("MEET_APP_SECRET").unwrap_or_default());
+                secrets.insert("url".into(), "http://localhost:7880".into());
+                secrets.insert("app_id".into(), String::new());
+                secrets.insert("app_secret".into(), String::new());
             }
             "vectordb" | "gbo/vectordb" | "system/vectordb" => {
-                secrets.insert("url".to_string(), std::env::var("VECTORDB_URL").unwrap_or_else(|_| "http://localhost:6333".into()));
-                secrets.insert("host".to_string(), std::env::var("VECTORDB_SERVER").unwrap_or_else(|_| "localhost".into()));
-                secrets.insert("port".to_string(), std::env::var("VECTORDB_PORT").unwrap_or_else(|_| "6333".into()));
-                secrets.insert("grpc_port".to_string(), std::env::var("VECTORDB_GRPC_PORT").unwrap_or_else(|_| "6334".into()));
-                secrets.insert("api_key".to_string(), std::env::var("VECTORDB_API_KEY").unwrap_or_default());
+                secrets.insert("url".to_string(), "http://localhost:6333".into());
+                secrets.insert("host".to_string(), "localhost".into());
+                secrets.insert("port".to_string(), "6333".into());
+                secrets.insert("grpc_port".to_string(), "6334".into());
+                secrets.insert("api_key".to_string(), String::new());
             }
             "observability" | "gbo/observability" | "system/observability" => {
-                secrets.insert("url".into(), std::env::var("OBSERVABILITY_URL").unwrap_or_else(|_| "http://localhost:8086".into()));
-                secrets.insert("org".into(), std::env::var("OBSERVABILITY_ORG").unwrap_or_else(|_| "system".into()));
-                secrets.insert("bucket".into(), std::env::var("OBSERVABILITY_BUCKET").unwrap_or_else(|_| "metrics".into()));
-                secrets.insert("token".into(), std::env::var("OBSERVABILITY_TOKEN").unwrap_or_default());
+                secrets.insert("url".into(), "http://localhost:8086".into());
+                secrets.insert("org".into(), "system".into());
+                secrets.insert("bucket".into(), "metrics".into());
+                secrets.insert("token".into(), String::new());
             }
             "alm" | "gbo/alm" | "system/alm" => {
-                secrets.insert("url".into(), std::env::var("ALM_URL").unwrap_or_else(|_| "http://localhost:3000".into()));
-                secrets.insert("token".into(), std::env::var("ALM_TOKEN").unwrap_or_default());
-                secrets.insert("default_org".into(), std::env::var("ALM_DEFAULT_ORG").unwrap_or_default());
+                secrets.insert("url".into(), "http://localhost:3000".into());
+                secrets.insert("token".into(), String::new());
+                secrets.insert("default_org".into(), String::new());
             }
             "security" | "gbo/security" | "system/security" => {
                 secrets.insert("require_auth".into(), "true".into());

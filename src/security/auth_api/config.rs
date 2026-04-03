@@ -52,20 +52,32 @@ impl AuthConfig {
     pub fn from_env() -> Self {
         let mut config = Self::default();
 
-        if let Ok(secret) = std::env::var("JWT_SECRET") {
-            config.jwt_secret = Some(secret);
-        }
-
-        if let Ok(require) = std::env::var("REQUIRE_AUTH") {
-            config.require_auth = require == "true" || require == "1";
-        }
-
-        if let Ok(paths) = std::env::var("ANONYMOUS_PATHS") {
-            config.allow_anonymous_paths = paths
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
+        if let Ok(secret) = std::env::var("VAULT_TOKEN") {
+            if !secret.is_empty() {
+                let rt = tokio::runtime::Runtime::new().ok();
+                if let Some(rt) = rt {
+                    let sm = crate::core::shared::utils::get_secrets_manager_sync();
+                    if let Some(sm) = sm {
+                        if let Ok(secrets) =
+                            rt.block_on(sm.get_secret(crate::core::secrets::SecretPaths::JWT))
+                        {
+                            if let Some(s) = secrets.get("secret") {
+                                config.jwt_secret = Some(s.clone());
+                            }
+                            if let Some(r) = secrets.get("require_auth") {
+                                config.require_auth = r == "true" || r == "1";
+                            }
+                            if let Some(p) = secrets.get("anonymous_paths") {
+                                config.allow_anonymous_paths = p
+                                    .split(',')
+                                    .map(|s| s.trim().to_string())
+                                    .filter(|s| !s.is_empty())
+                                    .collect();
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         config
