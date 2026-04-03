@@ -75,6 +75,30 @@ pub async fn get_secrets_manager() -> Option<SecretsManager> {
     guard.clone()
 }
 
+pub fn get_secrets_manager_sync() -> Option<SecretsManager> {
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        let result =
+            tokio::task::block_in_place(|| handle.block_on(async { get_secrets_manager().await }));
+        return result;
+    }
+    None
+}
+
+pub fn get_work_path() -> String {
+    let sm = get_secrets_manager_sync();
+    if let Some(sm) = sm {
+        let rt = tokio::runtime::Handle::current();
+        tokio::task::block_in_place(|| {
+            rt.block_on(async {
+                sm.get_value("gbo/app", "work_path").await
+                    .unwrap_or_else(|_| "./work".to_string())
+            })
+        })
+    } else {
+        "./work".to_string()
+    }
+}
+
 #[cfg(feature = "drive")]
 pub async fn create_s3_operator(
     config: &DriveConfig,

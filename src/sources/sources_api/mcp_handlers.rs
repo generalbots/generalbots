@@ -16,7 +16,7 @@ pub async fn handle_list_mcp_servers_json(
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
     let scan_result = loader.load();
@@ -50,7 +50,7 @@ pub async fn handle_add_mcp_server(
     Json(request): Json<AddMcpServerRequest>,
 ) -> impl IntoResponse {
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
 
@@ -117,7 +117,7 @@ pub async fn handle_get_mcp_server(
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
 
@@ -158,7 +158,7 @@ pub async fn handle_update_mcp_server(
     Json(request): Json<AddMcpServerRequest>,
 ) -> impl IntoResponse {
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
 
@@ -216,7 +216,7 @@ pub async fn handle_delete_mcp_server(
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
 
@@ -273,7 +273,7 @@ pub async fn handle_list_mcp_server_tools(
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
 
@@ -310,7 +310,7 @@ pub async fn handle_test_mcp_server(
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
 
@@ -337,7 +337,7 @@ pub async fn handle_scan_mcp_directory(
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
     let result = loader.load();
@@ -369,7 +369,7 @@ pub async fn handle_list_all_tools(
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let mut all_tools: Vec<McpToolResponse> = Vec::new();
 
@@ -416,7 +416,7 @@ pub async fn handle_mcp_servers(
     use super::html_renderers::{load_mcp_servers_catalog, get_category_icon, html_escape};
 
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
     let scan_result = loader.load();

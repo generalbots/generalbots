@@ -16,11 +16,28 @@ pub async fn send_invitation_email(
     custom_message: Option<String>,
     invitation_id: Uuid,
 ) -> Result<(), String> {
-    let smtp_host = std::env::var("SMTP_HOST").unwrap_or_else(|_| "localhost".to_string());
-    let smtp_user = std::env::var("SMTP_USER").ok();
-    let smtp_pass = std::env::var("SMTP_PASS").ok();
-    let smtp_from = std::env::var("SMTP_FROM").unwrap_or_else(|_| "noreply@generalbots.com".to_string());
-    let app_url = std::env::var("APP_URL").unwrap_or_else(|_| "https://app.generalbots.com".to_string());
+    let smtp = crate::core::secrets::SecretsManager::from_env()
+        .ok()
+        .and_then(|sm| {
+            let rt = tokio::runtime::Handle::current();
+            tokio::task::block_in_place(|| {
+                rt.block_on(async {
+                    sm.get_secret(crate::core::secrets::SecretPaths::EMAIL).await.ok()
+                })
+            })
+        });
+
+    let smtp_host = smtp.as_ref()
+        .and_then(|s| s.get("smtp_host").cloned())
+        .unwrap_or_else(|| "localhost".to_string());
+    let smtp_user = smtp.as_ref().and_then(|s| s.get("smtp_user").cloned());
+    let smtp_pass = smtp.as_ref().and_then(|s| s.get("smtp_password").cloned());
+    let smtp_from = smtp.as_ref()
+        .and_then(|s| s.get("smtp_from").cloned())
+        .unwrap_or_else(|| "noreply@generalbots.com".to_string());
+    let app_url = smtp.as_ref()
+        .and_then(|s| s.get("app_url").cloned())
+        .unwrap_or_else(|| "https://app.generalbots.com".to_string());
 
     let custom_msg = custom_message.unwrap_or_default();
 

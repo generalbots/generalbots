@@ -305,7 +305,7 @@ pub async fn handle_llm_tools(
     use super::html_renderers::html_escape;
 
     let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let keywords = get_all_keywords();
     let loader = McpCsvLoader::new(&work_path, &bot_id);
@@ -500,7 +500,7 @@ pub async fn handle_mentions_autocomplete(
     }
 
     let bot_id = "default".to_string();
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
     let loader = McpCsvLoader::new(&work_path, &bot_id);
     let scan_result = loader.load();
 

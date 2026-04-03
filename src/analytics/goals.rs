@@ -17,15 +17,25 @@ use crate::core::shared::schema::{okr_checkins, okr_key_results, okr_objectives,
 use crate::core::shared::state::AppState;
 
 fn get_bot_context() -> (Uuid, Uuid) {
-    let org_id = std::env::var("DEFAULT_ORG_ID")
-        .ok()
-        .and_then(|s| Uuid::parse_str(&s).ok())
-        .unwrap_or_else(Uuid::nil);
-    let bot_id = std::env::var("DEFAULT_BOT_ID")
-        .ok()
-        .and_then(|s| Uuid::parse_str(&s).ok())
-        .unwrap_or_else(Uuid::nil);
-    (org_id, bot_id)
+    let sm = crate::core::secrets::SecretsManager::from_env().ok();
+    let (org_id, bot_id) = if let Some(sm) = sm {
+        let rt = tokio::runtime::Handle::current();
+        tokio::task::block_in_place(|| {
+            rt.block_on(async {
+                let org = sm.get_value("gbo/analytics", "default_org_id").await
+                    .unwrap_or_else(|_| "system".to_string());
+                let bot = sm.get_value("gbo/analytics", "default_bot_id").await
+                    .unwrap_or_else(|_| "system".to_string());
+                (org, bot)
+            })
+        })
+    } else {
+        ("system".to_string(), "system".to_string())
+    };
+    (
+        Uuid::parse_str(&org_id).unwrap_or_else(|_| Uuid::nil()),
+        Uuid::parse_str(&bot_id).unwrap_or_else(|_| Uuid::nil()),
+    )
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable, AsChangeset)]

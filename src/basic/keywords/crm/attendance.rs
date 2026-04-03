@@ -558,7 +558,7 @@ fn register_get_attendants(state: Arc<AppState>, _user: UserSession, engine: &mu
 }
 
 pub fn get_attendants_impl(_state: &Arc<AppState>, status_filter: Option<String>) -> Dynamic {
-    let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
+    let work_path = crate::core::shared::utils::get_work_path();
 
     let mut attendants = Vec::new();
 
