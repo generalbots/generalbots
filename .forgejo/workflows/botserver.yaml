@@ -80,24 +80,26 @@ jobs:
       - name: Deploy via ssh tar gzip
         run: |
           set -e
+          SSH_KEY="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=10"
           echo "=== Deploy started ==="
           echo "Step 1: Checking binary..."
           ls -lh /opt/gbo/data/botserver/target/debug/botserver
           echo "Step 2: Killing old botserver..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "pgrep -f botserver && killall botserver 2>/dev/null || echo 'No running botserver'"
+          ssh $SSH_KEY system "pgrep -f botserver && killall botserver 2>/dev/null || echo 'No running botserver'"
           echo "Step 3: Removing old binary..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "rm -f /opt/gbo/bin/botserver && echo 'Old binary removed'"
+          ssh $SSH_KEY system "rm -f /opt/gbo/bin/botserver && echo 'Old binary removed'"
           echo "Step 4: Starting tar+gzip transfer..."
-          tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=10 system "gzip -d | tar xf - -C /opt/gbo/bin && echo 'Transfer complete'"
+          tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh $SSH_KEY -o ServerAliveInterval=10 system "gzip -d | tar xf - -C /opt/gbo/bin && echo 'Transfer complete'"
           echo "Step 5: Verifying transfer..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "ls -lh /opt/gbo/bin/botserver"
+          ssh $SSH_KEY system "ls -lh /opt/gbo/bin/botserver"
           echo "Step 6: Setting permissions..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver"
+          ssh $SSH_KEY system "chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver"
  
       - name: Verify botserver started
         run: |
           sleep 10
-          ssh -o StrictHostKeyChecking=no system "pgrep -f botserver && echo 'OK: botserver is running' || (echo 'ERROR: botserver not running' && cat /opt/gbo/logs/err.log | tail -20 && exit 1)"
+          SSH_KEY="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=10"
+          ssh $SSH_KEY system "pgrep -f botserver && echo 'OK: botserver is running' || (echo 'ERROR: botserver not running' && cat /opt/gbo/logs/err.log | tail -20 && exit 1)"
 
       - name: Save deploy log
         if: always()
