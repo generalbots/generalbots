@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use log::{error, info};
-use redis::Client as RedisClient;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
