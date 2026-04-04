@@ -17,16 +17,28 @@ pub fn set_user_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 Ok(user_id) => {
                     let state_for_spawn = Arc::clone(&state_clone);
                     let user_clone_spawn = user_clone.clone();
-                    let mut session_manager =
-                        futures::executor::block_on(state_for_spawn.session_manager.lock());
-
-                    if let Err(e) = session_manager.update_user_id(user_clone_spawn.id, user_id) {
-                        error!("Failed to update user ID in session: {e}");
-                    } else {
+                    let (tx, rx) = std::sync::mpsc::channel();
+                    std::thread::spawn(move || {
+                        let rt = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build();
+                        let result = if let Ok(rt) = rt {
+                            rt.block_on(async {
+                                let mut session_manager = state_for_spawn.session_manager.lock().await;
+                                session_manager.update_user_id(user_clone_spawn.id, user_id)
+                            })
+                        } else {
+                            Err("Failed to create runtime".into())
+                        };
+                        let _ = tx.send(result);
+                    });
+                    if let Ok(Ok(())) = rx.recv() {
                         trace!(
                             "Updated session {} to user ID: {user_id}",
                             user_clone_spawn.id
                         );
+                    } else {
+                        error!("Failed to update user ID in session");
                     }
                 }
                 Err(e) => {
