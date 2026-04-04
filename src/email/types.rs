@@ -383,7 +383,9 @@ impl EmailService {
         file_data: Vec<u8>,
         filename: &str,
     ) -> Result<(), String> {
-        use lettre::message::{header::ContentType, Attachment, Body, Message, MultiPart, SinglePart};
+        use lettre::message::{
+            header::ContentType, Attachment, Body, Message, MultiPart, SinglePart,
+        };
         use lettre::transport::smtp::authentication::Credentials;
         use lettre::{SmtpTransport, Transport};
 
@@ -416,69 +418,6 @@ impl EmailService {
         let mime_type = mime_str
             .parse::<ContentType>()
             .unwrap_or(ContentType::APPLICATION_OCTET_STREAM);
-
-        let email = Message::builder()
-            .from(
-                smtp_from
-                    .parse()
-                    .map_err(|e| format!("Invalid from address: {}", e))?,
-            )
-            .to(to
-                .parse()
-                .map_err(|e| format!("Invalid to address: {}", e))?)
-            .subject(subject)
-            .multipart(
-                MultiPart::mixed()
-                    .singlepart(SinglePart::html(body.to_string()))
-                    .singlepart(Attachment::new(filename.to_string()).body(Body::new(file_data), mime_type)),
-            )
-            .map_err(|e| format!("Failed to build email: {}", e))?;
-
-        let mailer = if !smtp_user.is_empty() && !smtp_pass.is_empty() {
-            let creds = Credentials::new(smtp_user, smtp_pass);
-            SmtpTransport::relay(&smtp_host)
-                .map_err(|e| format!("SMTP relay error: {}", e))?
-                .port(smtp_port)
-                .credentials(creds)
-                .build()
-        } else {
-            SmtpTransport::relay(&smtp_host)
-                .map_err(|e| format!("SMTP relay error: {}", e))?
-                .port(smtp_port)
-                .build()
-        };
-
-        mailer
-            .send(&email)
-            .map_err(|e| format!("Failed to send email: {}", e))?;
-
-        info!("Email with attachment sent to {} (bot {})", to, bot_id);
-        Ok(())
-    }
-
-        let mime_type: mime::Mime = filename
-            .split('.')
-            .last()
-            .and_then(|ext| match ext {
-                "pdf" => Some("application/pdf".parse().ok()),
-                "png" => Some("image/png".parse().ok()),
-                "jpg" | "jpeg" => Some("image/jpeg".parse().ok()),
-                "txt" => Some("text/plain".parse().ok()),
-                "csv" => Some("text/csv".parse().ok()),
-                "xlsx" => Some(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        .parse()
-                        .ok(),
-                ),
-                "docx" => Some(
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        .parse()
-                        .ok(),
-                ),
-                _ => Some("application/octet-stream".parse().ok()),
-            })
-            .flatten()
-            .unwrap_or_else(|| "application/octet-stream".parse().unwrap());
 
         let email = Message::builder()
             .from(
