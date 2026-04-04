@@ -332,7 +332,9 @@ async fn execute_send_mail(
 ) -> Result<String, String> {
     let message_id = Uuid::new_v4().to_string();
 
-    track_email(state, user, &message_id, to, subject, "sent")?;
+    track_email(state, user, &message_id, to, subject, "sent").unwrap_or_else(|e| {
+        log::warn!("Email tracking skipped (table may not exist): {}", e);
+    });
 
     if let Some(account_email) = using_account {
         let creds = get_account_credentials(&state.conn, &account_email, user.bot_id)
@@ -367,7 +369,9 @@ async fn execute_send_mail(
         }
     }
 
-    save_email_draft(state, user, to, subject, body, attachments)?;
+    save_email_draft(state, user, to, subject, body, attachments).unwrap_or_else(|e| {
+        log::warn!("Email draft not saved (table may not exist): {}", e);
+    });
 
     Ok(format!("Email saved as draft: {}", message_id))
 }
