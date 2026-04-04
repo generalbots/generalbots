@@ -522,7 +522,8 @@ pub async fn run_axum_server(
             .layer(cors)
             .layer(TraceLayer::new_for_http());
 
-    let cert_dir = std::path::Path::new(&format!("{}/conf/system/certificates", crate::core::shared::utils::get_stack_path()));
+    let stack = crate::core::shared::utils::get_stack_path();
+    let cert_dir = std::path::PathBuf::from(format!("{}/conf/system/certificates", stack));
     let cert_path = cert_dir.join("api/server.crt");
     let key_path = cert_dir.join("api/server.key");
 

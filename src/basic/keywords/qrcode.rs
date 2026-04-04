@@ -248,11 +248,12 @@ fn execute_qr_code_generation(
         }
     }
 
+    let work_path = crate::core::shared::utils::get_work_path();
     let data_dir = state
         .config
         .as_ref()
         .map(|c| c.data_dir.as_str())
-        .unwrap_or(&crate::core::shared::utils::get_work_path());
+        .unwrap_or(&work_path);
 
     let final_path = match output_path {
         Some(path) => {

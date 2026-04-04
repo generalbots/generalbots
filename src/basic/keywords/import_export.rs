@@ -234,41 +234,13 @@ fn resolve_file_path(
         return Ok(file_path.to_string());
     }
 
+    let work = get_work_path();
+    let work = get_work_path();
     let data_dir = state
         .config
         .as_ref()
         .map(|c| c.data_dir.as_str())
-        .unwrap_or(&get_work_path());
-    let base_path = format!("{}/bots/{}/gbdrive", data_dir, user.bot_id);
-
-    let full_path = format!("{}/{}", base_path, file_path);
-
-    if Path::new(&full_path).exists() {
-        Ok(full_path)
-    } else {
-        let alt_path = format!("{}/bots/{}/{}", data_dir, user.bot_id, file_path);
-        if Path::new(&alt_path).exists() {
-            Ok(alt_path)
-        } else {
-            Err(format!("File not found: {}", file_path).into())
-        }
-    }
-}
-
-fn resolve_export_path(
-    state: &AppState,
-    user: &UserSession,
-    file_path: &str,
-) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    if Path::new(file_path).is_absolute() {
-        return Ok(file_path.to_string());
-    }
-
-    let data_dir = state
-        .config
-        .as_ref()
-        .map(|c| c.data_dir.as_str())
-        .unwrap_or(&get_work_path());
+        .unwrap_or(&work);
     let base_path = format!("{}/bots/{}/gbdrive", data_dir, user.bot_id);
 
     std::fs::create_dir_all(&base_path)?;
