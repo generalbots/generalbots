@@ -715,7 +715,8 @@ fn default_zitadel_config() -> crate::directory::ZitadelConfig {
 async fn bootstrap_directory_admin(zitadel_config: &crate::directory::ZitadelConfig) {
     use crate::directory::{bootstrap, ZitadelClient};
 
-    let pat_path = std::path::Path::new(&format!("{}/conf/directory/admin-pat.txt", get_stack_path()));
+    let stack = get_stack_path();
+    let pat_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-pat.txt", stack));
     let bootstrap_client = if pat_path.exists() {
         match std::fs::read_to_string(pat_path) {
             Ok(pat_token) => {
