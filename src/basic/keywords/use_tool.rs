@@ -3,7 +3,7 @@ use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use rhai::{Dynamic, Engine};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
 pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {

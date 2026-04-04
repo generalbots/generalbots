@@ -1,7 +1,6 @@
 use diesel::prelude::*;
 use log::{debug, info, warn};
 use serde_json::{json, Value};
-use std::path::PathBuf;
 use uuid::Uuid;
 
 use crate::core::shared::utils::DbPool;
