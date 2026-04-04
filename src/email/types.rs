@@ -364,16 +364,10 @@ impl EmailService {
                 .map_err(|e| format!("SMTP relay error: {}", e))?
                 .port(smtp_port)
                 .credentials(creds)
-                .hello_name(lettre::transport::smtp::ClientId::Domain(
-                    "mail.pragmatismo.com.br".to_string(),
-                ))
                 .build()
         } else {
             SmtpTransport::builder_dangerous(&smtp_host)
                 .port(smtp_port)
-                .hello_name(lettre::transport::smtp::ClientId::Domain(
-                    "mail.pragmatismo.com.br".to_string(),
-                ))
                 .build()
         };
 
