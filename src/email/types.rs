@@ -383,9 +383,7 @@ impl EmailService {
         file_data: Vec<u8>,
         filename: &str,
     ) -> Result<(), String> {
-        use lettre::message::{
-            header::ContentType, Attachment, Body, Message, MultiPart, SinglePart,
-        };
+        use lettre::message::{header::ContentType, Attachment, Body, Message, MultiPart, SinglePart};
         use lettre::transport::smtp::authentication::Credentials;
         use lettre::{SmtpTransport, Transport};
 
@@ -402,6 +400,61 @@ impl EmailService {
         if smtp_from.is_empty() {
             return Err("SMTP not configured: set email credentials in Vault".into());
         }
+
+        let mime_str = match filename.split('.').last().unwrap_or("") {
+            "pdf" => "application/pdf",
+            "png" => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "gif" => "image/gif",
+            "txt" => "text/plain",
+            "csv" => "text/csv",
+            "html" => "text/html",
+            "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            _ => "application/octet-stream",
+        };
+        let mime_type = mime_str
+            .parse::<ContentType>()
+            .unwrap_or(ContentType::APPLICATION_OCTET_STREAM);
+
+        let email = Message::builder()
+            .from(
+                smtp_from
+                    .parse()
+                    .map_err(|e| format!("Invalid from address: {}", e))?,
+            )
+            .to(to
+                .parse()
+                .map_err(|e| format!("Invalid to address: {}", e))?)
+            .subject(subject)
+            .multipart(
+                MultiPart::mixed()
+                    .singlepart(SinglePart::html(body.to_string()))
+                    .singlepart(Attachment::new(filename.to_string()).body(Body::new(file_data), mime_type)),
+            )
+            .map_err(|e| format!("Failed to build email: {}", e))?;
+
+        let mailer = if !smtp_user.is_empty() && !smtp_pass.is_empty() {
+            let creds = Credentials::new(smtp_user, smtp_pass);
+            SmtpTransport::relay(&smtp_host)
+                .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .credentials(creds)
+                .build()
+        } else {
+            SmtpTransport::relay(&smtp_host)
+                .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .build()
+        };
+
+        mailer
+            .send(&email)
+            .map_err(|e| format!("Failed to send email: {}", e))?;
+
+        info!("Email with attachment sent to {} (bot {})", to, bot_id);
+        Ok(())
+    }
 
         let mime_type: mime::Mime = filename
             .split('.')
