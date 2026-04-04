@@ -878,12 +878,21 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move {
                     if let Ok(s) = self_owned.get_secret(&bot_path).await {
-                        return Some(s);
+                        if !s.is_empty() && s.contains_key("smtp_from") {
+                            return Some(s);
+                        }
                     }
                     if let Ok(s) = self_owned.get_secret(&default_path).await {
-                        return Some(s);
+                        if !s.is_empty() && s.contains_key("smtp_from") {
+                            return Some(s);
+                        }
                     }
-                    self_owned.get_secret(SecretPaths::EMAIL).await.ok()
+                    if let Ok(s) = self_owned.get_secret(SecretPaths::EMAIL).await {
+                        if !s.is_empty() && s.contains_key("smtp_from") {
+                            return Some(s);
+                        }
+                    }
+                    None
                 })
             } else {
                 None
