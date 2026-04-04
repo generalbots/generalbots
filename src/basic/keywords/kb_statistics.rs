@@ -45,14 +45,20 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             user.user_id
         );
 
-        let rt = tokio::runtime::Handle::try_current();
-        let Ok(runtime) = rt else {
-            error!("KB STATISTICS: No tokio runtime available");
-            return Dynamic::UNIT;
-        };
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async { get_kb_statistics(&state, &user).await })
+            } else {
+                Err("Failed to create runtime".into())
+            };
+            let _ = tx.send(result);
+        });
 
-        let result = runtime
-            .block_on(async { get_kb_statistics(&state, &user).await });
+        let result = rx.recv().unwrap_or(Err("Channel error".into()));
 
         match result {
             Ok(stats) => match serde_json::to_value(&stats) {
@@ -85,16 +91,21 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                 user.user_id
             );
 
-            let rt = tokio::runtime::Handle::try_current();
-            if rt.is_err() {
-                error!("KB COLLECTION STATS: No tokio runtime available");
-                return Dynamic::UNIT;
-            }
-
             let collection = collection_name.to_string();
-            let result = rt
-                .expect("valid syntax registration")
-                .block_on(async { get_collection_statistics(&state, &collection).await });
+            let (tx, rx) = std::sync::mpsc::channel();
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build();
+                let result = if let Ok(rt) = rt {
+                    rt.block_on(async { get_collection_statistics(&state, &collection).await })
+                } else {
+                    Err("Failed to create runtime".into())
+                };
+                let _ = tx.send(result);
+            });
+
+            let result = rx.recv().unwrap_or(Err("Channel error".into()));
 
             match result {
                 Ok(stats) => match serde_json::to_value(&stats) {
@@ -125,15 +136,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             user.user_id
         );
 
-        let rt = tokio::runtime::Handle::try_current();
-        if rt.is_err() {
-            error!("KB DOCUMENTS COUNT: No tokio runtime available");
-            return 0;
-        }
-
-        let result = get_documents_count(&state, &user);
-
-        result.unwrap_or(0)
+        get_documents_count(&state, &user).unwrap_or(0)
     });
 
     let state_clone4 = Arc::clone(&state);
@@ -150,15 +153,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             user.user_id
         );
 
-        let rt = tokio::runtime::Handle::try_current();
-        if rt.is_err() {
-            error!("KB DOCUMENTS ADDED SINCE: No tokio runtime available");
-            return 0;
-        }
-
-        let result = get_documents_added_since(&state, &user, days);
-
-        result.unwrap_or(0)
+        get_documents_added_since(&state, &user, days).unwrap_or(0)
     });
 
     let state_clone5 = Arc::clone(&state);
@@ -174,15 +169,20 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             user.user_id
         );
 
-        let rt = tokio::runtime::Handle::try_current();
-        if rt.is_err() {
-            error!("KB LIST COLLECTIONS: No tokio runtime available");
-            return Dynamic::UNIT;
-        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async { list_collections(&state, &user).await })
+            } else {
+                Err("Failed to create runtime".into())
+            };
+            let _ = tx.send(result);
+        });
 
-        let result = rt
-            .expect("valid syntax registration")
-            .block_on(async { list_collections(&state, &user).await });
+        let result = rx.recv().unwrap_or(Err("Channel error".into()));
 
         match result {
             Ok(collections) => {
@@ -209,16 +209,20 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             user.user_id
         );
 
-        let rt = tokio::runtime::Handle::try_current();
-        if rt.is_err() {
-            error!("KB STORAGE SIZE: No tokio runtime available");
-            return 0.0;
-        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async { get_storage_size(&state, &user).await })
+            } else {
+                Err("Failed to create runtime".into())
+            };
+            let _ = tx.send(result);
+        });
 
-        let result = rt
-            .expect("valid syntax registration")
-            .block_on(async { get_storage_size(&state, &user).await });
-
+        let result = rx.recv().unwrap_or(Err("Channel error".into()));
         result.unwrap_or(0.0)
     });
 }

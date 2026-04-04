@@ -77,14 +77,21 @@ fn post_to_impl(
         content = content.with_video(vid);
     }
 
-    let rt = tokio::runtime::Handle::try_current().map_err(|e| {
-        Box::new(EvalAltResult::ErrorRuntime(
-            format!("No async runtime available: {}", e).into(),
-            rhai::Position::NONE,
-        ))
-    })?;
+    let cm = channel_manager.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async { cm.post_to(&account_name, &content).await })
+        } else {
+            Err("Failed to create runtime".into())
+        };
+        let _ = tx.send(result);
+    });
 
-    let result = rt.block_on(async { channel_manager.post_to(&account_name, &content).await });
+    let result = rx.recv().unwrap_or(Err("Channel error".into()));
 
     match result {
         Ok(post_result) => {
@@ -140,15 +147,22 @@ fn post_to_multiple_impl(
         content = content.with_video(vid);
     }
 
-    let rt = tokio::runtime::Handle::try_current().map_err(|e| {
-        Box::new(EvalAltResult::ErrorRuntime(
-            format!("No async runtime available: {}", e).into(),
-            rhai::Position::NONE,
-        ))
-    })?;
+    let cm = channel_manager.clone();
+    let names = account_names.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let results = if let Ok(rt) = rt {
+            rt.block_on(async { cm.post_to_multiple(&names, &content).await })
+        } else {
+            Vec::new()
+        };
+        let _ = tx.send(results);
+    });
 
-    let results =
-        rt.block_on(async { channel_manager.post_to_multiple(&account_names, &content).await });
+    let results = rx.recv().unwrap_or_default();
 
     let mut total = 0;
     let mut successful = 0;
@@ -266,14 +280,22 @@ fn post_to_advanced_impl(
         }
     }
 
-    let rt = tokio::runtime::Handle::try_current().map_err(|e| {
-        Box::new(EvalAltResult::ErrorRuntime(
-            format!("No async runtime available: {}", e).into(),
-            rhai::Position::NONE,
-        ))
-    })?;
+    let cm = channel_manager.clone();
+    let channel_str = channel.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async { cm.post_to(&channel_str, &content).await })
+        } else {
+            Err("Failed to create runtime".into())
+        };
+        let _ = tx.send(result);
+    });
 
-    let result = rt.block_on(async { channel_manager.post_to(&channel, &content).await });
+    let result = rx.recv().unwrap_or(Err("Channel error".into()));
 
     match result {
         Ok(post_result) => {
