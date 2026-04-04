@@ -1548,7 +1548,7 @@ VAULT_CACERT={}
         }
 
         // Write default credentials to Vault for all components
-        self.seed_vault_defaults(&vault_addr, &root_token, &ca_cert, &vault_bin)?;
+        self.seed_vault_defaults(&vault_addr, root_token, &ca_cert, &vault_bin)?;
 
         Ok(())
     }

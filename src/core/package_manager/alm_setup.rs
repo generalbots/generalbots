@@ -71,14 +71,13 @@ INSTALL_LOCK = true
 
     // Try to create admin user and get runner token via HTTP API
     // Note: Forgejo CLI binary may segfault on some systems, so we use curl
-    let runner_token = match try_alm_api_setup(alm_url, &username, &password, data_path.to_str().unwrap_or(".")).await {
+    let runner_token = match try_alm_api_setup(alm_url, username, &password, data_path.to_str().unwrap_or(".")).await {
         Ok(token) => token,
         Err(e) => {
             warn!("ALM automated setup unavailable via API: {}", e);
             warn!("ALM will need manual configuration. Create admin user and runner token via web UI.");
             // Store placeholder credentials
-            let placeholder_token = generate_random_string(40);
-            placeholder_token
+            generate_random_string(40)
         }
     };
 

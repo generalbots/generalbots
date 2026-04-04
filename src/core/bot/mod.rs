@@ -676,15 +676,18 @@ impl BotOrchestrator {
             }
 
             if let Some(kb_manager) = self.state.kb_manager.as_ref() {
+                let context = crate::core::bot::kb_context::KbInjectionContext {
+                    session_id,
+                    bot_id: session.bot_id,
+                    bot_name: &bot_name_for_context,
+                    user_query: &message_content,
+                    messages: &mut messages,
+                    max_context_tokens: 8000,
+                };
                 if let Err(e) = inject_kb_context(
                     kb_manager.clone(),
                     self.state.conn.clone(),
-                    session_id,
-                    session.bot_id,
-                    &bot_name_for_context,
-                    &message_content,
-                    &mut messages,
-                    8000,
+                    context,
                 )
                 .await
                 {

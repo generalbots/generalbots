@@ -39,6 +39,15 @@ pub struct KbSearchResult {
     pub chunk_tokens: usize,
 }
 
+pub struct KbInjectionContext<'a> {
+    pub session_id: Uuid,
+    pub bot_id: Uuid,
+    pub bot_name: &'a str,
+    pub user_query: &'a str,
+    pub messages: &'a mut serde_json::Value,
+    pub max_context_tokens: usize,
+}
+
 #[derive(Debug)]
 pub struct KbContextManager {
     kb_manager: Arc<KnowledgeBaseManager>,
@@ -479,28 +488,23 @@ fn estimate_tokens(text: &str) -> usize {
 pub async fn inject_kb_context(
     kb_manager: Arc<KnowledgeBaseManager>,
     db_pool: DbPool,
-    session_id: Uuid,
-    bot_id: Uuid,
-    bot_name: &str,
-    user_query: &str,
-    messages: &mut serde_json::Value,
-    max_context_tokens: usize,
+    context: KbInjectionContext<'_>,
 ) -> Result<()> {
     let context_manager = KbContextManager::new(kb_manager.clone(), db_pool.clone());
 
     let kb_contexts = context_manager
-        .search_active_kbs(session_id, bot_id, bot_name, user_query, 5, max_context_tokens / 2)
+        .search_active_kbs(context.session_id, context.bot_id, context.bot_name, context.user_query, 5, context.max_context_tokens / 2)
         .await?;
 
     let website_contexts = context_manager
-        .search_active_websites(session_id, user_query, 5, max_context_tokens / 2)
+        .search_active_websites(context.session_id, context.user_query, 5, context.max_context_tokens / 2)
         .await?;
 
     let mut all_contexts = kb_contexts;
     all_contexts.extend(website_contexts);
 
     if all_contexts.is_empty() {
-        debug!("No KB or website context found for session {}", session_id);
+        debug!("No KB or website context found for session {}", context.session_id);
         return Ok(());
     }
 
@@ -526,10 +530,10 @@ pub async fn inject_kb_context(
     info!(
         "Injecting {} characters of KB/website context into prompt for session {}",
         sanitized_context.len(),
-        session_id
+        context.session_id
     );
 
-    if let Some(messages_array) = messages.as_array_mut() {
+    if let Some(messages_array) = context.messages.as_array_mut() {
         let system_msg_idx = messages_array.iter().position(|m| m["role"] == "system");
 
         if let Some(idx) = system_msg_idx {

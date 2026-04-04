@@ -333,16 +333,14 @@ impl LocalFileMonitor {
                 let path = entry.path();
                 if path.is_dir() {
                     stack.push(path);
-                } else {
-                    if let Ok(meta) = tokio::fs::metadata(&path).await {
-                        let mtime = meta.modified()
-                            .map(|t| t.duration_since(SystemTime::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0))
-                            .unwrap_or(0);
-                        let size = meta.len();
-                        // Simple combinatorial hash
-                        hash = hash.wrapping_mul(31).wrapping_add(mtime.wrapping_mul(37).wrapping_add(size));
-                        file_count += 1;
-                    }
+                } else if let Ok(meta) = tokio::fs::metadata(&path).await {
+                    let mtime = meta.modified()
+                        .map(|t| t.duration_since(SystemTime::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0))
+                        .unwrap_or(0);
+                    let size = meta.len();
+                    // Simple combinatorial hash
+                    hash = hash.wrapping_mul(31).wrapping_add(mtime.wrapping_mul(37).wrapping_add(size));
+                    file_count += 1;
                 }
             }
         }
