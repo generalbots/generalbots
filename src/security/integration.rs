@@ -38,12 +38,12 @@ impl TlsIntegration {
         let qdrant_secure = qdrant_url.replace("http://", "https://");
         let qdrant_port: u16 = qdrant_url
             .split(':')
-            .last()
+            .next_back()
             .and_then(|p| p.parse().ok())
             .unwrap_or(6333);
         let qdrant_tls_port: u16 = qdrant_secure
             .split(':')
-            .last()
+            .next_back()
             .and_then(|p| p.parse().ok())
             .unwrap_or(6334);
 
@@ -62,12 +62,12 @@ impl TlsIntegration {
         let llm_secure = llm_url.replace("http://", "https://");
         let llm_port: u16 = llm_url
             .split(':')
-            .last()
+            .next_back()
             .and_then(|p| p.parse().ok())
             .unwrap_or(8081);
         let llm_tls_port: u16 = llm_secure
             .split(':')
-            .last()
+            .next_back()
             .and_then(|p| p.parse().ok())
             .unwrap_or(8444);
 
@@ -105,7 +105,7 @@ impl TlsIntegration {
             };
         let drive_port: u16 = drive_host
             .split(':')
-            .last()
+            .next_back()
             .and_then(|p| p.parse().ok())
             .unwrap_or(9100);
 
@@ -123,12 +123,12 @@ impl TlsIntegration {
         let directory_secure = directory_url.replace("http://", "https://");
         let directory_port: u16 = directory_url
             .split(':')
-            .last()
+            .next_back()
             .and_then(|p| p.parse().ok())
             .unwrap_or(9000);
         let directory_tls_port: u16 = directory_secure
             .split(':')
-            .last()
+            .next_back()
             .and_then(|p| p.parse().ok())
             .unwrap_or(8446);
 

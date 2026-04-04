@@ -40,8 +40,12 @@ pub async fn init_secrets_manager() -> Result<()> {
 }
 
 pub async fn get_database_url() -> Result<String> {
-    let guard = SECRETS_MANAGER.read().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
-    if let Some(ref manager) = *guard {
+    let manager = {
+        let guard = SECRETS_MANAGER.read().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
+        (*guard).as_ref().map(|manager| manager.clone())
+    };
+
+    if let Some(manager) = manager {
         return manager.get_database_url().await;
     }
 
@@ -114,9 +118,17 @@ pub async fn create_s3_operator(
     };
 
     let (access_key, secret_key) = if config.access_key.is_empty() || config.secret_key.is_empty() {
-        let guard = SECRETS_MANAGER.read().map_err(|e| format!("Lock poisoned: {}", e))?;
-        if let Some(ref manager) = *guard {
-            if manager.is_enabled() {
+        let (manager, is_vault_enabled) = {
+            let guard = SECRETS_MANAGER.read().map_err(|e| format!("Lock poisoned: {}", e))?;
+            if let Some(ref manager) = *guard {
+                (Some(manager.clone()), manager.is_enabled())
+            } else {
+                (None, false)
+            }
+        };
+
+        match (manager, is_vault_enabled) {
+            (Some(manager), true) => {
                 match manager.get_drive_credentials().await {
                     Ok((ak, sk)) => (ak, sk),
                     Err(e) => {
@@ -124,11 +136,8 @@ pub async fn create_s3_operator(
                         (config.access_key.clone(), config.secret_key.clone())
                     }
                 }
-            } else {
-                (config.access_key.clone(), config.secret_key.clone())
             }
-        } else {
-            (config.access_key.clone(), config.secret_key.clone())
+            _ => (config.access_key.clone(), config.secret_key.clone())
         }
     } else {
         (config.access_key.clone(), config.secret_key.clone())

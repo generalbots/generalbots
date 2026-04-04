@@ -337,11 +337,11 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
                         Ok(mut conn) => {
                             match redis::cmd("PING").query::<String>(&mut conn) {
                                 Ok(response) if response == "PONG" => {
-                                    log::info!("Cache initialized - Valkey connected via {}", cache_url.split('@').last().unwrap_or(&cache_url));
+                                    log::info!("Cache initialized - Valkey connected via {}", cache_url.split('@').next_back().unwrap_or(&cache_url));
                                     Ok(Some(Arc::new(client)))
                                 }
                                 Ok(response) => {
-                                    log::info!("Cache initialized - Valkey connected via {} (PING: {})", cache_url.split('@').last().unwrap_or(&cache_url), response);
+                                    log::info!("Cache initialized - Valkey connected via {} (PING: {})", cache_url.split('@').next_back().unwrap_or(&cache_url), response);
                                     Ok(Some(Arc::new(client)))
                                 }
                                 Err(e) => {

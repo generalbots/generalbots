@@ -184,7 +184,7 @@ async fn think_kb_search(
 /// Calculate confidence score based on multiple factors
 fn calculate_confidence(avg_relevance: f64, result_count: usize, source_count: usize) -> f64 {
     // Base confidence from average relevance (0.0 to 1.0)
-    let relevance_factor = avg_relevance.min(1.0).max(0.0);
+    let relevance_factor = avg_relevance.clamp(0.0, 1.0);
     
     // Boost confidence with more results (diminishing returns)
     let result_factor = (result_count as f64 / 10.0).min(1.0);
