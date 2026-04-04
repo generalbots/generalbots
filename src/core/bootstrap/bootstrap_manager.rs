@@ -3,6 +3,7 @@ use crate::core::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgres
 use crate::core::bootstrap::bootstrap_utils::{alm_ci_health_check, alm_health_check, cache_health_check, drive_health_check, safe_pkill, tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check};
 use crate::core::config::AppConfig;
 use crate::core::package_manager::{InstallMode, PackageManager};
+use crate::core::shared::utils::get_stack_path;
 use crate::security::command_guard::SafeCommand;
 use log::{info, warn};
 use std::path::PathBuf;
@@ -10,9 +11,7 @@ use tokio::time::{sleep, Duration};
 
 impl BootstrapManager {
     pub fn new(mode: InstallMode, tenant: Option<String>) -> Self {
-        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| PathBuf::from("./botserver-stack"));
+        let stack_path = PathBuf::from(get_stack_path());
 
         Self {
             install_mode: mode,
@@ -28,7 +27,7 @@ impl BootstrapManager {
     pub fn vault_bin(&self) -> String {
         self.stack_dir("bin/vault/vault")
             .to_str()
-            .unwrap_or("./botserver-stack/bin/vault/vault")
+            .unwrap_or(&get_stack_path())
             .to_string()
     }
 

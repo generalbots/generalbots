@@ -1,6 +1,7 @@
 use crate::basic::compiler::BasicCompiler;
 use crate::core::kb::{EmbeddingConfig, KnowledgeBaseManager};
 use crate::core::shared::state::AppState;
+use crate::core::shared::utils::get_work_path;
 use diesel::prelude::*;
 use log::{debug, error, info, trace, warn};
 use std::collections::HashMap;
@@ -43,12 +44,7 @@ pub struct LocalFileMonitor {
 
 impl LocalFileMonitor {
     pub fn new(state: Arc<AppState>) -> Self {
-        // Use botserver-stack/data/system/work as the work directory
-        let work_root = std::env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join("botserver-stack/data/system/work");
-
-        // Use /opt/gbo/data as the base directory for source files
+        let work_root = PathBuf::from(get_work_path());
         let data_dir = PathBuf::from("/opt/gbo/data");
 
         #[cfg(any(feature = "research", feature = "llm"))]

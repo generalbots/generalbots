@@ -1,23 +1,25 @@
 // Bootstrap utility functions
+use crate::core::shared::utils::get_stack_path;
 use crate::security::command_guard::SafeCommand;
 use log::{debug, info, warn};
 
-/// Get list of processes to kill
+/// Get list of processes to kill (only used in dev with local botserver-stack)
 pub fn get_processes_to_kill() -> Vec<(&'static str, Vec<&'static str>)> {
+    let stack = get_stack_path();
     vec![
-        ("botserver-stack/bin/vault", vec!["-9", "-f"]),
-        ("botserver-stack/bin/tables", vec!["-9", "-f"]),
-        ("botserver-stack/bin/drive", vec!["-9", "-f"]),
-        ("botserver-stack/bin/cache", vec!["-9", "-f"]),
-        ("botserver-stack/bin/directory", vec!["-9", "-f"]),
-        ("botserver-stack/bin/llm", vec!["-9", "-f"]),
-        ("botserver-stack/bin/email", vec!["-9", "-f"]),
-        ("botserver-stack/bin/proxy", vec!["-9", "-f"]),
-        ("botserver-stack/bin/dns", vec!["-9", "-f"]),
-        ("botserver-stack/bin/meeting", vec!["-9", "-f"]),
-        ("botserver-stack/bin/vector_db", vec!["-9", "-f"]),
-        ("botserver-stack/bin/zitadel", vec!["-9", "-f"]),
-        ("botserver-stack/bin/alm", vec!["-9", "-f"]),
+        (&format!("{}/bin/vault", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/tables", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/drive", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/cache", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/directory", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/llm", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/email", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/proxy", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/dns", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/meeting", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/vector_db", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/zitadel", stack), vec!["-9", "-f"]),
+        (&format!("{}/bin/alm", stack), vec!["-9", "-f"]),
         ("forgejo", vec!["-9", "-f"]),
         ("caddy", vec!["-9", "-f"]),
         ("postgres", vec!["-9", "-f"]),
@@ -130,7 +132,8 @@ pub fn cache_health_check() -> bool {
         }
     }
 
-    if let Ok(output) = SafeCommand::new("./botserver-stack/bin/cache/bin/valkey-cli")
+    let stack_path = get_stack_path();
+    if let Ok(output) = SafeCommand::new(&format!("{}/bin/cache/bin/valkey-cli", stack_path))
         .and_then(|c| c.args(&["ping"]))
         .and_then(|c| c.execute())
     {
@@ -265,8 +268,7 @@ pub fn tables_health_check() -> bool {
         return output.status.success();
     }
 
-    let stack_path =
-        std::env::var("BOTSERVER_STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
+    let stack_path = get_stack_path();
     let pg_isready = format!("{}/bin/tables/bin/pg_isready", stack_path);
     if let Ok(output) = SafeCommand::new(&pg_isready)
         .and_then(|c| c.args(&["-h", "127.0.0.1", "-p", "5432"]))

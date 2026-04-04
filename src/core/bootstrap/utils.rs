@@ -60,10 +60,15 @@ pub fn safe_curl(args: &[&str]) -> Option<std::process::Output> {
 
 /// Check Vault health status
 pub fn vault_health_check() -> bool {
-    let client_cert =
-        std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.crt");
-    let client_key =
-        std::path::Path::new("./botserver-stack/conf/system/certificates/botserver/client.key");
+    let stack_path = crate::core::shared::utils::get_stack_path();
+    let client_cert = std::path::Path::new(&format!(
+        "{}/conf/system/certificates/botserver/client.crt",
+        stack_path
+    ));
+    let client_key = std::path::Path::new(&format!(
+        "{}/conf/system/certificates/botserver/client.key",
+        stack_path
+    ));
 
     let certs_exist = client_cert.exists() && client_key.exists();
     info!("Vault health check: certs_exist={}", certs_exist);
@@ -78,9 +83,15 @@ pub fn vault_health_check() -> bool {
             "-m",
             "5",
             "--cert",
-            "./botserver-stack/conf/system/certificates/botserver/client.crt",
+            &format!(
+                "{}/conf/system/certificates/botserver/client.crt",
+                stack_path
+            ),
             "--key",
-            "./botserver-stack/conf/system/certificates/botserver/client.key",
+            &format!(
+                "{}/conf/system/certificates/botserver/client.key",
+                stack_path
+            ),
             "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200",
         ])
     } else {
@@ -138,8 +149,17 @@ pub fn dump_all_component_logs(log_dir: &Path) {
     error!("========================================================================");
 
     let components = vec![
-        "vault", "tables", "drive", "cache", "directory", "llm",
-        "vector_db", "email", "proxy", "dns", "meeting"
+        "vault",
+        "tables",
+        "drive",
+        "cache",
+        "directory",
+        "llm",
+        "vector_db",
+        "email",
+        "proxy",
+        "dns",
+        "meeting",
     ];
 
     for component in components {
@@ -148,12 +168,21 @@ pub fn dump_all_component_logs(log_dir: &Path) {
             continue;
         }
 
-        let log_files = vec!["stdout.log", "stderr.log", "postgres.log", "vault.log", "minio.log"];
+        let log_files = vec![
+            "stdout.log",
+            "stderr.log",
+            "postgres.log",
+            "vault.log",
+            "minio.log",
+        ];
 
         for log_file in log_files {
             let log_path = component_log_dir.join(log_file);
             if log_path.exists() {
-                error!("-------------------- {} ({}) --------------------", component, log_file);
+                error!(
+                    "-------------------- {} ({}) --------------------",
+                    component, log_file
+                );
                 match fs::read_to_string(&log_path) {
                     Ok(content) => {
                         let lines: Vec<&str> = content.lines().rev().take(30).collect();

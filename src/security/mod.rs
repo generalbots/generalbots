@@ -287,7 +287,7 @@ impl SecurityManager {
         if let Some(ref manager) = self.mtls_manager {
             info!("Initializing mTLS for all services");
 
-            let base_path = PathBuf::from("./botserver-stack/conf/system");
+            let base_path = PathBuf::from(&format!("{}/conf/system", crate::core::shared::utils::get_stack_path()));
 
             let ca_path = base_path.join("ca/ca.crt");
             let cert_path = base_path.join("certs/api.crt");

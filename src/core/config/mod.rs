@@ -323,10 +323,10 @@ impl AppConfig {
                 ConfigManager::new(pool.clone()).get_config(
                     &Uuid::nil(),
                     "SITES_ROOT",
-                    Some("./botserver-stack/sites"),
+                    Some(&format!("{}/sites", crate::core::shared::utils::get_stack_path())),
                 )?
             },
-            data_dir: get_str("DATA_DIR", "./botserver-stack/data"),
+            data_dir: get_str("DATA_DIR", &format!("{}/data", crate::core::shared::utils::get_stack_path())),
         })
     }
     pub fn from_env() -> Result<Self, anyhow::Error> {
@@ -371,8 +371,8 @@ impl AppConfig {
                 base_url: "http://localhost:8080".to_string(),
             },
 
-            site_path: "./botserver-stack/sites".to_string(),
-            data_dir: "./botserver-stack/data".to_string(),
+            site_path: format!("{}/sites", crate::core::shared::utils::get_stack_path()),
+            data_dir: format!("{}/data", crate::core::shared::utils::get_stack_path()),
         })
     }
 }

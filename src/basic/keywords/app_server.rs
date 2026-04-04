@@ -1,5 +1,6 @@
 use crate::core::shared::get_content_type;
 use crate::core::shared::state::AppState;
+use crate::core::shared::utils::get_stack_path;
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -101,7 +102,7 @@ pub async fn serve_vendor_file(
     let local_paths = [
         format!("./botui/ui/suite/js/vendor/{}", file_path),
         format!("../botui/ui/suite/js/vendor/{}", file_path),
-        format!("./botserver-stack/static/js/vendor/{}", file_path),
+        format!("{}/static/js/vendor/{}", get_stack_path(), file_path),
     ];
 
     for local_path in &local_paths {
@@ -351,7 +352,7 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
         .config
         .as_ref()
         .map(|c| c.site_path.clone())
-        .unwrap_or_else(|| "./botserver-stack/sites".to_string());
+        .unwrap_or_else(|| format!("{}/sites", get_stack_path()));
 
     let full_path = format!(
         "{}/{}.gbai/{}.gbapp/{}/{}",
@@ -403,7 +404,7 @@ pub async fn list_all_apps(State(state): State<Arc<AppState>>) -> impl IntoRespo
         .config
         .as_ref()
         .map(|c| c.site_path.clone())
-        .unwrap_or_else(|| "./botserver-stack/sites".to_string());
+        .unwrap_or_else(|| format!("{}/sites", get_stack_path()));
 
     let mut apps = Vec::new();
 

@@ -402,7 +402,7 @@ pub async fn run_axum_server(
         .config
         .as_ref()
         .map(|c| c.site_path.clone())
-        .unwrap_or_else(|| "./botserver-stack/sites".to_string());
+        .unwrap_or_else(|| format!("{}/sites", crate::core::shared::utils::get_stack_path()));
 
     info!("Serving apps from: {}", site_path);
 
@@ -522,7 +522,7 @@ pub async fn run_axum_server(
             .layer(cors)
             .layer(TraceLayer::new_for_http());
 
-    let cert_dir = std::path::Path::new("./botserver-stack/conf/system/certificates");
+    let cert_dir = std::path::Path::new(&format!("{}/conf/system/certificates", crate::core::shared::utils::get_stack_path()));
     let cert_path = cert_dir.join("api/server.crt");
     let key_path = cert_dir.join("api/server.key");
 

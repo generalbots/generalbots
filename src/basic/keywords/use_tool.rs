@@ -145,9 +145,8 @@ fn associate_tool_with_session(
 
     // Check if tool's .mcp.json file exists in work directory
     // Use relative path from botserver binary current directory
-    let gb_dir = std::env::current_dir()
-        .unwrap_or_else(|_| PathBuf::from("."))
-        .join("botserver-stack/data/system");
+    let gb_dir =
+        std::path::PathBuf::from(crate::core::shared::utils::get_stack_path()).join("data/system");
 
     // Get bot name to construct the path
     let bot_name = get_bot_name_from_id(state, &user.bot_id)?;

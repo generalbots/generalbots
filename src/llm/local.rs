@@ -73,7 +73,7 @@ pub async fn ensure_llama_servers_running(
 
     // Use default models when config is empty (no default.gbai/config.csv)
     let llm_server_path = if llm_server_path.is_empty() {
-        "./botserver-stack/bin/llm/build/bin".to_string()
+        format!("{}/bin/llm/build/bin", crate::core::shared::utils::get_stack_path())
     } else {
         llm_server_path
     };
@@ -94,7 +94,7 @@ pub async fn ensure_llama_servers_running(
 
     // For llama-server startup, use path relative to botserver root
     // The models are in <stack_path>/data/llm/ and the llama-server runs from botserver root
-    let stack_path = std::env::var("BOTSERVER_STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
+    let stack_path = crate::core::shared::utils::get_stack_path();
     let llm_model_path = format!("{stack_path}/data/llm/{}", llm_model);
     let embedding_model_path = format!("{stack_path}/data/llm/{}", embedding_model);
     if !llm_server_enabled {

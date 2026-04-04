@@ -34,7 +34,7 @@ impl Default for DnsConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            zone_file_path: PathBuf::from("./botserver-stack/conf/dns/botserver.local.zone"),
+            zone_file_path: PathBuf::from(&format!("{}/conf/dns/botserver.local.zone", crate::core::shared::utils::get_stack_path())),
             domain: "botserver.local".to_string(),
             max_entries_per_ip: 5,
             ttl_seconds: 60,

@@ -96,14 +96,40 @@ pub fn get_work_path() -> String {
                 .build();
             let result = match rt {
                 Ok(rt) => rt.block_on(sm.get_value("gbo/app", "work_path"))
-                    .unwrap_or_else(|_| "./work".to_string()),
-                Err(_) => "./work".to_string(),
+                    .unwrap_or_else(|_| get_work_path_default()),
+                Err(_) => get_work_path_default(),
             };
             let _ = tx.send(result);
         });
-        rx.recv().unwrap_or_else(|_| "./work".to_string())
+        rx.recv().unwrap_or_else(|_| get_work_path_default())
     } else {
-        "./work".to_string()
+        get_work_path_default()
+    }
+}
+
+/// Returns the work directory path.
+/// In production (system container with .env but no botserver-stack): /opt/gbo/work
+/// In development (with botserver-stack directory): ./botserver-stack/data/system/work
+fn get_work_path_default() -> String {
+    let has_stack = std::path::Path::new("./botserver-stack").exists();
+    let has_env = std::path::Path::new("./.env").exists();
+    if has_env && !has_stack {
+        "/opt/gbo/work".to_string()
+    } else {
+        "./botserver-stack/data/system/work".to_string()
+    }
+}
+
+/// Returns the stack base path.
+/// In production (system container with .env but no botserver-stack): /opt/gbo
+/// In development (with botserver-stack directory): ./botserver-stack
+pub fn get_stack_path() -> String {
+    let has_stack = std::path::Path::new("./botserver-stack").exists();
+    let has_env = std::path::Path::new("./.env").exists();
+    if has_env && !has_stack {
+        "/opt/gbo".to_string()
+    } else {
+        "./botserver-stack".to_string()
     }
 }
 
@@ -144,12 +170,13 @@ pub async fn create_s3_operator(
     };
 
     // Set CA cert for self-signed TLS (dev stack)
-    if std::path::Path::new(CA_CERT_PATH).exists() {
-        std::env::set_var("AWS_CA_BUNDLE", CA_CERT_PATH);
-        std::env::set_var("SSL_CERT_FILE", CA_CERT_PATH);
+    let ca_cert = ca_cert_path();
+    if std::path::Path::new(&ca_cert).exists() {
+        std::env::set_var("AWS_CA_BUNDLE", &ca_cert);
+        std::env::set_var("SSL_CERT_FILE", &ca_cert);
         debug!(
             "Set AWS_CA_BUNDLE and SSL_CERT_FILE to {} for S3 client",
-            CA_CERT_PATH
+            ca_cert
         );
     }
 
@@ -445,8 +472,11 @@ pub fn sanitize_sql_value(value: &str) -> String {
     value.replace('\'', "''")
 }
 
-/// Default path to the local CA certificate used for internal service TLS (dev stack)
-pub const CA_CERT_PATH: &str = "./botserver-stack/conf/system/certificates/ca/ca.crt";
+/// Returns the path to the local CA certificate used for internal service TLS (dev stack).
+/// In production this path may not exist, which is fine — the system CA store is used instead.
+pub fn ca_cert_path() -> String {
+    format!("{}/conf/system/certificates/ca/ca.crt", get_stack_path())
+}
 
 /// Creates an HTTP client with proper TLS verification.
 ///
@@ -460,7 +490,7 @@ pub const CA_CERT_PATH: &str = "./botserver-stack/conf/system/certificates/ca/ca
 /// # Returns
 /// A reqwest::Client configured for TLS verification
 pub fn create_tls_client(timeout_secs: Option<u64>) -> Client {
-    create_tls_client_with_ca(CA_CERT_PATH, timeout_secs)
+    create_tls_client_with_ca(&ca_cert_path(), timeout_secs)
 }
 
 /// Creates an HTTP client with a custom CA certificate path.

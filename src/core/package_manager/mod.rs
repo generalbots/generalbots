@@ -70,9 +70,9 @@ pub use alm_setup::setup_alm;
 pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::setup::DirectoryConfig> {
     use std::path::PathBuf;
     use std::collections::HashMap;
+    use crate::core::shared::utils::get_stack_path;
 
-    let stack_path = std::env::var("BOTSERVER_STACK_PATH")
-        .unwrap_or_else(|_| "./botserver-stack".to_string());
+    let stack_path = get_stack_path();
 
     let base_url = "http://localhost:8300".to_string();
     let config_path = PathBuf::from(&stack_path).join("conf/system/directory_config.json");

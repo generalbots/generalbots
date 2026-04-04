@@ -252,7 +252,7 @@ fn execute_qr_code_generation(
         .config
         .as_ref()
         .map(|c| c.data_dir.as_str())
-        .unwrap_or("./botserver-stack/data");
+        .unwrap_or(&crate::core::shared::utils::get_work_path());
 
     let final_path = match output_path {
         Some(path) => {

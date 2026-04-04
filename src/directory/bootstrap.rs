@@ -3,6 +3,7 @@ use log::{error, info, warn};
 use rand::Rng;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
+use crate::core::shared::utils::get_stack_path;
 use uuid::Uuid;
 
 use super::client::ZitadelClient;
@@ -299,7 +300,7 @@ fn save_setup_credentials(result: &BootstrapResult) {
 
 fn save_admin_pat_token(pat_token: &str) {
     // Create directory if it doesn't exist
-    let pat_dir = std::path::Path::new("./botserver-stack/conf/directory");
+    let pat_dir = std::path::Path::new(&format!("{}/conf/directory", get_stack_path()));
     if let Err(e) = fs::create_dir_all(pat_dir) {
         error!("Failed to create PAT directory: {}", e);
         return;

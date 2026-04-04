@@ -249,7 +249,7 @@ impl BotOrchestrator {
                 .config
                 .as_ref()
                 .map(|c| c.site_path.clone())
-                .unwrap_or_else(|| "./botserver-stack/sites".to_string())
+                .unwrap_or_else(|| format!("{}/sites", crate::core::shared::utils::get_stack_path()))
                 .into(),
             "./templates".into(),
             "../bottemplates".into(),

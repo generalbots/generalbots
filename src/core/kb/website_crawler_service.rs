@@ -230,9 +230,7 @@ impl WebsiteCrawlerService {
 
                 let kb_name = format!("website_{}", sanitize_url_for_kb(&website.url));
 
-                let work_path = std::env::current_dir()
-                    .unwrap_or_else(|_| std::path::PathBuf::from("."))
-                    .join("botserver-stack/data/system/work")
+                let work_path = std::path::PathBuf::from(crate::core::shared::utils::get_work_path())
                     .join(&bot_name)
                     .join(format!("{}.gbkb", bot_name))
                     .join(&kb_name);
@@ -344,9 +342,7 @@ impl WebsiteCrawlerService {
         trace!("Scanning .bas files for USE WEBSITE commands");
 
         // Use the correct work directory path instead of plain "work"
-        let work_dir = std::env::current_dir()
-            .unwrap_or_else(|_| std::path::PathBuf::from("."))
-            .join("botserver-stack/data/system/work");
+        let work_dir = std::path::PathBuf::from(crate::core::shared::utils::get_work_path());
 
         if !work_dir.exists() {
             return Ok(());
