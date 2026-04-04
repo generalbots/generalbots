@@ -36,8 +36,7 @@ impl BootstrapManager {
 
         let processes = crate::core::bootstrap::bootstrap_utils::get_processes_to_kill();
         for (name, args) in processes {
-            // safe_pkill expects &[&str] for pattern, so convert the name
-            safe_pkill(&[name], &args);
+            safe_pkill(&[name.as_str()], &args);
         }
 
         // Give processes time to terminate

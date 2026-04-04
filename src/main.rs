@@ -206,7 +206,8 @@ async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
 
     let env_path_early = std::path::Path::new("./.env");
-    let vault_init_path_early = std::path::Path::new(&format!("{}/conf/vault/init.json", crate::core::shared::utils::get_stack_path()));
+    let stack = crate::core::shared::utils::get_stack_path();
+    let vault_init_path_early = std::path::PathBuf::from(format!("{}/conf/vault/init.json", stack));
     let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
     let is_remote_vault = !vault_addr.is_empty()
         && !vault_addr.contains("localhost")

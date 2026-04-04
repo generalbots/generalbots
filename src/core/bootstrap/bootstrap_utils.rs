@@ -4,32 +4,32 @@ use crate::security::command_guard::SafeCommand;
 use log::{debug, info, warn};
 
 /// Get list of processes to kill (only used in dev with local botserver-stack)
-pub fn get_processes_to_kill() -> Vec<(&'static str, Vec<&'static str>)> {
+pub fn get_processes_to_kill() -> Vec<(String, Vec<&'static str>)> {
     let stack = get_stack_path();
     vec![
-        (&format!("{}/bin/vault", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/tables", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/drive", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/cache", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/directory", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/llm", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/email", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/proxy", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/dns", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/meeting", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/vector_db", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/zitadel", stack), vec!["-9", "-f"]),
-        (&format!("{}/bin/alm", stack), vec!["-9", "-f"]),
-        ("forgejo", vec!["-9", "-f"]),
-        ("caddy", vec!["-9", "-f"]),
-        ("postgres", vec!["-9", "-f"]),
-        ("minio", vec!["-9", "-f"]),
-        ("redis-server", vec!["-9", "-f"]),
-        ("zitadel", vec!["-9", "-f"]),
-        ("llama-server", vec!["-9", "-f"]),
-        ("stalwart", vec!["-9", "-f"]),
-        ("vault server", vec!["-9", "-f"]),
-        ("watcher", vec!["-9", "-f"]),
+        (format!("{}/bin/vault", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/tables", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/drive", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/cache", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/directory", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/llm", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/email", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/proxy", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/dns", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/meeting", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/vector_db", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/zitadel", stack), vec!["-9", "-f"]),
+        (format!("{}/bin/alm", stack), vec!["-9", "-f"]),
+        ("forgejo".to_string(), vec!["-9", "-f"]),
+        ("caddy".to_string(), vec!["-9", "-f"]),
+        ("postgres".to_string(), vec!["-9", "-f"]),
+        ("minio".to_string(), vec!["-9", "-f"]),
+        ("redis-server".to_string(), vec!["-9", "-f"]),
+        ("zitadel".to_string(), vec!["-9", "-f"]),
+        ("llama-server".to_string(), vec!["-9", "-f"]),
+        ("stalwart".to_string(), vec!["-9", "-f"]),
+        ("vault server".to_string(), vec!["-9", "-f"]),
+        ("watcher".to_string(), vec!["-9", "-f"]),
     ]
 }
 
