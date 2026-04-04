@@ -196,7 +196,7 @@ fn execute_export(
     file_path: &str,
     data: Dynamic,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let full_path = resolve_export_path(state, user, file_path)?;
+    let full_path = resolve_file_path(state, user, file_path)?;
     let extension = Path::new(&full_path)
         .extension()
         .and_then(|e| e.to_str())
