@@ -239,7 +239,7 @@ pub async fn send_message_to_recipient(
 
     match channel.as_str() {
         "whatsapp" => {
-            let adapter = WhatsAppAdapter::new(state.conn.clone(), user.bot_id);
+            let adapter = WhatsAppAdapter::new(&state, user.bot_id);
             let response = crate::core::shared::models::BotResponse {
                 bot_id: "default".to_string(),
                 session_id: user.id.to_string(),
@@ -450,7 +450,7 @@ async fn send_whatsapp_file(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use reqwest::Client;
 
-    let _adapter = WhatsAppAdapter::new(state.conn.clone(), user.bot_id);
+    let _adapter = WhatsAppAdapter::new(&state, user.bot_id);
 
     let phone_number_id = "";
     let upload_url = format!("https://graph.facebook.com/v17.0/{}/media", phone_number_id);

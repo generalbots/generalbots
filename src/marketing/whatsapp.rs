@@ -123,7 +123,7 @@ pub async fn send_whatsapp_message(
         return Err("WhatsApp not configured for this bot".to_string());
     }
 
-    let adapter = WhatsAppAdapter::new(state.conn.clone(), bot_id);
+    let adapter = WhatsAppAdapter::new(&state, bot_id);
 
     let result: Result<String, Box<dyn std::error::Error + Send + Sync>> = if let Some(template_name) = payload.template_name {
         adapter

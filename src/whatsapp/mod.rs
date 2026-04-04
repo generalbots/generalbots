@@ -568,7 +568,7 @@ async fn process_incoming_message(
         }
 
         // Send confirmation message
-        let adapter = WhatsAppAdapter::new(state.conn.clone(), effective_bot_id);
+        let adapter = WhatsAppAdapter::new(&state, effective_bot_id);
         let bot_response = BotResponse {
             bot_id: effective_bot_id.to_string(),
             session_id: session.id.to_string(),
@@ -614,7 +614,7 @@ async fn process_incoming_message(
 
     // Handle /clear command - available to all users
     if content.trim().to_lowercase() == "/clear" {
-        let adapter = WhatsAppAdapter::new(state.conn.clone(), effective_bot_id);
+        let adapter = WhatsAppAdapter::new(&state, effective_bot_id);
 
         // Find and clear the user's session
         match find_or_create_session(&state, &effective_bot_id, &phone, &name).await {
@@ -652,7 +652,7 @@ async fn process_incoming_message(
 
     if content.starts_with('/') {
         if let Some(response) = process_attendant_command(&state, &phone, &content).await {
-            let adapter = WhatsAppAdapter::new(state.conn.clone(), effective_bot_id);
+            let adapter = WhatsAppAdapter::new(&state, effective_bot_id);
             let bot_response = BotResponse {
                 bot_id: effective_bot_id.to_string(),
                 session_id: Uuid::nil().to_string(),
@@ -975,7 +975,7 @@ async fn route_to_bot(
         context_name: None,
     };
 
-    let adapter = WhatsAppAdapter::new(state.conn.clone(), session.bot_id);
+    let adapter = WhatsAppAdapter::new(&state, session.bot_id);
 
     let orchestrator = BotOrchestrator::new(state.clone());
 
@@ -989,7 +989,7 @@ async fn route_to_bot(
         .to_string();
 
     let phone_for_error = phone.clone();
-    let adapter_for_send = WhatsAppAdapter::new(state.conn.clone(), session.bot_id);
+    let adapter_for_send = WhatsAppAdapter::new(&state, session.bot_id);
     let bot_id_for_voice = session.bot_id;
     let state_clone = state.clone();
 
@@ -1288,7 +1288,7 @@ async fn route_to_bot(
                         match client.generate_audio(&final_text, None, None).await {
                             Ok(audio_url) => {
                                 info!("TTS generated: {}", audio_url);
-                                let wa_adapter = WhatsAppAdapter::new(state_for_voice.conn.clone(), bot_id_for_voice);
+                                let wa_adapter = WhatsAppAdapter::new(&state_for_voice, bot_id_for_voice);
                                 if let Err(e) = wa_adapter.send_voice_message(&phone_for_voice, &audio_url).await {
                                     error!("Failed to send voice message: {}", e);
                                 } else {
@@ -1477,7 +1477,7 @@ pub async fn send_message(
     info!("Sending WhatsApp message to {}", request.to);
 
     let bot_id = get_default_bot_id(&state).await;
-    let adapter = WhatsAppAdapter::new(state.conn.clone(), bot_id);
+    let adapter = WhatsAppAdapter::new(&state, bot_id);
 
     let response = BotResponse {
         bot_id: bot_id.to_string(),
@@ -1589,7 +1589,7 @@ pub async fn attendant_respond(
 
     match channel {
         "whatsapp" => {
-            let adapter = WhatsAppAdapter::new(state.conn.clone(), session.bot_id);
+            let adapter = WhatsAppAdapter::new(&state, session.bot_id);
             let response = BotResponse {
                 bot_id: session.bot_id.to_string(),
                 session_id: session.id.to_string(),
@@ -1689,7 +1689,7 @@ async fn process_audio_message(
     bot_id: &Uuid,
     audio: &WhatsAppMedia,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let adapter = WhatsAppAdapter::new(state.conn.clone(), *bot_id);
+    let adapter = WhatsAppAdapter::new(&state, *bot_id);
     let binary = adapter.download_media(&audio.id).await?;
     
     let bot_models = BotModelsClient::from_state(state, bot_id);

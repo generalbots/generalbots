@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use log::{error, info};
+use redis::Client as RedisClient;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -7,7 +8,7 @@ use crate::core::bot::channels::ChannelAdapter;
 use crate::core::bot::channels::whatsapp_queue::{QueuedWhatsAppMessage, WhatsAppMessageQueue};
 use crate::core::config::ConfigManager;
 use crate::core::shared::models::BotResponse;
-use crate::core::shared::utils::DbPool;
+use crate::core::shared::state::AppState;
 use std::sync::Arc;
 
 /// Global WhatsApp message queue (shared across all adapters)
@@ -25,8 +26,8 @@ pub struct WhatsAppAdapter {
 }
 
 impl WhatsAppAdapter {
-    pub fn new(pool: DbPool, bot_id: Uuid) -> Self {
-        let config_manager = ConfigManager::new(pool.clone());
+    pub fn new(state: &Arc<AppState>, bot_id: Uuid) -> Self {
+        let config_manager = ConfigManager::new(state.conn.clone());
 
         let api_key = config_manager
             .get_config(&bot_id, "whatsapp-api-key", None)
@@ -54,11 +55,6 @@ impl WhatsAppAdapter {
             .to_lowercase()
             == "true";
 
-        // Get Redis URL from config
-        let redis_url = config_manager
-            .get_config(&bot_id, "redis-url", Some("redis://127.0.0.1:6379"))
-            .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-
         Self {
             api_key,
             phone_number_id,
@@ -67,21 +63,15 @@ impl WhatsAppAdapter {
             api_version,
             _voice_response: voice_response,
             queue: WHATSAPP_QUEUE.get_or_init(|| {
-                let queue_res = WhatsAppMessageQueue::new(&redis_url);
-                match queue_res {
-                    Ok(q) => {
-                        let q_arc = Arc::new(q);
-                        let worker_queue = Arc::clone(&q_arc);
-                        tokio::spawn(async move {
-                            worker_queue.start_worker().await;
-                        });
-                        Some(q_arc)
-                    }
-                    Err(e) => {
-                        error!("FATAL: Failed to create WhatsApp queue: {}. WhatsApp features will be disabled.", e);
-                        None
-                    }
-                }
+                state.cache.as_ref().map(|client| {
+                    let q = WhatsAppMessageQueue::new(client.clone());
+                    let q_arc = Arc::new(q);
+                    let worker_queue = Arc::clone(&q_arc);
+                    tokio::spawn(async move {
+                        worker_queue.start_worker().await;
+                    });
+                    q_arc
+                })
             }).as_ref(),
         }
     }
