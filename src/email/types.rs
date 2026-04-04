@@ -353,16 +353,20 @@ impl EmailService {
             .body(body.to_string())
             .map_err(|e| format!("Failed to build email: {}", e))?;
 
-        let mailer = if !smtp_user.is_empty() && !smtp_pass.is_empty() {
+        let mailer = if smtp_port == 465 {
+            SmtpTransport::starttls_relay(&smtp_host)
+                .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .build()
+        } else if !smtp_user.is_empty() && !smtp_pass.is_empty() {
             let creds = Credentials::new(smtp_user, smtp_pass);
-            SmtpTransport::relay(&smtp_host)
+            SmtpTransport::starttls_relay(&smtp_host)
                 .map_err(|e| format!("SMTP relay error: {}", e))?
                 .port(smtp_port)
                 .credentials(creds)
                 .build()
         } else {
-            SmtpTransport::relay(&smtp_host)
-                .map_err(|e| format!("SMTP relay error: {}", e))?
+            SmtpTransport::builder_dangerous(&smtp_host)
                 .port(smtp_port)
                 .build()
         };
@@ -439,16 +443,20 @@ impl EmailService {
             )
             .map_err(|e| format!("Failed to build email: {}", e))?;
 
-        let mailer = if !smtp_user.is_empty() && !smtp_pass.is_empty() {
+        let mailer = if smtp_port == 465 {
+            SmtpTransport::starttls_relay(&smtp_host)
+                .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .build()
+        } else if !smtp_user.is_empty() && !smtp_pass.is_empty() {
             let creds = Credentials::new(smtp_user, smtp_pass);
-            SmtpTransport::relay(&smtp_host)
+            SmtpTransport::starttls_relay(&smtp_host)
                 .map_err(|e| format!("SMTP relay error: {}", e))?
                 .port(smtp_port)
                 .credentials(creds)
                 .build()
         } else {
-            SmtpTransport::relay(&smtp_host)
-                .map_err(|e| format!("SMTP relay error: {}", e))?
+            SmtpTransport::builder_dangerous(&smtp_host)
                 .port(smtp_port)
                 .build()
         };
