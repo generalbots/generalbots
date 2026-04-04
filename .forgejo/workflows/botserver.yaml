@@ -28,28 +28,30 @@ jobs:
         run: |
           mkdir -p $WORKSPACE
           cd $WORKSPACE
-          # Update or clone botlib
+          # Update or clone botlib (preserve git history for sccache fingerprints)
           if [ -d botlib/.git ]; then
-            git -C botlib fetch --depth 1 origin main && git -C botlib checkout FETCH_HEAD
+            git -C botlib pull origin main
           else
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
+            git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
-          # Update or clone botserver
+          # Update or clone botserver (preserve git history for sccache fingerprints)
           if [ -d botserver/.git ]; then
-            git -C botserver fetch --depth 1 origin main && git -C botserver checkout FETCH_HEAD
+            git -C botserver pull origin main
           else
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+            git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
           # Get workspace Cargo.toml from gb and strip unused members
           if [ -d /opt/gbo/data/gb-ws/.git ]; then
-            git -C /opt/gbo/data/gb-ws fetch --depth 1 origin main && git -C /opt/gbo/data/gb-ws checkout FETCH_HEAD
+            git -C /opt/gbo/data/gb-ws pull origin main
           else
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
+            git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
           fi
           cp /opt/gbo/data/gb-ws/Cargo.toml Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
           done
+          # Ensure target dir exists
+          mkdir -p target
 
       - name: Install system dependencies
         run: |
@@ -68,10 +70,17 @@ jobs:
       - name: Build BotServer
         working-directory: /opt/gbo/data/botserver
         run: |
-          sccache --start-server 2>/dev/null || true
-          cargo build -p botserver --features chat -j 8 2>&1 | tee /tmp/build.log
+          export SCCACHE_IDLE_TIMEOUT=300
+          export SCCACHE_CACHE_SIZE=10G
+          sccache --stop-server 2>/dev/null || true
+          sleep 1
+          sccache --start-server
+          cargo build -p botserver -j 8 2>&1 | tee /tmp/build.log
+          echo "=== sccache stats ==="
           sccache --show-stats
+          echo "=== Binary info ==="
           ls -lh target/debug/botserver
+          stat -c '%y' target/debug/botserver
 
       - name: Save build log
         if: always()
