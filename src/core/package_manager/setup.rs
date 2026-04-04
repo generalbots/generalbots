@@ -138,7 +138,8 @@ impl DirectorySetup {
         }
 
         // Also check the legacy location
-        let legacy_pat_path = std::path::Path::new(&format!("{}/conf/directory/admin-pat.txt", crate::core::shared::utils::get_stack_path()));
+        let stack = crate::core::shared::utils::get_stack_path();
+        let legacy_pat_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-pat.txt", stack));
         if legacy_pat_path.exists() {
             let pat_token = std::fs::read_to_string(legacy_pat_path)
                 .map_err(|e| anyhow::anyhow!("Failed to read PAT file: {e}"))?

@@ -300,8 +300,9 @@ fn save_setup_credentials(result: &BootstrapResult) {
 
 fn save_admin_pat_token(pat_token: &str) {
     // Create directory if it doesn't exist
-    let pat_dir = std::path::Path::new(&format!("{}/conf/directory", get_stack_path()));
-    if let Err(e) = fs::create_dir_all(pat_dir) {
+    let stack = get_stack_path();
+    let pat_dir = std::path::PathBuf::from(format!("{}/conf/directory", stack));
+    if let Err(e) = fs::create_dir_all(&pat_dir) {
         error!("Failed to create PAT directory: {}", e);
         return;
     }
