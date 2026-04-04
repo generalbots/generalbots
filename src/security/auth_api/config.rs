@@ -64,7 +64,7 @@ impl AuthConfig {
                         let result = if let Ok(rt) = rt {
                             rt.block_on(async { sm.get_secret(crate::core::secrets::SecretPaths::JWT).await })
                         } else {
-                            Err("Failed to create runtime".into())
+                            Err(anyhow::anyhow!("Failed to create runtime"))
                         };
                         let _ = tx.send(result);
                     });
