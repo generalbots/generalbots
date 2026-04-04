@@ -5,6 +5,7 @@ use axum::{
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid, Varchar};
+use log::info;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -416,8 +417,8 @@ impl EmailService {
             _ => "application/octet-stream",
         };
         let mime_type = mime_str
-            .parse::<ContentType>()
-            .unwrap_or(ContentType::APPLICATION_OCTET_STREAM);
+            .parse::<lettre::message::header::ContentType>()
+            .unwrap_or_else(|_| "application/octet-stream".parse().unwrap());
 
         let email = Message::builder()
             .from(
