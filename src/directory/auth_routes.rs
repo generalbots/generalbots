@@ -149,7 +149,8 @@ pub async fn login(
         })?;
 
     // Try to get admin token: first PAT file, then OAuth client credentials
-    let pat_path = std::path::Path::new(&format!("{}/conf/directory/admin-pat.txt", get_stack_path()));
+    let stack = get_stack_path();
+    let pat_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-pat.txt", stack));
     let admin_token = std::fs::read_to_string(pat_path)
         .map(|s| s.trim().to_string())
         .unwrap_or_default();
