@@ -120,7 +120,7 @@ impl Default for WizardConfig {
             organization: OrgConfig::default(),
             template: None,
             install_mode: InstallMode::Development,
-            data_dir: PathBuf::from("./botserver-stack"),
+            data_dir: PathBuf::from(crate::core::shared::utils::get_stack_path()),
         }
     }
 }
@@ -839,7 +839,7 @@ pub fn load_wizard_config(path: &str) -> io::Result<WizardConfig> {
 }
 
 pub fn should_run_wizard() -> bool {
-    !std::path::Path::new("./botserver-stack").exists()
+    !std::path::Path::new(&crate::core::shared::utils::get_stack_path()).exists()
         && !std::path::Path::new("/opt/gbo").exists()
 }
 

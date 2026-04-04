@@ -8,6 +8,7 @@ use axum::{
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::core::shared::utils::get_stack_path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use once_cell::sync::Lazy;
@@ -148,7 +149,7 @@ pub async fn login(
         })?;
 
     // Try to get admin token: first PAT file, then OAuth client credentials
-    let pat_path = std::path::Path::new("./botserver-stack/conf/directory/admin-pat.txt");
+    let pat_path = std::path::Path::new(&format!("{}/conf/directory/admin-pat.txt", get_stack_path()));
     let admin_token = std::fs::read_to_string(pat_path)
         .map(|s| s.trim().to_string())
         .unwrap_or_default();

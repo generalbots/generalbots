@@ -37,9 +37,8 @@ pub fn get_session_tools(
 
     // Build path to work/{bot_name}.gbai/{bot_name}.gbdialog directory
     // Use relative path from botserver binary location
-    let gb_dir = std::env::current_dir()
-        .unwrap_or_else(|_| PathBuf::from("."))
-        .join("botserver-stack/data/system");
+    let gb_dir =
+        std::path::PathBuf::from(crate::core::shared::utils::get_stack_path()).join("data/system");
 
     // Ensure work directory exists (create if not)
     let work_base = gb_dir.join("work");
@@ -51,7 +50,12 @@ pub fn get_session_tools(
 
     let work_path = work_base.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
 
-    info!("Loading {} tools for session {} from {:?}", tool_names.len(), session_id, work_path);
+    info!(
+        "Loading {} tools for session {} from {:?}",
+        tool_names.len(),
+        session_id,
+        work_path
+    );
 
     let mut tools = Vec::new();
 
@@ -102,7 +106,7 @@ fn format_tool_for_openai(mcp_json: &Value, tool_name: &str) -> Option<Value> {
             json!({
                 "type": param_type,
                 "description": param_desc
-            })
+            }),
         );
     }
 

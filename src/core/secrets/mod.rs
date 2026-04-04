@@ -1,3 +1,4 @@
+use crate::core::shared::utils::get_stack_path;
 use anyhow::{anyhow, Result};
 use diesel::PgConnection;
 use log::{debug, info, warn};
@@ -89,13 +90,14 @@ impl SecretsManager {
             .and_then(|v| v.parse().ok())
             .unwrap_or(300);
 
+        let stack_path = get_stack_path();
         let ca_cert = env::var("VAULT_CACERT")
-            .unwrap_or_else(|_| "./botserver-stack/conf/system/certificates/ca/ca.crt".to_string());
+            .unwrap_or_else(|_| format!("{}/conf/system/certificates/ca/ca.crt", stack_path));
         let client_cert = env::var("VAULT_CLIENT_CERT").unwrap_or_else(|_| {
-            "./botserver-stack/conf/system/certificates/botserver/client.crt".to_string()
+            format!("{}/conf/system/certificates/botserver/client.crt", stack_path)
         });
         let client_key = env::var("VAULT_CLIENT_KEY").unwrap_or_else(|_| {
-            "./botserver-stack/conf/system/certificates/botserver/client.key".to_string()
+            format!("{}/conf/system/certificates/botserver/client.key", stack_path)
         });
 
         let enabled = !token.is_empty() && !addr.is_empty();

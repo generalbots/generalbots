@@ -37,9 +37,7 @@ pub struct ToolExecutor;
 impl ToolExecutor {
     /// Log tool execution errors to a dedicated log file
     fn log_tool_error(bot_name: &str, tool_name: &str, error_msg: &str) {
-        let log_path = std::env::current_dir()
-            .unwrap_or_else(|_| std::path::PathBuf::from("."))
-            .join("botserver-stack/data/system/work")
+        let log_path = std::path::PathBuf::from(crate::core::shared::utils::get_work_path())
             .join(format!("{}_tool_errors.log", bot_name));
 
         // Create work directory if it doesn't exist
@@ -353,10 +351,8 @@ impl ToolExecutor {
             return source_path;
         }
 
-        // Try compiled work directory (botserver-stack/data/system/work relative to current dir)
-        let work_path = std::env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join("botserver-stack/data/system/work")
+        // Try compiled work directory (work relative to stack path)
+        let work_path = std::path::PathBuf::from(crate::core::shared::utils::get_work_path())
             .join(format!("{}.gbai", bot_name))
             .join(format!("{}.gbdialog", bot_name))
             .join(format!("{}.bas", tool_name));

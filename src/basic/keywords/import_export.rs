@@ -1,5 +1,6 @@
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
+use crate::core::shared::utils::get_work_path;
 use log::{error, trace};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde_json::Value;
@@ -237,7 +238,7 @@ fn resolve_file_path(
         .config
         .as_ref()
         .map(|c| c.data_dir.as_str())
-        .unwrap_or("./botserver-stack/data");
+        .unwrap_or(&get_work_path());
     let base_path = format!("{}/bots/{}/gbdrive", data_dir, user.bot_id);
 
     let full_path = format!("{}/{}", base_path, file_path);
@@ -267,7 +268,7 @@ fn resolve_export_path(
         .config
         .as_ref()
         .map(|c| c.data_dir.as_str())
-        .unwrap_or("./botserver-stack/data");
+        .unwrap_or(&get_work_path());
     let base_path = format!("{}/bots/{}/gbdrive", data_dir, user.bot_id);
 
     std::fs::create_dir_all(&base_path)?;

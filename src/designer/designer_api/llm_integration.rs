@@ -417,7 +417,7 @@ pub async fn apply_file_change(
         .config
         .as_ref()
         .map(|c| c.site_path.clone())
-        .unwrap_or_else(|| "./botserver-stack/sites".to_string());
+        .unwrap_or_else(|| format!("{}/sites", crate::core::shared::utils::get_stack_path()));
 
     let local_path = format!("{site_path}/{}.gbai/{}.gbapp/{app_name}/{file_name}", sanitized_name, sanitized_name);
     if let Some(parent) = std::path::Path::new(&local_path).parent() {

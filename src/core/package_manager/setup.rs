@@ -115,8 +115,7 @@ impl DirectorySetup {
     /// The steps YAML configures FirstInstance.Org.PatPath which tells Zitadel to
     /// create a machine user with IAM_OWNER role and write its PAT to disk
     fn load_pat_token(&mut self) -> Result<()> {
-        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
-            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let stack_path = crate::core::shared::utils::get_stack_path();
 
         let pat_path = PathBuf::from(&stack_path).join("conf/directory/admin-pat.txt");
 
@@ -139,7 +138,7 @@ impl DirectorySetup {
         }
 
         // Also check the legacy location
-        let legacy_pat_path = std::path::Path::new("./botserver-stack/conf/directory/admin-pat.txt");
+        let legacy_pat_path = std::path::Path::new(&format!("{}/conf/directory/admin-pat.txt", crate::core::shared::utils::get_stack_path()));
         if legacy_pat_path.exists() {
             let pat_token = std::fs::read_to_string(legacy_pat_path)
                 .map_err(|e| anyhow::anyhow!("Failed to read PAT file: {e}"))?

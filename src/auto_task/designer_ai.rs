@@ -863,7 +863,7 @@ Respond ONLY with valid JSON."#
             .config
             .as_ref()
             .map(|c| c.site_path.clone())
-            .unwrap_or_else(|| "./botserver-stack/sites".to_string())
+            .unwrap_or_else(|| format!("{}/sites", crate::core::shared::utils::get_stack_path()))
     }
 
     fn read_file(

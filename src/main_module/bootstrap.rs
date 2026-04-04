@@ -13,8 +13,7 @@ use crate::core::config::ConfigManager;
 use crate::core::package_manager::InstallMode;
 use crate::core::session::SessionManager;
 use crate::core::shared::state::AppState;
-use crate::core::shared::utils::create_conn;
-use crate::core::shared::utils::create_s3_operator;
+use crate::core::shared::utils::{create_conn, create_s3_operator, get_stack_path};
 
 use super::BootstrapProgress;
 
@@ -88,8 +87,7 @@ pub async fn run_bootstrap(
         trace!("Creating BootstrapManager...");
         let mut bootstrap = BootstrapManager::new(install_mode, tenant);
 
-        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
-            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let stack_path = get_stack_path();
         let env_path = std::path::Path::new("./.env");
         let stack_env_path_str = format!("{}/.env", stack_path);
         let vault_init_path_str = format!("{}/conf/vault/init.json", stack_path);
@@ -652,8 +650,7 @@ fn init_directory_service() -> Result<(Arc<Mutex<crate::directory::AuthService>>
     let zitadel_config = {
         // Try to load from directory_config.json first
         // Use same path as DirectorySetup saves to (BOTSERVER_STACK_PATH/conf/system/directory_config.json)
-        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
-            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let stack_path = get_stack_path();
         let config_path = format!("{}/conf/system/directory_config.json", stack_path);
         if let Ok(content) = std::fs::read_to_string(&config_path) {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
@@ -718,7 +715,7 @@ fn default_zitadel_config() -> crate::directory::ZitadelConfig {
 async fn bootstrap_directory_admin(zitadel_config: &crate::directory::ZitadelConfig) {
     use crate::directory::{bootstrap, ZitadelClient};
 
-    let pat_path = std::path::Path::new("./botserver-stack/conf/directory/admin-pat.txt");
+    let pat_path = std::path::Path::new(&format!("{}/conf/directory/admin-pat.txt", get_stack_path()));
     let bootstrap_client = if pat_path.exists() {
         match std::fs::read_to_string(pat_path) {
             Ok(pat_token) => {

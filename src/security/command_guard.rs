@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::process::{Child, Output};
 use std::sync::LazyLock;
+use crate::core::shared::utils::get_stack_path;
 
 static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
@@ -336,8 +337,7 @@ impl SafeCommand {
         ];
 
         // Add botserver-stack/bin/shared to PATH if it exists
-        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
-            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let stack_path = get_stack_path();
         let shared_bin = format!("{}/bin/shared", stack_path);
         if std::path::Path::new(&shared_bin).exists() {
             path_entries.insert(0, shared_bin);
@@ -390,8 +390,7 @@ impl SafeCommand {
         ];
 
         // Add botserver-stack/bin/shared to PATH if it exists
-        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
-            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let stack_path = get_stack_path();
         let shared_bin = format!("{}/bin/shared", stack_path);
         if std::path::Path::new(&shared_bin).exists() {
             path_entries.insert(0, shared_bin);
@@ -452,8 +451,7 @@ impl SafeCommand {
         ];
 
         // Add botserver-stack/bin/shared to PATH if it exists
-        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
-            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let stack_path = get_stack_path();
         let shared_bin = format!("{}/bin/shared", stack_path);
         if std::path::Path::new(&shared_bin).exists() {
             path_entries.insert(0, shared_bin);
@@ -506,8 +504,7 @@ impl SafeCommand {
         ];
 
         // Add botserver-stack/bin/shared to PATH if it exists
-        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
-            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let stack_path = get_stack_path();
         let shared_bin = format!("{}/bin/shared", stack_path);
         if std::path::Path::new(&shared_bin).exists() {
             path_entries.insert(0, shared_bin);

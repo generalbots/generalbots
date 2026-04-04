@@ -957,7 +957,7 @@ TALK response
             Err(e) => {
                 warn!("Upload failed (mc not available): {}", e);
 
-                let fs_path = format!("./botserver-stack/minio/{}/{}", bucket, path);
+                let fs_path = format!("{}/minio/{}/{}", crate::core::shared::utils::get_stack_path(), bucket, path);
                 if let Some(parent) = std::path::Path::new(&fs_path).parent() {
                     std::fs::create_dir_all(parent)?;
                 }

@@ -1,6 +1,7 @@
 use crate::core::package_manager::component::ComponentConfig;
 use crate::core::package_manager::os::detect_os;
 use crate::core::package_manager::{InstallMode, OsType};
+use crate::core::shared::utils::get_stack_path;
 use crate::security::command_guard::SafeCommand;
 use anyhow::{Context, Result};
 use log::{error, info, trace, warn};
@@ -1011,7 +1012,7 @@ EOF"#.to_string(),
                     );
                     env.insert(
                         "VAULT_CACERT".to_string(),
-                        "./botserver-stack/conf/system/certificates/ca/ca.crt".to_string(),
+                        format!("{}/conf/system/certificates/ca/ca.crt", get_stack_path()),
                     );
                     env
                 },
