@@ -22,7 +22,7 @@ pub struct QueuedWhatsAppMessage {
 
 #[derive(Debug)]
 pub struct WhatsAppMessageQueue {
-    redis_client: redis::Client,
+    redis_client: Arc<redis::Client>,
 }
 
 impl WhatsAppMessageQueue {
@@ -31,10 +31,10 @@ impl WhatsAppMessageQueue {
     const BURST_CAPACITY: i64 = 45;
     const RATE_SECS: i64 = 6;
 
-    pub fn new(redis_url: &str) -> Result<Self, redis::RedisError> {
-        Ok(Self {
-            redis_client: redis::Client::open(redis_url)?,
-        })
+    pub fn new(redis_client: Arc<redis::Client>) -> Self {
+        Self {
+            redis_client,
+        }
     }
 
     pub async fn enqueue(&self, msg: QueuedWhatsAppMessage) -> Result<(), redis::RedisError> {

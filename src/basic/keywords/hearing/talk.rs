@@ -61,7 +61,7 @@ pub async fn execute_talk(
         let bot_id = user_session.bot_id;
         
         tokio::spawn(async move {
-            let adapter = WhatsAppAdapter::new(pool, bot_id);
+            let adapter = WhatsAppAdapter::new(&state, bot_id);
             if let Err(e) = adapter.send_message(wa_response).await {
                 error!("Failed to send TALK message via whatsapp adapter: {}", e);
             } else {

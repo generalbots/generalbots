@@ -197,7 +197,7 @@ pub async fn attendant_respond(
                 );
             }
 
-            let adapter = WhatsAppAdapter::new(state.conn.clone(), session.bot_id);
+            let adapter = WhatsAppAdapter::new(&state, session.bot_id);
             let response = BotResponse {
                 bot_id: session.bot_id.to_string(),
                 session_id: session.id.to_string(),
@@ -568,7 +568,7 @@ async fn handle_attendant_message(
                                 session.context_data.get("phone").and_then(|v| v.as_str())
                             {
                                 let adapter =
-                                    WhatsAppAdapter::new(state.conn.clone(), session.bot_id);
+                                    WhatsAppAdapter::new(&state, session.bot_id);
                                 let response = BotResponse {
                                     bot_id: session.bot_id.to_string(),
                                     session_id: session.id.to_string(),
