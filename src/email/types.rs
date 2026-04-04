@@ -1,4 +1,7 @@
-use axum::{http::StatusCode, response::{IntoResponse, Response}};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid, Varchar};
@@ -305,13 +308,163 @@ impl EmailService {
         Self { state }
     }
 
-    pub fn send_email(&self, to: &str, _subject: &str, _body: &str, _attachments: Option<Vec<String>>) -> Result<(), String> {
-        log::warn!("EmailService::send_email not fully implemented. to: {}", to);
-        Ok(())
+    pub fn send_email(
+        &self,
+        to: &str,
+        subject: &str,
+        body: &str,
+        bot_id: Uuid,
+        _attachments: Option<Vec<String>>,
+    ) -> Result<String, String> {
+        use lettre::message::{header::ContentType, Message};
+        use lettre::transport::smtp::authentication::Credentials;
+        use lettre::{SmtpTransport, Transport};
+
+        let secrets = crate::core::secrets::SecretsManager::from_env()
+            .map_err(|e| format!("Vault not available: {}", e))?;
+        let (smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from): (
+            String,
+            u16,
+            String,
+            String,
+            String,
+        ) = secrets.get_email_config_for_bot_sync(&bot_id);
+
+        if smtp_from.is_empty() {
+            log::warn!(
+                "No SMTP from address configured in Vault for bot {}",
+                bot_id
+            );
+            return Err("SMTP not configured: set email credentials in Vault".into());
+        }
+
+        let email = Message::builder()
+            .from(
+                smtp_from
+                    .parse()
+                    .map_err(|e| format!("Invalid from address: {}", e))?,
+            )
+            .to(to
+                .parse()
+                .map_err(|e| format!("Invalid to address: {}", e))?)
+            .subject(subject)
+            .header(ContentType::TEXT_HTML)
+            .body(body.to_string())
+            .map_err(|e| format!("Failed to build email: {}", e))?;
+
+        let mailer = if !smtp_user.is_empty() && !smtp_pass.is_empty() {
+            let creds = Credentials::new(smtp_user, smtp_pass);
+            SmtpTransport::relay(&smtp_host)
+                .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .credentials(creds)
+                .build()
+        } else {
+            SmtpTransport::relay(&smtp_host)
+                .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .build()
+        };
+
+        mailer
+            .send(&email)
+            .map_err(|e| format!("Failed to send email: {}", e))?;
+
+        info!("Email sent to {} via {} (bot {})", to, smtp_host, bot_id);
+        Ok(format!("sent-{}", bot_id))
     }
 
-    pub fn send_email_with_attachment(&self, to: &str, _subject: &str, _body: &str, _file_data: Vec<u8>, _filename: &str) -> Result<(), String> {
-        log::warn!("EmailService::send_email_with_attachment not fully implemented. to: {}", to);
+    pub fn send_email_with_attachment(
+        &self,
+        to: &str,
+        subject: &str,
+        body: &str,
+        bot_id: Uuid,
+        file_data: Vec<u8>,
+        filename: &str,
+    ) -> Result<(), String> {
+        use lettre::message::{
+            header::ContentType, Attachment, Body, Message, MultiPart, SinglePart,
+        };
+        use lettre::transport::smtp::authentication::Credentials;
+        use lettre::{SmtpTransport, Transport};
+
+        let secrets = crate::core::secrets::SecretsManager::from_env()
+            .map_err(|e| format!("Vault not available: {}", e))?;
+        let (smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from): (
+            String,
+            u16,
+            String,
+            String,
+            String,
+        ) = secrets.get_email_config_for_bot_sync(&bot_id);
+
+        if smtp_from.is_empty() {
+            return Err("SMTP not configured: set email credentials in Vault".into());
+        }
+
+        let mime_type: mime::Mime = filename
+            .split('.')
+            .last()
+            .and_then(|ext| match ext {
+                "pdf" => Some("application/pdf".parse().ok()),
+                "png" => Some("image/png".parse().ok()),
+                "jpg" | "jpeg" => Some("image/jpeg".parse().ok()),
+                "txt" => Some("text/plain".parse().ok()),
+                "csv" => Some("text/csv".parse().ok()),
+                "xlsx" => Some(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        .parse()
+                        .ok(),
+                ),
+                "docx" => Some(
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        .parse()
+                        .ok(),
+                ),
+                _ => Some("application/octet-stream".parse().ok()),
+            })
+            .flatten()
+            .unwrap_or_else(|| "application/octet-stream".parse().unwrap());
+
+        let email = Message::builder()
+            .from(
+                smtp_from
+                    .parse()
+                    .map_err(|e| format!("Invalid from address: {}", e))?,
+            )
+            .to(to
+                .parse()
+                .map_err(|e| format!("Invalid to address: {}", e))?)
+            .subject(subject)
+            .multipart(
+                MultiPart::mixed()
+                    .singlepart(SinglePart::html(body.to_string()))
+                    .singlepart(
+                        Attachment::new(filename.to_string()).body(Body::new(file_data), mime_type),
+                    ),
+            )
+            .map_err(|e| format!("Failed to build email: {}", e))?;
+
+        let mailer = if !smtp_user.is_empty() && !smtp_pass.is_empty() {
+            let creds = Credentials::new(smtp_user, smtp_pass);
+            SmtpTransport::relay(&smtp_host)
+                .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .credentials(creds)
+                .build()
+        } else {
+            SmtpTransport::relay(&smtp_host)
+                .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .build()
+        };
+
+        mailer
+            .send(&email)
+            .map_err(|e| format!("Failed to send email: {}", e))?;
+
+        info!("Email with attachment sent to {} (bot {})", to, bot_id);
         Ok(())
     }
 }

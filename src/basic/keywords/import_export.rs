@@ -235,7 +235,6 @@ fn resolve_file_path(
     }
 
     let work = get_work_path();
-    let work = get_work_path();
     let data_dir = state
         .config
         .as_ref()

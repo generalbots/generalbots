@@ -57,7 +57,6 @@ pub async fn execute_talk(
         let mut wa_response = response_clone;
         wa_response.user_id = target_user_id;
 
-        let pool = state.conn.clone();
         let bot_id = user_session.bot_id;
         
         tokio::spawn(async move {
