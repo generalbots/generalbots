@@ -350,7 +350,7 @@ async fn execute_send_mail(
 
         let email_service = EmailService::new(Arc::new(state.clone()));
 
-        if email_service
+        match email_service
             .send_email(
                 to,
                 subject,
@@ -361,11 +361,14 @@ async fn execute_send_mail(
                 } else {
                     Some(attachments.clone())
                 },
-            )
-            .is_ok()
-        {
-            trace!("Email sent successfully: {}", message_id);
-            return Ok(format!("Email sent: {}", message_id));
+            ) {
+            Ok(msg_id) => {
+                info!("Email sent successfully: {} to {}", msg_id, to);
+                return Ok(format!("Email sent: {}", message_id));
+            }
+            Err(e) => {
+                error!("EmailService::send_email failed: {}", e);
+            }
         }
     }
 
