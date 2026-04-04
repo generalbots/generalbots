@@ -353,6 +353,7 @@ async fn execute_send_mail(
                 to,
                 subject,
                 body,
+                user.bot_id,
                 if attachments.is_empty() {
                     None
                 } else {

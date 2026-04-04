@@ -296,7 +296,7 @@ pub async fn send_message_to_recipient(
             send_web_message(state.clone(), &recipient_id, message).await?;
         }
         "email" => {
-            send_email(state.clone(), &recipient_id, message)?;
+            send_email(state.clone(), user.bot_id, &recipient_id, message)?;
         }
         _ => {
             error!("Unknown channel: {}", channel);
@@ -346,7 +346,7 @@ async fn send_file_with_caption_to_recipient(
             send_web_file(state, &recipient_id, file_data, caption).await?;
         }
         "email" => {
-            send_email_attachment(state, &recipient_id, file_data, caption)?;
+            send_email_attachment(state, user.bot_id, &recipient_id, file_data, caption)?;
         }
         _ => {
             return Err(format!("Unsupported channel for file sending: {}", channel).into());
@@ -663,6 +663,7 @@ async fn send_web_file(
 
 fn send_email(
     state: Arc<AppState>,
+    bot_id: uuid::Uuid,
     email: &str,
     message: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -671,13 +672,13 @@ fn send_email(
         use crate::email::EmailService;
 
         let email_service = EmailService::new(state);
-        email_service.send_email(email, "Message from Bot", message, None)?;
+        email_service.send_email(email, "Message from Bot", message, bot_id, None)?;
         Ok(())
     }
 
     #[cfg(not(feature = "mail"))]
     {
-        let _ = (state, email, message);
+        let _ = (state, bot_id, email, message);
         error!("Email feature not enabled");
         Err("Email feature not enabled".into())
     }
@@ -685,6 +686,7 @@ fn send_email(
 
 fn send_email_attachment(
     state: Arc<AppState>,
+    bot_id: uuid::Uuid,
     email: &str,
     file_data: Vec<u8>,
     caption: &str,
@@ -698,6 +700,7 @@ fn send_email_attachment(
             email,
             "File from Bot",
             caption,
+            bot_id,
             file_data,
             "attachment",
         )?;
@@ -706,7 +709,7 @@ fn send_email_attachment(
 
     #[cfg(not(feature = "mail"))]
     {
-        let _ = (state, email, file_data, caption);
+        let _ = (state, bot_id, email, file_data, caption);
         error!("Email feature not enabled for attachments");
         Err("Email feature not enabled".into())
     }
