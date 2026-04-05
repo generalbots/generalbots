@@ -877,19 +877,37 @@ impl SecretsManager {
 
         let paths = vec![bot_path, default_path, SecretPaths::EMAIL.to_string()];
 
-        for path in paths {
-            if let Ok(secrets) = self.get_secret_blocking(&path) {
-                if !secrets.is_empty() && secrets.contains_key("smtp_from") {
-                    return (
-                        secrets.get("smtp_host").cloned().unwrap_or_default(),
-                        secrets.get("smtp_port").and_then(|p| p.parse().ok()).unwrap_or(587),
-                        secrets.get("smtp_user").cloned().unwrap_or_default(),
-                        secrets.get("smtp_password").cloned().unwrap_or_default(),
-                        secrets.get("smtp_from").cloned().unwrap_or_default(),
-                    );
-                }
-            }
+        let self_owned = self.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async move {
+                    for path in paths {
+                        if let Ok(secrets) = self_owned.get_secret(&path).await {
+                            if !secrets.is_empty() && secrets.contains_key("smtp_from") {
+                                return Some((
+                                    secrets.get("smtp_host").cloned().unwrap_or_default(),
+                                    secrets.get("smtp_port").and_then(|p| p.parse().ok()).unwrap_or(587),
+                                    secrets.get("smtp_user").cloned().unwrap_or_default(),
+                                    secrets.get("smtp_password").cloned().unwrap_or_default(),
+                                    secrets.get("smtp_from").cloned().unwrap_or_default(),
+                                ));
+                            }
+                        }
+                    }
+                    None
+                })
+            } else {
+                None
+            };
+            let _ = tx.send(result);
+        });
+
+        if let Ok(Some(config)) = rx.recv() {
+            return config;
         }
+
         (String::new(), 587, String::new(), String::new(), String::new())
     }
 
@@ -935,7 +953,7 @@ impl SecretsManager {
     fn get_cached_sync(&self, path: &str) -> Option<HashMap<String, String>> {
         let cache = self.cache.read().ok()?;
         let entry = cache.get(path)?;
-        if entry.expires_at.elapsed() < std::time::Duration::from_secs(self.cache_ttl) {
+        if entry.expires_at > std::time::Instant::now() {
             Some(entry.data.clone())
         } else {
             None
@@ -947,7 +965,7 @@ impl SecretsManager {
             if let Ok(mut cache) = self.cache.write() {
                 cache.insert(path.to_string(), CachedSecret {
                     data,
-                    expires_at: std::time::Instant::now(),
+                    expires_at: std::time::Instant::now() + std::time::Duration::from_secs(self.cache_ttl),
                 });
             }
         }
