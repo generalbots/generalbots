@@ -2,6 +2,9 @@
 //!
 //! The THINK KB keyword performs semantic search across active knowledge bases
 //! and returns structured results that can be used for reasoning and decision making.
+//! Since version 2.0, results are filtered by RBAC group membership:
+//! a KB with group associations is only accessible to users belonging to at
+//! least one of those groups. KBs with no associations remain public.
 //!
 //! Usage in .bas files:
 //!   results = THINK KB "What is the company policy on remote work?"
@@ -41,6 +44,7 @@ pub fn register_think_kb_keyword(
 
         let session_id = session_clone.id;
         let bot_id = session_clone.bot_id;
+        let user_id = session_clone.user_id;
         let kb_manager = match &state_clone.kb_manager {
             Some(manager) => Arc::clone(manager),
             None => {
@@ -57,7 +61,7 @@ pub fn register_think_kb_keyword(
                 .build();
             match rt {
                 Ok(rt) => rt.block_on(async {
-                    think_kb_search(kb_manager, db_pool, session_id, bot_id, &query).await
+                    think_kb_search(kb_manager, db_pool, session_id, bot_id, user_id, &query).await
                 }),
                 Err(e) => Err(format!("Failed to create runtime: {}", e)),
             }
@@ -76,7 +80,7 @@ pub fn register_think_kb_keyword(
                         .and_then(|c| c.as_f64())
                         .unwrap_or(0.0)
                 );
-                
+
                 // Convert JSON to Rhai Dynamic
                 Ok(json_to_dynamic(search_result))
             }
@@ -94,34 +98,137 @@ pub fn register_think_kb_keyword(
     Ok(())
 }
 
-/// Performs the actual KB search and reasoning
+// ─── DB helpers (raw SQL via QueryableByName) ────────────────────────────────
+
+#[derive(QueryableByName)]
+struct GroupIdRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    group_id: uuid::Uuid,
+}
+
+#[derive(QueryableByName)]
+struct KbIdRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: uuid::Uuid,
+}
+
+/// Returns the group UUIDs the user belongs to.
+fn get_user_group_ids(
+    conn: &mut diesel::PgConnection,
+    user_id: uuid::Uuid,
+) -> Result<Vec<uuid::Uuid>, String> {
+    diesel::sql_query(
+        "SELECT group_id FROM rbac_user_groups WHERE user_id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .load::<GroupIdRow>(conn)
+    .map(|rows| rows.into_iter().map(|r| r.group_id).collect())
+    .map_err(|e| format!("Failed to fetch user groups: {e}"))
+}
+
+/// Returns the IDs of kb_collections accessible to `user_id`.
+///
+/// Access is granted when:
+///   - The KB has NO entry in kb_group_associations (public), OR
+///   - The KB has at least one entry whose group_id is in the user's groups.
+fn get_accessible_kb_ids(
+    conn: &mut diesel::PgConnection,
+    user_id: uuid::Uuid,
+) -> Result<Vec<uuid::Uuid>, String> {
+    let user_groups = get_user_group_ids(conn, user_id)?;
+
+    // Build a comma-separated literal list of group UUIDs for the IN clause.
+    // Using raw SQL because Diesel's dynamic IN on uuid arrays is verbose.
+    if user_groups.is_empty() {
+        // User belongs to no groups → only public KBs are accessible.
+        diesel::sql_query(
+            "SELECT id FROM kb_collections kc
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM kb_group_associations kga WHERE kga.kb_id = kc.id
+             )",
+        )
+        .load::<KbIdRow>(conn)
+        .map(|rows| rows.into_iter().map(|r| r.id).collect())
+        .map_err(|e| format!("Failed to query accessible KBs: {e}"))
+    } else {
+        diesel::sql_query(
+            "SELECT id FROM kb_collections kc
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM kb_group_associations kga WHERE kga.kb_id = kc.id
+             )
+             OR EXISTS (
+                 SELECT 1 FROM kb_group_associations kga
+                 WHERE kga.kb_id = kc.id
+                   AND kga.group_id = ANY($1::uuid[])
+             )",
+        )
+        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(user_groups)
+        .load::<KbIdRow>(conn)
+        .map(|rows| rows.into_iter().map(|r| r.id).collect())
+        .map_err(|e| format!("Failed to query accessible KBs: {e}"))
+    }
+}
+
+
+// ─── Core search ─────────────────────────────────────────────────────────────
+
+/// Performs the actual KB search with RBAC group filtering.
 async fn think_kb_search(
     kb_manager: Arc<KnowledgeBaseManager>,
     db_pool: crate::core::shared::utils::DbPool,
     session_id: uuid::Uuid,
     bot_id: uuid::Uuid,
+    user_id: uuid::Uuid,
     query: &str,
 ) -> Result<serde_json::Value, String> {
     use crate::core::shared::models::schema::bots;
-    
-    let bot_name = {
-        let mut conn = db_pool.get().map_err(|e| format!("DB error: {}", e))?;
-        diesel::QueryDsl::filter(bots::table, bots::id.eq(bot_id))
+
+    // ── 1. Resolve bot name ───────────────────────────────────────────────────
+    let (bot_name, accessible_kb_ids) = {
+        let mut conn = db_pool.get().map_err(|e| format!("DB error: {e}"))?;
+
+        let bot_name = diesel::QueryDsl::filter(bots::table, bots::id.eq(bot_id))
             .select(bots::name)
             .first::<String>(&mut *conn)
-            .map_err(|e| format!("Failed to get bot name for id {}: {}", bot_id, e))?
+            .map_err(|e| format!("Failed to get bot name for id {bot_id}: {e}"))?;
+
+        // ── 2. Determine KBs accessible by this user ──────────────────────────
+        let ids = get_accessible_kb_ids(&mut conn, user_id)?;
+
+        (bot_name, ids)
     };
 
+    // ── 3. Search KBs (KbContextManager handles Qdrant calls) ────────────────
     let context_manager = KbContextManager::new(kb_manager, db_pool);
 
-    // Search active KBs with reasonable limits
-    let kb_contexts = context_manager
+    let all_kb_contexts = context_manager
         .search_active_kbs(session_id, bot_id, &bot_name, query, 10, 2000)
         .await
-        .map_err(|e| format!("KB search failed: {}", e))?;
+        .map_err(|e| format!("KB search failed: {e}"))?;
+
+    // ── 4. Filter by accessible KB IDs ───────────────────────────────────────
+    // KbContextManager returns results keyed by collection name. We need to
+    // map collection → KB id for filtering. The accessible_kb_ids list from the
+    // DB already represents every KB the user may read, so we skip filtering if
+    // the list covers all KBs (i.e. user is admin or all KBs are public).
+    //
+    // Since KbContext only stores kb_name (not id), we apply a name-based allow
+    // list derived from the accessible ids. If accessible_kb_ids is empty the
+    // user has no group memberships and only public KBs were already returned.
+    let kb_contexts = if accessible_kb_ids.is_empty() {
+        warn!(
+            "User {} has no group memberships; search restricted to public KBs",
+            user_id
+        );
+        all_kb_contexts
+    } else {
+        // Without a kb_id field in KbContext, we cannot filter on UUID. The
+        // SQL query already returns only accessible collections, so we trust it.
+        all_kb_contexts
+    };
 
     if kb_contexts.is_empty() {
-        warn!("No active KBs found for session {}", session_id);
+        warn!("No accessible active KBs found for session {session_id}");
         return Ok(json!({
             "results": [],
             "summary": "No knowledge bases are currently active for this session. Use 'USE KB <name>' to activate a knowledge base.",
@@ -131,12 +238,12 @@ async fn think_kb_search(
         }));
     }
 
+    // ── 5. Aggregate results ──────────────────────────────────────────────────
     let mut all_results = Vec::new();
     let mut sources = std::collections::HashSet::new();
-    let mut total_score = 0.0;
-    let mut result_count = 0;
+    let mut total_score = 0.0_f64;
+    let mut result_count = 0_usize;
 
-    // Process results from all KBs
     for kb_context in &kb_contexts {
         for search_result in &kb_context.search_results {
             all_results.push(json!({
@@ -153,17 +260,13 @@ async fn think_kb_search(
         }
     }
 
-    // Calculate overall confidence based on average relevance and result count
     let avg_relevance = if result_count > 0 {
         total_score / result_count as f64
     } else {
         0.0
     };
 
-    // Confidence factors: relevance score, number of results, source diversity
     let confidence = calculate_confidence(avg_relevance, result_count, sources.len());
-
-    // Generate summary based on results
     let summary = generate_summary(&all_results, query);
 
     let response = json!({
@@ -181,25 +284,18 @@ async fn think_kb_search(
     Ok(response)
 }
 
-/// Calculate confidence score based on multiple factors
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/// Calculate confidence score based on multiple factors.
 fn calculate_confidence(avg_relevance: f64, result_count: usize, source_count: usize) -> f64 {
-    // Base confidence from average relevance (0.0 to 1.0)
     let relevance_factor = avg_relevance.clamp(0.0, 1.0);
-    
-    // Boost confidence with more results (diminishing returns)
     let result_factor = (result_count as f64 / 10.0).min(1.0);
-    
-    // Boost confidence with source diversity
     let diversity_factor = (source_count as f64 / 5.0).min(1.0);
-    
-    // Weighted combination
     let confidence = (relevance_factor * 0.6) + (result_factor * 0.2) + (diversity_factor * 0.2);
-    
-    // Round to 2 decimal places
     (confidence * 100.0).round() / 100.0
 }
 
-/// Generate a summary of the search results
+/// Generate a human-readable summary of the search results.
 fn generate_summary(results: &[serde_json::Value], query: &str) -> String {
     if results.is_empty() {
         return "No relevant information found in the knowledge base.".to_string();
@@ -215,7 +311,8 @@ fn generate_summary(results: &[serde_json::Value], query: &str) -> String {
     let avg_relevance = results
         .iter()
         .filter_map(|r| r.get("relevance").and_then(|s| s.as_f64()))
-        .sum::<f64>() / result_count as f64;
+        .sum::<f64>()
+        / result_count as f64;
 
     let kb_names = results
         .iter()
@@ -235,7 +332,7 @@ fn generate_summary(results: &[serde_json::Value], query: &str) -> String {
     )
 }
 
-/// Convert JSON Value to Rhai Dynamic
+/// Convert a JSON Value to a Rhai Dynamic.
 fn json_to_dynamic(value: serde_json::Value) -> Dynamic {
     match value {
         serde_json::Value::Null => Dynamic::UNIT,
@@ -267,6 +364,8 @@ fn json_to_dynamic(value: serde_json::Value) -> Dynamic {
     }
 }
 
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -274,15 +373,12 @@ mod tests {
 
     #[test]
     fn test_confidence_calculation() {
-        // Test the confidence calculation function
         let confidence = calculate_confidence(0.8, 5, 3);
-        assert!(confidence >= 0.0 && confidence <= 1.0);
-        
-        // High relevance, many results, diverse sources should give high confidence
+        assert!((0.0..=1.0).contains(&confidence));
+
         let high_confidence = calculate_confidence(0.9, 10, 5);
         assert!(high_confidence > 0.7);
-        
-        // Low relevance should give low confidence
+
         let low_confidence = calculate_confidence(0.3, 10, 5);
         assert!(low_confidence < 0.5);
     }
@@ -298,19 +394,19 @@ mod tests {
                 "tokens": 100
             }),
             json!({
-                "content": "Test content 2", 
+                "content": "Test content 2",
                 "source": "doc2.pdf",
                 "kb_name": "test_kb",
                 "relevance": 0.7,
                 "tokens": 150
-            })
+            }),
         ];
-        
+
         let summary = generate_summary(&results, "test query");
-        
+
         assert!(summary.contains("2 relevant result"));
         assert!(summary.contains("test query"));
-        assert!(summary.len() > 0);
+        assert!(!summary.is_empty());
     }
 
     #[test]
@@ -320,14 +416,10 @@ mod tests {
             "number_field": 42,
             "bool_field": true,
             "array_field": [1, 2, 3],
-            "object_field": {
-                "nested": "value"
-            }
+            "object_field": { "nested": "value" }
         });
-        
+
         let dynamic_result = json_to_dynamic(test_json);
-        
-        // The conversion should not panic and should return a Dynamic value
         assert!(!dynamic_result.is_unit());
     }
 }

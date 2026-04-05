@@ -65,6 +65,8 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/groups/:group_id/delete", delete(groups::delete_group))
         .route("/groups/list", get(groups::list_groups))
         .route("/groups/search", get(groups::list_groups))
+        .route("/groups/:group_id/kbs", get(groups::get_group_kbs))
+        .route("/groups/:group_id/kbs/toggle/:kb_id", post(groups::toggle_group_kb))
         .route("/groups/:group_id/members", get(groups::get_group_members))
         .route(
             "/groups/:group_id/members/add",
@@ -107,3 +109,4 @@ pub fn configure() -> Router<Arc<AppState>> {
             get(groups::get_group_members),
         )
 }
+

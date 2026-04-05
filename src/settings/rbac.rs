@@ -18,8 +18,13 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::settings::rbac_kb::{
+    assign_kb_to_group, get_accessible_kbs_for_user, get_kb_groups, remove_kb_from_group,
+};
+
 pub fn configure_rbac_routes() -> Router<Arc<AppState>> {
     Router::new()
+
         .route("/api/rbac/roles", get(list_roles).post(create_role))
         .route("/api/rbac/roles/{role_id}", get(get_role).delete(delete_role))
         .route("/api/rbac/roles/{role_id}/permissions", get(get_role_permissions))
@@ -33,6 +38,10 @@ pub fn configure_rbac_routes() -> Router<Arc<AppState>> {
         .route("/api/rbac/groups/{group_id}/roles", get(get_group_roles))
         .route("/api/rbac/groups/{group_id}/roles/{role_id}", post(assign_role_to_group).delete(remove_role_from_group))
         .route("/api/rbac/users/{user_id}/permissions", get(get_effective_permissions))
+        // KB-group management
+        .route("/api/rbac/kbs/{kb_id}/groups", get(get_kb_groups))
+        .route("/api/rbac/kbs/{kb_id}/groups/{group_id}", post(assign_kb_to_group).delete(remove_kb_from_group))
+        .route("/api/rbac/users/{user_id}/accessible-kbs", get(get_accessible_kbs_for_user))
         .route("/settings/rbac", get(rbac_settings_page))
         .route("/settings/rbac/users", get(rbac_users_list))
         .route("/settings/rbac/roles", get(rbac_roles_list))
@@ -730,8 +739,11 @@ async fn get_effective_permissions(State(state): State<Arc<AppState>>, Path(user
     }
 }
 
+// ─── UI re-exports ────────────────────────────────────────────────────────────
+
 pub use crate::settings::rbac_ui::{
     rbac_settings_page, rbac_users_list, rbac_roles_list, rbac_groups_list,
     user_assignment_panel, available_roles_for_user, assigned_roles_for_user,
     available_groups_for_user, assigned_groups_for_user,
 };
+
