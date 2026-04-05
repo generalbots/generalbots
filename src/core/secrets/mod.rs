@@ -911,65 +911,7 @@ impl SecretsManager {
         (String::new(), 587, String::new(), String::new(), String::new())
     }
 
-    fn get_secret_blocking(&self, path: &str) -> Result<HashMap<String, String>> {
-        if !self.enabled {
-            return Self::get_from_env(path);
-        }
 
-        if let Some(cached) = self.get_cached_sync(path) {
-            return Ok(cached);
-        }
-
-        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
-        let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
-
-        if vault_addr.is_empty() || vault_token.is_empty() {
-            return Self::get_from_env(path);
-        }
-
-        let url = format!("{}/v1/secret/data/{}", vault_addr, path);
-        let resp = ureq::get(&url)
-            .set("X-Vault-Token", &vault_token)
-            .call()
-            .map_err(|e| anyhow!("Vault HTTP error: {}", e))?;
-
-        let body: serde_json::Value = resp.into_json()
-            .map_err(|e| anyhow!("Vault JSON parse error: {}", e))?;
-
-        if let Some(data) = body.get("data").and_then(|d| d.get("data")) {
-            if let Some(map) = data.as_object() {
-                let result: HashMap<String, String> = map.iter()
-                    .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
-                    .collect();
-
-                self.cache_secret_sync(path, result.clone());
-                return Ok(result);
-            }
-        }
-
-        Self::get_from_env(path)
-    }
-
-    fn get_cached_sync(&self, path: &str) -> Option<HashMap<String, String>> {
-        let cache = self.cache.read().ok()?;
-        let entry = cache.get(path)?;
-        if entry.expires_at > std::time::Instant::now() {
-            Some(entry.data.clone())
-        } else {
-            None
-        }
-    }
-
-    fn cache_secret_sync(&self, path: &str, data: HashMap<String, String>) {
-        if self.cache_ttl > 0 {
-            if let Ok(mut cache) = self.cache.write() {
-                cache.insert(path.to_string(), CachedSecret {
-                    data,
-                    expires_at: std::time::Instant::now() + std::time::Duration::from_secs(self.cache_ttl),
-                });
-            }
-        }
-    }
 
     // ============ TENANT-AWARE METHODS (org_id -> tenant -> secrets) ============
 
