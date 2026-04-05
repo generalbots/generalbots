@@ -145,9 +145,10 @@ pub async fn send_campaign_email(
 
     let email_service = EmailService::new(state.clone());
     match email_service.send_email(&payload.to, &payload.subject, &body, bot_id, None) {
-        Ok(message_id) => {
+        Ok(msg_id) => {
+            let msg_id_str: String = msg_id;
             diesel::update(email_tracking::table.filter(email_tracking::id.eq(tracking_id)))
-                .set(email_tracking::message_id.eq(Some(message_id.clone())))
+                .set(email_tracking::message_id.eq(Some(msg_id_str)))
                 .execute(&mut conn)
                 .ok();
 
@@ -163,18 +164,19 @@ pub async fn send_campaign_email(
 
             Ok(EmailSendResult {
                 success: true,
-                message_id: Some(message_id),
+                message_id: Some(msg_id),
                 tracking_id: Some(tracking_id),
                 error: None,
             })
         }
         Err(e) => {
             if let Some(recipient_id) = payload.recipient_id {
+                let err_msg: String = e.clone();
                 diesel::update(marketing_recipients::table.filter(marketing_recipients::id.eq(recipient_id)))
                     .set((
                         marketing_recipients::status.eq("failed"),
                         marketing_recipients::failed_at.eq(Some(Utc::now())),
-                        marketing_recipients::error_message.eq(Some(e.clone())),
+                        marketing_recipients::error_message.eq(Some(err_msg)),
                     ))
                     .execute(&mut conn)
                     .ok();
@@ -203,8 +205,8 @@ pub async fn get_campaign_email_metrics(
         .map_err(|e| format!("Query error: {}", e))?;
 
     let total = results.len() as i64;
-    let opened = results.iter().filter(|(o, _)| o.unwrap_or(false)).count() as i64;
-    let clicked = results.iter().filter(|(_, c)| c.unwrap_or(false)).count() as i64;
+    let opened = results.iter().filter(|(o, _): &(Option<bool>, Option<bool>)| o.unwrap_or(false)).count() as i64;
+    let clicked = results.iter().filter(|(_, c): &(Option<bool>, Option<bool>)| c.unwrap_or(false)).count() as i64;
 
     let recipients: Vec<(String, Option<DateTime<Utc>>)> = marketing_recipients::table
         .filter(marketing_recipients::campaign_id.eq(campaign_id))
