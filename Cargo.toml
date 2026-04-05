@@ -234,5 +234,6 @@ tempfile = { workspace = true }
 bigdecimal = { workspace = true }
 ureq = { version = "2", features = ["json"] }
 
-[lints]
-workspace = true
+[dev-dependencies]
+mockito = { workspace = true }
+tempfile = { workspace = true }
