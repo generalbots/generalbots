@@ -235,3 +235,4 @@ bigdecimal = { workspace = true }
 
 [lints]
 workspace = true
+ureq = { version = "2", features = ["json"] }
