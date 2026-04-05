@@ -896,14 +896,16 @@ impl SecretsManager {
             return Ok(cached);
         }
 
-        let client = self
-            .client
-            .as_ref()
-            .ok_or_else(|| anyhow!("No Vault client"))?;
+        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+        let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
 
-        let url = format!("{}/v1/secret/data/{}", self.addr, path);
+        if vault_addr.is_empty() || vault_token.is_empty() {
+            return Self::get_from_env(path);
+        }
+
+        let url = format!("{}/v1/secret/data/{}", vault_addr, path);
         let resp = ureq::get(&url)
-            .set("X-Vault-Token", &self.token)
+            .set("X-Vault-Token", &vault_token)
             .call()
             .map_err(|e| anyhow!("Vault HTTP error: {}", e))?;
 
@@ -927,7 +929,7 @@ impl SecretsManager {
     fn get_cached_sync(&self, path: &str) -> Option<HashMap<String, String>> {
         let cache = self.cache.read().ok()?;
         let entry = cache.get(path)?;
-        if entry.1.elapsed() < self.cache_ttl {
+        if entry.1.elapsed() < std::time::Duration::from_secs(self.cache_ttl) {
             Some(entry.0.clone())
         } else {
             None
