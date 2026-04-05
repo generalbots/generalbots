@@ -9,6 +9,7 @@ use axum::{
     Router,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use diesel::{QueryableByName, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 
 use std::sync::Arc;
@@ -372,7 +373,7 @@ pub async fn list_files(
                         "SELECT name, COALESCE(is_public, false) as is_public FROM kb_collections"
                     )
                     .load(&mut db_conn)
-                    .map_err(|e| e.to_string())?;
+.map_err(|e: diesel::result::Error| e.to_string())?;
                     Ok(rows.into_iter().map(|r| (r.name, r.is_public)).collect())
                 }).await;
                 match kbs_result {
