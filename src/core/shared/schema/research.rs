@@ -1,4 +1,5 @@
-use crate::core::shared::schema::core::{organizations, bots};
+use crate::core::shared::schema::core::{bots, organizations};
+use crate::core::shared::schema::core::{rbac_groups, users};
 
 diesel::table! {
     kb_documents (id) {
@@ -148,6 +149,20 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    kb_group_associations (id) {
+        id         -> Uuid,
+        kb_id      -> Uuid,
+        group_id   -> Uuid,
+        granted_by -> Nullable<Uuid>,
+        granted_at -> Timestamptz,
+    }
+}
+
+diesel::joinable!(kb_collections       -> bots   (bot_id));
+diesel::joinable!(kb_group_associations -> kb_collections (kb_id));
+diesel::joinable!(kb_group_associations -> rbac_groups    (group_id));
+diesel::joinable!(kb_group_associations -> users          (granted_by));
 diesel::joinable!(research_projects -> organizations (org_id));
 diesel::joinable!(research_projects -> bots (bot_id));
 diesel::joinable!(research_sources -> research_projects (project_id));

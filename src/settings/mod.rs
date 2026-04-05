@@ -2,6 +2,7 @@ pub mod audit_log;
 pub mod menu_config;
 pub mod permission_inheritance;
 pub mod rbac;
+pub mod rbac_kb;
 pub mod rbac_ui;
 pub mod security_admin;
 

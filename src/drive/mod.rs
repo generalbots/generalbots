@@ -28,6 +28,8 @@ pub struct FileItem {
     pub size: Option<i64>,
     pub modified: Option<String>,
     pub icon: String,
+    pub is_kb: bool,
+    pub is_public: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -355,6 +357,19 @@ pub async fn list_files(
             let mut items = Vec::new();
             let prefix = params.path.as_deref().unwrap_or("");
 
+            // Fetch KBs from database to mark them in the list
+            let kbs: Vec<(String, bool)> = {
+                let conn = state.conn.clone();
+                tokio::task::spawn_blocking(move || {
+                    let mut db_conn = conn.get().map_err(|e| e.to_string())?;
+                    use crate::core::shared::models::schema::kb_collections;
+                    kb_collections::table
+                        .select((kb_collections::name, kb_collections::is_public))
+                        .load::<(String, bool)>(&mut db_conn)
+                        .map_err(|e| e.to_string())
+                }).await.unwrap_or(Ok(vec![])).unwrap_or_default()
+            };
+
             let paginator = s3_client
                 .list_objects_v2()
                 .bucket(bucket)
@@ -403,9 +418,21 @@ pub async fn list_files(
                                     size: object.size,
                                     modified: object.last_modified.map(|t| t.to_string()),
                                     icon: get_file_icon(&key),
+                                    is_kb: false,
+                                    is_public: true,
                                 });
                             }
                         }
+                    }
+                }
+            }
+            // Post-process to mark KBs
+            for item in &mut items {
+                if item.is_dir {
+                    if let Some((_, is_public)) = kbs.iter().find(|(name, _)| name == &item.name) {
+                        item.is_kb = true;
+                        item.is_public = *is_public;
+                        item.icon = "🧠".to_string(); // Knowledge icon
                     }
                 }
             }

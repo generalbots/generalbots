@@ -46,8 +46,9 @@ pub use super::schema::{
 
 #[cfg(feature = "vectordb")]
 pub use super::schema::{
-    kb_collections, kb_documents, user_kb_associations,
+    kb_collections, kb_documents, kb_group_associations, user_kb_associations,
 };
+
 
 pub use botlib::message_types::MessageType;
 pub use botlib::models::{ApiResponse, Attachment, BotResponse, Session, Suggestion, UserMessage};

@@ -14,6 +14,8 @@ struct BotNameResult {
 
 #[derive(QueryableByName)]
 struct KbCollectionResult {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     folder_path: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -51,11 +53,12 @@ pub fn register_use_kb_keyword(
 
         let session_id = session_clone_for_syntax.id;
         let bot_id = session_clone_for_syntax.bot_id;
+        let user_id = session_clone_for_syntax.user_id;
         let conn = state_clone_for_syntax.conn.clone();
         let kb_name_clone = kb_name.clone();
 
         let result =
-            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, &kb_name_clone))
+            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone))
                 .join();
 
         match result {
@@ -96,11 +99,12 @@ pub fn register_use_kb_keyword(
 
         let session_id = session_clone_lower.id;
         let bot_id = session_clone_lower.bot_id;
+        let user_id = session_clone_lower.user_id;
         let conn = state_clone_lower.conn.clone();
         let kb_name_clone = kb_name.to_string();
 
         let result =
-            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, &kb_name_clone))
+            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone))
                 .join();
 
         match result {
@@ -127,11 +131,12 @@ pub fn register_use_kb_keyword(
 
         let session_id = session_clone2.id;
         let bot_id = session_clone2.bot_id;
+        let user_id = session_clone2.user_id;
         let conn = state_clone2.conn.clone();
         let kb_name_clone = kb_name.to_string();
 
         let result =
-            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, &kb_name_clone))
+            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone))
                 .join();
 
         match result {
@@ -157,6 +162,7 @@ fn add_kb_to_session(
     conn_pool: crate::core::shared::utils::DbPool,
     session_id: Uuid,
     bot_id: Uuid,
+    user_id: Uuid,
     kb_name: &str,
 ) -> Result<(), String> {
     let mut conn = conn_pool
@@ -170,7 +176,7 @@ fn add_kb_to_session(
     let bot_name = bot_result.name;
 
     let kb_exists: Option<KbCollectionResult> = diesel::sql_query(
-        "SELECT folder_path, qdrant_collection FROM kb_collections WHERE bot_id = $1 AND name = $2",
+        "SELECT id, folder_path, qdrant_collection FROM kb_collections WHERE bot_id = $1 AND name = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .bind::<diesel::sql_types::Text, _>(kb_name)
@@ -179,6 +185,30 @@ fn add_kb_to_session(
     .map_err(|e| format!("Failed to check KB existence: {}", e))?;
 
     let (kb_folder_path, qdrant_collection) = if let Some(kb_result) = kb_exists {
+        // CHECK ACCESS
+        let has_access: bool = diesel::sql_query(
+            "SELECT EXISTS (
+                SELECT 1 FROM kb_collections kc
+                WHERE kc.id = $1
+                AND (
+                    NOT EXISTS (SELECT 1 FROM kb_group_associations kga WHERE kga.kb_id = kc.id)
+                    OR EXISTS (
+                        SELECT 1 FROM kb_group_associations kga
+                        JOIN rbac_user_groups rug ON rug.group_id = kga.group_id
+                        WHERE kga.kb_id = kc.id AND rug.user_id = $2
+                    )
+                )
+            )"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(kb_result.id)
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .get_result::<bool>(&mut conn)
+        .map_err(|e| format!("Failed to check KB access: {}", e))?;
+
+        if !has_access {
+            return Err(format!("Access denied for KB '{}'", kb_name));
+        }
+
         (kb_result.folder_path, kb_result.qdrant_collection)
     } else {
         let default_path = format!("work/{}/{}.gbkb/{}", bot_name, bot_name, kb_name);
