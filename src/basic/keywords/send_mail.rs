@@ -287,17 +287,27 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         let user_for_task = user_fn.clone();
 
         std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(2)
-                .enable_all()
-                .build();
+            let result = std::panic::catch_unwind(|| {
+                let rt = tokio::runtime::Builder::new_multi_thread()
+                    .worker_threads(2)
+                    .enable_all()
+                    .build();
 
-            let result = if let Ok(rt) = rt {
-                rt.block_on(async move {
-                    execute_send_mail(&state_for_task, &user_for_task, &to_str, &subject_str, &body_str, atts, None).await
-                })
-            } else {
-                Err("Failed to build tokio runtime".to_string())
+                if let Ok(rt) = rt {
+                    rt.block_on(async move {
+                        execute_send_mail(&state_for_task, &user_for_task, &to_str, &subject_str, &body_str, atts, None).await
+                    })
+                } else {
+                    Err("Failed to build tokio runtime".to_string())
+                }
+            });
+
+            let result = match result {
+                Ok(r) => r,
+                Err(e) => {
+                    log::error!("send_mail thread panicked: {:?}", e);
+                    Err(format!("send_mail thread panicked: {:?}", e))
+                }
             };
 
             let _ = tx.send(result);
