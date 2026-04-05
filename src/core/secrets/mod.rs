@@ -929,8 +929,8 @@ impl SecretsManager {
     fn get_cached_sync(&self, path: &str) -> Option<HashMap<String, String>> {
         let cache = self.cache.read().ok()?;
         let entry = cache.get(path)?;
-        if entry.1.elapsed() < std::time::Duration::from_secs(self.cache_ttl) {
-            Some(entry.0.clone())
+        if entry.expires_at.elapsed() < std::time::Duration::from_secs(self.cache_ttl) {
+            Some(entry.data.clone())
         } else {
             None
         }
@@ -939,7 +939,10 @@ impl SecretsManager {
     fn cache_secret_sync(&self, path: &str, data: HashMap<String, String>) {
         if self.cache_ttl > 0 {
             if let Ok(mut cache) = self.cache.write() {
-                cache.insert(path.to_string(), (data, std::time::Instant::now()));
+                cache.insert(path.to_string(), CachedSecret {
+                    data,
+                    expires_at: std::time::Instant::now(),
+                });
             }
         }
     }
