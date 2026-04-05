@@ -7,7 +7,6 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Arc as StdArc;
-use tokio::sync::RwLock;
 use std::sync::RwLock as StdRwLock;
 use uuid::Uuid;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
@@ -147,7 +146,7 @@ impl SecretsManager {
 
         Ok(Self {
             client: Some(StdArc::new(client)),
-            cache: Arc::new(RwLock::new(HashMap::new())),
+            cache: Arc::new(StdRwLock::new(HashMap::new())),
             cache_ttl,
             enabled: true,
         })
@@ -599,29 +598,35 @@ impl SecretsManager {
     }
 
     pub async fn clear_cache(&self) {
-        self.cache.write().await.clear();
+        if let Ok(mut cache) = self.cache.write() {
+            cache.clear();
+        }
     }
 
     async fn get_cached(&self, path: &str) -> Option<HashMap<String, String>> {
-        let cache = self.cache.read().await;
+        let cache = self.cache.read().ok()?;
         cache
             .get(path)
             .and_then(|c| (c.expires_at > std::time::Instant::now()).then(|| c.data.clone()))
     }
 
     async fn cache_secret(&self, path: &str, data: HashMap<String, String>) {
-        self.cache.write().await.insert(
-            path.to_string(),
-            CachedSecret {
-                data,
-                expires_at: std::time::Instant::now()
-                    + std::time::Duration::from_secs(self.cache_ttl),
-            },
-        );
+        if let Ok(mut cache) = self.cache.write() {
+            cache.insert(
+                path.to_string(),
+                CachedSecret {
+                    data,
+                    expires_at: std::time::Instant::now()
+                        + std::time::Duration::from_secs(self.cache_ttl),
+                },
+            );
+        }
     }
 
     async fn invalidate_cache(&self, path: &str) {
-        self.cache.write().await.remove(path);
+        if let Ok(mut cache) = self.cache.write() {
+            cache.remove(path);
+        }
     }
 
     fn get_from_env(path: &str) -> Result<HashMap<String, String>> {

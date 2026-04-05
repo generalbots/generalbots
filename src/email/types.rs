@@ -394,7 +394,6 @@ impl EmailService {
         file_data: Vec<u8>,
         filename: &str,
     ) -> Result<(), String> {
-        use lettre::message::header::ContentType;
         use lettre::message::{Attachment, Body, Message, MultiPart, SinglePart};
         use lettre::transport::smtp::authentication::Credentials;
         use lettre::{SmtpTransport, Transport};
