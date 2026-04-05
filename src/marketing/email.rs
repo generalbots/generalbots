@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::core::config::ConfigManager;
 use crate::core::shared::state::AppState;
 use crate::core::shared::schema::{
     email_tracking, marketing_campaigns, marketing_recipients,
