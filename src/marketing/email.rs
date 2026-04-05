@@ -187,20 +187,6 @@ pub async fn send_campaign_email(
         }
     }
 }
-                    ))
-                    .execute(&mut conn)
-                    .ok();
-            }
-
-            Ok(EmailSendResult {
-                success: false,
-                message_id: None,
-                tracking_id: Some(tracking_id),
-                error: Some(e.to_string()),
-            })
-        }
-    }
-}
 
 pub async fn get_campaign_email_metrics(
     state: &Arc<AppState>,
