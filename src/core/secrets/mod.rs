@@ -941,12 +941,8 @@ impl SecretsManager {
             }
         }
     }
-            }
-        }
-        (String::new(), 587, String::new(), String::new(), String::new())
-    }
 
-    fn get_secret_blocking(&self, path: &str) -> Result<HashMap<String, String>> {
+    // ============ TENANT-AWARE METHODS (org_id -> tenant -> secrets) ============
         if !self.enabled {
             return Self::get_from_env(path);
         }
