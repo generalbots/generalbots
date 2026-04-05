@@ -298,12 +298,12 @@ impl AppConfig {
             secret_key: drive_secret,
         };
         let email = EmailConfig {
-            server: get_str("EMAIL_IMAP_SERVER", "imap.gmail.com"),
+            server: get_str("EMAIL_IMAP_SERVER", ""),
             port: get_u16("EMAIL_IMAP_PORT", 993),
             username: get_str("EMAIL_USERNAME", ""),
             password: get_str("EMAIL_PASSWORD", ""),
             from: get_str("EMAIL_FROM", ""),
-            smtp_server: get_str("EMAIL_SMTP_SERVER", "smtp.gmail.com"),
+            smtp_server: get_str("EMAIL_SMTP_SERVER", ""),
             smtp_port: get_u16("EMAIL_SMTP_PORT", 587),
         };
         let port = std::env::var("PORT")
