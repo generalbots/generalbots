@@ -632,6 +632,26 @@ impl ScriptService {
         self.engine.eval_ast_with_scope(&mut self.scope, ast)
     }
 
+    /// Execute a BASIC script asynchronously
+    pub async fn execute_script(
+        state: Arc<AppState>,
+        user: UserSession,
+        script: &str,
+    ) -> Result<String, String> {
+        let mut script_service = Self::new(state.clone(), user.clone());
+        script_service.load_bot_config_params(&state, user.bot_id);
+        
+        match script_service.compile(script) {
+            Ok(ast) => {
+                match script_service.run(&ast) {
+                    Ok(result) => Ok(result.to_string()),
+                    Err(e) => Err(format!("Execution error: {}", e)),
+                }
+            }
+            Err(e) => Err(format!("Compilation error: {}", e)),
+        }
+    }
+
     /// Convert SAVE statements for tool compilation (simplified, no DB lookup)
     /// SAVE "table", var1, var2, ... -> let __data__ = #{var1: var1, var2: var2, ...}; SAVE "table", __data__
     fn convert_save_for_tools(script: &str) -> String {

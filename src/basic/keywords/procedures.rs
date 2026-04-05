@@ -1,9 +1,12 @@
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
+use crate::core::shared::utils;
 use botlib::MAX_LOOP_ITERATIONS;
+use diesel::prelude::*;
 use log::trace;
 use rhai::{Dynamic, Engine};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug)]
@@ -17,10 +20,10 @@ pub struct ProcedureDefinition {
 static PROCEDURES: std::sync::LazyLock<Arc<Mutex<HashMap<String, ProcedureDefinition>>>> =
     std::sync::LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
 
-pub fn register_procedure_keywords(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+pub fn register_procedure_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_while_wend(engine);
     register_do_loop(engine);
-    register_call_keyword(engine);
+    register_call_keyword(state, user, engine);
     register_return_keyword(engine);
 }
 
@@ -258,38 +261,42 @@ fn eval_bool_condition(value: &Dynamic) -> bool {
     }
 }
 
-fn register_call_keyword(engine: &mut Engine) {
+fn register_call_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+    let state_clone = Arc::clone(&state);
+    let user_clone = user.clone();
+
     engine
         .register_custom_syntax(
             ["CALL", "$ident$", "(", "$expr$", ")"],
             false,
-            |context, inputs| {
+            move |context, inputs| {
                 let proc_name = inputs[0]
                     .get_string_value()
                     .unwrap_or_default()
                     .to_uppercase();
-                let args = context.eval_expression_tree(&inputs[1])?;
+                let _args = context.eval_expression_tree(&inputs[1])?;
 
-                trace!("CALL {} with args: {:?}", proc_name, args);
+                trace!("CALL {} with args", proc_name);
 
-                let procedures = PROCEDURES.lock().expect("mutex not poisoned");
-                if let Some(proc) = procedures.get(&proc_name) {
-                    trace!(
-                        "Found procedure: {} (is_function: {})",
-                        proc.name,
-                        proc.is_function
-                    );
-
-                    Ok(Dynamic::UNIT)
-                } else {
-                    Err(format!("Undefined procedure: {}", proc_name).into())
+                // Check for in-memory procedure first
+                {
+                    let procedures = PROCEDURES.lock().expect("mutex not poisoned");
+                    if procedures.contains_key(&proc_name) {
+                        return Ok(Dynamic::UNIT);
+                    }
                 }
+
+                // Try to execute as .bas file
+                call_bas_script(&state_clone, &user_clone, &proc_name)
             },
         )
         .expect("Failed to register CALL with args syntax");
 
+    let state_clone2 = Arc::clone(&state);
+    let user_clone2 = user.clone();
+
     engine
-        .register_custom_syntax(["CALL", "$ident$"], false, |_context, inputs| {
+        .register_custom_syntax(["CALL", "$ident$"], false, move |_context, inputs| {
             let proc_name = inputs[0]
                 .get_string_value()
                 .unwrap_or_default()
@@ -297,14 +304,82 @@ fn register_call_keyword(engine: &mut Engine) {
 
             trace!("CALL {} (no args)", proc_name);
 
-            let procedures = PROCEDURES.lock().expect("mutex not poisoned");
-            if procedures.contains_key(&proc_name) {
-                Ok(Dynamic::UNIT)
-            } else {
-                Err(format!("Undefined procedure: {}", proc_name).into())
+            // Check for in-memory procedure first
+            {
+                let procedures = PROCEDURES.lock().expect("mutex not poisoned");
+                if procedures.contains_key(&proc_name) {
+                    return Ok(Dynamic::UNIT);
+                }
             }
+
+            // Try to execute as .bas file
+            call_bas_script(&state_clone2, &user_clone2, &proc_name)
         })
         .expect("Failed to register CALL without args syntax");
+}
+
+fn call_bas_script(state: &Arc<AppState>, user: &UserSession, script_name: &str) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+    // Get bot name from bot_id
+    let bot_name = {
+        if let Some(mut conn) = state.conn.get().ok() {
+            use crate::core::shared::models::schema::bots::dsl::*;
+            bots.filter(id.eq(user.bot_id))
+                .select(name)
+                .first::<String>(&mut *conn)
+                .unwrap_or_else(|_| "default".to_string())
+        } else {
+            "default".to_string()
+        }
+    };
+
+    let work_path = utils::get_work_path();
+    let script_path = PathBuf::from(&work_path)
+        .join(format!("{}.gbai", bot_name))
+        .join(format!("{}.gbdialog", bot_name))
+        .join(format!("{}.bas", script_name.to_lowercase()));
+
+    if !script_path.exists() {
+        return Err(format!("Undefined procedure/script: {}", script_name).into());
+    }
+
+    let script_content = match std::fs::read_to_string(&script_path) {
+        Ok(c) => c,
+        Err(e) => return Err(format!("Failed to read script {}: {}", script_name, e).into()),
+    };
+
+    trace!("Executing .bas script: {:?}", script_path);
+
+    // Clone necessary data for thread
+    let state_clone = state.clone();
+    let user_clone = user.clone();
+
+    // Use blocking channel for thread communication
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+
+        if let Ok(rt) = rt {
+            let result = rt.block_on(async {
+                crate::basic::ScriptService::execute_script(
+                    state_clone,
+                    user_clone,
+                    &script_content,
+                ).await
+            });
+            let _ = tx.send(result);
+        } else {
+            let _ = tx.send(Err("Failed to create runtime".into()));
+        }
+    });
+
+    match rx.recv_timeout(std::time::Duration::from_secs(60)) {
+        Ok(Ok(result)) => Ok(Dynamic::from(result)),
+        Ok(Err(e)) => Err(format!("Script error: {}", e).into()),
+        Err(_) => Err("Script execution timed out".into()),
+    }
 }
 
 fn register_return_keyword(engine: &mut Engine) {
@@ -371,7 +446,10 @@ pub fn preprocess_subs(input: &str) -> String {
             };
 
             trace!("Registering SUB: {}", sub_name);
-            PROCEDURES.lock().expect("mutex not poisoned").insert(sub_name.clone(), proc);
+            PROCEDURES
+                .lock()
+                .expect("mutex not poisoned")
+                .insert(sub_name.clone(), proc);
 
             sub_name.clear();
             sub_params.clear();
@@ -445,7 +523,10 @@ pub fn preprocess_functions(input: &str) -> String {
             };
 
             trace!("Registering FUNCTION: {}", func_name);
-            PROCEDURES.lock().expect("mutex not poisoned").insert(func_name.clone(), proc);
+            PROCEDURES
+                .lock()
+                .expect("mutex not poisoned")
+                .insert(func_name.clone(), proc);
 
             func_name.clear();
             func_params.clear();
@@ -538,7 +619,12 @@ pub fn clear_procedures() {
 }
 
 pub fn get_procedure_names() -> Vec<String> {
-    PROCEDURES.lock().expect("mutex not poisoned").keys().cloned().collect()
+    PROCEDURES
+        .lock()
+        .expect("mutex not poisoned")
+        .keys()
+        .cloned()
+        .collect()
 }
 
 pub fn has_procedure(name: &str) -> bool {
