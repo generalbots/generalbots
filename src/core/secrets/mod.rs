@@ -943,61 +943,6 @@ impl SecretsManager {
     }
 
     // ============ TENANT-AWARE METHODS (org_id -> tenant -> secrets) ============
-        if !self.enabled {
-            return Self::get_from_env(path);
-        }
-
-        if let Some(cached) = self.get_cached_sync(path) {
-            return Ok(cached);
-        }
-
-        let client = self
-            .client
-            .as_ref()
-            .ok_or_else(|| anyhow!("No Vault client"))?;
-
-        let url = format!("{}/v1/secret/data/{}", self.addr, path);
-        let resp = ureq::get(&url)
-            .set("X-Vault-Token", &self.token)
-            .call()
-            .map_err(|e| anyhow!("Vault HTTP error: {}", e))?;
-
-        let body: serde_json::Value = resp.into_json()
-            .map_err(|e| anyhow!("Vault JSON parse error: {}", e))?;
-
-        if let Some(data) = body.get("data").and_then(|d| d.get("data")) {
-            if let Some(map) = data.as_object() {
-                let result: HashMap<String, String> = map.iter()
-                    .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
-                    .collect();
-
-                self.cache_secret_sync(path, result.clone());
-                return Ok(result);
-            }
-        }
-
-        Self::get_from_env(path)
-    }
-
-    fn get_cached_sync(&self, path: &str) -> Option<HashMap<String, String>> {
-        let cache = self.cache.read().ok()?;
-        let entry = cache.get(path)?;
-        if entry.1.elapsed() < self.cache_ttl {
-            Some(entry.0.clone())
-        } else {
-            None
-        }
-    }
-
-    fn cache_secret_sync(&self, path: &str, data: HashMap<String, String>) {
-        if self.cache_ttl > 0 {
-            if let Ok(mut cache) = self.cache.write() {
-                cache.insert(path.to_string(), (data, std::time::Instant::now()));
-            }
-        }
-    }
-
-    // ============ TENANT-AWARE METHODS (org_id -> tenant -> secrets) ============
 
     /// Get database config for an organization (resolves tenant from org, then gets infra)
     pub async fn get_database_config_for_org(&self, conn: &mut PgConnection, org_id: Uuid) -> Result<(String, u16, String, String, String)> {
