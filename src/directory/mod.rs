@@ -16,6 +16,8 @@ pub mod groups;
 pub mod router;
 pub mod users;
 
+// Zitadel directory service integration - v4.13.1
+
 pub use client::{ZitadelClient, ZitadelConfig};
 
 pub struct AuthService {
