@@ -872,8 +872,9 @@ impl SecretsManager {
         let (tx, rx) = std::sync::mpsc::channel();
 
         std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_current_thread()
+            let rt = tokio::runtime::Builder::new_multi_thread()
                 .enable_all()
+                .worker_threads(1)
                 .build();
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move {
