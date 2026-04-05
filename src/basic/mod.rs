@@ -589,6 +589,8 @@ impl ScriptService {
                   trimmed.starts_with("PARAM\t") ||
                   trimmed.starts_with("DESCRIPTION ") ||
                   trimmed.starts_with("DESCRIPTION\t") ||
+                  trimmed.starts_with("REM ") ||
+                  trimmed.starts_with("REM\t") ||
                   trimmed.starts_with('\'') || // BASIC comment lines
                   trimmed.starts_with('#') || // Hash comment lines
                   trimmed.is_empty())

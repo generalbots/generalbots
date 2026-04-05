@@ -448,6 +448,102 @@ impl BotOrchestrator {
         let session_id = Uuid::parse_str(&message.session_id)?;
         let message_content = message.content.clone();
 
+        // Handle direct tool execution via TOOL_EXEC message type (invisible to user)
+        if message.message_type == MessageType::TOOL_EXEC {
+            let tool_name = message_content.trim();
+            if !tool_name.is_empty() {
+                info!("[TOOL_EXEC] Direct tool execution: {}", tool_name);
+                
+                // Get bot name from bot_id
+                let bot_name = if let Ok(bot_uuid) = Uuid::parse_str(&message.bot_id) {
+                    let conn = self.state.conn.get().ok();
+                    conn.and_then(|mut db_conn| {
+                        use crate::core::shared::models::schema::bots::dsl::*;
+                        bots.filter(id.eq(bot_uuid))
+                            .select(name)
+                            .first::<String>(&mut db_conn)
+                            .ok()
+                    }).unwrap_or_else(|| "default".to_string())
+                } else {
+                    "default".to_string()
+                };
+                
+                let tool_result = ToolExecutor::execute_tool_by_name(
+                    &self.state,
+                    &bot_name,
+                    tool_name,
+                    &session_id,
+                    &user_id,
+                ).await;
+                
+                let response_content = if tool_result.success {
+                    tool_result.result
+                } else {
+                    format!("Erro ao executar '{}': {}", tool_name, tool_result.error.unwrap_or_default())
+                };
+                
+                let final_response = BotResponse {
+                    bot_id: message.bot_id.clone(),
+                    user_id: message.user_id.clone(),
+                    session_id: message.session_id.clone(),
+                    channel: message.channel.clone(),
+                    content: response_content,
+                    message_type: MessageType::BOT_RESPONSE,
+                    stream_token: None,
+                    is_complete: true,
+                    suggestions: vec![],
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
+                };
+                
+                let _ = response_tx.send(final_response).await;
+                return Ok(());
+            }
+        }
+
+        // Legacy: Handle direct tool invocation via __TOOL__: prefix
+        if message_content.starts_with("__TOOL__:") {
+            let tool_name = message_content.trim_start_matches("__TOOL__:").trim();
+            if !tool_name.is_empty() {
+                info!("Direct tool invocation via WS: {}", tool_name);
+                
+                let tool_result = ToolExecutor::execute_tool_by_name(
+                    &self.state,
+                    &message.bot_id,
+                    tool_name,
+                    &session_id,
+                    &user_id,
+                ).await;
+                
+                let response_content = if tool_result.success {
+                    tool_result.result
+                } else {
+                    format!("Erro ao executar tool '{}': {}", tool_name, tool_result.error.unwrap_or_default())
+                };
+                
+                let final_response = BotResponse {
+                    bot_id: message.bot_id.clone(),
+                    user_id: message.user_id.clone(),
+                    session_id: message.session_id.clone(),
+                    channel: message.channel.clone(),
+                    content: response_content,
+                    message_type: MessageType::BOT_RESPONSE,
+                    stream_token: None,
+                    is_complete: true,
+                    suggestions: vec![],
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
+                };
+                
+                if let Err(e) = response_tx.send(final_response).await {
+                    error!("Failed to send tool response: {}", e);
+                }
+                return Ok(());
+            }
+        }
+
         // If a HEAR is blocking the script thread for this session, deliver the input
         // directly and return — the script continues from where it paused.
         if crate::basic::keywords::hearing::deliver_hear_input(
@@ -675,6 +771,7 @@ impl BotOrchestrator {
                 return Ok(());
             }
 
+            // Inject KB context for normal messages
             if let Some(kb_manager) = self.state.kb_manager.as_ref() {
                 let context = crate::core::bot::kb_context::KbInjectionContext {
                     session_id,
