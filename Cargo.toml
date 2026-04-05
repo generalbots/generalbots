@@ -228,14 +228,10 @@ notify = { workspace = true, optional = true }
 # Embedded static files
 rust-embed = { workspace = true, optional = true }
 
-[dev-dependencies]
-mockito = { workspace = true }
-tempfile = { workspace = true }
-bigdecimal = { workspace = true }
-
 [dependencies]
 ureq = { version = "2", features = ["json"] }
 
 [dev-dependencies]
 mockito = { workspace = true }
 tempfile = { workspace = true }
+bigdecimal = { workspace = true }
