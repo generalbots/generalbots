@@ -869,46 +869,35 @@ impl SecretsManager {
         let bot_path = format!("gbo/bots/{}/email", bot_id);
         let default_path = "gbo/bots/default/email".to_string();
         let self_owned = self.clone();
-        let (tx, rx) = std::sync::mpsc::channel();
 
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .worker_threads(1)
-                .build();
-            let result = if let Ok(rt) = rt {
-                rt.block_on(async move {
-                    if let Ok(s) = self_owned.get_secret(&bot_path).await {
-                        if !s.is_empty() && s.contains_key("smtp_from") {
-                            return Some(s);
-                        }
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            let result = handle.block_on(async move {
+                if let Ok(s) = self_owned.get_secret(&bot_path).await {
+                    if !s.is_empty() && s.contains_key("smtp_from") {
+                        return Some(s);
                     }
-                    if let Ok(s) = self_owned.get_secret(&default_path).await {
-                        if !s.is_empty() && s.contains_key("smtp_from") {
-                            return Some(s);
-                        }
+                }
+                if let Ok(s) = self_owned.get_secret(&default_path).await {
+                    if !s.is_empty() && s.contains_key("smtp_from") {
+                        return Some(s);
                     }
-                    if let Ok(s) = self_owned.get_secret(SecretPaths::EMAIL).await {
-                        if !s.is_empty() && s.contains_key("smtp_from") {
-                            return Some(s);
-                        }
+                }
+                if let Ok(s) = self_owned.get_secret(SecretPaths::EMAIL).await {
+                    if !s.is_empty() && s.contains_key("smtp_from") {
+                        return Some(s);
                     }
-                    None
-                })
-            } else {
+                }
                 None
-            };
-            let _ = tx.send(result);
-        });
-
-        if let Ok(Some(secrets)) = rx.recv_timeout(std::time::Duration::from_secs(5)) {
-            return (
-                secrets.get("smtp_host").cloned().unwrap_or_default(),
-                secrets.get("smtp_port").and_then(|p| p.parse().ok()).unwrap_or(587),
-                secrets.get("smtp_user").cloned().unwrap_or_default(),
-                secrets.get("smtp_password").cloned().unwrap_or_default(),
-                secrets.get("smtp_from").cloned().unwrap_or_default(),
-            );
+            });
+            if let Some(secrets) = result {
+                return (
+                    secrets.get("smtp_host").cloned().unwrap_or_default(),
+                    secrets.get("smtp_port").and_then(|p| p.parse().ok()).unwrap_or(587),
+                    secrets.get("smtp_user").cloned().unwrap_or_default(),
+                    secrets.get("smtp_password").cloned().unwrap_or_default(),
+                    secrets.get("smtp_from").cloned().unwrap_or_default(),
+                );
+            }
         }
         (String::new(), 587, String::new(), String::new(), String::new())
     }
