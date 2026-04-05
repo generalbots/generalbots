@@ -197,8 +197,8 @@ pub async fn get_campaign_email_metrics(
         .map_err(|e| format!("Query error: {}", e))?;
 
     let total = results.len() as i64;
-    let opened = results.iter().filter(|(o, _): &(Option<bool>, Option<bool>)| o.unwrap_or(false)).count() as i64;
-    let clicked = results.iter().filter(|(_, c): &(Option<bool>, Option<bool>)| c.unwrap_or(false)).count() as i64;
+    let opened = results.iter().filter(|pair| pair.0.unwrap_or(false)).count() as i64;
+    let clicked = results.iter().filter(|pair| pair.1.unwrap_or(false)).count() as i64;
 
     let recipients: Vec<(String, Option<DateTime<Utc>>)> = marketing_recipients::table
         .filter(marketing_recipients::campaign_id.eq(campaign_id))
