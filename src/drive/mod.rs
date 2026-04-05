@@ -12,6 +12,9 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use serde::{Deserialize, Serialize};
 
 use std::sync::Arc;
+use tokio::task::JoinError;
+use diesel::prelude::*;
+use diesel::sql_types::*;
 
 pub mod drive_types;
 pub mod drive_handlers;
@@ -357,17 +360,28 @@ pub async fn list_files(
             let mut items = Vec::new();
             let prefix = params.path.as_deref().unwrap_or("");
 
-            // Fetch KBs from database to mark them in the list
             let kbs: Vec<(String, bool)> = {
                 let conn = state.conn.clone();
-                tokio::task::spawn_blocking(move || {
+                let kbs_result = tokio::task::spawn_blocking(move || -> Result<Vec<(String, bool)>, String> {
+                    #[derive(QueryableByName)]
+                    struct KbRow {
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        name: String,
+                        #[diesel(sql_type = diesel::sql_types::Bool)]
+                        is_public: bool,
+                    }
                     let mut db_conn = conn.get().map_err(|e| e.to_string())?;
-                    use crate::core::shared::models::schema::kb_collections;
-                    kb_collections::table
-                        .select((kb_collections::name, kb_collections::is_public))
-                        .load::<(String, bool)>(&mut db_conn)
-                        .map_err(|e| e.to_string())
-                }).await.unwrap_or(Ok(vec![])).unwrap_or_default()
+                    let rows: Vec<KbRow> = diesel::sql_query(
+                        "SELECT name, COALESCE(is_public, false) as is_public FROM kb_collections"
+                    )
+                    .load(&mut db_conn)
+                    .map_err(|e| e.to_string())?;
+                    Ok(rows.into_iter().map(|r| (r.name, r.is_public)).collect())
+                }).await;
+                match kbs_result {
+                    Ok(Ok(kbs)) => kbs,
+                    _ => vec![],
+                }
             };
 
             let paginator = s3_client
@@ -401,6 +415,8 @@ pub async fn list_files(
                                 size: None,
                                 modified: None,
                                 icon: get_file_icon(&dir),
+                                is_kb: false,
+                                is_public: true,
                             });
                         }
                     }
@@ -946,6 +962,8 @@ pub async fn search_files(
                                 size: obj.size(),
                                 modified: obj.last_modified().map(|t| t.to_string()),
                                 icon: get_file_icon(key),
+                                is_kb: false,
+                                is_public: true,
                             });
                         }
                     } else {
@@ -956,6 +974,8 @@ pub async fn search_files(
                             size: obj.size(),
                             modified: obj.last_modified().map(|t| t.to_string()),
                             icon: get_file_icon(key),
+                            is_kb: false,
+                            is_public: true,
                         });
                     }
                 }
@@ -1016,6 +1036,8 @@ pub async fn recent_files(
                     size: obj.size(),
                     modified: obj.last_modified().map(|t| t.to_string()),
                     icon: get_file_icon(key),
+                    is_kb: false,
+                    is_public: true,
                 });
             }
         }

@@ -57,9 +57,10 @@ pub fn register_use_kb_keyword(
         let conn = state_clone_for_syntax.conn.clone();
         let kb_name_clone = kb_name.clone();
 
-        let result =
-            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone))
-                .join();
+        let result = std::thread::spawn(move || {
+            add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone)
+        })
+        .join();
 
         match result {
             Ok(Ok(_)) => {
@@ -103,9 +104,10 @@ pub fn register_use_kb_keyword(
         let conn = state_clone_lower.conn.clone();
         let kb_name_clone = kb_name.to_string();
 
-        let result =
-            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone))
-                .join();
+        let result = std::thread::spawn(move || {
+            add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone)
+        })
+        .join();
 
         match result {
             Ok(Ok(_)) => {
@@ -135,9 +137,10 @@ pub fn register_use_kb_keyword(
         let conn = state_clone2.conn.clone();
         let kb_name_clone = kb_name.to_string();
 
-        let result =
-            std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone))
-                .join();
+        let result = std::thread::spawn(move || {
+            add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone)
+        })
+        .join();
 
         match result {
             Ok(Ok(_)) => {
@@ -185,7 +188,11 @@ fn add_kb_to_session(
     .map_err(|e| format!("Failed to check KB existence: {}", e))?;
 
     let (kb_folder_path, qdrant_collection) = if let Some(kb_result) = kb_exists {
-        // CHECK ACCESS
+        #[derive(QueryableByName)]
+        struct AccessCheck {
+            #[diesel(sql_type = diesel::sql_types::Bool)]
+            exists: bool,
+        }
         let has_access: bool = diesel::sql_query(
             "SELECT EXISTS (
                 SELECT 1 FROM kb_collections kc
@@ -198,12 +205,13 @@ fn add_kb_to_session(
                         WHERE kga.kb_id = kc.id AND rug.user_id = $2
                     )
                 )
-            )"
+            ) AS exists",
         )
         .bind::<diesel::sql_types::Uuid, _>(kb_result.id)
         .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .get_result::<bool>(&mut conn)
-        .map_err(|e| format!("Failed to check KB access: {}", e))?;
+        .get_result::<AccessCheck>(&mut conn)
+        .map_err(|e| format!("Failed to check KB access: {}", e))?
+        .exists;
 
         if !has_access {
             return Err(format!("Access denied for KB '{}'", kb_name));
