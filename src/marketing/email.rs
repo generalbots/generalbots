@@ -10,6 +10,11 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::core::shared::state::AppState;
+use crate::core::shared::schema::{
+    email_tracking, marketing_campaigns, marketing_recipients,
+};
+use crate::email::EmailService;
+use crate::marketing::campaigns::CrmCampaign;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailCampaignPayload {
@@ -53,19 +58,6 @@ pub struct CampaignMetrics {
     pub open_rate: f64,
     pub click_rate: f64,
     pub bounce_rate: f64,
-}
-
-fn get_smtp_config(state: &AppState, bot_id: Uuid) -> Result<(String, u16, String, String, String), String> {
-    let secrets = crate::core::secrets::SecretsManager::from_env()
-        .map_err(|e| format!("Vault not available: {}", e))?;
-    let (smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from) =
-        secrets.get_email_config_for_bot_sync(&bot_id);
-
-    if smtp_from.is_empty() {
-        return Err("SMTP not configured: set email credentials in Vault".into());
-    }
-
-    Ok((smtp_host, smtp_port, smtp_from, smtp_user, smtp_pass))
 }
 
 fn inject_tracking_pixel(html: &str, token: Uuid, base_url: &str) -> String {
