@@ -403,14 +403,14 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("smtp_host").cloned().unwrap_or_else(|| "smtp.gmail.com".into()),
+                secrets.get("smtp_host").cloned().unwrap_or_default(),
                 secrets.get("smtp_port").and_then(|p| p.parse().ok()).unwrap_or(587),
                 secrets.get("smtp_user").cloned().unwrap_or_default(),
                 secrets.get("smtp_password").cloned().unwrap_or_default(),
                 secrets.get("smtp_from").cloned().unwrap_or_default(),
             );
         }
-        ("smtp.gmail.com".to_string(), 587, String::new(), String::new(), String::new())
+        (String::new(), 587, String::new(), String::new(), String::new())
     }
 
     pub fn get_llm_config(&self) -> (String, String, Option<String>, Option<String>, String) {

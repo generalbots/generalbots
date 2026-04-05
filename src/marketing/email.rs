@@ -5,23 +5,9 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use lettre::{message::Mailbox, Address, Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
-
-use crate::core::config::ConfigManager;
-use crate::core::shared::schema::{
-    email_tracking, marketing_campaigns, marketing_recipients,
-};
-use crate::core::shared::state::AppState;
-use crate::marketing::campaigns::CrmCampaign;
-
-const SMTP_SERVER_KEY: &str = "email-server";
-const SMTP_PORT_KEY: &str = "email-port";
-const FROM_EMAIL_KEY: &str = "email-from";
-const DEFAULT_SMTP_SERVER: &str = "smtp.gmail.com";
-const DEFAULT_SMTP_PORT: u16 = 587;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailCampaignPayload {
@@ -68,31 +54,16 @@ pub struct CampaignMetrics {
 }
 
 fn get_smtp_config(state: &AppState, bot_id: Uuid) -> Result<(String, u16, String, String, String), String> {
-    let config = ConfigManager::new(state.conn.clone());
+    let secrets = crate::core::secrets::SecretsManager::from_env()
+        .map_err(|e| format!("Vault not available: {}", e))?;
+    let (smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from) =
+        secrets.get_email_config_for_bot_sync(&bot_id);
 
-    let smtp_server = config
-        .get_config(&bot_id, SMTP_SERVER_KEY, Some(DEFAULT_SMTP_SERVER))
-        .unwrap_or_else(|_| DEFAULT_SMTP_SERVER.to_string());
+    if smtp_from.is_empty() {
+        return Err("SMTP not configured: set email credentials in Vault".into());
+    }
 
-    let smtp_port = config
-        .get_config(&bot_id, SMTP_PORT_KEY, Some("587"))
-        .unwrap_or_else(|_| "587".to_string())
-        .parse::<u16>()
-        .unwrap_or(DEFAULT_SMTP_PORT);
-
-    let from_email = config
-        .get_config(&bot_id, FROM_EMAIL_KEY, Some("noreply@generalbots.com"))
-        .unwrap_or_else(|_| "noreply@generalbots.com".to_string());
-
-    let smtp_username = config
-        .get_config(&bot_id, "email-username", None)
-        .unwrap_or_default();
-
-    let smtp_password = config
-        .get_config(&bot_id, "email-password", None)
-        .unwrap_or_default();
-
-    Ok((smtp_server, smtp_port, from_email, smtp_username, smtp_password))
+    Ok((smtp_host, smtp_port, smtp_from, smtp_user, smtp_pass))
 }
 
 fn inject_tracking_pixel(html: &str, token: Uuid, base_url: &str) -> String {
@@ -126,9 +97,6 @@ pub async fn send_campaign_email(
     bot_id: Uuid,
     payload: EmailCampaignPayload,
 ) -> Result<EmailSendResult, String> {
-    let (smtp_server, smtp_port, from_email, username, password) =
-        get_smtp_config(state, bot_id)?;
-
     let open_token = Uuid::new_v4();
     let tracking_id = Uuid::new_v4();
 
@@ -171,51 +139,11 @@ pub async fn send_campaign_email(
         .execute(&mut conn)
         .map_err(|e| format!("Failed to create tracking record: {}", e))?;
 
-    let from = from_email
-        .parse::<Address>()
-        .map_err(|e| format!("Invalid from address: {}", e))?;
-    let to = payload
-        .to
-        .parse::<Address>()
-        .map_err(|e| format!("Invalid to address: {}", e))?;
+    let body = body_html.unwrap_or_else(|| payload.body_text.unwrap_or_default());
 
-    let builder = Message::builder()
-        .from(Mailbox::new(Some("Campaign".to_string()), from))
-        .to(Mailbox::new(None, to))
-        .subject(&payload.subject);
-
-    let mail = if let Some(html) = &body_html {
-        builder
-            .header(lettre::message::header::ContentType::TEXT_HTML)
-            .body(html.clone())
-            .map_err(|e| format!("Failed to build HTML email: {}", e))?
-    } else if let Some(text) = &payload.body_text {
-        builder
-            .header(lettre::message::header::ContentType::TEXT_PLAIN)
-            .body(text.clone())
-            .map_err(|e| format!("Failed to build text email: {}", e))?
-    } else {
-        return Err("No email body provided".to_string());
-    };
-
-    let mut mailer = SmtpTransport::relay(&smtp_server)
-        .map_err(|e| format!("SMTP relay error: {}", e))?
-        .port(smtp_port);
-
-    if !username.is_empty() && !password.is_empty() {
-        mailer = mailer
-            .credentials(lettre::transport::smtp::authentication::Credentials::new(
-                username,
-                password,
-            ))
-            .authentication(vec![lettre::transport::smtp::authentication::Mechanism::Login]);
-    }
-
-    let mailer = mailer.build();
-
-    match mailer.send(&mail) {
-        Ok(_) => {
-            let message_id = format!("<{}@campaign>", tracking_id);
+    let email_service = EmailService::new(state.clone());
+    match email_service.send_email(&payload.to, &payload.subject, &body, bot_id, None) {
+        Ok(message_id) => {
             diesel::update(email_tracking::table.filter(email_tracking::id.eq(tracking_id)))
                 .set(email_tracking::message_id.eq(Some(message_id.clone())))
                 .execute(&mut conn)
@@ -244,7 +172,21 @@ pub async fn send_campaign_email(
                     .set((
                         marketing_recipients::status.eq("failed"),
                         marketing_recipients::failed_at.eq(Some(Utc::now())),
-                        marketing_recipients::error_message.eq(Some(e.to_string())),
+                        marketing_recipients::error_message.eq(Some(e.clone())),
+                    ))
+                    .execute(&mut conn)
+                    .ok();
+            }
+
+            Ok(EmailSendResult {
+                success: false,
+                message_id: None,
+                tracking_id: Some(tracking_id),
+                error: Some(e),
+            })
+        }
+    }
+}
                     ))
                     .execute(&mut conn)
                     .ok();
