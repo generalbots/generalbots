@@ -321,8 +321,8 @@ impl EmailService {
         use lettre::transport::smtp::authentication::Credentials;
         use lettre::{SmtpTransport, Transport};
 
-        let secrets = crate::core::secrets::SecretsManager::from_env()
-            .map_err(|e| format!("Vault not available: {}", e))?;
+        let secrets = crate::core::shared::utils::get_secrets_manager_sync()
+            .ok_or_else(|| "Vault not available".to_string())?;
         let (smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from): (
             String,
             u16,
@@ -399,8 +399,8 @@ impl EmailService {
         use lettre::transport::smtp::authentication::Credentials;
         use lettre::{SmtpTransport, Transport};
 
-        let secrets = crate::core::secrets::SecretsManager::from_env()
-            .map_err(|e| format!("Vault not available: {}", e))?;
+        let secrets = crate::core::shared::utils::get_secrets_manager_sync()
+            .ok_or_else(|| "Vault not available".to_string())?;
         let (smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from): (
             String,
             u16,
