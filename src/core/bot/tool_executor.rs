@@ -364,6 +364,30 @@ impl ToolExecutor {
         // Fallback to source path for error messages (even if it doesn't exist)
         source_path
     }
+
+    /// Execute a tool directly by name (without going through LLM)
+    pub async fn execute_tool_by_name(
+        state: &Arc<AppState>,
+        bot_name: &str,
+        tool_name: &str,
+        session_id: &Uuid,
+        user_id: &Uuid,
+    ) -> ToolExecutionResult {
+        let tool_call_id = format!("direct_{}", Uuid::new_v4());
+        
+        info!(
+            "[TOOL_EXEC] Direct tool invocation: '{}' for bot '{}', session '{}'",
+            tool_name, bot_name, session_id
+        );
+
+        let tool_call = ParsedToolCall {
+            id: tool_call_id.clone(),
+            tool_name: tool_name.to_string(),
+            arguments: Value::Object(serde_json::Map::new()),
+        };
+
+        Self::execute_tool_call(state, bot_name, &tool_call, session_id, user_id).await
+    }
 }
 
 #[cfg(test)]

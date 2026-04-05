@@ -323,18 +323,19 @@ fn add_tool_suggestion(
         let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
         info!("Adding suggestion to Redis key: {}", redis_key);
 
-        // Create action object and serialize it to JSON string
+        let prompt_for_params = params.is_some() && !params.as_ref().unwrap().is_empty();
         let action_obj = json!({
             "type": "invoke_tool",
             "tool": tool_name,
             "params": params,
-            "prompt_for_params": params.is_none()
+            "prompt_for_params": prompt_for_params
         });
-        let action_str = action_obj.to_string();
 
         let suggestion = json!({
+            "type": "invoke_tool",
             "text": button_text,
-            "action": action_str
+            "tool": tool_name,
+            "action": action_obj
         });
 
         let mut conn = match get_redis_connection(cache_client) {
