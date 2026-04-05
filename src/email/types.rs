@@ -358,10 +358,16 @@ impl EmailService {
                 .map_err(|e| format!("SMTP relay error: {}", e))?
                 .port(smtp_port)
                 .build()
-        } else if !smtp_user.is_empty() && !smtp_pass.is_empty() {
+        } else if smtp_port == 587 && !smtp_user.is_empty() && !smtp_pass.is_empty() {
             let creds = Credentials::new(smtp_user, smtp_pass);
             SmtpTransport::starttls_relay(&smtp_host)
                 .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .credentials(creds)
+                .build()
+        } else if !smtp_user.is_empty() && !smtp_pass.is_empty() {
+            let creds = Credentials::new(smtp_user, smtp_pass);
+            SmtpTransport::builder_dangerous(&smtp_host)
                 .port(smtp_port)
                 .credentials(creds)
                 .build()
@@ -448,10 +454,16 @@ impl EmailService {
                 .map_err(|e| format!("SMTP relay error: {}", e))?
                 .port(smtp_port)
                 .build()
-        } else if !smtp_user.is_empty() && !smtp_pass.is_empty() {
+        } else if smtp_port == 587 && !smtp_user.is_empty() && !smtp_pass.is_empty() {
             let creds = Credentials::new(smtp_user, smtp_pass);
             SmtpTransport::starttls_relay(&smtp_host)
                 .map_err(|e| format!("SMTP relay error: {}", e))?
+                .port(smtp_port)
+                .credentials(creds)
+                .build()
+        } else if !smtp_user.is_empty() && !smtp_pass.is_empty() {
+            let creds = Credentials::new(smtp_user, smtp_pass);
+            SmtpTransport::builder_dangerous(&smtp_host)
                 .port(smtp_port)
                 .credentials(creds)
                 .build()
