@@ -900,7 +900,7 @@ impl SecretsManager {
             let _ = tx.send(result);
         });
 
-        if let Ok(Some(secrets)) = rx.recv() {
+        if let Ok(Some(secrets)) = rx.recv_timeout(std::time::Duration::from_secs(5)) {
             return (
                 secrets.get("smtp_host").cloned().unwrap_or_default(),
                 secrets.get("smtp_port").and_then(|p| p.parse().ok()).unwrap_or(587),
