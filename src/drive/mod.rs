@@ -12,9 +12,6 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use serde::{Deserialize, Serialize};
 
 use std::sync::Arc;
-use tokio::task::JoinError;
-use diesel::prelude::*;
-use diesel::sql_types::*;
 
 pub mod drive_types;
 pub mod drive_handlers;
