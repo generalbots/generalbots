@@ -232,6 +232,8 @@ rust-embed = { workspace = true, optional = true }
 mockito = { workspace = true }
 tempfile = { workspace = true }
 bigdecimal = { workspace = true }
+
+[dependencies]
 ureq = { version = "2", features = ["json"] }
 
 [dev-dependencies]
