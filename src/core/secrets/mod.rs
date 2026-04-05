@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Arc as StdArc;
 use tokio::sync::RwLock;
+use std::sync::RwLock as StdRwLock;
 use uuid::Uuid;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 use vaultrs::kv2;
@@ -62,7 +63,7 @@ struct CachedSecret {
 #[derive(Clone)]
 pub struct SecretsManager {
     client: Option<StdArc<VaultClient>>,
-    cache: Arc<RwLock<HashMap<String, CachedSecret>>>,
+    cache: Arc<std::sync::RwLock<HashMap<String, CachedSecret>>>,
     cache_ttl: u64,
     enabled: bool,
 }
@@ -106,7 +107,7 @@ impl SecretsManager {
             warn!("Vault not configured. Using environment variables directly.");
             return Ok(Self {
                 client: None,
-                cache: Arc::new(RwLock::new(HashMap::new())),
+                cache: Arc::new(StdRwLock::new(HashMap::new())),
                 cache_ttl,
                 enabled: false,
             });
