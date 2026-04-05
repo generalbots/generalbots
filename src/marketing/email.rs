@@ -139,7 +139,7 @@ pub async fn send_campaign_email(
     let email_service = EmailService::new(state.clone());
     match email_service.send_email(&payload.to, &payload.subject, &body, bot_id, None) {
         Ok(msg_id) => {
-            let msg_id_str: String = msg_id;
+            let msg_id_str: String = msg_id.clone();
             diesel::update(email_tracking::table.filter(email_tracking::id.eq(tracking_id)))
                 .set(email_tracking::message_id.eq(Some(msg_id_str)))
                 .execute(&mut conn)
