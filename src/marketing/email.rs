@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::core::shared::state::AppState;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailCampaignPayload {
     pub to: String,
@@ -254,7 +256,7 @@ pub async fn send_bulk_campaign_emails(
         .map(String::from);
 
     for (contact_id, email, name) in contacts {
-        let personalized_body = body_html.as_ref().map(|html| {
+        let personalized_body = body_html.as_ref().map(|html: &String| {
             html.replace("{{name}}", &name)
                 .replace("{{email}}", &email)
         });
