@@ -9,23 +9,21 @@
 //!   DELETE /api/rbac/kbs/{kb_id}/groups/{group_id}
 //!   GET    /api/rbac/users/{user_id}/accessible-kbs
 
-use crate::security::error_sanitizer::log_and_sanitize_str;
-use crate::core::shared::models::{RbacGroup};
+use crate::core::shared::models::RbacGroup;
 use crate::core::shared::state::AppState;
+use crate::security::error_sanitizer::log_and_sanitize_str;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
-use diesel::prelude::*;
-use diesel::sql_types::*;
-use tokio::task::JoinError;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tokio::task::JoinError;
 use uuid::Uuid;
 
 /// Auxiliary row type for fetching group_id values via raw SQL.
