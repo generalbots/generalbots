@@ -93,8 +93,8 @@ jobs:
           echo "=== Deploy started ==="
           echo "Step 1: Checking binary..."
           ls -lh /opt/gbo/data/botserver/target/debug/botserver
-          echo "Step 2: Backing up old binary..."
-          ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak"
+          echo "Step 2: Backing up old binary (ignore if not exists)..."
+          ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak 2>/dev/null || true"
           echo "Step 3: Stopping botserver service..."
           ssh $SSH_ARGS system "sudo systemctl stop botserver || true"
           echo "Step 4: Transferring new binary..."
