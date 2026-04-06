@@ -223,12 +223,17 @@ log::info!("Testing SMTP connection to {}:{}", config.host, config.port);
 
 let mailer_result = if let (Some(user), Some(pass)) = (config.username, config.password) {
     let creds = Credentials::new(user, pass);
-    SmtpTransport::relay(&config.host)
-        .map(|b| b.port(config.port as u16).credentials(creds).build())
+    if config.port == 465 {
+        SmtpTransport::relay(&config.host)
+            .map(|b| b.port(config.port as u16).credentials(creds).build())
+    } else {
+        SmtpTransport::starttls_relay(&config.host)
+            .map(|b| b.port(config.port as u16).credentials(creds).build())
+    }
 } else {
-    Ok(SmtpTransport::builder_dangerous(&config.host)
+    SmtpTransport::builder_dangerous(&config.host)
         .port(config.port as u16)
-        .build())
+        .build()
 };
 
 match mailer_result {
