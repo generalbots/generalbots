@@ -10,7 +10,12 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "people", "automation", "drive", "tasks", "cache", "directory", "llm", "crawler", "browser", "terminal", "editor", "mail", "whatsapp", "designer", "marketing", "goals", "analytics", "vectordb", "research"]
+default = ["chat", "automation", "cache", "llm"]
+
+# ===== SECURITY MODES =====
+# no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
+# Build with: cargo build --no-default-features --features "no-security,chat,llm"
+no-security = []
 
 browser = ["automation", "drive", "cache"]
 terminal = ["automation", "drive", "cache"]
@@ -21,7 +26,8 @@ scripting = ["dep:rhai"]
 automation = ["scripting", "dep:cron"]
 drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract", "dep:notify"]
 cache = ["dep:redis"]
-directory = []
+directory = ["rbac"]
+rbac = []
 crawler = ["drive", "cache"]
 
 # ===== APPS (Each includes what it needs from core) =====
@@ -90,6 +96,7 @@ console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
 
 # ===== BUNDLES (Optional - for convenience) =====
 minimal = ["chat"]
+minimal-chat = ["chat", "automation", "drive", "cache"]  # No security at all
 lightweight = ["chat", "tasks", "people"]
 full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
 embed-ui = ["dep:rust-embed"]

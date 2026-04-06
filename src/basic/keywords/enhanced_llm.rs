@@ -7,94 +7,58 @@ use rhai::Engine;
 #[cfg(feature = "llm")]
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
+use std::time::Duration;
 
 #[cfg(feature = "llm")]
-pub fn register_enhanced_llm_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone1 = Arc::clone(&state);
-    let state_clone2 = Arc::clone(&state);
-    let user_clone = user;
+pub fn register_enhanced_llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+    let state_clone = Arc::clone(&state);
 
     if let Err(e) = engine.register_custom_syntax(
-        ["LLM", "$string$", "WITH", "OPTIMIZE", "FOR", "$string$"],
+        ["LLM", "$string$"],
         false,
         move |context, inputs| {
             let prompt = context.eval_expression_tree(&inputs[0])?.to_string();
-            let optimization = context.eval_expression_tree(&inputs[1])?.to_string();
-
-            let state_for_spawn = Arc::clone(&state_clone1);
-            let _user_clone_spawn = user_clone.clone();
-
-            tokio::spawn(async move {
-                let router = SmartLLMRouter::new(state_for_spawn);
-                let goal = OptimizationGoal::from_str_name(&optimization);
-
-                match crate::llm::smart_router::enhanced_llm_call(
-                    &router, &prompt, goal, None, None,
-                )
-                .await
-                {
-                    Ok(_response) => {
-                        log::info!("LLM response generated with {} optimization", optimization);
-                    }
-                    Err(e) => {
-                        log::error!("Enhanced LLM call failed: {}", e);
-                    }
+            let state_for_thread = Arc::clone(&state_clone);
+            let (tx, rx) = std::sync::mpsc::channel();
+            
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Builder::new_multi_thread()
+                    .worker_threads(2)
+                    .enable_all()
+                    .build();
+                    
+                if let Ok(rt) = rt {
+                    let result = rt.block_on(async move {
+                        let router = SmartLLMRouter::new(Arc::clone(&state_for_thread));
+                        crate::llm::smart_router::enhanced_llm_call(
+                            &state_for_thread, &router, &prompt, OptimizationGoal::Balanced, None, None,
+                        )
+                        .await
+                    });
+                    let _ = tx.send(result);
                 }
             });
-
-            Ok(Dynamic::from("LLM response"))
-        },
-    ) {
-        log::warn!("Failed to register enhanced LLM syntax: {e}");
-    }
-
-    if let Err(e) = engine.register_custom_syntax(
-        [
-            "LLM",
-            "$string$",
-            "WITH",
-            "MAX_COST",
-            "$float$",
-            "MAX_LATENCY",
-            "$int$",
-        ],
-        false,
-        move |context, inputs| {
-            let prompt = context.eval_expression_tree(&inputs[0])?.to_string();
-            let max_cost = context.eval_expression_tree(&inputs[1])?.as_float()?;
-            let max_latency = context.eval_expression_tree(&inputs[2])?.as_int()? as u64;
-
-            let state_for_spawn = Arc::clone(&state_clone2);
-
-            tokio::spawn(async move {
-                let router = SmartLLMRouter::new(state_for_spawn);
-
-                match crate::llm::smart_router::enhanced_llm_call(
-                    &router,
-                    &prompt,
-                    OptimizationGoal::Balanced,
-                    Some(max_cost),
-                    Some(max_latency),
-                )
-                .await
-                {
-                    Ok(_response) => {
-                        log::info!(
-                            "LLM response with constraints: cost<={}, latency<={}",
-                            max_cost,
-                            max_latency
-                        );
-                    }
-                    Err(e) => {
-                        log::error!("Constrained LLM call failed: {}", e);
-                    }
+            
+            match rx.recv_timeout(Duration::from_secs(60)) {
+                Ok(Ok(response)) => Ok(Dynamic::from(response)),
+                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    e.to_string().into(),
+                    rhai::Position::NONE,
+                ))),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                    Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        "LLM generation timed out".into(),
+                        rhai::Position::NONE,
+                    )))
                 }
-            });
-
-            Ok(Dynamic::from("LLM response"))
+                Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    format!("LLM thread failed: {e}").into(),
+                    rhai::Position::NONE,
+                ))),
+            }
         },
     ) {
-        log::warn!("Failed to register constrained LLM syntax: {e}");
+        log::warn!("Failed to register simple LLM syntax: {e}");
     }
 }
 

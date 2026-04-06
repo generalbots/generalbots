@@ -325,6 +325,10 @@ impl ScriptService {
         let _ = self; // silence unused self warning - kept for API consistency
         let script = preprocess_switch(script);
 
+        // Preprocess LLM keyword to add WITH OPTIMIZE FOR "speed" syntax
+        // This is needed because Rhai's custom syntax requires the full syntax
+        let script = Self::preprocess_llm_keyword(&script);
+
         // Convert ALL multi-word keywords to underscore versions (e.g., "USE WEBSITE" → "USE_WEBSITE")
         // This avoids Rhai custom syntax conflicts and makes the system more secure
         let script = Self::convert_multiword_keywords(&script);
@@ -2050,6 +2054,59 @@ impl ScriptService {
         } else {
             word.to_lowercase()
         }
+    }
+
+    fn preprocess_llm_keyword(script: &str) -> String {
+        // Transform LLM "prompt" to LLM "prompt" WITH OPTIMIZE FOR "speed"
+        // Handle cases like:
+        //   LLM "text"
+        //   LLM "text" + var
+        //   result = LLM "text"
+        //   result = LLM "text" + var
+
+        let mut result = String::new();
+        let chars: Vec<char> = script.chars().collect();
+        let mut i = 0;
+
+        while i < chars.len() {
+            // Check for LLM keyword (case insensitive)
+            let remaining: String = chars[i..].iter().collect();
+            let remaining_upper = remaining.to_uppercase();
+
+            if remaining_upper.starts_with("LLM ") {
+                // Found LLM - copy "LLM " and find the quoted string
+                result.push_str("LLM ");
+                i += 4;
+
+                // Now find the quoted string
+                if i < chars.len() && chars[i] == '"' {
+                    result.push('"');
+                    i += 1;
+
+                    // Copy quoted string
+                    while i < chars.len() && chars[i] != '"' {
+                        result.push(chars[i]);
+                        i += 1;
+                    }
+                    if i < chars.len() && chars[i] == '"' {
+                        result.push('"');
+                        i += 1;
+                    }
+
+                    // Add WITH OPTIMIZE FOR "speed" if not present
+                    let before_with = result.trim_end_matches('"');
+                    if !before_with.to_uppercase().contains("WITH OPTIMIZE") {
+                        result = format!("{} WITH OPTIMIZE FOR \"speed\"", before_with);
+                    }
+                    // Continue copying rest of line in outer loop (don't break)
+                }
+            } else {
+                result.push(chars[i]);
+                i += 1;
+            }
+        }
+
+        result
     }
 }
 

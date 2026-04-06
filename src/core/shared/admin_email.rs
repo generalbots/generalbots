@@ -1,5 +1,7 @@
 // Email invitation functions
+#[cfg(feature = "mail")]
 use log::warn;
+#[cfg(feature = "mail")]
 use uuid::Uuid;
 #[cfg(feature = "mail")]
 use lettre::{

@@ -2,10 +2,11 @@ use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use diesel::sql_types::*;
-use log::error;
+use log::{error, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::Value;
 use std::sync::Arc;
+use uuid::Uuid;
 
 #[derive(Debug, QueryableByName)]
 struct ColumnRow {
@@ -13,8 +14,9 @@ struct ColumnRow {
     column_name: String,
 }
 
-pub fn detect_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+pub fn detect_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
+    let bot_id = user.bot_id;
 
     engine
         .register_custom_syntax(["DETECT", "$expr$"], false, move |context, inputs| {
@@ -27,6 +29,7 @@ pub fn detect_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Eng
             let table_name = context.eval_expression_tree(first_input)?.to_string();
 
             let state_for_thread = Arc::clone(&state_clone);
+            let bot_id_for_thread = bot_id;
             let (tx, rx) = std::sync::mpsc::channel();
 
             std::thread::spawn(move || {
@@ -37,7 +40,7 @@ pub fn detect_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Eng
 
                 let send_err = if let Ok(rt) = rt {
                     let result = rt.block_on(async move {
-                        detect_anomalies_in_table(state_for_thread, &table_name).await
+                        detect_anomalies_in_table(state_for_thread, &table_name, bot_id_for_thread).await
                     });
                     tx.send(result).err()
                 } else {
@@ -73,9 +76,12 @@ pub fn detect_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Eng
 async fn detect_anomalies_in_table(
     state: Arc<AppState>,
     table_name: &str,
+    bot_id: Uuid,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let columns = get_table_columns(&state, table_name)?;
+    let columns = get_table_columns(&state, table_name, bot_id)?;
     let value_field = find_numeric_field(&columns);
+
+    trace!("DETECT: columns = {:?}, value_field = {}", columns, value_field);
 
     #[derive(QueryableByName)]
     struct JsonRow {
@@ -89,8 +95,9 @@ async fn detect_anomalies_in_table(
         column_list, table_name
     );
 
+    let pool = state.bot_database_manager.get_bot_pool(bot_id)?;
     let rows: Vec<JsonRow> = diesel::sql_query(&query)
-        .load(&mut state.conn.get()?)?;
+        .load(&mut pool.get()?)?;
 
     let records: Vec<Value> = rows
         .into_iter()
@@ -108,7 +115,7 @@ async fn detect_anomalies_in_table(
 
     let client = reqwest::Client::new();
     let response = client
-        .post(format!("{}/api/anomaly/detect", botmodels_host))
+        .post(format!("{}/api/detect", botmodels_host))
         .header("X-API-Key", &botmodels_key)
         .json(&serde_json::json!({
             "data": records,
@@ -129,14 +136,16 @@ async fn detect_anomalies_in_table(
 fn get_table_columns(
     state: &Arc<AppState>,
     table_name: &str,
+    bot_id: Uuid,
 ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
     let query = format!(
         "SELECT column_name FROM information_schema.columns WHERE table_name = '{}' ORDER BY ordinal_position",
         table_name
     );
 
+    let pool = state.bot_database_manager.get_bot_pool(bot_id)?;
     let rows: Vec<ColumnRow> = diesel::sql_query(&query)
-        .load(&mut state.conn.get()?)?;
+        .load(&mut pool.get()?)?;
 
     Ok(rows.into_iter().map(|r| r.column_name).collect())
 }
@@ -144,7 +153,8 @@ fn get_table_columns(
 fn find_numeric_field(columns: &[String]) -> String {
     let numeric_keywords = ["salario", "salary", "valor", "value", "amount", "preco", "price", 
                            "temperatura", "temp", "pressao", "pressure", "quantidade", "quantity",
-                           "decimal", "numerico", "numeric", "base", "liquido", "bruto"];
+                           "decimal", "numerico", "numeric", "base", "liquido", "bruto",
+                           "desconto", "vantagem", "gratificacao"];
     
     for col in columns {
         let col_lower = col.to_lowercase();
@@ -155,5 +165,17 @@ fn find_numeric_field(columns: &[String]) -> String {
         }
     }
     
-    columns.first().cloned().unwrap_or_else(|| "value".to_string())
+    let skip_keywords = ["id", "nome", "cpf", "matricula", "orgao", "cargo", "nivel", 
+                        "mes", "ano", "tipo", "categoria", "data", "status", "email", 
+                        "telefone", "protocolo", "servidor"];
+    
+    for col in columns {
+        let col_lower = col.to_lowercase();
+        let is_string = skip_keywords.iter().any(|kw| col_lower.contains(kw));
+        if !is_string {
+            return col.clone();
+        }
+    }
+    
+    columns.last().cloned().unwrap_or_else(|| "value".to_string())
 }

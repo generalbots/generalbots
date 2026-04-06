@@ -6,27 +6,6 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "nomeCompleto": {
-          "type": "string",
-          "description": "Nome completo do aluno",
-          "example": "João Silva Santos"
-        },
-        "telefone": {
-          "type": "string",
-          "description": "Telefone com DDD",
-          "example": "(21) 99999-9999"
-        },
-        "dataNascimento": {
-          "type": "string",
-          "description": "Data de nascimento (formato ISO: YYYY-MM-DD)",
-          "example": "2015-03-15",
-          "format": "date"
-        },
-        "serie": {
-          "type": "string",
-          "description": "Série desejada",
-          "example": "8º ano"
-        },
         "turno": {
           "type": "string",
           "description": "Turno: MANHA ou TARDE",
@@ -36,10 +15,31 @@
             "TARDE"
           ]
         },
+        "nomeCompleto": {
+          "type": "string",
+          "description": "Nome completo do aluno",
+          "example": "João Silva Santos"
+        },
+        "dataNascimento": {
+          "type": "string",
+          "description": "Data de nascimento (formato ISO: YYYY-MM-DD)",
+          "example": "2015-03-15",
+          "format": "date"
+        },
         "email": {
           "type": "string",
           "description": "Email para contato",
           "example": "maria.santos@example.com"
+        },
+        "serie": {
+          "type": "string",
+          "description": "Série desejada",
+          "example": "8º ano"
+        },
+        "telefone": {
+          "type": "string",
+          "description": "Telefone com DDD",
+          "example": "(21) 99999-9999"
         },
         "endereco": {
           "type": "string",

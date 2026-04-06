@@ -4,15 +4,15 @@
   "input_schema": {
     "type": "object",
     "properties": {
-      "telefone": {
+      "horario": {
         "type": "string",
-        "description": "Telefone com DDD",
-        "example": "(21) 99999-9999"
+        "description": "Horário preferencial (formato HH:MM, entre 8h e 17h)",
+        "example": "10:00"
       },
-      "email": {
+      "nomeResponsavel": {
         "type": "string",
-        "description": "Email para contato",
-        "example": "joao@example.com"
+        "description": "Nome do responsável",
+        "example": "João Silva"
       },
       "dataVisita": {
         "type": "string",
@@ -20,20 +20,20 @@
         "example": "2026-03-15",
         "format": "date"
       },
-      "horario": {
+      "email": {
         "type": "string",
-        "description": "Horário preferencial (formato HH:MM, entre 8h e 17h)",
-        "example": "10:00"
+        "description": "Email para contato",
+        "example": "joao@example.com"
       },
       "numeroVisitantes": {
         "type": "integer",
         "description": "Número de visitantes",
         "example": "3"
       },
-      "nomeResponsavel": {
+      "telefone": {
         "type": "string",
-        "description": "Nome do responsável",
-        "example": "João Silva"
+        "description": "Telefone com DDD",
+        "example": "(21) 99999-9999"
       }
     },
     "required": [

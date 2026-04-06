@@ -1,4 +1,6 @@
 use crate::core::shared::state::AppState;
+use crate::llm::OpenAIClient;
+use crate::core::config::ConfigManager;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -144,6 +146,7 @@ impl SmartLLMRouter {
 
 // Enhanced LLM keyword with optimization
 pub async fn enhanced_llm_call(
+    state: &Arc<AppState>,
     router: &SmartLLMRouter,
     prompt: &str,
     optimization_goal: OptimizationGoal,
@@ -152,17 +155,37 @@ pub async fn enhanced_llm_call(
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let start_time = Instant::now();
 
-    // Select optimal model
+    // Select optimal model (for tracking)
     let model = router
         .select_optimal_model("general", optimization_goal, max_cost, max_latency)
         .await?;
 
-    // Make LLM call (simplified - would use actual LLM provider)
-    let response = format!("Response from {} for: {}", model, prompt);
+    // Get actual LLM configuration from bot's config
+    let config_manager = ConfigManager::new(state.conn.clone());
+    let actual_model = config_manager
+        .get_config(&uuid::Uuid::nil(), "llm-model", None)
+        .unwrap_or_else(|_| model.clone());
+    let key = config_manager
+        .get_config(&uuid::Uuid::nil(), "llm-key", None)
+        .unwrap_or_else(|_| String::new());
+
+    // Build messages for LLM call
+    let messages = OpenAIClient::build_messages(
+        "Você é um assistente útil que resume dados em português.",
+        "",
+        &[("user".to_string(), prompt.to_string())],
+    );
+
+    // Make actual LLM call
+    let response = state
+        .llm_provider
+        .generate(prompt, &messages, &actual_model, &key)
+        .await
+        .map_err(|e| format!("LLM error: {}", e))?;
 
     // Track performance
     let latency = start_time.elapsed().as_millis() as u64;
-    let cost_per_token = match model.as_str() {
+    let cost_per_token = match actual_model.as_str() {
         "gpt-4" => 0.03,
         "gpt-4o-mini" => 0.0015,
         "claude-3-sonnet" => 0.015,
@@ -170,7 +193,7 @@ pub async fn enhanced_llm_call(
     };
 
     router
-        .track_performance(&model, latency, cost_per_token, true)
+        .track_performance(&actual_model, latency, cost_per_token, true)
         .await?;
 
     Ok(response)
