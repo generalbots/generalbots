@@ -7,6 +7,9 @@ PARAM horario AS STRING LIKE "10:00" DESCRIPTION "Horário preferencial (formato
 PARAM numeroVisitantes AS INTEGER LIKE "3" DESCRIPTION "Número de visitantes"
 
 
+
+
+
 id = "VIS-" + FORMAT(NOW(), "yyyyMMdd") + "-" + FORMAT(RANDOM(1000, 9999), "0000")
 protocoloNumero = "VIS" + FORMAT(RANDOM(100000, 999999), "000000")
 dataCadastro = FORMAT(NOW(), "yyyy-MM-dd HH:mm:ss")

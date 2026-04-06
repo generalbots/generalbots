@@ -187,6 +187,72 @@ pub async fn run_axum_server(
             .nest(ApiUrls::AUTH, crate::directory::auth_routes::configure());
     }
 
+    #[cfg(not(feature = "directory"))]
+    {
+        use axum::extract::State;
+        use axum::response::IntoResponse;
+        use std::collections::HashMap;
+
+        async fn anonymous_auth_handler(
+            State(state): State<Arc<AppState>>,
+            axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
+        ) -> impl IntoResponse {
+            let bot_name = params.get("bot_name").cloned().unwrap_or_default();
+            let existing_session_id = params.get("session_id").cloned();
+            let existing_user_id = params.get("user_id").cloned();
+            
+            let user_id = existing_user_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+            let session_id = existing_session_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+            
+            // Create session in DB if it doesn't exist
+            let session_uuid = match uuid::Uuid::parse_str(&session_id) {
+                Ok(uuid) => uuid,
+                Err(_) => uuid::Uuid::new_v4(),
+            };
+            let user_uuid = match uuid::Uuid::parse_str(&user_id) {
+                Ok(uuid) => uuid,
+                Err(_) => uuid::Uuid::new_v4(),
+            };
+            
+            // Get bot_id from bot_name
+            let bot_id = {
+                let conn = state.conn.get().ok();
+                if let Some(mut db_conn) = conn {
+                    use crate::core::shared::models::schema::bots::dsl::*;
+                    use diesel::prelude::*;
+                    bots.filter(name.eq(&bot_name))
+                        .select(id)
+                        .first::<uuid::Uuid>(&mut db_conn)
+                        .ok()
+                        .unwrap_or_else(uuid::Uuid::nil)
+                } else {
+                    uuid::Uuid::nil()
+                }
+            };
+            
+            // Create session if it doesn't exist
+            let _ = {
+                let mut sm = state.session_manager.lock().await;
+                sm.get_or_create_anonymous_user(Some(user_uuid)).ok();
+                sm.create_session(user_uuid, bot_id, "Anonymous Chat").ok()
+            };
+            
+            info!("Anonymous auth for bot: {}, session: {}", bot_name, session_id);
+            
+            (
+                axum::http::StatusCode::OK,
+                Json(serde_json::json!({
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "bot_name": bot_name,
+                    "status": "anonymous"
+                })),
+            )
+        }
+
+        api_router = api_router.route(ApiUrls::AUTH, get(anonymous_auth_handler));
+    }
+
     #[cfg(feature = "meet")]
     {
         api_router = api_router.merge(crate::meet::configure());
@@ -395,8 +461,11 @@ pub async fn run_axum_server(
     api_router = api_router.merge(crate::api::editor::configure_editor_routes());
     api_router = api_router.merge(crate::api::database::configure_database_routes());
     api_router = api_router.merge(crate::api::git::configure_git_routes());
-    api_router = api_router.merge(crate::api::terminal::configure_terminal_routes());
     api_router = api_router.merge(crate::browser::api::configure_browser_routes());
+    #[cfg(feature = "terminal")]
+    {
+        api_router = api_router.merge(crate::api::terminal::configure_terminal_routes());
+    }
 
     let site_path = app_state
         .config

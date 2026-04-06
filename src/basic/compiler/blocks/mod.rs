@@ -30,7 +30,10 @@ pub fn convert_begin_blocks(script: &str) -> String {
         }
 
         if upper == "END TALK" {
-            trace!("Converting END TALK statement, processing {} lines", talk_block_lines.len());
+            trace!(
+                "Converting END TALK statement, processing {} lines",
+                talk_block_lines.len()
+            );
             in_talk_block = false;
             let converted = convert_talk_block(&talk_block_lines);
             result.push_str(&converted);
@@ -53,7 +56,10 @@ pub fn convert_begin_blocks(script: &str) -> String {
         }
 
         if upper == "END MAIL" {
-            trace!("Converting END MAIL statement, processing {} lines", mail_block_lines.len());
+            trace!(
+                "Converting END MAIL statement, processing {} lines",
+                mail_block_lines.len()
+            );
             in_mail_block = false;
             let converted = convert_mail_block(&mail_recipient, &mail_block_lines);
             result.push_str(&converted);

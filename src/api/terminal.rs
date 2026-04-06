@@ -1,3 +1,4 @@
+#[cfg(feature = "terminal")]
 use axum::{
     extract::{
         Query,

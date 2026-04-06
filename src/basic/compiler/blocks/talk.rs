@@ -53,7 +53,14 @@ pub fn convert_talk_line_with_substitution(line: &str) -> String {
                 }
             }
             _ if in_substitution => {
-                if c.is_alphanumeric() || c == '_' || c == '.' || c == '[' || c == ']' || c == ',' || c == '"' {
+                if c.is_alphanumeric()
+                    || c == '_'
+                    || c == '.'
+                    || c == '['
+                    || c == ']'
+                    || c == ','
+                    || c == '"'
+                {
                     current_var.push(c);
                 } else if c == '(' {
                     current_var.push(c);
@@ -115,12 +122,14 @@ pub fn convert_talk_line_with_substitution(line: &str) -> String {
 
 pub fn convert_talk_block(lines: &[String]) -> String {
     // Convert all lines first
-    let converted_lines: Vec<String> = lines.iter()
+    let converted_lines: Vec<String> = lines
+        .iter()
         .map(|line| convert_talk_line_with_substitution(line))
         .collect();
 
     // Extract content after "TALK " prefix
-    let line_contents: Vec<String> = converted_lines.iter()
+    let line_contents: Vec<String> = converted_lines
+        .iter()
         .map(|line| {
             if let Some(stripped) = line.strip_prefix("TALK ") {
                 stripped.trim().to_string()

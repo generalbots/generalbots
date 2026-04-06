@@ -9,11 +9,11 @@ use diesel::QueryableByName;
 use diesel::ExpressionMethods;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
-use log::{trace, warn};
+use log::{info, trace, warn};
 use regex::Regex;
 
-pub mod goto_transform;
 pub mod blocks;
+pub mod goto_transform;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -116,6 +116,11 @@ impl BasicCompiler {
         let source_content = fs::read_to_string(source_path)
             .map_err(|e| format!("Failed to read source file: {e}"))?;
 
+        // Also process tables.bas to ensure tables are created
+        if let Err(e) = Self::process_tables_bas(&self.state, self.bot_id) {
+            log::warn!("Failed to process tables.bas: {}", e);
+        }
+
         if let Err(e) =
             process_table_definitions(Arc::clone(&self.state), self.bot_id, &source_content)
         {
@@ -132,7 +137,8 @@ impl BasicCompiler {
         let source_with_suggestions = self.generate_enum_suggestions(&source_content, &tool_def)?;
 
         let ast_path = format!("{output_dir}/{file_name}.ast");
-        let ast_content = self.preprocess_basic(&source_with_suggestions, source_path, self.bot_id)?;
+        let ast_content =
+            self.preprocess_basic(&source_with_suggestions, source_path, self.bot_id)?;
         fs::write(&ast_path, &ast_content).map_err(|e| format!("Failed to write AST file: {e}"))?;
         let (mcp_json, tool_json) = if tool_def.parameters.is_empty() {
             // No parameters — generate minimal mcp.json so USE TOOL can find this tool
@@ -244,12 +250,7 @@ impl BasicCompiler {
                     // Parse the array elements
                     let values: Vec<String> = array_content
                         .split(',')
-                        .map(|s| {
-                            s.trim()
-                                .trim_matches('"')
-                                .trim_matches('\'')
-                                .to_string()
-                        })
+                        .map(|s| s.trim().trim_matches('"').trim_matches('\'').to_string())
                         .filter(|s| !s.is_empty())
                         .collect();
                     Some(values)
@@ -470,7 +471,8 @@ impl BasicCompiler {
             .ok();
         }
 
-        let website_regex = Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#)?;
+        let website_regex =
+            Regex::new(r#"(?i)USE\s+WEBSITE\s+"([^"]+)"(?:\s+REFRESH\s+"([^"]+)")?"#)?;
 
         for line in source.lines() {
             let trimmed = line.trim();
@@ -498,7 +500,8 @@ impl BasicCompiler {
                             .conn
                             .get()
                             .map_err(|e| format!("Failed to get database connection: {e}"))?;
-                        if let Err(e) = execute_set_schedule(&mut conn, cron, &script_name, bot_id) {
+                        if let Err(e) = execute_set_schedule(&mut conn, cron, &script_name, bot_id)
+                        {
                             log::error!(
                                 "Failed to schedule SET SCHEDULE during preprocessing: {}",
                                 e
@@ -561,7 +564,7 @@ impl BasicCompiler {
                                 url, refresh
                             );
                         }
-                        
+
                         result.push_str(&format!("USE_WEBSITE(\"{}\", \"{}\");\n", url, refresh));
                         continue;
                     }
@@ -682,7 +685,11 @@ impl BasicCompiler {
         let table_name = table_name.trim_matches('"');
 
         // Debug log to see what we're querying
-        log::trace!("Converting SAVE for table: '{}' (original: '{}')", table_name, &parts[0]);
+        log::trace!(
+            "Converting SAVE for table: '{}' (original: '{}')",
+            table_name,
+            &parts[0]
+        );
 
         // Get column names from TABLE definition (preserves order from .bas file)
         let column_names = self.get_table_columns_for_save(table_name, bot_id)?;
@@ -691,13 +698,20 @@ impl BasicCompiler {
         let values: Vec<&String> = parts.iter().skip(1).collect();
         let mut map_pairs = Vec::new();
 
-        log::trace!("Matching {} variables to {} columns", values.len(), column_names.len());
+        log::trace!(
+            "Matching {} variables to {} columns",
+            values.len(),
+            column_names.len()
+        );
 
         for value_var in values.iter() {
             // Find the column that matches this variable (case-insensitive)
             let value_lower = value_var.to_lowercase();
 
-            if let Some(column_name) = column_names.iter().find(|col| col.to_lowercase() == value_lower) {
+            if let Some(column_name) = column_names
+                .iter()
+                .find(|col| col.to_lowercase() == value_lower)
+            {
                 map_pairs.push(format!("{}: {}", column_name, value_var));
             } else {
                 log::warn!("No matching column for variable '{}'", value_var);
@@ -709,13 +723,19 @@ impl BasicCompiler {
         *save_counter += 1;
 
         // Generate: let __save_data_N__ = #{...}; SAVE "table", __save_data_N__
-        let converted = format!("let {} = {}; SAVE {}, {}", data_var, map_expr, table_name, data_var);
+        let converted = format!(
+            "let {} = {}; SAVE {}, {}",
+            data_var, map_expr, table_name, data_var
+        );
 
         Ok(Some(converted))
     }
 
     /// Parse SAVE statement into parts
-    fn parse_save_statement(&self, content: &str) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+    fn parse_save_statement(
+        &self,
+        content: &str,
+    ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
         // Simple parsing - split by comma, but respect quoted strings
         let mut parts = Vec::new();
         let mut current = String::new();
@@ -759,7 +779,11 @@ impl BasicCompiler {
         // Try to parse TABLE definition from the bot's .bas files to get correct field order
         if let Ok(columns) = self.get_columns_from_table_definition(table_name, bot_id) {
             if !columns.is_empty() {
-                log::trace!("Using TABLE definition for '{}': {} columns", table_name, columns.len());
+                log::trace!(
+                    "Using TABLE definition for '{}': {} columns",
+                    table_name,
+                    columns.len()
+                );
                 return Ok(columns);
             }
         }
@@ -778,7 +802,10 @@ impl BasicCompiler {
 
         // Find the tables.bas file in the bot's data directory
         let bot_name = self.get_bot_name_by_id(bot_id)?;
-        let tables_path = format!("/opt/gbo/data/{}.gbai/{}.gbdialog/tables.bas", bot_name, bot_name);
+        let tables_path = format!(
+            "/opt/gbo/data/{}.gbai/{}.gbdialog/tables.bas",
+            bot_name, bot_name
+        );
 
         let tables_content = fs::read_to_string(&tables_path)?;
         let columns = self.parse_table_definition_for_fields(&tables_content, table_name)?;
@@ -822,12 +849,63 @@ impl BasicCompiler {
         Ok(columns)
     }
 
+    /// Process tables.bas file to ensure all tables are created
+    pub fn process_tables_bas(
+        state: &Arc<AppState>,
+        bot_id: uuid::Uuid,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let bot_name = Self::get_bot_name_from_state(state, bot_id)?;
+        let tables_path = format!(
+            "/opt/gbo/data/{}.gbai/{}.gbdialog/tables.bas",
+            bot_name, bot_name
+        );
+
+        if !Path::new(&tables_path).exists() {
+            trace!("tables.bas not found for bot {}, skipping", bot_name);
+            return Ok(());
+        }
+
+        let tables_content = fs::read_to_string(&tables_path)?;
+
+        trace!(
+            "Processing tables.bas for bot {}: {}",
+            bot_name,
+            tables_path
+        );
+
+        // This will create/sync all tables defined in tables.bas
+        process_table_definitions(Arc::clone(state), bot_id, &tables_content)?;
+
+        info!("Successfully processed tables.bas for bot {}", bot_name);
+        Ok(())
+    }
+
+    /// Get bot name from state using bot_id
+    fn get_bot_name_from_state(
+        state: &Arc<AppState>,
+        bot_id: uuid::Uuid,
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let mut conn = state.conn.get()?;
+        use crate::core::shared::models::schema::bots::dsl::*;
+
+        bots.filter(id.eq(bot_id))
+            .select(name)
+            .first::<String>(&mut *conn)
+            .map_err(|e| format!("Failed to get bot name: {}", e).into())
+    }
+
     /// Get bot name by bot_id
-    fn get_bot_name_by_id(&self, bot_id: uuid::Uuid) -> Result<String, Box<dyn Error + Send + Sync>> {
+    fn get_bot_name_by_id(
+        &self,
+        bot_id: uuid::Uuid,
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
         use crate::core::shared::models::schema::bots::dsl::*;
         use diesel::QueryDsl;
 
-        let mut conn = self.state.conn.get()
+        let mut conn = self
+            .state
+            .conn
+            .get()
             .map_err(|e| format!("Failed to get DB connection: {}", e))?;
 
         let bot_name: String = bots
@@ -857,7 +935,10 @@ impl BasicCompiler {
 
         // First, try to get columns from the main database's information_schema
         // This works because tables are created in the bot's database which shares the schema
-        let mut conn = self.state.conn.get()
+        let mut conn = self
+            .state
+            .conn
+            .get()
             .map_err(|e| format!("Failed to get DB connection: {}", e))?;
 
         let query = format!(
@@ -870,12 +951,15 @@ impl BasicCompiler {
         let columns: Vec<String> = match sql_query(&query).load(&mut conn) {
             Ok(cols) => {
                 if cols.is_empty() {
-                    log::warn!("Found 0 columns for table '{}' in main database, trying bot database", table_name);
+                    log::warn!(
+                        "Found 0 columns for table '{}' in main database, trying bot database",
+                        table_name
+                    );
                     // Try bot's database as fallback when main DB returns empty
                     let bot_pool = self.state.bot_database_manager.get_bot_pool(bot_id);
                     if let Ok(pool) = bot_pool {
-                        let mut bot_conn = pool.get()
-                            .map_err(|e| format!("Bot DB error: {}", e))?;
+                        let mut bot_conn =
+                            pool.get().map_err(|e| format!("Bot DB error: {}", e))?;
 
                         let bot_query = format!(
                             "SELECT column_name FROM information_schema.columns \
@@ -886,13 +970,22 @@ impl BasicCompiler {
 
                         match sql_query(&bot_query).load(&mut *bot_conn) {
                             Ok(bot_cols) => {
-                                log::trace!("Found {} columns for table '{}' in bot database", bot_cols.len(), table_name);
-                                bot_cols.into_iter()
+                                log::trace!(
+                                    "Found {} columns for table '{}' in bot database",
+                                    bot_cols.len(),
+                                    table_name
+                                );
+                                bot_cols
+                                    .into_iter()
                                     .map(|c: ColumnRow| c.column_name)
                                     .collect()
                             }
                             Err(e) => {
-                                log::error!("Failed to get columns from bot DB for '{}': {}", table_name, e);
+                                log::error!(
+                                    "Failed to get columns from bot DB for '{}': {}",
+                                    table_name,
+                                    e
+                                );
                                 Vec::new()
                             }
                         }
@@ -901,20 +994,25 @@ impl BasicCompiler {
                         Vec::new()
                     }
                 } else {
-                    log::trace!("Found {} columns for table '{}' in main database", cols.len(), table_name);
-                    cols.into_iter()
-                        .map(|c: ColumnRow| c.column_name)
-                        .collect()
+                    log::trace!(
+                        "Found {} columns for table '{}' in main database",
+                        cols.len(),
+                        table_name
+                    );
+                    cols.into_iter().map(|c: ColumnRow| c.column_name).collect()
                 }
             }
             Err(e) => {
-                log::warn!("Failed to get columns for table '{}' from main DB: {}", table_name, e);
+                log::warn!(
+                    "Failed to get columns for table '{}' from main DB: {}",
+                    table_name,
+                    e
+                );
 
                 // Try bot's database as fallback
                 let bot_pool = self.state.bot_database_manager.get_bot_pool(bot_id);
                 if let Ok(pool) = bot_pool {
-                    let mut bot_conn = pool.get()
-                        .map_err(|e| format!("Bot DB error: {}", e))?;
+                    let mut bot_conn = pool.get().map_err(|e| format!("Bot DB error: {}", e))?;
 
                     let bot_query = format!(
                         "SELECT column_name FROM information_schema.columns \
@@ -925,14 +1023,22 @@ impl BasicCompiler {
 
                     match sql_query(&bot_query).load(&mut *bot_conn) {
                         Ok(cols) => {
-                            log::trace!("Found {} columns for table '{}' in bot database", cols.len(), table_name);
+                            log::trace!(
+                                "Found {} columns for table '{}' in bot database",
+                                cols.len(),
+                                table_name
+                            );
                             cols.into_iter()
                                 .filter(|c: &ColumnRow| c.column_name != "id")
                                 .map(|c: ColumnRow| c.column_name)
                                 .collect()
                         }
                         Err(e) => {
-                            log::error!("Failed to get columns from bot DB for '{}': {}", table_name, e);
+                            log::error!(
+                                "Failed to get columns from bot DB for '{}': {}",
+                                table_name,
+                                e
+                            );
                             Vec::new()
                         }
                     }

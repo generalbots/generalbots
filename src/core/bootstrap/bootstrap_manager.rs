@@ -186,10 +186,13 @@ impl BootstrapManager {
                 let config_path = self.stack_dir("conf/system/directory_config.json");
                 if !config_path.exists() {
                     info!("Creating OAuth client for Directory service...");
+                    #[cfg(feature = "directory")]
                     match crate::core::package_manager::setup_directory().await {
                         Ok(_) => info!("OAuth client created successfully"),
                         Err(e) => warn!("Failed to create OAuth client: {}", e),
                     }
+                    #[cfg(not(feature = "directory"))]
+                    info!("Directory feature not enabled, skipping OAuth setup");
                 } else {
                     info!("Directory config already exists, skipping OAuth setup");
                 }
@@ -218,10 +221,13 @@ impl BootstrapManager {
                             let config_path = self.stack_dir("conf/system/directory_config.json");
                             if !config_path.exists() {
                                 info!("Creating OAuth client for Directory service...");
+                                #[cfg(feature = "directory")]
                                 match crate::core::package_manager::setup_directory().await {
                                     Ok(_) => info!("OAuth client created successfully"),
                                     Err(e) => warn!("Failed to create OAuth client: {}", e),
                                 }
+                                #[cfg(not(feature = "directory"))]
+                                info!("Directory feature not enabled, skipping OAuth setup");
                             }
                         }
                     }

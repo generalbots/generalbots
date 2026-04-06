@@ -2,6 +2,8 @@ pub mod audit_log;
 pub mod menu_config;
 pub mod permission_inheritance;
 pub mod rbac;
+
+#[cfg(feature = "rbac")]
 pub mod rbac_kb;
 pub mod rbac_ui;
 pub mod security_admin;
@@ -328,8 +330,9 @@ r##"<div class="success-message">
 
 async fn get_trusted_devices(State(_state): State<Arc<AppState>>) -> Html<String> {
 Html(
-r##"<div class="device-item current">
+r####"<div class="device-item current">
 <div class="device-info">
+    "##
 <span class="device-icon">💻</span>
 <div class="device-details">
 <span class="device-name">Current Device</span>
@@ -338,4 +341,4 @@ r##"<div class="device-item current">
 </div>
 <span class="device-badge trusted">Trusted</span>
 
-</div> <div class="devices-empty"> <p class="text-muted">No other trusted devices</p> </div>"## .to_string(), ) }
+</div> <div class="devices-empty"> <p class="text-muted">No other trusted devices</p> </div>"#### .to_string(), ) }

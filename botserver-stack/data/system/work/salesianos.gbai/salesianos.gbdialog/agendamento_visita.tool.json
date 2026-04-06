@@ -6,11 +6,15 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "dataVisita": {
+        "nomeResponsavel": {
           "type": "string",
-          "description": "Data desejada para visita (formato ISO: YYYY-MM-DD)",
-          "example": "2026-03-15",
-          "format": "date"
+          "description": "Nome do responsável",
+          "example": "João Silva"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email para contato",
+          "example": "joao@example.com"
         },
         "numeroVisitantes": {
           "type": "integer",
@@ -22,15 +26,11 @@
           "description": "Telefone com DDD",
           "example": "(21) 99999-9999"
         },
-        "email": {
+        "dataVisita": {
           "type": "string",
-          "description": "Email para contato",
-          "example": "joao@example.com"
-        },
-        "nomeResponsavel": {
-          "type": "string",
-          "description": "Nome do responsável",
-          "example": "João Silva"
+          "description": "Data desejada para visita (formato ISO: YYYY-MM-DD)",
+          "example": "2026-03-15",
+          "format": "date"
         },
         "horario": {
           "type": "string",

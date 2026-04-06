@@ -44,7 +44,14 @@ pub fn convert_mail_line_with_substitution(line: &str) -> String {
                 current_var.clear();
             }
             _ if in_substitution => {
-                if c.is_alphanumeric() || c == '_' || c == '(' || c == ')' || c == ',' || c == ' ' || c == '\"' {
+                if c.is_alphanumeric()
+                    || c == '_'
+                    || c == '('
+                    || c == ')'
+                    || c == ','
+                    || c == ' '
+                    || c == '\"'
+                {
                     current_var.push(c);
                 }
             }
@@ -136,7 +143,10 @@ pub fn convert_mail_block(recipient: &str, lines: &[String]) -> String {
     } else {
         recipient.to_string()
     };
-    result.push_str(&format!("send_mail({}, \"{}\", {}, []);\n", recipient_expr, subject, body_expr));
+    result.push_str(&format!(
+        "send_mail({}, \"{}\", {}, []);\n",
+        recipient_expr, subject, body_expr
+    ));
 
     trace!("Converted MAIL block → {}", result);
     result
