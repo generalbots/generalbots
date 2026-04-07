@@ -10,7 +10,7 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "automation", "cache", "llm"]
+default = ["chat", "automation", "cache", "llm", "vectordb", "crawler"]
 
 # ===== SECURITY MODES =====
 # no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)

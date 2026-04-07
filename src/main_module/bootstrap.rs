@@ -410,7 +410,7 @@ pub async fn create_app_state(
     let voice_adapter = Arc::new(VoiceAdapter::new());
 
     #[cfg(feature = "drive")]
-    let drive = match create_s3_operator(&config.drive).await {
+    let drive = match create_s3_operator(&cfg.drive).await {
         Ok(client) => client,
         Err(e) => {
             return Err(std::io::Error::other(format!("Failed to initialize Drive: {}", e)));
@@ -845,7 +845,7 @@ fn init_llm_provider(
 /// Start background services and monitors
 pub async fn start_background_services(
     app_state: Arc<AppState>,
-    _pool: &crate::core::shared::utils::DbPool,
+    pool: &crate::core::shared::utils::DbPool,
 ) {
     use crate::core::shared::memory_monitor::{log_process_memory, start_memory_monitor};
 
@@ -961,7 +961,7 @@ async fn start_drive_monitors(
             let bucket_name_clone = bucket_name.clone();
 
             tokio::spawn(async move {
-                use crate::DriveMonitor;
+                use crate::drive::drive_monitor::DriveMonitor;
                 register_thread(&format!("drive-monitor-{}", bot_name), "drive");
                 trace!("DriveMonitor::new starting for bot: {}", bot_name);
                 let monitor =

@@ -22,6 +22,7 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use diesel::{QueryableByName, RunQueryDsl};
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 #[cfg(feature = "drive")]
 pub mod document_processing;
@@ -1023,6 +1024,92 @@ pub async fn restore_version(
         restored_version: version_id,
         new_version_id,
     }))
+}
+
+#[cfg(feature = "drive")]
+pub async fn read_file(State(state): State<Arc<AppState>>, Json(_req): Json<ReadRequest>) -> Result<Json<ReadResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let s3_client = state.drive.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({ "error": "S3 service not available" })),
+        )
+    })?;
+
+    // Default implementation reading from S3
+    let result = s3_client
+        .get_object()
+        .bucket(&_req.bucket)
+        .key(&_req.path)
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": format!("Failed to read object: {}", e) })),
+            )
+        })?;
+
+    let bytes = result.body.collect().await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": format!("Failed to read body: {}", e) })),
+        )
+    })?.into_bytes();
+
+    let content = String::from_utf8(bytes.to_vec()).unwrap_or_default();
+
+    Ok(Json(ReadResponse { content }))
+}
+
+#[cfg(feature = "drive")]
+pub async fn write_file(State(state): State<Arc<AppState>>, Json(req): Json<WriteRequest>) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let s3_client = state.drive.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({ "error": "S3 service not available" })),
+        )
+    })?;
+
+    s3_client
+        .put_object()
+        .bucket(&req.bucket)
+        .key(&req.path)
+        .body(req.content.into_bytes().into())
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": format!("Failed to write object: {}", e) })),
+            )
+        })?;
+
+    Ok(Json(SuccessResponse { success: true, message: Some("File written successfully".to_string()) }))
+}
+
+#[cfg(feature = "drive")]
+pub async fn delete_file(State(state): State<Arc<AppState>>, Json(req): Json<DeleteRequest>) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let s3_client = state.drive.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({ "error": "S3 service not available" })),
+        )
+    })?;
+
+    s3_client
+        .delete_object()
+        .bucket(&req.bucket)
+        .key(&req.path)
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": format!("Failed to delete object: {}", e) })),
+            )
+        })?;
+
+    Ok(Json(SuccessResponse { success: true, message: Some("File deleted successfully".to_string()) }))
 }
 
 #[cfg(test)]
