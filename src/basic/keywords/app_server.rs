@@ -135,6 +135,7 @@ pub async fn serve_vendor_file(
         key
     );
 
+    #[cfg(feature = "drive")]
     if let Some(ref drive) = state.drive {
         match drive.get_object().bucket(&bucket).key(&key).send().await {
             Ok(response) => match response.body.collect().await {
@@ -306,6 +307,7 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
     );
 
     // Try to serve from MinIO
+    #[cfg(feature = "drive")]
     if let Some(ref drive) = state.drive {
         match drive.get_object().bucket(&bucket).key(&key).send().await {
             Ok(response) => {

@@ -9,6 +9,9 @@ use std::sync::Arc;
 use tokio::fs;
 use uuid::Uuid;
 
+#[cfg(feature = "drive")]
+use pdf_extract;
+
 #[cfg(feature = "vectordb")]
 use qdrant_client::{
 qdrant::{Distance, PointStruct, VectorParams},
@@ -565,7 +568,14 @@ Ok(content)
 
         "application/pdf" => {
             log::info!("PDF extraction for {}", file_path.display());
-            Self::extract_pdf_text(file_path).await
+            #[cfg(feature = "drive")]
+            {
+                Self::extract_pdf_text(file_path).await
+            }
+            #[cfg(not(feature = "drive"))]
+            {
+                Err(anyhow::anyhow!("PDF extraction requires 'drive' feature"))
+            }
         }
 
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -627,20 +637,29 @@ Ok(content)
 async fn extract_pdf_text(file_path: &PathBuf) -> Result<String> {
     let bytes = fs::read(file_path).await?;
 
-    match pdf_extract::extract_text_from_mem(&bytes) {
-        Ok(text) => {
-            let cleaned = text
-                .lines()
-                .map(|l| l.trim())
-                .filter(|l| !l.is_empty())
-                .collect::<Vec<_>>()
-                .join("\n");
-            Ok(cleaned)
+    #[cfg(feature = "drive")]
+    {
+        match pdf_extract::extract_text_from_mem(&bytes) {
+            Ok(text) => {
+                let cleaned = text
+                    .lines()
+                    .map(|l| l.trim())
+                    .filter(|l| !l.is_empty())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                Ok(cleaned)
+            }
+            Err(e) => {
+                log::warn!("PDF extraction failed for {}: {}", file_path.display(), e);
+                Ok(String::new())
+            }
         }
-        Err(e) => {
-            log::warn!("PDF extraction failed for {}: {}", file_path.display(), e);
-            Ok(String::new())
-        }
+    }
+
+    #[cfg(not(feature = "drive"))]
+    {
+        let _ = file_path;
+        Err(anyhow::anyhow!("PDF extraction requires 'drive' feature"))
     }
 }
 

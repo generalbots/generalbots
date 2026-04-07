@@ -115,12 +115,14 @@ pub trait MultimediaHandler: Send + Sync {
 }
 
 
+#[cfg(feature = "drive")]
 #[derive(Debug)]
 pub struct DefaultMultimediaHandler {
     storage_client: Option<aws_sdk_s3::Client>,
     search_api_key: Option<String>,
 }
 
+#[cfg(feature = "drive")]
 impl DefaultMultimediaHandler {
     pub fn new(storage_client: Option<aws_sdk_s3::Client>, search_api_key: Option<String>) -> Self {
         Self {
@@ -131,6 +133,29 @@ impl DefaultMultimediaHandler {
 
     pub fn storage_client(&self) -> &Option<aws_sdk_s3::Client> {
         &self.storage_client
+    }
+
+    pub fn search_api_key(&self) -> &Option<String> {
+        &self.search_api_key
+    }
+}
+
+#[cfg(not(feature = "drive"))]
+#[derive(Debug)]
+pub struct DefaultMultimediaHandler {
+    search_api_key: Option<String>,
+}
+
+#[cfg(not(feature = "drive"))]
+impl DefaultMultimediaHandler {
+    pub fn new(_storage_client: Option<()>, search_api_key: Option<String>) -> Self {
+        Self {
+            search_api_key,
+        }
+    }
+
+    pub fn storage_client(&self) -> &Option<()> {
+        &None
     }
 
     pub fn search_api_key(&self) -> &Option<String> {
@@ -307,6 +332,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
         }
     }
 
+    #[cfg(feature = "drive")]
     async fn upload_media(&self, request: MediaUploadRequest) -> Result<MediaUploadResponse> {
         let media_id = Uuid::new_v4().to_string();
         let key = format!(
@@ -346,6 +372,27 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 thumbnail_url: None,
             })
         }
+    }
+
+    #[cfg(not(feature = "drive"))]
+    async fn upload_media(&self, request: MediaUploadRequest) -> Result<MediaUploadResponse> {
+        let media_id = Uuid::new_v4().to_string();
+        let key = format!(
+            "media/{}/{}/{}",
+            request.user_id, request.session_id, request.file_name
+        );
+
+        let local_path = format!("./media/{}", key);
+        if let Some(parent) = std::path::Path::new(&local_path).parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&local_path, request.data)?;
+
+        Ok(MediaUploadResponse {
+            media_id,
+            url: format!("file://{}", local_path),
+            thumbnail_url: None,
+        })
     }
 
     async fn download_media(&self, url: &str) -> Result<Vec<u8>> {
@@ -452,10 +499,14 @@ use std::sync::Arc;
 
 
 pub async fn upload_media_handler(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(request): Json<MediaUploadRequest>,
 ) -> impl IntoResponse {
+    #[cfg(feature = "drive")]
     let handler = DefaultMultimediaHandler::new(state.drive.clone(), None);
+
+    #[cfg(not(feature = "drive"))]
+    let handler = DefaultMultimediaHandler::new(None, None);
 
     match handler.upload_media(request).await {
         Ok(response) => (StatusCode::OK, Json(serde_json::json!(response))),
@@ -468,11 +519,14 @@ pub async fn upload_media_handler(
 
 
 pub async fn download_media_handler(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(media_id): Path<String>,
 ) -> impl IntoResponse {
+    #[cfg(feature = "drive")]
     let handler = DefaultMultimediaHandler::new(state.drive.clone(), None);
 
+    #[cfg(not(feature = "drive"))]
+    let handler = DefaultMultimediaHandler::new(None, None);
 
     let url = format!("https://storage.botserver.com/media/{}", media_id);
 
@@ -494,11 +548,14 @@ pub async fn download_media_handler(
 
 
 pub async fn generate_thumbnail_handler(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(media_id): Path<String>,
 ) -> impl IntoResponse {
+    #[cfg(feature = "drive")]
     let handler = DefaultMultimediaHandler::new(state.drive.clone(), None);
 
+    #[cfg(not(feature = "drive"))]
+    let handler = DefaultMultimediaHandler::new(None, None);
 
     let url = format!("https://storage.botserver.com/media/{}", media_id);
 
@@ -519,7 +576,7 @@ pub async fn generate_thumbnail_handler(
 
 
 pub async fn web_search_handler(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     let query = payload.get("query").and_then(|q| q.as_str()).unwrap_or("");
@@ -528,7 +585,11 @@ pub async fn web_search_handler(
         .and_then(|m| m.as_u64())
         .unwrap_or(10) as usize;
 
+    #[cfg(feature = "drive")]
     let handler = DefaultMultimediaHandler::new(state.drive.clone(), None);
+
+    #[cfg(not(feature = "drive"))]
+    let handler = DefaultMultimediaHandler::new(None, None);
 
     match handler.web_search(query, max_results).await {
         Ok(results) => (

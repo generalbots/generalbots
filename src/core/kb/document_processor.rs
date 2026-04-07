@@ -266,17 +266,13 @@ impl DocumentProcessor {
     }
 
     fn extract_pdf_with_library(&self, file_path: &Path) -> Result<String> {
-        let _ = self; // Suppress unused self warning
+        let _ = self;
         #[cfg(feature = "drive")]
         {
             use pdf_extract::extract_text;
-
             match extract_text(file_path) {
                 Ok(text) => {
-                    info!(
-                        "Successfully extracted PDF with library: {}",
-                        file_path.display()
-                    );
+                    info!("Successfully extracted PDF with library: {}", file_path.display());
                     return Ok(text);
                 }
                 Err(e) => {
@@ -284,23 +280,24 @@ impl DocumentProcessor {
                 }
             }
         }
-
+        #[cfg(not(feature = "drive"))]
+        let _ = file_path;
         Self::extract_pdf_basic_sync(file_path)
     }
 
+    #[cfg(feature = "drive")]
     fn extract_pdf_basic_sync(file_path: &Path) -> Result<String> {
-        #[cfg(feature = "drive")]
-        {
-            if let Ok(text) = pdf_extract::extract_text(file_path) {
-                if !text.is_empty() {
-                    return Ok(text);
-                }
+        if let Ok(text) = pdf_extract::extract_text(file_path) {
+            if !text.is_empty() {
+                return Ok(text);
             }
         }
+        Err(anyhow::anyhow!("Could not extract text from PDF"))
+    }
 
-        Err(anyhow::anyhow!(
-            "Could not extract text from PDF. Please ensure pdftotext is installed."
-        ))
+    #[cfg(not(feature = "drive"))]
+    fn extract_pdf_basic_sync(_file_path: &Path) -> Result<String> {
+        Err(anyhow::anyhow!("PDF extraction requires 'drive' feature"))
     }
 
     async fn extract_docx_text(&self, file_path: &Path) -> Result<String> {

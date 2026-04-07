@@ -95,7 +95,7 @@ pub mod console;
 #[cfg(feature = "directory")]
 pub mod directory;
 
-#[cfg(feature = "drive")]
+#[cfg(any(feature = "drive", feature = "local-files"))]
 pub mod drive;
 
 #[cfg(feature = "mail")]
@@ -133,9 +133,6 @@ pub mod whatsapp;
 pub mod telegram;
 
 // Re-export commonly used types
-#[cfg(feature = "drive")]
-pub use drive::drive_monitor::DriveMonitor;
-
 #[cfg(feature = "llm")]
 pub use llm::cache::{CacheConfig, CachedLLMProvider, CachedResponse, LocalEmbeddingService};
 #[cfg(feature = "llm")]

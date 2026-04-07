@@ -38,6 +38,17 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, RwLock};
 
+#[cfg(not(feature = "drive"))]
+#[derive(Debug, Clone, Default)]
+pub struct NoDrive;
+
+#[cfg(not(feature = "drive"))]
+impl NoDrive {
+    pub fn new() -> Self {
+        NoDrive
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AttendantNotification {
     #[serde(rename = "type")]
@@ -365,6 +376,9 @@ pub struct BillingAlertNotification {
 pub struct AppState {
     #[cfg(feature = "drive")]
     pub drive: Option<S3Client>,
+    #[cfg(not(feature = "drive"))]
+    #[allow(non_snake_case)]
+    pub drive: Option<crate::core::shared::state::NoDrive>,
     #[cfg(feature = "cache")]
     pub cache: Option<Arc<RedisClient>>,
     pub bucket_name: String,
@@ -413,6 +427,8 @@ impl Clone for AppState {
         Self {
             #[cfg(feature = "drive")]
             drive: self.drive.clone(),
+            #[cfg(not(feature = "drive"))]
+            drive: None,
             bucket_name: self.bucket_name.clone(),
             config: self.config.clone(),
             conn: self.conn.clone(),
@@ -627,6 +643,8 @@ impl Default for AppState {
 
         Self {
             #[cfg(feature = "drive")]
+            drive: None,
+            #[cfg(not(feature = "drive"))]
             drive: None,
             #[cfg(feature = "cache")]
             cache: None,

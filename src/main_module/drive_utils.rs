@@ -1,10 +1,9 @@
 //! Drive-related utilities
 
-use log::{info, warn};
-
 #[cfg(feature = "drive")]
 pub async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
     use aws_sdk_s3::primitives::ByteStream;
+    use log::{info, warn};
 
     let htmx_paths = [
         "./botui/ui/suite/js/vendor/htmx.min.js",

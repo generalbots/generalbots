@@ -13,7 +13,9 @@ use crate::core::config::ConfigManager;
 use crate::core::package_manager::InstallMode;
 use crate::core::session::SessionManager;
 use crate::core::shared::state::AppState;
-use crate::core::shared::utils::{create_conn, create_s3_operator, get_stack_path};
+use crate::core::shared::utils::{create_conn, get_stack_path};
+#[cfg(feature = "drive")]
+use crate::core::shared::utils::create_s3_operator;
 
 use super::BootstrapProgress;
 
@@ -399,8 +401,6 @@ pub async fn create_app_state(
 ) -> Result<Arc<AppState>, std::io::Error> {
     use std::collections::HashMap;
 
-    let config = std::sync::Arc::new(cfg.clone());
-
     #[cfg(feature = "cache")]
     let redis_client = redis_client.clone();
     #[cfg(not(feature = "cache"))]
@@ -586,6 +586,8 @@ pub async fn create_app_state(
     let app_state = Arc::new(AppState {
         #[cfg(feature = "drive")]
         drive: Some(drive),
+        #[cfg(not(feature = "drive"))]
+        drive: None,
         config: Some(cfg.clone()),
         conn: pool.clone(),
         database_url: database_url.clone(),
@@ -843,9 +845,8 @@ fn init_llm_provider(
 /// Start background services and monitors
 pub async fn start_background_services(
     app_state: Arc<AppState>,
-    pool: &crate::core::shared::utils::DbPool,
+    _pool: &crate::core::shared::utils::DbPool,
 ) {
-    #[cfg(feature = "drive")]
     use crate::core::shared::memory_monitor::{log_process_memory, start_memory_monitor};
 
     // Resume workflows after server restart
@@ -890,6 +891,11 @@ pub async fn start_background_services(
 
     #[cfg(feature = "drive")]
     start_drive_monitors(app_state.clone(), pool).await;
+
+    #[cfg(feature = "local-files")]
+    start_local_file_monitor(app_state.clone()).await;
+
+    start_config_watcher(app_state.clone()).await;
 }
 
 #[cfg(feature = "drive")]
@@ -978,22 +984,25 @@ async fn start_drive_monitors(
             });
         }
     });
+}
 
-    // Start local file monitor for /opt/gbo/data/*.gbai directories
-    let local_monitor_state = app_state.clone();
+#[cfg(feature = "local-files")]
+async fn start_local_file_monitor(app_state: Arc<AppState>) {
+    use crate::core::shared::memory_monitor::register_thread;
     tokio::spawn(async move {
         register_thread("local-file-monitor", "drive");
         trace!("Starting LocalFileMonitor for /opt/gbo/data/*.gbai directories");
-        let monitor = crate::drive::local_file_monitor::LocalFileMonitor::new(local_monitor_state);
+        let monitor = crate::drive::local_file_monitor::LocalFileMonitor::new(app_state);
         if let Err(e) = monitor.start_monitoring().await {
             error!("LocalFileMonitor failed: {}", e);
         } else {
             info!("LocalFileMonitor started - watching /opt/gbo/data/*.gbai/*.gbdialog/*.bas");
         }
     });
+}
 
-    // Start config file watcher for /opt/gbo/data/*.gbai/*.gbot/config.csv
-    let config_watcher_state = app_state.clone();
+async fn start_config_watcher(app_state: Arc<AppState>) {
+    use crate::core::shared::memory_monitor::register_thread;
     tokio::spawn(async move {
         register_thread("config-file-watcher", "drive");
         trace!("Starting ConfigWatcher for /opt/gbo/data/*.gbai/*.gbot/config.csv");
@@ -1005,7 +1014,7 @@ async fn start_drive_monitors(
 
         let watcher = crate::core::config::watcher::ConfigWatcher::new(
             data_dir,
-            config_watcher_state,
+            app_state,
         );
         Arc::new(watcher).spawn();
 

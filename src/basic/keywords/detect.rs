@@ -91,7 +91,7 @@ async fn detect_anomalies_in_table(
 
     let column_list = columns.join(", ");
     let query = format!(
-        "SELECT row_to_json(t)::text as data FROM (SELECT {} FROM {} LIMIT 500) t",
+        "SELECT row_to_json(t)::text as data FROM (SELECT {} FROM {} LIMIT 1500) t",
         column_list, table_name
     );
 

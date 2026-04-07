@@ -8,6 +8,7 @@ mod shutdown;
 mod types;
 
 pub use bootstrap::*;
+#[cfg(feature = "drive")]
 pub use drive_utils::*;
 pub use health::*;
 pub use server::*;

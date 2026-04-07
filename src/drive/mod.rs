@@ -1,6 +1,12 @@
+#![cfg_attr(not(feature = "drive"), allow(dead_code))]
+
 #[cfg(feature = "console")]
 use crate::console::file_tree::FileTree;
+
+#[cfg(feature = "drive")]
 use crate::core::shared::state::AppState;
+
+#[cfg(feature = "drive")]
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -8,17 +14,25 @@ use axum::{
     routing::{get, post},
     Router,
 };
+
+#[cfg(feature = "drive")]
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+
+#[cfg(feature = "drive")]
 use diesel::{QueryableByName, RunQueryDsl};
+
 use serde::{Deserialize, Serialize};
 
-use std::sync::Arc;
-
-pub mod drive_types;
-pub mod drive_handlers;
+#[cfg(feature = "drive")]
 pub mod document_processing;
+
+#[cfg(feature = "drive")]
 pub mod drive_monitor;
+
+#[cfg(feature = "local-files")]
 pub mod local_file_monitor;
+
+#[cfg(feature = "drive")]
 pub mod vectordb;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -193,6 +207,7 @@ pub struct OpenResponse {
     pub content_type: String,
 }
 
+#[cfg(feature = "drive")]
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/files/buckets", get(list_buckets))
@@ -223,12 +238,9 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/files/sync/stop", post(stop_sync))
         .route("/api/files/versions", get(list_versions))
         .route("/api/files/restore", post(restore_version))
-        .route("/api/docs/merge", post(document_processing::merge_documents))
-        .route("/api/docs/convert", post(document_processing::convert_document))
-        .route("/api/docs/fill", post(document_processing::fill_document))
-        .route("/api/docs/export", post(document_processing::export_document))
 }
 
+#[cfg(feature = "drive")]
 pub async fn open_file(
     Json(req): Json<OpenRequest>,
 ) -> Result<Json<OpenResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -311,6 +323,8 @@ pub async fn open_file(
     }))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn list_buckets(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<BucketInfo>>, (StatusCode, Json<serde_json::Value>)> {
@@ -342,6 +356,8 @@ pub async fn list_buckets(
     Ok(Json(buckets))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn list_files(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListQuery>,
@@ -419,37 +435,8 @@ pub async fn list_files(
                         }
                     }
                 }
+            }
 
-                if let Some(contents) = result.contents {
-                    for object in contents {
-                        if let Some(key) = object.key {
-                            if !key.ends_with('/') {
-                                let name = key.split('/').next_back().unwrap_or(&key).to_string();
-                                items.push(FileItem {
-                                    name,
-                                    path: key.clone(),
-                                    is_dir: false,
-                                    size: object.size,
-                                    modified: object.last_modified.map(|t| t.to_string()),
-                                    icon: get_file_icon(&key),
-                                    is_kb: false,
-                                    is_public: true,
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-            // Post-process to mark KBs
-            for item in &mut items {
-                if item.is_dir {
-                    if let Some((_, is_public)) = kbs.iter().find(|(name, _)| name == &item.name) {
-                        item.is_kb = true;
-                        item.is_public = *is_public;
-                        item.icon = "🧠".to_string(); // Knowledge icon
-                    }
-                }
-            }
             Ok(items)
         } else {
             Ok(vec![])
@@ -462,279 +449,8 @@ pub async fn list_files(
     }
 }
 
-#[cfg(feature = "console")]
-pub fn convert_tree_to_items(tree: &FileTree) -> Vec<FileItem> {
-    let mut items = Vec::new();
-
-    for (display_name, node) in tree.get_items() {
-        match node {
-            crate::console::file_tree::TreeNode::Bucket { name } => {
-                if !name.is_empty() {
-                    items.push(FileItem {
-                        name: display_name.clone(),
-                        path: format!("/{}", name),
-                        is_dir: true,
-                        size: None,
-                        modified: None,
-                        icon: if name.to_ascii_lowercase().ends_with(".gbai") {
-                            "".to_string()
-                        } else {
-                            "📦".to_string()
-                        },
-                    });
-                }
-            }
-            crate::console::file_tree::TreeNode::Folder { bucket, path } => {
-                let folder_name = path.split('/').next_back().unwrap_or(&display_name);
-                items.push(FileItem {
-                    name: folder_name.to_string(),
-                    path: format!("/{}/{}", bucket, path),
-                    is_dir: true,
-                    size: None,
-                    modified: None,
-                    icon: "📁".to_string(),
-                });
-            }
-            crate::console::file_tree::TreeNode::File { bucket, path } => {
-                let file_name = path.split('/').next_back().unwrap_or(&display_name);
-                items.push(FileItem {
-                    name: file_name.to_string(),
-                    path: format!("/{}/{}", bucket, path),
-                    is_dir: false,
-                    size: None,
-                    modified: None,
-                    icon: "📄".to_string(),
-                });
-            }
-        }
-    }
-
-    items
-}
-
-pub async fn read_file(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<ReadRequest>,
-) -> Result<Json<ReadResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let s3_client = state.drive.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            Json(serde_json::json!({ "error": "S3 service not available" })),
-        )
-    })?;
-
-    let result = s3_client
-        .get_object()
-        .bucket(&req.bucket)
-        .key(&req.path)
-        .send()
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": format!("Failed to read file: {}", e) })),
-            )
-        })?;
-
-    let bytes = result
-        .body
-        .collect()
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": format!("Failed to read file body: {}", e) })),
-            )
-        })?
-        .into_bytes();
-
-    let content = String::from_utf8(bytes.to_vec()).map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": format!("File is not valid UTF-8: {}", e) })),
-        )
-    })?;
-
-    Ok(Json(ReadResponse { content }))
-}
-
-pub async fn write_file(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<WriteRequest>,
-) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    tracing::debug!(
-        "write_file called: bucket={}, path={}, content_len={}",
-        req.bucket,
-        req.path,
-        req.content.len()
-    );
-
-    let s3_client = state.drive.as_ref().ok_or_else(|| {
-        tracing::error!("S3 client not available for write_file");
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            Json(serde_json::json!({ "error": "S3 service not available" })),
-        )
-    })?;
-
-    // Try to decode as base64, otherwise use content directly
-    // Base64 content from file uploads won't have whitespace/newlines at start
-    // and will only contain valid base64 characters
-    let is_base64 = is_likely_base64(&req.content);
-    tracing::debug!("Content detected as base64: {}", is_base64);
-
-    let body_bytes: Vec<u8> = if is_base64 {
-        match BASE64.decode(&req.content) {
-            Ok(decoded) => {
-                tracing::debug!("Base64 decoded successfully, size: {} bytes", decoded.len());
-                decoded
-            }
-            Err(e) => {
-                tracing::warn!("Base64 decode failed ({}), using raw content", e);
-                req.content.clone().into_bytes()
-            }
-        }
-    } else {
-        req.content.into_bytes()
-    };
-
-    let sanitized_path = req.path
-        .replace("//", "/")
-        .trim_start_matches('/')
-        .to_string();
-
-    tracing::debug!("Writing {} bytes to {}/{}", body_bytes.len(), req.bucket, sanitized_path);
-
-    s3_client
-        .put_object()
-        .bucket(&req.bucket)
-        .key(&sanitized_path)
-        .body(body_bytes.into())
-        .send()
-        .await
-        .map_err(|e| {
-            tracing::error!("S3 put_object failed: {:?}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": format!("Failed to write file: {}", e) })),
-            )
-        })?;
-
-    tracing::info!("File written successfully: {}/{}", req.bucket, sanitized_path);
-    Ok(Json(SuccessResponse {
-        success: true,
-        message: Some("File written successfully".to_string()),
-    }))
-}
-
-/// Check if a string is likely base64 encoded content (from file upload)
-/// Base64 from DataURL will be pure base64 without newlines at start
-fn is_likely_base64(s: &str) -> bool {
-    // Empty or very short strings are not base64 uploads
-    if s.len() < 20 {
-        return false;
-    }
-
-    // If it starts with common text patterns, it's not base64
-    let trimmed = s.trim_start();
-    if trimmed.starts_with('#')      // Markdown, shell scripts
-        || trimmed.starts_with("//")  // Comments
-        || trimmed.starts_with("/*")  // C-style comments
-        || trimmed.starts_with('{')   // JSON
-        || trimmed.starts_with('[')   // JSON array
-        || trimmed.starts_with('<')   // XML/HTML
-        || trimmed.starts_with("<!")  // HTML doctype
-        || trimmed.starts_with("function") // JavaScript
-        || trimmed.starts_with("const ")   // JavaScript
-        || trimmed.starts_with("let ")     // JavaScript
-        || trimmed.starts_with("var ")     // JavaScript
-        || trimmed.starts_with("import ")  // Various languages
-        || trimmed.starts_with("from ")    // Python
-        || trimmed.starts_with("def ")     // Python
-        || trimmed.starts_with("class ")   // Various languages
-        || trimmed.starts_with("pub ")     // Rust
-        || trimmed.starts_with("use ")     // Rust
-        || trimmed.starts_with("mod ")     // Rust
-    {
-        return false;
-    }
-
-    // Check if string contains only valid base64 characters
-    // and try to decode it
-    let base64_chars = s.chars().all(|c| {
-        c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='
-    });
-
-    if !base64_chars {
-        return false;
-    }
-
-    // Final check: try to decode and see if it works
-    BASE64.decode(s).is_ok()
-}
-
-pub async fn delete_file(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<DeleteRequest>,
-) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let s3_client = state.drive.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            Json(serde_json::json!({ "error": "S3 service not available" })),
-        )
-    })?;
-
-    if req.path.ends_with('/') {
-        let result = s3_client
-            .list_objects_v2()
-            .bucket(&req.bucket)
-            .prefix(&req.path)
-            .send()
-            .await
-            .map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": format!("Failed to list objects for deletion: {}", e) })),
-                )
-            })?;
-
-        for obj in result.contents() {
-            if let Some(key) = obj.key() {
-                s3_client
-                    .delete_object()
-                    .bucket(&req.bucket)
-                    .key(key)
-                    .send()
-                    .await
-                    .map_err(|e| {
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            Json(serde_json::json!({ "error": format!("Failed to delete object: {}", e) })),
-                        )
-                    })?;
-            }
-        }
-    } else {
-        s3_client
-            .delete_object()
-            .bucket(&req.bucket)
-            .key(&req.path)
-            .send()
-            .await
-            .map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": format!("Failed to delete file: {}", e) })),
-                )
-            })?;
-    }
-
-    Ok(Json(SuccessResponse {
-        success: true,
-        message: Some("Deleted successfully".to_string()),
-    }))
-}
-
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn create_folder(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateFolderRequest>,
@@ -788,6 +504,8 @@ fn get_file_icon(path: &str) -> String {
     }
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn copy_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CopyRequest>,
@@ -821,6 +539,8 @@ pub async fn copy_file(
     }))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn move_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<MoveRequest>,
@@ -869,13 +589,17 @@ pub async fn move_file(
     }))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn upload_file_to_drive(
     State(state): State<Arc<AppState>>,
     Json(req): Json<WriteRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    write_file(State(state), Json(req)).await
+    write_file(State(state), Json(req))    .await
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn download_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<DownloadRequest>,
@@ -890,6 +614,8 @@ pub async fn download_file(
     .await
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn list_folder_contents(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ReadRequest>,
@@ -904,6 +630,8 @@ pub async fn list_folder_contents(
     .await
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn search_files(
     State(state): State<Arc<AppState>>,
     Query(params): Query<SearchQuery>,
@@ -984,6 +712,8 @@ pub async fn search_files(
     Ok(Json(all_items))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn recent_files(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListQuery>,
@@ -1047,12 +777,16 @@ pub async fn recent_files(
     Ok(Json(all_items))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn list_favorites(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(Vec::new()))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn share_folder(
     State(_state): State<Arc<AppState>>,
     Json(_req): Json<ShareRequest>,
@@ -1072,12 +806,15 @@ pub async fn share_folder(
     }))
 }
 
+#[cfg(feature = "drive")]
 pub async fn list_shared(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(Vec::new()))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn get_permissions(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<ReadRequest>,
@@ -1095,6 +832,8 @@ pub async fn get_permissions(
     })))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn get_quota(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<QuotaResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -1151,6 +890,7 @@ pub async fn get_quota(
     }))
 }
 
+#[cfg(feature = "drive")]
 pub async fn sync_status(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SyncStatus>, (StatusCode, Json<serde_json::Value>)> {
@@ -1166,6 +906,8 @@ pub async fn sync_status(
     }))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn start_sync(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -1175,6 +917,8 @@ pub async fn start_sync(
     }))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn stop_sync(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -1184,6 +928,8 @@ pub async fn stop_sync(
     }))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn list_versions(
     State(state): State<Arc<AppState>>,
     Query(params): Query<VersionsQuery>,
@@ -1236,6 +982,8 @@ pub async fn list_versions(
     }))
 }
 
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 pub async fn restore_version(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RestoreRequest>,
