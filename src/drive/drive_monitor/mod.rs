@@ -7,7 +7,6 @@ use crate::core::kb::KnowledgeBaseManager;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::core::shared::message_types::MessageType;
 use crate::core::shared::state::AppState;
-#![cfg_attr(not(feature = "drive"), allow(dead_code))]
 
 #[cfg(feature = "drive")]
 use aws_sdk_s3::Client;

@@ -160,6 +160,7 @@ pub async fn get_from_bucket(
     }
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
     let bot_name: String = {
+        use crate::core::shared::models::schema::bots::dsl::*;
         let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
         bots.filter(id.eq(&bot_id))
             .select(name)

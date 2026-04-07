@@ -499,7 +499,7 @@ use std::sync::Arc;
 
 
 pub async fn upload_media_handler(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(request): Json<MediaUploadRequest>,
 ) -> impl IntoResponse {
     #[cfg(feature = "drive")]
@@ -519,7 +519,7 @@ pub async fn upload_media_handler(
 
 
 pub async fn download_media_handler(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(media_id): Path<String>,
 ) -> impl IntoResponse {
     #[cfg(feature = "drive")]
@@ -548,7 +548,7 @@ pub async fn download_media_handler(
 
 
 pub async fn generate_thumbnail_handler(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(media_id): Path<String>,
 ) -> impl IntoResponse {
     #[cfg(feature = "drive")]
@@ -576,7 +576,7 @@ pub async fn generate_thumbnail_handler(
 
 
 pub async fn web_search_handler(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     let query = payload.get("query").and_then(|q| q.as_str()).unwrap_or("");
