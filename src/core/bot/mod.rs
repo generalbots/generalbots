@@ -40,6 +40,8 @@ use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+#[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
 use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
@@ -102,6 +104,7 @@ pub fn get_bot_id_by_name(conn: &mut PgConnection, bot_name: &str) -> Result<Uui
 #[derive(Debug)]
 pub struct BotOrchestrator {
     pub state: Arc<AppState>,
+    #[cfg(feature = "drive")]
     pub mounted_bots: Arc<AsyncMutex<HashMap<String, Arc<DriveMonitor>>>>,
 }
 
@@ -232,6 +235,7 @@ impl BotOrchestrator {
     pub fn new(state: Arc<AppState>) -> Self {
         Self {
             state,
+            #[cfg(feature = "drive")]
             mounted_bots: Arc::new(AsyncMutex::new(HashMap::new())),
         }
     }

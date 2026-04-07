@@ -230,20 +230,32 @@ pub async fn run_axum_server(
                 }
             };
             
-            // Create session if it doesn't exist
-            let _ = {
+            // Check if session already exists and reuse it
+            let mut final_session_id = session_id.clone();
+            {
                 let mut sm = state.session_manager.lock().await;
                 sm.get_or_create_anonymous_user(Some(user_uuid)).ok();
-                sm.create_session(user_uuid, bot_id, "Anonymous Chat").ok()
-            };
+                
+                // Get or create session with the specified ID
+                let session = sm.get_or_create_session_by_id(
+                    session_uuid,
+                    user_uuid,
+                    bot_id,
+                    "Anonymous Chat"
+                );
+                
+                if let Ok(sess) = session {
+                    final_session_id = sess.id.to_string();
+                }
+            }
             
-            info!("Anonymous auth for bot: {}, session: {}", bot_name, session_id);
+            info!("Anonymous auth for bot: {}, session: {}", bot_name, final_session_id);
             
             (
                 axum::http::StatusCode::OK,
                 Json(serde_json::json!({
                     "user_id": user_id,
-                    "session_id": session_id,
+                    "session_id": final_session_id,
                     "bot_name": bot_name,
                     "status": "anonymous"
                 })),

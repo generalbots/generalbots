@@ -1,6 +1,7 @@
-use crate::core::config::DriveConfig;
 use crate::core::secrets::SecretsManager;
 use anyhow::{Context, Result};
+#[cfg(feature = "drive")]
+use crate::core::config::DriveConfig;
 #[cfg(feature = "drive")]
 use aws_config::retry::RetryConfig;
 #[cfg(feature = "drive")]

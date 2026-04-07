@@ -337,7 +337,10 @@ async fn send_file_with_caption_to_recipient(
             send_whatsapp_file(state, user, &recipient_id, file_data, caption).await?;
         }
         "instagram" => {
+            #[cfg(feature = "drive")]
             send_instagram_file(state, user, &recipient_id, file_data, caption).await?;
+            #[cfg(not(feature = "drive"))]
+            return Err("Drive feature not enabled".into());
         }
         "teams" => {
             send_teams_file(state, user, &recipient_id, file_data, caption).await?;
@@ -500,6 +503,7 @@ async fn send_whatsapp_file(
     Ok(())
 }
 
+#[cfg(feature = "drive")]
 async fn send_instagram_file(
     state: Arc<AppState>,
     user: &UserSession,

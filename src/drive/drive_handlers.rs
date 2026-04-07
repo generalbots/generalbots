@@ -1,304 +1,122 @@
-// Drive HTTP handlers implementation using S3
-// Extracted from drive/mod.rs and using aws-sdk-s3
+// Drive HTTP handlers - stub for when drive feature is disabled
+#[cfg(not(feature = "drive"))]
 
 use crate::core::shared::state::AppState;
 use crate::drive::drive_types::*;
 use axum::{
     extract::{Path, State},
-    http::{header, StatusCode},
-    response::{IntoResponse, Json, Response},
-    body::Body,
+    http::StatusCode,
+    response::Json,
 };
-use aws_sdk_s3::primitives::ByteStream;
-use chrono::Utc;
-use std::collections::HashMap;
 use std::sync::Arc;
 
-
-// Import ReadResponse from parent mod if not in drive_types
-use super::ReadResponse; 
-
-/// Open a file (get metadata)
 pub async fn open_file(
-    State(state): State<Arc<AppState>>,
-    Path(file_id): Path<String>,
+    State(_): State<Arc<AppState>>,
+    Path(_file_id): Path<String>,
 ) -> Result<Json<FileItem>, (StatusCode, Json<serde_json::Value>)> {
-    read_metadata(state, file_id).await
-}
-
-/// Helper to get file metadata
-async fn read_metadata(
-    state: Arc<AppState>,
-    file_id: String,
-) -> Result<Json<FileItem>, (StatusCode, Json<serde_json::Value>)> {
-    let client = state.drive.as_ref().ok_or((
+    Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        Json(serde_json::json!({"error": "Drive not configured"})),
-    ))?;
-    let bucket = &state.bucket_name;
-
-    let resp = client.head_object()
-        .bucket(bucket)
-        .key(&file_id)
-        .send()
-        .await
-        .map_err(|e| (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": e.to_string()}))))?;
-
-    let item = FileItem {
-        id: file_id.clone(),
-        name: file_id.split('/').next_back().unwrap_or(&file_id).to_string(),
-        file_type: if file_id.ends_with('/') { "folder".to_string() } else { "file".to_string() },
-        size: resp.content_length.unwrap_or(0),
-        mime_type: resp.content_type.unwrap_or_else(|| "application/octet-stream".to_string()),
-        created_at: Utc::now(), // S3 doesn't track creation time easily
-        modified_at: Utc::now(), // Simplified
-        parent_id: None,
-        url: None,
-        thumbnail_url: None,
-        is_favorite: false, // Not implemented in S3
-        tags: vec![],
-        metadata: HashMap::new(),
-    };
-    Ok(Json(item))
+        Json(serde_json::json!({"error": "Drive feature not enabled"})),
+    ))
 }
 
-/// List all buckets (or configured one)
 pub async fn list_buckets(
-    State(state): State<Arc<AppState>>,
+    State(_): State<Arc<AppState>>,
 ) -> Result<Json<Vec<BucketInfo>>, (StatusCode, Json<serde_json::Value>)> {
-    let client = state.drive.as_ref().ok_or((
+    Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        Json(serde_json::json!({"error": "Drive not configured"})),
-    ))?;
-
-    match client.list_buckets().send().await {
-        Ok(resp) => {
-            let buckets = resp.buckets.unwrap_or_default().iter().map(|b| {
-                BucketInfo {
-                    id: b.name.clone().unwrap_or_default(),
-                    name: b.name.clone().unwrap_or_default(),
-                    created_at: Utc::now(),
-                    file_count: 0,
-                    total_size: 0,
-                }
-            }).collect();
-            Ok(Json(buckets))
-        },
-        Err(_) => {
-            // Fallback
-            Ok(Json(vec![BucketInfo {
-                id: state.bucket_name.clone(),
-                name: state.bucket_name.clone(),
-                created_at: Utc::now(),
-                file_count: 0,
-                total_size: 0,
-            }]))
-        }
-    }
+        Json(serde_json::json!({"error": "Drive feature not enabled"})),
+    ))
 }
 
-/// List files in a bucket
 pub async fn list_files(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<SearchQuery>,
+    State(_): State<Arc<AppState>>,
+    Json(_req): Json<SearchQuery>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let client = state.drive.as_ref().ok_or((
+    Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        Json(serde_json::json!({"error": "Drive not configured"})),
-    ))?;
-    let bucket = req.bucket.clone().unwrap_or_else(|| state.bucket_name.clone());
-    let prefix = req.parent_path.clone().unwrap_or_default();
-
-    let resp = client.list_objects_v2()
-        .bucket(&bucket)
-        .prefix(&prefix)
-        .send()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?;
-
-    let files = resp.contents.unwrap_or_default().iter().map(|obj| {
-        let key = obj.key().unwrap_or_default();
-        let name = key.split('/').next_back().unwrap_or(key).to_string();
-        FileItem {
-            id: key.to_string(),
-            name,
-            file_type: if key.ends_with('/') { "folder".to_string() } else { "file".to_string() },
-            size: obj.size.unwrap_or(0),
-            mime_type: "application/octet-stream".to_string(),
-            created_at: Utc::now(),
-            modified_at: Utc::now(),
-            parent_id: Some(prefix.clone()),
-            url: None,
-            thumbnail_url: None,
-            is_favorite: false,
-            tags: vec![],
-            metadata: HashMap::new(),
-        }
-    }).collect();
-
-    Ok(Json(files))
+        Json(serde_json::json!({"error": "Drive feature not enabled"})),
+    ))
 }
 
-/// Read file content (as text)
 pub async fn read_file(
-    State(state): State<Arc<AppState>>,
-    Path(file_id): Path<String>,
-) -> Result<Json<ReadResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let client = state.drive.as_ref().ok_or((
+    State(_): State<Arc<AppState>>,
+    Path(_file_id): Path<String>,
+) -> Result<Json<super::ReadResponse>, (StatusCode, Json<serde_json::Value>)> {
+    Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        Json(serde_json::json!({"error": "Drive not configured"})),
-    ))?;
-    let bucket = &state.bucket_name;
-
-    let resp = client.get_object()
-        .bucket(bucket)
-        .key(&file_id)
-        .send()
-        .await
-        .map_err(|e| (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": e.to_string()}))))?;
-
-    let data = resp.body.collect().await.map_err(|e| 
-        (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))
-    )?.into_bytes();
-
-    let content = String::from_utf8(data.to_vec()).unwrap_or_else(|_| "[Binary Content]".to_string());
-
-    Ok(Json(ReadResponse { content }))
+        Json(serde_json::json!({"error": "Drive feature not enabled"})),
+    ))
 }
 
-/// Write file content
 pub async fn write_file(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<WriteRequest>,
+    State(_): State<Arc<AppState>>,
+    Json(_req): Json<WriteRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let client = state.drive.as_ref().ok_or((
+    Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        Json(serde_json::json!({"error": "Drive not configured"})),
-    ))?;
-    let bucket = &state.bucket_name;
-    let key = req.file_id.ok_or((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Missing file_id"}))))?;
-
-    client.put_object()
-        .bucket(bucket)
-        .key(&key)
-        .body(ByteStream::from(req.content.into_bytes()))
-        .send()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?;
-
-    log::info!("User system created resource: drive_file {}", key);
-
-    Ok(Json(serde_json::json!({"success": true})))
+        Json(serde_json::json!({"error": "Drive feature not enabled"})),
+    ))
 }
 
-/// Delete a file
 pub async fn delete_file(
-    State(state): State<Arc<AppState>>,
-    Path(file_id): Path<String>,
+    State(_): State<Arc<AppState>>,
+    Path(_file_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let client = state.drive.as_ref().ok_or((
+    Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        Json(serde_json::json!({"error": "Drive not configured"})),
-    ))?;
-    let bucket = &state.bucket_name;
-
-    client.delete_object()
-        .bucket(bucket)
-        .key(&file_id)
-        .send()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?;
-
-    // Technically a deletion, but we could log it as an audit change or leave it out
-    // The plan specifies resource creation: `info!("User {} created resource: {}", user_id, resource_id);`
-    log::info!("User system deleted resource: drive_file {}", file_id);
-
-    Ok(Json(serde_json::json!({"success": true})))
+        Json(serde_json::json!({"error": "Drive feature not enabled"})),
+    ))
 }
 
-/// Create a folder
 pub async fn create_folder(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateFolderRequest>,
+    State(_): State<Arc<AppState>>,
+    Json(_req): Json<CreateFolderRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let client = state.drive.as_ref().ok_or((
+    Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        Json(serde_json::json!({"error": "Drive not configured"})),
-    ))?;
-    let bucket = &state.bucket_name;
-    
-    // Construct folder path/key
-    let mut key = req.parent_id.unwrap_or_default();
-    if !key.ends_with('/') && !key.is_empty() {
-        key.push('/');
-    }
-    key.push_str(&req.name);
-    if !key.ends_with('/') {
-        key.push('/');
-    }
-
-    client.put_object()
-        .bucket(bucket)
-        .key(&key)
-        .body(ByteStream::from_static(&[]))
-        .send()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?;
-
-    log::info!("User system created resource: drive_folder {}", key);
-
-    Ok(Json(serde_json::json!({"success": true})))
+        Json(serde_json::json!({"error": "Drive feature not enabled"})),
+    ))
 }
 
-/// Download file (stream)
 pub async fn download_file(
-    State(state): State<Arc<AppState>>,
-    Path(file_id): Path<String>,
-) -> Result<Response, (StatusCode, Json<serde_json::Value>)> {
-    let client = state.drive.as_ref().ok_or((
+    State(_): State<Arc<AppState>>,
+    Path(_file_id): Path<String>,
+) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
+    Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        Json(serde_json::json!({"error": "Drive not configured"})),
-    ))?;
-    let bucket = &state.bucket_name;
-
-    let resp = client.get_object()
-        .bucket(bucket)
-        .key(&file_id)
-        .send()
-        .await
-        .map_err(|e| (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": e.to_string()}))))?;
-
-    let body = resp.body.collect().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?.into_bytes();
-
-    Response::builder()
-        .header(header::CONTENT_TYPE, "application/octet-stream")
-        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{}\"", file_id.split('/').next_back().unwrap_or("file")))
-        .body(Body::from(body))
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))
+        Json(serde_json::json!({"error": "Drive feature not enabled"})),
+    ))
 }
 
-// Stubs for others (list_shared, etc.)
-pub async fn copy_file(State(_): State<Arc<AppState>>, Json(_): Json<CopyFileRequest>) -> impl IntoResponse {
-    (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({"error": "Not implemented"})))
+pub async fn copy_file(State(_): State<Arc<AppState>>, Json(_): Json<CopyFileRequest>) -> impl axum::response::IntoResponse {
+    (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error": "Drive feature not enabled"})))
 }
-pub async fn upload_file_to_drive(State(_): State<Arc<AppState>>, Json(_): Json<UploadRequest>) -> impl IntoResponse {
-    (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({"error": "Not implemented"})))
+
+pub async fn upload_file_to_drive(State(_): State<Arc<AppState>>, Json(_): Json<UploadRequest>) -> impl axum::response::IntoResponse {
+    (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error": "Drive feature not enabled"})))
 }
-pub async fn list_folder_contents(State(_): State<Arc<AppState>>, Json(_): Json<SearchQuery>) -> impl IntoResponse {
-    (StatusCode::OK, Json(Vec::<FileItem>::new()))
+
+pub async fn list_folder_contents(State(_): State<Arc<AppState>>, Json(_): Json<SearchQuery>) -> impl axum::response::IntoResponse {
+    (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error": "Drive feature not enabled"})))
 }
-pub async fn search_files(State(_): State<Arc<AppState>>, Json(_): Json<SearchQuery>) -> impl IntoResponse {
-    (StatusCode::OK, Json(Vec::<FileItem>::new()))
+
+pub async fn search_files(State(_): State<Arc<AppState>>, Json(_): Json<SearchQuery>) -> impl axum::response::IntoResponse {
+    (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error": "Drive feature not enabled"})))
 }
-pub async fn recent_files(State(_): State<Arc<AppState>>) -> impl IntoResponse {
-    (StatusCode::OK, Json(Vec::<FileItem>::new()))
+
+pub async fn recent_files(State(_): State<Arc<AppState>>) -> impl axum::response::IntoResponse {
+    (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error": "Drive feature not enabled"})))
 }
-pub async fn list_favorites(State(_): State<Arc<AppState>>) -> impl IntoResponse {
-    (StatusCode::OK, Json(Vec::<FileItem>::new()))
+
+pub async fn list_favorites(State(_): State<Arc<AppState>>) -> impl axum::response::IntoResponse {
+    (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error": "Drive feature not enabled"})))
 }
-pub async fn share_folder(State(_): State<Arc<AppState>>, Json(_): Json<ShareRequest>) -> impl IntoResponse {
-    (StatusCode::OK, Json(serde_json::json!({"success": true})))
+
+pub async fn share_folder(State(_): State<Arc<AppState>>, Json(_): Json<ShareRequest>) -> impl axum::response::IntoResponse {
+    (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error": "Drive feature not enabled"})))
 }
-pub async fn list_shared(State(_): State<Arc<AppState>>) -> impl IntoResponse {
-    (StatusCode::OK, Json(Vec::<FileItem>::new()))
+
+pub async fn list_shared(State(_): State<Arc<AppState>>) -> impl axum::response::IntoResponse {
+    (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error": "Drive feature not enabled"})))
 }

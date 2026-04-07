@@ -1,7 +1,5 @@
-use crate::core::shared::models::schema::bots::dsl::*;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
-use diesel::prelude::*;
 use log::{error, trace};
 use reqwest::{self, Client};
 use rhai::{Dynamic, Engine};
@@ -149,6 +147,8 @@ pub async fn execute_get(url: &str) -> Result<String, Box<dyn Error + Send + Syn
     );
     Ok(content)
 }
+
+#[cfg(feature = "drive")]
 pub async fn get_from_bucket(
     state: &AppState,
     file_path: &str,
@@ -202,12 +202,17 @@ pub async fn get_from_bucket(
         }
     };
     let content = if file_path.to_ascii_lowercase().ends_with(".pdf") {
+        #[cfg(feature = "drive")]
         match pdf_extract::extract_text_from_mem(&bytes) {
             Ok(text) => text,
             Err(e) => {
                 error!("PDF extraction failed: {}", e);
                 return Err(format!("PDF extraction failed: {}", e).into());
             }
+        }
+        #[cfg(not(feature = "drive"))]
+        {
+            return Err("PDF extraction requires drive feature".into());
         }
     } else {
         match String::from_utf8(bytes) {
@@ -224,4 +229,13 @@ pub async fn get_from_bucket(
         content.len()
     );
     Ok(content)
+}
+
+#[cfg(not(feature = "drive"))]
+pub async fn get_from_bucket(
+    _state: &AppState,
+    _file_path: &str,
+    _bot_id: uuid::Uuid,
+) -> Result<String, Box<dyn Error + Send + Sync>> {
+    Err("S3 drive is not enabled. Configure MinIO to use this feature.".into())
 }

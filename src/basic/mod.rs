@@ -1353,6 +1353,7 @@ impl ScriptService {
                 // - Lines that are part of a continuation block (in_line_continuation is true)
                 if !trimmed.ends_with(';') && !trimmed.ends_with('{') && !trimmed.ends_with('}')
                     && !upper.starts_with("SELECT ") && !upper.starts_with("CASE ") && upper != "END SELECT"
+                    && !upper.starts_with("WHILE ") && !upper.starts_with("WEND")
                     && !ends_with_comma && !in_line_continuation {
                     result.push(';');
                 }
@@ -1793,6 +1794,9 @@ impl ScriptService {
             "REQUIRED",
             "WEBSITE",
             "MODEL",
+            "DETECT",
+            "LLM",
+            "TALK",
         ];
 
         let _identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").expect("valid regex");

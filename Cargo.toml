@@ -24,7 +24,8 @@ external_sync = ["automation", "drive", "cache"]
 # ===== CORE INFRASTRUCTURE (Can be used standalone) =====
 scripting = ["dep:rhai"]
 automation = ["scripting", "dep:cron"]
-drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract", "dep:notify"]
+drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
+local-files = ["dep:notify"]
 cache = ["dep:redis"]
 directory = ["rbac"]
 rbac = []
@@ -32,7 +33,7 @@ crawler = ["drive", "cache"]
 
 # ===== APPS (Each includes what it needs from core) =====
 # Communication
-chat = ["automation", "drive", "cache"]
+chat = ["automation", "local-files", "cache"]
 people = ["automation", "drive", "cache"]
 mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap"]
 meet = ["automation", "drive", "cache"]
@@ -83,7 +84,7 @@ telegram = ["automation", "drive", "cache"]
 instagram = ["automation", "drive", "cache"]
 msteams = ["automation", "drive", "cache"]
 # Core Tech
-llm = ["automation", "drive", "cache"]
+llm = ["automation", "local-files", "cache"]
 vectordb = ["automation", "drive", "cache", "dep:qdrant-client"]
 nvidia = ["automation", "drive", "cache"]
 compliance = ["automation", "drive", "cache", "dep:csv"]
@@ -96,7 +97,7 @@ console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
 
 # ===== BUNDLES (Optional - for convenience) =====
 minimal = ["chat"]
-minimal-chat = ["chat", "automation", "drive", "cache"]  # No security at all
+minimal-chat = ["chat", "automation", "local-files", "cache"]  # No security at all
 lightweight = ["chat", "tasks", "people"]
 full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
 embed-ui = ["dep:rust-embed"]

@@ -168,12 +168,22 @@ impl SessionManager {
         bid: Uuid,
         session_title: &str,
     ) -> Result<UserSession, Box<dyn Error + Send + Sync>> {
+        self.create_session_with_id(Uuid::new_v4(), uid, bid, session_title)
+    }
+
+    pub fn create_session_with_id(
+        &mut self,
+        session_id: Uuid,
+        uid: Uuid,
+        bid: Uuid,
+        session_title: &str,
+    ) -> Result<UserSession, Box<dyn Error + Send + Sync>> {
         use crate::core::shared::models::user_sessions::dsl::*;
         let verified_uid = self.get_or_create_anonymous_user(Some(uid))?;
         let now = Utc::now();
         let inserted: UserSession = diesel::insert_into(user_sessions)
             .values((
-                id.eq(Uuid::new_v4()),
+                id.eq(session_id),
                 user_id.eq(verified_uid),
                 bot_id.eq(bid),
                 title.eq(session_title),
@@ -192,6 +202,21 @@ impl SessionManager {
         log::info!("User {} created resource: session {}", verified_uid, inserted.id);
         
         Ok(inserted)
+    }
+
+    pub fn get_or_create_session_by_id(
+        &mut self,
+        session_id: Uuid,
+        uid: Uuid,
+        bid: Uuid,
+        session_title: &str,
+    ) -> Result<UserSession, Box<dyn Error + Send + Sync>> {
+        // Check if session already exists
+        if let Ok(Some(existing)) = self.get_session_by_id(session_id) {
+            return Ok(existing);
+        }
+        // Create new session with specified ID
+        self.create_session_with_id(session_id, uid, bid, session_title)
     }
 
     fn _clear_messages(&mut self, _session_id: Uuid) -> Result<(), Box<dyn Error + Send + Sync>> {
