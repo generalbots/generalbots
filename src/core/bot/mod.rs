@@ -277,9 +277,8 @@ impl BotOrchestrator {
             bots_mounted
         );
         log::debug!(
-            "Bot mounting details: {} created, {} already existed",
-            bots_created,
-            bots_mounted - bots_created
+            "Bot mounting details: {} bots mounted",
+            bots_mounted
         );
 
         Ok(())
