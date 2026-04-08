@@ -893,9 +893,12 @@ pub async fn start_background_services(
     #[cfg(feature = "drive")]
     start_drive_monitors(app_state.clone(), pool).await;
 
+    // Local file monitoring only enabled when local-files feature is present
     #[cfg(feature = "local-files")]
     start_local_file_monitor(app_state.clone()).await;
 
+    // ConfigWatcher only enabled when local-files feature is present
+    #[cfg(feature = "local-files")]
     start_config_watcher(app_state.clone()).await;
 }
 
