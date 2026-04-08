@@ -25,8 +25,6 @@ external_sync = ["automation", "drive", "cache"]
 scripting = ["dep:rhai"]
 automation = ["scripting", "dep:cron"]
 drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
-# local-files: Enables local file monitoring (scans /opt/gbo/data for bots)
-# Without this feature, only MinIO/Drive is used as bot source
 local-files = ["dep:notify"]
 cache = ["dep:redis"]
 directory = ["rbac"]
