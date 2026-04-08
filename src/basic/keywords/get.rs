@@ -1,5 +1,6 @@
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
+use diesel::prelude::*;
 use log::{error, trace};
 use reqwest::{self, Client};
 use rhai::{Dynamic, Engine};

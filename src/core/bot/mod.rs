@@ -244,9 +244,6 @@ impl BotOrchestrator {
         info!("Scanning drive for .gbai files to mount bots...");
 
         let mut bots_mounted = 0;
-        let mut bots_created = 0;
-
-        let data_dir = "/opt/gbo/data";
 
         let directories_to_scan: Vec<std::path::PathBuf> = vec![
             self.state
@@ -257,7 +254,6 @@ impl BotOrchestrator {
                 .into(),
             "./templates".into(),
             "../bottemplates".into(),
-            data_dir.into(),
         ];
 
         for dir_path in directories_to_scan {
@@ -268,7 +264,7 @@ impl BotOrchestrator {
                 continue;
             }
 
-            match self.scan_directory(&dir_path, &mut bots_mounted, &mut bots_created) {
+            match self.scan_directory(&dir_path, &mut bots_mounted) {
                 Ok(()) => {}
                 Err(e) => {
                     error!("Failed to scan directory {}: {}", dir_path.display(), e);
@@ -293,7 +289,6 @@ impl BotOrchestrator {
         &self,
         dir_path: &std::path::Path,
         bots_mounted: &mut i32,
-        bots_created: &mut i32,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let entries =
             std::fs::read_dir(dir_path).map_err(|e| format!("Failed to read directory: {}", e))?;
@@ -314,20 +309,7 @@ impl BotOrchestrator {
                     *bots_mounted += 1;
                 }
                 Ok(false) => {
-                    // Auto-create bots found in /opt/gbo/data
-                    if dir_path.to_string_lossy().contains("/data") {
-                        info!("Auto-creating bot '{}' from /opt/gbo/data", bot_name);
-                        match self.create_bot_simple(bot_name) {
-                            Ok(_) => {
-                                info!("Bot '{}' created successfully", bot_name);
-                                *bots_created += 1;
-                                *bots_mounted += 1;
-                            }
-                            Err(e) => {
-                                error!("Failed to create bot '{}': {}", bot_name, e);
-                            }
-                        }
-                    } else {
+                    {
                         info!(
                             "Bot '{}' does not exist in database, skipping (run import to create)",
                             bot_name
@@ -372,69 +354,6 @@ impl BotOrchestrator {
         Ok(exists.exists)
     }
 
-    fn create_bot_simple(&self, bot_name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        use diesel::sql_query;
-        use uuid::Uuid;
-
-        let mut conn = self
-            .state
-            .conn
-            .get()
-            .map_err(|e| format!("Failed to get database connection: {e}"))?;
-
-        // Check if bot already exists
-        let exists = self.ensure_bot_exists(bot_name)?;
-        if exists {
-            info!("Bot '{}' already exists, skipping creation", bot_name);
-            return Ok(());
-        }
-
-        // Ensure default tenant exists
-        sql_query(
-            "INSERT INTO tenants (id, name, slug, created_at) \
-             VALUES ('00000000-0000-0000-0000-000000000001', 'Default Tenant', 'default', NOW()) \
-             ON CONFLICT (slug) DO NOTHING"
-        )
-        .execute(&mut conn)
-        .ok();
-
-        // Ensure default organization exists (with default slug or use existing)
-        sql_query(
-            "INSERT INTO organizations (org_id, tenant_id, name, slug, created_at) \
-             VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Default Organization', 'default', NOW()) \
-             ON CONFLICT (slug) DO NOTHING"
-        )
-        .execute(&mut conn)
-        .ok();
-
-        // Get default organization by slug
-        #[derive(diesel::QueryableByName)]
-        #[diesel(check_for_backend(diesel::pg::Pg))]
-        struct OrgResult {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            org_id: uuid::Uuid,
-        }
-
-        let org_result: OrgResult = sql_query("SELECT org_id FROM organizations WHERE slug = 'default' LIMIT 1")
-            .get_result(&mut conn)
-            .map_err(|e| format!("Failed to get default organization: {e}"))?;
-        let org_id = org_result.org_id.to_string();
-
-        let bot_id = Uuid::new_v4();
-
-        sql_query(
-            "INSERT INTO bots (id, org_id, name, llm_provider, context_provider, is_active, created_at, updated_at)
-             VALUES ($1, $2::uuid, $3, 'openai', 'website', true, NOW(), NOW())"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(bot_id)
-        .bind::<diesel::sql_types::Text, _>(org_id.clone())
-        .bind::<diesel::sql_types::Text, _>(bot_name)
-        .execute(&mut conn)
-        .map_err(|e| format!("Failed to create bot: {e}"))?;
-
-        info!("User system created resource: bot {} with org_id {}", bot_id, org_id);
-        Ok(())
-    }
 
     #[cfg(feature = "llm")]
     pub async fn stream_response(
@@ -671,9 +590,9 @@ impl BotOrchestrator {
             };
 
             if should_execute_start_bas {
-                // Always execute start.bas for this session (blocking - wait for completion)
-                let data_dir = "/opt/gbo/data";
-                let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name_for_context, bot_name_for_context);
+                // Execute start.bas from work directory
+                let work_path = crate::core::shared::utils::get_work_path();
+                let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", work_path, bot_name_for_context, bot_name_for_context);
 
                 trace!("Executing start.bas for session {} at: {}", actual_session_id, start_script_path);
 
@@ -1451,8 +1370,8 @@ async fn handle_websocket(
             let should_execute_start_bas = true;
 
             if should_execute_start_bas {
-                let data_dir = "/opt/gbo/data";
-                let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", data_dir, bot_name, bot_name);
+                let work_path = crate::core::shared::utils::get_work_path();
+                let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", work_path, bot_name, bot_name);
 
                 info!("Looking for start.bas at: {}", start_script_path);
 

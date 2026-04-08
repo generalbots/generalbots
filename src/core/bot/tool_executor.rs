@@ -2,10 +2,8 @@
 /// Works across all LLM providers (GLM, OpenAI, Claude, etc.)
 use log::{error, info, trace, warn};
 use serde_json::Value;
-// use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -341,28 +339,13 @@ impl ToolExecutor {
 
     /// Get the path to a tool's .bas file
     fn get_tool_bas_path(bot_name: &str, tool_name: &str) -> std::path::PathBuf {
-        // Try source directory first (/opt/gbo/data - primary location for bot source files)
-        let source_path = Path::new("/opt/gbo/data")
-            .join(format!("{}.gbai", bot_name))
-            .join(format!("{}.gbdialog", bot_name))
-            .join(format!("{}.bas", tool_name));
-
-        if source_path.exists() {
-            return source_path;
-        }
-
-        // Try compiled work directory (work relative to stack path)
+        // Use work directory for compiled .bas files
         let work_path = std::path::PathBuf::from(crate::core::shared::utils::get_work_path())
             .join(format!("{}.gbai", bot_name))
             .join(format!("{}.gbdialog", bot_name))
             .join(format!("{}.bas", tool_name));
 
-        if work_path.exists() {
-            return work_path;
-        }
-
-        // Fallback to source path for error messages (even if it doesn't exist)
-        source_path
+        work_path
     }
 
     /// Execute a tool directly by name (without going through LLM)

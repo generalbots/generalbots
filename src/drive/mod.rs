@@ -15,8 +15,6 @@ use axum::{
     Router,
 };
 
-#[cfg(feature = "drive")]
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 
 #[cfg(feature = "drive")]
 use diesel::{QueryableByName, RunQueryDsl};
@@ -325,7 +323,6 @@ pub async fn open_file(
 }
 
 #[cfg(feature = "drive")]
-#[cfg(feature = "drive")]
 pub async fn list_buckets(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<BucketInfo>>, (StatusCode, Json<serde_json::Value>)> {
@@ -347,11 +344,19 @@ pub async fn list_buckets(
         .buckets()
         .iter()
         .filter_map(|b| {
-            b.name().map(|name| BucketInfo {
-                name: name.to_string(),
-                is_gbai: name.to_lowercase().ends_with(".gbai"),
+            b.name().map(|name| {
+                let name_str = name.to_string();
+                // Only include buckets that start with "gbo-"
+                if !name_str.starts_with("gbo-") {
+                    return None;
+                }
+                Some(BucketInfo {
+                    name: name_str,
+                    is_gbai: name.to_lowercase().ends_with(".gbai"),
+                })
             })
         })
+        .flatten()
         .collect();
 
     Ok(Json(buckets))
@@ -374,30 +379,6 @@ pub async fn list_files(
         if let Some(bucket) = &params.bucket {
             let mut items = Vec::new();
             let prefix = params.path.as_deref().unwrap_or("");
-
-            let kbs: Vec<(String, bool)> = {
-                let conn = state.conn.clone();
-                let kbs_result = tokio::task::spawn_blocking(move || -> Result<Vec<(String, bool)>, String> {
-                    #[derive(QueryableByName)]
-                    struct KbRow {
-                        #[diesel(sql_type = diesel::sql_types::Text)]
-                        name: String,
-                        #[diesel(sql_type = diesel::sql_types::Bool)]
-                        is_public: bool,
-                    }
-                    let mut db_conn = conn.get().map_err(|e| e.to_string())?;
-                    let rows: Vec<KbRow> = diesel::sql_query(
-                        "SELECT name, COALESCE(is_public, false) as is_public FROM kb_collections"
-                    )
-                    .load(&mut db_conn)
-.map_err(|e: diesel::result::Error| e.to_string())?;
-                    Ok(rows.into_iter().map(|r| (r.name, r.is_public)).collect())
-                }).await;
-                match kbs_result {
-                    Ok(Ok(kbs)) => kbs,
-                    _ => vec![],
-                }
-            };
 
             let paginator = s3_client
                 .list_objects_v2()

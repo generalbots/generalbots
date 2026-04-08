@@ -802,9 +802,10 @@ impl BasicCompiler {
 
         // Find the tables.bas file in the bot's data directory
         let bot_name = self.get_bot_name_by_id(bot_id)?;
+        let work_path = crate::core::shared::utils::get_work_path();
         let tables_path = format!(
-            "/opt/gbo/data/{}.gbai/{}.gbdialog/tables.bas",
-            bot_name, bot_name
+            "{}/{}.gbai/{}.gbdialog/tables.bas",
+            work_path, bot_name, bot_name
         );
 
         let tables_content = fs::read_to_string(&tables_path)?;
@@ -855,9 +856,10 @@ impl BasicCompiler {
         bot_id: uuid::Uuid,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let bot_name = Self::get_bot_name_from_state(state, bot_id)?;
+        let work_path = crate::core::shared::utils::get_work_path();
         let tables_path = format!(
-            "/opt/gbo/data/{}.gbai/{}.gbdialog/tables.bas",
-            bot_name, bot_name
+            "{}/{}.gbai/{}.gbdialog/tables.bas",
+            work_path, bot_name, bot_name
         );
 
         if !Path::new(&tables_path).exists() {
