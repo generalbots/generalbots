@@ -714,6 +714,51 @@ impl DriveMonitor {
                         if csv_content.lines().any(|line| line.starts_with("theme-")) {
                             self.broadcast_theme_change(&csv_content).await?;
                         }
+
+                        // Check for system-prompt-file and download it
+                        let prompt_file_line = csv_content
+                            .lines()
+                            .find(|l| l.trim().starts_with("system-prompt-file,"));
+                        if let Some(line) = prompt_file_line {
+                            let parts: Vec<&str> = line.split(',').collect();
+                            if parts.len() >= 2 {
+                                let prompt_filename = parts[1].trim();
+                                if !prompt_filename.is_empty() {
+                                    // Get prompt file from MinIO
+                                    let prompt_key = format!("salesianos.gbot/{}", prompt_filename);
+                                    if let Ok(prompt_response) = client
+                                        .get_object()
+                                        .bucket(&self.bucket_name)
+                                        .key(&prompt_key)
+                                        .send()
+                                        .await
+                                    {
+                                        let prompt_bytes = prompt_response.body.collect().await?.into_bytes();
+                                        let prompt_content = String::from_utf8(prompt_bytes.to_vec())
+                                            .map_err(|e| format!("UTF-8 error in {}", prompt_filename))?;
+
+                                        // Save to work directory
+                                        let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
+                                        let gbot_dir = self.work_root.join(format!("{}.gbai/{}.gbot", bot_name, bot_name));
+                                        let prompt_path = gbot_dir.join(prompt_filename);
+
+                                        if let Err(e) = tokio::task::spawn_blocking({
+                                            let gbot_dir_str = gbot_dir.to_string_lossy().to_string();
+                                            let prompt_filename_owned = prompt_filename.to_string();
+                                            move || {
+                                                std::fs::create_dir_all(&gbot_dir_str)?;
+                                                std::fs::write(format!("{}/{}", gbot_dir_str, prompt_filename_owned), &prompt_content)?;
+                                                Ok::<(), Box<dyn Error + Send + Sync>>(())
+                                            }
+                                        }).await {
+                                            log::error!("Failed to save prompt file: {}", e);
+                                        } else {
+                                            log::info!("Downloaded {} to work directory", prompt_filename);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     Err(e) => {
                         log::error!("Config file {} not found or inaccessible: {}", path, e);
