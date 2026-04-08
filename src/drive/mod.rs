@@ -345,9 +345,7 @@ pub async fn list_buckets(
         .filter_map(|b| {
             b.name().map(|name| {
                 let name_str = name.to_string();
-                // Only include buckets that start with "gbo-" when local-files is NOT enabled
-                // This ensures only MinIO-sourced bots are used in cloud/gateway mode
-                #[cfg(not(feature = "local-files"))]
+                // Only include buckets that start with "gbo-" (MinIO bot source)
                 if !name_str.starts_with("gbo-") {
                     return None;
                 }
