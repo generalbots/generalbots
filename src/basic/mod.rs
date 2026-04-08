@@ -595,8 +595,9 @@ impl ScriptService {
                   trimmed.starts_with("DESCRIPTION\t") ||
                   trimmed.starts_with("REM ") ||
                   trimmed.starts_with("REM\t") ||
-                  trimmed.starts_with('\'') || // BASIC comment lines
-                  trimmed.starts_with('#') || // Hash comment lines
+                  trimmed == "REM" ||            // bare REM line
+                  trimmed.starts_with('\'') ||   // BASIC comment lines
+                  trimmed.starts_with('#') ||    // Hash comment lines
                   trimmed.is_empty())
             })
             .collect::<Vec<&str>>()
@@ -607,9 +608,6 @@ impl ScriptService {
         // Apply minimal preprocessing for tools (skip variable normalization to avoid breaking multi-line strings)
         let script = preprocess_switch(&executable_script);
         let script = Self::convert_multiword_keywords(&script);
-        // Convert FORMAT(expr, pattern) to FORMAT expr pattern for Rhai space-separated function syntax
-// FORMAT syntax conversion disabled - Rhai supports comma-separated args natively
-        // let script = Self::convert_format_syntax(&script);
         // Skip normalize_variables_to_lowercase for tools - it breaks multi-line strings
 
         trace!("Preprocessed tool script for Rhai compilation");
@@ -617,6 +615,12 @@ impl ScriptService {
         let script = Self::convert_save_for_tools(&script);
         // Convert BEGIN TALK and BEGIN MAIL blocks to single calls
         let script = crate::basic::compiler::blocks::convert_begin_blocks(&script);
+        // Convert WHILE...WEND to Rhai while { } blocks BEFORE if/then conversion
+        let script = Self::convert_while_wend_syntax(&script);
+        // Pre-declare all variables at outer scope so assignments inside blocks work correctly.
+        // In Rhai, a plain `x = val` inside a block updates the outer variable -
+        // but only if `x` was declared outside with `let`.
+        let script = Self::predeclare_variables(&script);
         // Convert IF ... THEN / END IF to if ... { }
         let script = Self::convert_if_then_syntax(&script);
         // Convert SELECT ... CASE / END SELECT to match expressions
@@ -631,6 +635,62 @@ impl ScriptService {
             Ok(ast) => Ok(ast),
             Err(parse_error) => Err(Box::new(parse_error.into())),
         }
+    }
+
+    /// Pre-declare all BASIC variables at the top of the script with `let var = ();`.
+    /// This allows assignments inside loops/if-blocks to update outer-scope variables in Rhai.
+    fn predeclare_variables(script: &str) -> String {
+        use std::collections::BTreeSet;
+        let reserved: std::collections::HashSet<&str> = [
+            "if", "else", "while", "for", "loop", "return", "break", "continue",
+            "let", "fn", "true", "false", "in", "do", "match", "switch", "case",
+            "mod", "and", "or", "not", "rem", "call", "talk", "hear", "save",
+            "insert", "update", "delete", "find", "get", "set", "print",
+        ].iter().cloned().collect();
+
+        let mut vars: BTreeSet<String> = BTreeSet::new();
+
+        for line in script.lines() {
+            let t = line.trim();
+            if t.is_empty() || t.starts_with("//") || t.starts_with('\'') || t.starts_with('#') {
+                continue;
+            }
+            if let Some(eq_pos) = t.find('=') {
+                let before = &t[..eq_pos];
+                let after_char = t.as_bytes().get(eq_pos + 1).copied();
+                let prev_char = if eq_pos > 0 { t.as_bytes().get(eq_pos - 1).copied() } else { None };
+                // Skip ==, !=, <=, >=, +=, -=, *=, /=
+                if after_char == Some(b'=') { continue; }
+                if matches!(prev_char, Some(b'!') | Some(b'<') | Some(b'>') | Some(b'+') | Some(b'-') | Some(b'*') | Some(b'/')) { continue; }
+                let lhs = before.trim();
+                if lhs.is_empty() || lhs.contains(' ') || lhs.contains('"') || lhs.contains('(') || lhs.contains('[') {
+                    continue;
+                }
+                if !lhs.chars().next().is_some_and(|c| c.is_alphabetic() || c == '_') {
+                    continue;
+                }
+                if !lhs.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                    continue;
+                }
+                let lower = lhs.to_lowercase();
+                if reserved.contains(lower.as_str()) {
+                    continue;
+                }
+                vars.insert(lhs.to_string());
+            }
+        }
+
+        if vars.is_empty() {
+            return script.to_string();
+        }
+
+        let mut declarations = String::new();
+        for v in &vars {
+            declarations.push_str(&format!("let {} = ();\n", v));
+        }
+        declarations.push('\n');
+        declarations.push_str(script);
+        declarations
     }
     pub fn run(&mut self, ast: &rhai::AST) -> Result<Dynamic, Box<EvalAltResult>> {
         self.engine.eval_ast_with_scope(&mut self.scope, ast)
@@ -1047,6 +1107,7 @@ impl ScriptService {
     pub fn convert_if_then_syntax(script: &str) -> String {
         let mut result = String::new();
         let mut if_stack: Vec<bool> = Vec::new();
+        let mut while_depth: usize = 0; // tracks depth inside while { } blocks
         let mut in_with_block = false;
         let mut in_talk_block = false;
         let mut talk_block_lines: Vec<String> = Vec::new();
@@ -1063,6 +1124,20 @@ impl ScriptService {
 
             // Skip empty lines and comments
             if trimmed.is_empty() || trimmed.starts_with('\'') || trimmed.starts_with('#') || trimmed.starts_with("//") {
+                continue;
+            }
+
+            // Track while { } block depth (produced by convert_while_wend_syntax)
+            if trimmed.starts_with("while ") && trimmed.ends_with('{') {
+                while_depth += 1;
+                result.push_str(trimmed);
+                result.push('\n');
+                continue;
+            }
+            // A lone closing brace closes the while block
+            if trimmed == "}" && while_depth > 0 && if_stack.is_empty() {
+                while_depth -= 1;
+                result.push_str("}\n");
                 continue;
             }
 
@@ -1339,22 +1414,37 @@ impl ScriptService {
                 };
 
                 if is_var_assignment {
-                    // Add 'let' for variable declarations, but only if line doesn't already start with let/LET
+                    // Only add 'let' when at top-level scope (not inside IF or while blocks).
+                    // Inside blocks, plain assignment updates the outer variable in Rhai.
+                    // Using 'let' inside a block creates a local that dies at block end.
                     let trimmed_lower = trimmed.to_lowercase();
-                    if !trimmed_lower.starts_with("let ") {
+                    let in_block = !if_stack.is_empty() || while_depth > 0;
+                    if !in_block && !trimmed_lower.starts_with("let ") {
                         result.push_str("let ");
                     }
                 }
                 result.push_str(&line_to_process);
-                // Add semicolon if line doesn't have one and doesn't end with { or }
-                // Skip adding semicolons to:
-                // - SELECT/CASE/END SELECT statements (they're converted to if-else later)
-                // - Lines ending with comma (BASIC line continuation)
-                // - Lines that are part of a continuation block (in_line_continuation is true)
-                if !trimmed.ends_with(';') && !trimmed.ends_with('{') && !trimmed.ends_with('}')
-                    && !upper.starts_with("SELECT ") && !upper.starts_with("CASE ") && upper != "END SELECT"
-                    && !upper.starts_with("WHILE ") && !upper.starts_with("WEND")
-                    && !ends_with_comma && !in_line_continuation {
+                // Determine if we need a semicolon.
+                // Keyword statements like INSERT "t", #{...} end with `}` from a map literal
+                // and DO need a semicolon. Block closers (lone `}`) and openers do NOT.
+                let is_keyword_stmt = upper.starts_with("INSERT ")
+                    || upper.starts_with("SAVE ")
+                    || upper.starts_with("TALK ")
+                    || upper.starts_with("PRINT ")
+                    || upper.starts_with("MERGE ")
+                    || upper.starts_with("UPDATE ");
+                let ends_with_block_brace = trimmed.ends_with('}') && !is_keyword_stmt;
+                let needs_semicolon = !trimmed.ends_with(';')
+                    && !trimmed.ends_with('{')
+                    && !ends_with_block_brace
+                    && !upper.starts_with("SELECT ")
+                    && !upper.starts_with("CASE ")
+                    && upper != "END SELECT"
+                    && !upper.starts_with("WHILE ")
+                    && !upper.starts_with("WEND")
+                    && !ends_with_comma
+                    && !in_line_continuation;
+                if needs_semicolon {
                     result.push(';');
                 }
                 result.push('\n');
@@ -1370,9 +1460,30 @@ impl ScriptService {
         log::trace!("IF/THEN conversion complete, output has {} lines", result.lines().count());
 
         // Convert BASIC <> (not equal) to Rhai != globally
-
-
         result.replace(" <> ", " != ")
+    }
+
+    /// Convert BASIC WHILE...WEND loops to Rhai while { } blocks
+    /// WHILE condition → while condition {\n
+    /// WEND            → }\n
+    pub fn convert_while_wend_syntax(script: &str) -> String {
+        let mut result = String::new();
+        for line in script.lines() {
+            let trimmed = line.trim();
+            let upper = trimmed.to_uppercase();
+
+            if upper.starts_with("WHILE ") {
+                // Extract condition (everything after "WHILE ")
+                let condition = &trimmed[6..];
+                result.push_str(&format!("while {} {{\n", condition));
+            } else if upper == "WEND" {
+                result.push_str("}\n");
+            } else {
+                result.push_str(line);
+                result.push('\n');
+            }
+        }
+        result
     }
 
     /// Convert BASIC SELECT ... CASE / END SELECT to if-else chains
