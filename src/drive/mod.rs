@@ -17,7 +17,6 @@ use axum::{
 
 
 #[cfg(feature = "drive")]
-use diesel::{QueryableByName, RunQueryDsl};
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

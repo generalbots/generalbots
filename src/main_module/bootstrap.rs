@@ -1,5 +1,6 @@
 //! Bootstrap and application initialization logic
 
+use diesel::RunQueryDsl;
 use log::{error, info, trace, warn};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -907,13 +908,66 @@ async fn start_drive_monitors(
     use crate::core::shared::models::schema::bots;
     use diesel::prelude::*;
 
-    // Start DriveMonitor for each active bot
     let drive_monitor_state = app_state.clone();
     let pool_clone = pool.clone();
+    let state_for_scan = app_state.clone();
 
     tokio::spawn(async move {
         register_thread("drive-monitor", "drive");
 
+        // Step 1: Discover bots from S3 buckets (gbo-*.gbai) and auto-create missing
+        if let Some(s3_client) = &state_for_scan.drive {
+            match s3_client.list_buckets().send().await {
+                Ok(result) => {
+                    for bucket in result.buckets().iter().filter_map(|b| b.name()) {
+                        let name = bucket.to_string();
+                        if !name.ends_with(".gbai") || !name.starts_with("gbo-") {
+                            continue;
+                        }
+                        let bot_name = name.strip_suffix(".gbai").unwrap_or(&name);
+                        if bot_name == "default" {
+                            continue;
+                        }
+
+                        let exists = {
+                            let pool_check = pool_clone.clone();
+                            let bn = bot_name.to_string();
+                            tokio::task::spawn_blocking(move || {
+                                let mut conn = match pool_check.get() {
+                                    Ok(c) => c,
+                                    Err(_) => return false,
+                                };
+                                bots::dsl::bots
+                                    .filter(bots::dsl::name.eq(&bn))
+                                    .select(bots::dsl::id)
+                                    .first::<uuid::Uuid>(&mut conn)
+                                    .is_ok()
+                            })
+                            .await
+                            .unwrap_or(false)
+                        };
+
+                        if !exists {
+                            info!("Auto-creating bot '{}' from S3 bucket '{}'", bot_name, name);
+                            let create_state = state_for_scan.clone();
+                            let bn = bot_name.to_string();
+                            let pool_create = pool_clone.clone();
+                            if let Err(e) = tokio::task::spawn_blocking(move || {
+                                create_bot_from_drive(&create_state, &pool_create, &bn)
+                            })
+                            .await
+                            {
+                                error!("Failed to create bot '{}': {}", bot_name, e);
+                                continue;
+                            }
+                        }
+                    }
+                }
+                Err(e) => error!("Failed to list S3 buckets for bot discovery: {}", e),
+            }
+        }
+
+        // Step 2: Start DriveMonitor for each active bot
         let bots_to_monitor = tokio::task::spawn_blocking(move || {
             use uuid::Uuid;
             let mut conn = match pool_clone.get() {
@@ -966,13 +1020,68 @@ async fn start_drive_monitors(
     });
 }
 
-// LocalFileMonitor and ConfigWatcher disabled - drive (MinIO) is the only source now
-async fn start_local_file_monitor(app_state: Arc<AppState>) {
-    trace!("LocalFileMonitor disabled for state - using drive (MinIO) only");
-    let _ = app_state;
+#[cfg(feature = "drive")]
+fn create_bot_from_drive(
+    _state: &Arc<crate::core::shared::state::AppState>,
+    pool: &crate::core::shared::utils::DbPool,
+    bot_name: &str,
+) -> Result<(), String> {
+    use diesel::sql_query;
+    use uuid::Uuid;
+
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+
+    sql_query(
+        "INSERT INTO tenants (id, name, slug, created_at)          VALUES ('00000000-0000-0000-0000-000000000001', 'Default Tenant', 'default', NOW())          ON CONFLICT (slug) DO NOTHING",
+    )
+    .execute(&mut conn)
+    .ok();
+
+    sql_query(
+        "INSERT INTO organizations (org_id, tenant_id, name, slug, created_at)          VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Default Organization', 'default', NOW())          ON CONFLICT (slug) DO NOTHING",
+    )
+    .execute(&mut conn)
+    .ok();
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct OrgResult {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: uuid::Uuid,
+    }
+
+    let org_result: OrgResult = sql_query("SELECT org_id FROM organizations WHERE slug = 'default' LIMIT 1")
+        .get_result(&mut conn)
+        .map_err(|e| format!("Failed to get default org: {}", e))?;
+
+    let bot_id = Uuid::new_v4();
+    let bot_id_str = bot_id.to_string();
+    let org_id_str = org_result.org_id.to_string();
+
+    sql_query(format!(
+        "INSERT INTO bots (id, name, slug, org_id, is_active, created_at)          VALUES ('{}', '{}', '{}', '{}', true, NOW())",
+        bot_id_str, bot_name, bot_name, org_id_str
+    ))
+    .execute(&mut conn)
+    .map_err(|e| format!("Failed to create bot '{}': {}", bot_name, e))?;
+
+    let db_name = format!("bot_{}", bot_name.replace('-', "_"));
+    let _ = sql_query(format!(
+        "SELECT 'CREATE DATABASE {}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{}')",
+        db_name, db_name
+    ))
+    .execute(&mut conn);
+
+    info!("Bot '{}' created successfully with id {}", bot_name, bot_id);
+    Ok(())
 }
 
-async fn start_config_watcher(app_state: Arc<AppState>) {
+
+// LocalFileMonitor and ConfigWatcher disabled - drive (MinIO) is the only source now
+async fn start_local_file_monitor(_app_state: Arc<AppState>) {
+    trace!("LocalFileMonitor disabled for state - using drive (MinIO) only");
+}
+
+async fn start_config_watcher(_app_state: Arc<AppState>) {
     trace!("ConfigWatcher disabled for state - using drive (MinIO) only");
-    let _ = app_state;
 }
