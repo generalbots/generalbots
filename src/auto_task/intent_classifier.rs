@@ -286,7 +286,7 @@ Respond with JSON only:
         let response = self.call_llm(&prompt, bot_id).await?;
         let elapsed = start.elapsed();
         info!("LLM classification completed in {:?}, response_len={} chars", elapsed, response.len());
-        trace!("LLM classification response: {}", &response[..response.len().min(500)]);
+        trace!("LLM classification response: {}", response.chars().take(500).collect::<String>());
         Self::parse_classification_response(&response, intent)
     }
 

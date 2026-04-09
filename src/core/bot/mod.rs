@@ -535,11 +535,36 @@ impl BotOrchestrator {
                         .ok();
 
                     // Load system-prompt from config.csv, fallback to default
-                    let system_prompt = config_manager
-                        .get_config(&session.bot_id, "system-prompt", Some("You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response."))
-                        .unwrap_or_else(|_| "You are a helpful General Bots assistant.".to_string());
+                    // Load system-prompt: auto-detect PROMPT.md, PROMPT.txt, prompt.md, prompt.txt in .gbot folder
+                    // Ignore system-prompt-file config to avoid double .gbot path bug
+                    let bot_id = session.bot_id;
+                    let bot_name = {
+                        let conn = state_clone.conn.get().ok();
+                        if let Some(mut db_conn) = conn {
+                            use crate::core::shared::models::schema::bots::dsl::*;
+                            bots.filter(id.eq(bot_id))
+                                .select(name)
+                                .first::<String>(&mut db_conn)
+                                .unwrap_or_else(|_| "default".to_string())
+                        } else {
+                            "default".to_string()
+                        }
+                    };
+                    let work_dir = crate::core::shared::utils::get_stack_path();
+                    let gbot_dir = format!("{}/data/system/work/{}.gbai/{}.gbot/", 
+                        work_dir, bot_name, bot_name);
+                    
+                    let system_prompt = std::fs::read_to_string(format!("{}PROMPT.md", gbot_dir))
+                        .or_else(|_| std::fs::read_to_string(format!("{}prompt.md", gbot_dir)))
+                        .or_else(|_| std::fs::read_to_string(format!("{}PROMPT.txt", gbot_dir)))
+                        .or_else(|_| std::fs::read_to_string(format!("{}prompt.txt", gbot_dir)))
+                        .unwrap_or_else(|_| {
+                            config_manager
+                                .get_config(&session.bot_id, "system-prompt", Some("You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response."))
+                                .unwrap_or_else(|_| "You are a helpful General Bots assistant.".to_string())
+                        });
 
-                    info!("Loaded system-prompt for bot {}: {}", session.bot_id, &system_prompt[..system_prompt.len().min(500)]);
+                    info!("Loaded system-prompt for bot {}: {}", session.bot_id, system_prompt.chars().take(500).collect::<String>());
 
                     Ok((session, context_data, history, model, key, system_prompt, bot_llm_url, explicit_llm_provider))
                 },
