@@ -67,43 +67,43 @@ jobs:
             echo "All system dependencies already installed"
           fi
 
-  - name: Build BotServer
-    working-directory: /opt/gbo/data/botserver
-    run: |
-      set -e
-      export SCCACHE_IDLE_TIMEOUT=300
-      export SCCACHE_CACHE_SIZE=10G
-      sccache --stop-server 2>/dev/null || true
-      sleep 1
-      sccache --start-server
-      
-      echo "=== Starting build in background ==="
-      cargo build -p botserver -j 8 > /tmp/build.log 2>&1 &
-      BUILD_PID=$!
-      echo "Build PID: $BUILD_PID"
-      
-      echo "=== Waiting for build to complete (PID: $BUILD_PID) ==="
-      while kill -0 $BUILD_PID 2>/dev/null; do
-        echo "Build in progress... (sleeping 30s)"
-        sleep 30
-      done
-      
-      wait $BUILD_PID
-      EXIT_CODE=$?
-      
-      echo "=== Build finished with exit code: $EXIT_CODE ==="
-      
-      if [ $EXIT_CODE -ne 0 ]; then
-        echo "=== Build FAILED ==="
-        tail -100 /tmp/build.log
-        exit $EXIT_CODE
-      fi
-      
-      echo "=== sccache stats ==="
-      sccache --show-stats
-      echo "=== Binary info ==="
-      ls -lh target/debug/botserver
-      stat -c '%y' target/debug/botserver
+      - name: Build BotServer
+        working-directory: /opt/gbo/data/botserver
+        run: |
+          set -e
+          export SCCACHE_IDLE_TIMEOUT=300
+          export SCCACHE_CACHE_SIZE=10G
+          sccache --stop-server 2>/dev/null || true
+          sleep 1
+          sccache --start-server
+
+          echo "=== Starting build in background ==="
+          cargo build -p botserver -j 8 > /tmp/build.log 2>&1 &
+          BUILD_PID=$!
+          echo "Build PID: $BUILD_PID"
+
+          echo "=== Waiting for build to complete (PID: $BUILD_PID) ==="
+          while kill -0 $BUILD_PID 2>/dev/null; do
+            echo "Build in progress... (sleeping 30s)"
+            sleep 30
+          done
+
+          wait $BUILD_PID
+          EXIT_CODE=$?
+
+          echo "=== Build finished with exit code: $EXIT_CODE ==="
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "=== Build FAILED ==="
+            tail -100 /tmp/build.log
+            exit $EXIT_CODE
+          fi
+
+          echo "=== sccache stats ==="
+          sccache --show-stats
+          echo "=== Binary info ==="
+          ls -lh target/debug/botserver
+          stat -c '%y' target/debug/botserver
 
       - name: Save build log
         if: always()
