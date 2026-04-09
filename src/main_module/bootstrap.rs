@@ -1079,10 +1079,23 @@ fn create_bot_from_drive(
 
 
 // LocalFileMonitor and ConfigWatcher disabled - drive (MinIO) is the only source now
-async fn start_local_file_monitor(_app_state: Arc<AppState>) {
-    trace!("LocalFileMonitor disabled for state - using drive (MinIO) only");
+async fn start_local_file_monitor(app_state: Arc<AppState>) {
+    use crate::drive::local_file_monitor::LocalFileMonitor;
+
+    let monitor = LocalFileMonitor::new(app_state.clone());
+    if let Err(e) = monitor.start_monitoring().await {
+        error!("Failed to start LocalFileMonitor: {}", e);
+    } else {
+        trace!("LocalFileMonitor started - monitoring /opt/gbo/data for bot changes");
+    }
 }
 
-async fn start_config_watcher(_app_state: Arc<AppState>) {
-    trace!("ConfigWatcher disabled for state - using drive (MinIO) only");
+async fn start_config_watcher(app_state: Arc<AppState>) {
+    use crate::core::config::watcher::ConfigWatcher;
+    use std::sync::Arc as StdArc;
+
+    let data_dir = std::path::PathBuf::from("/home/rodriguez/src/gb/botserver-stack/data/system/work");
+    let watcher = ConfigWatcher::new(data_dir, app_state.clone());
+    let _handle = StdArc::new(watcher).spawn();
+    trace!("ConfigWatcher started - monitoring config.csv changes");
 }
