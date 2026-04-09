@@ -113,7 +113,8 @@ pub fn get_work_path() -> String {
 /// In development (with botserver-stack directory): ./botserver-stack/data/system/work
 fn get_work_path_default() -> String {
     let has_stack = std::path::Path::new("./botserver-stack").exists();
-    let has_env = std::path::Path::new("./.env").exists();
+    let has_env = std::path::Path::new("./.env").exists() 
+        || std::path::Path::new("/opt/gbo/bin/.env").exists();
     if has_env && !has_stack {
         "/opt/gbo/work".to_string()
     } else {
@@ -126,7 +127,8 @@ fn get_work_path_default() -> String {
 /// In development (with botserver-stack directory): ./botserver-stack
 pub fn get_stack_path() -> String {
     let has_stack = std::path::Path::new("./botserver-stack").exists();
-    let has_env = std::path::Path::new("./.env").exists();
+    let has_env = std::path::Path::new("./.env").exists() 
+        || std::path::Path::new("/opt/gbo/bin/.env").exists();
     if has_env && !has_stack {
         "/opt/gbo".to_string()
     } else {
