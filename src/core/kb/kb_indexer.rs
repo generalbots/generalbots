@@ -747,7 +747,16 @@ pub struct KbFolderMonitor {
 
 impl KbFolderMonitor {
     pub fn new(work_root: PathBuf, embedding_config: EmbeddingConfig) -> Self {
-        let qdrant_config = QdrantConfig::default();
+        let qdrant_config = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
+            let (url, api_key) = sm.get_vectordb_config_sync();
+            QdrantConfig {
+                url,
+                api_key,
+                timeout_secs: 30,
+            }
+        } else {
+            QdrantConfig::default()
+        };
         let indexer = KbIndexer::new(embedding_config, qdrant_config);
 
         Self { indexer, work_root }
