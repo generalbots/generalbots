@@ -241,9 +241,9 @@ impl WebsiteCrawlerService {
                 let embedding_config = embedding_config_with_vault(&db_pool, &website.bot_id, &bot_name).await;
                 info!("Using embedding URL: {} for bot {}", embedding_config.embedding_url, bot_name);
 
-                // Create bot-specific KB indexer with correct embedding config
-                let qdrant_config = QdrantConfig::default();
-                let bot_indexer = KbIndexer::new(embedding_config, qdrant_config);
+            // Create bot-specific KB indexer with correct embedding config
+            let qdrant_config = QdrantConfig::from_config(db_pool.clone(), &website.bot_id);
+            let bot_indexer = KbIndexer::new(embedding_config, qdrant_config);
 
                 // Process pages in small batches to prevent memory exhaustion
                 const BATCH_SIZE: usize = 5;

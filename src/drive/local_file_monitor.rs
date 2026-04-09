@@ -291,11 +291,11 @@ impl LocalFileMonitor {
                         continue;
                     }
 
-                    info!("Indexing KB '{}' for bot '{}'", kb_name, bot_name);
+            info!("Indexing KB '{}' for bot '{}'", kb_name, bot_name);
 
-                    // Create a temporary KbIndexer with the bot-specific config
-                    let qdrant_config = crate::core::kb::QdrantConfig::default();
-                    let indexer = crate::core::kb::KbIndexer::new(embedding_config.clone(), qdrant_config);
+            // Create a temporary KbIndexer with the bot-specific config
+            let qdrant_config = crate::core::kb::QdrantConfig::from_config(self.state.conn.clone(), &bot_id);
+            let indexer = crate::core::kb::KbIndexer::new(embedding_config.clone(), qdrant_config);
 
                     if let Err(e) = indexer.index_kb_folder(
                         bot_id,
