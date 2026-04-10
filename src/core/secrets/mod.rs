@@ -214,6 +214,13 @@ impl SecretsManager {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
                 log::info!("Attempting to read drive config from Vault: {}", vault_addr);
                 let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
+                
+                // Set TLS cert for secure connections
+                if let Ok(ca_cert) = std::env::var("VAULT_CACERT") {
+                    std::env::set_var("SSL_CERT_FILE", &ca_cert);
+                    std::env::set_var("AWS_CA_BUNDLE", &ca_cert);
+                }
+                
                 if let Ok(resp) = ureq::get(&url)
                     .set("X-Vault-Token", &vault_token)
                     .call()
@@ -239,6 +246,13 @@ impl SecretsManager {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
                 log::info!("Attempting to read cache config from Vault: {}", vault_addr);
+                
+                // Set TLS cert for secure connections
+                if let Ok(ca_cert) = std::env::var("VAULT_CACERT") {
+                    std::env::set_var("SSL_CERT_FILE", &ca_cert);
+                    std::env::set_var("AWS_CA_BUNDLE", &ca_cert);
+                }
+                
                 let url = format!("{}/v1/secret/data/gbo/cache", vault_addr);
                 if let Ok(resp) = ureq::get(&url)
                     .set("X-Vault-Token", &vault_token)
@@ -264,6 +278,13 @@ impl SecretsManager {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
                 log::info!("Attempting to read qdrant config from Vault: {}", vault_addr);
+                
+                // Set TLS cert for secure connections
+                if let Ok(ca_cert) = std::env::var("VAULT_CACERT") {
+                    std::env::set_var("SSL_CERT_FILE", &ca_cert);
+                    std::env::set_var("AWS_CA_BUNDLE", &ca_cert);
+                }
+                
                 let url = format!("{}/v1/secret/data/gbo/vectordb", vault_addr);
                 if let Ok(resp) = ureq::get(&url)
                     .set("X-Vault-Token", &vault_token)
