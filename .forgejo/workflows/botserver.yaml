@@ -29,19 +29,12 @@ jobs:
           mkdir -p $WORKSPACE
           cd $WORKSPACE
           
-          # Fetch latest changes first
-          echo "=== Checking for updates ==="
+          echo "=== Updating workspace ==="
           
           # Update or clone botlib
           if [ -d botlib/.git ]; then
             echo "Updating botlib..."
-            git -C botlib fetch origin main
-            if ! git -C botlib diff origin/main --quiet 2>/dev/null; then
-              echo "botlib has changes, pulling..."
-              git -C botlib pull --ff-only origin main
-            else
-              echo "botlib up to date"
-            fi
+            git -C botlib pull --ff-only origin main || git -C botlib fetch origin main
           else
             git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
@@ -49,26 +42,14 @@ jobs:
           # Update or clone botserver
           if [ -d botserver/.git ]; then
             echo "Updating botserver..."
-            git -C botserver fetch origin main
-            if ! git -C botserver diff origin/main --quiet 2>/dev/null; then
-              echo "botserver has changes, pulling..."
-              git -C botserver pull --ff-only origin main
-            else
-              echo "botserver up to date"
-            fi
+            git -C botserver pull --ff-only origin main || git -C botserver fetch origin main
           else
             git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
           
           # Get workspace Cargo.toml from gb
           if [ -d /opt/gbo/data/gb-ws/.git ]; then
-            git -C /opt/gbo/data/gb-ws fetch origin main
-            if ! git -C /opt/gbo/data/gb-ws diff origin/main --quiet 2>/dev/null; then
-              echo "gb-ws has changes, pulling..."
-              git -C /opt/gbo/data/gb-ws pull --ff-only origin main
-            else
-              echo "gb-ws up to date"
-            fi
+            git -C /opt/gbo/data/gb-ws pull --ff-only origin main || git -C /opt/gbo/data/gb-ws fetch origin main
           else
             git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
           fi
@@ -118,25 +99,8 @@ jobs:
           sleep 1
           sccache --start-server
           
-          # Check if there are changes to rebuild (check botserver submodule)
-          cd /opt/gbo/data/botserver/botserver
-          git fetch origin main
-          
-          # Get current commit and origin/main commit
-          CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "")
-          ORIGIN_COMMIT=$(git rev-parse origin/main 2>/dev/null || echo "")
-          echo "Current commit: $CURRENT_COMMIT"
-          echo "Origin commit: $ORIGIN_COMMIT"
-          
-          # Compare commits - if different, there are changes to deploy
-          if [ "$CURRENT_COMMIT" = "$ORIGIN_COMMIT" ] && [ -f /opt/gbo/data/botserver/target/debug/botserver ]; then
-            echo "No changes - already at origin/main and binary exists, skipping build"
-            echo "=== sccache stats ==="
-            sccache --show-stats || true
-            exit 0
-          fi
-          
-          echo "Changes detected or no binary - will build"
+          # Always build - too complex to detect changes reliably
+          # sccache will handle caching efficiently
           
           cd /opt/gbo/data/botserver
           echo "=== Starting build in background ==="
