@@ -213,26 +213,36 @@ impl SecretsManager {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
                 log::info!("Attempting to read drive config from Vault: {}", vault_addr);
-                let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
                 
                 // Set TLS cert for secure connections
                 if let Ok(ca_cert) = std::env::var("VAULT_CACERT") {
                     std::env::set_var("SSL_CERT_FILE", &ca_cert);
                     std::env::set_var("AWS_CA_BUNDLE", &ca_cert);
+                    log::info!("Set SSL_CERT_FILE to: {}", ca_cert);
                 }
                 
-                if let Ok(resp) = ureq::get(&url)
+                let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
+                log::info!("Making request to: {}", url);
+                
+                let result = ureq::get(&url)
                     .set("X-Vault-Token", &vault_token)
-                    .call()
-                {
-                    if let Ok(data) = resp.into_json::<serde_json::Value>() {
-                        if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
-                            let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost:9100");
-                            let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).unwrap_or("minioadmin");
-                            let secret = secret_data.get("secret").and_then(|v| v.as_str()).unwrap_or("minioadmin");
-                            log::info!("get_drive_config: Successfully read from Vault - host={}", host);
-                            return (host.to_string(), accesskey.to_string(), secret.to_string());
+                    .call();
+                
+                match result {
+                    Ok(resp) => {
+                        log::info!("Vault response status: {}", resp.status());
+                        if let Ok(data) = resp.into_json::<serde_json::Value>() {
+                            if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
+                                let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost:9100");
+                                let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).unwrap_or("minioadmin");
+                                let secret = secret_data.get("secret").and_then(|v| v.as_str()).unwrap_or("minioadmin");
+                                log::info!("get_drive_config: Successfully read from Vault - host={}", host);
+                                return (host.to_string(), accesskey.to_string(), secret.to_string());
+                            }
                         }
+                    }
+                    Err(e) => {
+                        log::error!("Vault request failed: {:?}", e);
                     }
                 }
             }
