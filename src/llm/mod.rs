@@ -170,7 +170,12 @@ impl OpenAIClient {
         let has_chat_path = !has_v1_path && trimmed_base.contains("/chat/completions");
 
         let endpoint = if let Some(path) = endpoint_path {
-            path
+            // If endpoint path is already in base URL, use empty to avoid duplication
+            if trimmed_base.contains(&path) {
+                "".to_string()
+            } else {
+                path
+            }
         } else if has_v1_path || (has_chat_path && !trimmed_base.contains("z.ai")) {
             // Path already in base_url, use empty endpoint
             "".to_string()
