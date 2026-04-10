@@ -209,14 +209,79 @@ impl SecretsManager {
     }
 
     pub fn get_drive_config(&self) -> (String, String, String) {
-        if let Ok(secrets) = Self::get_from_env(SecretPaths::DRIVE) {
-            return (
-                secrets.get("host").cloned().unwrap_or_else(|| "localhost:9100".to_string()),
-                secrets.get("accesskey").cloned().unwrap_or_else(|| "minioadmin".to_string()),
-                secrets.get("secret").cloned().unwrap_or_else(|| "minioadmin".to_string()),
-            );
+        // Try to read from Vault using HTTP client directly (sync)
+        if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
+            if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+                log::info!("Attempting to read drive config from Vault: {}", vault_addr);
+                let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
+                if let Ok(resp) = ureq::get(&url)
+                    .set("X-Vault-Token", &vault_token)
+                    .call()
+                {
+                    if let Ok(data) = resp.into_json::<serde_json::Value>() {
+                        if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
+                            let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost:9100");
+                            let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).unwrap_or("minioadmin");
+                            let secret = secret_data.get("secret").and_then(|v| v.as_str()).unwrap_or("minioadmin");
+                            log::info!("get_drive_config: Successfully read from Vault - host={}", host);
+                            return (host.to_string(), accesskey.to_string(), secret.to_string());
+                        }
+                    }
+                }
+            }
         }
+
+        log::warn!("get_drive_config: Falling back to defaults - Vault not available");
         ("localhost:9100".to_string(), "minioadmin".to_string(), "minioadmin".to_string())
+    }
+
+    pub fn get_cache_config(&self) -> (String, u16, Option<String>) {
+        if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
+            if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+                log::info!("Attempting to read cache config from Vault: {}", vault_addr);
+                let url = format!("{}/v1/secret/data/gbo/cache", vault_addr);
+                if let Ok(resp) = ureq::get(&url)
+                    .set("X-Vault-Token", &vault_token)
+                    .call()
+                {
+                    if let Ok(data) = resp.into_json::<serde_json::Value>() {
+                        if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
+                            let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost");
+                            let port = secret_data.get("port").and_then(|v| v.as_str()).unwrap_or("6379").parse().unwrap_or(6379);
+                            let password = secret_data.get("password").and_then(|v| v.as_str()).map(|s| s.to_string());
+                            log::info!("get_cache_config: Successfully read from Vault - host={}", host);
+                            return (host.to_string(), port, password);
+                        }
+                    }
+                }
+            }
+        }
+        log::warn!("get_cache_config: Falling back to defaults");
+        ("localhost".to_string(), 6379, None)
+    }
+
+    pub fn get_qdrant_config(&self) -> (String, Option<String>) {
+        if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
+            if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+                log::info!("Attempting to read qdrant config from Vault: {}", vault_addr);
+                let url = format!("{}/v1/secret/data/gbo/vectordb", vault_addr);
+                if let Ok(resp) = ureq::get(&url)
+                    .set("X-Vault-Token", &vault_token)
+                    .call()
+                {
+                    if let Ok(data) = resp.into_json::<serde_json::Value>() {
+                        if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
+                            let url = secret_data.get("url").and_then(|v| v.as_str()).unwrap_or("http://localhost:6333");
+                            let api_key = secret_data.get("api_key").and_then(|v| v.as_str()).map(|s| s.to_string());
+                            log::info!("get_qdrant_config: Successfully read from Vault - url={}", url);
+                            return (url.to_string(), api_key);
+                        }
+                    }
+                }
+            }
+        }
+        log::warn!("get_qdrant_config: Falling back to defaults");
+        ("http://localhost:6333".to_string(), None)
     }
 
     pub fn get_database_config_sync(&self) -> (String, u16, String, String, String) {
@@ -330,32 +395,6 @@ impl SecretsManager {
 
     pub async fn get_encryption_key(&self) -> Result<String> {
         self.get_value(SecretPaths::ENCRYPTION, "master_key").await
-    }
-
-    pub fn get_cache_config(&self) -> (String, u16, Option<String>) {
-        let self_owned = self.clone();
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build();
-            let result = if let Ok(rt) = rt {
-                rt.block_on(async move {
-                    self_owned.get_secret(SecretPaths::CACHE).await.ok()
-                })
-            } else {
-                None
-            };
-            let _ = tx.send(result);
-        });
-        if let Ok(Some(secrets)) = rx.recv() {
-            return (
-                secrets.get("host").cloned().unwrap_or_else(|| "localhost".into()),
-                secrets.get("port").and_then(|p| p.parse().ok()).unwrap_or(6379),
-                secrets.get("password").cloned(),
-            );
-        }
-        ("localhost".to_string(), 6379, None)
     }
 
     pub fn get_directory_config_sync(&self) -> (String, String, String, String) {
