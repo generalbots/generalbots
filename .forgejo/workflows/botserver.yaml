@@ -28,30 +28,64 @@ jobs:
         run: |
           mkdir -p $WORKSPACE
           cd $WORKSPACE
-          # Update or clone botlib (preserve git history for sccache fingerprints)
+          
+          # Fetch latest changes first
+          echo "=== Checking for updates ==="
+          
+          # Update or clone botlib
           if [ -d botlib/.git ]; then
-            git -C botlib pull origin main
+            echo "Updating botlib..."
+            git -C botlib fetch origin main
+            if ! git -C botlib diff origin/main --quiet 2>/dev/null; then
+              echo "botlib has changes, pulling..."
+              git -C botlib pull --ff-only origin main
+            else
+              echo "botlib up to date"
+            fi
           else
             git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
-          # Update or clone botserver (preserve git history for sccache fingerprints)
+          
+          # Update or clone botserver
           if [ -d botserver/.git ]; then
-            git -C botserver pull origin main
+            echo "Updating botserver..."
+            git -C botserver fetch origin main
+            if ! git -C botserver diff origin/main --quiet 2>/dev/null; then
+              echo "botserver has changes, pulling..."
+              git -C botserver pull --ff-only origin main
+            else
+              echo "botserver up to date"
+            fi
           else
             git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
-          # Get workspace Cargo.toml from gb and strip unused members
+          
+          # Get workspace Cargo.toml from gb
           if [ -d /opt/gbo/data/gb-ws/.git ]; then
-            git -C /opt/gbo/data/gb-ws pull origin main
+            git -C /opt/gbo/data/gb-ws fetch origin main
+            if ! git -C /opt/gbo/data/gb-ws diff origin/main --quiet 2>/dev/null; then
+              echo "gb-ws has changes, pulling..."
+              git -C /opt/gbo/data/gb-ws pull --ff-only origin main
+            else
+              echo "gb-ws up to date"
+            fi
           else
             git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
           fi
+          
+          # Only rebuild if there were actual changes
+          echo "$WORKSPACE" > /tmp/workspace_path
+          
           cp /opt/gbo/data/gb-ws/Cargo.toml Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
           done
+          
           # Ensure target dir exists (use persistent location for sccache)
           mkdir -p /opt/gbo/data/botserver/target
+          
+          # Pre-fetch dependencies
+          cargo fetch 2>/dev/null || true
 
       - name: Cache sccache
         uses: actions/cache@v4
@@ -83,7 +117,19 @@ jobs:
           sccache --stop-server 2>/dev/null || true
           sleep 1
           sccache --start-server
-
+          
+          # Check if there are changes to rebuild
+          CHANGES=$(git -C /opt/gbo/data/botserver/botserver diff origin/main --name-only 2>/dev/null || echo "changed")
+          if [ -z "$CHANGES" ]; then
+            echo "No changes detected in botserver, checking if binary exists..."
+            if [ -f /opt/gbo/data/botserver/target/debug/botserver ]; then
+              echo "Binary already exists, skipping build"
+              echo "=== sccache stats (before) ==="
+              sccache --show-stats || true
+              exit 0
+            fi
+          fi
+          
           echo "=== Starting build in background ==="
           cargo build -p botserver -j 8 > /tmp/build.log 2>&1 &
           BUILD_PID=$!
