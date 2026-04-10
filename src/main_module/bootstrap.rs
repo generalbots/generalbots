@@ -926,9 +926,6 @@ async fn start_drive_monitors(
                             continue;
                         }
                         let bot_name = name.strip_suffix(".gbai").unwrap_or(&name);
-                        if bot_name == "default" {
-                            continue;
-                        }
 
                         let exists = {
                             let pool_check = pool_clone.clone();
@@ -986,7 +983,7 @@ async fn start_drive_monitors(
         info!("Found {} active bots to monitor", bots_to_monitor.len());
 
         for (bot_id, bot_name) in bots_to_monitor {
-            if bot_name == "default" {
+            if bot_name == "default" || bot_name == "gbo-default" {
                 continue;
             }
 
