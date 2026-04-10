@@ -127,13 +127,6 @@ impl DriveMonitor {
         Ok(())
     }
 
-    /// Get the path to the file states JSON file for this bot
-    fn file_state_path(&self) -> PathBuf {
-        self.work_root
-            .join(format!("{}", self.bot_id))
-            .join("file_states.json")
-    }
-
     /// Static helper to save file states (used by background tasks)
     async fn save_file_states_static(
         file_states: &Arc<tokio::sync::RwLock<HashMap<String, FileState>>>,
@@ -168,91 +161,6 @@ impl DriveMonitor {
                         "[DRIVE_MONITOR] Saved {} file states to disk for bot {}",
                         states.len(),
                         bot_id
-                    );
-                }
-            }
-            Err(e) => {
-                warn!(
-                    "[DRIVE_MONITOR] Failed to serialize file states: {}",
-                    e
-                );
-            }
-        }
-        Ok(())
-    }
-
-    /// Load file states from disk to avoid reprocessing unchanged files
-    async fn load_file_states(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let path = self.file_state_path();
-        if path.exists() {
-            match tokio_fs::read_to_string(&path).await {
-                Ok(content) => {
-                    match serde_json::from_str::<HashMap<String, FileState>>(&content) {
-                        Ok(states) => {
-                            let mut file_states = self.file_states.write().await;
-                            let count = states.len();
-                            *file_states = states;
-                            trace!(
-                                "[DRIVE_MONITOR] Loaded {} file states from disk for bot {}",
-                                count,
-                                self.bot_id
-                            );
-                        }
-                        Err(e) => {
-                            warn!(
-                                "[DRIVE_MONITOR] Failed to parse file states from {}: {}. Starting with empty state.",
-                                path.display(),
-                                e
-                            );
-                        }
-                    }
-                }
-                Err(e) => {
-                    warn!(
-                        "[DRIVE_MONITOR] Failed to read file states from {}: {}. Starting with empty state.",
-                        path.display(),
-                        e
-                    );
-                }
-            }
-        } else {
-            debug!(
-                "[DRIVE_MONITOR] No existing file states found at {} for bot {}. Starting fresh.",
-                path.display(),
-                self.bot_id
-            );
-        }
-        Ok(())
-    }
-
-    /// Save file states to disk after updates
-    async fn save_file_states(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let path = self.file_state_path();
-
-        if let Some(parent) = path.parent() {
-            if let Err(e) = tokio_fs::create_dir_all(parent).await {
-                warn!(
-                    "[DRIVE_MONITOR] Failed to create directory for file states: {} - {}",
-                    parent.display(),
-                    e
-                );
-            }
-        }
-
-        let file_states = self.file_states.read().await;
-        match serde_json::to_string_pretty(&*file_states) {
-            Ok(content) => {
-                if let Err(e) = tokio_fs::write(&path, content).await {
-                    warn!(
-                        "[DRIVE_MONITOR] Failed to save file states to {}: {}",
-                        path.display(),
-                        e
-                    );
-                } else {
-                    debug!(
-                        "[DRIVE_MONITOR] Saved {} file states to disk for bot {}",
-                        file_states.len(),
-                        self.bot_id
                     );
                 }
             }
