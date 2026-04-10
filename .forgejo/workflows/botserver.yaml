@@ -37,11 +37,15 @@ jobs:
           # Simple pull to get latest changes
           git -C gb-ws pull origin main
 
-          # Initialize all workspace member submodules
-          cd gb-ws
-          git submodule update --init --depth 1 botlib botserver botapp botdevice bottest botui
+  # Initialize/update all workspace member submodules
+  cd gb-ws
+  git submodule sync
+  git submodule update --init --depth 1 botlib botserver botapp botdevice bottest botui
+  
+  # Force submodule update to match parent repo
+  git submodule foreach "git fetch origin main && git checkout origin/main || git checkout main || true"
 
-          mkdir -p /home/gbuser/target
+  mkdir -p /home/gbuser/target
 
       - name: Cache sccache
         uses: actions/cache@v4
