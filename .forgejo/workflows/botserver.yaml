@@ -79,6 +79,11 @@ jobs:
         working-directory: /opt/gbo/data/botserver
         run: |
           set -e
+          # Kill any stuck cargo processes
+          pkill -9 cargo 2>/dev/null || true
+          pkill -9 rustc 2>/dev/null || true
+          rm -f target/.cargo-lock 2>/dev/null || true
+          
           export SCCACHE_IDLE_TIMEOUT=300
           export SCCACHE_CACHE_SIZE=10G
           sccache --stop-server 2>/dev/null || true
