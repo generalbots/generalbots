@@ -41,9 +41,9 @@ jobs:
           git submodule update --init --depth 1 botlib
           git submodule update --init --depth 1 botserver
 
-          # Pull latest updates from submodules
-          git -C botlib pull --ff-only origin main
-          git -C botserver pull --ff-only origin main
+          # Pull latest updates from submodules (fetch and reset to handle divergent histories)
+          git -C botlib fetch origin main && git -C botlib reset --hard origin/main
+          git -C botserver fetch origin main && git -C botserver reset --hard origin/main
 
           mkdir -p /home/gbuser/target
 
