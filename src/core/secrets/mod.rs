@@ -209,29 +209,23 @@ impl SecretsManager {
     }
 
     pub fn get_drive_config(&self) -> (String, String, String) {
-        // Try to read from Vault using HTTP client directly (sync)
+        // Try to read from Vault using std process (curl)
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
+                
                 log::info!("Attempting to read drive config from Vault: {}", vault_addr);
                 
-                // Set TLS cert for secure connections
-                if let Ok(ca_cert) = std::env::var("VAULT_CACERT") {
-                    std::env::set_var("SSL_CERT_FILE", &ca_cert);
-                    std::env::set_var("AWS_CA_BUNDLE", &ca_cert);
-                    log::info!("Set SSL_CERT_FILE to: {}", ca_cert);
-                }
-                
                 let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
-                log::info!("Making request to: {}", url);
                 
-                let result = ureq::get(&url)
-                    .set("X-Vault-Token", &vault_token)
-                    .call();
+                // Use curl via Command for reliable TLS
+                let result = std::process::Command::new("curl")
+                    .args(&["-sf", "--cacert", &ca_cert, "-H", &format!("X-Vault-Token: {}", &vault_token), &url])
+                    .output();
                 
                 match result {
-                    Ok(resp) => {
-                        log::info!("Vault response status: {}", resp.status());
-                        if let Ok(data) = resp.into_json::<serde_json::Value>() {
+                    Ok(output) if output.status.success() => {
+                        if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                             if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
                                 let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost:9100");
                                 let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).unwrap_or("minioadmin");
@@ -241,8 +235,11 @@ impl SecretsManager {
                             }
                         }
                     }
+                    Ok(output) => {
+                        log::error!("curl failed: {}", String::from_utf8_lossy(&output.stderr));
+                    }
                     Err(e) => {
-                        log::error!("Vault request failed: {:?}", e);
+                        log::error!("Failed to run curl: {}", e);
                     }
                 }
             }
@@ -251,30 +248,29 @@ impl SecretsManager {
         log::warn!("get_drive_config: Falling back to defaults - Vault not available");
         ("localhost:9100".to_string(), "minioadmin".to_string(), "minioadmin".to_string())
     }
-
+    
     pub fn get_cache_config(&self) -> (String, u16, Option<String>) {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
+                
                 log::info!("Attempting to read cache config from Vault: {}", vault_addr);
-                
-                // Set TLS cert for secure connections
-                if let Ok(ca_cert) = std::env::var("VAULT_CACERT") {
-                    std::env::set_var("SSL_CERT_FILE", &ca_cert);
-                    std::env::set_var("AWS_CA_BUNDLE", &ca_cert);
-                }
-                
                 let url = format!("{}/v1/secret/data/gbo/cache", vault_addr);
-                if let Ok(resp) = ureq::get(&url)
-                    .set("X-Vault-Token", &vault_token)
-                    .call()
-                {
-                    if let Ok(data) = resp.into_json::<serde_json::Value>() {
-                        if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
-                            let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost");
-                            let port = secret_data.get("port").and_then(|v| v.as_str()).unwrap_or("6379").parse().unwrap_or(6379);
-                            let password = secret_data.get("password").and_then(|v| v.as_str()).map(|s| s.to_string());
-                            log::info!("get_cache_config: Successfully read from Vault - host={}", host);
-                            return (host.to_string(), port, password);
+                
+                let result = std::process::Command::new("curl")
+                    .args(&["-sf", "--cacert", &ca_cert, "-H", &format!("X-Vault-Token: {}", &vault_token), &url])
+                    .output();
+                
+                if let Ok(output) = result {
+                    if output.status.success() {
+                        if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                            if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
+                                let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost");
+                                let port = secret_data.get("port").and_then(|v| v.as_str()).unwrap_or("6379").parse().unwrap_or(6379);
+                                let password = secret_data.get("password").and_then(|v| v.as_str()).map(|s| s.to_string());
+                                log::info!("get_cache_config: Successfully read from Vault - host={}", host);
+                                return (host.to_string(), port, password);
+                            }
                         }
                     }
                 }
@@ -283,29 +279,28 @@ impl SecretsManager {
         log::warn!("get_cache_config: Falling back to defaults");
         ("localhost".to_string(), 6379, None)
     }
-
+    
     pub fn get_qdrant_config(&self) -> (String, Option<String>) {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
+                
                 log::info!("Attempting to read qdrant config from Vault: {}", vault_addr);
-                
-                // Set TLS cert for secure connections
-                if let Ok(ca_cert) = std::env::var("VAULT_CACERT") {
-                    std::env::set_var("SSL_CERT_FILE", &ca_cert);
-                    std::env::set_var("AWS_CA_BUNDLE", &ca_cert);
-                }
-                
                 let url = format!("{}/v1/secret/data/gbo/vectordb", vault_addr);
-                if let Ok(resp) = ureq::get(&url)
-                    .set("X-Vault-Token", &vault_token)
-                    .call()
-                {
-                    if let Ok(data) = resp.into_json::<serde_json::Value>() {
-                        if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
-                            let url = secret_data.get("url").and_then(|v| v.as_str()).unwrap_or("http://localhost:6333");
-                            let api_key = secret_data.get("api_key").and_then(|v| v.as_str()).map(|s| s.to_string());
-                            log::info!("get_qdrant_config: Successfully read from Vault - url={}", url);
-                            return (url.to_string(), api_key);
+                
+                let result = std::process::Command::new("curl")
+                    .args(&["-sf", "--cacert", &ca_cert, "-H", &format!("X-Vault-Token: {}", &vault_token), &url])
+                    .output();
+                
+                if let Ok(output) = result {
+                    if output.status.success() {
+                        if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                            if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
+                                let url = secret_data.get("url").and_then(|v| v.as_str()).unwrap_or("http://localhost:6333");
+                                let api_key = secret_data.get("api_key").and_then(|v| v.as_str()).map(|s| s.to_string());
+                                log::info!("get_qdrant_config: Successfully read from Vault - url={}", url);
+                                return (url.to_string(), api_key);
+                            }
                         }
                     }
                 }
