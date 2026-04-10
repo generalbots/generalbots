@@ -140,6 +140,7 @@ pub fn get_stack_path() -> String {
 pub async fn create_s3_operator(
     config: &DriveConfig,
 ) -> Result<S3Client, Box<dyn std::error::Error>> {
+    log::info!("Creating S3 operator with server: {}, access_key: {}", config.server, config.access_key);
     let endpoint = if config.server.ends_with('/') {
         config.server.clone()
     } else {
