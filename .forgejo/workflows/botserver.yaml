@@ -28,6 +28,8 @@ jobs:
         run: |
           mkdir -p $WORKSPACE
           cd $WORKSPACE
+          # Clean existing .git to avoid conflicts
+          rm -rf /opt/gbo/data/botserver/.git 2>/dev/null || true
           # Update or clone botserver (preserve git history for sccache fingerprints)
           if [ -d botserver/.git ]; then
             git -C botserver pull origin main
@@ -44,8 +46,6 @@ jobs:
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
           done
-          # Clean existing workspace to avoid conflicts
-          rm -rf /opt/gbo/data/botserver
           # Ensure target dir exists
           mkdir -p target
 
