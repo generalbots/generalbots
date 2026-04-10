@@ -988,7 +988,9 @@ async fn start_drive_monitors(
         info!("Found {} active bots to monitor", bots_to_monitor.len());
 
         for (bot_id, bot_name) in bots_to_monitor {
-            if bot_name == "default" || bot_name == "gbo-default" {
+            // Skip "gbo-default" only - it's a reserved system bot name
+            // Allow "default" bot to be monitored so its config.csv syncs properly
+            if bot_name == "gbo-default" {
                 continue;
             }
 
