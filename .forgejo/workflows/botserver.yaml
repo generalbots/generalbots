@@ -118,16 +118,29 @@ jobs:
           sleep 1
           sccache --start-server
           
-          # Check if there are changes to rebuild
-          CHANGES=$(git -C /opt/gbo/data/botserver/botserver diff origin/main --name-only 2>/dev/null || echo "changed")
+          # Check if there are changes to rebuild (check botserver submodule)
+          cd /opt/gbo/data/botserver/botserver
+          git fetch origin main
+          # Compare against origin/main - show what would be deployed
+          CHANGES=$(git diff HEAD origin/main --name-only 2>/dev/null | head -20 || echo "")
+          echo "=== Changes detected in botserver ==="
+          echo "$CHANGES"
+          echo "======================================="
+          
           if [ -z "$CHANGES" ]; then
-            echo "No changes detected in botserver, checking if binary exists..."
-            if [ -f /opt/gbo/data/botserver/target/debug/botserver ]; then
-              echo "Binary already exists, skipping build"
-              echo "=== sccache stats (before) ==="
-              sccache --show-stats || true
-              exit 0
-            fi
+            echo "No changes detected in botserver submodule"
+          else
+            echo "Changes detected in botserver, will rebuild"
+          fi
+          
+          cd /opt/gbo/data/botserver
+          
+          # Build only if there are changes OR binary doesn't exist
+          if [ -z "$CHANGES" ] && [ -f /opt/gbo/data/botserver/target/debug/botserver ]; then
+            echo "Binary already exists and no changes, skipping build"
+            echo "=== sccache stats ==="
+            sccache --show-stats || true
+            exit 0
           fi
           
           echo "=== Starting build in background ==="
