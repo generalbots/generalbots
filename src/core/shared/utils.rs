@@ -141,10 +141,17 @@ pub async fn create_s3_operator(
     config: &DriveConfig,
 ) -> Result<S3Client, Box<dyn std::error::Error>> {
     log::info!("Creating S3 operator with server: {}, access_key: {}", config.server, config.access_key);
-    let endpoint = if config.server.ends_with('/') {
-        config.server.clone()
-    } else {
-        format!("{}/", config.server)
+    let endpoint = {
+        let server = if config.server.starts_with("http://") || config.server.starts_with("https://") {
+            config.server.clone()
+        } else {
+            format!("http://{}", config.server)
+        };
+        if server.ends_with('/') {
+            server
+        } else {
+            format!("{}/", server)
+        }
     };
 
     let (access_key, secret_key) = if config.access_key.is_empty() || config.secret_key.is_empty() {
