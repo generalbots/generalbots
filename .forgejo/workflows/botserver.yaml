@@ -37,10 +37,9 @@ jobs:
           # Simple pull to get latest changes
           git -C gb-ws pull origin main
 
-          # Initialize submodules if needed
+          # Initialize all workspace member submodules
           cd gb-ws
-          git submodule update --init --depth 1 botlib
-          git submodule update --init --depth 1 botserver
+          git submodule update --init --depth 1 botlib botserver botapp botdevice bottest botui
 
           mkdir -p /home/gbuser/target
 
