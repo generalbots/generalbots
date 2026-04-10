@@ -28,30 +28,30 @@ jobs:
         run: |
           mkdir -p $WORKSPACE
           cd $WORKSPACE
-          
-          # Clone or update repos
+
+          # Create minimal Cargo.toml for building botserver only
+          cat > Cargo.toml << 'EOF'
+[workspace]
+members = ["botlib", "botserver"]
+
+[workspace.dependencies]
+# Empty - all deps defined in member crates
+EOF
+
+          # Clone or update botlib
           if [ -d botlib/.git ]; then
             git -C botlib pull --ff-only origin main
           else
-            git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
-          
+
+          # Clone or update botserver
           if [ -d botserver/.git ]; then
             git -C botserver pull --ff-only origin main
           else
-            git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
-          
-          if [ -d /opt/gbo/data/gb-ws/.git ]; then
-            git -C /opt/gbo/data/gb-ws pull --ff-only origin main
-          else
-            git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
-          fi
-          
-          cp /opt/gbo/data/gb-ws/Cargo.toml Cargo.toml
-          for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
-            grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
-          done
+
           mkdir -p /opt/gbo/data/botserver/target
 
       - name: Cache sccache
