@@ -29,21 +29,18 @@ jobs:
           mkdir -p $WORKSPACE
           cd $WORKSPACE
 
-          # Clone or update gb-ws (main workspace with Cargo.toml)
-          if [ -d gb-ws/.git ]; then
-            git -C gb-ws pull --ff-only origin main
-          else
+          # Clone gb-ws if it doesn't exist
+          if [ ! -d gb-ws/.git ]; then
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git gb-ws
           fi
 
-          # Initialize and update submodules (only botlib and botserver needed)
+          # Simple pull to get latest changes
+          git -C gb-ws pull origin main
+
+          # Initialize submodules if needed
           cd gb-ws
           git submodule update --init --depth 1 botlib
           git submodule update --init --depth 1 botserver
-
-          # Pull latest updates from submodules (fetch and reset to handle divergent histories)
-          git -C botlib fetch origin main && git -C botlib reset --hard origin/main
-          git -C botserver fetch origin main && git -C botserver reset --hard origin/main
 
           mkdir -p /home/gbuser/target
 
