@@ -24,27 +24,16 @@ jobs:
           git config --global http.sslVerify false
           git config --global --add safe.directory "*"
 
-      - name: Setup Workspace
+      - name: Clean and Clone Fresh
         run: |
-          mkdir -p $WORKSPACE
           cd $WORKSPACE
-
-          # Clone gb-ws if it doesn't exist
-          if [ ! -d gb-ws/.git ]; then
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git gb-ws
-          fi
-
-          # Simple pull to get latest changes
-          git -C gb-ws pull origin main
-
-          # Initialize/update all workspace member submodules
+          # Remove old source, keep only target cache
+          rm -rf gb-ws
+          # Fresh clone with full history
+          git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git gb-ws
           cd gb-ws
-          git submodule sync
-          git submodule update --init --depth 1 botlib botserver botapp botdevice bottest botui
-
-          # Force submodule update to match parent repo
-          git submodule foreach "git fetch origin main && git checkout origin/main || git checkout main || true"
-
+          # Initialize submodules
+          git submodule update --init --recursive
           mkdir -p /home/gbuser/target
 
       - name: Cache sccache
@@ -82,11 +71,8 @@ jobs:
           sccache --stop-server 2>/dev/null || true
           sccache --start-server
 
+          # Build will use existing /home/gbuser/target for incremental compilation
           cargo build -p botserver -j 8
-
-      - name: Save build log
-        if: always()
-        run: cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
       - name: Deploy via ssh tar gzip
         run: |
@@ -95,7 +81,7 @@ jobs:
           echo "=== Deploy started ==="
           echo "Step 1: Checking binary..."
           ls -lh /home/gbuser/target/debug/botserver
-          echo "Step 2: Backing up old binary (ignore if not exists)..."
+          echo "Step 2: Backing up old binary..."
           ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak 2>/dev/null || true"
           echo "Step 3: Stopping botserver service..."
           ssh $SSH_ARGS system "sudo systemctl stop botserver || true"
@@ -110,7 +96,3 @@ jobs:
           sleep 30
           SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
           ssh $SSH_ARGS system "pgrep -f botserver >/dev/null && echo 'OK: botserver is running' || echo 'WARNING: botserver may still be starting'"
-
-      - name: Save deploy log
-        if: always()
-        run: cp /tmp/deploy.log /tmp/deploy-$(date +%Y%m%d-%H%M%S).log || true
