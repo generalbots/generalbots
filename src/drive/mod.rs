@@ -345,13 +345,13 @@ pub async fn list_buckets(
         .filter_map(|b| {
             b.name().map(|name| {
                 let name_str = name.to_string();
-                // Only include buckets that start with "gbo-" (MinIO bot source)
-                if !name_str.starts_with("gbo-") {
+                // Include all .gbai buckets (no gbo- prefix filter)
+                if !name_str.ends_with(".gbai") {
                     return None;
                 }
                 Some(BucketInfo {
                     name: name_str,
-                    is_gbai: name.to_lowercase().ends_with(".gbai"),
+                    is_gbai: true,
                 })
             })
         })
