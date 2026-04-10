@@ -63,7 +63,7 @@ sha256 = ""
 
 [components.directory]
 name = "Zitadel Identity Provider"
-url = "https://github.com/zitadel/zitadel/releases/download/v4.11.1/zitadel-linux-amd64.tar.gz"
+url = "https://github.com/zitadel/zitadel/releases/download/v4.13.1/zitadel-linux-amd64.tar.gz"
 filename = "zitadel-linux-amd64.tar.gz"
 sha256 = ""
 
