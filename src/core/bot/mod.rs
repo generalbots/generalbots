@@ -555,9 +555,9 @@ impl BotOrchestrator {
                             "default".to_string()
                         }
                     };
-                    let work_dir = crate::core::shared::utils::get_stack_path();
-                    let gbot_dir = format!("{}/data/system/work/{}.gbai/{}.gbot/", 
-                        work_dir, bot_name, bot_name);
+    let work_dir = crate::core::shared::utils::get_work_path();
+    let gbot_dir = format!("{}/{}.gbai/{}.gbot/",
+        work_dir, bot_name, bot_name);
                     
                     let system_prompt = std::fs::read_to_string(format!("{}PROMPT.md", gbot_dir))
                         .or_else(|_| std::fs::read_to_string(format!("{}prompt.md", gbot_dir)))
