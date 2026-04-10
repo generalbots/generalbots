@@ -27,12 +27,9 @@ jobs:
       - name: Clean and Clone Fresh
         run: |
           cd $WORKSPACE
-          # Remove old workspace, keep /home/gbuser/target for compilation cache
           rm -rf gb-ws
-          # Fresh clone with full history
           git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git gb-ws
           cd gb-ws
-          # Initialize submodules
           git submodule update --init --recursive
           mkdir -p /home/gbuser/target
 
