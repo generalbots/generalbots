@@ -741,15 +741,14 @@ impl DriveMonitor {
                                         .await
                                     {
                                         let prompt_bytes = prompt_response.body.collect().await?.into_bytes();
-                                        let prompt_content = String::from_utf8(prompt_bytes.to_vec())
-                                            .map_err(|e| format!("UTF-8 error in {}", prompt_filename))?;
+                let prompt_content = String::from_utf8(prompt_bytes.to_vec())
+                    .map_err(|_e| format!("UTF-8 error in {}", prompt_filename))?;
 
-                                        // Save to work directory
-                                        let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
-                                        let gbot_dir = self.work_root.join(format!("{}.gbai/{}.gbot", bot_name, bot_name));
-                                        let prompt_path = gbot_dir.join(prompt_filename);
+                // Save to work directory
+                let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
+                let gbot_dir = self.work_root.join(format!("{}.gbai/{}.gbot", bot_name, bot_name));
 
-                                        if let Err(e) = tokio::task::spawn_blocking({
+                if let Err(e) = tokio::task::spawn_blocking({
                                             let gbot_dir_str = gbot_dir.to_string_lossy().to_string();
                                             let prompt_filename_owned = prompt_filename.to_string();
                                             move || {
