@@ -477,7 +477,7 @@ impl BotOrchestrator {
             return Ok(());
         }
 
-        let (session, context_data, history, model, key, system_prompt, bot_llm_url, explicit_llm_provider) = {
+        let (session, context_data, history, model, key, system_prompt, bot_llm_url, explicit_llm_provider, bot_endpoint_path) = {
             let state_clone = self.state.clone();
             tokio::task::spawn_blocking(
                 move || -> Result<_, Box<dyn std::error::Error + Send + Sync>> {
@@ -534,6 +534,11 @@ impl BotOrchestrator {
                         .get_bot_config_value(&session.bot_id, "llm-provider")
                         .ok();
 
+                    // Load bot-specific llm-endpoint-path
+                    let bot_endpoint_path = config_manager
+                        .get_bot_config_value(&session.bot_id, "llm-endpoint-path")
+                        .ok();
+
                     // Load system-prompt from config.csv, fallback to default
                     // Load system-prompt: auto-detect PROMPT.md, PROMPT.txt, prompt.md, prompt.txt in .gbot folder
                     // Ignore system-prompt-file config to avoid double .gbot path bug
@@ -566,7 +571,7 @@ impl BotOrchestrator {
 
                     info!("Loaded system-prompt for bot {}: {}", session.bot_id, system_prompt.chars().take(500).collect::<String>());
 
-                    Ok((session, context_data, history, model, key, system_prompt, bot_llm_url, explicit_llm_provider))
+                    Ok((session, context_data, history, model, key, system_prompt, bot_llm_url, explicit_llm_provider, bot_endpoint_path))
                 },
             )
             .await??
@@ -768,7 +773,7 @@ impl BotOrchestrator {
                 info!("Using explicit llm-provider config: {:?} for bot {}", parsed, session.bot_id);
                 parsed
             });
-            crate::llm::create_llm_provider_from_url(url, Some(model.clone()), None, explicit_type)
+            crate::llm::create_llm_provider_from_url(url, Some(model.clone()), bot_endpoint_path, explicit_type)
         } else {
             self.state.llm_provider.clone()
         };
