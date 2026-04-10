@@ -922,10 +922,15 @@ async fn start_drive_monitors(
                 Ok(result) => {
                     for bucket in result.buckets().iter().filter_map(|b| b.name()) {
                         let name = bucket.to_string();
-                        if !name.ends_with(".gbai") || !name.starts_with("gbo-") {
+                        if !name.ends_with(".gbai") {
                             continue;
                         }
                         let bot_name = name.strip_suffix(".gbai").unwrap_or(&name);
+                        let bot_name = if bot_name.starts_with("gbo-") {
+                            bot_name.strip_prefix("gbo-").unwrap_or(bot_name)
+                        } else {
+                            bot_name
+                        };
 
                         let exists = {
                             let pool_check = pool_clone.clone();
