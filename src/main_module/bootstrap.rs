@@ -916,7 +916,16 @@ async fn start_drive_monitors(
     tokio::spawn(async move {
         register_thread("drive-monitor", "drive");
 
-        // Step 1: Discover bots from S3 buckets (gbo-*.gbai) and auto-create missing
+        // Get LOAD_ONLY from env to filter which bots to load
+        let load_only: Vec<String> = std::env::var("LOAD_ONLY")
+            .ok()
+            .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
+            .unwrap_or_default();
+        if !load_only.is_empty() {
+            info!("LOAD_ONLY filter active: {:?}", load_only);
+        }
+
+        // Step 1: Discover bots from S3 buckets (*.gbai) and auto-create missing
         if let Some(s3_client) = &state_for_scan.drive {
             match s3_client.list_buckets().send().await {
                 Ok(result) => {
@@ -925,12 +934,13 @@ async fn start_drive_monitors(
                         if !name.ends_with(".gbai") {
                             continue;
                         }
-                        let bot_name = name.strip_suffix(".gbai").unwrap_or(&name);
-                        let bot_name = if bot_name.starts_with("gbo-") {
-                            bot_name.strip_prefix("gbo-").unwrap_or(bot_name)
-                        } else {
-                            bot_name
-                        };
+                        let bot_name = name.strip_suffix(".gbai").unwrap_or(&name).to_string();
+
+                        // Filter by LOAD_ONLY if specified
+                        if !load_only.is_empty() && !load_only.contains(&bot_name) {
+                            trace!("Skipping bot '{}' (not in LOAD_ONLY)", bot_name);
+                            continue;
+                        }
 
                         let exists = {
                             let pool_check = pool_clone.clone();
@@ -987,10 +997,16 @@ async fn start_drive_monitors(
 
         info!("Found {} active bots to monitor", bots_to_monitor.len());
 
+        // Apply LOAD_ONLY filter to monitoring as well
+        let load_only_for_monitor: Vec<String> = std::env::var("LOAD_ONLY")
+            .ok()
+            .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
+            .unwrap_or_default();
+
         for (bot_id, bot_name) in bots_to_monitor {
-            // Skip bots with reserved system prefixes
-            // gbo-default is a reserved system bot name
-            if bot_name.starts_with("gbo-") {
+            // Filter by LOAD_ONLY if specified
+            if !load_only_for_monitor.is_empty() && !load_only_for_monitor.contains(&bot_name) {
+                trace!("Skipping monitoring for bot '{}' (not in LOAD_ONLY)", bot_name);
                 continue;
             }
 
