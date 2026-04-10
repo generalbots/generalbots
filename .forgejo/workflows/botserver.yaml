@@ -29,44 +29,30 @@ jobs:
           mkdir -p $WORKSPACE
           cd $WORKSPACE
           
-          echo "=== Updating workspace ==="
-          
-          # Update or clone botlib
+          # Clone or update repos
           if [ -d botlib/.git ]; then
-            echo "Updating botlib..."
-            git -C botlib pull --ff-only origin main || git -C botlib fetch origin main
+            git -C botlib pull --ff-only origin main
           else
             git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
           
-          # Update or clone botserver
           if [ -d botserver/.git ]; then
-            echo "Updating botserver..."
-            git -C botserver pull --ff-only origin main || git -C botserver fetch origin main
+            git -C botserver pull --ff-only origin main
           else
             git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
           
-          # Get workspace Cargo.toml from gb
           if [ -d /opt/gbo/data/gb-ws/.git ]; then
-            git -C /opt/gbo/data/gb-ws pull --ff-only origin main || git -C /opt/gbo/data/gb-ws fetch origin main
+            git -C /opt/gbo/data/gb-ws pull --ff-only origin main
           else
             git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
           fi
-          
-          # Only rebuild if there were actual changes
-          echo "$WORKSPACE" > /tmp/workspace_path
           
           cp /opt/gbo/data/gb-ws/Cargo.toml Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
           done
-          
-          # Ensure target dir exists (use persistent location for sccache)
           mkdir -p /opt/gbo/data/botserver/target
-          
-          # Pre-fetch dependencies
-          cargo fetch 2>/dev/null || true
 
       - name: Cache sccache
         uses: actions/cache@v4
@@ -96,40 +82,9 @@ jobs:
           export SCCACHE_IDLE_TIMEOUT=300
           export SCCACHE_CACHE_SIZE=10G
           sccache --stop-server 2>/dev/null || true
-          sleep 1
           sccache --start-server
-          
-          # Always build - too complex to detect changes reliably
-          # sccache will handle caching efficiently
-          
-          cd /opt/gbo/data/botserver
-          echo "=== Starting build in background ==="
-          cargo build -p botserver -j 8 > /tmp/build.log 2>&1 &
-          BUILD_PID=$!
-          echo "Build PID: $BUILD_PID"
 
-          echo "=== Waiting for build to complete (PID: $BUILD_PID) ==="
-          while kill -0 $BUILD_PID 2>/dev/null; do
-            echo "Build in progress... (sleeping 30s)"
-            sleep 30
-          done
-
-          wait $BUILD_PID
-          EXIT_CODE=$?
-
-          echo "=== Build finished with exit code: $EXIT_CODE ==="
-
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "=== Build FAILED ==="
-            tail -100 /tmp/build.log
-            exit $EXIT_CODE
-          fi
-
-          echo "=== sccache stats ==="
-          sccache --show-stats
-          echo "=== Binary info ==="
-          ls -lh target/debug/botserver
-          stat -c '%y' target/debug/botserver
+          cargo build -p botserver -j 8
 
       - name: Save build log
         if: always()
