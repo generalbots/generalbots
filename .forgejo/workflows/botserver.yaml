@@ -50,8 +50,15 @@ jobs:
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
           done
-          # Ensure target dir exists
-          mkdir -p target
+          # Ensure target dir exists (use persistent location for sccache)
+          mkdir -p /opt/gbo/data/botserver/target
+
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sccache
+          key: sccache-botserver-${{ github.sha }}
+          restore-keys: sccache-botserver-
 
       - name: Install system dependencies
         run: |
