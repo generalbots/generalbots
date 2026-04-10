@@ -512,7 +512,7 @@ impl PackageManager {
                         "> {{LOGS_PATH}}/zitadel.log 2>&1 &",
                     ).to_string(),
                     // Wait for Zitadel to be ready
-                    "for i in $(seq 1 120); do curl -sf http://localhost:8300/debug/healthz && echo 'Zitadel is ready!' && break || sleep 2; done".to_string(),
+                    "for i in $(seq 1 120); do curl -sf /debug/healthz && echo 'Zitadel is ready!' && break || sleep 2; done".to_string(),
                     // Wait for PAT token to be written to logs with retry loop
                     // Zitadel may take several seconds to write the PAT after health check passes
                     "echo 'Waiting for PAT token in logs...'; for i in $(seq 1 30); do sync; if grep -q -E '^[A-Za-z0-9_-]{40,}$' {{LOGS_PATH}}/zitadel.log 2>/dev/null; then echo \"PAT token found in logs after $((i*2)) seconds\"; break; fi; sleep 2; done".to_string(),
@@ -534,29 +534,24 @@ impl PackageManager {
                     ("ZITADEL_EXTERNALDOMAIN".to_string(), "localhost".to_string()),
                     ("ZITADEL_EXTERNALPORT".to_string(), "8300".to_string()),
                     ("ZITADEL_TLS_ENABLED".to_string(), "false".to_string()),
+                    ("ZITADEL_DATABASE_POSTGRES_HOST".to_string(), "localhost".to_string()),
+                    ("ZITADEL_DATABASE_POSTGRES_PORT".to_string(), "5432".to_string()),
+                    ("ZITADEL_DATABASE_POSTGRES_DATABASE".to_string(), "zitadel".to_string()),
+                    ("ZITADEL_DATABASE_POSTGRES_USER_USERNAME".to_string(), "zitadel".to_string()),
+                    ("ZITADEL_DATABASE_POSTGRES_USER_PASSWORD".to_string(), "zitadel".to_string()),
+                    ("ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE".to_string(), "disable".to_string()),
+                    ("ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME".to_string(), "gbuser".to_string()),
+                    ("ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD".to_string(), "$DB_PASSWORD".to_string()),
+                    ("ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE".to_string(), "disable".to_string()),
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: concat!(
-                    "ZITADEL_PORT=8300 ",
-                    "ZITADEL_DATABASE_POSTGRES_HOST=localhost ",
-                    "ZITADEL_DATABASE_POSTGRES_PORT=5432 ",
-                    "ZITADEL_DATABASE_POSTGRES_DATABASE=zitadel ",
-                    "ZITADEL_DATABASE_POSTGRES_USER_USERNAME=zitadel ",
-                    "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=zitadel ",
-                    "ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE=disable ",
-                    "ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME=gbuser ",
-                    "ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD={{DB_PASSWORD}} ",
-                    "ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE=disable ",
-                    "ZITADEL_EXTERNALSECURE=false ",
-                    "ZITADEL_EXTERNALDOMAIN=localhost ",
-                    "ZITADEL_EXTERNALPORT=8300 ",
-                    "ZITADEL_TLS_ENABLED=false ",
                     "nohup {{BIN_PATH}}/zitadel start ",
                     "--masterkey MasterkeyNeedsToHave32Characters ",
                     "--tlsMode disabled ",
                     "> {{LOGS_PATH}}/zitadel.log 2>&1 &",
                 ).to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/debug/healthz >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 /debug/healthz >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -917,7 +912,7 @@ impl PackageManager {
                 },
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/influxdb/influxd.bolt --engine-path={{DATA_PATH}}/influxdb/engine --http-bind-address=:8086".to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8086/health >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -1055,7 +1050,7 @@ EOF"#.to_string(),
                 exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml"
                     .to_string(),
                 check_cmd:
-                    "curl -f --connect-timeout 2 -m 5 http://localhost:8686/health >/dev/null 2>&1"
+                    "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1"
                         .to_string(),
             },
         );
@@ -1585,7 +1580,7 @@ VAULT_CACERT={}
                     ("secret".to_string(), drive_pass),
                     ("host".to_string(), "localhost".to_string()),
                     ("port".to_string(), "9000".to_string()),
-                    ("url".to_string(), "http://localhost:9000".to_string()),
+                    ("url".to_string(), "".to_string()),
                 ],
             ),
             (
@@ -1611,7 +1606,7 @@ VAULT_CACERT={}
             (
                 "secret/gbo/directory",
                 vec![
-                    ("url".to_string(), "http://localhost:9000".to_string()),
+                    ("url".to_string(), "".to_string()),
                     ("host".to_string(), "localhost".to_string()),
                     ("port".to_string(), "9000".to_string()),
                     ("project_id".to_string(), "none".to_string()),
@@ -1632,7 +1627,7 @@ VAULT_CACERT={}
             (
                 "secret/gbo/llm",
                 vec![
-                    ("url".to_string(), "http://localhost:8081".to_string()),
+                    ("url".to_string(), "".to_string()),
                     ("host".to_string(), "localhost".to_string()),
                     ("port".to_string(), "8081".to_string()),
                     ("model".to_string(), "gpt-4".to_string()),
@@ -1640,7 +1635,7 @@ VAULT_CACERT={}
                     ("anthropic_key".to_string(), "none".to_string()),
                     (
                         "ollama_url".to_string(),
-                        "http://localhost:11434".to_string(),
+                        "".to_string(),
                     ),
                 ],
             ),
@@ -1651,7 +1646,7 @@ VAULT_CACERT={}
             (
                 "secret/gbo/meet",
                 vec![
-                    ("url".to_string(), "http://localhost:7880".to_string()),
+                    ("url".to_string(), "".to_string()),
                     ("host".to_string(), "localhost".to_string()),
                     ("port".to_string(), "7880".to_string()),
                     ("app_id".to_string(), meet_app_id),
@@ -1661,7 +1656,7 @@ VAULT_CACERT={}
             (
                 "secret/gbo/vectordb",
                 vec![
-                    ("url".to_string(), "http://localhost:6333".to_string()),
+                    ("url".to_string(), "".to_string()),
                     ("host".to_string(), "localhost".to_string()),
                     ("port".to_string(), "6333".to_string()),
                     ("grpc_port".to_string(), "6334".to_string()),
@@ -1671,7 +1666,7 @@ VAULT_CACERT={}
             (
                 "secret/gbo/alm",
                 vec![
-                    ("url".to_string(), "http://localhost:9000".to_string()),
+                    ("url".to_string(), "".to_string()),
                     ("host".to_string(), "localhost".to_string()),
                     ("port".to_string(), "9000".to_string()),
                     ("token".to_string(), alm_token),
