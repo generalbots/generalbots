@@ -25,7 +25,6 @@ external_sync = ["automation", "drive", "cache"]
 scripting = ["dep:rhai"]
 automation = ["scripting", "dep:cron"]
 drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
-local-files = ["dep:notify"]
 cache = ["dep:redis"]
 directory = ["rbac"]
 rbac = []
@@ -33,7 +32,7 @@ crawler = ["drive", "cache"]
 
 # ===== APPS (Each includes what it needs from core) =====
 # Communication
-chat = ["automation", "local-files", "cache"]
+chat = ["automation", "cache"]
 people = ["automation", "drive", "cache"]
 mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap"]
 meet = ["automation", "drive", "cache"]
@@ -84,7 +83,7 @@ telegram = ["automation", "drive", "cache"]
 instagram = ["automation", "drive", "cache"]
 msteams = ["automation", "drive", "cache"]
 # Core Tech
-llm = ["automation", "local-files", "cache"]
+llm = ["automation", "cache"]
 vectordb = ["automation", "drive", "cache", "dep:qdrant-client"]
 nvidia = ["automation", "drive", "cache"]
 compliance = ["automation", "drive", "cache", "dep:csv"]
@@ -97,7 +96,7 @@ console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
 
 # ===== BUNDLES (Optional - for convenience) =====
 minimal = ["chat"]
-minimal-chat = ["chat", "automation", "local-files", "cache"]  # No security at all
+minimal-chat = ["chat", "automation", "cache"]  # No security at all
 lightweight = ["chat", "tasks", "people"]
 full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
 embed-ui = ["dep:rust-embed"]
@@ -229,9 +228,6 @@ rss = { workspace = true }
 # HTML parsing/web scraping
 scraper = { workspace = true }
 walkdir = { workspace = true }
-
-# File system monitoring (for local .gbai monitoring)
-notify = { workspace = true, optional = true }
 
 # Embedded static files
 rust-embed = { workspace = true, optional = true }

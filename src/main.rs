@@ -95,7 +95,7 @@ pub mod console;
 #[cfg(feature = "directory")]
 pub mod directory;
 
-#[cfg(any(feature = "drive", feature = "local-files"))]
+#[cfg(feature = "drive")]
 pub mod drive;
 
 #[cfg(feature = "mail")]

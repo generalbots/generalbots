@@ -101,6 +101,35 @@ impl KnowledgeBaseManager {
         Ok(())
     }
 
+    pub async fn index_single_file(
+        &self,
+        bot_id: Uuid,
+        bot_name: &str,
+        kb_name: &str,
+        file_path: &Path,
+    ) -> Result<kb_indexer::IndexingResult> {
+        info!(
+            "Indexing single file: {} into KB {} for bot {}",
+            file_path.display(),
+            kb_name,
+            bot_name
+        );
+
+        let result = self
+            .indexer
+            .index_single_file(bot_id, bot_name, kb_name, file_path)
+            .await?;
+
+        info!(
+            "Successfully indexed {} chunks from {} into collection {}",
+            result.chunks_indexed,
+            file_path.display(),
+            result.collection_name
+        );
+
+        Ok(result)
+    }
+
     pub async fn search(
         &self,
         bot_id: Uuid,

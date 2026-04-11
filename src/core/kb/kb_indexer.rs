@@ -505,6 +505,113 @@ impl KbIndexer {
         Ok(())
     }
 
+    pub async fn index_single_file(
+        &self,
+        bot_id: Uuid,
+        bot_name: &str,
+        kb_name: &str,
+        file_path: &Path,
+    ) -> Result<IndexingResult> {
+        if !is_embedding_server_ready() {
+            return Err(anyhow::anyhow!(
+                "Embedding server not available. Cannot index file."
+            ));
+        }
+
+        if !self.check_qdrant_health().await.unwrap_or(false) {
+            return Err(anyhow::anyhow!(
+                "Qdrant vector database is not available."
+            ));
+        }
+
+        let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
+        let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
+
+        self.ensure_collection_exists(&collection_name).await?;
+
+        info!(
+            "Indexing single file: {} into collection {}",
+            file_path.display(),
+            collection_name
+        );
+
+        let chunks = self.document_processor.process_document(file_path).await?;
+
+        if chunks.is_empty() {
+            warn!("No chunks extracted from file: {}", file_path.display());
+            return Ok(IndexingResult {
+                collection_name,
+                documents_processed: 0,
+                chunks_indexed: 0,
+            });
+        }
+
+        let doc_path = file_path.to_string_lossy().to_string();
+        let embeddings = self
+            .embedding_generator
+            .generate_embeddings(&chunks)
+            .await?;
+
+        let points = Self::create_qdrant_points(&doc_path, embeddings)?;
+        self.upsert_points(&collection_name, points).await?;
+
+        self.update_collection_metadata(&collection_name, bot_name, kb_name, chunks.len())?;
+
+        info!(
+            "Indexed {} chunks from {} into collection {}",
+            chunks.len(),
+            file_path.display(),
+            collection_name
+        );
+
+        Ok(IndexingResult {
+            collection_name,
+            documents_processed: 1,
+            chunks_indexed: chunks.len(),
+        })
+    }
+
+    pub async fn delete_file_points(
+        &self,
+        collection_name: &str,
+        document_path: &str,
+    ) -> Result<()> {
+        let filter = serde_json::json!({
+            "must": [
+                {
+                    "key": "document_path",
+                    "match": {
+                        "value": document_path
+                    }
+                }
+            ]
+        });
+
+        let delete_url = format!(
+            "{}/collections/{}/points/delete?wait=true",
+            self.qdrant_config.url, collection_name
+        );
+
+        let response = self
+            .http_client
+            .post(&delete_url)
+            .json(&serde_json::json!({ "filter": filter }))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow::anyhow!("Failed to delete points: {}", error_text));
+        }
+
+        info!(
+            "Deleted points for document {} from collection {}",
+            document_path, collection_name
+        );
+
+        Ok(())
+    }
+
     fn update_collection_metadata(
         &self,
         collection_name: &str,
