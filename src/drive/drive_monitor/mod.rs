@@ -642,6 +642,15 @@ impl DriveMonitor {
                         }
                         let mut states = self.file_states.write().await;
                         states.insert(prompt_state_key, FileState { etag, indexed: false });
+                        drop(states);
+                        let file_states_clone = Arc::clone(&self.file_states);
+                        let work_root_clone = self.work_root.clone();
+                        let bot_id_clone = self.bot_id;
+                        tokio::spawn(async move {
+                            if let Err(e) = Self::save_file_states_static(&file_states_clone, &work_root_clone, &bot_id_clone).await {
+                                warn!("Failed to save file states after prompt update: {}", e);
+                            }
+                        });
                     } else {
                         trace!("Prompt file {} unchanged (etag match), skipping download", path);
                     }
