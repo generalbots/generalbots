@@ -161,8 +161,8 @@ async fn get_llm_config(state: &Arc<AppState>, bot_id: Uuid) -> Result<(String, 
     let config = ConfigManager::new(state.conn.clone());
 
     let llm_url = config
-        .get_config(&bot_id, "llm-url", Some("http://localhost:8081"))
-        .unwrap_or_else(|_| "http://localhost:8081".to_string());
+        .get_config(&bot_id, "llm-url", Some(""))
+        .unwrap_or_else(|_| "".to_string());
 
     let llm_model = config
         .get_config(&bot_id, "llm-model", None)

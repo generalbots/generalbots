@@ -305,16 +305,16 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
     let mut urls: Vec<String> = Vec::new();
     if let Some(url) = env_url {
         urls.push(url);
-    } else if let Ok(secrets) = SecretsManager::from_env() {
+    } else if let Ok(secrets) = SecretsManager::get() {
         if let Ok(data) = secrets.get_secret(SecretPaths::CACHE).await {
-            let host = data.get("host").cloned().unwrap_or_else(|| "localhost".into());
+            let host = data.get("host").cloned().unwrap_or_else(|| "".into());
             let port = data.get("port").and_then(|p| p.parse().ok()).unwrap_or(6379);
             urls.push(format!("redis://{}:{}", host, port));
             if let Some(pass) = data.get("password") {
                 urls.push(format!("redis://:{}@{}:{}", pass, host, port));
             }
         } else {
-            urls.push("redis://localhost:6379".to_string());
+urls.push(String::new());
         }
     } else {
         urls.push("redis://localhost:6379".to_string());
@@ -453,8 +453,8 @@ pub async fn create_app_state(
         url
     } else {
         config_manager
-            .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
-            .unwrap_or_else(|_| "http://localhost:8081".to_string())
+            .get_config(&default_bot_id, "llm-url", Some(""))
+            .unwrap_or_else(|_| "".to_string())
     };
     info!("LLM URL: {}", llm_url);
 
@@ -486,8 +486,8 @@ pub async fn create_app_state(
         && !llm_url.contains("127.0.0.1")
         && (llm_url.contains("api.z.ai") || llm_url.contains("openai.com") || llm_url.contains("anthropic.com"))
     {
-        warn!("External LLM URL configured ({}), but no API key provided. Falling back to local LLM at http://localhost:8081", llm_url);
-        "http://localhost:8081".to_string()
+        warn!("External LLM URL configured ({}), but no API key provided. Falling back to local LLM at ", llm_url);
+        "".to_string()
     } else {
         llm_url
     };
@@ -660,7 +660,7 @@ fn init_directory_service() -> Result<(Arc<Mutex<crate::directory::AuthService>>
                 let base_url = json
                     .get("base_url")
                     .and_then(|v| v.as_str())
-                    .unwrap_or("http://localhost:8300");
+                    .unwrap_or("");
                 let client_id = json.get("client_id").and_then(|v| v.as_str()).unwrap_or("");
                 let client_secret = json
                     .get("client_secret")
@@ -703,13 +703,13 @@ fn init_directory_service() -> Result<(Arc<Mutex<crate::directory::AuthService>>
 #[cfg(feature = "directory")]
 fn default_zitadel_config() -> crate::directory::ZitadelConfig {
     crate::directory::ZitadelConfig {
-        issuer_url: "http://localhost:8300".to_string(),
-        issuer: "http://localhost:8300".to_string(),
+        issuer_url: "".to_string(),
+        issuer: "".to_string(),
         client_id: String::new(),
         client_secret: String::new(),
-        redirect_uri: "http://localhost:8300/callback".to_string(),
+        redirect_uri: "/callback".to_string(),
         project_id: "default".to_string(),
-        api_url: "http://localhost:8300".to_string(),
+        api_url: "".to_string(),
         service_account_key: None,
     }
 }
@@ -787,9 +787,9 @@ fn init_llm_provider(
             .get_config(
                 &bot_id,
                 "embedding-url",
-                Some("http://localhost:8082"),
+                Some(""),
             )
-            .unwrap_or_else(|_| "http://localhost:8082".to_string());
+            .unwrap_or_else(|_| "".to_string());
         let embedding_model = config_manager
             .get_config(&bot_id, "embedding-model", Some("all-MiniLM-L6-v2"))
             .unwrap_or_else(|_| "all-MiniLM-L6-v2".to_string());

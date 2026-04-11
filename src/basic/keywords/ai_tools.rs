@@ -184,9 +184,9 @@ async fn translate_text(
     target_lang: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let llm_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager().await {
-        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "http://localhost:8081".to_string())
+        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "".to_string())
     } else {
-        "http://localhost:8081".to_string()
+        "".to_string()
     };
     let prompt = format!(
         "Translate to {}. Return ONLY the translation:\n\n{}",
@@ -212,7 +212,7 @@ async fn translate_text(
 
 async fn perform_ocr(image_path: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let botmodels_url =
-        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
     let client = reqwest::Client::new();
     let image_data = if image_path.starts_with("http") {
         client.get(image_path).send().await?.bytes().await?.to_vec()
@@ -237,9 +237,9 @@ async fn analyze_sentiment(
     text: &str,
 ) -> Result<Dynamic, Box<dyn std::error::Error + Send + Sync>> {
     let llm_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager().await {
-        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "http://localhost:8081".to_string())
+        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "".to_string())
     } else {
-        "http://localhost:8081".to_string()
+        "".to_string()
     };
     let prompt = format!(
         r#"Analyze sentiment. Return JSON only:
@@ -346,9 +346,9 @@ async fn classify_text(
     categories: &[String],
 ) -> Result<Dynamic, Box<dyn std::error::Error + Send + Sync>> {
     let llm_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager().await {
-        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "http://localhost:8081".to_string())
+        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "".to_string())
     } else {
-        "http://localhost:8081".to_string()
+        "".to_string()
     };
     let cats = categories.join(", ");
     let prompt = format!(

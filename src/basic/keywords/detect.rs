@@ -109,7 +109,7 @@ async fn detect_anomalies_in_table(
     }
 
     let botmodels_host =
-        std::env::var("BOTMODELS_HOST").unwrap_or_else(|_| "http://localhost:8085".to_string());
+        std::env::var("BOTMODELS_HOST").unwrap_or_else(|_| "".to_string());
     let botmodels_key =
         std::env::var("BOTMODELS_API_KEY").unwrap_or_else(|_| "starter".to_string());
 

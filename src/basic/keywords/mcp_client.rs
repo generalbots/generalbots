@@ -120,7 +120,7 @@ impl Default for McpConnection {
     fn default() -> Self {
         Self {
             connection_type: ConnectionType::Http,
-            url: "http://localhost:8080".to_string(),
+            url: "".to_string(),
             port: None,
             timeout_seconds: 30,
             max_retries: 3,

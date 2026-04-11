@@ -76,7 +76,7 @@ pub async fn export_test(
     let script = r#"
 import { test, expect } from '@playwright/test';
 test('Recorded test', async ({ page }) => {
-  await page.goto('http://localhost:3000');
+  await page.goto('');
   // Add actions
 });
 "#;

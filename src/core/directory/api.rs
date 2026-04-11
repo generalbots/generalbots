@@ -81,7 +81,7 @@ pub async fn provision_user_handler(
         .config
         .as_ref()
         .map(|c| c.server.base_url.clone())
-        .unwrap_or_else(|| "http://localhost:9000".to_string());
+        .unwrap_or_else(|| "".to_string());
 
     let provisioning = UserProvisioningService::new(state.conn.clone(), s3_client, base_url);
 
@@ -114,7 +114,7 @@ pub async fn deprovision_user_handler(
         .config
         .as_ref()
         .map(|c| c.server.base_url.clone())
-        .unwrap_or_else(|| "http://localhost:9000".to_string());
+        .unwrap_or_else(|| "".to_string());
 
     let provisioning = UserProvisioningService::new(state.conn.clone(), s3_client, base_url);
 
@@ -257,7 +257,7 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
 
     let client = create_tls_client(Some(2));
 
-    if let Ok(response) = client.get("http://localhost:8300/healthz").send().await {
+    if let Ok(response) = client.get("/healthz").send().await {
         status.directory = response.status().is_success();
     }
 

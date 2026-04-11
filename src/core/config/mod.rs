@@ -91,7 +91,7 @@ impl CustomDatabaseConfig {
             .first::<String>(&mut conn)
             .ok()
             .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| "localhost".to_string());
+            .unwrap_or_else(|| "".to_string());
 
         let port: u16 = bot_configuration
             .filter(bot_id.eq(target_bot_id))
@@ -272,27 +272,21 @@ impl AppConfig {
                 .unwrap_or_else(|| default.to_string())
         };
 
-        let get_u16 = |key: &str, default: u16| -> u16 {
-            config_map
-                .get(key)
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(default)
-        };
+    let get_u16 = |key: &str, default: u16| -> u16 {
+        config_map
+            .get(key)
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(default)
+    };
 
-        // Read from Vault with fallback to defaults
-        let secrets = SecretsManager::from_env().ok();
-        let (drive_server, drive_access, drive_secret) = secrets
-            .as_ref()
-            .map(|s| s.get_drive_config())
-            .unwrap_or_else(|| {
-                (
-                    crate::core::urls::InternalUrls::DRIVE.to_string(),
-                    "minioadmin".to_string(),
-                    "minioadmin".to_string(),
-                )
-            });
+    // Read from Vault with fallback to defaults
+    let secrets = SecretsManager::get().ok().map(|sm| sm.clone());
+    let (drive_server, drive_access, drive_secret) = secrets
+        .as_ref()
+        .and_then(|s| s.get_drive_config().ok())
+        .unwrap_or((String::new(), String::new(), String::new()));
 
-        let drive = DriveConfig {
+    let drive = DriveConfig {
             server: drive_server,
             access_key: drive_access,
             secret_key: drive_secret,
@@ -317,7 +311,7 @@ impl AppConfig {
             server: ServerConfig {
                 host: get_str("server_host", "0.0.0.0"),
                 port,
-                base_url: config_map.get("server_base_url").cloned().unwrap_or_else(|| "http://localhost:8080".to_string()),
+                base_url: config_map.get("server_base_url").cloned().unwrap_or_else(|| String::new()),
             },
             site_path: {
                 ConfigManager::new(pool.clone()).get_config(
@@ -331,17 +325,11 @@ impl AppConfig {
     }
     pub fn from_env() -> Result<Self, anyhow::Error> {
         // Read from Vault with fallback to defaults
-        let secrets = SecretsManager::from_env().ok();
+        let secrets = SecretsManager::get().ok().map(|sm| sm.clone());
         let (drive_server, drive_access, drive_secret) = secrets
             .as_ref()
-            .map(|s| s.get_drive_config())
-            .unwrap_or_else(|| {
-                (
-                    crate::core::urls::InternalUrls::DRIVE.to_string(),
-                    "minioadmin".to_string(),
-                    "minioadmin".to_string(),
-                )
-            });
+            .and_then(|s| s.get_drive_config().ok())
+            .unwrap_or((String::new(), String::new(), String::new()));
 
         let minio = DriveConfig {
             server: drive_server,
@@ -368,7 +356,7 @@ impl AppConfig {
             server: ServerConfig {
                 host: "0.0.0.0".to_string(),
                 port,
-                base_url: "http://localhost:8080".to_string(),
+                base_url: "".to_string(),
             },
 
             site_path: format!("{}/sites", crate::core::shared::utils::get_stack_path()),

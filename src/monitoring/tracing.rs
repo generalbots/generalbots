@@ -357,7 +357,7 @@ impl Default for ExporterConfig {
     fn default() -> Self {
         Self {
             exporter_type: ExporterType::Otlp,
-            endpoint: "http://localhost:4317".to_string(),
+            endpoint: "".to_string(),
             headers: HashMap::new(),
             batch_size: 512,
             flush_interval_ms: 5000,

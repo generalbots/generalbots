@@ -78,15 +78,12 @@ jobs:
           ssh $SSH_ARGS system "find /opt/gbo/data -maxdepth 2 ! -path '*/botserver' ! -path '*/gb-ws' -print0 2>/dev/null | xargs -0 rm -rf || true"
           # Clean old log files
           ssh $SSH_ARGS system "find /tmp -name '*.log' -type f -mtime +7 -print0 2>/dev/null | xargs -0 rm -f || true"
-          # Show disk space
-          ssh $SSH_ARGS system "df -h /opt/gbo/data"
-          echo "=== Workspace cleanup complete ==="
 
       - name: Build BotServer
         working-directory: /opt/gbo/data/botserver
         run: |
           sccache --start-server 2>/dev/null || true
-          cargo build -p botserver --features chat -j 8 2>&1 | tee /tmp/build.log
+          cargo build -p botserver  -j 8 2>&1 | tee /tmp/build.log
           sccache --show-stats
           ls -lh target/debug/botserver
 

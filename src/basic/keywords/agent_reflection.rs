@@ -634,18 +634,22 @@ impl ReflectionEngine {
         .load(&mut conn)
         .unwrap_or_default();
 
-        let mut llm_url = "http://localhost:8081".to_string();
-        let mut llm_model = "default".to_string();
-        let mut llm_key = "none".to_string();
+        let mut llm_url: Option<String> = None;
+        let mut llm_model: Option<String> = None;
+        let mut llm_key: Option<String> = None;
 
         for config in configs {
             match config.config_key.as_str() {
-                "llm-url" => llm_url = config.config_value,
-                "llm-model" => llm_model = config.config_value,
-                "llm-key" => llm_key = config.config_value,
+                "llm-url" => llm_url = Some(config.config_value),
+                "llm-model" => llm_model = Some(config.config_value),
+                "llm-key" => llm_key = Some(config.config_value),
                 _ => {}
             }
         }
+
+        let llm_url = llm_url.ok_or_else(|| "LLM URL not configured".to_string())?;
+        let llm_model = llm_model.ok_or_else(|| "LLM model not configured".to_string())?;
+        let llm_key = llm_key.ok_or_else(|| "LLM key not configured".to_string())?;
 
         Ok((llm_url, llm_model, llm_key))
     }

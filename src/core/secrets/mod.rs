@@ -7,6 +7,7 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Arc as StdArc;
+use std::sync::OnceLock;
 use std::sync::RwLock as StdRwLock;
 use uuid::Uuid;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
@@ -130,19 +131,19 @@ impl SecretsManager {
             settings_builder.verify(true);
 
             if ca_path.exists() {
-                info!("Using CA certificate for Vault: {}", ca_cert);
+                debug!("Using CA certificate for Vault: {}", ca_cert);
                 settings_builder.ca_certs(vec![ca_cert]);
             }
         }
 
         if cert_path.exists() && key_path.exists() && !skip_verify {
-            info!("Using mTLS client certificate for Vault: {}", client_cert);
+            debug!("Using mTLS client certificate for Vault: {}", client_cert);
         }
 
         let settings = settings_builder.build()?;
         let client = VaultClient::new(settings)?;
 
-        info!("Vault client initialized with TLS: {}", addr);
+        debug!("Vault client initialized with TLS: {}", addr);
 
         Ok(Self {
             client: Some(StdArc::new(client)),
@@ -150,6 +151,26 @@ impl SecretsManager {
             cache_ttl,
             enabled: true,
         })
+    }
+
+    pub fn get() -> Result<&'static SecretsManager> {
+        static INIT: OnceLock<Result<SecretsManager>> = OnceLock::new();
+        INIT.get_or_init(|| {
+            match Self::from_env() {
+                Ok(manager) => {
+                    info!("SecretsManager singleton initialized (Vault: {})", env::var("VAULT_ADDR").unwrap_or_default());
+                    Ok(manager)
+                }
+                Err(e) => {
+                    warn!("Failed to initialize SecretsManager: {}", e);
+                    Err(e)
+                }
+            }
+        }).as_ref().map_err(|e| anyhow!("SecretsManager initialization failed: {}", e))
+    }
+
+    pub fn get_clone() -> Result<SecretsManager> {
+        Self::get().map(|sm| sm.clone())
     }
 
     pub fn is_enabled(&self) -> bool {
@@ -208,30 +229,33 @@ impl SecretsManager {
         default.to_string()
     }
 
-    pub fn get_drive_config(&self) -> (String, String, String) {
+    pub fn get_drive_config(&self) -> Result<(String, String, String)> {
         // Try to read from Vault using std process (curl)
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
-                
+
                 log::info!("Attempting to read drive config from Vault: {}", vault_addr);
-                
+
                 let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
-                
+
                 // Use curl via Command for reliable TLS
                 let result = std::process::Command::new("curl")
                     .args(&["-sf", "--cacert", &ca_cert, "-H", &format!("X-Vault-Token: {}", &vault_token), &url])
                     .output();
-                
+
                 match result {
                     Ok(output) if output.status.success() => {
                         if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                             if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
-                                let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost:9100");
-                                let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).unwrap_or("minioadmin");
-                                let secret = secret_data.get("secret").and_then(|v| v.as_str()).unwrap_or("minioadmin");
+                                let host = secret_data.get("host").and_then(|v| v.as_str())
+                                    .ok_or_else(|| anyhow!("drive host not configured in Vault"))?;
+                                let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str())
+                                    .ok_or_else(|| anyhow!("drive accesskey not configured in Vault"))?;
+                                let secret = secret_data.get("secret").and_then(|v| v.as_str())
+                                    .ok_or_else(|| anyhow!("drive secret not configured in Vault"))?;
                                 log::info!("get_drive_config: Successfully read from Vault - host={}", host);
-                                return (host.to_string(), accesskey.to_string(), secret.to_string());
+                                return Ok((host.to_string(), accesskey.to_string(), secret.to_string()));
                             }
                         }
                     }
@@ -245,82 +269,86 @@ impl SecretsManager {
             }
         }
 
-        log::warn!("get_drive_config: Falling back to defaults - Vault not available");
-        ("localhost:9100".to_string(), "minioadmin".to_string(), "minioadmin".to_string())
+        Err(anyhow!("Drive configuration not available in Vault and VAULT_ADDR/VAULT_TOKEN not set"))
     }
     
-    pub fn get_cache_config(&self) -> (String, u16, Option<String>) {
+    pub fn get_cache_config(&self) -> Result<(String, u16, Option<String>)> {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
-                
+
                 log::info!("Attempting to read cache config from Vault: {}", vault_addr);
                 let url = format!("{}/v1/secret/data/gbo/cache", vault_addr);
-                
+
                 let result = std::process::Command::new("curl")
                     .args(&["-sf", "--cacert", &ca_cert, "-H", &format!("X-Vault-Token: {}", &vault_token), &url])
                     .output();
-                
+
                 if let Ok(output) = result {
                     if output.status.success() {
                         if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                             if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
-                                let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost");
-                                let port = secret_data.get("port").and_then(|v| v.as_str()).unwrap_or("6379").parse().unwrap_or(6379);
+                                let host = secret_data.get("host").and_then(|v| v.as_str())
+                                    .ok_or_else(|| anyhow!("cache host not configured in Vault"))?;
+                                let port = secret_data.get("port").and_then(|v| v.as_str())
+                                    .ok_or_else(|| anyhow!("cache port not configured in Vault"))?
+                                    .parse().map_err(|e| anyhow!("Invalid cache port: {}", e))?;
                                 let password = secret_data.get("password").and_then(|v| v.as_str()).map(|s| s.to_string());
                                 log::info!("get_cache_config: Successfully read from Vault - host={}", host);
-                                return (host.to_string(), port, password);
+                                return Ok((host.to_string(), port, password));
                             }
                         }
                     }
                 }
             }
         }
-        log::warn!("get_cache_config: Falling back to defaults");
-        ("localhost".to_string(), 6379, None)
+        Err(anyhow!("Cache configuration not available in Vault and VAULT_ADDR/VAULT_TOKEN not set"))
     }
     
-    pub fn get_qdrant_config(&self) -> (String, Option<String>) {
+    pub fn get_qdrant_config(&self) -> Result<(String, Option<String>)> {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
-                
+
                 log::info!("Attempting to read qdrant config from Vault: {}", vault_addr);
                 let url = format!("{}/v1/secret/data/gbo/vectordb", vault_addr);
-                
+
                 let result = std::process::Command::new("curl")
                     .args(&["-sf", "--cacert", &ca_cert, "-H", &format!("X-Vault-Token: {}", &vault_token), &url])
                     .output();
-                
+
                 if let Ok(output) = result {
                     if output.status.success() {
                         if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                             if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
-                                let url = secret_data.get("url").and_then(|v| v.as_str()).unwrap_or("http://localhost:6333");
+                                let url = secret_data.get("url").and_then(|v| v.as_str())
+                                    .ok_or_else(|| anyhow!("vectordb url not configured in Vault"))?;
                                 let api_key = secret_data.get("api_key").and_then(|v| v.as_str()).map(|s| s.to_string());
                                 log::info!("get_qdrant_config: Successfully read from Vault - url={}", url);
-                                return (url.to_string(), api_key);
+                                return Ok((url.to_string(), api_key));
                             }
                         }
                     }
                 }
             }
         }
-        log::warn!("get_qdrant_config: Falling back to defaults");
-        ("http://localhost:6333".to_string(), None)
+        Err(anyhow!("VectorDB configuration not available in Vault and VAULT_ADDR/VAULT_TOKEN not set"))
     }
 
-    pub fn get_database_config_sync(&self) -> (String, u16, String, String, String) {
+    pub fn get_database_config_sync(&self) -> Result<(String, u16, String, String, String)> {
         if let Ok(secrets) = Self::get_from_env(SecretPaths::TABLES) {
-            return (
-                secrets.get("host").cloned().unwrap_or_else(|| "localhost".to_string()),
-                secrets.get("port").and_then(|p| p.parse().ok()).unwrap_or(5432),
-                secrets.get("database").cloned().unwrap_or_else(|| "botserver".to_string()),
-                secrets.get("username").cloned().unwrap_or_else(|| "gbuser".to_string()),
-                secrets.get("password").cloned().unwrap_or_default(),
-            );
+            let host = secrets.get("host").cloned()
+                .ok_or_else(|| anyhow!("database host not configured"))?;
+            let port = secrets.get("port").and_then(|p| p.parse().ok())
+                .ok_or_else(|| anyhow!("database port not configured"))?;
+            let database = secrets.get("database").cloned()
+                .ok_or_else(|| anyhow!("database name not configured"))?;
+            let username = secrets.get("username").cloned()
+                .ok_or_else(|| anyhow!("database username not configured"))?;
+            let password = secrets.get("password").cloned().unwrap_or_default();
+            return Ok((host, port, database, username, password));
         }
-        ("localhost".to_string(), 5432, "botserver".to_string(), "gbuser".to_string(), "changeme".to_string())
+        Err(anyhow!("Database configuration not available"))
     }
 
     pub async fn get_drive_credentials(&self) -> Result<(String, String)> {
@@ -333,17 +361,16 @@ impl SecretsManager {
 
     pub async fn get_database_config(&self) -> Result<(String, u16, String, String, String)> {
         let s = self.get_secret(SecretPaths::TABLES).await?;
-        Ok((
-            s.get("host").cloned().unwrap_or_else(|| "localhost".into()),
-            s.get("port").and_then(|p| p.parse().ok()).unwrap_or(5432),
-            s.get("database")
-                .cloned()
-                .unwrap_or_else(|| "botserver".into()),
-            s.get("username")
-                .cloned()
-                .unwrap_or_else(|| "gbuser".into()),
-            s.get("password").cloned().unwrap_or_default(),
-        ))
+        let host = s.get("host").cloned()
+            .ok_or_else(|| anyhow!("database host not configured in Vault"))?;
+        let port = s.get("port").and_then(|p| p.parse().ok())
+            .ok_or_else(|| anyhow!("database port not configured in Vault"))?;
+        let database = s.get("database").cloned()
+            .ok_or_else(|| anyhow!("database name not configured in Vault"))?;
+        let username = s.get("username").cloned()
+            .ok_or_else(|| anyhow!("database username not configured in Vault"))?;
+        let password = s.get("password").cloned().unwrap_or_default();
+        Ok((host, port, database, username, password))
     }
 
     pub async fn get_database_url(&self) -> Result<String> {
@@ -374,10 +401,10 @@ impl SecretsManager {
 
     pub async fn get_directory_config(&self) -> Result<(String, String, String, String)> {
         let s = self.get_secret(SecretPaths::DIRECTORY).await?;
+        let url = s.get("url").cloned()
+            .ok_or_else(|| anyhow!("directory url not configured in Vault"))?;
         Ok((
-            s.get("url")
-                .cloned()
-                .unwrap_or_else(|| "http://localhost:9000".into()),
+            url,
             s.get("project_id").cloned().unwrap_or_default(),
             s.get("client_id").cloned().unwrap_or_default(),
             s.get("client_secret").cloned().unwrap_or_default(),
@@ -394,20 +421,17 @@ impl SecretsManager {
 
     pub async fn get_vectordb_config(&self) -> Result<(String, Option<String>)> {
         let s = self.get_secret(SecretPaths::VECTORDB).await?;
-        Ok((
-            s.get("url")
-                .cloned()
-                .unwrap_or_else(|| "http://localhost:6333".into()),
-            s.get("api_key").cloned(),
-        ))
+        let url = s.get("url").cloned()
+            .ok_or_else(|| anyhow!("vectordb url not configured in Vault"))?;
+        Ok((url, s.get("api_key").cloned()))
     }
 
     pub async fn get_observability_config(&self) -> Result<(String, String, String, String)> {
         let s = self.get_secret(SecretPaths::OBSERVABILITY).await?;
+        let url = s.get("url").cloned()
+            .ok_or_else(|| anyhow!("observability url not configured in Vault"))?;
         Ok((
-            s.get("url")
-                .cloned()
-                .unwrap_or_else(|| "http://localhost:8086".into()),
+            url,
             s.get("org").cloned().unwrap_or_else(|| "system".into()),
             s.get("bucket").cloned().unwrap_or_else(|| "metrics".into()),
             s.get("token").cloned().unwrap_or_default(),
@@ -441,13 +465,13 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:9000".into()),
+                secrets.get("url").cloned().unwrap_or_else(|| "".into()),
                 secrets.get("project_id").cloned().unwrap_or_default(),
                 secrets.get("client_id").cloned().unwrap_or_default(),
                 secrets.get("client_secret").cloned().unwrap_or_default(),
             );
         }
-        ("http://localhost:9000".to_string(), String::new(), String::new(), String::new())
+        ("".to_string(), String::new(), String::new(), String::new())
     }
 
     pub fn get_email_config(&self) -> (String, u16, String, String, String) {
@@ -496,14 +520,14 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:8081".into()),
+                secrets.get("url").cloned().unwrap_or_else(|| "".into()),
                 secrets.get("model").cloned().unwrap_or_else(|| "gpt-4".into()),
                 secrets.get("openai_key").cloned(),
                 secrets.get("anthropic_key").cloned(),
-                secrets.get("ollama_url").cloned().unwrap_or_else(|| "http://localhost:11434".into()),
+                secrets.get("ollama_url").cloned().unwrap_or_else(|| "".into()),
             );
         }
-        ("http://localhost:8081".to_string(), "gpt-4".to_string(), None, None, "http://localhost:11434".to_string())
+        ("".to_string(), "gpt-4".to_string(), None, None, "".to_string())
     }
 
     pub fn get_meet_config(&self) -> (String, String, String) {
@@ -524,12 +548,12 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:7880".into()),
+                secrets.get("url").cloned().unwrap_or_else(|| "".into()),
                 secrets.get("app_id").cloned().unwrap_or_default(),
                 secrets.get("app_secret").cloned().unwrap_or_default(),
             );
         }
-        ("http://localhost:7880".to_string(), String::new(), String::new())
+        ("".to_string(), String::new(), String::new())
     }
 
     pub fn get_vectordb_config_sync(&self) -> (String, Option<String>) {
@@ -550,11 +574,11 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:6333".into()),
+                secrets.get("url").cloned().unwrap_or_else(|| "".into()),
                 secrets.get("api_key").cloned(),
             );
         }
-        ("http://localhost:6333".to_string(), None)
+        ("".to_string(), None)
     }
 
     pub fn get_observability_config_sync(&self) -> (String, String, String, String) {
@@ -575,13 +599,13 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:8086".into()),
+                secrets.get("url").cloned().unwrap_or_else(|| "".into()),
                 secrets.get("org").cloned().unwrap_or_else(|| "system".into()),
                 secrets.get("bucket").cloned().unwrap_or_else(|| "metrics".into()),
                 secrets.get("token").cloned().unwrap_or_default(),
             );
         }
-        ("http://localhost:8086".to_string(), "system".to_string(), "metrics".to_string(), String::new())
+        ("".to_string(), "system".to_string(), "metrics".to_string(), String::new())
     }
 
     pub fn get_alm_config(&self) -> (String, String, String) {
@@ -602,12 +626,12 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_else(|| "http://localhost:9000".into()),
+                secrets.get("url").cloned().unwrap_or_else(|| "".into()),
                 secrets.get("token").cloned().unwrap_or_default(),
                 secrets.get("default_org").cloned().unwrap_or_default(),
             );
         }
-        ("http://localhost:9000".to_string(), String::new(), String::new())
+        ("".to_string(), String::new(), String::new())
     }
 
     pub fn get_jwt_secret_sync(&self) -> String {
@@ -712,12 +736,14 @@ impl SecretsManager {
                 secrets.insert("username".into(), "gbuser".into());
                 secrets.insert("password".into(), "changeme".into());
             }
-            "directory" | "gbo/directory" | "system/directory" => {
-                secrets.insert("url".into(), "http://localhost:9000".into());
-                secrets.insert("project_id".into(), String::new());
-                secrets.insert("client_id".into(), String::new());
-                secrets.insert("client_secret".into(), String::new());
-            }
+        "directory" | "gbo/directory" | "system/directory" => {
+            secrets.insert("url".into(), "".into());
+            secrets.insert("host".into(), "localhost".into());
+            secrets.insert("port".into(), "9000".into());
+            secrets.insert("project_id".into(), String::new());
+            secrets.insert("client_id".into(), String::new());
+            secrets.insert("client_secret".into(), String::new());
+        }
             "drive" | "gbo/drive" | "system/drive" => {
                 secrets.insert("host".into(), "localhost".into());
                 secrets.insert("port".into(), "9000".into());
@@ -737,35 +763,35 @@ impl SecretsManager {
                 secrets.insert("smtp_from".into(), String::new());
             }
             "llm" | "gbo/llm" | "system/llm" => {
-                secrets.insert("url".into(), "http://localhost:8081".into());
+                secrets.insert("url".into(), "".into());
                 secrets.insert("model".into(), "gpt-4".into());
                 secrets.insert("openai_key".into(), String::new());
                 secrets.insert("anthropic_key".into(), String::new());
-                secrets.insert("ollama_url".into(), "http://localhost:11434".into());
+                secrets.insert("ollama_url".into(), "".into());
             }
             "encryption" | "gbo/encryption" | "system/encryption" => {
                 secrets.insert("master_key".into(), String::new());
             }
             "meet" | "gbo/meet" | "system/meet" => {
-                secrets.insert("url".into(), "http://localhost:7880".into());
+                secrets.insert("url".into(), "".into());
                 secrets.insert("app_id".into(), String::new());
                 secrets.insert("app_secret".into(), String::new());
             }
             "vectordb" | "gbo/vectordb" | "system/vectordb" => {
-                secrets.insert("url".to_string(), "http://localhost:6333".into());
+                secrets.insert("url".to_string(), "".into());
                 secrets.insert("host".to_string(), "localhost".into());
                 secrets.insert("port".to_string(), "6333".into());
                 secrets.insert("grpc_port".to_string(), "6334".into());
                 secrets.insert("api_key".to_string(), String::new());
             }
             "observability" | "gbo/observability" | "system/observability" => {
-                secrets.insert("url".into(), "http://localhost:8086".into());
+                secrets.insert("url".into(), "".into());
                 secrets.insert("org".into(), "system".into());
                 secrets.insert("bucket".into(), "metrics".into());
                 secrets.insert("token".into(), String::new());
             }
             "alm" | "gbo/alm" | "system/alm" => {
-                secrets.insert("url".into(), "http://localhost:3000".into());
+                secrets.insert("url".into(), "".into());
                 secrets.insert("token".into(), String::new());
                 secrets.insert("default_org".into(), String::new());
             }
@@ -779,14 +805,14 @@ impl SecretsManager {
                 secrets.insert("secret_key".into(), String::new());
             }
             "app" | "gbo/app" | "system/app" => {
-                secrets.insert("url".into(), "http://localhost:8080".into());
+                secrets.insert("url".into(), "".into());
                 secrets.insert("environment".into(), "development".into());
             }
             "jwt" | "gbo/jwt" | "system/jwt" => {
                 secrets.insert("secret".into(), String::new());
             }
             "models" | "gbo/models" | "system/models" => {
-                secrets.insert("url".into(), "http://localhost:8001".into());
+                secrets.insert("url".into(), "".into());
             }
             _ => {
                 log::debug!("No default values for secret path: {}", path);

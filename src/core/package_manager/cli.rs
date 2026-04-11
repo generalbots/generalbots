@@ -437,7 +437,7 @@ async fn vault_migrate(env_file: &str) -> Result<()> {
         }
     }
 
-    let manager = SecretsManager::from_env()?;
+    let manager = SecretsManager::get()?.clone();
     if !manager.is_enabled() {
         return Err(anyhow::anyhow!(
             "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN"
@@ -605,7 +605,7 @@ async fn vault_migrate(env_file: &str) -> Result<()> {
 }
 
 async fn vault_put(path: &str, kvs: &[&str]) -> Result<()> {
-    let manager = SecretsManager::from_env()?;
+    let manager = SecretsManager::get()?.clone();
     if !manager.is_enabled() {
         return Err(anyhow::anyhow!("Vault not configured"));
     }
@@ -669,7 +669,7 @@ async fn vault_put(path: &str, kvs: &[&str]) -> Result<()> {
 }
 
 async fn vault_get(path: &str, key: Option<&str>) -> Result<()> {
-    let manager = SecretsManager::from_env()?;
+    let manager = SecretsManager::get()?.clone();
     if !manager.is_enabled() {
         return Err(anyhow::anyhow!("Vault not configured"));
     }
@@ -751,7 +751,7 @@ async fn print_version(show_all: bool) -> Result<()> {
 
         println!();
         println!("Secrets:");
-        if let Ok(manager) = SecretsManager::from_env() {
+        if let Ok(manager) = SecretsManager::get() {
             if manager.is_enabled() {
                 match manager.health_check().await {
                     Ok(true) => println!("  Vault: connected"),
@@ -805,7 +805,7 @@ fn generate_secret_key() -> String {
 }
 
 async fn rotate_secret(component: &str) -> Result<()> {
-    let manager = SecretsManager::from_env()?;
+    let manager = SecretsManager::get()?.clone();
     if !manager.is_enabled() {
         return Err(anyhow::anyhow!(
             "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN"
@@ -1096,7 +1096,7 @@ async fn rotate_all_secrets() -> Result<()> {
         return Ok(());
     }
 
-    let manager = SecretsManager::from_env()?;
+    let manager = SecretsManager::get()?.clone();
     if !manager.is_enabled() {
         return Err(anyhow::anyhow!("Vault not configured"));
     }
@@ -1183,7 +1183,7 @@ async fn verify_rotation(component: &str) -> Result<()> {
 
     match component {
         "tables" => {
-            let manager = SecretsManager::from_env()?;
+            let manager = SecretsManager::get()?.clone();
             let secrets = manager.get_secret(SecretPaths::TABLES).await?;
 
             let host = secrets.get("host").cloned().unwrap_or_else(|| "localhost".to_string());
@@ -1228,9 +1228,9 @@ async fn verify_rotation(component: &str) -> Result<()> {
 
             // Try to determine the health endpoint
             let health_urls = vec![
-                "http://localhost:8080/health",
-                "http://localhost:5858/health",
-                "http://localhost:3000/health",
+                "/health",
+                "/health",
+                "/health",
             ];
 
             let mut success = false;
@@ -1268,7 +1268,7 @@ async fn verify_rotation(component: &str) -> Result<()> {
 }
 
 async fn vault_health() -> Result<()> {
-    let manager = SecretsManager::from_env()?;
+    let manager = SecretsManager::get()?.clone();
 
     if !manager.is_enabled() {
         println!("x Vault not configured");

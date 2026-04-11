@@ -23,7 +23,7 @@ pub mod caldav;
 pub mod ui;
 
 fn get_bot_context() -> (Uuid, Uuid) {
-    let sm = crate::core::secrets::SecretsManager::from_env().ok();
+    let sm = crate::core::secrets::SecretsManager::get().ok().map(|sm| sm.clone());
     let (org_id, bot_id) = if let Some(sm) = sm {
         let sm_owned = sm.clone();
         let (tx, rx) = std::sync::mpsc::channel();
