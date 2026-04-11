@@ -226,7 +226,7 @@ pub fn zitadel_health_check() -> bool {
                 "2",
                 "-m",
                 "3",
-                "/debug/healthz",
+                "http://localhost:8300/debug/healthz",
             ])
         })
         .and_then(|c| c.execute());

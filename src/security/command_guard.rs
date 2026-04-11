@@ -51,6 +51,7 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "true",
         "rm",
         "find",
+        "ss",
         // Test/dev utilities
         "cargo",
         "redis-server",
