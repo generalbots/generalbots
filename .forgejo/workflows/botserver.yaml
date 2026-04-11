@@ -65,6 +65,23 @@ jobs:
             echo "All system dependencies already installed"
           fi
 
+      - name: Clean up all workspaces
+        run: |
+          set -e
+          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
+          echo "=== Cleaning up all workspaces on system container ==="
+          # Clean /opt/gbo/data/botserver workspace (keep only target)
+          ssh $SSH_ARGS system "find /opt/gbo/data/botserver -maxdepth 1 ! -path '*/target' ! -path '*/.git' -print0 2>/dev/null | xargs -0 rm -rf || true"
+          # Clean /opt/gbo/data/botserver/target (keep only current build)
+          ssh $SSH_ARGS system "find /opt/gbo/data/botserver/target -name '*.rlib' -type f -printf '%T@%p\n' 2>/dev/null | sort -r | tail -n +4 | while read t f; do [ -n \"\$f\" ] && rm -f \"\$f\"; done"
+          # Clean alm-ci workspaces (keep only what CI uses)
+          ssh $SSH_ARGS system "find /opt/gbo/data -maxdepth 2 ! -path '*/botserver' ! -path '*/gb-ws' -print0 2>/dev/null | xargs -0 rm -rf || true"
+          # Clean old log files
+          ssh $SSH_ARGS system "find /tmp -name '*.log' -type f -mtime +7 -print0 2>/dev/null | xargs -0 rm -f || true"
+          # Show disk space
+          ssh $SSH_ARGS system "df -h /opt/gbo/data"
+          echo "=== Workspace cleanup complete ==="
+
       - name: Build BotServer
         working-directory: /opt/gbo/data/botserver
         run: |
