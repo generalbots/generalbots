@@ -533,7 +533,10 @@ impl DriveMonitor {
                 file_states.remove(&path);
             }
         }
-        for (path, state) in current_files {
+        for (path, mut state) in current_files {
+            if path.ends_with(".bas") {
+                state.indexed = true;
+            }
             file_states.insert(path, state);
         }
         // Save file states to disk in background to avoid blocking
@@ -951,6 +954,7 @@ impl DriveMonitor {
             .unwrap_or(&self.bucket_name);
         let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
         let work_dir_str = work_dir.to_string_lossy().to_string();
+        info!("Compiling tool '{}' to work_dir: {}", tool_name, work_dir_str);
         let state_clone = Arc::clone(&self.state);
         let work_dir_clone = work_dir_str.clone();
         let tool_name_clone = tool_name.clone();
