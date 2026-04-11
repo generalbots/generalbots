@@ -28,34 +28,28 @@ jobs:
         run: |
           mkdir -p $WORKSPACE
           cd $WORKSPACE
-          # Update or clone botserver (preserve git history for sccache fingerprints)
-          if [ -d botserver/.git ]; then
-            git -C botserver pull origin main
+          # Update or clone botlib
+          if [ -d botlib/.git ]; then
+            git -C botlib fetch --depth 1 origin main && git -C botlib checkout FETCH_HEAD
           else
-            git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
-          # Clean existing .git to avoid conflicts
-          rm -rf /opt/gbo/data/botserver/.git 2>/dev/null || true
-          # Check if workspace is valid git repo before cloning
-          if [ -d /opt/gbo/data/botserver/.git ]; then
-            echo "Workspace is valid git repo, using pull"
-            git -C /opt/gbo/data/botserver pull origin main || true
+          # Update or clone botserver
+          if [ -d botserver/.git ]; then
+            git -C botserver fetch --depth 1 origin main && git -C botserver checkout FETCH_HEAD
           else
-            echo "Workspace is not a git repo, cloning fresh"
-            git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git /opt/gbo/data/botserver
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
           # Get workspace Cargo.toml from gb and strip unused members
-          if [ -d /opt/gbo/data/botserver/.git ]; then
-            git -C /opt/gbo/data/botserver pull origin main
+          if [ -d /opt/gbo/data/gb-ws/.git ]; then
+            git -C /opt/gbo/data/gb-ws fetch --depth 1 origin main && git -C /opt/gbo/data/gb-ws checkout FETCH_HEAD
           else
-            git clone --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/botserver
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
           fi
-          cp /opt/gbo/data/botserver/Cargo.toml Cargo.toml
+          cp /opt/gbo/data/gb-ws/Cargo.toml Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
           done
-          # Ensure target dir exists
-          mkdir -p target
 
       - name: Install system dependencies
         run: |
@@ -74,21 +68,14 @@ jobs:
       - name: Build BotServer
         working-directory: /opt/gbo/data/botserver
         run: |
-          export SCCACHE_IDLE_TIMEOUT=300
-          export SCCACHE_CACHE_SIZE=10G
-          sccache --stop-server 2>/dev/null || true
-          sleep 1
-          sccache --start-server
-          cargo build -p botserver -j 8 2>&1 | tee /tmp/build.log
-          echo "=== sccache stats ==="
+          sccache --start-server 2>/dev/null || true
+          cargo build -p botserver --features chat -j 8 2>&1 | tee /tmp/build.log
           sccache --show-stats
-          echo "=== Binary info ==="
           ls -lh target/debug/botserver
-          stat -c '%y' target/debug/botserver
 
       - name: Save build log
         if: always()
-        run: cp /tmp/build.log /tmp/botserver$(date +%Y%m%d-%H%M%S).log || true
+        run: cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
       - name: Deploy via ssh tar gzip
         run: |
@@ -98,11 +85,11 @@ jobs:
           echo "Step 1: Checking binary..."
           ls -lh /opt/gbo/data/botserver/target/debug/botserver
           echo "Step 2: Backing up old binary..."
-          ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak 2>/dev/null || true"
+          ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak"
           echo "Step 3: Stopping botserver service..."
           ssh $SSH_ARGS system "sudo systemctl stop botserver || true"
           echo "Step 4: Transferring new binary..."
-          tar cf -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && echo 'Transfer complete'"
+          tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && echo 'Transfer complete'"
           echo "Step 5: Starting botserver service..."
           ssh $SSH_ARGS system "sudo systemctl start botserver && echo 'Botserver started'"
           echo "=== Deploy completed ==="
@@ -115,4 +102,4 @@ jobs:
 
       - name: Save deploy log
         if: always()
-        run: cp /tmp/deploy.log /tmp/deploy$(date +%Y%m%d-%H%M%S).log || true
+        run: cp /tmp/deploy.log /tmp/deploy-$(date +%Y%m%d-%H%M%S).log || true
