@@ -59,7 +59,7 @@ impl DriveMonitor {
     pub fn new(state: Arc<AppState>, bucket_name: String, bot_id: uuid::Uuid) -> Self {
         let work_root = PathBuf::from(crate::core::shared::utils::get_work_path());
         #[cfg(any(feature = "research", feature = "llm"))]
-        let kb_manager = Arc::new(KnowledgeBaseManager::new(work_root.clone()));
+        let kb_manager = Arc::new(KnowledgeBaseManager::with_bot_config(work_root.clone(), state.conn.clone(), bot_id));
 
         Self {
             state,
