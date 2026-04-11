@@ -58,9 +58,9 @@ impl KnowledgeBaseManager {
         let embedding_config = EmbeddingConfig::from_bot_config(&pool, &bot_id);
         info!("KB Manager using embedding config from bot {}: url={}, model={}", 
               bot_id, embedding_config.embedding_url, embedding_config.embedding_model);
-        let qdrant_config = QdrantConfig::from_config(pool, &bot_id);
+        let qdrant_config = QdrantConfig::from_config(pool.clone(), &bot_id);
 
-        let indexer = Arc::new(KbIndexer::new(embedding_config.clone(), qdrant_config));
+        let indexer = Arc::new(KbIndexer::new_with_pool(embedding_config.clone(), qdrant_config, pool));
         let processor = Arc::new(DocumentProcessor::default());
         let monitor = Arc::new(RwLock::new(KbFolderMonitor::new(
             work_root,
@@ -140,7 +140,15 @@ impl KnowledgeBaseManager {
     ) -> Result<Vec<SearchResult>> {
         let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
         let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
-        self.indexer.search(&collection_name, query, limit).await
+        
+        // Use from_bot_config with state connection if available
+        if let Some(pool) = self.indexer.get_db_pool() {
+            let embedding_config = EmbeddingConfig::from_bot_config(pool, &bot_id);
+            self.indexer.search_with_config(&collection_name, query, limit, &embedding_config).await
+        } else {
+            // Fallback to default config
+            self.indexer.search(&collection_name, query, limit).await
+        }
     }
 
     pub async fn search_collection(

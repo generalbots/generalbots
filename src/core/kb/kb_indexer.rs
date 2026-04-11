@@ -82,6 +82,7 @@ pub struct KbIndexer {
     embedding_generator: KbEmbeddingGenerator,
     qdrant_config: QdrantConfig,
     http_client: reqwest::Client,
+    db_pool: Option<DbPool>,
 }
 
 impl std::fmt::Debug for KbIndexer {
@@ -91,6 +92,7 @@ impl std::fmt::Debug for KbIndexer {
             .field("embedding_generator", &self.embedding_generator)
             .field("qdrant_config", &self.qdrant_config)
             .field("http_client", &"reqwest::Client")
+            .field("db_pool", &"DbPool")
             .finish()
     }
 }
@@ -107,7 +109,31 @@ impl KbIndexer {
             embedding_generator,
             qdrant_config,
             http_client,
+            db_pool: None,
         }
+    }
+
+    pub fn new_with_pool(embedding_config: EmbeddingConfig, qdrant_config: QdrantConfig, db_pool: DbPool) -> Self {
+        let document_processor = DocumentProcessor::default();
+        let embedding_generator = KbEmbeddingGenerator::new(embedding_config);
+
+        let http_client = create_tls_client(Some(qdrant_config.timeout_secs));
+
+        Self {
+            document_processor,
+            embedding_generator,
+            qdrant_config,
+            http_client,
+            db_pool: Some(db_pool),
+        }
+    }
+
+    pub fn get_db_pool(&self) -> Option<&DbPool> {
+        self.db_pool.as_ref()
+    }
+
+    pub fn get_pool(&self) -> DbPool {
+        self.db_pool.clone().unwrap_or_else(|| panic!("DbPool not available"))
     }
 
     pub async fn check_qdrant_health(&self) -> Result<bool> {
@@ -667,6 +693,53 @@ impl KbIndexer {
             embedding.vector
         };
 
+        self.execute_search(collection_name, search_vector, limit).await
+    }
+
+    pub async fn search_with_config(
+        &self,
+        collection_name: &str,
+        query: &str,
+        limit: usize,
+        embedding_config: &EmbeddingConfig,
+    ) -> Result<Vec<SearchResult>> {
+        let collection_dimension = self.get_collection_vector_dimension(collection_name).await?;
+
+        let embedding_generator = KbEmbeddingGenerator::new(embedding_config.clone());
+        let embedding = embedding_generator.generate_single_embedding(query).await?;
+
+        let search_vector = if let Some(target_dim) = collection_dimension {
+            if embedding.vector.len() > target_dim {
+                debug!(
+                    "Truncating embedding from {} to {} dimensions for collection '{}'",
+                    embedding.vector.len(), target_dim, collection_name
+                );
+                embedding.vector[..target_dim].to_vec()
+            } else if embedding.vector.len() < target_dim {
+                warn!(
+                    "Embedding dimension ({}) is smaller than collection dimension ({}). \
+                    Search may return poor results for collection '{}'.",
+                    embedding.vector.len(), target_dim, collection_name
+                );
+                let mut padded = embedding.vector.clone();
+                padded.resize(target_dim, 0.0);
+                padded
+            } else {
+                embedding.vector
+            }
+        } else {
+            embedding.vector
+        };
+
+        self.execute_search(collection_name, search_vector, limit).await
+    }
+
+    async fn execute_search(
+        &self,
+        collection_name: &str,
+        search_vector: Vec<f32>,
+        limit: usize,
+    ) -> Result<Vec<SearchResult>> {
         let search_request = SearchRequest {
             vector: search_vector,
             limit,
@@ -703,21 +776,20 @@ impl KbIndexer {
                 {
                     let content = payload
                         .get("content")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
+                        .and_then(|c| c.as_str())
+                        .unwrap_or_default()
                         .to_string();
-
                     let document_path = payload
                         .get("document_path")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
+                        .and_then(|p| p.as_str())
+                        .unwrap_or_default()
                         .to_string();
 
                     results.push(SearchResult {
                         content,
                         document_path,
                         score: score as f32,
-                        metadata: payload.clone(),
+                        metadata: serde_json::Map::new(),
                     });
                 }
             }
