@@ -588,9 +588,48 @@ impl DriveMonitor {
                     || path_lower.ends_with("/config.csv")
                     || path_lower.contains(".gbot/config.csv");
 
-                debug!("check_gbot: Checking path: {} (is_config_csv: {})", path, is_config_csv);
+                let is_prompt_file = path_lower.ends_with("prompt.md")
+                    || path_lower.ends_with("prompt.txt")
+                    || path_lower.ends_with("PROMPT.MD")
+                    || path_lower.ends_with("PROMPT.TXT");
 
-                if !is_config_csv {
+                debug!("check_gbot: Checking path: {} (is_config_csv: {}, is_prompt: {})", path, is_config_csv, is_prompt_file);
+
+                if !is_config_csv && !is_prompt_file {
+                    continue;
+                }
+
+                if is_prompt_file {
+                    // Download prompt file to work directory
+                    match client.get_object().bucket(&self.bucket_name).key(&path).send().await {
+                        Ok(response) => {
+                            let bytes = response.body.collect().await?.into_bytes();
+                            let content = String::from_utf8(bytes.to_vec())
+                                .map_err(|e| format!("UTF-8 error in {}: {}", path, e))?;
+                            let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
+                            let gbot_dir = self.work_root.join(format!("{}.gbai/{}.gbot", bot_name, bot_name));
+                            let path_buf = PathBuf::from(&path);
+                            let file_name = path_buf.file_name()
+                                .and_then(|n| n.to_str()).unwrap_or("PROMPT.md");
+                            if let Err(e) = tokio::task::spawn_blocking({
+                                let gbot_dir_str = gbot_dir.to_string_lossy().to_string();
+                                let file_name_owned = file_name.to_string();
+                                let content_owned = content.clone();
+                                move || {
+                                    std::fs::create_dir_all(&gbot_dir_str)?;
+                                    std::fs::write(format!("{}/{}", gbot_dir_str, file_name_owned), &content_owned)?;
+                                    Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
+                                }
+                            }).await {
+                                log::error!("Failed to save prompt file: {}", e);
+                            } else {
+                                log::info!("Downloaded prompt file {} to work directory", path);
+                            }
+                        }
+                        Err(e) => {
+                            log::error!("Failed to download prompt file {}: {}", path, e);
+                        }
+                    }
                     continue;
                 }
 
