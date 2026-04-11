@@ -24,14 +24,16 @@ use tokio::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::fs as tokio_fs;
 
-#[cfg(any(feature = "research", feature = "llm"))]
-const KB_INDEXING_TIMEOUT_SECS: u64 = 60;
 const MAX_BACKOFF_SECS: u64 = 300;
 const INITIAL_BACKOFF_SECS: u64 = 30;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileState {
     pub etag: String,
+    #[serde(default)]
+    pub indexed: bool,
 }
+
 #[derive(Debug, Clone)]
 pub struct DriveMonitor {
     state: Arc<AppState>,
@@ -44,7 +46,7 @@ pub struct DriveMonitor {
     is_processing: Arc<AtomicBool>,
     consecutive_failures: Arc<AtomicU32>,
     #[cfg(any(feature = "research", feature = "llm"))]
-    kb_indexing_in_progress: Arc<TokioRwLock<HashSet<String>>>,
+    files_being_indexed: Arc<TokioRwLock<HashSet<String>>>,
 }
 impl DriveMonitor {
     fn normalize_config_value(value: &str) -> String {
@@ -72,7 +74,7 @@ impl DriveMonitor {
             is_processing: Arc::new(AtomicBool::new(false)),
             consecutive_failures: Arc::new(AtomicU32::new(0)),
             #[cfg(any(feature = "research", feature = "llm"))]
-            kb_indexing_in_progress: Arc::new(TokioRwLock::new(HashSet::new())),
+            files_being_indexed: Arc::new(TokioRwLock::new(HashSet::new())),
         }
     }
 
@@ -499,9 +501,10 @@ impl DriveMonitor {
                 if path.ends_with('/') || !path.to_ascii_lowercase().ends_with(".bas") {
                     continue;
                 }
-                let file_state = FileState {
-                    etag: obj.e_tag().unwrap_or_default().to_string(),
-                };
+            let file_state = FileState {
+                etag: obj.e_tag().unwrap_or_default().to_string(),
+                indexed: false,
+            };
                 current_files.insert(path, file_state);
             }
             if !list_objects.is_truncated.unwrap_or(false) {
@@ -1127,9 +1130,10 @@ impl DriveMonitor {
                     continue;
                 }
 
-                let file_state = FileState {
-                    etag: obj.e_tag().unwrap_or_default().to_string(),
-                };
+            let file_state = FileState {
+                etag: obj.e_tag().unwrap_or_default().to_string(),
+                indexed: false,
+            };
                 current_files.insert(path.clone(), file_state);
             }
 
@@ -1206,72 +1210,71 @@ impl DriveMonitor {
                         // Create a unique key for this KB folder to track indexing state
                         let kb_key = format!("{}_{}", bot_name, kb_name);
 
-                        // Check if this KB folder is already being indexed
-                        {
-                            let indexing_set = self.kb_indexing_in_progress.read().await;
-                            if indexing_set.contains(&kb_key) {
-                                debug!("[DRIVE_MONITOR] KB folder {} already being indexed, skipping duplicate task", kb_key);
-                                continue;
-                            }
-                        }
+            // Check if this KB folder is already being indexed
+            {
+                let indexing_set = self.files_being_indexed.read().await;
+                if indexing_set.contains(&kb_key) {
+                    debug!("[DRIVE_MONITOR] KB folder {} already being indexed, skipping duplicate task", kb_key);
+                    continue;
+                }
+            }
 
-                        // Mark this KB folder as being indexed
-                        {
-                            let mut indexing_set = self.kb_indexing_in_progress.write().await;
-                            indexing_set.insert(kb_key.clone());
-                        }
+            // Mark this KB folder as being indexed
+            {
+                let mut indexing_set = self.files_being_indexed.write().await;
+                indexing_set.insert(kb_key.clone());
+            }
 
                         let kb_manager = Arc::clone(&self.kb_manager);
                         let bot_id = self.bot_id;
                         let bot_name_owned = bot_name.to_string();
                         let kb_name_owned = kb_name.to_string();
                         let kb_folder_owned = kb_folder_path.clone();
-                        let indexing_tracker = Arc::clone(&self.kb_indexing_in_progress);
-                        let kb_key_owned = kb_key.clone();
+            let _files_being_indexed = Arc::clone(&self.files_being_indexed);
+            let file_key = Arc::clone(&self.files_being_indexed);
+            let kb_key_owned = kb_key.clone();
 
-                        tokio::spawn(async move {
-                            trace!(
-                                "Triggering KB indexing for folder: {} (PDF text extraction enabled)",
-                                kb_folder_owned.display()
-                            );
+            tokio::spawn(async move {
+                trace!(
+                    "Triggering KB indexing for folder: {} (PDF text extraction enabled)",
+                    kb_folder_owned.display()
+                );
 
-                            let result = tokio::time::timeout(
-                                Duration::from_secs(KB_INDEXING_TIMEOUT_SECS),
-                                kb_manager.handle_gbkb_change(bot_id, &bot_name_owned, &kb_folder_owned),
-                            )
-                            .await;
+                let result = tokio::time::timeout(
+                    Duration::from_secs(60),
+                    kb_manager.handle_gbkb_change(bot_id, &bot_name_owned, &kb_folder_owned),
+                )
+                .await;
 
-                            // Always remove from tracking set when done, regardless of outcome
-                            {
-                                let mut indexing_set = indexing_tracker.write().await;
-                                indexing_set.remove(&kb_key_owned);
-                            }
+                // Always remove from tracking set when done, regardless of outcome
+                {
+                    let mut indexing_set = file_key.write().await;
+                    indexing_set.remove(&kb_key_owned);
+                }
 
-                            match result {
-                                Ok(Ok(_)) => {
-                                    debug!(
-                                        "Successfully processed KB change for {}/{}",
-                                        bot_name_owned, kb_name_owned
-                                    );
-                                }
-                                Ok(Err(e)) => {
-                                    log::error!(
-                                        "Failed to process .gbkb change for {}/{}: {}",
-                                        bot_name_owned,
-                                        kb_name_owned,
-                                        e
-                                    );
-                                }
-                                Err(_) => {
-                                    log::error!(
-                                        "KB indexing timed out after {}s for {}/{}",
-                                        KB_INDEXING_TIMEOUT_SECS,
-                                        bot_name_owned,
-                                        kb_name_owned
-                                    );
-                                }
-                            }
-                        });
+                match result {
+                    Ok(Ok(_)) => {
+                        debug!(
+                            "Successfully processed KB change for {}/{}",
+                            bot_name_owned, kb_name_owned
+                        );
+                    }
+                    Ok(Err(e)) => {
+                        log::error!(
+                            "Failed to process .gbkb change for {}/{}: {}",
+                            bot_name_owned,
+                            kb_name_owned,
+                            e
+                        );
+                    }
+                    Err(_) => {
+                        log::error!(
+                            "KB indexing timed out after 60s for {}/{}",
+                            bot_name_owned, kb_name_owned
+                        );
+                    }
+                }
+            });
                     }
 
                     #[cfg(not(any(feature = "research", feature = "llm")))]

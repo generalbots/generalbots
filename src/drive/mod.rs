@@ -27,8 +27,9 @@ pub mod document_processing;
 #[cfg(feature = "drive")]
 pub mod drive_monitor;
 
-#[cfg(feature = "local-files")]
-pub mod local_file_monitor;
+// Local file monitoring removed - Drive (MinIO) is the only source now
+// #[cfg(feature = "local-files")]
+// pub mod local_file_monitor;
 
 #[cfg(feature = "drive")]
 pub mod vectordb;

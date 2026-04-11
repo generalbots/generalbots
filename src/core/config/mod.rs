@@ -2,7 +2,7 @@ pub mod model_routing_config;
 pub mod sse_config;
 pub mod user_memory_config;
 
-#[cfg(any(feature = "drive", feature = "local-files"))]
+#[cfg(feature = "drive")]
 pub mod watcher;
 
 pub use model_routing_config::{ModelRoutingConfig, RoutingStrategy, TaskType};

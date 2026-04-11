@@ -625,42 +625,48 @@ impl BotOrchestrator {
 
                 trace!("Executing start.bas for session {} at: {}", actual_session_id, start_script_path);
 
-                if let Ok(metadata) = tokio::fs::metadata(&start_script_path).await {
-                    if metadata.is_file() {
-                        if let Ok(start_script) = tokio::fs::read_to_string(&start_script_path).await {
-                            let state_clone = self.state.clone();
-                            let actual_session_id_for_task = session.id;
-                            let bot_id_clone = session.bot_id;
+                // Use pre-compiled .ast if available (avoids recompilation)
+                let ast_path = start_script_path.replace(".bas", ".ast");
+                let script_content = if std::path::Path::new(&ast_path).exists() {
+                    tokio::fs::read_to_string(&ast_path).await.unwrap_or_default()
+                } else {
+                    tokio::fs::read_to_string(&start_script_path).await.unwrap_or_default()
+                };
 
-                            // Execute start.bas synchronously (blocking)
-                            let result = tokio::task::spawn_blocking(move || {
-                                let session_result = {
-                                    let mut sm = state_clone.session_manager.blocking_lock();
-                                    sm.get_session_by_id(actual_session_id_for_task)
-                                };
+                if !script_content.is_empty() {
+                    let state_clone = self.state.clone();
+                    let actual_session_id_for_task = session.id;
+                    let bot_id_clone = session.bot_id;
 
-                                let sess = match session_result {
-                                    Ok(Some(s)) => s,
-                                    Ok(None) => {
-                                        return Err(format!("Session {} not found during start.bas execution", actual_session_id_for_task));
-                                    }
-                                    Err(e) => return Err(format!("Failed to get session: {}", e)),
-                                };
+                    // Execute start.bas synchronously (blocking)
+                    let result = tokio::task::spawn_blocking(move || {
+                        let session_result = {
+                            let mut sm = state_clone.session_manager.blocking_lock();
+                            sm.get_session_by_id(actual_session_id_for_task)
+                        };
 
-                                let mut script_service = crate::basic::ScriptService::new(
-                                    state_clone.clone(),
-                                    sess
-                                );
-                                script_service.load_bot_config_params(&state_clone, bot_id_clone);
+                        let sess = match session_result {
+                            Ok(Some(s)) => s,
+                            Ok(None) => {
+                                return Err(format!("Session {} not found during start.bas execution", actual_session_id_for_task));
+                            }
+                            Err(e) => return Err(format!("Failed to get session: {}", e)),
+                        };
 
-                                match script_service.compile(&start_script) {
-                                    Ok(ast) => match script_service.run(&ast) {
-                                        Ok(_) => Ok(()),
-                                        Err(e) => Err(format!("Script execution error: {}", e)),
-                                    },
-                                    Err(e) => Err(format!("Script compilation error: {}", e)),
-                                }
-                            }).await;
+                        let mut script_service = crate::basic::ScriptService::new(
+                            state_clone.clone(),
+                            sess
+                        );
+                        script_service.load_bot_config_params(&state_clone, bot_id_clone);
+
+                        match script_service.compile(&script_content) {
+                            Ok(ast) => match script_service.run(&ast) {
+                                Ok(_) => Ok(()),
+                                Err(e) => Err(format!("Script execution error: {}", e)),
+                            },
+                            Err(e) => Err(format!("Script compilation error: {}", e)),
+                        }
+                    }).await;
 
                             match result {
                                 Ok(Ok(())) => {
@@ -682,12 +688,10 @@ impl BotOrchestrator {
                                 Ok(Err(e)) => {
                                     error!("start.bas error for session {}: {}", actual_session_id, e);
                                 }
-                                Err(e) => {
-                                    error!("start.bas task error for session {}: {}", actual_session_id, e);
-                                }
-                            }
-                        }
+                    Err(e) => {
+                        error!("start.bas task error for session {}: {}", actual_session_id, e);
                     }
+                }
                 }
             } // End of if should_execute_start_bas
 
@@ -1404,64 +1408,82 @@ async fn handle_websocket(
 
                 info!("Looking for start.bas at: {}", start_script_path);
 
-                if let Ok(metadata) = tokio::fs::metadata(&start_script_path).await {
-                    if metadata.is_file() {
-                        info!("Found start.bas file, reading contents...");
-                        if let Ok(start_script) = tokio::fs::read_to_string(&start_script_path).await {
-                        info!(
-                            "Executing start.bas for bot {} on session {}",
-                            bot_name, session_id
-                        );
+                // Check for pre-compiled .ast file first (avoids recompilation overhead)
+                let ast_path = start_script_path.replace(".bas", ".ast");
+                let (script_content, _using_ast) = if tokio::fs::metadata(&ast_path).await.is_ok() {
+                    if let Ok(content) = tokio::fs::read_to_string(&ast_path).await {
+                        info!("Using pre-compiled start.ast for {}", bot_name);
+                        (content, true)
+                    } else {
+                        (String::new(), false)
+                    }
+                } else if tokio::fs::metadata(&start_script_path).await.is_ok() {
+                    if let Ok(content) = tokio::fs::read_to_string(&start_script_path).await {
+                        info!("Compiling start.bas for {}", bot_name);
+                        (content, false)
+                    } else {
+                        (String::new(), false)
+                    }
+                } else {
+                    (String::new(), false)
+                };
 
-                        let state_for_start = state.clone();
-                        let tx_for_start = tx.clone();
-                        let bot_id_str = bot_id.to_string();
-                        let session_id_str = session_id.to_string();
-                        let mut send_ready_rx = send_ready_rx;
+                if !script_content.is_empty() {
+                    info!(
+                        "Executing start.bas for bot {} on session {}",
+                        bot_name, session_id
+                    );
 
-                        tokio::spawn(async move {
-                            let _ = send_ready_rx.recv().await;
-                            
-                            let session_result = {
-                                let mut sm = state_for_start.session_manager.lock().await;
-                                let by_id = sm.get_session_by_id(session_id);
-                                match by_id {
-                                    Ok(Some(s)) => Ok(Some(s)),
-                                    _ => sm.get_or_create_user_session(user_id, bot_id, "Chat Session"),
+                    let state_for_start = state.clone();
+                    let tx_for_start = tx.clone();
+                    let bot_id_str = bot_id.to_string();
+                    let session_id_str = session_id.to_string();
+                    let mut send_ready_rx = send_ready_rx;
+            let script_content_owned = script_content.clone();
+
+                    tokio::spawn(async move {
+                        let _ = send_ready_rx.recv().await;
+
+                        let session_result = {
+                            let mut sm = state_for_start.session_manager.lock().await;
+                            let by_id = sm.get_session_by_id(session_id);
+                            match by_id {
+                                Ok(Some(s)) => Ok(Some(s)),
+                                _ => sm.get_or_create_user_session(user_id, bot_id, "Chat Session"),
+                            }
+                        };
+
+                        if let Ok(Some(mut session)) = session_result {
+                            info!("start.bas: Found session {} for websocket session {}", session.id, session_id);
+
+                            // Store WebSocket session_id in context so TALK can route messages correctly
+                            if let serde_json::Value::Object(ref mut map) = session.context_data {
+                                map.insert("websocket_session_id".to_string(), serde_json::Value::String(session_id.to_string()));
+                            } else {
+                                let mut map = serde_json::Map::new();
+                                map.insert("websocket_session_id".to_string(), serde_json::Value::String(session_id.to_string()));
+                                session.context_data = serde_json::Value::Object(map);
+                            }
+
+                            // Clone state_for_start for use in Redis SET after execution
+                            let state_for_redis = state_for_start.clone();
+
+                            let result = tokio::task::spawn_blocking(move || {
+                                info!("start.bas: Creating ScriptService with session.id={}", session.id);
+                                let mut script_service = crate::basic::ScriptService::new(
+                                    state_for_start.clone(),
+                                    session.clone()
+                                );
+                                script_service.load_bot_config_params(&state_for_start, bot_id);
+
+                                match script_service.compile(&script_content_owned) {
+                                    Ok(ast) => match script_service.run(&ast) {
+                                        Ok(_) => Ok(()),
+                                        Err(e) => Err(format!("Script execution error: {}", e)),
+                                    },
+                                    Err(e) => Err(format!("Script compilation error: {}", e)),
                                 }
-                            };
-
-                            if let Ok(Some(mut session)) = session_result {
-                                info!("start.bas: Found session {} for websocket session {}", session.id, session_id);
-
-                                // Store WebSocket session_id in context so TALK can route messages correctly
-                                if let serde_json::Value::Object(ref mut map) = session.context_data {
-                                    map.insert("websocket_session_id".to_string(), serde_json::Value::String(session_id.to_string()));
-                                } else {
-                                    let mut map = serde_json::Map::new();
-                                    map.insert("websocket_session_id".to_string(), serde_json::Value::String(session_id.to_string()));
-                                    session.context_data = serde_json::Value::Object(map);
-                                }
-
-                                // Clone state_for_start for use in Redis SET after execution
-                                let state_for_redis = state_for_start.clone();
-
-                                let result = tokio::task::spawn_blocking(move || {
-                                    info!("start.bas: Creating ScriptService with session.id={}", session.id);
-                                    let mut script_service = crate::basic::ScriptService::new(
-                                        state_for_start.clone(),
-                                        session.clone()
-                                    );
-                                    script_service.load_bot_config_params(&state_for_start, bot_id);
-
-                                    match script_service.compile(&start_script) {
-                                        Ok(ast) => match script_service.run(&ast) {
-                                            Ok(_) => Ok(()),
-                                            Err(e) => Err(format!("Script execution error: {}", e)),
-                                        },
-                                        Err(e) => Err(format!("Script compilation error: {}", e)),
-                                    }
-                                }).await;
+                            }).await;
 
                                 match result {
                                     Ok(Ok(())) => {
@@ -1509,19 +1531,17 @@ async fn handle_websocket(
                                         error!("start.bas error for bot {}: {}", bot_name, e);
                                     }
                                     Err(e) => {
-                                        error!("start.bas task error for bot {}: {}", bot_name, e);
-                                    }
-                                }
-                            }
-                        });
-                    }
-                }
+                    error!("start.bas task error for bot {}: {}", bot_name, e);
+                        }
             }
-            } // End of if should_execute_start_bas
         }
+    });
     }
+}
+} // End of if should_execute_start_bas
+}
 
-    let mut send_task = tokio::spawn(async move {
+let mut send_task = tokio::spawn(async move {
         while let Some(response) = rx.recv().await {
             if let Ok(json_str) = serde_json::to_string(&response) {
                 if sender.send(Message::Text(json_str)).await.is_err() {
