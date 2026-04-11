@@ -35,19 +35,16 @@ pub fn get_session_tools(
     }
 
     // Build path to work/{bot_name}.gbai/{bot_name}.gbdialog directory
-    // Use relative path from botserver binary location
-    let gb_dir =
-        std::path::PathBuf::from(crate::core::shared::utils::get_stack_path()).join("data/system");
+    let work_root = std::path::PathBuf::from(crate::core::shared::utils::get_work_path());
 
     // Ensure work directory exists (create if not)
-    let work_base = gb_dir.join("work");
-    if !work_base.exists() {
-        std::fs::create_dir_all(&work_base)
-            .map_err(|e| format!("Failed to create work directory {:?}: {}", work_base, e))?;
-        info!("Created work directory at: {:?}", work_base);
+    if !work_root.exists() {
+        std::fs::create_dir_all(&work_root)
+            .map_err(|e| format!("Failed to create work directory {:?}: {}", work_root, e))?;
+        info!("Created work directory at: {:?}", work_root);
     }
 
-    let work_path = work_base.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+    let work_path = work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
 
     info!(
         "Loading {} tools for session {} from {:?}",
