@@ -966,13 +966,22 @@ async fn start_drive_monitors(
                             let create_state = state_for_scan.clone();
                             let bn = bot_name.to_string();
                             let pool_create = pool_clone.clone();
-                            if let Err(e) = tokio::task::spawn_blocking(move || {
+                            match tokio::task::spawn_blocking(move || {
                                 create_bot_from_drive(&create_state, &pool_create, &bn)
                             })
                             .await
                             {
-                                error!("Failed to create bot '{}': {}", bot_name, e);
-                                continue;
+                                Ok(Err(e)) => {
+                                    error!("Failed to create bot '{}': {}", bot_name, e);
+                                    continue;
+                                }
+                                Err(e) => {
+                                    error!("Task failed to create bot '{}': {}", bot_name, e);
+                                    continue;
+                                }
+                                Ok(Ok(())) => {
+                                    info!("Bot '{}' created successfully", bot_name);
+                                }
                             }
                         }
                     }
@@ -1080,12 +1089,22 @@ fn create_bot_from_drive(
     let bot_id_str = bot_id.to_string();
     let org_id_str = org_result.org_id.to_string();
 
-    sql_query(format!(
-        "INSERT INTO bots (id, name, slug, org_id, is_active, created_at)          VALUES ('{}', '{}', '{}', '{}', true, NOW())",
+    // Try to insert, if conflict on name, update instead
+    let result = sql_query(format!(
+        "INSERT INTO bots (id, name, slug, org_id, is_active, created_at, llm_provider, llm_config, context_provider, context_config) VALUES ('{}', '{}', '{}', '{}', true, NOW(), 'openai', '{{}}', 'openai', '{{}}') ON CONFLICT (id) DO UPDATE SET is_active = true",
         bot_id_str, bot_name, bot_name, org_id_str
     ))
-    .execute(&mut conn)
-    .map_err(|e| format!("Failed to create bot '{}': {}", bot_name, e))?;
+    .execute(&mut conn);
+
+    if result.is_err() {
+        // Bot might already exist with different id, try to update by name
+        sql_query(format!(
+            "UPDATE bots SET is_active = true, slug = '{}', llm_provider = 'openai', llm_config = '{{}}', context_provider = 'openai', context_config = '{{}}' WHERE name = '{}'",
+            bot_name, bot_name
+        ))
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to update bot '{}': {}", bot_name, e))?;
+    }
 
     let db_name = format!("bot_{}", bot_name.replace('-', "_"));
     let _ = sql_query(format!(
@@ -1093,6 +1112,18 @@ fn create_bot_from_drive(
         db_name, db_name
     ))
     .execute(&mut conn);
+
+    // Verify the bot was actually inserted
+    let exists: bool = sql_query(format!(
+        "SELECT 1 FROM bots WHERE name = '{}' LIMIT 1",
+        bot_name
+    ))
+    .execute(&mut conn)
+    .is_ok();
+
+    if !exists {
+        return Err(format!("Bot '{}' was not found in database after insert", bot_name));
+    }
 
     info!("Bot '{}' created successfully with id {}", bot_name, bot_id);
     Ok(())
