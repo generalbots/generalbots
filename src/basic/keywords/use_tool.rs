@@ -144,15 +144,11 @@ fn associate_tool_with_session(
     use crate::core::shared::models::schema::session_tool_associations;
 
     // Check if tool's .mcp.json file exists in work directory
-    // Use relative path from botserver binary current directory
-    let gb_dir =
-        std::path::PathBuf::from(crate::core::shared::utils::get_stack_path()).join("data/system");
+    let work_root = crate::core::shared::utils::get_work_path();
 
     // Get bot name to construct the path
     let bot_name = get_bot_name_from_id(state, &user.bot_id)?;
-    let work_path = Path::new(&gb_dir)
-        .join("work")
-        .join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+    let work_path = Path::new(&work_root).join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
     let mcp_path = work_path.join(format!("{}.mcp.json", tool_name));
 
     trace!("Checking for tool .mcp.json at: {:?}", mcp_path);
