@@ -1049,9 +1049,7 @@ EOF"#.to_string(),
 
                 exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml"
                     .to_string(),
-                check_cmd:
-                    "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1"
-                        .to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -1549,6 +1547,51 @@ VAULT_CACERT={}
         Ok(())
     }
 
+    /// Check if Vault already has seeded credentials (to avoid overwriting on recovery)
+    fn vault_seeds_exist(
+        &self,
+        vault_addr: &str,
+        root_token: &str,
+        ca_cert: &std::path::Path,
+        vault_bin: &std::path::Path,
+    ) -> Result<bool> {
+        let args = vec![
+            "kv".to_string(),
+            "get".to_string(),
+            "-tls-skip-verify".to_string(),
+            format!("-address={}", vault_addr),
+            "-field=accesskey".to_string(),
+            "secret/gbo/drive".to_string(),
+        ];
+
+        let result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
+            .and_then(|c| {
+                let mut cmd = c;
+                for arg in &args {
+                    cmd = cmd.trusted_arg(arg)?;
+                }
+                Ok(cmd)
+            })
+            .and_then(|c| {
+                c.env("VAULT_ADDR", vault_addr)
+                    .and_then(|c| c.env("VAULT_TOKEN", root_token))
+                    .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
+            })
+            .and_then(|c| c.execute());
+
+        match result {
+            Ok(output) => {
+                if output.status.success() {
+                    let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                    Ok(!value.is_empty())
+                } else {
+                    Ok(false)
+                }
+            }
+            Err(_) => Ok(false),
+        }
+    }
+
     /// Seed default credentials into Vault KV2 after initialization
     fn seed_vault_defaults(
         &self,
@@ -1633,10 +1676,7 @@ VAULT_CACERT={}
                     ("model".to_string(), "gpt-4".to_string()),
                     ("openai_key".to_string(), "none".to_string()),
                     ("anthropic_key".to_string(), "none".to_string()),
-                    (
-                        "ollama_url".to_string(),
-                        "".to_string(),
-                    ),
+                    ("ollama_url".to_string(), "".to_string()),
                 ],
             ),
             (
@@ -1656,7 +1696,7 @@ VAULT_CACERT={}
             (
                 "secret/gbo/vectordb",
                 vec![
-                    ("url".to_string(), "".to_string()),
+                    ("url".to_string(), "http://localhost:6333".to_string()),
                     ("host".to_string(), "localhost".to_string()),
                     ("port".to_string(), "6333".to_string()),
                     ("grpc_port".to_string(), "6334".to_string()),
@@ -1813,9 +1853,13 @@ VAULT_CACERT={}
             warn!("No root token found - Vault may need manual recovery");
         }
 
-        // Seed defaults if we have a token (ensure credentials exist even during recovery)
+        // Seed defaults ONLY if not already present (skip during recovery to preserve credentials)
         if let Some(ref token) = root_token {
-            let _ = self.seed_vault_defaults(&vault_addr, token, &ca_cert, &vault_bin);
+            if self.vault_seeds_exist(&vault_addr, token, &ca_cert, &vault_bin)? {
+                info!("Vault credentials already exist, skipping seed on recovery");
+            } else {
+                let _ = self.seed_vault_defaults(&vault_addr, token, &ca_cert, &vault_bin);
+            }
         }
 
         info!("Vault recovery complete");

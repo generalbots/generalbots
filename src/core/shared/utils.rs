@@ -140,19 +140,30 @@ pub fn get_stack_path() -> String {
 pub async fn create_s3_operator(
     config: &DriveConfig,
 ) -> Result<S3Client, Box<dyn std::error::Error>> {
-    log::info!("Creating S3 operator with server: {}, access_key: {}", config.server, config.access_key);
     let endpoint = {
-        let server = if config.server.starts_with("http://") || config.server.starts_with("https://") {
+        let base = if config.server.starts_with("http://") || config.server.starts_with("https://") {
             config.server.clone()
         } else {
             format!("http://{}", config.server)
         };
-        if server.ends_with('/') {
-            server
+        let with_port = if base.contains("://") {
+            let without_scheme = base.split("://").nth(1).unwrap_or("");
+            let has_port = without_scheme.contains(':');
+            if has_port || without_scheme.is_empty() {
+                base
+            } else {
+                format!("{}:9100", base.trim_end_matches('/'))
+            }
         } else {
-            format!("{}/", server)
+            format!("http://{}:9100", base)
+        };
+        if with_port.ends_with('/') {
+            with_port
+        } else {
+            format!("{}/", with_port)
         }
     };
+    log::info!("Creating S3 operator with endpoint: {}, access_key: {}", endpoint, config.access_key);
 
     let (access_key, secret_key) = if config.access_key.is_empty() || config.secret_key.is_empty() {
         let (manager, is_vault_enabled) = {

@@ -289,7 +289,7 @@ impl LLMProvider for OpenAIClient {
             128000 // Cerebras gpt-oss models and GPT-4 variants
         } else if model.contains("gpt-3.5") {
             16385
-        } else if model.starts_with("") || model == "local" {
+        } else if model == "local" || model.is_empty() {
             768 // Local llama.cpp server context limit
         } else {
             32768 // Default conservative limit for modern models
@@ -378,7 +378,7 @@ impl LLMProvider for OpenAIClient {
             128000 // Cerebras gpt-oss models and GPT-4 variants
         } else if model.contains("gpt-3.5") {
             16385
-        } else if model.starts_with("") || model == "local" {
+        } else if model == "local" || model.is_empty() {
             768 // Local llama.cpp server context limit
         } else {
             32768 // Default conservative limit for modern models
