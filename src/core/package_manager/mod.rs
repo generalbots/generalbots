@@ -74,11 +74,11 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
 
     let stack_path = get_stack_path();
 
-    let base_url = "http://localhost:8300".to_string();
+    let base_url = "".to_string();
     let config_path = PathBuf::from(&stack_path).join("conf/system/directory_config.json");
 
     // Check if config already exists in Vault first
-    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::from_env() {
+    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::get() {
         if secrets_manager.is_enabled() {
             if let Ok(secrets) = secrets_manager.get_secret(crate::core::secrets::SecretPaths::DIRECTORY).await {
                 if let (Some(client_id), Some(client_secret)) = (secrets.get("client_id"), secrets.get("client_secret")) {
@@ -98,7 +98,7 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
                             issuer: secrets.get("issuer").cloned().unwrap_or_else(|| base_url.clone()),
                             client_id: client_id.clone(),
                             client_secret: client_secret.clone(),
-                            redirect_uri: secrets.get("redirect_uri").cloned().unwrap_or_else(|| "http://localhost:3000/auth/callback".to_string()),
+                            redirect_uri: secrets.get("redirect_uri").cloned().unwrap_or_else(|| "/auth/callback".to_string()),
                             project_id: secrets.get("project_id").cloned().unwrap_or_default(),
                             api_url: secrets.get("api_url").cloned().unwrap_or_else(|| base_url.clone()),
                             service_account_key: secrets.get("service_account_key").cloned(),
@@ -135,7 +135,7 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
         .map_err(|e| anyhow::anyhow!("Failed to initialize directory: {}", e))?;
 
     // Store credentials in Vault
-    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::from_env() {
+    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::get() {
         if secrets_manager.is_enabled() {
             let mut secrets = HashMap::new();
             secrets.insert("url".to_string(), config.base_url.clone());

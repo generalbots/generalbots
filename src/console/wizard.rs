@@ -894,7 +894,7 @@ pub fn apply_wizard_config(config: &WizardConfig) -> io::Result<()> {
     println!("   Data directory: {}", config.data_dir.display());
     println!("\n   Next steps:");
     println!("   1. Run: botserver start");
-    println!("   2. Open: http://localhost:4242");
+    println!("   2. Open: ");
     println!("   3. Login with: {}", config.admin.username);
 
     Ok(())

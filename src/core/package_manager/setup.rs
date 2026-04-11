@@ -74,7 +74,7 @@ impl DirectorySetup {
             issuer: self.base_url.clone(),
             client_id,
             client_secret,
-            redirect_uri: "http://localhost:3000/auth/callback".to_string(),
+            redirect_uri: "/auth/callback".to_string(),
             project_id,
             api_url: self.base_url.clone(),
             service_account_key: None,
@@ -227,8 +227,8 @@ impl DirectorySetup {
         let app_body = serde_json::json!({
             "name": "BotServer",
             "redirectUris": [
-                "http://localhost:3000/auth/callback",
-                "http://localhost:8080/auth/callback"
+                "/auth/callback",
+                "/auth/callback"
             ],
             "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
             "grantTypes": [
@@ -237,7 +237,7 @@ impl DirectorySetup {
             ],
             "appType": "OIDC_APP_TYPE_WEB",
             "authMethodType": "OIDC_AUTH_METHOD_TYPE_POST",
-            "postLogoutRedirectUris": ["http://localhost:3000"],
+            "postLogoutRedirectUris": [""],
             "devMode": true
         });
 
@@ -320,14 +320,14 @@ mod tests {
     #[test]
     fn test_directory_config_serialization() {
         let config = DirectoryConfig {
-            base_url: "http://localhost:8300".to_string(),
-            issuer_url: "http://localhost:8300".to_string(),
-            issuer: "http://localhost:8300".to_string(),
+            base_url: "".to_string(),
+            issuer_url: "".to_string(),
+            issuer: "".to_string(),
             client_id: "test_client".to_string(),
             client_secret: "test_secret".to_string(),
-            redirect_uri: "http://localhost:3000/callback".to_string(),
+            redirect_uri: "/callback".to_string(),
             project_id: "12345".to_string(),
-            api_url: "http://localhost:8300".to_string(),
+            api_url: "".to_string(),
             service_account_key: None,
         };
 

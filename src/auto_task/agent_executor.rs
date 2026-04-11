@@ -56,7 +56,7 @@ impl AgentExecutor {
             }
         });
 
-        self.broadcast_browser_ready("http://localhost:8000", 8000);
+        self.broadcast_browser_ready("", 8000);
         self.broadcast_step("Agent Ready", 2, 10);
 
         Ok(())

@@ -15,7 +15,7 @@ pub async fn setup_alm() -> anyhow::Result<()> {
     let config_path = stack_path.join("conf/alm-ci/config.yaml");
 
     // Check Vault if already set up
-    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::from_env() {
+    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::get() {
         if secrets_manager.is_enabled() {
             if let Ok(secrets) = secrets_manager.get_secret(crate::core::secrets::SecretPaths::ALM).await {
                 if let (Some(user), Some(token)) = (secrets.get("username"), secrets.get("runner_token")) {
@@ -52,7 +52,7 @@ PATH = {}/data/alm/gitea.db
 [server]
 HTTP_PORT = 3000
 DOMAIN = localhost
-ROOT_URL = http://localhost:3000
+ROOT_URL = 
 
 [security]
 INSTALL_LOCK = true
@@ -67,7 +67,7 @@ INSTALL_LOCK = true
     // Generate credentials and attempt to configure via HTTP API
     let username = "botserver";
     let password = generate_random_string(32);
-    let alm_url = "http://localhost:3000";
+    let alm_url = "";
 
     // Try to create admin user and get runner token via HTTP API
     // Note: Forgejo CLI binary may segfault on some systems, so we use curl
@@ -95,7 +95,7 @@ INSTALL_LOCK = true
     }
 
     // Store in Vault
-    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::from_env() {
+    if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::get() {
         if secrets_manager.is_enabled() {
             let mut secrets = HashMap::new();
             secrets.insert("url".to_string(), alm_url.to_string());

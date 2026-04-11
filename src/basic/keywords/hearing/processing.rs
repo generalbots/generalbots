@@ -138,7 +138,7 @@ pub async fn process_qrcode(
                 .ok()
         });
         config_url.unwrap_or_else(|| {
-            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string())
+            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string())
         })
     };
 
@@ -188,7 +188,7 @@ pub async fn process_audio_to_text(
     audio_url: &str,
 ) -> Result<(String, Option<serde_json::Value>), String> {
     let botmodels_url =
-        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
 
     let client = reqwest::Client::new();
 
@@ -237,7 +237,7 @@ pub async fn process_video_description(
     video_url: &str,
 ) -> Result<(String, Option<serde_json::Value>), String> {
     let botmodels_url =
-        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
 
     let client = reqwest::Client::new();
 

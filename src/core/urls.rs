@@ -490,16 +490,7 @@ impl ApiUrls {
 pub struct InternalUrls;
 
 impl InternalUrls {
-    pub const DIRECTORY_BASE: &'static str = "http://localhost:8300";
-    pub const DATABASE: &'static str = "postgres://localhost:5432";
-    pub const CACHE: &'static str = "redis://localhost:6379";
-    pub const DRIVE: &'static str = "http://localhost:9100";
-    pub const EMAIL: &'static str = "http://localhost:8025";
-    pub const LLM: &'static str = "http://localhost:8081";
-    pub const EMBEDDING: &'static str = "http://localhost:8082";
-    pub const QDRANT: &'static str = "http://localhost:6334";
-    pub const FORGEJO: &'static str = "http://localhost:3000";
-    pub const LIVEKIT: &'static str = "http://localhost:7880";
+    // No localhost defaults - services must be configured via Vault or env vars
     pub const BOTMODELS_VISION_QRCODE: &'static str = "/api/vision/qrcode";
     pub const BOTMODELS_SPEECH_TO_TEXT: &'static str = "/api/speech/to-text";
     pub const BOTMODELS_VISION_DESCRIBE_VIDEO: &'static str = "/api/vision/describe-video";

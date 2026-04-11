@@ -26,7 +26,7 @@ pub struct TimeSeriesConfig {
 impl Default for TimeSeriesConfig {
     fn default() -> Self {
         Self {
-            url: "http://localhost:8086".to_string(),
+            url: "".to_string(),
             token: String::new(),
             org: "system".to_string(),
             bucket: "metrics".to_string(),

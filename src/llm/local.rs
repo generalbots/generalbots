@@ -45,14 +45,14 @@ pub async fn ensure_llama_servers_running(
                 .get_config(&default_bot_id, "llm-server", Some("true"))
                 .unwrap_or_else(|_| "true".to_string()),
             config_manager
-                .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
-                .unwrap_or_else(|_| "http://localhost:8081".to_string()),
+                .get_config(&default_bot_id, "llm-url", Some(""))
+                .unwrap_or_else(|_| "".to_string()),
             config_manager
                 .get_config(&default_bot_id, "llm-model", None)
                 .unwrap_or_default(),
             config_manager
-                .get_config(&default_bot_id, "embedding-url", Some("http://localhost:8082"))
-                .unwrap_or_else(|_| "http://localhost:8082".to_string()),
+                .get_config(&default_bot_id, "embedding-url", Some(""))
+                .unwrap_or_else(|_| "".to_string()),
             embedding_model_result.unwrap_or_default(),
             config_manager
                 .get_config(&default_bot_id, "llm-server-path", None)

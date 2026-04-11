@@ -18,7 +18,7 @@ pub async fn send_invitation_email(
     custom_message: Option<String>,
     invitation_id: Uuid,
 ) -> Result<(), String> {
-    let smtp = crate::core::secrets::SecretsManager::from_env()
+    let smtp = crate::core::secrets::SecretsManager::get()
         .ok()
         .and_then(|sm| {
             let sm_owned = sm.clone();
@@ -28,9 +28,7 @@ pub async fn send_invitation_email(
                     .enable_all()
                     .build();
                 let result = if let Ok(rt) = rt {
-                    rt.block_on(async move {
-                        sm_owned.get_secret(crate::core::secrets::SecretPaths::EMAIL).await.ok()
-                    })
+                    rt.block_on(async move { sm_owned.get_secret(crate::core::secrets::SecretPaths::EMAIL).await.ok() })
                 } else {
                     None
                 };

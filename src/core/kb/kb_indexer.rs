@@ -22,7 +22,7 @@ pub struct QdrantConfig {
 impl Default for QdrantConfig {
     fn default() -> Self {
         Self {
-            url: "http://localhost:6333".to_string(),
+            url: "".to_string(),
             api_key: None,
             timeout_secs: 30,
         }
@@ -36,8 +36,8 @@ impl QdrantConfig {
         } else {
             let config_manager = ConfigManager::new(pool);
             let url = config_manager
-                .get_config(bot_id, "vectordb-url", Some("http://localhost:6333"))
-                .unwrap_or_else(|_| "http://localhost:6333".to_string());
+                .get_config(bot_id, "vectordb-url", Some(""))
+                .unwrap_or_else(|_| "".to_string());
             (url, None)
         };
         Self {

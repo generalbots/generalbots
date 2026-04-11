@@ -39,7 +39,7 @@ pub struct EmbeddingConfig {
 impl Default for EmbeddingConfig {
     fn default() -> Self {
         Self {
-            embedding_url: "http://localhost:8082".to_string(),
+            embedding_url: "".to_string(),
             embedding_model: "BAAI/bge-multilingual-gemma2".to_string(),
             embedding_key: None,
             dimensions: 2048,
@@ -58,7 +58,7 @@ impl EmbeddingConfig {
 
     /// Load embedding config from bot's config.csv (similar to llm-url, llm-model)
     /// This allows configuring embedding server per-bot in config.csv:
-    /// embedding-url,http://localhost:8082
+    /// embedding-url,
     /// embedding-model,bge-small-en-v1.5
     /// embedding-dimensions,384
     /// embedding-batch-size,16
@@ -77,7 +77,7 @@ impl EmbeddingConfig {
                 .ok()
                 .filter(|s| !s.is_empty()),
             Err(_) => None,
-        }.unwrap_or_else(|| "http://localhost:8082".to_string());
+        }.unwrap_or_else(|| "".to_string());
 
         let embedding_model = match pool.get() {
             Ok(mut conn) => bot_configuration

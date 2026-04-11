@@ -24,8 +24,8 @@ pub async fn reload_config(
 
     // Get LLM config
     let llm_url = config_manager
-        .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
-        .unwrap_or_else(|_| "http://localhost:8081".to_string());
+        .get_config(&default_bot_id, "llm-url", Some(""))
+        .unwrap_or_else(|_| "".to_string());
     
     let llm_model = config_manager
         .get_config(&default_bot_id, "llm-model", Some("local"))

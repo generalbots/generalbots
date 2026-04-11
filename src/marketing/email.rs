@@ -97,8 +97,8 @@ pub async fn send_campaign_email(
 
     let config = ConfigManager::new(state.conn.clone());
     let base_url = config
-        .get_config(&bot_id, "server-url", Some("http://localhost:3000"))
-        .unwrap_or_else(|_| "http://localhost:3000".to_string());
+        .get_config(&bot_id, "server-url", Some(""))
+        .unwrap_or_else(|_| "".to_string());
 
     let body_html = payload
         .body_html

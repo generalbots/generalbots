@@ -289,7 +289,7 @@ impl LLMProvider for OpenAIClient {
             128000 // Cerebras gpt-oss models and GPT-4 variants
         } else if model.contains("gpt-3.5") {
             16385
-        } else if model.starts_with("http://localhost:808") || model == "local" {
+        } else if model.starts_with("") || model == "local" {
             768 // Local llama.cpp server context limit
         } else {
             32768 // Default conservative limit for modern models
@@ -378,7 +378,7 @@ impl LLMProvider for OpenAIClient {
             128000 // Cerebras gpt-oss models and GPT-4 variants
         } else if model.contains("gpt-3.5") {
             16385
-        } else if model.starts_with("http://localhost:808") || model == "local" {
+        } else if model.starts_with("") || model == "local" {
             768 // Local llama.cpp server context limit
         } else {
             32768 // Default conservative limit for modern models
@@ -885,10 +885,10 @@ mod tests {
     fn test_openai_client_new_custom_url() {
         let client = OpenAIClient::new(
             "test_key".to_string(),
-            Some("http://localhost:9000".to_string()),
+            Some("".to_string()),
             None,
         );
-        assert_eq!(client.base_url, "http://localhost:9000");
+        assert_eq!(client.base_url, "");
     }
 
     #[test]

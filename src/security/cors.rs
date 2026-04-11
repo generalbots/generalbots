@@ -100,9 +100,9 @@ impl CorsConfig {
     pub fn development() -> Self {
         Self {
             allowed_origins: vec![
-                "http://localhost:3000".to_string(),
-                "http://localhost:8080".to_string(),
-                "http://localhost:9000".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
                 "http://127.0.0.1:3000".to_string(),
                 "http://127.0.0.1:8080".to_string(),
                 "http://127.0.0.1:9000".to_string(),
@@ -502,7 +502,7 @@ mod tests {
     fn test_development_config() {
         let config = CorsConfig::development();
         assert!(!config.allowed_origins.is_empty());
-        assert!(config.allowed_origins.contains(&"http://localhost:3000".to_string()));
+        assert!(config.allowed_origins.contains(&"".to_string()));
     }
 
     #[test]
@@ -542,7 +542,7 @@ mod tests {
     #[test]
     fn test_valid_origin_format() {
         assert!(is_valid_origin_format("https://example.com"));
-        assert!(is_valid_origin_format("http://localhost:3000"));
+        assert!(is_valid_origin_format(""));
         assert!(is_valid_origin_format("https://api.example.com:8443"));
 
         assert!(!is_valid_origin_format("ftp://example.com"));
@@ -557,7 +557,7 @@ mod tests {
             .allow_localhost(true);
 
         assert!(validator.is_allowed("https://example.com"));
-        assert!(validator.is_allowed("http://localhost:3000"));
+        assert!(validator.is_allowed(""));
         assert!(!validator.is_allowed("https://evil.com"));
     }
 
@@ -573,7 +573,7 @@ mod tests {
     #[test]
     fn test_localhost_detection() {
         assert!(is_localhost_origin("http://localhost"));
-        assert!(is_localhost_origin("http://localhost:3000"));
+        assert!(is_localhost_origin(""));
         assert!(is_localhost_origin("https://localhost:8443"));
         assert!(is_localhost_origin("http://127.0.0.1"));
         assert!(is_localhost_origin("http://127.0.0.1:9000"));
@@ -584,7 +584,7 @@ mod tests {
     fn test_extract_host() {
         assert_eq!(extract_host("https://example.com"), Some("example.com"));
         assert_eq!(extract_host("https://example.com:8443"), Some("example.com"));
-        assert_eq!(extract_host("http://localhost:3000"), Some("localhost"));
+        assert_eq!(extract_host(""), Some("localhost"));
         assert_eq!(extract_host("invalid"), None);
     }
 

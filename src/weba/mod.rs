@@ -992,26 +992,26 @@ mod tests {
 
     #[test]
     fn test_page_url_patterns() {
-        let login = LoginPage::new("http://localhost:4242");
+        let login = LoginPage::new("");
         assert_eq!(LoginPage::url_pattern(), "/login");
-        assert_eq!(login.base_url(), "http://localhost:4242");
+        assert_eq!(login.base_url(), "");
 
-        let dashboard = DashboardPage::new("http://localhost:4242");
+        let dashboard = DashboardPage::new("");
         assert_eq!(DashboardPage::url_pattern(), "/dashboard");
-        assert_eq!(dashboard.base_url(), "http://localhost:4242");
+        assert_eq!(dashboard.base_url(), "");
 
-        let chat = ChatPage::new("http://localhost:4242", "test-bot");
+        let chat = ChatPage::new("", "test-bot");
         assert_eq!(ChatPage::url_pattern(), "/chat/");
-        assert_eq!(chat.base_url(), "http://localhost:4242");
+        assert_eq!(chat.base_url(), "");
         assert_eq!(chat.bot_name(), "test-bot");
 
-        let queue = QueuePage::new("http://localhost:4242");
+        let queue = QueuePage::new("");
         assert_eq!(QueuePage::url_pattern(), "/queue");
-        assert_eq!(queue.base_url(), "http://localhost:4242");
+        assert_eq!(queue.base_url(), "");
 
-        let bots = BotManagementPage::new("http://localhost:4242");
+        let bots = BotManagementPage::new("");
         assert_eq!(BotManagementPage::url_pattern(), "/admin/bots");
-        assert_eq!(bots.base_url(), "http://localhost:4242");
+        assert_eq!(bots.base_url(), "");
     }
 
     #[test]

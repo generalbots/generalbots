@@ -34,7 +34,7 @@ static SECRETS_MANAGER: std::sync::LazyLock<Arc<RwLock<Option<SecretsManager>>>>
     std::sync::LazyLock::new(|| Arc::new(RwLock::new(None)));
 
 pub async fn init_secrets_manager() -> Result<()> {
-    let manager = SecretsManager::from_env()?;
+    let manager = SecretsManager::get()?.clone();
     let mut guard = SECRETS_MANAGER.write().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
     *guard = Some(manager);
     Ok(())

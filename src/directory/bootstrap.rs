@@ -268,7 +268,7 @@ fn save_setup_credentials(result: &BootstrapResult) {
 ║  Password: {:<46}║
 ║  Email:    {:<46}║
 ║                                                            ║
-║  🌐 LOGIN NOW: http://localhost:8080/suite/login           ║
+║  🌐 LOGIN NOW: /suite/login           ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 
@@ -358,7 +358,7 @@ fn print_bootstrap_credentials(result: &BootstrapResult) {
     println!("║{:^60}║", "");
     println!("║  {:56}║", "🌐 LOGIN NOW:");
     println!("║{:^60}║", "");
-    println!("║  {:56}║", "http://localhost:8080/suite/login");
+    println!("║  {:56}║", "/suite/login");
     println!("║{:^60}║", "");
     println!("╠{}╣", separator);
     println!("║{:^60}║", "");

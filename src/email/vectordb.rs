@@ -421,11 +421,11 @@ impl EmailEmbeddingGenerator {
     }
 
     pub async fn generate_text_embedding(&self, text: &str) -> Result<Vec<f32>> {
-        let embedding_url = if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
+        let embedding_url = if let Ok(sm) = crate::core::secrets::SecretsManager::get() {
             let (llm_url, _, _, _, ollama_url) = sm.get_llm_config();
             if !ollama_url.is_empty() { ollama_url } else { llm_url }
         } else {
-            "http://localhost:8082".to_string()
+            "".to_string()
         };
         match self.generate_local_embedding(text, &embedding_url).await {
             Ok(embedding) => Ok(embedding),

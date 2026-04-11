@@ -586,7 +586,7 @@ impl VideoEngine {
         };
 
         let botmodels_url =
-            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
 
         let client = reqwest::Client::new();
         let response = client
@@ -691,7 +691,7 @@ impl VideoEngine {
         output_dir: &str,
     ) -> Result<TTSResponse, Box<dyn std::error::Error + Send + Sync>> {
         let botmodels_url =
-            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
 
         let client = reqwest::Client::new();
         let response = client
@@ -1022,7 +1022,7 @@ impl VideoEngine {
         let clip = clips.iter().find(|c| c.id == clip_id).ok_or("Clip not found")?;
 
         let botmodels_url =
-            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
 
         let client = reqwest::Client::new();
         let response = client
@@ -1056,7 +1056,7 @@ impl VideoEngine {
         let clip = clips.iter().find(|c| c.id == req.clip_id).ok_or("Clip not found")?;
 
         let botmodels_url =
-            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
 
         let client = reqwest::Client::new();
         let response = client
@@ -1097,7 +1097,7 @@ impl VideoEngine {
         let track = tracks.iter().find(|t| t.id == audio_track_id).ok_or("Audio track not found")?;
 
         let botmodels_url =
-            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
 
         let client = reqwest::Client::new();
         let response = client
@@ -1143,7 +1143,7 @@ impl VideoEngine {
         let track = tracks.iter().find(|t| t.id == audio_track_id).ok_or("Audio track not found")?;
 
         let botmodels_url =
-            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
 
         let client = reqwest::Client::new();
         let response = client

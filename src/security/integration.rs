@@ -30,11 +30,12 @@ pub struct TlsIntegration {
 
 impl TlsIntegration {
     pub fn new(tls_enabled: bool) -> Self {
-        let (qdrant_url, _) = if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
-            sm.get_vectordb_config_sync()
-        } else {
-            ("http://localhost:6333".to_string(), None)
-        };
+        let sm = crate::core::secrets::SecretsManager::get().ok();
+
+        let (qdrant_url, _) = sm
+            .as_ref()
+            .map(|sm| sm.get_vectordb_config_sync())
+            .unwrap_or((String::new(), None));
         let qdrant_secure = qdrant_url.replace("http://", "https://");
         let qdrant_port: u16 = qdrant_url
             .split(':')
@@ -47,18 +48,13 @@ impl TlsIntegration {
             .and_then(|p| p.parse().ok())
             .unwrap_or(6334);
 
-        let (llm_url, _, _, _, _) = if let Ok(sm) = crate::core::secrets::SecretsManager::from_env()
-        {
-            sm.get_llm_config()
-        } else {
-            (
-                "http://localhost:8081".to_string(),
-                "gpt-4".to_string(),
-                None,
-                None,
-                "http://localhost:11434".to_string(),
-            )
-        };
+        let (llm_url, _, _, _, _) = sm.as_ref().map(|sm| sm.get_llm_config()).unwrap_or((
+            String::new(),
+            String::new(),
+            None,
+            None,
+            String::new(),
+        ));
         let llm_secure = llm_url.replace("http://", "https://");
         let llm_port: u16 = llm_url
             .split(':')
@@ -71,55 +67,41 @@ impl TlsIntegration {
             .and_then(|p| p.parse().ok())
             .unwrap_or(8444);
 
-        let (cache_host, cache_port, _) =
-            if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
-                sm.get_cache_config()
-            } else {
-                ("localhost".to_string(), 6379, None)
-            };
+        let (cache_host, cache_port, _) = sm
+            .as_ref()
+            .map(|sm| sm.get_cache_config())
+            .and_then(|r| r.ok())
+            .unwrap_or((String::new(), 6379, None));
         let cache_tls_port = cache_port + 1;
 
-        let (db_host, db_port, _, _, _) =
-            if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
-                sm.get_database_config_sync()
-            } else {
-                (
-                    "localhost".to_string(),
-                    5432,
-                    "botserver".to_string(),
-                    "gbuser".to_string(),
-                    "changeme".to_string(),
-                )
-            };
+        let (db_host, db_port, _, _, _) = sm
+            .as_ref()
+            .map(|sm| sm.get_database_config_sync())
+            .and_then(|r| r.ok())
+            .unwrap_or((
+                String::new(),
+                5432,
+                String::new(),
+                String::new(),
+                String::new(),
+            ));
         let db_tls_port = db_port + 1;
 
-        let (drive_host, _drive_accesskey, _drive_secret) =
-            if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
-                sm.get_drive_config()
-            } else {
-                (
-                    "localhost:9100".to_string(),
-                    "minioadmin".to_string(),
-                    "minioadmin".to_string(),
-                )
-            };
+        let (drive_host, _, _) = sm
+            .as_ref()
+            .map(|sm| sm.get_drive_config())
+            .and_then(|r| r.ok())
+            .unwrap_or((String::new(), String::new(), String::new()));
         let drive_port: u16 = drive_host
             .split(':')
             .next_back()
             .and_then(|p| p.parse().ok())
             .unwrap_or(9100);
 
-        let (directory_url, _, _, _) =
-            if let Ok(sm) = crate::core::secrets::SecretsManager::from_env() {
-                sm.get_directory_config_sync()
-            } else {
-                (
-                    "http://localhost:9000".to_string(),
-                    String::new(),
-                    String::new(),
-                    String::new(),
-                )
-            };
+        let (directory_url, _, _, _) = sm
+            .as_ref()
+            .map(|sm| sm.get_directory_config_sync())
+            .unwrap_or((String::new(), String::new(), String::new(), String::new()));
         let directory_secure = directory_url.replace("http://", "https://");
         let directory_port: u16 = directory_url
             .split(':')
@@ -137,8 +119,8 @@ impl TlsIntegration {
         services.insert(
             "api".to_string(),
             ServiceUrls {
-                original: "http://localhost:8080".to_string(),
-                secure: "https://localhost:8443".to_string(),
+                original: String::new(),
+                secure: String::new(),
                 port: 8080,
                 tls_port: 8443,
             },
@@ -157,8 +139,8 @@ impl TlsIntegration {
         services.insert(
             "embedding".to_string(),
             ServiceUrls {
-                original: "http://localhost:8082".to_string(),
-                secure: "https://localhost:8445".to_string(),
+                original: String::new(),
+                secure: String::new(),
                 port: 8082,
                 tls_port: 8445,
             },
