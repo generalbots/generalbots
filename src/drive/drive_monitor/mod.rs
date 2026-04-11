@@ -81,7 +81,7 @@ impl DriveMonitor {
     /// Get the path to the file states JSON file for this bot
     fn file_state_path(&self) -> PathBuf {
         self.work_root
-            .join(format!("{}", self.bot_id))
+            .join(&self.bucket_name)
             .join("file_states.json")
     }
 
@@ -133,10 +133,10 @@ impl DriveMonitor {
     async fn save_file_states_static(
         file_states: &Arc<tokio::sync::RwLock<HashMap<String, FileState>>>,
         work_root: &PathBuf,
-        bot_id: &uuid::Uuid,
+        bucket_name: &str,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let path = work_root
-            .join(format!("{}", bot_id))
+            .join(bucket_name)
             .join("file_states.json");
 
         if let Some(parent) = path.parent() {
@@ -160,9 +160,9 @@ impl DriveMonitor {
                     );
                 } else {
                     debug!(
-                        "[DRIVE_MONITOR] Saved {} file states to disk for bot {}",
+                        "[DRIVE_MONITOR] Saved {} file states to disk for bucket {}",
                         states.len(),
-                        bot_id
+                        bucket_name
                     );
                 }
             }
@@ -543,9 +543,9 @@ impl DriveMonitor {
         // Use static helper to avoid double Arc (fixes "dispatch failure" error)
         let file_states_clone = Arc::clone(&self.file_states);
         let work_root_clone = self.work_root.clone();
-        let bot_id_clone = self.bot_id;
+        let bucket_name_clone = self.bucket_name.clone();
         tokio::spawn(async move {
-            if let Err(e) = Self::save_file_states_static(&file_states_clone, &work_root_clone, &bot_id_clone).await {
+            if let Err(e) = Self::save_file_states_static(&file_states_clone, &work_root_clone, &bucket_name_clone).await {
                 warn!("Failed to save file states: {}", e);
             }
         });
@@ -648,9 +648,9 @@ impl DriveMonitor {
                         drop(states);
                         let file_states_clone = Arc::clone(&self.file_states);
                         let work_root_clone = self.work_root.clone();
-                        let bot_id_clone = self.bot_id;
+                        let bucket_name_clone = self.bucket_name.clone();
                         tokio::spawn(async move {
-                            if let Err(e) = Self::save_file_states_static(&file_states_clone, &work_root_clone, &bot_id_clone).await {
+                            if let Err(e) = Self::save_file_states_static(&file_states_clone, &work_root_clone, &bucket_name_clone).await {
                                 warn!("Failed to save file states after prompt update: {}", e);
                             }
                         });
@@ -1381,9 +1381,9 @@ impl DriveMonitor {
         // Use static helper to avoid double Arc (fixes "dispatch failure" error)
         let file_states_clone = Arc::clone(&self.file_states);
         let work_root_clone = self.work_root.clone();
-        let bot_id_clone = self.bot_id;
+        let bucket_name_clone = self.bucket_name.clone();
         tokio::spawn(async move {
-            if let Err(e) = Self::save_file_states_static(&file_states_clone, &work_root_clone, &bot_id_clone).await {
+            if let Err(e) = Self::save_file_states_static(&file_states_clone, &work_root_clone, &bucket_name_clone).await {
                 warn!("Failed to save file states: {}", e);
             }
         });
