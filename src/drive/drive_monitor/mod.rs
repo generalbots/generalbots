@@ -1373,7 +1373,12 @@ impl DriveMonitor {
                 files_processed, pdf_files_found
             );
         }
-        for (path, state) in current_files {
+        for (path, mut state) in current_files {
+            if let Some(previous) = file_states.get(&path) {
+                if previous.indexed && state.etag == previous.etag {
+                    state.indexed = true;
+                }
+            }
             file_states.insert(path, state);
         }
 
