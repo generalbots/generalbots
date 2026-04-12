@@ -73,6 +73,11 @@ pub mod research;
 #[cfg(feature = "research")]
 pub use self::research::*;
 
+#[cfg(feature = "rbac")]
+pub mod kb;
+#[cfg(feature = "rbac")]
+pub use self::kb::*;
+
 #[cfg(feature = "learn")]
 pub mod learn;
 #[cfg(feature = "learn")]

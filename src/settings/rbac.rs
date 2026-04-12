@@ -18,11 +18,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[cfg(feature = "rbac")]
-use crate::settings::rbac_kb::{
-    assign_kb_to_group, get_accessible_kbs_for_user, get_kb_groups, remove_kb_from_group,
-};
-
 pub fn configure_rbac_routes() -> Router<Arc<AppState>> {
     Router::new()
 

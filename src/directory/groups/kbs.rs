@@ -30,7 +30,7 @@ pub async fn get_group_kbs(
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
 
         // 1. Get all KBs from kb_collections
-        use crate::core::shared::models::schema::kb_collections;
+        use crate::core::shared::models::kb_collections;
         let all_kbs = kb_collections::table
             .select((
                 kb_collections::id,
@@ -41,7 +41,7 @@ pub async fn get_group_kbs(
             .map_err(|e| format!("KB query error: {e}"))?;
 
         // 2. Get associated KB IDs for this group
-        use crate::core::shared::models::schema::kb_group_associations;
+        use crate::core::shared::models::kb_group_associations;
         let associated_ids: Vec<Uuid> = kb_group_associations::table
             .filter(kb_group_associations::group_id.eq(group_id))
             .select(kb_group_associations::kb_id)
@@ -216,7 +216,7 @@ pub async fn toggle_group_kb(
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<bool, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::core::shared::models::schema::kb_group_associations;
+        use crate::core::shared::models::kb_group_associations;
 
         let existing = kb_group_associations::table
             .filter(kb_group_associations::kb_id.eq(kb_id))

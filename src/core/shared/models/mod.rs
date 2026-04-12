@@ -43,7 +43,7 @@ pub use super::schema::{
 };
 
 #[cfg(feature = "rbac")]
-pub use super::schema::kb_group_associations;
+pub use super::schema::kb::{kb_collections, kb_group_associations};
 
 pub use botlib::message_types::MessageType;
 pub use botlib::models::{ApiResponse, Attachment, BotResponse, Session, Suggestion, UserMessage};

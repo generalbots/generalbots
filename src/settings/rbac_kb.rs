@@ -134,7 +134,7 @@ pub async fn assign_kb_to_group(
     let now = Utc::now();
     let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::core::shared::models::schema::kb_group_associations;
+        use crate::core::shared::models::kb_group_associations;
         let existing: Option<Uuid> = kb_group_associations::table
             .filter(kb_group_associations::kb_id.eq(kb_id))
             .filter(kb_group_associations::group_id.eq(group_id))
@@ -183,7 +183,7 @@ pub async fn remove_kb_from_group(
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use crate::core::shared::models::schema::kb_group_associations;
+        use crate::core::shared::models::kb_group_associations;
         diesel::delete(
             kb_group_associations::table
                 .filter(kb_group_associations::kb_id.eq(kb_id))

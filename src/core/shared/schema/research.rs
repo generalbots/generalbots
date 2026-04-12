@@ -1,5 +1,6 @@
 use crate::core::shared::schema::core::{bots, organizations};
 use crate::core::shared::schema::core::{rbac_groups, users};
+use crate::core::shared::schema::kb::{kb_collections, kb_group_associations};
 
 diesel::table! {
     kb_documents (id) {
@@ -15,19 +16,6 @@ diesel::table! {
         fail_count -> Int4,
         last_failed_at -> Nullable<Timestamptz>,
         metadata -> Nullable<Jsonb>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    kb_collections (id) {
-        id -> Uuid,
-        bot_id -> Uuid,
-        name -> Text,
-        folder_path -> Text,
-        qdrant_collection -> Text,
-        document_count -> Int4,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -151,20 +139,6 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    kb_group_associations (id) {
-        id         -> Uuid,
-        kb_id      -> Uuid,
-        group_id   -> Uuid,
-        granted_by -> Nullable<Uuid>,
-        granted_at -> Timestamptz,
-    }
-}
-
-diesel::joinable!(kb_collections       -> bots   (bot_id));
-diesel::joinable!(kb_group_associations -> kb_collections (kb_id));
-diesel::joinable!(kb_group_associations -> rbac_groups    (group_id));
-diesel::joinable!(kb_group_associations -> users          (granted_by));
 diesel::joinable!(research_projects -> organizations (org_id));
 diesel::joinable!(research_projects -> bots (bot_id));
 diesel::joinable!(research_sources -> research_projects (project_id));
