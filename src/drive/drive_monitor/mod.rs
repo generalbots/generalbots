@@ -581,13 +581,42 @@ impl DriveMonitor {
     // Now acquire write lock to merge current_files into file_states
     let mut file_states = self.file_states.write().await;
 
-    // Remove files that no longer exist
+    // Remove files that no longer exist (deleted from MinIO)
     let previous_paths: Vec<String> = file_states
         .keys()
         .cloned()
         .collect();
     for path in previous_paths {
         if !current_files.contains_key(&path) {
+            // Delete the compiled .ast file from disk
+            let bot_name = self
+                .bucket_name
+                .strip_suffix(".gbai")
+                .unwrap_or(&self.bucket_name);
+            let ast_path = self.work_root
+                .join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name))
+                .join(PathBuf::from(&path).file_name().unwrap_or_default().to_str().unwrap_or(""))
+                .with_extension("ast");
+            
+            if ast_path.exists() {
+                if let Err(e) = std::fs::remove_file(&ast_path) {
+                    warn!("Failed to delete orphaned .ast file {}: {}", ast_path.display(), e);
+                } else {
+                    info!("Deleted orphaned .ast file: {}", ast_path.display());
+                }
+            }
+            
+            // Also delete .bas, .mcp.json, .tool.json files
+            let bas_path = ast_path.with_extension("bas");
+            let mcp_path = ast_path.with_extension("mcp.json");
+            let tool_path = ast_path.with_extension("tool.json");
+            
+            for file_to_delete in [&bas_path, &mcp_path, &tool_path] {
+                if file_to_delete.exists() {
+                    let _ = std::fs::remove_file(file_to_delete);
+                }
+            }
+            
             file_states.remove(&path);
         }
     }
