@@ -43,7 +43,7 @@ impl Default for EmbeddingConfig {
             embedding_model: "BAAI/bge-multilingual-gemma2".to_string(),
             embedding_key: None,
             dimensions: 2048,
-            batch_size: 2,
+            batch_size: 2, // Reduced from 16 to prevent llama-server crash
             timeout_seconds: 60,
             max_concurrent_requests: 1,
             connect_timeout_seconds: 10,
