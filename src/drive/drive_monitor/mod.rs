@@ -544,46 +544,83 @@ impl DriveMonitor {
             }
             continuation_token = list_objects.next_continuation_token;
         }
-        let mut file_states = self.file_states.write().await;
-        for (path, current_state) in current_files.iter() {
-            if let Some(previous_state) = file_states.get(path) {
-                if current_state.etag != previous_state.etag {
-                    if let Err(e) = self.compile_tool(client, path).await {
-                        log::error!("Failed to compile tool {}: {}", path, e);
+    // First pass: identify which files need compilation
+    // We must do this BEFORE acquiring the write lock to avoid deadlock
+    let files_to_compile: Vec<String> = {
+        let file_states = self.file_states.read().await;
+        current_files
+            .iter()
+            .filter_map(|(path, current_state)| {
+                if let Some(previous_state) = file_states.get(path) {
+                    if current_state.etag != previous_state.etag {
+                        Some(path.clone())
+                    } else {
+                        None
                     }
+                } else {
+                    Some(path.clone()) // New file
                 }
-            } else if let Err(e) = self.compile_tool(client, path).await {
+            })
+            .collect()
+    };
+
+    // Compile files that need it - compile_tool acquires its own write lock
+    // Track successful compilations to preserve indexed status
+    let mut successful_compilations: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for path in &files_to_compile {
+        match self.compile_tool(client, path).await {
+            Ok(_) => {
+                successful_compilations.insert(path.clone());
+            }
+            Err(e) => {
                 log::error!("Failed to compile tool {}: {}", path, e);
             }
         }
-        let previous_paths: Vec<String> = file_states
-            .keys()
-            .cloned()
-            .collect();
-        for path in previous_paths {
-            if !current_files.contains_key(&path) {
-                file_states.remove(&path);
+    }
+
+    // Now acquire write lock to merge current_files into file_states
+    let mut file_states = self.file_states.write().await;
+
+    // Remove files that no longer exist
+    let previous_paths: Vec<String> = file_states
+        .keys()
+        .cloned()
+        .collect();
+    for path in previous_paths {
+        if !current_files.contains_key(&path) {
+            file_states.remove(&path);
+        }
+    }
+
+    // Merge current_files into file_states
+    // For each file in current_files:
+    // - If compilation succeeded: set indexed=true
+    // - If compilation failed: preserve previous indexed status, increment fail_count
+    // - If unchanged: preserve existing state (including indexed status)
+    // - If new and not compiled: add with default state (indexed=false)
+    for (path, mut new_state) in current_files {
+        if successful_compilations.contains(&path) {
+            // Compilation succeeded - mark as indexed
+            new_state.indexed = true;
+            new_state.fail_count = 0;
+            new_state.last_failed_at = None;
+        } else if let Some(prev_state) = file_states.get(&path) {
+            if prev_state.etag == new_state.etag {
+                // File unchanged - preserve all previous state
+                new_state.indexed = prev_state.indexed;
+                new_state.fail_count = prev_state.fail_count;
+                new_state.last_failed_at = prev_state.last_failed_at;
+            } else {
+                // File changed but compilation failed - preserve previous state
+                // Keep previous indexed status, increment fail_count
+                new_state.indexed = prev_state.indexed;
+                new_state.fail_count = prev_state.fail_count + 1;
+                new_state.last_failed_at = Some(chrono::Utc::now());
             }
         }
-        for (path, new_state) in current_files {
-            let mut state = new_state;
-            let is_bas_file = path.ends_with(".bas");
-            
-            // Only mark as indexed if file was actually compiled successfully
-            // Default to false, will only be true if compilation completed without errors
-            state.indexed = false;
-            
-            // Preserve fail_count and last_failed_at for existing files that weren't modified
-            if let Some(prev_state) = file_states.get(&path) {
-                if prev_state.etag == state.etag {
-                    // File wasn't modified - preserve fail_count, last_failed_at AND indexed status
-                    state.fail_count = prev_state.fail_count;
-                    state.last_failed_at = prev_state.last_failed_at;
-                    state.indexed = prev_state.indexed;
-                }
-            }
-            file_states.insert(path, state);
-        }
+        // For new files where compilation failed: indexed remains false
+        file_states.insert(path, new_state);
+    }
         // Save file states to disk in background to avoid blocking
         // Use static helper to avoid double Arc (fixes "dispatch failure" error)
         let file_states_clone = Arc::clone(&self.file_states);
@@ -1023,16 +1060,8 @@ impl DriveMonitor {
         })
         .await??;
 
-        info!("Successfully compiled {} in {} ms", tool_name, elapsed_ms);
-
-        // Mark file as successfully indexed
-        let mut file_states = self.file_states.write().await;
-        if let Some(state) = file_states.get_mut(file_path) {
-            state.indexed = true;
-            state.fail_count = 0;
-            state.last_failed_at = None;
-        }
-        drop(file_states);
+    info!("Successfully compiled {} in {} ms", tool_name, elapsed_ms);
+    // Note: indexed status is set by check_gbdialog_changes based on compile_tool result
 
         // Check for USE WEBSITE commands and trigger immediate crawling
         if source_content.contains("USE WEBSITE") {
