@@ -565,9 +565,18 @@ impl DriveMonitor {
                 file_states.remove(&path);
             }
         }
-        for (path, mut state) in current_files {
+        for (path, new_state) in current_files {
+            let mut state = new_state;
             if path.ends_with(".bas") {
                 state.indexed = true;
+            }
+            // Preserve fail_count and last_failed_at for existing files that weren't modified
+            if let Some(prev_state) = file_states.get(&path) {
+                if prev_state.etag == state.etag {
+                    // File wasn't modified - preserve fail_count and last_failed_at
+                    state.fail_count = prev_state.fail_count;
+                    state.last_failed_at = prev_state.last_failed_at;
+                }
             }
             file_states.insert(path, state);
         }
