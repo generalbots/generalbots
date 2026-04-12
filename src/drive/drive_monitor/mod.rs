@@ -1269,11 +1269,10 @@ impl DriveMonitor {
 
                     #[cfg(any(feature = "research", feature = "llm"))]
                     {
-                        // TEMP FIX: Skip embedding server check - embedding works but health check fails
-                        // if !is_embedding_server_ready() {
-                        //     trace!("Embedding server not ready, deferring KB indexing for {}", kb_folder_path.display());
-                        //     continue;
-                        // }
+                        if !is_embedding_server_ready() {
+                            trace!("Embedding server not ready, deferring KB indexing for {}", kb_folder_path.display());
+                            continue;
+                        }
 
                         // Create a unique key for this KB folder to track indexing state
                         let kb_key = format!("{}_{}", bot_name, kb_name);

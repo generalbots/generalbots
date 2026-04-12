@@ -327,54 +327,60 @@ impl KbEmbeddingGenerator {
     }
 
     pub async fn check_health(&self) -> bool {
-        // For HuggingFace and other remote APIs, skip health check and mark as ready
-        // These APIs don't have a /health endpoint and we verified they work during setup
-        if self.config.embedding_url.contains("huggingface.co") ||
-           self.config.embedding_url.contains("api.") ||
-           self.config.embedding_key.is_some() {
-            info!("Remote embedding API detected ({}), marking as ready", self.config.embedding_url);
-            set_embedding_server_ready(true);
-            return true;
-        }
-
+        // Strategy: try /health endpoint first.
+        // - 200 OK → local server with health endpoint, ready
+        // - 404/405 etc → server is reachable but has no /health (remote API or llama.cpp)
+        // - Connection refused/timeout → server truly unavailable
         let health_url = format!("{}/health", self.config.embedding_url);
 
         match tokio::time::timeout(
-            Duration::from_secs(5),
+            Duration::from_secs(self.config.connect_timeout_seconds),
             self.client.get(&health_url).send()
         ).await {
             Ok(Ok(response)) => {
-                let is_healthy = response.status().is_success();
-                if is_healthy {
+                let status = response.status();
+                if status.is_success() {
+                    info!("Embedding server health check passed ({})", self.config.embedding_url);
                     set_embedding_server_ready(true);
+                    true
+                } else if status.as_u16() == 404 || status.as_u16() == 405 {
+                    // Server is reachable but has no /health endpoint (remote API, llama.cpp /embedding-only)
+                    // Try a HEAD request to the embedding URL itself to confirm it's up
+                    info!("No /health endpoint at {} (status {}), probing base URL", self.config.embedding_url, status);
+                    match tokio::time::timeout(
+                        Duration::from_secs(self.config.connect_timeout_seconds),
+                        self.client.head(&self.config.embedding_url).send()
+                    ).await {
+                        Ok(Ok(_)) => {
+                            info!("Embedding server reachable at {}, marking as ready", self.config.embedding_url);
+                            set_embedding_server_ready(true);
+                            true
+                        }
+                        Ok(Err(e)) => {
+                            warn!("Embedding server unreachable at {}: {}", self.config.embedding_url, e);
+                            set_embedding_server_ready(false);
+                            false
+                        }
+                        Err(_) => {
+                            warn!("Embedding server probe timed out for {}", self.config.embedding_url);
+                            set_embedding_server_ready(false);
+                            false
+                        }
+                    }
+                } else {
+                    warn!("Embedding server health check returned status {}", status);
+                    set_embedding_server_ready(false);
+                    false
                 }
-                is_healthy
             }
             Ok(Err(e)) => {
-                warn!("Health check failed for primary URL: {}", e);
-                let alt_url = &self.config.embedding_url;
-                match tokio::time::timeout(
-                    Duration::from_secs(5),
-                    self.client.get(alt_url).send()
-                ).await {
-                    Ok(Ok(response)) => {
-                        let is_healthy = response.status().is_success();
-                        if is_healthy {
-                            set_embedding_server_ready(true);
-                        }
-                        is_healthy
-                    }
-                    Ok(Err(_)) => {
-                        set_embedding_server_ready(false);
-                        false
-                    }
-                    Err(_) => {
-                        set_embedding_server_ready(false);
-                        false
-                    }
-                }
+                // Connection failed entirely — server not running or network issue
+                warn!("Embedding server connection failed for {}: {}", self.config.embedding_url, e);
+                set_embedding_server_ready(false);
+                false
             }
             Err(_) => {
+                warn!("Embedding server health check timed out for {}", self.config.embedding_url);
                 set_embedding_server_ready(false);
                 false
             }
