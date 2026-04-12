@@ -1596,29 +1596,55 @@ impl DriveMonitor {
             }
         });
 
-        for path in paths_to_remove {
-            trace!("Detected deletion in .gbkb: {}", path);
-            file_states.remove(&path);
+    for path in paths_to_remove {
+        trace!("Detected deletion in .gbkb: {}", path);
+        file_states.remove(&path);
 
-            let path_parts: Vec<&str> = path.split('/').collect();
-            if path_parts.len() >= 2 {
-                let kb_name = path_parts[1];
+        // Delete the downloaded file from disk
+        let bot_name = self
+            .bucket_name
+            .strip_suffix(".gbai")
+            .unwrap_or(&self.bucket_name);
+        let local_path = self.work_root.join(bot_name).join(&path);
+        
+        if local_path.exists() {
+            if let Err(e) = std::fs::remove_file(&local_path) {
+                warn!("Failed to delete orphaned .gbkb file {}: {}", local_path.display(), e);
+            } else {
+                info!("Deleted orphaned .gbkb file: {}", local_path.display());
+            }
+        }
 
-                let kb_prefix = format!("{}{}/", gbkb_prefix, kb_name);
-                if !file_states.keys().any(|k| k.starts_with(&kb_prefix)) {
-                    #[cfg(any(feature = "research", feature = "llm"))]
-                    if let Err(e) = self.kb_manager.clear_kb(self.bot_id, bot_name, kb_name).await {
-                        log::error!("Failed to clear KB {}: {}", kb_name, e);
+        let path_parts: Vec<&str> = path.split('/').collect();
+        if path_parts.len() >= 2 {
+            let kb_name = path_parts[1];
+
+            let kb_prefix = format!("{}{}/", gbkb_prefix, kb_name);
+            if !file_states.keys().any(|k| k.starts_with(&kb_prefix)) {
+                // All files in this KB folder deleted - clear vector index and remove folder
+                #[cfg(any(feature = "research", feature = "llm"))]
+                if let Err(e) = self.kb_manager.clear_kb(self.bot_id, bot_name, kb_name).await {
+                    log::error!("Failed to clear KB {}: {}", kb_name, e);
+                }
+
+                // Remove the empty KB folder from disk
+                let kb_folder = self.work_root.join(bot_name).join(&kb_prefix);
+                if kb_folder.exists() {
+                    if let Err(e) = std::fs::remove_dir_all(&kb_folder) {
+                        warn!("Failed to remove KB folder {}: {}", kb_folder.display(), e);
+                    } else {
+                        info!("Removed empty KB folder: {}", kb_folder.display());
                     }
+                }
 
-                    #[cfg(not(any(feature = "research", feature = "llm")))]
-                    {
-                        let _ = (bot_name, kb_name);
-                        debug!("Bypassing KB clear because research/llm features are not enabled");
-                    }
+                #[cfg(not(any(feature = "research", feature = "llm")))]
+                {
+                    let _ = (bot_name, kb_name);
+                    debug!("Bypassing KB clear because research/llm features are not enabled");
                 }
             }
         }
+    }
 
         trace!("check_gbkb_changes EXIT");
         Ok(())
