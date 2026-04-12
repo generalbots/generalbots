@@ -337,13 +337,27 @@ pub async fn ensure_llama_servers_running(
     }
     */ // END OF OLD BLOCKING CODE
 }
+fn extract_base_url(url: &str) -> String {
+    if let Ok(parsed) = url::Url::parse(url) {
+        format!(
+            "{}://{}{}",
+            parsed.scheme(),
+            parsed.host_str().unwrap_or("localhost"),
+            parsed.port().map(|p| format!(":{}", p)).unwrap_or_default()
+        )
+    } else {
+        url.to_string()
+    }
+}
+
 pub async fn is_server_running(url: &str) -> bool {
+    let base_url = extract_base_url(url);
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
         .unwrap_or_default();
 
-    match client.get(format!("{url}/health")).send().await {
+    match client.get(format!("{base_url}/health")).send().await {
         Ok(response) => {
             if response.status().is_success() {
                 return true;
@@ -352,11 +366,11 @@ pub async fn is_server_running(url: &str) -> bool {
             info!("Health check returned status: {}", response.status());
             false
         }
-        Err(e) => match client.get(url).send().await {
+        Err(e) => match client.get(&base_url).send().await {
             Ok(response) => response.status().is_success(),
             Err(_) => {
                 if !e.is_connect() {
-                    warn!("Health check error for {url}: {e}");
+                    warn!("Health check error for {base_url}: {e}");
                 }
                 false
             }
