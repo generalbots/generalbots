@@ -67,6 +67,7 @@ pub fn add_suggestion_keyword(
     user_session: UserSession,
     engine: &mut Engine,
 ) {
+    // Each closure needs its own Arc<redis::Client> and UserSession clone
     let cache = state.cache.clone();
     let cache2 = state.cache.clone();
     let cache3 = state.cache.clone();
