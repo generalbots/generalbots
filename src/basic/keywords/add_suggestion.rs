@@ -142,7 +142,7 @@ pub fn add_suggestion_keyword(
                 let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
                 let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                add_context_suggestion(cache4.as_ref(), &user_session4, &context_name, &button_text)?;
+                add_context_suggestion(cache3.as_ref(), &user_session3, &context_name, &button_text)?;
 
                 Ok(Dynamic::UNIT)
             },
