@@ -2013,10 +2013,13 @@ impl ScriptService {
             (r#"CLEAR\s+TOOLS"#, 0, 0, vec![]),
             (r#"CLEAR\s+WEBSITES"#, 0, 0, vec![]),
 
-            // ADD family - ADD_SUGGESTION_TOOL must come before ADD\s+SUGGESTION
+            // ADD family - single-token keywords to avoid ADD conflicts
+            (r#"ADD_SUGG_TOOL"#, 2, 2, vec!["tool", "text"]),
+            (r#"ADD_SUGG_TEXT"#, 2, 2, vec!["value", "text"]),
+            (r#"ADD_SUGG(?!\s+TOOL|\s+TEXT|_)"#, 2, 2, vec!["context", "text"]),
             (r#"ADD_SUGGESTION_TOOL"#, 2, 2, vec!["tool", "text"]),
-            (r#"ADD\s+SUGGESTION\s+TEXT"#, 2, 2, vec!["value", "text"]),
-            (r#"ADD\s+SUGGESTION(?!\s*TEXT|\s*TOOL|_TOOL)"#, 2, 2, vec!["context", "text"]),
+            (r#"ADD_SUGGESTION_TEXT"#, 2, 2, vec!["value", "text"]),
+            (r#"ADD_SUGGESTION(?!\s+TOOL|\s+TEXT|_)"#, 2, 2, vec!["context", "text"]),
             (r#"ADD\s+MEMBER"#, 2, 2, vec!["name", "role"]),
 
             // CREATE family
@@ -2045,8 +2048,11 @@ impl ScriptService {
             // Skip lines that already use underscore-style custom syntax
             // These are registered directly with Rhai and should not be converted
             let trimmed_upper = trimmed.to_uppercase();
-            if trimmed_upper.contains("ADD_SUGGESTION_TOOL") ||
+            if trimmed_upper.contains("ADD_SUGG_TOOL") ||
+               trimmed_upper.contains("ADD_SUGG_TEXT") ||
+               trimmed_upper.contains("ADD_SUGGESTION_TOOL") ||
                trimmed_upper.contains("ADD_SUGGESTION_TEXT") ||
+               trimmed_upper.starts_with("ADD_SUGG_") ||
                trimmed_upper.starts_with("ADD_SUGGESTION_") ||
                trimmed_upper.starts_with("ADD_MEMBER") ||
                (trimmed_upper.starts_with("USE_") && trimmed.contains('(')) {
