@@ -157,25 +157,46 @@ impl ToolExecutor {
             }
         };
 
-        // Load the .bas tool file
-        let bas_path = Self::get_tool_bas_path(bot_name, &tool_call.tool_name);
+            // Load the .bas tool file (prefer pre-compiled .ast if available)
+            let bas_path = Self::get_tool_bas_path(bot_name, &tool_call.tool_name);
+            let ast_path = bas_path.with_extension("ast");
 
-        if !bas_path.exists() {
-            let error_msg = format!("Tool file not found: {:?}", bas_path);
-            Self::log_tool_error(bot_name, &tool_call.tool_name, &error_msg);
-            return ToolExecutionResult {
-                tool_call_id: tool_call.id.clone(),
-                success: false,
-                result: String::new(),
-                error: Some(Self::format_user_friendly_error(&tool_call.tool_name, &error_msg)),
+            // Check for .ast first (pre-compiled), fallback to .bas
+            let (script_content, is_preprocessed) = if ast_path.exists() {
+                match tokio::fs::read_to_string(&ast_path).await {
+                    Ok(script) => {
+                        trace!("Using pre-compiled .ast for tool: {}", tool_call.tool_name);
+                        (script, true)
+                    }
+                    Err(_) => (String::new(), false)
+                }
+            } else if bas_path.exists() {
+                match tokio::fs::read_to_string(&bas_path).await {
+                    Ok(script) => (script, false),
+                    Err(e) => {
+                        let error_msg = format!("Failed to read tool file: {}", e);
+                        Self::log_tool_error(bot_name, &tool_call.tool_name, &error_msg);
+                        return ToolExecutionResult {
+                            tool_call_id: tool_call.id.clone(),
+                            success: false,
+                            result: String::new(),
+                            error: Some(Self::format_user_friendly_error(&tool_call.tool_name, &error_msg)),
+                        };
+                    }
+                }
+            } else {
+                let error_msg = format!("Tool file not found: {:?}", bas_path);
+                Self::log_tool_error(bot_name, &tool_call.tool_name, &error_msg);
+                return ToolExecutionResult {
+                    tool_call_id: tool_call.id.clone(),
+                    success: false,
+                    result: String::new(),
+                    error: Some(Self::format_user_friendly_error(&tool_call.tool_name, &error_msg)),
+                };
             };
-        }
 
-        // Read the .bas file
-        let bas_script = match tokio::fs::read_to_string(&bas_path).await {
-            Ok(script) => script,
-            Err(e) => {
-                let error_msg = format!("Failed to read tool file: {}", e);
+            if script_content.is_empty() {
+                let error_msg = "Tool script is empty".to_string();
                 Self::log_tool_error(bot_name, &tool_call.tool_name, &error_msg);
                 return ToolExecutionResult {
                     tool_call_id: tool_call.id.clone(),
@@ -184,7 +205,6 @@ impl ToolExecutor {
                     error: Some(Self::format_user_friendly_error(&tool_call.tool_name, &error_msg)),
                 };
             }
-        };
 
         // Get session for ScriptService
         let session = match state.session_manager.lock().await.get_session_by_id(*session_id) {
@@ -211,26 +231,27 @@ impl ToolExecutor {
             }
         };
 
-        // Execute in blocking thread for ScriptService (which is not async)
-        let bot_name_clone = bot_name.to_string();
-        let tool_name_clone = tool_call.tool_name.clone();
-        let tool_call_id_clone = tool_call.id.clone();
-        let arguments_clone = tool_call.arguments.clone();
-        let state_clone = state.clone();
-        let bot_id_clone = bot_id;
+            // Execute in blocking thread for ScriptService (which is not async)
+            let bot_name_clone = bot_name.to_string();
+            let tool_name_clone = tool_call.tool_name.clone();
+            let tool_call_id_clone = tool_call.id.clone();
+            let arguments_clone = tool_call.arguments.clone();
+            let state_clone = state.clone();
+            let bot_id_clone = bot_id;
 
-        let execution_result = tokio::task::spawn_blocking(move || {
-            Self::execute_tool_script(
-                &state_clone,
-                &bot_name_clone,
-                bot_id_clone,
-                &session,
-                &bas_script,
-                &tool_name_clone,
-                &arguments_clone,
-            )
-        })
-        .await;
+            let execution_result = tokio::task::spawn_blocking(move || {
+                Self::execute_tool_script(
+                    &state_clone,
+                    &bot_name_clone,
+                    bot_id_clone,
+                    &session,
+                    &script_content,
+                    &tool_name_clone,
+                    &arguments_clone,
+                    is_preprocessed,
+                )
+            })
+            .await;
 
         match execution_result {
             Ok(result) => result,
@@ -253,9 +274,10 @@ impl ToolExecutor {
         bot_name: &str,
         bot_id: Uuid,
         session: &crate::core::shared::models::UserSession,
-        bas_script: &str,
+        script_content: &str,
         tool_name: &str,
         arguments: &Value,
+        is_preprocessed: bool,
     ) -> ToolExecutionResult {
         let tool_call_id = format!("tool_{}", uuid::Uuid::new_v4());
 
@@ -282,8 +304,14 @@ impl ToolExecutor {
             }
         }
 
-        // Compile tool script (filters PARAM/DESCRIPTION lines and converts BASIC to Rhai)
-        let ast = match script_service.compile_tool_script(bas_script) {
+        // Compile: use compile_preprocessed for .ast files, compile_tool_script for .bas
+        let ast = if is_preprocessed {
+            script_service.compile_preprocessed(script_content)
+        } else {
+            script_service.compile_tool_script(script_content)
+        };
+
+        let ast = match ast {
             Ok(ast) => ast,
             Err(e) => {
                 let error_msg = format!("Compilation error: {}", e);
