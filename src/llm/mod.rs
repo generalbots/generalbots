@@ -456,13 +456,16 @@ impl LLMProvider for OpenAIClient {
             let chunk_str = String::from_utf8_lossy(&chunk);
             for line in chunk_str.lines() {
                 if line.starts_with("data: ") && !line.contains("[DONE]") {
-                    if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
-                        if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
-                            let processed = handler.process_content(content);
-                            if !processed.is_empty() {
-                                let _ = tx.send(processed).await;
-                            }
+if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
+                    // Handle content (standard) or reasoning_content (NVIDIA reasoning models)
+                    let content = data["choices"][0]["delta"]["content"].as_str()
+                        .or_else(|| data["choices"][0]["delta"]["reasoning_content"].as_str());
+                    if let Some(content) = content {
+                        let processed = handler.process_content(content);
+                        if !processed.is_empty() {
+                            let _ = tx.send(processed).await;
                         }
+                    }
 
                         // Handle standard OpenAI tool_calls
                         if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
