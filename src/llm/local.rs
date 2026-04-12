@@ -1,4 +1,5 @@
 use crate::core::config::ConfigManager;
+use crate::core::kb::embedding_generator::set_embedding_server_ready;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::security::command_guard::SafeCommand;
 use crate::core::shared::models::schema::bots::dsl::*;
@@ -157,6 +158,9 @@ pub async fn ensure_llama_servers_running(
     };
     if llm_running && embedding_running {
         info!("Both LLM and Embedding servers are already running");
+        if !embedding_model.is_empty() {
+            set_embedding_server_ready(true);
+        }
         return Ok(());
     }
     let mut tasks = vec![];
