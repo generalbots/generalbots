@@ -70,8 +70,10 @@ pub fn add_suggestion_keyword(
     let cache = state.cache.clone();
     let cache2 = state.cache.clone();
     let cache3 = state.cache.clone();
+    let cache4 = state.cache.clone();
     let user_session2 = user_session.clone();
     let user_session3 = user_session.clone();
+    let user_session4 = user_session.clone();
 
     // ADD_SUGG_TOOL "tool_name" AS "button text" — single-token to avoid ADD conflicts
     engine
@@ -142,7 +144,7 @@ pub fn add_suggestion_keyword(
                 let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
                 let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                add_context_suggestion(cache3.as_ref(), &user_session3, &context_name, &button_text)?;
+                add_context_suggestion(cache4.as_ref(), &user_session4, &context_name, &button_text)?;
 
                 Ok(Dynamic::UNIT)
             },
