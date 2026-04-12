@@ -1282,16 +1282,6 @@ impl DriveMonitor {
                         .join(&gbkb_prefix)
                         .join(kb_name);
 
-                    let kb_indexing_disabled = false;
-
-                    if kb_indexing_disabled {
-                        debug!(
-                            "KB indexing disabled via DISABLE_KB_INDEXING, skipping {}",
-                            kb_folder_path.display()
-                        );
-                        continue;
-                    }
-
                     #[cfg(any(feature = "research", feature = "llm"))]
                     {
                         if !is_embedding_server_ready() {
@@ -1300,6 +1290,39 @@ impl DriveMonitor {
 
                         // Create a unique key for this KB folder to track indexing state
                         let kb_key = format!("{}_{}", bot_name, kb_name);
+
+            // Check fail_count for this KB folder - implement backoff
+            {
+                let states = self.file_states.read().await;
+                let _kb_prefix = format!("{}/", gbkb_prefix);
+                
+                let max_fail_count = states.values()
+                    .map(|s| s.fail_count)
+                    .max()
+                    .unwrap_or(0);
+                
+                // Backoff: wait longer based on fail count
+                // fail_count 0: no wait, 1: 5min, 2: 15min, 3+: 1h
+                if max_fail_count > 0 {
+                    let wait_seconds = match max_fail_count {
+                        1 => 300,   // 5 min
+                        2 => 900,   // 15 min
+                        _ => 3600,  // 1 hour
+                    };
+                    
+                    if let Some(last_failed) = states.values()
+                        .filter_map(|s| s.last_failed_at)
+                        .max() 
+                    {
+                        let elapsed = chrono::Utc::now() - last_failed;
+                        if elapsed.num_seconds() < wait_seconds {
+                            trace!("[DRIVE_MONITOR] KB folder {} in backoff (fail_count={}, elapsed={}s < {}s), skipping", 
+                                kb_key, max_fail_count, elapsed.num_seconds(), wait_seconds);
+                            continue;
+                        }
+                    }
+                }
+            }
 
             // Check if this KB folder is already being indexed
             {
