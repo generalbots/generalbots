@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS kb_documents (
     first_published_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     indexed_at TIMESTAMPTZ,
+    fail_count INT NOT NULL DEFAULT 0,
+    last_failed_at TIMESTAMPTZ,
     metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -21,6 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_kb_documents_bot_id ON kb_documents(bot_id);
 CREATE INDEX IF NOT EXISTS idx_kb_documents_collection ON kb_documents(collection_name);
 CREATE INDEX IF NOT EXISTS idx_kb_documents_hash ON kb_documents(file_hash);
 CREATE INDEX IF NOT EXISTS idx_kb_documents_indexed_at ON kb_documents(indexed_at);
+CREATE INDEX IF NOT EXISTS idx_kb_documents_fail ON kb_documents(bot_id, collection_name, fail_count) WHERE fail_count > 0;
 
 -- Knowledge Base Collections
 CREATE TABLE IF NOT EXISTS kb_collections (

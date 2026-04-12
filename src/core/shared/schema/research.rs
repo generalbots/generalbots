@@ -12,6 +12,8 @@ diesel::table! {
         first_published_at -> Timestamptz,
         last_modified_at -> Timestamptz,
         indexed_at -> Nullable<Timestamptz>,
+        fail_count -> Int4,
+        last_failed_at -> Nullable<Timestamptz>,
         metadata -> Nullable<Jsonb>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
@@ -171,3 +173,17 @@ diesel::joinable!(research_findings -> research_projects (project_id));
 diesel::joinable!(research_citations -> research_sources (source_id));
 diesel::joinable!(research_collaborators -> research_projects (project_id));
 diesel::joinable!(research_exports -> research_projects (project_id));
+
+diesel::allow_tables_to_appear_in_same_query!(
+    kb_documents,
+    kb_collections,
+    kb_group_associations,
+    user_kb_associations,
+    research_projects,
+    research_sources,
+    research_notes,
+    research_findings,
+    research_citations,
+    research_collaborators,
+    research_exports,
+);
