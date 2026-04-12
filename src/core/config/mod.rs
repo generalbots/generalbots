@@ -502,9 +502,11 @@ impl ConfigManager {
             return Ok(0);
         } else {
             let first_line = lines[0].trim().to_lowercase();
-            // Skip if first line looks like a header (contains "key" or is just "key,value")
+            // Skip if first line looks like a header
             if first_line == "key,value" 
+                || first_line == "name,value"
                 || first_line.starts_with("key,")
+                || first_line.starts_with("name,")
                 || first_line.contains("header")
             {
                 1
