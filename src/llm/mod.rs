@@ -11,6 +11,7 @@ pub mod episodic_memory;
 pub mod glm;
 pub mod hallucination_detector;
 pub mod llm_models;
+#[cfg(feature = "llm")]
 pub mod local;
 pub mod observability;
 pub mod rate_limiter;
