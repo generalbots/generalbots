@@ -618,82 +618,88 @@ impl BotOrchestrator {
                 true // If no cache, try to execute
             };
 
-            if should_execute_start_bas {
-                // Execute start.bas from work directory
-                let work_path = crate::core::shared::utils::get_work_path();
-                let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", work_path, bot_name_for_context, bot_name_for_context);
+        if should_execute_start_bas {
+            // Execute start.bas from work directory
+            let work_path = crate::core::shared::utils::get_work_path();
+            let start_script_path = format!("{}/{}.gbai/{}.gbdialog/start.bas", work_path, bot_name_for_context, bot_name_for_context);
 
-                trace!("Executing start.bas for session {} at: {}", actual_session_id, start_script_path);
+            trace!("Executing start.bas for session {} at: {}", actual_session_id, start_script_path);
 
-                // Use pre-compiled .ast if available (avoids recompilation)
-                let ast_path = start_script_path.replace(".bas", ".ast");
-                let script_content = if std::path::Path::new(&ast_path).exists() {
-                    tokio::fs::read_to_string(&ast_path).await.unwrap_or_default()
-                } else {
-                    tokio::fs::read_to_string(&start_script_path).await.unwrap_or_default()
-                };
+            // Use pre-compiled .ast if available (avoids preprocessing)
+            let ast_path = start_script_path.replace(".bas", ".ast");
+            let (script_content, is_preprocessed) = if std::path::Path::new(&ast_path).exists() {
+                (tokio::fs::read_to_string(&ast_path).await.unwrap_or_default(), true)
+            } else {
+                (tokio::fs::read_to_string(&start_script_path).await.unwrap_or_default(), false)
+            };
 
-                if !script_content.is_empty() {
-                    let state_clone = self.state.clone();
-                    let actual_session_id_for_task = session.id;
-                    let bot_id_clone = session.bot_id;
+            if !script_content.is_empty() {
+                let state_clone = self.state.clone();
+                let actual_session_id_for_task = session.id;
+                let bot_id_clone = session.bot_id;
 
-                    // Execute start.bas synchronously (blocking)
-                    let result = tokio::task::spawn_blocking(move || {
-                        let session_result = {
-                            let mut sm = state_clone.session_manager.blocking_lock();
-                            sm.get_session_by_id(actual_session_id_for_task)
-                        };
+                // Execute start.bas synchronously (blocking)
+                let result = tokio::task::spawn_blocking(move || {
+                    let session_result = {
+                        let mut sm = state_clone.session_manager.blocking_lock();
+                        sm.get_session_by_id(actual_session_id_for_task)
+                    };
 
-                        let sess = match session_result {
-                            Ok(Some(s)) => s,
-                            Ok(None) => {
-                                return Err(format!("Session {} not found during start.bas execution", actual_session_id_for_task));
-                            }
-                            Err(e) => return Err(format!("Failed to get session: {}", e)),
-                        };
-
-                        let mut script_service = crate::basic::ScriptService::new(
-                            state_clone.clone(),
-                            sess
-                        );
-                        script_service.load_bot_config_params(&state_clone, bot_id_clone);
-
-                        match script_service.compile(&script_content) {
-                            Ok(ast) => match script_service.run(&ast) {
-                                Ok(_) => Ok(()),
-                                Err(e) => Err(format!("Script execution error: {}", e)),
-                            },
-                            Err(e) => Err(format!("Script compilation error: {}", e)),
+                    let sess = match session_result {
+                        Ok(Some(s)) => s,
+                        Ok(None) => {
+                            return Err(format!("Session {} not found during start.bas execution", actual_session_id_for_task));
                         }
-                    }).await;
+                        Err(e) => return Err(format!("Failed to get session: {}", e)),
+                    };
 
-                            match result {
-                                Ok(Ok(())) => {
-                                    trace!("start.bas completed successfully for session {}", actual_session_id);
+                    let mut script_service = crate::basic::ScriptService::new(
+                        state_clone.clone(),
+                        sess
+                    );
+                    script_service.load_bot_config_params(&state_clone, bot_id_clone);
 
-                                    // Mark start.bas as executed for this session to prevent re-running
-                                    if let Some(cache) = &self.state.cache {
-                                        if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-                                            let _: Result<(), redis::RedisError> = redis::cmd("SET")
-                                                .arg(&start_bas_key)
-                                                .arg("1")
-                                                .arg("EX")
-                                                .arg("86400") // Expire after 24 hours
-                                                .query_async(&mut conn)
-                                                .await;
-                                        }
-                                    }
-                                }
-                                Ok(Err(e)) => {
-                                    error!("start.bas error for session {}: {}", actual_session_id, e);
-                                }
+                    let compile_result = if is_preprocessed {
+                        script_service.compile_preprocessed(&script_content)
+                    } else {
+                        script_service.compile(&script_content)
+                    };
+
+                    match compile_result {
+                        Ok(ast) => match script_service.run(&ast) {
+                            Ok(_) => Ok(()),
+                            Err(e) => Err(format!("Script execution error: {}", e)),
+                        },
+                        Err(e) => Err(format!("Script compilation error: {}", e)),
+                    }
+                }).await;
+
+                match result {
+                    Ok(Ok(())) => {
+                        trace!("start.bas completed successfully for session {}", actual_session_id);
+
+                        // Mark start.bas as executed for this session to prevent re-running
+                        if let Some(cache) = &self.state.cache {
+                            if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+                                let _: Result<(), redis::RedisError> = redis::cmd("SET")
+                                    .arg(&start_bas_key)
+                                    .arg("1")
+                                    .arg("EX")
+                                    .arg("86400") // Expire after 24 hours
+                                    .query_async(&mut conn)
+                                    .await;
+                            }
+                        }
+                    }
+                    Ok(Err(e)) => {
+                        error!("start.bas error for session {}: {}", actual_session_id, e);
+                    }
                     Err(e) => {
                         error!("start.bas task error for session {}: {}", actual_session_id, e);
                     }
                 }
-                }
-            } // End of if should_execute_start_bas
+            }
+        } // End of if should_execute_start_bas
 
             // If message content is empty, we stop here after potentially running start.bas.
             // This happens when the bot is activated by its name in WhatsApp, where an empty string is sent as a signal.
@@ -1408,25 +1414,25 @@ async fn handle_websocket(
 
                 info!("Looking for start.bas at: {}", start_script_path);
 
-                // Check for pre-compiled .ast file first (avoids recompilation overhead)
-                let ast_path = start_script_path.replace(".bas", ".ast");
-                let (script_content, _using_ast) = if tokio::fs::metadata(&ast_path).await.is_ok() {
-                    if let Ok(content) = tokio::fs::read_to_string(&ast_path).await {
-                        info!("Using pre-compiled start.ast for {}", bot_name);
-                        (content, true)
-                    } else {
-                        (String::new(), false)
-                    }
-                } else if tokio::fs::metadata(&start_script_path).await.is_ok() {
-                    if let Ok(content) = tokio::fs::read_to_string(&start_script_path).await {
-                        info!("Compiling start.bas for {}", bot_name);
-                        (content, false)
-                    } else {
-                        (String::new(), false)
-                    }
+            // Check for pre-compiled .ast file first (avoids preprocessing overhead)
+            let ast_path = start_script_path.replace(".bas", ".ast");
+            let (script_content, is_preprocessed) = if tokio::fs::metadata(&ast_path).await.is_ok() {
+                if let Ok(content) = tokio::fs::read_to_string(&ast_path).await {
+                    info!("Using pre-compiled start.ast for {}", bot_name);
+                    (content, true)
                 } else {
                     (String::new(), false)
-                };
+                }
+            } else if tokio::fs::metadata(&start_script_path).await.is_ok() {
+                if let Ok(content) = tokio::fs::read_to_string(&start_script_path).await {
+                    info!("Compiling start.bas for {}", bot_name);
+                    (content, false)
+                } else {
+                    (String::new(), false)
+                }
+            } else {
+                (String::new(), false)
+            };
 
                 if !script_content.is_empty() {
                     info!(
@@ -1434,12 +1440,13 @@ async fn handle_websocket(
                         bot_name, session_id
                     );
 
-                    let state_for_start = state.clone();
-                    let tx_for_start = tx.clone();
-                    let bot_id_str = bot_id.to_string();
-                    let session_id_str = session_id.to_string();
-                    let mut send_ready_rx = send_ready_rx;
+            let state_for_start = state.clone();
+            let tx_for_start = tx.clone();
+            let bot_id_str = bot_id.to_string();
+            let session_id_str = session_id.to_string();
+            let mut send_ready_rx = send_ready_rx;
             let script_content_owned = script_content.clone();
+            let is_preprocessed_owned = is_preprocessed;
 
                     tokio::spawn(async move {
                         let _ = send_ready_rx.recv().await;
@@ -1468,22 +1475,28 @@ async fn handle_websocket(
                             // Clone state_for_start for use in Redis SET after execution
                             let state_for_redis = state_for_start.clone();
 
-                            let result = tokio::task::spawn_blocking(move || {
-                                info!("start.bas: Creating ScriptService with session.id={}", session.id);
-                                let mut script_service = crate::basic::ScriptService::new(
-                                    state_for_start.clone(),
-                                    session.clone()
-                                );
-                                script_service.load_bot_config_params(&state_for_start, bot_id);
+            let result = tokio::task::spawn_blocking(move || {
+                info!("start.bas: Creating ScriptService with session.id={}", session.id);
+                let mut script_service = crate::basic::ScriptService::new(
+                    state_for_start.clone(),
+                    session.clone()
+                );
+                script_service.load_bot_config_params(&state_for_start, bot_id);
 
-                                match script_service.compile(&script_content_owned) {
-                                    Ok(ast) => match script_service.run(&ast) {
-                                        Ok(_) => Ok(()),
-                                        Err(e) => Err(format!("Script execution error: {}", e)),
-                                    },
-                                    Err(e) => Err(format!("Script compilation error: {}", e)),
-                                }
-                            }).await;
+                let compile_result = if is_preprocessed_owned {
+                    script_service.compile_preprocessed(&script_content_owned)
+                } else {
+                    script_service.compile(&script_content_owned)
+                };
+
+                match compile_result {
+                    Ok(ast) => match script_service.run(&ast) {
+                        Ok(_) => Ok(()),
+                        Err(e) => Err(format!("Script execution error: {}", e)),
+                    },
+                    Err(e) => Err(format!("Script compilation error: {}", e)),
+                }
+            }).await;
 
                                 match result {
                                     Ok(Ok(())) => {

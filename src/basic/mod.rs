@@ -580,6 +580,15 @@ impl ScriptService {
         }
     }
 
+    /// Compile preprocessed script content (from .ast file) - skips preprocessing
+    pub fn compile_preprocessed(&self, script: &str) -> Result<rhai::AST, Box<EvalAltResult>> {
+        trace!("Compiling preprocessed script directly");
+        match self.engine.compile(script) {
+            Ok(ast) => Ok(ast),
+            Err(parse_error) => Err(Box::new(parse_error.into())),
+        }
+    }
+
     /// Compile a tool script (.bas file with PARAM/DESCRIPTION metadata lines)
     /// Filters out tool metadata before compiling
     pub fn compile_tool_script(&self, script: &str) -> Result<rhai::AST, Box<EvalAltResult>> {
