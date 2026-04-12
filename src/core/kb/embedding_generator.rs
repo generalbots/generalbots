@@ -326,12 +326,27 @@ impl KbEmbeddingGenerator {
         }
     }
 
+    fn extract_base_url(url: &str) -> String {
+        if let Ok(parsed) = url::Url::parse(url) {
+            format!(
+                "{}://{}{}",
+                parsed.scheme(),
+                parsed.host_str().unwrap_or("localhost"),
+                parsed.port().map(|p| format!(":{}", p)).unwrap_or_default()
+            )
+        } else {
+            url.to_string()
+        }
+    }
+
     pub async fn check_health(&self) -> bool {
-        // Strategy: try /health endpoint first.
+        // Strategy: try /health endpoint on BASE URL first.
         // - 200 OK → local server with health endpoint, ready
         // - 404/405 etc → server is reachable but has no /health (remote API or llama.cpp)
         // - Connection refused/timeout → server truly unavailable
-        let health_url = format!("{}/health", self.config.embedding_url);
+        // Extract base URL (scheme://host:port) from embedding URL for health check
+        let base_url = Self::extract_base_url(&self.config.embedding_url);
+        let health_url = format!("{}/health", base_url);
 
         match tokio::time::timeout(
             Duration::from_secs(self.config.connect_timeout_seconds),
@@ -343,26 +358,26 @@ impl KbEmbeddingGenerator {
                     info!("Embedding server health check passed ({})", self.config.embedding_url);
                     set_embedding_server_ready(true);
                     true
-                } else if status.as_u16() == 404 || status.as_u16() == 405 {
-                    // Server is reachable but has no /health endpoint (remote API, llama.cpp /embedding-only)
-                    // Try a HEAD request to the embedding URL itself to confirm it's up
-                    info!("No /health endpoint at {} (status {}), probing base URL", self.config.embedding_url, status);
-                    match tokio::time::timeout(
-                        Duration::from_secs(self.config.connect_timeout_seconds),
-                        self.client.head(&self.config.embedding_url).send()
-                    ).await {
-                        Ok(Ok(_)) => {
-                            info!("Embedding server reachable at {}, marking as ready", self.config.embedding_url);
+            } else if status.as_u16() == 404 || status.as_u16() == 405 {
+                // Server is reachable but has no /health endpoint (remote API, llama.cpp /embedding-only)
+                // Try a HEAD request to the base URL to confirm it's up
+                info!("No /health endpoint at {} (status {}), probing base URL", base_url, status);
+                match tokio::time::timeout(
+                    Duration::from_secs(self.config.connect_timeout_seconds),
+                    self.client.head(&base_url).send()
+                ).await {
+                    Ok(Ok(_)) => {
+                        info!("Embedding server reachable at {}, marking as ready", base_url);
                             set_embedding_server_ready(true);
                             true
                         }
-                        Ok(Err(e)) => {
-                            warn!("Embedding server unreachable at {}: {}", self.config.embedding_url, e);
+                    Ok(Err(e)) => {
+                        warn!("Embedding server unreachable at {}: {}", base_url, e);
                             set_embedding_server_ready(false);
                             false
                         }
-                        Err(_) => {
-                            warn!("Embedding server probe timed out for {}", self.config.embedding_url);
+                    Err(_) => {
+                        warn!("Embedding server probe timed out for {}", base_url);
                             set_embedding_server_ready(false);
                             false
                         }
