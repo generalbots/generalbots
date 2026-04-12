@@ -1,6 +1,6 @@
 USE_WEBSITE("https://salesianos.br", "30d")
 
-USE KB "carta"
+USE KB "cartas"
 USE KB "proc"
 
 
