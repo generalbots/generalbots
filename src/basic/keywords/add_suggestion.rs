@@ -69,17 +69,15 @@ pub fn add_suggestion_keyword(
 ) {
     // Each closure needs its own Arc<redis::Client> and UserSession clone
     let cache = state.cache.clone();
-    let cache2 = state.cache.clone();
     let cache3 = state.cache.clone();
     let cache4 = state.cache.clone();
-    let user_session2 = user_session.clone();
     let user_session3 = user_session.clone();
     let user_session4 = user_session.clone();
 
-    // ADD_SUGG_TOOL "tool_name" AS "button text" — single-token to avoid ADD conflicts
+    // ADD_SUGGESTION_TOOL "tool_name" AS "button text"
     engine
         .register_custom_syntax(
-            ["ADD_SUGG_TOOL", "$expr$", "AS", "$expr$"],
+            ["ADD_SUGGESTION_TOOL", "$expr$", "AS", "$expr$"],
             true,
             move |context, inputs| {
                 let tool_name = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -98,32 +96,10 @@ pub fn add_suggestion_keyword(
         )
         .expect("valid syntax registration");
 
-    // ADD_SUGGESTION_TOOL — legacy alias, same handler
+    // ADD_SUGGESTION_TEXT "text_value" AS "button text"
     engine
         .register_custom_syntax(
-            ["ADD_SUGGESTION_TOOL", "$expr$", "AS", "$expr$"],
-            true,
-            move |context, inputs| {
-                let tool_name = context.eval_expression_tree(&inputs[0])?.to_string();
-                let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
-
-                add_tool_suggestion(
-                    cache2.as_ref(),
-                    &user_session2,
-                    &tool_name,
-                    None,
-                    &button_text,
-                )?;
-
-                Ok(Dynamic::UNIT)
-            },
-        )
-        .expect("valid syntax registration");
-
-    // ADD_SUGG_TEXT "text_value" AS "button text" — single-token
-    engine
-        .register_custom_syntax(
-            ["ADD_SUGG_TEXT", "$expr$", "AS", "$expr$"],
+            ["ADD_SUGGESTION_TEXT", "$expr$", "AS", "$expr$"],
             true,
             move |context, inputs| {
                 let text_value = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -136,16 +112,21 @@ pub fn add_suggestion_keyword(
         )
         .expect("valid syntax registration");
 
-    // ADD_SUGG "context_name" AS "button text" — single-token
+    // ADD_SUGGESTION "context_name" AS "button text"
     engine
         .register_custom_syntax(
-            ["ADD_SUGG", "$expr$", "AS", "$expr$"],
+            ["ADD_SUGGESTION", "$expr$", "AS", "$expr$"],
             true,
             move |context, inputs| {
                 let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
                 let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                add_context_suggestion(cache4.as_ref(), &user_session4, &context_name, &button_text)?;
+                add_context_suggestion(
+                    cache4.as_ref(),
+                    &user_session4,
+                    &context_name,
+                    &button_text,
+                )?;
 
                 Ok(Dynamic::UNIT)
             },
