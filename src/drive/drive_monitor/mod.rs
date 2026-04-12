@@ -291,8 +291,31 @@ impl DriveMonitor {
             {
                 debug!("[DRIVE_MONITOR] Inside monitoring loop for bot {}", self_clone.bot_id);
                 debug!("[DRIVE_MONITOR] Periodic check starting for bot {}", self_clone.bot_id);
-                // Use fixed 10 second interval instead of backoff calculation
-                tokio::time::sleep(Duration::from_secs(10)).await;
+                
+                // Smart sleep based on fail_count - prevent excessive retries
+                {
+                    let states = self_clone.file_states.read().await;
+                    let max_fail_count = states.values()
+                        .map(|s| s.fail_count)
+                        .max()
+                        .unwrap_or(0);
+                    
+                    let base_sleep = if max_fail_count >= 3 {
+                        3600 // 1 hour for fail_count >= 3
+                    } else if max_fail_count >= 2 {
+                        900  // 15 min for fail_count >= 2
+                    } else if max_fail_count >= 1 {
+                        300  // 5 min for fail_count >= 1
+                    } else {
+                        10   // 10 sec default
+                    };
+                    
+                    if base_sleep > 10 {
+                        debug!("[DRIVE_MONITOR] Sleep {}s based on fail_count={}", base_sleep, max_fail_count);
+                    }
+                    
+                    tokio::time::sleep(Duration::from_secs(base_sleep)).await;
+                }
 
                 debug!("[DRIVE_MONITOR] Checking drive health for bot {}", self_clone.bot_id);
                 // Skip drive health check - just proceed with monitoring
