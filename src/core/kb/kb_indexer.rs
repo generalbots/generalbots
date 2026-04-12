@@ -941,7 +941,7 @@ impl KbFolderMonitor {
         Self { indexer, work_root }
     }
 
-    pub async fn process_gbkb_folder(&self, bot_id: Uuid, bot_name: &str, kb_folder: &Path) -> Result<()> {
+    pub async fn process_gbkb_folder(&self, bot_id: Uuid, bot_name: &str, kb_folder: &Path) -> Result<IndexingResult> {
         let kb_name = kb_folder
             .file_name()
             .and_then(|n| n.to_str())
@@ -965,6 +965,6 @@ impl KbFolderMonitor {
             result.documents_processed, result.chunks_indexed, result.collection_name
         );
 
-        Ok(())
+        Ok(result)
     }
 }

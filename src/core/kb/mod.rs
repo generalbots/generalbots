@@ -9,11 +9,12 @@ pub use document_processor::{DocumentFormat, DocumentProcessor, TextChunk};
 pub use embedding_generator::{
     EmailEmbeddingGenerator, EmbeddingConfig, EmbeddingGenerator, KbEmbeddingGenerator,
 };
-pub use kb_indexer::{CollectionInfo, KbFolderMonitor, KbIndexer, QdrantConfig, SearchResult};
+pub use kb_indexer::{CollectionInfo, IndexingResult, KbFolderMonitor, KbIndexer, QdrantConfig, SearchResult};
 pub use web_crawler::{WebCrawler, WebPage, WebsiteCrawlConfig};
 pub use website_crawler_service::{ensure_crawler_service_running, WebsiteCrawlerService};
 
 use anyhow::Result;
+use diesel::prelude::*;
 use log::{error, info, warn};
 use std::path::Path;
 use std::sync::Arc;
@@ -172,7 +173,50 @@ impl KnowledgeBaseManager {
         );
 
         let monitor = self.monitor.read().await;
-        monitor.process_gbkb_folder(bot_id, bot_name, kb_folder).await
+        let result = monitor.process_gbkb_folder(bot_id, bot_name, kb_folder).await?;
+
+        let kb_name = kb_folder
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown");
+        let collection_name = result.collection_name.clone();
+        let folder_path = kb_folder.to_string_lossy().to_string();
+        let doc_count = result.documents_processed;
+
+        if let Some(pool) = self.indexer.get_db_pool() {
+            if let Ok(mut conn) = pool.get() {
+                diesel::sql_query(
+                    "INSERT INTO kb_collections (id, bot_id, name, folder_path, qdrant_collection, document_count)
+                     VALUES ($1, $2, $3, $4, $5, $6)
+                     ON CONFLICT (bot_id, name) DO UPDATE SET
+                        folder_path = EXCLUDED.folder_path,
+                        qdrant_collection = EXCLUDED.qdrant_collection,
+                        document_count = EXCLUDED.document_count,
+                        updated_at = NOW()"
+                )
+                .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                .bind::<diesel::sql_types::Text, _>(kb_name)
+                .bind::<diesel::sql_types::Text, _>(&folder_path)
+                .bind::<diesel::sql_types::Text, _>(&collection_name)
+                .bind::<diesel::sql_types::Integer, _>(doc_count as i32)
+                .execute(&mut conn)
+                .map_err(|e| {
+                    error!("Failed to upsert kb_collections for {}/{}: {}", bot_name, kb_name, e);
+                    e
+                })?;
+                info!(
+                    "Upserted kb_collections: bot={}/{}, kb={}, collection={}, docs={}",
+                    bot_name, bot_id, kb_name, collection_name, doc_count
+                );
+            } else {
+                warn!("No DB connection available to upsert kb_collections for {}/{}", bot_name, kb_name);
+            }
+        } else {
+            warn!("No DB pool available to upsert kb_collections for {}/{}", bot_name, kb_name);
+        }
+
+        Ok(())
     }
 
     pub async fn clear_kb(&self, bot_id: Uuid, bot_name: &str, kb_name: &str) -> Result<()> {
