@@ -1294,31 +1294,40 @@ impl DriveMonitor {
             // Check fail_count for this KB folder - implement backoff
             {
                 let states = self.file_states.read().await;
-                let _kb_prefix = format!("{}/", gbkb_prefix);
+                let kb_folder_pattern = format!("{}/", kb_name);
                 
-                let max_fail_count = states.values()
-                    .map(|s| s.fail_count)
-                    .max()
-                    .unwrap_or(0);
+                // Filter only files in this KB folder
+                let kb_states: Vec<_> = states.iter()
+                    .filter(|(path, _)| path.contains(&kb_folder_pattern))
+                    .collect();
                 
-                // Backoff: wait longer based on fail count
-                // fail_count 0: no wait, 1: 5min, 2: 15min, 3+: 1h
-                if max_fail_count > 0 {
-                    let wait_seconds = match max_fail_count {
-                        1 => 300,   // 5 min
-                        2 => 900,   // 15 min
-                        _ => 3600,  // 1 hour
-                    };
+                if kb_states.is_empty() {
+                    // No files in file_states yet for this KB - proceed with indexing
+                } else {
+                    let max_fail_count = kb_states.iter()
+                        .map(|(_, s)| s.fail_count)
+                        .max()
+                        .unwrap_or(0);
                     
-                    if let Some(last_failed) = states.values()
-                        .filter_map(|s| s.last_failed_at)
-                        .max() 
-                    {
-                        let elapsed = chrono::Utc::now() - last_failed;
-                        if elapsed.num_seconds() < wait_seconds {
-                            trace!("[DRIVE_MONITOR] KB folder {} in backoff (fail_count={}, elapsed={}s < {}s), skipping", 
-                                kb_key, max_fail_count, elapsed.num_seconds(), wait_seconds);
-                            continue;
+                    // Backoff: wait longer based on fail count
+                    // fail_count 0: no wait, 1: 5min, 2: 15min, 3+: 1h
+                    if max_fail_count > 0 {
+                        let wait_seconds = match max_fail_count {
+                            1 => 300,   // 5 min
+                            2 => 900,   // 15 min
+                            _ => 3600,  // 1 hour
+                        };
+                        
+                        if let Some(last_failed) = kb_states.iter()
+                            .filter_map(|(_, s)| s.last_failed_at)
+                            .max() 
+                        {
+                            let elapsed = chrono::Utc::now() - last_failed;
+                            if elapsed.num_seconds() < wait_seconds {
+                                trace!("[DRIVE_MONITOR] KB folder {} in backoff (fail_count={}, elapsed={}s < {}s), skipping", 
+                                    kb_key, max_fail_count, elapsed.num_seconds(), wait_seconds);
+                                continue;
+                            }
                         }
                     }
                 }
