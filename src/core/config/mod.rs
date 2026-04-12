@@ -496,12 +496,35 @@ impl ConfigManager {
             .execute(&mut conn)
             .map_err(|e| format!("Failed to delete existing config: {}", e))?;
 
+        // Detect if first line is a header (has "key,value" or similar) or actual config data
+        let lines: Vec<&str> = content.lines().collect();
+        let start_idx = if lines.is_empty() {
+            return Ok(0);
+        } else {
+            let first_line = lines[0].trim().to_lowercase();
+            // Skip if first line looks like a header (contains "key" or is just "key,value")
+            if first_line == "key,value" 
+                || first_line.starts_with("key,")
+                || first_line.contains("header")
+            {
+                1
+            } else {
+                0
+            }
+        };
+
         let mut updated = 0;
-        for line in content.lines().skip(1) {
+        for line in lines.iter().skip(start_idx) {
             let parts: Vec<&str> = line.splitn(2, ',').collect();
             if parts.len() >= 2 {
                 let key = parts[0].trim();
                 let value = parts[1].trim();
+                
+                // Skip empty keys or lines that don't look like valid config
+                if key.is_empty() {
+                    continue;
+                }
+                
                 let new_id: uuid::Uuid = uuid::Uuid::new_v4();
                 diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string')")
  .bind::<diesel::sql_types::Uuid, _>(new_id)

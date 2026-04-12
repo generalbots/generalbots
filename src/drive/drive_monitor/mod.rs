@@ -1586,12 +1586,6 @@ impl DriveMonitor {
             .cloned()
             .collect();
 
-        for file_path in files_to_process {
-            if let Err(e) = self.download_gbkb_file(client, &file_path).await {
-                log::error!("Failed to download .gbkb file {}: {}", file_path, e);
-            }
-        }
-
         if files_processed > 0 {
             trace!(
                 "Processed {} .gbkb files (including {} PDFs for text extraction)",
@@ -1620,9 +1614,9 @@ impl DriveMonitor {
             }
         });
 
-    for path in paths_to_remove {
-        trace!("Detected deletion in .gbkb: {}", path);
-        file_states.remove(&path);
+        for path in paths_to_remove {
+            trace!("Detected deletion in .gbkb: {}", path);
+            file_states.remove(&path);
 
         // Delete the downloaded file from disk
         let bot_name = self
