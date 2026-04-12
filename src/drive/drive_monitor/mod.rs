@@ -772,20 +772,30 @@ impl DriveMonitor {
                 }
 
                 debug!("check_gbot: Found config.csv at path: {}", path);
-                match client
-                    .head_object()
-                    .bucket(&self.bucket_name)
-                    .key(&path)
-                    .send()
-                    .await
-                {
-                    Ok(_head_res) => {
-                        let response = client
-                            .get_object()
-                            .bucket(&self.bucket_name)
-                            .key(&path)
-                            .send()
-                            .await?;
+                let etag = obj.e_tag().unwrap_or_default().to_string();
+                let config_state_key = format!("__config__{}", path);
+                let should_sync = {
+                    let states = self.file_states.read().await;
+                    match states.get(&config_state_key) {
+                        Some(prev) => prev.etag != etag,
+                        None => true,
+                    }
+                };
+                if should_sync {
+                    match client
+                        .head_object()
+                        .bucket(&self.bucket_name)
+                        .key(&path)
+                        .send()
+                        .await
+                    {
+                        Ok(_head_res) => {
+                            let response = client
+                                .get_object()
+                                .bucket(&self.bucket_name)
+                                .key(&path)
+                                .send()
+                                .await?;
                         let bytes = response.body.collect().await?.into_bytes();
                         let csv_content = String::from_utf8(bytes.to_vec())
                             .map_err(|e| format!("UTF-8 error in {}: {}", path, e))?;
@@ -902,6 +912,19 @@ impl DriveMonitor {
                             self.broadcast_theme_change(&csv_content).await?;
                         }
 
+                        // Update file_states with config.csv ETag
+                        let mut states = self.file_states.write().await;
+                        states.insert(config_state_key, FileState { etag, indexed: false, last_failed_at: None, fail_count: 0 });
+                        drop(states);
+                        let file_states_clone = Arc::clone(&self.file_states);
+                        let work_root_clone = self.work_root.clone();
+                        let bucket_name_clone = self.bucket_name.clone();
+                        tokio::spawn(async move {
+                            if let Err(e) = Self::save_file_states_static(&file_states_clone, &work_root_clone, &bucket_name_clone).await {
+                                warn!("Failed to save file states after config update: {}", e);
+                            }
+                        });
+
                         // Check for system-prompt-file and download it
                         let prompt_file_line = csv_content
                             .lines()
@@ -949,6 +972,7 @@ impl DriveMonitor {
                     Err(e) => {
                         log::error!("Config file {} not found or inaccessible: {}", path, e);
                     }
+                }
                 }
             }
             if !list_objects.is_truncated.unwrap_or(false) {
