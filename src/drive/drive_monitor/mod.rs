@@ -567,15 +567,19 @@ impl DriveMonitor {
         }
         for (path, new_state) in current_files {
             let mut state = new_state;
-            if path.ends_with(".bas") {
-                state.indexed = true;
-            }
+            let is_bas_file = path.ends_with(".bas");
+            
+            // Only mark as indexed if file was actually compiled successfully
+            // Default to false, will only be true if compilation completed without errors
+            state.indexed = false;
+            
             // Preserve fail_count and last_failed_at for existing files that weren't modified
             if let Some(prev_state) = file_states.get(&path) {
                 if prev_state.etag == state.etag {
-                    // File wasn't modified - preserve fail_count and last_failed_at
+                    // File wasn't modified - preserve fail_count, last_failed_at AND indexed status
                     state.fail_count = prev_state.fail_count;
                     state.last_failed_at = prev_state.last_failed_at;
+                    state.indexed = prev_state.indexed;
                 }
             }
             file_states.insert(path, state);
@@ -1020,6 +1024,15 @@ impl DriveMonitor {
         .await??;
 
         info!("Successfully compiled {} in {} ms", tool_name, elapsed_ms);
+
+        // Mark file as successfully indexed
+        let mut file_states = self.file_states.write().await;
+        if let Some(state) = file_states.get_mut(file_path) {
+            state.indexed = true;
+            state.fail_count = 0;
+            state.last_failed_at = None;
+        }
+        drop(file_states);
 
         // Check for USE WEBSITE commands and trigger immediate crawling
         if source_content.contains("USE WEBSITE") {
