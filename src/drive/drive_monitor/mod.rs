@@ -1096,8 +1096,8 @@ let file_state = FileState {
                             if parts.len() >= 2 {
                                 let prompt_filename = parts[1].trim();
                                 if !prompt_filename.is_empty() {
-                                    // Get prompt file from MinIO
-                                    let prompt_key = format!("salesianos.gbot/{}", prompt_filename);
+                                    let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
+                                    let prompt_key = format!("{}.gbot/{}", bot_name, prompt_filename);
                                     if let Ok(prompt_response) = client
                                         .get_object()
                                         .bucket(&self.bucket_name)
@@ -1110,7 +1110,6 @@ let file_state = FileState {
                     .map_err(|_e| format!("UTF-8 error in {}", prompt_filename))?;
 
                 // Save to work directory
-                let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
                 let gbot_dir = self.work_root.join(format!("{}.gbai/{}.gbot", bot_name, bot_name));
 
                 if let Err(e) = tokio::task::spawn_blocking({
