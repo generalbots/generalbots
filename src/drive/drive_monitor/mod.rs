@@ -55,6 +55,7 @@ pub struct DriveMonitor {
     kb_manager: Arc<KnowledgeBaseManager>,
     work_root: PathBuf,
     is_processing: Arc<AtomicBool>,
+    scanning: Arc<AtomicBool>,
     consecutive_failures: Arc<AtomicU32>,
     #[cfg(any(feature = "research", feature = "llm"))]
     files_being_indexed: Arc<TokioRwLock<HashSet<String>>>,
@@ -89,6 +90,7 @@ impl DriveMonitor {
             kb_manager,
             work_root,
             is_processing: Arc::new(AtomicBool::new(false)),
+            scanning: Arc::new(AtomicBool::new(false)),
             consecutive_failures: Arc::new(AtomicU32::new(0)),
             #[cfg(any(feature = "research", feature = "llm"))]
             files_being_indexed: Arc::new(TokioRwLock::new(HashSet::new())),
@@ -1457,6 +1459,16 @@ etag: normalize_etag(obj.e_tag().unwrap_or_default()),
         &self,
         client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        // Prevent concurrent scans - if already scanning, skip this tick
+        if self
+            .scanning
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            trace!("[GBKB] Scan already in progress for bot {}, skipping", self.bot_id);
+            return Ok(());
+        }
+        
         debug!("[GBKB] check_gbkb_changes ENTER for bot {} (prefix: {})", self.bot_id, self.bucket_name);
         let bot_name = self
             .bucket_name
@@ -1796,6 +1808,7 @@ let file_state = FileState {
 
         debug!("[GBKB] check_gbkb_changes EXIT for bot {}", self.bot_id);
         trace!("check_gbkb_changes EXIT");
+        self.scanning.store(false, Ordering::Release);
         Ok(())
     }
 
