@@ -339,11 +339,47 @@ impl ToolExecutor {
         user_id: &Uuid,
     ) -> ToolExecutionResult {
         let tool_call_id = format!("direct_{}", Uuid::new_v4());
-        
+
         info!(
             "[TOOL_EXEC] Direct tool invocation: '{}' for bot '{}', session '{}'",
             tool_name, bot_name, session_id
         );
+
+        // Ensure websocket_session_id and channel are set on the session so TALK can route correctly
+        {
+            let mut sm = state.session_manager.lock().await;
+            if let Ok(Some(sess)) = sm.get_session_by_id(*session_id) {
+                let needs_update = if let serde_json::Value::Object(ref map) = sess.context_data {
+                    !map.contains_key("websocket_session_id") || !map.contains_key("channel")
+                } else {
+                    true
+                };
+                if needs_update {
+                    let mut updated = sess.clone();
+                    if let serde_json::Value::Object(ref mut map) = updated.context_data {
+                        if !map.contains_key("websocket_session_id") {
+                            map.insert(
+                                "websocket_session_id".to_string(),
+                                serde_json::Value::String(session_id.to_string()),
+                            );
+                        }
+                        if !map.contains_key("channel") {
+                            map.insert(
+                                "channel".to_string(),
+                                serde_json::Value::String("web".to_string()),
+                            );
+                        }
+                    } else {
+                        let mut map = serde_json::Map::new();
+                        map.insert("websocket_session_id".to_string(), serde_json::Value::String(session_id.to_string()));
+                        map.insert("channel".to_string(), serde_json::Value::String("web".to_string()));
+                        updated.context_data = serde_json::Value::Object(map);
+                    }
+                    let context_json = serde_json::to_string(&updated.context_data).unwrap_or_default();
+                    let _ = sm.update_session_context(session_id, user_id, context_json);
+                }
+            }
+        }
 
         let tool_call = ParsedToolCall {
             id: tool_call_id.clone(),
