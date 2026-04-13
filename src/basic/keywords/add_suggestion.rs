@@ -162,31 +162,24 @@ fn add_context_suggestion(
             }
         };
 
-        let result: Result<i64, redis::RedisError> = redis::cmd("RPUSH")
+        let _: Result<i64, redis::RedisError> = redis::cmd("SADD")
             .arg(&redis_key)
             .arg(suggestion.to_string())
             .query(&mut conn);
 
-        match result {
-            Ok(length) => {
-                trace!(
-                    "Added context suggestion '{}' to session {}, total: {}",
-                    context_name,
-                    user_session.id,
-                    length
-                );
+        trace!(
+            "Added context suggestion '{}' to session {}",
+            context_name,
+            user_session.id
+        );
 
-                let active_key =
-                    format!("active_context:{}:{}", user_session.bot_id, user_session.id);
+        let active_key = format!("active_context:{}:{}", user_session.bot_id, user_session.id);
 
-                let _: Result<i64, redis::RedisError> = redis::cmd("HSET")
-                    .arg(&active_key)
-                    .arg(context_name)
-                    .arg("inactive")
-                    .query(&mut conn);
-            }
-            Err(e) => error!("Failed to add suggestion to Redis: {}", e),
-        }
+        let _: Result<i64, redis::RedisError> = redis::cmd("HSET")
+            .arg(&active_key)
+            .arg(context_name)
+            .arg("inactive")
+            .query(&mut conn);
     } else {
         trace!("No cache configured, suggestion not added");
     }
@@ -221,22 +214,16 @@ fn add_text_suggestion(
             }
         };
 
-        let result: Result<i64, redis::RedisError> = redis::cmd("RPUSH")
+        let _: Result<i64, redis::RedisError> = redis::cmd("SADD")
             .arg(&redis_key)
             .arg(suggestion.to_string())
             .query(&mut conn);
 
-        match result {
-            Ok(length) => {
-                trace!(
-                    "Added text suggestion '{}' to session {}, total: {}",
-                    text_value,
-                    user_session.id,
-                    length
-                );
-            }
-            Err(e) => error!("Failed to add text suggestion to Redis: {}", e),
-        }
+        trace!(
+            "Added text suggestion '{}' to session {}",
+            text_value,
+            user_session.id
+        );
     } else {
         trace!("No cache configured, text suggestion not added");
     }
@@ -282,20 +269,15 @@ fn add_tool_suggestion(
             }
         };
 
-        let result: Result<i64, redis::RedisError> = redis::cmd("RPUSH")
+        let _: Result<i64, redis::RedisError> = redis::cmd("SADD")
             .arg(&redis_key)
             .arg(suggestion.to_string())
             .query(&mut conn);
 
-        match result {
-            Ok(length) => {
-                info!(
-                    "Added tool suggestion '{}' to session {}, total: {}",
-                    tool_name, user_session.id, length
-                );
-            }
-            Err(e) => error!("Failed to add tool suggestion to Redis: {}", e),
-        }
+        info!(
+            "Added tool suggestion '{}' to session {}",
+            tool_name, user_session.id
+        );
     } else {
         trace!("No cache configured, tool suggestion not added");
     }
@@ -324,12 +306,9 @@ pub fn get_suggestions(
             }
         };
 
-        // Get all suggestions from the Redis list
-        let result: Result<Vec<String>, redis::RedisError> = redis::cmd("LRANGE")
-            .arg(&redis_key)
-            .arg(0)
-            .arg(-1)
-            .query(&mut conn);
+        // Get all suggestions from the Redis set (deduplicated)
+        let result: Result<Vec<String>, redis::RedisError> =
+            redis::cmd("SMEMBERS").arg(&redis_key).query(&mut conn);
 
         match result {
             Ok(items) => {
@@ -354,19 +333,6 @@ pub fn get_suggestions(
                     suggestions.len(),
                     session_id
                 );
-
-                // DO NOT clear suggestions from Redis - keep them persistent for the session
-                // TODO: This may cause suggestions to appear multiple times, need better solution
-                // if !suggestions.is_empty() {
-                //     let _: Result<i64, redis::RedisError> = redis::cmd("DEL")
-                //         .arg(&redis_key)
-                //         .query(&mut conn);
-                //     info!(
-                //         "Cleared {} suggestions from Redis for session {}",
-                //         suggestions.len(),
-                //         session_id
-                //     );
-                // }
             }
             Err(e) => error!("Failed to get suggestions from Redis: {}", e),
         }
