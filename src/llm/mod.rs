@@ -461,12 +461,14 @@ impl LLMProvider for OpenAIClient {
             let chunk_str = String::from_utf8_lossy(&chunk);
             for line in chunk_str.lines() {
                 if line.starts_with("data: ") && !line.contains("[DONE]") {
-                    if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
-                        let content = data["choices"][0]["delta"]["content"].as_str();
-                        let reasoning = data["choices"][0]["delta"]["reasoning_content"].as_str();
+            if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
+                let content = data["choices"][0]["delta"]["content"].as_str();
+                // Handle both reasoning_content (GLM4.7) and reasoning (Kimi K2.5)
+                let reasoning = data["choices"][0]["delta"]["reasoning_content"].as_str()
+                    .or_else(|| data["choices"][0]["delta"]["reasoning"].as_str());
 
-                        // Detect reasoning phase (GLM4.7, Kimi K2.5)
-                        if reasoning.is_some() && content.is_none() {
+                // Detect reasoning phase (GLM4.7, Kimi K2.5)
+                if reasoning.is_some() && content.is_none() {
                             if !in_reasoning {
                                 trace!("[LLM] Entering reasoning/thinking mode");
                                 in_reasoning = true;
