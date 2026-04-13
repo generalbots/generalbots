@@ -37,6 +37,8 @@ pub struct FileState {
     pub last_failed_at: Option<DateTime<Utc>>,
     #[serde(default)]
     pub fail_count: u32,
+    #[serde(default)]
+    pub last_modified: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -680,13 +682,14 @@ impl DriveMonitor {
                 if path.ends_with('/') || !path.to_ascii_lowercase().ends_with(".bas") {
                     continue;
                 }
-            let file_state = FileState {
+let file_state = FileState {
                 etag: obj.e_tag().unwrap_or_default().to_string(),
                 indexed: false,
                 last_failed_at: None,
                 fail_count: 0,
+                last_modified: obj.last_modified().map(|dt| dt.to_string()),
             };
-                current_files.insert(path, file_state);
+                 current_files.insert(path, file_state);
             }
             if !list_objects.is_truncated.unwrap_or(false) {
                 break;
@@ -904,7 +907,7 @@ impl DriveMonitor {
                             }
                         }
                         let mut states = self.file_states.write().await;
-                        states.insert(prompt_state_key, FileState { etag, indexed: false, last_failed_at: None, fail_count: 0 });
+                        states.insert(prompt_state_key, FileState { etag, indexed: false, last_failed_at: None, fail_count: 0, last_modified: None });
                         drop(states);
                         let file_states_clone = Arc::clone(&self.file_states);
                         let work_root_clone = self.work_root.clone();
@@ -922,14 +925,24 @@ impl DriveMonitor {
 
                 debug!("check_gbot: Found config.csv at path: {}", path);
                 let etag = obj.e_tag().unwrap_or_default().to_string();
+                let last_modified = obj.last_modified().map(|dt| dt.to_string());
                 let config_state_key = format!("__config__{}", path);
                 let should_sync = {
                     let states = self.file_states.read().await;
                     match states.get(&config_state_key) {
-                        Some(prev) => prev.etag != etag,
+                        Some(prev) => {
+                            let etag_changed = prev.etag != etag;
+                            let mod_changed = match (&prev.last_modified, &last_modified) {
+                                (Some(prev_dt), Some(new_dt)) => prev_dt != new_dt,
+                                (None, Some(_)) => true,
+                                _ => false,
+                            };
+                            etag_changed || mod_changed
+                        }
                         None => true,
                     }
                 };
+                debug!("check_gbot: config.csv should_sync={} (etag={}, last_modified={:?})", should_sync, etag, last_modified);
                 if should_sync {
                     match client
                         .head_object()
@@ -1061,9 +1074,9 @@ impl DriveMonitor {
                             self.broadcast_theme_change(&csv_content).await?;
                         }
 
-                        // Update file_states with config.csv ETag
+                        // Update file_states with config.csv ETag and last_modified
                         let mut states = self.file_states.write().await;
-                        states.insert(config_state_key, FileState { etag, indexed: false, last_failed_at: None, fail_count: 0 });
+                        states.insert(config_state_key, FileState { etag, indexed: false, last_failed_at: None, fail_count: 0, last_modified });
                         drop(states);
                         let file_states_clone = Arc::clone(&self.file_states);
                         let work_root_clone = self.work_root.clone();
@@ -1487,13 +1500,14 @@ impl DriveMonitor {
                     continue;
                 }
 
-            let file_state = FileState {
+let file_state = FileState {
                 etag: obj.e_tag().unwrap_or_default().to_string(),
                 indexed: false,
                 last_failed_at: None,
                 fail_count: 0,
+                last_modified: obj.last_modified().map(|dt| dt.to_string()),
             };
-                current_files.insert(path.clone(), file_state);
+                 current_files.insert(path.clone(), file_state);
             }
 
             if !list_objects.is_truncated.unwrap_or(false) {
