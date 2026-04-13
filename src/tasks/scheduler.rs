@@ -335,9 +335,13 @@ impl TaskScheduler {
         let registry = self.task_registry.clone();
         let running_tasks = self.running_tasks.clone();
 
+        log::info!("[BASIC_EXEC] Scheduled task '{}' starting execution (task_id={}, type={})", task.name, task_id, task.task_type);
+
         let handle = tokio::spawn(async move {
             let execution_id = Uuid::new_v4();
             let started_at = Utc::now();
+
+            log::trace!("[BASIC_EXEC] Task '{}' execution_id={}, started_at={}", task.name, execution_id, started_at);
 
             let _execution = TaskExecution {
                 id: execution_id,

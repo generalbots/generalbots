@@ -254,6 +254,7 @@ pub async fn handle_webhook(
         Err(err) => return err.0,
     };
 
+    log::info!("[BASIC_EXEC] WhatsApp webhook received for bot_id={}", bot_id);
     debug!("Raw webhook body: {}", String::from_utf8_lossy(&body));
 
     let payload: WhatsAppWebhook = match serde_json::from_slice(&body) {

@@ -316,14 +316,12 @@ impl LLMProvider for GLMClient {
                                         }
                                     }
 
-                                    // GLM-4.7 on NVIDIA sends text via reasoning_content when thinking is enabled
-                                    // content may be null; we accept both fields
-                                    let content = delta.get("content").and_then(|c| c.as_str())
-                                        .or_else(|| delta.get("reasoning_content").and_then(|c| c.as_str()));
-
-                                    if let Some(text) = content {
-                                        if !text.is_empty() {
-                                            match tx.send(text.to_string()).await {
+                                    // GLM-4.7 on NVIDIA sends thinking text via reasoning_content
+                                    // The actual user-facing response is in content field
+                                    // We ONLY send content — never reasoning_content (internal thinking)
+                                    if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
+                                        if !content.is_empty() {
+                                            match tx.send(content.to_string()).await {
                                                 Ok(_) => {},
                                                 Err(e) => {
                                                     error!("Failed to send to channel: {}", e);
