@@ -83,6 +83,9 @@ jobs:
         working-directory: /opt/gbo/data/botserver
         run: |
           sccache --start-server 2>/dev/null || true
+          BOTSERVER_BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          export BOTSERVER_BUILD_DATE
+          echo "Build date: $BOTSERVER_BUILD_DATE"
           cargo build -p botserver  -j 8 2>&1 | tee /tmp/build.log
           sccache --show-stats
           ls -lh target/debug/botserver
