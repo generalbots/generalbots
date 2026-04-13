@@ -665,9 +665,11 @@ impl DriveMonitor {
     async fn check_gbot(&self, client: &Client) -> Result<(), Box<dyn Error + Send + Sync>> {
         trace!("check_gbot ENTER");
         let config_manager = ConfigManager::new(self.state.conn.clone());
+        let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
+        let gbot_prefix = format!("{}.gbot/", bot_name);
         debug!(
-            "check_gbot: Checking bucket {} for config.csv changes",
-            self.bucket_name
+            "check_gbot: Checking bucket {} for config.csv changes (prefix: {})",
+            self.bucket_name, gbot_prefix
         );
         let mut continuation_token = None;
         loop {
@@ -676,6 +678,7 @@ impl DriveMonitor {
                 client
                     .list_objects_v2()
                     .bucket(self.bucket_name.to_lowercase())
+                    .prefix(&gbot_prefix)
                     .set_continuation_token(continuation_token)
                     .send(),
             )
@@ -698,14 +701,11 @@ impl DriveMonitor {
                 let path = obj.key().unwrap_or_default().to_string();
                 let path_lower = path.to_ascii_lowercase();
 
-                let is_config_csv = path_lower == "config.csv"
-                    || path_lower.ends_with("/config.csv")
-                    || path_lower.contains(".gbot/config.csv");
+                let is_config_csv = path_lower.ends_with("/config.csv")
+                    || path_lower == "config.csv";
 
                 let is_prompt_file = path_lower.ends_with("prompt.md")
-                    || path_lower.ends_with("prompt.txt")
-                    || path_lower.ends_with("PROMPT.MD")
-                    || path_lower.ends_with("PROMPT.TXT");
+                    || path_lower.ends_with("prompt.txt");
 
                 debug!("check_gbot: Checking path: {} (is_config_csv: {}, is_prompt: {})", path, is_config_csv, is_prompt_file);
 
