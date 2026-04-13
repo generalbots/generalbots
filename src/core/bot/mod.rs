@@ -1128,7 +1128,7 @@ impl BotOrchestrator {
                     user_id: message.user_id.clone(),
                     session_id: message.session_id.clone(),
                     channel: message.channel.clone(),
-                    content: chunk,
+                    content: chunk.clone(),
                     message_type: MessageType::BOT_RESPONSE,
                     stream_token: None,
                     is_complete: false,
@@ -1144,6 +1144,16 @@ impl BotOrchestrator {
                 }
             }
         }
+
+        // DEBUG: Log LLM output for troubleshooting HTML rendering issues
+        let has_html = full_response.contains("</") || full_response.contains("<!--");
+        let preview = if full_response.len() > 500 {
+            format!("{}... ({} chars total)", &full_response[..500], full_response.len())
+        } else {
+            full_response.clone()
+        };
+        info!("[LLM_OUTPUT] session={} has_html={} preview=\"{}\"", 
+            session_id, has_html, preview.replace('\n', "\\n"));
 
         trace!("LLM stream complete. Full response: {}", full_response);
 
