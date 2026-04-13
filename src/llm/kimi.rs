@@ -7,12 +7,11 @@ use tokio::sync::mpsc;
 
 use super::LLMProvider;
 
-// GLM / z.ai API Client
-// Similar to OpenAI but with different endpoint structure
-// For z.ai, base URL already contains version (e.g., /v4), endpoint is just /chat/completions
+// Kimi K2.5 (moonshotai) API Client
+// NVIDIA endpoint with special chat_template_kwargs for thinking mode
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMMessage {
+pub struct KimiMessage {
     pub role: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
@@ -21,9 +20,9 @@ pub struct GLMMessage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMRequest {
+pub struct KimiRequest {
     pub model: String,
-    pub messages: Vec<GLMMessage>,
+    pub messages: Vec<KimiMessage>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -36,45 +35,38 @@ pub struct GLMRequest {
     pub tools: Option<Vec<Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<Value>,
-    #[serde(rename = "extra_body", skip_serializing_if = "Option::is_none")]
-    pub extra_body: Option<GLMExtraBody>,
+    #[serde(rename = "chat_template_kwargs", skip_serializing_if = "Option::is_none")]
+    pub chat_template_kwargs: Option<KimiChatTemplateKwargs>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMExtraBody {
-    #[serde(rename = "chat_template_kwargs")]
-    pub chat_template_kwargs: GLMChatTemplateKwargs,
+pub struct KimiChatTemplateKwargs {
+    pub thinking: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMChatTemplateKwargs {
-    pub enable_thinking: bool,
-    pub clear_thinking: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMResponseChoice {
+pub struct KimiResponseChoice {
     #[serde(default)]
     pub index: u32,
-    pub message: GLMMessage,
+    pub message: KimiMessage,
     #[serde(default)]
     pub finish_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMResponse {
+pub struct KimiResponse {
     pub id: String,
     pub object: String,
     pub created: u64,
     pub model: String,
-    pub choices: Vec<GLMResponseChoice>,
+    pub choices: Vec<KimiResponseChoice>,
     #[serde(default)]
     pub usage: Option<Value>,
 }
 
 // Streaming structures
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct GLMStreamDelta {
+pub struct KimiStreamDelta {
     #[serde(default)]
     pub content: Option<String>,
     #[serde(default)]
@@ -86,33 +78,33 @@ pub struct GLMStreamDelta {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMStreamChoice {
+pub struct KimiStreamChoice {
     #[serde(default)]
     pub index: u32,
     #[serde(default)]
-    pub delta: GLMStreamDelta,
+    pub delta: KimiStreamDelta,
     #[serde(default)]
     pub finish_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMStreamChunk {
+pub struct KimiStreamChunk {
     pub id: String,
     pub object: String,
     pub created: u64,
     pub model: String,
-    pub choices: Vec<GLMStreamChoice>,
+    pub choices: Vec<KimiStreamChoice>,
     #[serde(default)]
     pub usage: Option<Value>,
 }
 
 #[derive(Debug)]
-pub struct GLMClient {
+pub struct KimiClient {
     client: reqwest::Client,
     base_url: String,
 }
 
-impl GLMClient {
+impl KimiClient {
     pub fn new(base_url: String) -> Self {
         let base = base_url.trim_end_matches('/').to_string();
 
@@ -130,7 +122,6 @@ impl GLMClient {
         }
     }
 
-    /// Sanitizes a string by removing invalid UTF-8 surrogate characters
     fn sanitize_utf8(input: &str) -> String {
         input.chars()
             .filter(|c| {
@@ -142,7 +133,7 @@ impl GLMClient {
 }
 
 #[async_trait]
-impl LLMProvider for GLMClient {
+impl LLMProvider for KimiClient {
     async fn generate(
         &self,
         prompt: &str,
@@ -150,20 +141,19 @@ impl LLMProvider for GLMClient {
         model: &str,
         key: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let messages = vec![GLMMessage {
+        let messages = vec![KimiMessage {
             role: "user".to_string(),
             content: Some(prompt.to_string()),
             tool_calls: None,
         }];
 
-        // NVIDIA API uses z-ai/glm4.7 as the model identifier
-        let model_name = if model == "glm-4" || model == "glm-4.7" {
-            "z-ai/glm4.7"
+        let model_name = if model == "kimi-k2.5" || model == "kimi-k2" {
+            "moonshotai/kimi-k2.5"
         } else {
             model
         };
 
-        let request = GLMRequest {
+        let request = KimiRequest {
             model: model_name.to_string(),
             messages,
             stream: Some(false),
@@ -172,34 +162,32 @@ impl LLMProvider for GLMClient {
             top_p: Some(1.0),
             tools: None,
             tool_choice: None,
-            extra_body: Some(GLMExtraBody {
-                chat_template_kwargs: GLMChatTemplateKwargs {
-                    enable_thinking: true,
-                    clear_thinking: false,
-                },
+            chat_template_kwargs: Some(KimiChatTemplateKwargs {
+                thinking: true,
             }),
         };
 
         let url = self.build_url();
-        info!("GLM non-streaming request to: {}", url);
+        info!("Kimi non-streaming request to: {}", url);
 
         let response = self
             .client
             .post(&url)
             .header("Authorization", format!("Bearer {}", key))
             .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
             .json(&request)
             .send()
             .await?;
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("GLM API error: {}", error_text);
-            return Err(format!("GLM API error: {}", error_text).into());
+            error!("Kimi API error: {}", error_text);
+            return Err(format!("Kimi API error: {}", error_text).into());
         }
 
-        let glm_response: GLMResponse = response.json().await?;
-        let content = glm_response
+        let kimi_response: KimiResponse = response.json().await?;
+        let content = kimi_response
             .choices
             .first()
             .and_then(|c| c.message.content.clone())
@@ -217,16 +205,13 @@ impl LLMProvider for GLMClient {
         key: &str,
         tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // config IS the messages array directly, not nested
         let messages = if let Some(msgs) = config.as_array() {
-            // Convert messages from config format to GLM format
             msgs.iter()
                 .filter_map(|m| {
                     let role = m.get("role")?.as_str()?;
                     let content = m.get("content")?.as_str()?;
                     let sanitized = Self::sanitize_utf8(content);
-                    // NVIDIA API accepts empty content, don't filter them out
-                    Some(GLMMessage {
+                    Some(KimiMessage {
                         role: role.to_string(),
                         content: Some(sanitized),
                         tool_calls: None,
@@ -234,35 +219,30 @@ impl LLMProvider for GLMClient {
                 })
                 .collect::<Vec<_>>()
         } else {
-            // Fallback to building from prompt
-            vec![GLMMessage {
+            vec![KimiMessage {
                 role: "user".to_string(),
                 content: Some(Self::sanitize_utf8(prompt)),
                 tool_calls: None,
             }]
         };
 
-        // If no messages, return error
         if messages.is_empty() {
             return Err("No valid messages in request".into());
         }
 
-        // NVIDIA API uses z-ai/glm4.7 as the model identifier
-        // GLM-4.7 supports standard OpenAI-compatible function calling
-        let model_name = if model == "glm-4" || model == "glm-4.7" {
-            "z-ai/glm4.7"
+        let model_name = if model == "kimi-k2.5" || model == "kimi-k2" {
+            "moonshotai/kimi-k2.5"
         } else {
             model
         };
 
-        // Set tool_choice to "auto" when tools are present - this tells GLM to automatically decide when to call a tool
         let tool_choice = if tools.is_some() {
             Some(serde_json::json!("auto"))
         } else {
             None
         };
 
-        let request = GLMRequest {
+        let request = KimiRequest {
             model: model_name.to_string(),
             messages,
             stream: Some(true),
@@ -271,30 +251,28 @@ impl LLMProvider for GLMClient {
             top_p: Some(1.0),
             tools: tools.cloned(),
             tool_choice,
-            extra_body: Some(GLMExtraBody {
-                chat_template_kwargs: GLMChatTemplateKwargs {
-                    enable_thinking: true,
-                    clear_thinking: false,
-                },
+            chat_template_kwargs: Some(KimiChatTemplateKwargs {
+                thinking: true,
             }),
         };
 
         let url = self.build_url();
-        info!("GLM streaming request to: {}", url);
+        info!("Kimi streaming request to: {}", url);
 
         let response = self
             .client
             .post(&url)
             .header("Authorization", format!("Bearer {}", key))
             .header("Content-Type", "application/json")
+            .header("Accept", "text/event-stream")
             .json(&request)
             .send()
             .await?;
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("GLM streaming error: {}", error_text);
-            return Err(format!("GLM streaming error: {}", error_text).into());
+            error!("Kimi streaming error: {}", error_text);
+            return Err(format!("Kimi streaming error: {}", error_text).into());
         }
 
         let mut stream = response.bytes_stream();
@@ -306,7 +284,6 @@ impl LLMProvider for GLMClient {
             buffer.extend_from_slice(&chunk);
             let data = String::from_utf8_lossy(&buffer);
 
-            // Process SSE lines
             for line in data.lines() {
                 let line = line.trim();
 
@@ -315,7 +292,7 @@ impl LLMProvider for GLMClient {
                 }
 
                 if line == "data: [DONE]" {
-                    std::mem::drop(tx.send(String::new())); // Signal end
+                    std::mem::drop(tx.send(String::new()));
                     return Ok(());
                 }
 
@@ -325,44 +302,31 @@ impl LLMProvider for GLMClient {
                         if let Some(choices) = chunk_data.get("choices").and_then(|c| c.as_array()) {
                             for choice in choices {
                                 if let Some(delta) = choice.get("delta") {
-                                    // Handle tool_calls (GLM-4.7 standard function calling)
                                     if let Some(tool_calls) = delta.get("tool_calls").and_then(|t| t.as_array()) {
                                         for tool_call in tool_calls {
-                                            // Send tool_calls as JSON for the calling code to process
                                             let tool_call_json = serde_json::json!({
                                                 "type": "tool_call",
                                                 "content": tool_call
                                             }).to_string();
-                                            match tx.send(tool_call_json).await {
-                                                Ok(_) => {},
-                                                Err(e) => {
-                                                    error!("Failed to send tool_call to channel: {}", e);
-                                                }
-                                            }
+                                            let _ = tx.send(tool_call_json).await;
                                         }
                                     }
 
-                                    // GLM-4.7 on NVIDIA sends text via reasoning_content when thinking is enabled
+                                    // Kimi K2.5 sends text via reasoning_content (thinking mode)
                                     // content may be null; we accept both fields
-                                    let content = delta.get("content").and_then(|c| c.as_str())
+                                    let text = delta.get("content").and_then(|c| c.as_str())
                                         .or_else(|| delta.get("reasoning_content").and_then(|c| c.as_str()));
 
-                                    if let Some(text) = content {
+                                    if let Some(text) = text {
                                         if !text.is_empty() {
-                                            match tx.send(text.to_string()).await {
-                                                Ok(_) => {},
-                                                Err(e) => {
-                                                    error!("Failed to send to channel: {}", e);
-                                                }
-                                            }
+                                            let _ = tx.send(text.to_string()).await;
                                         }
                                     }
-                                } else {
-                                    // No delta in choice
                                 }
+
                                 if let Some(reason) = choice.get("finish_reason").and_then(|r| r.as_str()) {
                                     if !reason.is_empty() {
-                                        info!("GLM stream finished: {}", reason);
+                                        info!("Kimi stream finished: {}", reason);
                                         std::mem::drop(tx.send(String::new()));
                                         return Ok(());
                                     }
@@ -373,13 +337,12 @@ impl LLMProvider for GLMClient {
                 }
             }
 
-            // Keep unprocessed data in buffer
             if let Some(last_newline) = data.rfind('\n') {
                 buffer = buffer[last_newline + 1..].to_vec();
             }
         }
 
-        std::mem::drop(tx.send(String::new())); // Signal completion
+        std::mem::drop(tx.send(String::new()));
         Ok(())
     }
 
@@ -387,8 +350,7 @@ impl LLMProvider for GLMClient {
         &self,
         _session_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // GLM doesn't have job cancellation
-        info!("GLM cancel requested for session {} (no-op)", _session_id);
+        info!("Kimi cancel requested for session {} (no-op)", _session_id);
         Ok(())
     }
 }
