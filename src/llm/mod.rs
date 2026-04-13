@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{error, info};
+use log::{error, info, trace};
 use serde_json::Value;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -447,9 +447,14 @@ impl LLMProvider for OpenAIClient {
 
         let handler = get_handler(model);
         let mut stream = response.bytes_stream();
-        
+
         // Accumulate tool calls here because OpenAI streams them in fragments
         let mut active_tool_calls: Vec<serde_json::Value> = Vec::new();
+
+        // Track reasoning state for thinking indicator
+        let mut in_reasoning = false;
+        let mut has_sent_thinking = false;
+        let mut reasoning_buffer = String::new();
 
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result?;
@@ -457,15 +462,45 @@ impl LLMProvider for OpenAIClient {
             for line in chunk_str.lines() {
                 if line.starts_with("data: ") && !line.contains("[DONE]") {
                     if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
-                        // Handle reasoning models (GLM4.7, Kimi K2.5): content is null,
-                        // reasoning_content has the actual response
                         let content = data["choices"][0]["delta"]["content"].as_str();
                         let reasoning = data["choices"][0]["delta"]["reasoning_content"].as_str();
 
-                        // Prefer content field (normal models), fallback to reasoning_content
-                        let text_to_use = content.or(reasoning);
+                        // Detect reasoning phase (GLM4.7, Kimi K2.5)
+                        if reasoning.is_some() && content.is_none() {
+                            if !in_reasoning {
+                                trace!("[LLM] Entering reasoning/thinking mode");
+                                in_reasoning = true;
+                            }
+                            // Accumulate reasoning text but don't send to user
+                            if let Some(r) = reasoning {
+                                reasoning_buffer.push_str(r);
+                            }
+                            // Send thinking indicator only once
+                            if !has_sent_thinking {
+                                let thinking = serde_json::json!({
+                                    "type": "thinking",
+                                    "content": "🤔 Pensando..."
+                                }).to_string();
+                                let _ = tx.send(thinking).await;
+                                has_sent_thinking = true;
+                                trace!("[LLM] Sent thinking indicator");
+                            }
+                            continue; // Don't send reasoning content to user
+                        }
 
-                        if let Some(text) = text_to_use {
+                        // Exited reasoning mode - content is now real response
+                        if in_reasoning && content.is_some() {
+                            trace!("[LLM] Exited reasoning mode, {} chars of reasoning discarded", reasoning_buffer.len());
+                            in_reasoning = false;
+                            // Clear the thinking indicator
+                            let clear_thinking = serde_json::json!({
+                                "type": "thinking_clear",
+                                "content": ""
+                            }).to_string();
+                            let _ = tx.send(clear_thinking).await;
+                        }
+
+                        if let Some(text) = content {
                             let processed = handler.process_content(text);
                             if !processed.is_empty() {
                                 let _ = tx.send(processed).await;
