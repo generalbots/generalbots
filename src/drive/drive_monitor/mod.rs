@@ -113,6 +113,7 @@ impl DriveMonitor {
     /// Load file states from disk to avoid reprocessing unchanged files
     async fn load_file_states(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
         let path = self.file_state_path();
+        debug!("[DRIVE_MONITOR] Loading file states from {} for bot {}", path.display(), self.bot_id);
         if path.exists() {
             match tokio_fs::read_to_string(&path).await {
                 Ok(content) => {
@@ -121,7 +122,7 @@ impl DriveMonitor {
                             let mut file_states = self.file_states.write().await;
                             let count = states.len();
                             *file_states = states;
-                            trace!(
+                            info!(
                                 "[DRIVE_MONITOR] Loaded {} file states from disk for bot {}",
                                 count,
                                 self.bot_id

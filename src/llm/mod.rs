@@ -595,7 +595,7 @@ impl From<&str> for LLMProviderType {
             } else {
                 Self::Claude
             }
-        } else if lower.contains("z.ai") || lower.contains("glm") {
+        } else if lower.contains("z.ai") || lower.contains("glm") || lower.contains("nvidia") {
             Self::GLM
         } else if lower.contains("bedrock") {
             Self::Bedrock
