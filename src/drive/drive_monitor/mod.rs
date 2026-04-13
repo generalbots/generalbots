@@ -28,6 +28,10 @@ const INITIAL_BACKOFF_SECS: u64 = 30;
 const RETRY_BACKOFF_SECS: i64 = 3600;
 const MAX_FAIL_COUNT: u32 = 3;
 
+fn normalize_etag(etag: &str) -> String {
+    etag.trim_matches('"').to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileState {
     pub etag: String,
@@ -692,13 +696,13 @@ match result {
                     continue;
                 }
 let file_state = FileState {
-                etag: obj.e_tag().unwrap_or_default().to_string(),
+etag: normalize_etag(obj.e_tag().unwrap_or_default()),
                 indexed: false,
                 last_failed_at: None,
                 fail_count: 0,
                 last_modified: obj.last_modified().map(|dt| dt.to_string()),
             };
-                 current_files.insert(path, file_state);
+                  current_files.insert(path, file_state);
             }
             if !list_objects.is_truncated.unwrap_or(false) {
                 break;
@@ -876,7 +880,7 @@ let file_state = FileState {
 
                 if is_prompt_file {
                     // Check etag to avoid re-downloading unchanged prompt files
-                    let etag = obj.e_tag().unwrap_or_default().to_string();
+                    let etag = normalize_etag(obj.e_tag().unwrap_or_default());
                     let prompt_state_key = format!("__prompt__{}", path);
                     let should_download = {
                         let states = self.file_states.read().await;
@@ -933,7 +937,7 @@ let file_state = FileState {
                 }
 
                 debug!("check_gbot: Found config.csv at path: {}", path);
-                let etag = obj.e_tag().unwrap_or_default().to_string();
+                let etag = normalize_etag(obj.e_tag().unwrap_or_default());
                 let last_modified = obj.last_modified().map(|dt| dt.to_string());
                 let config_state_key = format!("__config__{}", path);
                 let should_sync = {
@@ -1509,13 +1513,13 @@ let file_state = FileState {
                 }
 
 let file_state = FileState {
-                etag: obj.e_tag().unwrap_or_default().to_string(),
+                etag: normalize_etag(obj.e_tag().unwrap_or_default()),
                 indexed: false,
                 last_failed_at: None,
                 fail_count: 0,
                 last_modified: obj.last_modified().map(|dt| dt.to_string()),
             };
-                 current_files.insert(path.clone(), file_state);
+                  current_files.insert(path.clone(), file_state);
             }
 
             if !list_objects.is_truncated.unwrap_or(false) {
@@ -1530,23 +1534,47 @@ let file_state = FileState {
 
         for (path, current_state) in current_files.iter() {
             let is_new = !file_states.contains_key(path);
-            let is_modified = file_states
-                .get(path)
-                .map(|prev| prev.etag != current_state.etag)
-                .unwrap_or(false);
+            
+            // Use last_modified as primary change detector (more stable than ETag)
+            // ETags can change due to metadata updates even when content is identical
+            let is_modified = if let Some(prev) = file_states.get(path) {
+                // If last_modified matches, content hasn't changed regardless of ETag
+                if prev.last_modified == current_state.last_modified {
+                    false
+                } else {
+                    // Different timestamp - use ETag to confirm content actually changed
+                    prev.etag != current_state.etag
+                }
+            } else {
+                false
+            };
 
             if is_new || is_modified {
                 debug!("[GBKB] New/modified file: {} (new={}, modified={})", path, is_new, is_modified);
 
                 #[cfg(any(feature = "research", feature = "llm"))]
                 {
+                    // Only remove from indexed_folders if KB is actually being re-indexed
+                    // Don't remove if already indexed in Qdrant (skip unnecessary re-queueing)
                     let path_parts: Vec<&str> = path.split('/').collect();
                     if path_parts.len() >= 2 {
                         let kb_name = path_parts[1];
                         let kb_key = format!("{}_{}", bot_name, kb_name);
-                        let mut indexed_folders = self.kb_indexed_folders.write().await;
-                        if indexed_folders.remove(&kb_key) {
-                            debug!("[GBKB] Removed {} from indexed set due to file change", kb_key);
+                        
+                        let already_indexed = {
+                            let indexed_folders = self.kb_indexed_folders.read().await;
+                            indexed_folders.contains(&kb_key)
+                        };
+                        
+                        // Only remove and re-queue if NOT already indexed
+                        // This prevents infinite reindexing loops when files haven't really changed
+                        if !already_indexed {
+                            let mut indexed_folders = self.kb_indexed_folders.write().await;
+                            if indexed_folders.remove(&kb_key) {
+                                debug!("[GBKB] Removed {} from indexed set due to file change", kb_key);
+                            }
+                        } else {
+                            trace!("[GBKB] KB {} already indexed, skipping re-queue", kb_key);
                         }
                     }
                 }
@@ -1655,8 +1683,13 @@ let file_state = FileState {
             );
         }
         for (path, mut state) in current_files {
+            // Preserve indexed status and fail history when file hasn't actually changed
+            // Use last_modified as the primary check (more stable than ETag)
             if let Some(previous) = file_states.get(&path) {
-                if state.etag == previous.etag {
+                let content_unchanged = previous.last_modified == state.last_modified
+                    || (previous.etag == state.etag && previous.last_modified.is_some() && state.last_modified.is_some());
+                
+                if content_unchanged {
                     state.indexed = previous.indexed;
                     state.fail_count = previous.fail_count;
                     state.last_failed_at = previous.last_failed_at;
