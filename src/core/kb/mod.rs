@@ -172,6 +172,41 @@ impl KnowledgeBaseManager {
             kb_folder.display()
         );
 
+        let kb_name = kb_folder
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown");
+
+        #[derive(diesel::QueryableByName)]
+        struct KbDocCount {
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Integer>)]
+            document_count: Option<i32>,
+        }
+
+        if let Some(pool) = self.indexer.get_db_pool() {
+            if let Ok(mut conn) = pool.get() {
+                let existing: Option<KbDocCount> = diesel::sql_query(
+                    "SELECT document_count FROM kb_collections WHERE bot_id = $1 AND name = $2"
+                )
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                .bind::<diesel::sql_types::Text, _>(kb_name)
+                .get_result(&mut conn)
+                .ok();
+
+                if let Some(row) = existing {
+                    if let Some(count) = row.document_count {
+                        if count > 0 {
+                            info!(
+                                "KB {} for bot {}/{} already indexed with {} docs, skipping re-index",
+                                kb_name, bot_name, bot_id, count
+                            );
+                            return Ok(());
+                        }
+                    }
+                }
+            }
+        }
+
         let monitor = self.monitor.read().await;
         let result = monitor.process_gbkb_folder(bot_id, bot_name, kb_folder).await?;
 
