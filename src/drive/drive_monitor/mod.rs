@@ -23,6 +23,19 @@ use tokio::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::fs as tokio_fs;
 
+#[cfg(any(feature = "research", feature = "llm"))]
+static LLM_STREAMING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(any(feature = "research", feature = "llm"))]
+pub fn set_llm_streaming(streaming: bool) {
+    LLM_STREAMING.store(streaming, Ordering::SeqCst);
+}
+
+#[cfg(any(feature = "research", feature = "llm"))]
+pub fn is_llm_streaming() -> bool {
+    LLM_STREAMING.load(Ordering::SeqCst)
+}
+
 const MAX_BACKOFF_SECS: u64 = 300;
 const INITIAL_BACKOFF_SECS: u64 = 30;
 const RETRY_BACKOFF_SECS: i64 = 3600;
@@ -1671,6 +1684,14 @@ let file_state = FileState {
                 files_to_process.push(path.clone());
                 files_processed += 1;
                 debug!("[GBKB] Queue size: {}/10", files_to_process.len());
+
+                // Skip downloads if LLM is actively streaming to prevent deadlock
+                #[cfg(any(feature = "research", feature = "llm"))]
+                if is_llm_streaming() {
+                    debug!("[GBKB] Skipping download - LLM is streaming, will retry later");
+                    files_to_process.clear();
+                    break;
+                }
 
                 if files_to_process.len() >= 10 {
                     debug!("[GBKB] Downloading batch of {} files", files_to_process.len());

@@ -10,7 +10,7 @@ use tool_executor::ToolExecutor;
 use crate::core::config::ConfigManager;
 
 #[cfg(feature = "drive")]
-use crate::drive::drive_monitor::DriveMonitor;
+use crate::drive::drive_monitor::{DriveMonitor, set_llm_streaming};
 #[cfg(feature = "llm")]
 use crate::llm::llm_models;
 #[cfg(feature = "llm")]
@@ -811,13 +811,20 @@ impl BotOrchestrator {
         // Clone messages for the async task
         let messages_clone = messages.clone();
 
+        // Set flag to prevent DriveMonitor PDF downloads during LLM streaming
+        #[cfg(feature = "drive")]
+        set_llm_streaming(true);
+
+        let stream_tx_clone = stream_tx.clone();
         tokio::spawn(async move {
             if let Err(e) = llm
-                .generate_stream("", &messages_clone, stream_tx, &model_clone, &key_clone, tools_for_llm.as_ref())
+                .generate_stream("", &messages_clone, stream_tx_clone, &model_clone, &key_clone, tools_for_llm.as_ref())
                 .await
             {
                 error!("LLM streaming error: {}", e);
             }
+            #[cfg(feature = "drive")]
+            set_llm_streaming(false);
         });
 
         let mut full_response = String::new();
@@ -1570,6 +1577,7 @@ let mut send_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
             match msg {
                 Message::Text(text) => {
+                    debug!("WebSocket received text: {}", text);
                     if let Ok(user_msg) = serde_json::from_str::<UserMessage>(&text) {
                         let orchestrator = BotOrchestrator::new(state_clone.clone());
                         if let Some(tx_clone) = state_clone
