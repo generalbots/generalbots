@@ -56,94 +56,47 @@ impl EmbeddingConfig {
         Self::default()
     }
 
-    /// Load embedding config from bot's config.csv (similar to llm-url, llm-model)
-    /// This allows configuring embedding server per-bot in config.csv:
-    /// embedding-url,
-    /// embedding-model,bge-small-en-v1.5
-    /// embedding-dimensions,384
-    /// embedding-batch-size,16
-    /// embedding-timeout,60
-    /// embedding-key,hf_xxxxx (for HuggingFace API)
     pub fn from_bot_config(pool: &DbPool, _bot_id: &uuid::Uuid) -> Self {
-        use crate::core::shared::models::schema::bot_configuration::dsl::*;
-        use diesel::prelude::*;
+        use crate::core::config::ConfigManager;
 
-        let embedding_url = match pool.get() {
-            Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(_bot_id))
-                .filter(config_key.eq("embedding-url"))
-                .select(config_value)
-                .first::<String>(&mut conn)
-                .ok()
-                .filter(|s| !s.is_empty()),
-            Err(_) => None,
-        }.unwrap_or_else(|| "".to_string());
+        let config_manager = ConfigManager::new(pool.clone());
 
-        let embedding_model = match pool.get() {
-            Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(_bot_id))
-                .filter(config_key.eq("embedding-model"))
-                .select(config_value)
-                .first::<String>(&mut conn)
-                .ok()
-                .filter(|s| !s.is_empty()),
-            Err(_) => None,
-        }.unwrap_or_else(|| "BAAI/bge-multilingual-gemma2".to_string());
+        let embedding_url = config_manager
+            .get_config(_bot_id, "embedding-url", Some(""))
+            .unwrap_or_default();
 
-        let embedding_key = match pool.get() {
-            Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(_bot_id))
-                .filter(config_key.eq("embedding-key"))
-                .select(config_value)
-                .first::<String>(&mut conn)
-                .ok()
-                .filter(|s| !s.is_empty()),
-            Err(_) => None,
-        };
+        let embedding_model = config_manager
+            .get_config(_bot_id, "embedding-model", Some("BAAI/bge-multilingual-gemma2"))
+            .unwrap_or_else(|_| "BAAI/bge-multilingual-gemma2".to_string());
 
-        let dimensions = match pool.get() {
-            Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(_bot_id))
-                .filter(config_key.eq("embedding-dimensions"))
-                .select(config_value)
-                .first::<String>(&mut conn)
-                .ok()
-                .and_then(|v| v.parse().ok()),
-            Err(_) => None,
-        }.unwrap_or_else(|| Self::detect_dimensions(&embedding_model));
+        let embedding_key = config_manager
+            .get_config(_bot_id, "embedding-key", Some(""))
+            .ok()
+            .filter(|s| !s.is_empty());
 
-        let batch_size = match pool.get() {
-            Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(_bot_id))
-                .filter(config_key.eq("embedding-batch-size"))
-                .select(config_value)
-                .first::<String>(&mut conn)
-                .ok()
-                .and_then(|v| v.parse().ok()),
-            Err(_) => None,
-        }.unwrap_or(16);
+        let dimensions = config_manager
+            .get_config(_bot_id, "embedding-dimensions", Some(""))
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_else(|| Self::detect_dimensions(&embedding_model));
 
-        let timeout_seconds = match pool.get() {
-            Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(_bot_id))
-                .filter(config_key.eq("embedding-timeout"))
-                .select(config_value)
-                .first::<String>(&mut conn)
-                .ok()
-                .and_then(|v| v.parse().ok()),
-            Err(_) => None,
-        }.unwrap_or(60);
+        let batch_size = config_manager
+            .get_config(_bot_id, "embedding-batch-size", Some("16"))
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(16);
 
-        let max_concurrent_requests = match pool.get() {
-            Ok(mut conn) => bot_configuration
-                .filter(bot_id.eq(_bot_id))
-                .filter(config_key.eq("embedding-concurrent"))
-                .select(config_value)
-                .first::<String>(&mut conn)
-                .ok()
-                .and_then(|v| v.parse().ok()),
-            Err(_) => None,
-        }.unwrap_or(1);
+        let timeout_seconds = config_manager
+            .get_config(_bot_id, "embedding-timeout", Some("60"))
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(60);
+
+        let max_concurrent_requests = config_manager
+            .get_config(_bot_id, "embedding-concurrent", Some("1"))
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(1);
 
         Self {
             embedding_url,
