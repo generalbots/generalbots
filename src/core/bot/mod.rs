@@ -507,12 +507,17 @@ impl BotOrchestrator {
                         sm.get_session_context_data(&session.id, &session.user_id)?
                     };
 
+                    let config_manager = ConfigManager::new(state_clone.conn.clone());
+
+                    let history_limit = config_manager
+                        .get_bot_config_value(&session.bot_id, "history-limit")
+                        .ok()
+                        .and_then(|v| v.parse::<i64>().ok());
+
                     let history = {
                         let mut sm = state_clone.session_manager.blocking_lock();
-                        sm.get_conversation_history(session.id, user_id)?
+                        sm.get_conversation_history(session.id, user_id, history_limit)?
                     };
-
-                    let config_manager = ConfigManager::new(state_clone.conn.clone());
 
                     // For local LLM server, use the actual model name
                     // Default to DeepSeek model if not configured
@@ -1234,7 +1239,7 @@ impl BotOrchestrator {
         user_id: Uuid,
     ) -> Result<Vec<(String, String)>, Box<dyn std::error::Error + Send + Sync>> {
         let mut session_manager = self.state.session_manager.lock().await;
-        let history = session_manager.get_conversation_history(session_id, user_id)?;
+        let history = session_manager.get_conversation_history(session_id, user_id, None)?;
         Ok(history)
     }
 }

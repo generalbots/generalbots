@@ -158,11 +158,14 @@ impl LLMProvider for GLMClient {
             top_p: Some(1.0),
             tools: None,
             tool_choice: None,
-            chat_template_kwargs: None,
+            chat_template_kwargs: Some(GLMChatTemplateKwargs {
+                enable_thinking: true,
+                clear_thinking: false,
+            }),
         };
 
         let url = self.build_url();
-        info!("[GLM] Non-streaming request to: {}", url);
+        info!("[GLM] Non-streaming request to: {} model={}", url, model_name);
 
         let response = self
             .client
@@ -244,11 +247,14 @@ impl LLMProvider for GLMClient {
             top_p: Some(1.0),
             tools: tools.cloned(),
             tool_choice,
-            chat_template_kwargs: None,
+chat_template_kwargs: Some(GLMChatTemplateKwargs {
+                enable_thinking: true,
+                clear_thinking: false,
+            }),
         };
 
         let url = self.build_url();
-        info!("[GLM] Streaming request to: {}", url);
+        info!("[GLM] Streaming request to: {} model={} max_tokens=131072", url, model_name);
 
         let response = self
             .client
@@ -265,9 +271,14 @@ impl LLMProvider for GLMClient {
             return Err(format!("GLM streaming error: {}", error_text).into());
         }
 
+        info!("[GLM] Connection established, starting stream processing");
+
         let mut stream = response.bytes_stream();
         let mut in_reasoning = false;
         let mut has_sent_thinking = false;
+        let mut total_content_chars: usize = 0;
+        let mut total_reasoning_chars: usize = 0;
+        let mut chunk_count: usize = 0;
         let mut buffer = Vec::new();
 
         while let Some(chunk_result) = stream.next().await {
@@ -282,6 +293,7 @@ impl LLMProvider for GLMClient {
                 }
 
                 if line == "data: [DONE]" {
+                    info!("[GLM] Stream done: {} chunks, {} reasoning chars, {} content chars sent", chunk_count, total_reasoning_chars, total_content_chars);
                     let _ = tx.send(String::new()).await;
                     return Ok(());
                 }
@@ -292,6 +304,8 @@ impl LLMProvider for GLMClient {
                         if let Some(choices) = chunk_data.get("choices").and_then(|c| c.as_array()) {
                             for choice in choices {
                                 if let Some(delta) = choice.get("delta") {
+                                    chunk_count += 1;
+
                                     // Handle tool_calls
                                     if let Some(tool_calls) = delta.get("tool_calls").and_then(|t| t.as_array()) {
                                         for tool_call in tool_calls {
@@ -313,13 +327,16 @@ impl LLMProvider for GLMClient {
                                     // Enter reasoning mode
                                     if reasoning.is_some() && content.is_none() {
                                         if !in_reasoning {
-                                            trace!("[GLM] Entering reasoning/thinking mode");
+                                            info!("[GLM] Entering reasoning mode");
                                             in_reasoning = true;
+                                        }
+                                        if let Some(r) = reasoning {
+                                            total_reasoning_chars += r.len();
                                         }
                                         if !has_sent_thinking {
                                             let thinking = serde_json::json!({
                                                 "type": "thinking",
-                                                "content": "\u{1f914} Pensando..."
+                                                "content": "🤔 Pensando..."
                                             }).to_string();
                                             let _ = tx.send(thinking).await;
                                             has_sent_thinking = true;
@@ -329,7 +346,7 @@ impl LLMProvider for GLMClient {
 
                                     // Exited reasoning — content is now real response
                                     if in_reasoning && content.is_some() {
-                                        trace!("[GLM] Exited reasoning mode");
+                                        info!("[GLM] Exited reasoning mode, {} reasoning chars discarded, content starting", total_reasoning_chars);
                                         in_reasoning = false;
                                         let clear = serde_json::json!({
                                             "type": "thinking_clear",
@@ -341,14 +358,18 @@ impl LLMProvider for GLMClient {
                                     // Send actual content to user
                                     if let Some(text) = content {
                                         if !text.is_empty() {
+                                            total_content_chars += text.len();
                                             let _ = tx.send(text.to_string()).await;
                                         }
                                     }
+                                } else {
+                                    // No delta in choice
+                                    trace!("[GLM] Chunk has no delta");
                                 }
 
                                 if let Some(reason) = choice.get("finish_reason").and_then(|r| r.as_str()) {
                                     if !reason.is_empty() {
-                                        info!("[GLM] Stream finished: {}", reason);
+                                        info!("[GLM] Stream finished: {}, reasoning={} content={}", reason, total_reasoning_chars, total_content_chars);
                                         let _ = tx.send(String::new()).await;
                                         return Ok(());
                                     }
@@ -359,11 +380,13 @@ impl LLMProvider for GLMClient {
                 }
             }
 
+            // Keep unprocessed data in buffer
             if let Some(last_newline) = data.rfind('\n') {
                 buffer = buffer[last_newline + 1..].to_vec();
             }
         }
 
+        info!("[GLM] Stream ended (no [DONE]), reasoning={} content={}", total_reasoning_chars, total_content_chars);
         let _ = tx.send(String::new()).await;
         Ok(())
     }

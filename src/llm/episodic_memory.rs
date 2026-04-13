@@ -59,7 +59,7 @@ async fn process_episodic_memory(
         let session_id = session.id;
         let history = {
             let mut session_manager = state.session_manager.lock().await;
-            session_manager.get_conversation_history(session.id, session.user_id)?
+            session_manager.get_conversation_history(session.id, session.user_id, None)?
         };
 
         let mut messages_since_summary = 0;

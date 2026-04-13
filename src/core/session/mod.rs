@@ -336,13 +336,22 @@ impl SessionManager {
         &mut self,
         sess_id: Uuid,
         _uid: Uuid,
+        history_limit: Option<i64>,
     ) -> Result<Vec<(String, String)>, Box<dyn Error + Send + Sync>> {
         use crate::core::shared::models::message_history::dsl::*;
+        let limit_val = history_limit.unwrap_or(50);
+
         let messages = message_history
             .filter(session_id.eq(sess_id))
-            .order(message_index.asc())
+            .order(message_index.desc())
+            .limit(limit_val)
             .select((role, content_encrypted))
             .load::<(i32, String)>(&mut self.conn)?;
+
+        // Reverse to get chronological order (oldest first)
+        let mut messages: Vec<(i32, String)> = messages;
+        messages.reverse();
+
         let mut history: Vec<(String, String)> = Vec::new();
         for (other_role, content) in messages {
             let role_str = match other_role {
