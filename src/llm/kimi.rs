@@ -323,7 +323,10 @@ impl LLMProvider for KimiClient {
                                     if let Some(text) = delta.get("content").and_then(|c| c.as_str()) {
                                         if !text.is_empty() {
                                             total_content_chars += text.len();
-                                            let _ = tx.send(text.to_string()).await;
+                                            if tx.send(text.to_string()).await.is_err() {
+                                                info!("[Kimi] Channel closed, stopping stream after {} content chars", total_content_chars);
+                                                return Ok(());
+                                            }
                                         }
                                     }
                                 }
@@ -337,16 +340,20 @@ impl LLMProvider for KimiClient {
                                 }
                             }
                         }
+                    } else {
+                        log::trace!("[Kimi] Failed to parse JSON: {} chars", json_str.len());
                     }
                 }
             }
 
+            // Keep only unprocessed data in buffer
             if let Some(last_newline) = data.rfind('\n') {
                 buffer = buffer[last_newline + 1..].to_vec();
             }
         }
 
-        std::mem::drop(tx.send(String::new()));
+        info!("[Kimi] Stream ended (no [DONE]), {} chunks, {} content chars", chunk_count, total_content_chars);
+        let _ = tx.send(String::new()).await;
         Ok(())
     }
 
