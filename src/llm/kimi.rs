@@ -157,7 +157,7 @@ impl LLMProvider for KimiClient {
             model: model_name.to_string(),
             messages,
             stream: Some(false),
-            max_tokens: None,
+            max_tokens: Some(131072),
             temperature: Some(1.0),
             top_p: Some(1.0),
             tools: None,
@@ -246,7 +246,7 @@ impl LLMProvider for KimiClient {
             model: model_name.to_string(),
             messages,
             stream: Some(true),
-            max_tokens: None,
+            max_tokens: Some(131072),
             temperature: Some(1.0),
             top_p: Some(1.0),
             tools: tools.cloned(),
@@ -257,7 +257,7 @@ impl LLMProvider for KimiClient {
         };
 
         let url = self.build_url();
-        info!("Kimi streaming request to: {}", url);
+        info!("[Kimi] Streaming request to: {} model={} max_tokens=131072", url, model_name);
 
         let response = self
             .client
@@ -271,13 +271,17 @@ impl LLMProvider for KimiClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Kimi streaming error: {}", error_text);
+            error!("[Kimi] Streaming error: {}", error_text);
             return Err(format!("Kimi streaming error: {}", error_text).into());
         }
 
-        let mut stream = response.bytes_stream();
+        info!("[Kimi] Connection established, starting stream");
 
+        let mut stream = response.bytes_stream();
+        let mut total_content_chars: usize = 0;
+        let mut chunk_count: usize = 0;
         let mut buffer = Vec::new();
+
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result.map_err(|e| format!("Stream error: {}", e))?;
 
@@ -292,7 +296,8 @@ impl LLMProvider for KimiClient {
                 }
 
                 if line == "data: [DONE]" {
-                    std::mem::drop(tx.send(String::new()));
+                    info!("[Kimi] Stream done: {} chunks, {} content chars sent", chunk_count, total_content_chars);
+                    let _ = tx.send(String::new()).await;
                     return Ok(());
                 }
 
@@ -302,6 +307,8 @@ impl LLMProvider for KimiClient {
                         if let Some(choices) = chunk_data.get("choices").and_then(|c| c.as_array()) {
                             for choice in choices {
                                 if let Some(delta) = choice.get("delta") {
+                                    chunk_count += 1;
+
                                     if let Some(tool_calls) = delta.get("tool_calls").and_then(|t| t.as_array()) {
                                         for tool_call in tool_calls {
                                             let tool_call_json = serde_json::json!({
@@ -312,11 +319,10 @@ impl LLMProvider for KimiClient {
                                         }
                                     }
 
-                                    // Kimi K2.5 sends thinking via reasoning_content
-                                    // The actual user-facing response is in content field
-                                    // We ONLY send content — never reasoning_content (internal thinking)
+                                    // Kimi K2.5: content has the answer, reasoning/reasoning_content is thinking
                                     if let Some(text) = delta.get("content").and_then(|c| c.as_str()) {
                                         if !text.is_empty() {
+                                            total_content_chars += text.len();
                                             let _ = tx.send(text.to_string()).await;
                                         }
                                     }
@@ -324,8 +330,8 @@ impl LLMProvider for KimiClient {
 
                                 if let Some(reason) = choice.get("finish_reason").and_then(|r| r.as_str()) {
                                     if !reason.is_empty() {
-                                        info!("Kimi stream finished: {}", reason);
-                                        std::mem::drop(tx.send(String::new()));
+                                        info!("[Kimi] Stream finished: {}, {} content chars", reason, total_content_chars);
+                                        let _ = tx.send(String::new()).await;
                                         return Ok(());
                                     }
                                 }
