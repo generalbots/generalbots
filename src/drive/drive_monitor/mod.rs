@@ -1,8 +1,6 @@
 use crate::basic::compiler::BasicCompiler;
 use crate::core::config::ConfigManager;
 #[cfg(any(feature = "research", feature = "llm"))]
-use crate::core::kb::embedding_generator::is_embedding_server_ready;
-#[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::core::shared::message_types::MessageType;
@@ -56,6 +54,8 @@ pub struct DriveMonitor {
     files_being_indexed: Arc<TokioRwLock<HashSet<String>>>,
     #[cfg(any(feature = "research", feature = "llm"))]
     pending_kb_index: Arc<TokioRwLock<HashSet<String>>>,
+    #[cfg(not(any(feature = "research", feature = "llm")))]
+    _pending_kb_index: Arc<TokioRwLock<HashSet<String>>>,
 }
 impl DriveMonitor {
     fn normalize_config_value(value: &str) -> String {
@@ -86,6 +86,8 @@ impl DriveMonitor {
             files_being_indexed: Arc::new(TokioRwLock::new(HashSet::new())),
             #[cfg(any(feature = "research", feature = "llm"))]
             pending_kb_index: Arc::new(TokioRwLock::new(HashSet::new())),
+            #[cfg(not(any(feature = "research", feature = "llm")))]
+            _pending_kb_index: Arc::new(TokioRwLock::new(HashSet::new())),
         }
     }
 
@@ -223,15 +225,29 @@ impl DriveMonitor {
     /// Only one instance runs per bot - this is spawned once from start_monitoring
     #[cfg(any(feature = "research", feature = "llm"))]
     pub fn start_kb_processor(&self) {
-        let kb_manager = Arc::clone(&self.kb_manager);
-        let bot_id = self.bot_id;
-        let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name).to_string();
-        let work_root = self.work_root.clone();
-        let pending_kb_index = Arc::clone(&self.pending_kb_index);
-        let files_being_indexed = Arc::clone(&self.files_being_indexed);
-        let file_states = Arc::clone(&self.file_states);
-        let is_processing = Arc::clone(&self.is_processing);
+        Self::start_kb_processor_inner(
+            Arc::clone(&self.kb_manager),
+            self.bot_id,
+            self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name).to_string(),
+            self.work_root.clone(),
+            Arc::clone(&self.pending_kb_index),
+            Arc::clone(&self.files_being_indexed),
+            Arc::clone(&self.file_states),
+            Arc::clone(&self.is_processing),
+        );
+    }
 
+    #[cfg(any(feature = "research", feature = "llm"))]
+    fn start_kb_processor_inner(
+        kb_manager: Arc<KnowledgeBaseManager>,
+        bot_id: uuid::Uuid,
+        bot_name: String,
+        work_root: PathBuf,
+        pending_kb_index: Arc<TokioRwLock<HashSet<String>>>,
+        files_being_indexed: Arc<TokioRwLock<HashSet<String>>>,
+        file_states: Arc<tokio::sync::RwLock<HashMap<String, FileState>>>,
+        is_processing: Arc<AtomicBool>,
+    ) {
         tokio::spawn(async move {
             trace!("[KB_PROCESSOR] Starting for bot {} (bucket: {})", bot_name, bot_id);
 
@@ -336,6 +352,12 @@ impl DriveMonitor {
 
             trace!("[KB_PROCESSOR] Stopping for bot {}", bot_name);
         });
+    }
+
+    /// Stub for production builds without llm/research features
+    #[cfg(not(any(feature = "research", feature = "llm")))]
+    pub fn start_kb_processor(&self) {
+        // KB indexing not available in this build
     }
 
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
