@@ -70,6 +70,16 @@ impl WebChannelAdapter {
         session_id: &str,
         message: BotResponse,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // DEBUG: Log what's being sent to WebSocket
+        let content_preview = if message.content.len() > 200 {
+            format!("{}... ({} chars)", &message.content[..200], message.content.len())
+        } else {
+            message.content.clone()
+        };
+        debug!("[WS_SEND] session={} msg_type={:?} is_complete={} content_preview=\"{}\"",
+            session_id, message.message_type, message.is_complete, 
+            content_preview.replace('\n', "\\n"));
+
         let connections = self.connections.lock().await;
         if let Some(tx) = connections.get(session_id) {
             if let Err(e) = tx.send(message).await {
