@@ -5,6 +5,8 @@ pub mod add_bot;
 pub mod add_member;
 #[cfg(feature = "chat")]
 pub mod add_suggestion;
+#[cfg(feature = "chat")]
+pub mod switcher;
 pub mod agent_reflection;
 #[cfg(feature = "llm")]
 pub mod ai_tools;
@@ -203,6 +205,9 @@ pub fn get_all_keywords() -> Vec<String> {
         "SMS".to_string(),
         "ADD SUGGESTION".to_string(),
         "ADD_SUGGESTION_TOOL".to_string(),
+        "ADD SWITCHER".to_string(),
+        "ADD_SWITCHER".to_string(),
+        "CLEAR SWITCHERS".to_string(),
         "CLEAR SUGGESTIONS".to_string(),
         "ADD TOOL".to_string(),
         "CLEAR TOOLS".to_string(),
