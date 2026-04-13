@@ -1541,9 +1541,9 @@ let file_state = FileState {
         }
 
         debug!("[GBKB] Found {} files total, acquiring file_states lock...", current_files.len());
-        
+
         // Check if ALL KBs for this bot are already indexed in Qdrant
-        // If so, skip the entire scan to avoid deadlock and unnecessary downloads
+        // If so, only scan for NEW files - skip re-indexing existing ones
         let mut kb_folders: HashSet<String> = HashSet::new();
         for (path, _) in current_files.iter() {
             let parts: Vec<&str> = path.split('/').collect();
@@ -1551,7 +1551,7 @@ let file_state = FileState {
                 kb_folders.insert(parts[1].to_string());
             }
         }
-        
+
         let mut all_indexed = true;
         for kb_name in &kb_folders {
             let kb_key = format!("{}_{}", bot_name, kb_name);
@@ -1564,20 +1564,20 @@ let file_state = FileState {
                 break;
             }
         }
-        
-        if all_indexed && !kb_folders.is_empty() {
-            trace!("[GBKB] All {} KB folders already indexed, skipping scan for bot {}", 
-                kb_folders.len(), self.bot_id);
-            return Ok(());
-        }
-        
+
         let mut file_states = self.file_states.write().await;
-        debug!("[GBKB] file_states lock acquired, processing {} files", current_files.len());
+        debug!("[GBKB] file_states lock acquired, processing {} files (all_indexed={})", current_files.len(), all_indexed);
 
         for (path, current_state) in current_files.iter() {
             let is_new = !file_states.contains_key(path);
             debug!("[GBKB] DEBUG: path={} in_file_states={}", path, !is_new);
-            
+
+            // When all KBs are indexed, skip files that are already tracked (not new)
+            if all_indexed && !is_new {
+                trace!("[GBKB] Skipping already indexed file: {}", path);
+                continue;
+            }
+
             // Use last_modified as primary change detector (more stable than ETag)
             // ETags can change due to metadata updates even when content is identical
             let is_modified = if let Some(prev) = file_states.get(path) {
