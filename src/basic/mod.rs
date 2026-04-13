@@ -27,6 +27,8 @@ use self::keywords::add_bot::register_bot_keywords;
 use self::keywords::add_member::add_member_keyword;
 #[cfg(feature = "chat")]
 use self::keywords::add_suggestion::add_suggestion_keyword;
+#[cfg(feature = "chat")]
+use self::keywords::switcher::{add_switcher_keyword, clear_switchers_keyword};
 #[cfg(feature = "llm")]
 use self::keywords::ai_tools::register_ai_tools_keywords;
 use self::keywords::bot_memory::{get_bot_memory_keyword, set_bot_memory_keyword};
@@ -157,11 +159,15 @@ impl ScriptService {
         set_user_keyword(state.clone(), user.clone(), &mut engine);
         #[cfg(feature = "chat")]
         clear_suggestions_keyword(state.clone(), user.clone(), &mut engine);
+        #[cfg(feature = "chat")]
+        clear_switchers_keyword(state.clone(), user.clone(), &mut engine);
         use_tool_keyword(state.clone(), user.clone(), &mut engine);
         clear_tools_keyword(state.clone(), user.clone(), &mut engine);
         clear_websites_keyword(state.clone(), user.clone(), &mut engine);
         #[cfg(feature = "chat")]
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
+        #[cfg(feature = "chat")]
+        add_switcher_keyword(state.clone(), user.clone(), &mut engine);
         #[cfg(feature = "chat")]
         add_member_keyword(state.clone(), user.clone(), &mut engine);
         #[cfg(feature = "chat")]
@@ -1313,6 +1319,7 @@ impl ScriptService {
         (r#"ADD_SUGGESTION_TOOL"#, 2, 2, vec!["tool", "text"]),
         (r#"ADD_SUGGESTION_TEXT"#, 2, 2, vec!["value", "text"]),
         (r#"ADD_SUGGESTION(?!\\s+TOOL|\\s+TEXT|_)"#, 2, 2, vec!["context", "text"]),
+        (r#"ADD_SWITCHER"#, 2, 2, vec!["switcher", "text"]),
         (r#"ADD\\s+MEMBER"#, 2, 2, vec!["name", "role"]),
 
             // CREATE family
@@ -1344,6 +1351,7 @@ impl ScriptService {
             if trimmed_upper.contains("ADD_SUGGESTION_TOOL") ||
                trimmed_upper.contains("ADD_SUGGESTION_TEXT") ||
                trimmed_upper.starts_with("ADD_SUGGESTION_") ||
+               trimmed_upper.contains("ADD_SWITCHER") ||
                trimmed_upper.starts_with("ADD_MEMBER") ||
                (trimmed_upper.starts_with("USE_") && trimmed.contains('(')) {
                 // Keep original line and add semicolon if needed
