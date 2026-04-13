@@ -312,12 +312,10 @@ impl LLMProvider for KimiClient {
                                         }
                                     }
 
-                                    // Kimi K2.5 sends text via reasoning_content (thinking mode)
-                                    // content may be null; we accept both fields
-                                    let text = delta.get("content").and_then(|c| c.as_str())
-                                        .or_else(|| delta.get("reasoning_content").and_then(|c| c.as_str()));
-
-                                    if let Some(text) = text {
+                                    // Kimi K2.5 sends thinking via reasoning_content
+                                    // The actual user-facing response is in content field
+                                    // We ONLY send content — never reasoning_content (internal thinking)
+                                    if let Some(text) = delta.get("content").and_then(|c| c.as_str()) {
                                         if !text.is_empty() {
                                             let _ = tx.send(text.to_string()).await;
                                         }

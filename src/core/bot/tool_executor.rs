@@ -257,6 +257,7 @@ impl ToolExecutor {
         arguments: &Value,
     ) -> ToolExecutionResult {
         let tool_call_id = format!("tool_{}", uuid::Uuid::new_v4());
+        log::info!("[BASIC_EXEC] Tool '{}' starting execution (bot={}, session={})", tool_name, bot_name, session.id);
 
         // Create ScriptService
         let mut script_service = ScriptService::new(state.clone(), session.clone());
@@ -276,15 +277,17 @@ impl ToolExecutor {
 
                 // Set variable in script scope
                 if let Err(e) = script_service.set_variable(key, &value_str) {
-                    warn!("Failed to set variable '{}': {}", key, e);
+                    log::warn!("[BASIC_EXEC] Failed to set variable '{}': {}", key, e);
                 }
             }
         }
 
+        log::trace!("[BASIC_EXEC] Tool '{}' running .ast ({} chars)", tool_name, ast_content.len());
+
         // Run the pre-compiled .ast content (compilation happens only in Drive Monitor)
         match script_service.run(ast_content) {
             Ok(result) => {
-                trace!("Tool '{}' executed successfully", tool_name);
+                log::info!("[BASIC_EXEC] Tool '{}' completed successfully", tool_name);
 
                 // Convert result to string
                 let result_str = result.to_string();
@@ -297,6 +300,7 @@ impl ToolExecutor {
                 }
             }
             Err(e) => {
+                log::error!("[BASIC_EXEC] Tool '{}' execution error: {}", tool_name, e);
                 let error_msg = format!("Execution error: {}", e);
                 Self::log_tool_error(bot_name, tool_name, &error_msg);
                 let user_message = Self::format_user_friendly_error(tool_name, &error_msg);

@@ -331,8 +331,12 @@ impl ScriptService {
     pub fn run(&mut self, ast_content: &str) -> Result<Dynamic, Box<EvalAltResult>> {
         let ast = match self.engine.compile(ast_content) {
             Ok(ast) => ast,
-            Err(e) => return Err(Box::new(e.into())),
+            Err(e) => {
+                log::error!("[BASIC_EXEC] Failed to compile AST: {}", e);
+                return Err(Box::new(e.into()));
+            }
         };
+        log::trace!("[BASIC_EXEC] Executing compiled AST ({} chars)", ast_content.len());
         self.engine.eval_ast_with_scope(&mut self.scope, &ast)
     }
 
