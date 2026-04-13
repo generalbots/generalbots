@@ -56,6 +56,8 @@ pub struct DriveMonitor {
     files_being_indexed: Arc<TokioRwLock<HashSet<String>>>,
     #[cfg(any(feature = "research", feature = "llm"))]
     pending_kb_index: Arc<TokioRwLock<HashSet<String>>>,
+    #[cfg(any(feature = "research", feature = "llm"))]
+    kb_indexed_folders: Arc<TokioRwLock<HashSet<String>>>,
     #[cfg(not(any(feature = "research", feature = "llm")))]
     _pending_kb_index: Arc<TokioRwLock<HashSet<String>>>,
 }
@@ -88,6 +90,8 @@ impl DriveMonitor {
             files_being_indexed: Arc::new(TokioRwLock::new(HashSet::new())),
             #[cfg(any(feature = "research", feature = "llm"))]
             pending_kb_index: Arc::new(TokioRwLock::new(HashSet::new())),
+            #[cfg(any(feature = "research", feature = "llm"))]
+            kb_indexed_folders: Arc::new(TokioRwLock::new(HashSet::new())),
             #[cfg(not(any(feature = "research", feature = "llm")))]
             _pending_kb_index: Arc::new(TokioRwLock::new(HashSet::new())),
         }
@@ -234,6 +238,7 @@ impl DriveMonitor {
             self.work_root.clone(),
             Arc::clone(&self.pending_kb_index),
             Arc::clone(&self.files_being_indexed),
+            Arc::clone(&self.kb_indexed_folders),
             Arc::clone(&self.file_states),
             Arc::clone(&self.is_processing),
         );
@@ -247,6 +252,7 @@ impl DriveMonitor {
         work_root: PathBuf,
         pending_kb_index: Arc<TokioRwLock<HashSet<String>>>,
         files_being_indexed: Arc<TokioRwLock<HashSet<String>>>,
+        kb_indexed_folders: Arc<TokioRwLock<HashSet<String>>>,
         file_states: Arc<tokio::sync::RwLock<HashMap<String, FileState>>>,
         is_processing: Arc<AtomicBool>,
     ) {
@@ -315,10 +321,13 @@ impl DriveMonitor {
                     pending.remove(&kb_key);
                 }
 
-                match result {
+match result {
                     Ok(Ok(_)) => {
-                        trace!("[KB_PROCESSOR] Successfully indexed KB: {}", kb_key);
-                        // Mark files in this KB as indexed
+                        info!("[KB_PROCESSOR] Successfully indexed KB: {}", kb_key);
+                        {
+                            let mut indexed = kb_indexed_folders.write().await;
+                            indexed.insert(kb_key.clone());
+                        }
                         let mut states = file_states.write().await;
                         for (path, state) in states.iter_mut() {
                             if path.contains(&format!("{}/", kb_folder_name)) {
@@ -1528,6 +1537,19 @@ let file_state = FileState {
 
             if is_new || is_modified {
                 debug!("[GBKB] New/modified file: {} (new={}, modified={})", path, is_new, is_modified);
+
+                #[cfg(any(feature = "research", feature = "llm"))]
+                {
+                    let path_parts: Vec<&str> = path.split('/').collect();
+                    if path_parts.len() >= 2 {
+                        let kb_name = path_parts[1];
+                        let kb_key = format!("{}_{}", bot_name, kb_name);
+                        let mut indexed_folders = self.kb_indexed_folders.write().await;
+                        if indexed_folders.remove(&kb_key) {
+                            debug!("[GBKB] Removed {} from indexed set due to file change", kb_key);
+                        }
+                    }
+                }
                 if let Some(prev_state) = file_states.get(path) {
                     if prev_state.fail_count >= MAX_FAIL_COUNT {
                         let elapsed = Utc::now()
@@ -1569,7 +1591,7 @@ let file_state = FileState {
                     tokio::time::sleep(Duration::from_millis(100)).await;
                 }
 
-                // Queue KB folder for indexing - no read lock needed here
+                // Queue KB folder for indexing - only if not already indexed and no files changed
                 let path_parts: Vec<&str> = path.split('/').collect();
                 if path_parts.len() >= 3 {
                     let kb_name = path_parts[1];
@@ -1577,16 +1599,23 @@ let file_state = FileState {
 
                     #[cfg(any(feature = "research", feature = "llm"))]
                     {
-                        // Check if already being indexed (no read lock on file_states needed)
                         let indexing_set = self.files_being_indexed.read().await;
                         let already_indexing = indexing_set.contains(&kb_key);
                         drop(indexing_set);
 
                         if !already_indexing {
-                            // Queue for background KB processor - no blocking!
-                            let mut pending = self.pending_kb_index.write().await;
-                            if pending.insert(kb_key.clone()) {
-                                debug!("[GBKB] Queued KB {} for indexing (non-blocking)", kb_key);
+                            let already_indexed = {
+                                let indexed_folders = self.kb_indexed_folders.read().await;
+                                indexed_folders.contains(&kb_key)
+                            };
+
+                            if !already_indexed {
+                                let mut pending = self.pending_kb_index.write().await;
+                                if pending.insert(kb_key.clone()) {
+                                    debug!("[GBKB] Queued KB {} for indexing (non-blocking)", kb_key);
+                                }
+                            } else {
+                                trace!("[GBKB] KB {} already indexed, skipping", kb_key);
                             }
                         }
                     }
@@ -1672,10 +1701,14 @@ let file_state = FileState {
 
             let kb_prefix = format!("{}{}/", gbkb_prefix, kb_name);
             if !file_states.keys().any(|k| k.starts_with(&kb_prefix)) {
-                // All files in this KB folder deleted - clear vector index and remove folder
                 #[cfg(any(feature = "research", feature = "llm"))]
-                if let Err(e) = self.kb_manager.clear_kb(self.bot_id, bot_name, kb_name).await {
-                    log::error!("Failed to clear KB {}: {}", kb_name, e);
+                {
+                    if let Err(e) = self.kb_manager.clear_kb(self.bot_id, bot_name, kb_name).await {
+                        log::error!("Failed to clear KB {}: {}", kb_name, e);
+                    }
+                    let mut indexed_folders = self.kb_indexed_folders.write().await;
+                    let kb_key = format!("{}_{}", bot_name, kb_name);
+                    indexed_folders.remove(&kb_key);
                 }
 
                 // Remove the empty KB folder from disk
