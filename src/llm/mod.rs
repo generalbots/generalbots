@@ -471,8 +471,9 @@ impl LLMProvider for OpenAIClient {
                 let reasoning = data["choices"][0]["delta"]["reasoning_content"].as_str()
                     .or_else(|| data["choices"][0]["delta"]["reasoning"].as_str());
 
-                // Detect reasoning phase (GLM4.7, Kimi K2.5)
-                if reasoning.is_some() && content.is_none() {
+                // Detect reasoning phase (GLM4.7, Kimi K2.5, Minimax)
+                // Some models send BOTH reasoning and content - filter reasoning even when content exists
+                if reasoning.is_some() {
                             if !in_reasoning {
                                 trace!("[LLM] Entering reasoning/thinking mode");
                                 in_reasoning = true;
@@ -481,6 +482,13 @@ impl LLMProvider for OpenAIClient {
                             if let Some(r) = reasoning {
                                 reasoning_buffer.push_str(r);
                             }
+                            // If only reasoning (no content yet), skip sending
+                            if content.is_none() {
+                                continue;
+                            }
+                            // If we have both reasoning AND content, just clear reasoning buffer and proceed with content
+                            trace!("[LLM] Got content alongside reasoning, discarding {} chars of reasoning", reasoning_buffer.len());
+                            reasoning_buffer.clear();
                             // Send thinking indicator only once
                             if !has_sent_thinking {
                                 let thinking = serde_json::json!({
@@ -494,10 +502,14 @@ impl LLMProvider for OpenAIClient {
                             continue; // Don't send reasoning content to user
                         }
 
-                        // Exited reasoning mode - content is now real response
-                        if in_reasoning && content.is_some() {
-                            trace!("[LLM] Exited reasoning mode, {} chars of reasoning discarded", reasoning_buffer.len());
+                        // Exited reasoning mode - content is now real response (or we got content alongside reasoning)
+                        if in_reasoning && (content.is_some() || !reasoning_buffer.is_empty()) {
+                            let reason_len = reasoning_buffer.len();
+                            if reason_len > 0 {
+                                trace!("[LLM] Exited reasoning mode, {} chars of reasoning discarded", reason_len);
+                            }
                             in_reasoning = false;
+                            reasoning_buffer.clear();
                             // Clear the thinking indicator
                             let clear_thinking = serde_json::json!({
                                 "type": "thinking_clear",
