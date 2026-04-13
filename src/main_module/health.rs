@@ -17,12 +17,16 @@ pub async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Js
         StatusCode::SERVICE_UNAVAILABLE
     };
 
+    // Build timestamp set by CI via BOTSERVER_BUILD_DATE env var
+    let build_date = option_env!("BOTSERVER_BUILD_DATE").unwrap_or("unknown");
+
     (
         code,
         Json(serde_json::json!({
             "status": status,
             "service": "botserver",
             "version": env!("CARGO_PKG_VERSION"),
+            "build_date": build_date,
             "database": db_ok
         })),
     )
