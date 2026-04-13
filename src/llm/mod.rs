@@ -321,7 +321,8 @@ impl LLMProvider for OpenAIClient {
             .json(&serde_json::json!({
                 "model": model,
                 "messages": messages,
-                "stream": false
+                "stream": false,
+                "max_tokens": 131072
             }))
             .send()
             .await?;
@@ -414,7 +415,8 @@ impl LLMProvider for OpenAIClient {
         let mut request_body = serde_json::json!({
             "model": model,
             "messages": messages,
-            "stream": true
+            "stream": true,
+            "max_tokens": 131072
         });
 
         // Add tools to the request if provided
