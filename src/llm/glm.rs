@@ -98,12 +98,6 @@ pub struct GLMClient {
 
 impl GLMClient {
     pub fn new(base_url: String) -> Self {
-        // For z.ai GLM API:
-        // - Base URL typically is: https://api.z.ai/api/coding/paas/v4
-        // - Endpoint path is: /chat/completions
-        // - Full URL becomes: https://api.z.ai/api/coding/paas/v4/chat/completions
-
-        // Remove trailing slash from base_url if present
         let base = base_url.trim_end_matches('/').to_string();
 
         Self {
@@ -113,8 +107,11 @@ impl GLMClient {
     }
 
     fn build_url(&self) -> String {
-        // GLM/z.ai uses /chat/completions (not /v1/chat/completions)
-        format!("{}/chat/completions", self.base_url)
+        if self.base_url.contains("/chat/completions") {
+            self.base_url.clone()
+        } else {
+            format!("{}/chat/completions", self.base_url)
+        }
     }
 
     /// Sanitizes a string by removing invalid UTF-8 surrogate characters
