@@ -157,46 +157,25 @@ impl ToolExecutor {
             }
         };
 
-            // Load the .bas tool file (prefer pre-compiled .ast if available)
-            let bas_path = Self::get_tool_bas_path(bot_name, &tool_call.tool_name);
-            let ast_path = bas_path.with_extension("ast");
+            // Load the pre-compiled .ast file (compilation happens only in Drive Monitor)
+            let ast_path = Self::get_tool_ast_path(bot_name, &tool_call.tool_name);
 
-            // Check for .ast first (pre-compiled), fallback to .bas
-            let (script_content, is_preprocessed) = if ast_path.exists() {
-                match tokio::fs::read_to_string(&ast_path).await {
-                    Ok(script) => {
-                        trace!("Using pre-compiled .ast for tool: {}", tool_call.tool_name);
-                        (script, true)
-                    }
-                    Err(_) => (String::new(), false)
+            let ast_content = match tokio::fs::read_to_string(&ast_path).await {
+                Ok(content) => content,
+                Err(e) => {
+                    let error_msg = format!("Failed to read tool .ast file {}: {}", ast_path.display(), e);
+                    Self::log_tool_error(bot_name, &tool_call.tool_name, &error_msg);
+                    return ToolExecutionResult {
+                        tool_call_id: tool_call.id.clone(),
+                        success: false,
+                        result: String::new(),
+                        error: Some(Self::format_user_friendly_error(&tool_call.tool_name, &error_msg)),
+                    };
                 }
-            } else if bas_path.exists() {
-                match tokio::fs::read_to_string(&bas_path).await {
-                    Ok(script) => (script, false),
-                    Err(e) => {
-                        let error_msg = format!("Failed to read tool file: {}", e);
-                        Self::log_tool_error(bot_name, &tool_call.tool_name, &error_msg);
-                        return ToolExecutionResult {
-                            tool_call_id: tool_call.id.clone(),
-                            success: false,
-                            result: String::new(),
-                            error: Some(Self::format_user_friendly_error(&tool_call.tool_name, &error_msg)),
-                        };
-                    }
-                }
-            } else {
-                let error_msg = format!("Tool file not found: {:?}", bas_path);
-                Self::log_tool_error(bot_name, &tool_call.tool_name, &error_msg);
-                return ToolExecutionResult {
-                    tool_call_id: tool_call.id.clone(),
-                    success: false,
-                    result: String::new(),
-                    error: Some(Self::format_user_friendly_error(&tool_call.tool_name, &error_msg)),
-                };
             };
 
-            if script_content.is_empty() {
-                let error_msg = "Tool script is empty".to_string();
+            if ast_content.is_empty() {
+                let error_msg = "Tool .ast file is empty".to_string();
                 Self::log_tool_error(bot_name, &tool_call.tool_name, &error_msg);
                 return ToolExecutionResult {
                     tool_call_id: tool_call.id.clone(),
@@ -245,10 +224,9 @@ impl ToolExecutor {
                     &bot_name_clone,
                     bot_id_clone,
                     &session,
-                    &script_content,
+                    &ast_content,
                     &tool_name_clone,
                     &arguments_clone,
-                    is_preprocessed,
                 )
             })
             .await;
@@ -274,10 +252,9 @@ impl ToolExecutor {
         bot_name: &str,
         bot_id: Uuid,
         session: &crate::core::shared::models::UserSession,
-        script_content: &str,
+        ast_content: &str,
         tool_name: &str,
         arguments: &Value,
-        is_preprocessed: bool,
     ) -> ToolExecutionResult {
         let tool_call_id = format!("tool_{}", uuid::Uuid::new_v4());
 
@@ -304,30 +281,8 @@ impl ToolExecutor {
             }
         }
 
-        // Compile: use compile_preprocessed for .ast files, compile_tool_script for .bas
-        let ast = if is_preprocessed {
-            script_service.compile_preprocessed(script_content)
-        } else {
-            script_service.compile_tool_script(script_content)
-        };
-
-        let ast = match ast {
-            Ok(ast) => ast,
-            Err(e) => {
-                let error_msg = format!("Compilation error: {}", e);
-                Self::log_tool_error(bot_name, tool_name, &error_msg);
-                let user_message = Self::format_user_friendly_error(tool_name, &error_msg);
-                return ToolExecutionResult {
-                    tool_call_id,
-                    success: false,
-                    result: String::new(),
-                    error: Some(user_message),
-                };
-            }
-        };
-
-        // Run the script
-        match script_service.run(&ast) {
+        // Run the pre-compiled .ast content (compilation happens only in Drive Monitor)
+        match script_service.run(ast_content) {
             Ok(result) => {
                 trace!("Tool '{}' executed successfully", tool_name);
 
@@ -365,13 +320,12 @@ impl ToolExecutor {
             .ok()
     }
 
-    /// Get the path to a tool's .bas file
-    fn get_tool_bas_path(bot_name: &str, tool_name: &str) -> std::path::PathBuf {
-        // Use work directory for compiled .bas files
+    /// Get the path to a tool's pre-compiled .ast file
+    fn get_tool_ast_path(bot_name: &str, tool_name: &str) -> std::path::PathBuf {
         let work_path = std::path::PathBuf::from(crate::core::shared::utils::get_work_path())
             .join(format!("{}.gbai", bot_name))
             .join(format!("{}.gbdialog", bot_name))
-            .join(format!("{}.bas", tool_name));
+            .join(format!("{}.ast", tool_name));
 
         work_path
     }
