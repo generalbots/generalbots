@@ -1529,11 +1529,42 @@ let file_state = FileState {
         }
 
         debug!("[GBKB] Found {} files total, acquiring file_states lock...", current_files.len());
+        
+        // Check if ALL KBs for this bot are already indexed in Qdrant
+        // If so, skip the entire scan to avoid deadlock and unnecessary downloads
+        let mut kb_folders: HashSet<String> = HashSet::new();
+        for (path, _) in current_files.iter() {
+            let parts: Vec<&str> = path.split('/').collect();
+            if parts.len() >= 3 && parts[0].ends_with(".gbkb") {
+                kb_folders.insert(parts[1].to_string());
+            }
+        }
+        
+        let mut all_indexed = true;
+        for kb_name in &kb_folders {
+            let kb_key = format!("{}_{}", bot_name, kb_name);
+            let indexed = {
+                let indexed_folders = self.kb_indexed_folders.read().await;
+                indexed_folders.contains(&kb_key)
+            };
+            if !indexed {
+                all_indexed = false;
+                break;
+            }
+        }
+        
+        if all_indexed && !kb_folders.is_empty() {
+            trace!("[GBKB] All {} KB folders already indexed, skipping scan for bot {}", 
+                kb_folders.len(), self.bot_id);
+            return Ok(());
+        }
+        
         let mut file_states = self.file_states.write().await;
         debug!("[GBKB] file_states lock acquired, processing {} files", current_files.len());
 
         for (path, current_state) in current_files.iter() {
             let is_new = !file_states.contains_key(path);
+            debug!("[GBKB] DEBUG: path={} in_file_states={}", path, !is_new);
             
             // Use last_modified as primary change detector (more stable than ETag)
             // ETags can change due to metadata updates even when content is identical
