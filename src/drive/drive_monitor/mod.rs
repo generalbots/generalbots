@@ -1567,16 +1567,36 @@ let file_state = FileState {
         }
 
         let mut file_states = self.file_states.write().await;
-        debug!("[GBKB] file_states lock acquired, processing {} files (all_indexed={})", current_files.len(), all_indexed);
+        debug!("[GBKB] file_states lock acquired, processing {} files (all_indexed={}, file_states_count={})", current_files.len(), all_indexed, file_states.len());
+
+        // Build set of already-indexed KB folder names for quick lookup
+        let indexed_kb_names: HashSet<String> = {
+            let indexed = self.kb_indexed_folders.read().await;
+            kb_folders.iter()
+                .filter(|kb| indexed.contains(&format!("{}_{}", bot_name, kb)))
+                .cloned()
+                .collect()
+        };
 
         for (path, current_state) in current_files.iter() {
             let is_new = !file_states.contains_key(path);
             debug!("[GBKB] DEBUG: path={} in_file_states={}", path, !is_new);
 
-            // When all KBs are indexed, skip files that are already tracked (not new)
+            // Skip files from already-indexed KB folders that are not new
+            // This prevents re-download loop when file_states fails to load
+            let kb_name_from_path = path.split('/').nth(1).map(|s| s.to_string());
             if all_indexed && !is_new {
                 trace!("[GBKB] Skipping already indexed file: {}", path);
                 continue;
+            }
+            // Extra safety: if file_states is empty but KB is indexed, skip non-new files
+            if file_states.is_empty() && all_indexed {
+                if let Some(kb) = &kb_name_from_path {
+                    if indexed_kb_names.contains(kb) {
+                        trace!("[GBKB] Skipping file from indexed KB (empty file_states): {}", path);
+                        continue;
+                    }
+                }
             }
 
             // Use last_modified as primary change detector (more stable than ETag)
