@@ -458,10 +458,7 @@ impl LLMProvider for OpenAIClient {
             for line in chunk_str.lines() {
 if line.starts_with("data: ") && !line.contains("[DONE]") {
                     if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
-                        // Handle content (standard) or reasoning/reasoning_content (NVIDIA reasoning models)
-                        let content = data["choices"][0]["delta"]["content"].as_str()
-                            .or_else(|| data["choices"][0]["delta"]["reasoning_content"].as_str())
-                            .or_else(|| data["choices"][0]["delta"]["reasoning"].as_str());
+                        let content = data["choices"][0]["delta"]["content"].as_str();
                         if let Some(content) = content {
                             let processed = handler.process_content(content);
                             if !processed.is_empty() {

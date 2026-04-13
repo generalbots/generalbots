@@ -332,7 +332,6 @@ impl ClaudeClient {
                         let text = delta
                             .content
                             .as_deref()
-                            .or(delta.reasoning_content.as_deref())
                             .unwrap_or("");
 
                         if !text.is_empty() {
