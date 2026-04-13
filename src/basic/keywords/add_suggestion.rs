@@ -74,10 +74,11 @@ pub fn add_suggestion_keyword(
     let user_session3 = user_session.clone();
     let user_session4 = user_session.clone();
 
-    // ADD_SUGGESTION_TOOL "tool_name" AS "button text"
+    // ADD_SUGGESTION_TOOL "tool_name" as "button text"
+    // Note: compiler converts AS -> as (lowercase keywords), so we use lowercase here
     engine
         .register_custom_syntax(
-            ["ADD_SUGGESTION_TOOL", "$expr$", "AS", "$expr$"],
+            ["ADD_SUGGESTION_TOOL", "$expr$", "as", "$expr$"],
             true,
             move |context, inputs| {
                 let tool_name = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -96,10 +97,10 @@ pub fn add_suggestion_keyword(
         )
         .expect("valid syntax registration");
 
-    // ADD_SUGGESTION_TEXT "text_value" AS "button text"
+    // ADD_SUGGESTION_TEXT "text_value" as "button text"
     engine
         .register_custom_syntax(
-            ["ADD_SUGGESTION_TEXT", "$expr$", "AS", "$expr$"],
+            ["ADD_SUGGESTION_TEXT", "$expr$", "as", "$expr$"],
             true,
             move |context, inputs| {
                 let text_value = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -112,10 +113,10 @@ pub fn add_suggestion_keyword(
         )
         .expect("valid syntax registration");
 
-    // ADD_SUGGESTION "context_name" AS "button text"
+    // ADD_SUGGESTION "context_name" as "button text"
     engine
         .register_custom_syntax(
-            ["ADD_SUGGESTION", "$expr$", "AS", "$expr$"],
+            ["ADD_SUGGESTION", "$expr$", "as", "$expr$"],
             true,
             move |context, inputs| {
                 let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
