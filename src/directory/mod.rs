@@ -213,13 +213,11 @@ pub async fn auth_handler(
             let mut script_service =
                 crate::basic::ScriptService::new(state_clone.clone(), session_clone);
 
-            script_service.load_bot_config_params(&state_clone, bot_id);
-            match script_service.compile(&auth_script) {
-                Ok(ast) => match script_service.run(&ast) {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(format!("Script execution error: {}", e)),
-                },
-                Err(e) => Err(format!("Script compilation error: {}", e)),
+script_service.load_bot_config_params(&state_clone, bot_id);
+
+            match script_service.run(&auth_script) {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Script execution error: {}", e)),
             }
         })
         .await

@@ -634,78 +634,73 @@ impl BotOrchestrator {
 
             trace!("Executing start.bas for session {} at: {}", actual_session_id, start_script_path);
 
-            // Use pre-compiled .ast if available (avoids preprocessing)
+            // Load pre-compiled .ast only (compilation happens in Drive Monitor)
             let ast_path = start_script_path.replace(".bas", ".ast");
-            let (script_content, is_preprocessed) = if std::path::Path::new(&ast_path).exists() {
-                (tokio::fs::read_to_string(&ast_path).await.unwrap_or_default(), true)
-            } else {
-                (tokio::fs::read_to_string(&start_script_path).await.unwrap_or_default(), false)
+            let ast_content = match tokio::fs::read_to_string(&ast_path).await {
+                Ok(content) if !content.is_empty() => content,
+                _ => {
+                    let content = tokio::fs::read_to_string(&start_script_path).await.unwrap_or_default();
+                    if content.is_empty() {
+                        trace!("No start.bas/start.ast found for bot {}", bot_name_for_context);
+                        return Ok(());
+                    }
+                    content
+                }
             };
 
-            if !script_content.is_empty() {
-                let state_clone = self.state.clone();
-                let actual_session_id_for_task = session.id;
-                let bot_id_clone = session.bot_id;
+            let state_clone = self.state.clone();
+            let actual_session_id_for_task = session.id;
+            let bot_id_clone = session.bot_id;
 
-                // Execute start.bas synchronously (blocking)
-                let result = tokio::task::spawn_blocking(move || {
-                    let session_result = {
-                        let mut sm = state_clone.session_manager.blocking_lock();
-                        sm.get_session_by_id(actual_session_id_for_task)
-                    };
+            // Execute start.bas synchronously (blocking)
+            let result = tokio::task::spawn_blocking(move || {
+                let session_result = {
+                    let mut sm = state_clone.session_manager.blocking_lock();
+                    sm.get_session_by_id(actual_session_id_for_task)
+                };
 
-                    let sess = match session_result {
-                        Ok(Some(s)) => s,
-                        Ok(None) => {
-                            return Err(format!("Session {} not found during start.bas execution", actual_session_id_for_task));
-                        }
-                        Err(e) => return Err(format!("Failed to get session: {}", e)),
-                    };
-
-                    let mut script_service = crate::basic::ScriptService::new(
-                        state_clone.clone(),
-                        sess
-                    );
-                    script_service.load_bot_config_params(&state_clone, bot_id_clone);
-
-                    let compile_result = if is_preprocessed {
-                        script_service.compile_preprocessed(&script_content)
-                    } else {
-                        script_service.compile(&script_content)
-                    };
-
-                    match compile_result {
-                        Ok(ast) => match script_service.run(&ast) {
-                            Ok(_) => Ok(()),
-                            Err(e) => Err(format!("Script execution error: {}", e)),
-                        },
-                        Err(e) => Err(format!("Script compilation error: {}", e)),
+                let sess = match session_result {
+                    Ok(Some(s)) => s,
+                    Ok(None) => {
+                        return Err(format!("Session {} not found during start.bas execution", actual_session_id_for_task));
                     }
-                }).await;
+                    Err(e) => return Err(format!("Failed to get session: {}", e)),
+                };
 
-                match result {
-                    Ok(Ok(())) => {
-                        trace!("start.bas completed successfully for session {}", actual_session_id);
+                let mut script_service = crate::basic::ScriptService::new(
+                    state_clone.clone(),
+                    sess
+                );
+                script_service.load_bot_config_params(&state_clone, bot_id_clone);
 
-                        // Mark start.bas as executed for this session to prevent re-running
-                        if let Some(cache) = &self.state.cache {
-                            if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-                                let _: Result<(), redis::RedisError> = redis::cmd("SET")
-                                    .arg(&start_bas_key)
-                                    .arg("1")
-                                    .arg("EX")
-                                    .arg("86400") // Expire after 24 hours
-                                    .query_async(&mut conn)
-                                    .await;
-                            }
+                match script_service.run(&ast_content) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Script execution error: {}", e)),
+                }
+            }).await;
+
+            match result {
+                Ok(Ok(())) => {
+                    trace!("start.bas completed successfully for session {}", actual_session_id);
+
+                    // Mark start.bas as executed for this session to prevent re-running
+                    if let Some(cache) = &self.state.cache {
+                        if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+                            let _: Result<(), redis::RedisError> = redis::cmd("SET")
+                                .arg(&start_bas_key)
+                                .arg("1")
+                                .arg("EX")
+                                .arg("86400") // Expire after 24 hours
+                                .query_async(&mut conn)
+                                .await;
                         }
                     }
-                    Ok(Err(e)) => {
-                        error!("start.bas error for session {}: {}", actual_session_id, e);
-                    }
-                    Err(e) => {
-                        error!("start.bas task error for session {}: {}", actual_session_id, e);
-                    }
+                }
+                Ok(Err(e)) => {
+                    error!("start.bas error for session {}: {}", actual_session_id, e);
+                }
+                Err(e) => {
+                    error!("start.bas task error for session {}: {}", actual_session_id, e);
                 }
             }
         } // End of if should_execute_start_bas
@@ -1147,13 +1142,17 @@ impl BotOrchestrator {
 
         // DEBUG: Log LLM output for troubleshooting HTML rendering issues
         let has_html = full_response.contains("</") || full_response.contains("<!--");
-        let preview = if full_response.len() > 500 {
-            format!("{}... ({} chars total)", &full_response[..500], full_response.len())
+        let has_div = full_response.contains("<div") || full_response.contains("</div>");
+        let has_style = full_response.contains("<style");
+        let is_truncated = !full_response.trim_end().ends_with("</div>") && has_div;
+        let preview = if full_response.len() > 800 {
+            format!("{}... ({} chars total)", &full_response[..800], full_response.len())
         } else {
             full_response.clone()
         };
-        info!("[LLM_OUTPUT] session={} has_html={} preview=\"{}\"", 
-            session_id, has_html, preview.replace('\n', "\\n"));
+        info!("[LLM_OUTPUT] session={} has_html={} has_div={} has_style={} is_truncated={} len={} preview=\"{}\"",
+            session_id, has_html, has_div, has_style, is_truncated, full_response.len(), 
+            preview.replace('\n', "\\n"));
 
         trace!("LLM stream complete. Full response: {}", full_response);
 
@@ -1433,27 +1432,22 @@ async fn handle_websocket(
 
                 info!("Looking for start.bas at: {}", start_script_path);
 
-            // Check for pre-compiled .ast file first (avoids preprocessing overhead)
+            // Load pre-compiled .ast only (compilation happens in Drive Monitor)
             let ast_path = start_script_path.replace(".bas", ".ast");
-            let (script_content, is_preprocessed) = if tokio::fs::metadata(&ast_path).await.is_ok() {
-                if let Ok(content) = tokio::fs::read_to_string(&ast_path).await {
-                    info!("Using pre-compiled start.ast for {}", bot_name);
-                    (content, true)
-                } else {
-                    (String::new(), false)
+            let ast_content = match tokio::fs::read_to_string(&ast_path).await {
+                Ok(content) if !content.is_empty() => content,
+                _ => {
+                    let content = tokio::fs::read_to_string(&start_script_path).await.unwrap_or_default();
+                    if content.is_empty() {
+                        info!("No start.bas/start.ast found for bot {}", bot_name);
+                        String::new()
+                    } else {
+                        content
+                    }
                 }
-            } else if tokio::fs::metadata(&start_script_path).await.is_ok() {
-                if let Ok(content) = tokio::fs::read_to_string(&start_script_path).await {
-                    info!("Compiling start.bas for {}", bot_name);
-                    (content, false)
-                } else {
-                    (String::new(), false)
-                }
-            } else {
-                (String::new(), false)
             };
 
-                if !script_content.is_empty() {
+                if !ast_content.is_empty() {
                     info!(
                         "Executing start.bas for bot {} on session {}",
                         bot_name, session_id
@@ -1464,8 +1458,6 @@ async fn handle_websocket(
             let bot_id_str = bot_id.to_string();
             let session_id_str = session_id.to_string();
             let mut send_ready_rx = send_ready_rx;
-            let script_content_owned = script_content.clone();
-            let is_preprocessed_owned = is_preprocessed;
 
                     tokio::spawn(async move {
                         let _ = send_ready_rx.recv().await;
@@ -1502,18 +1494,9 @@ async fn handle_websocket(
                 );
                 script_service.load_bot_config_params(&state_for_start, bot_id);
 
-                let compile_result = if is_preprocessed_owned {
-                    script_service.compile_preprocessed(&script_content_owned)
-                } else {
-                    script_service.compile(&script_content_owned)
-                };
-
-                match compile_result {
-                    Ok(ast) => match script_service.run(&ast) {
-                        Ok(_) => Ok(()),
-                        Err(e) => Err(format!("Script execution error: {}", e)),
-                    },
-                    Err(e) => Err(format!("Script compilation error: {}", e)),
+                match script_service.run(&ast_content) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Script execution error: {}", e)),
                 }
             }).await;
 

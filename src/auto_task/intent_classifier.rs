@@ -721,8 +721,8 @@ END ON
         context_vars.insert("original_intent".to_string(), compiled.original_intent.clone());
         script_service.inject_config_variables(context_vars);
 
-        // Compile and execute the BASIC program
-        let ast = match script_service.compile(basic_program) {
+        // Compile and execute dynamically generated BASIC program
+        let ast = match script_service.engine.compile(basic_program) {
             Ok(ast) => ast,
             Err(e) => {
                 let error_msg = format!("Failed to compile BASIC program: {}", e);
@@ -746,7 +746,7 @@ END ON
             }
         };
 
-        let execution_result = script_service.run(&ast);
+        let execution_result: Result<rhai::Dynamic, Box<rhai::EvalAltResult>> = script_service.engine.eval_ast_with_scope(&mut script_service.scope, &ast);
 
         match execution_result {
             Ok(result) => {

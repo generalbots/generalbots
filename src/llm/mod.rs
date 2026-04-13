@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{error, info};
+use log::{error, info, trace};
 use serde_json::Value;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -413,7 +413,8 @@ impl LLMProvider for OpenAIClient {
         let mut request_body = serde_json::json!({
             "model": model,
             "messages": messages,
-            "stream": true
+            "stream": true,
+            "max_tokens": 16384
         });
 
         // Add tools to the request if provided
@@ -477,7 +478,17 @@ impl LLMProvider for OpenAIClient {
                     for line in chunk_str.lines() {
                         if line.starts_with("data: ") && !line.contains("[DONE]") {
                             if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
+                                // Kimi K2.5 and other reasoning models send thinking in "reasoning" field
+                                // Only process "content" (actual response), ignore "reasoning" (thinking)
                                 let content = data["choices"][0]["delta"]["content"].as_str();
+                                let reasoning = data["choices"][0]["delta"]["reasoning"].as_str();
+
+                                // Log first chunk to help debug reasoning models
+                                if reasoning.is_some() && content.is_none() {
+                                    trace!("[LLM] Kimi reasoning chunk (no content yet): {} chars", 
+                                        reasoning.unwrap_or("").len());
+                                }
+
                                 if let Some(content) = content {
                                     let processed = handler.process_content(content);
                                     if !processed.is_empty() {

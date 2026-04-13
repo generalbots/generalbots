@@ -145,14 +145,10 @@ impl AutomationService {
 
         script_service.load_bot_config_params(&self.state, automation.bot_id);
 
-        match script_service.compile(&script_content) {
-            Ok(ast) => {
-                if let Err(e) = script_service.run(&ast) {
-                    error!("Script execution failed: {}", e);
-                }
-            }
+        match script_service.run(&script_content) {
+            Ok(_) => {}
             Err(e) => {
-                error!("Script compilation failed: {}", e);
+                error!("Script execution failed: {}", e);
             }
         }
         Ok(())

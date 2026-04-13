@@ -448,6 +448,9 @@ impl BasicCompiler {
             source.to_string()
         };
         let source = source.as_str();
+
+        // Preprocess LLM keyword to add WITH OPTIMIZE FOR "speed" syntax
+        let source = crate::basic::ScriptService::preprocess_llm_keyword(source);
         let mut has_schedule = false;
         let script_name = Path::new(source_path)
             .file_stem()
@@ -615,6 +618,12 @@ impl BasicCompiler {
         };
         // Convert BEGIN TALK and BEGIN MAIL blocks to Rhai code
         let result = crate::basic::compiler::blocks::convert_begin_blocks(&result);
+        // Convert ALL multi-word keywords to underscore versions (e.g., "USE KB" → "USE_KB")
+        let result = crate::basic::ScriptService::convert_multiword_keywords(&result);
+        // Convert WHILE...WEND to Rhai while { } blocks BEFORE if/then conversion
+        let result = crate::basic::ScriptService::convert_while_wend_syntax(&result);
+        // Pre-declare all variables at outer scope so assignments inside blocks work correctly
+        let result = crate::basic::ScriptService::predeclare_variables(&result);
         // Convert IF ... THEN / END IF to if ... { }
         let result = crate::basic::ScriptService::convert_if_then_syntax(&result);
         // Convert SELECT ... CASE / END SELECT to match expressions
