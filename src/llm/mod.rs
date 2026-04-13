@@ -457,8 +457,16 @@ impl LLMProvider for OpenAIClient {
             for line in chunk_str.lines() {
                 if line.starts_with("data: ") && !line.contains("[DONE]") {
                     if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
-                        if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
-                            let processed = handler.process_content(content);
+                        // Handle reasoning models (GLM4.7, Kimi K2.5): content is null,
+                        // reasoning_content has the actual response
+                        let content = data["choices"][0]["delta"]["content"].as_str();
+                        let reasoning = data["choices"][0]["delta"]["reasoning_content"].as_str();
+
+                        // Prefer content field (normal models), fallback to reasoning_content
+                        let text_to_use = content.or(reasoning);
+
+                        if let Some(text) = text_to_use {
+                            let processed = handler.process_content(text);
                             if !processed.is_empty() {
                                 let _ = tx.send(processed).await;
                             }
