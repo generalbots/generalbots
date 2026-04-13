@@ -36,20 +36,6 @@ pub struct GLMRequest {
     pub tools: Option<Vec<Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<Value>,
-    #[serde(rename = "extra_body", skip_serializing_if = "Option::is_none")]
-    pub extra_body: Option<GLMExtraBody>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMExtraBody {
-    #[serde(rename = "chat_template_kwargs")]
-    pub chat_template_kwargs: GLMChatTemplateKwargs,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GLMChatTemplateKwargs {
-    pub enable_thinking: bool,
-    pub clear_thinking: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -163,22 +149,16 @@ impl LLMProvider for GLMClient {
             model
         };
 
-        let request = GLMRequest {
-            model: model_name.to_string(),
-            messages,
-            stream: Some(false),
-            max_tokens: None,
-            temperature: Some(1.0),
-            top_p: Some(1.0),
-            tools: None,
-            tool_choice: None,
-            extra_body: Some(GLMExtraBody {
-                chat_template_kwargs: GLMChatTemplateKwargs {
-                    enable_thinking: true,
-                    clear_thinking: false,
-                },
-            }),
-        };
+    let request = GLMRequest {
+        model: model_name.to_string(),
+        messages,
+        stream: Some(false),
+        max_tokens: None,
+        temperature: Some(1.0),
+        top_p: Some(1.0),
+        tools: None,
+        tool_choice: None,
+    };
 
         let url = self.build_url();
         info!("GLM non-streaming request to: {}", url);
@@ -262,22 +242,16 @@ impl LLMProvider for GLMClient {
             None
         };
 
-        let request = GLMRequest {
-            model: model_name.to_string(),
-            messages,
-            stream: Some(true),
-            max_tokens: None,
-            temperature: Some(1.0),
-            top_p: Some(1.0),
-            tools: tools.cloned(),
-            tool_choice,
-            extra_body: Some(GLMExtraBody {
-                chat_template_kwargs: GLMChatTemplateKwargs {
-                    enable_thinking: true,
-                    clear_thinking: false,
-                },
-            }),
-        };
+    let request = GLMRequest {
+        model: model_name.to_string(),
+        messages,
+        stream: Some(true),
+        max_tokens: None,
+        temperature: Some(1.0),
+        top_p: Some(1.0),
+        tools: tools.cloned(),
+        tool_choice,
+    };
 
         let url = self.build_url();
         info!("GLM streaming request to: {}", url);
