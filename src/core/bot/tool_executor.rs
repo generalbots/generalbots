@@ -1,6 +1,6 @@
 /// Generic tool executor for LLM tool calls
 /// Works across all LLM providers (GLM, OpenAI, Claude, etc.)
-use log::{error, info, trace, warn};
+use log::{error, info};
 use serde_json::Value;
 use std::fs::OpenOptions;
 use std::io::Write;
