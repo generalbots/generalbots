@@ -153,15 +153,12 @@ impl LLMProvider for GLMClient {
             model: model_name.to_string(),
             messages,
             stream: Some(false),
-            max_tokens: Some(16384),
+            max_tokens: Some(131072),
             temperature: Some(1.0),
             top_p: Some(1.0),
             tools: None,
             tool_choice: None,
-            chat_template_kwargs: Some(GLMChatTemplateKwargs {
-                enable_thinking: true,
-                clear_thinking: false,
-            }),
+            chat_template_kwargs: None,
         };
 
         let url = self.build_url();
@@ -242,15 +239,12 @@ impl LLMProvider for GLMClient {
             model: model_name.to_string(),
             messages,
             stream: Some(true),
-            max_tokens: Some(16384),
+            max_tokens: Some(131072),
             temperature: Some(1.0),
             top_p: Some(1.0),
             tools: tools.cloned(),
             tool_choice,
-            chat_template_kwargs: Some(GLMChatTemplateKwargs {
-                enable_thinking: true,
-                clear_thinking: false,
-            }),
+            chat_template_kwargs: None,
         };
 
         let url = self.build_url();
