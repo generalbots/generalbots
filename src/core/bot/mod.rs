@@ -35,7 +35,7 @@ use diesel::RunQueryDsl;
 use futures::{sink::SinkExt, stream::StreamExt};
 #[cfg(feature = "llm")]
 use log::trace;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
