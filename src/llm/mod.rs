@@ -10,6 +10,7 @@ pub mod claude;
 pub mod episodic_memory;
 pub mod glm;
 pub mod hallucination_detector;
+pub mod kimi;
 pub mod llm_models;
 pub mod local;
 pub mod observability;
@@ -20,6 +21,7 @@ pub mod bedrock;
 
 pub use claude::ClaudeClient;
 pub use glm::GLMClient;
+pub use kimi::KimiClient;
 pub use llm_models::get_handler;
 pub use rate_limiter::{ApiRateLimiter, RateLimits};
 pub use vertex::VertexTokenManager;
@@ -584,6 +586,8 @@ pub enum LLMProviderType {
     Claude,
     AzureClaude,
     GLM,
+    Kimi,
+    OSS,
     Bedrock,
     Vertex,
 }
@@ -597,12 +601,19 @@ impl From<&str> for LLMProviderType {
             } else {
                 Self::Claude
             }
-        } else if lower.contains("z.ai") || lower.contains("glm") || lower.contains("nvidia") {
+        } else if lower.contains("kimi") || lower.contains("moonshot") {
+            Self::Kimi
+        } else if lower.contains("z.ai") || lower.contains("glm") {
             Self::GLM
+        } else if lower.contains("gpt-oss") {
+            Self::OSS
         } else if lower.contains("bedrock") {
             Self::Bedrock
         } else if lower.contains("googleapis.com") || lower.contains("vertex") || lower.contains("generativelanguage") {
             Self::Vertex
+        } else if lower.contains("nvidia") {
+            // Default NVIDIA provider: GLM for now, can be overridden
+            Self::GLM
         } else {
             Self::OpenAI
         }
@@ -640,6 +651,18 @@ pub fn create_llm_provider(
             info!("Creating GLM/z.ai LLM provider with URL: {}", base_url);
             std::sync::Arc::new(GLMClient::new(base_url))
         }
+        LLMProviderType::Kimi => {
+            info!("Creating Kimi K2.5 LLM provider with URL: {}", base_url);
+            std::sync::Arc::new(KimiClient::new(base_url))
+        }
+        LLMProviderType::OSS => {
+            info!("Creating GPT-OSS LLM provider with URL: {}", base_url);
+            std::sync::Arc::new(OpenAIClient::new(
+                "empty".to_string(),
+                Some(base_url),
+                endpoint_path,
+            ))
+        }
         LLMProviderType::Bedrock => {
             info!("Creating Bedrock LLM provider with exact URL: {}", base_url);
             std::sync::Arc::new(BedrockClient::new(base_url))
@@ -653,17 +676,27 @@ pub fn create_llm_provider(
 }
 
 /// Create LLM provider from URL with optional explicit provider type override.
-/// If explicit_provider is Some, it takes precedence over URL-based detection.
+/// Priority: explicit_provider > model name > URL-based detection.
 pub fn create_llm_provider_from_url(
     url: &str,
     model: Option<String>,
     endpoint_path: Option<String>,
     explicit_provider: Option<LLMProviderType>,
 ) -> std::sync::Arc<dyn LLMProvider> {
-    let provider_type = explicit_provider.as_ref().map(|p| *p).unwrap_or_else(|| LLMProviderType::from(url));
-    if explicit_provider.is_some() {
-        info!("Using explicit LLM provider type: {:?} for URL: {}", provider_type, url);
-    }
+    let provider_type = if let Some(p) = explicit_provider {
+        info!("Using explicit LLM provider type: {:?} for URL: {}", p, url);
+        p
+    } else if let Some(ref m) = model {
+        // Model name takes precedence over URL
+        let detected = LLMProviderType::from(m.as_str());
+        info!("Detected LLM provider type from model '{}': {:?}", m, detected);
+        detected
+    } else {
+        // Fall back to URL-based detection
+        let detected = LLMProviderType::from(url);
+        info!("Detected LLM provider type from URL: {:?}", detected);
+        detected
+    };
     create_llm_provider(provider_type, url.to_string(), model, endpoint_path)
 }
 

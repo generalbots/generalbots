@@ -31,9 +31,25 @@ pub struct GLMRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_p: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tools: Option<Vec<Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<Value>,
+    #[serde(rename = "extra_body", skip_serializing_if = "Option::is_none")]
+    pub extra_body: Option<GLMExtraBody>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GLMExtraBody {
+    #[serde(rename = "chat_template_kwargs")]
+    pub chat_template_kwargs: GLMChatTemplateKwargs,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GLMChatTemplateKwargs {
+    pub enable_thinking: bool,
+    pub clear_thinking: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -140,17 +156,28 @@ impl LLMProvider for GLMClient {
             tool_calls: None,
         }];
 
-        // Use glm-4.7 instead of glm-4 for z.ai API
-        let model_name = if model == "glm-4" { "glm-4.7" } else { model };
+        // NVIDIA API uses z-ai/glm4.7 as the model identifier
+        let model_name = if model == "glm-4" || model == "glm-4.7" {
+            "z-ai/glm4.7"
+        } else {
+            model
+        };
 
         let request = GLMRequest {
             model: model_name.to_string(),
             messages,
             stream: Some(false),
             max_tokens: None,
-            temperature: None,
+            temperature: Some(1.0),
+            top_p: Some(1.0),
             tools: None,
             tool_choice: None,
+            extra_body: Some(GLMExtraBody {
+                chat_template_kwargs: GLMChatTemplateKwargs {
+                    enable_thinking: true,
+                    clear_thinking: false,
+                },
+            }),
         };
 
         let url = self.build_url();
@@ -198,15 +225,12 @@ impl LLMProvider for GLMClient {
                     let role = m.get("role")?.as_str()?;
                     let content = m.get("content")?.as_str()?;
                     let sanitized = Self::sanitize_utf8(content);
-                    if !sanitized.is_empty() {
-                        Some(GLMMessage {
-                            role: role.to_string(),
-                            content: Some(sanitized),
-                            tool_calls: None,
-                        })
-                    } else {
-                        None
-                    }
+                    // NVIDIA API accepts empty content, don't filter them out
+                    Some(GLMMessage {
+                        role: role.to_string(),
+                        content: Some(sanitized),
+                        tool_calls: None,
+                    })
                 })
                 .collect::<Vec<_>>()
         } else {
@@ -218,14 +242,18 @@ impl LLMProvider for GLMClient {
             }]
         };
 
-        // If no messages or all empty, return error
+        // If no messages, return error
         if messages.is_empty() {
             return Err("No valid messages in request".into());
         }
 
-        // Use glm-4.7 for tool calling support
+        // NVIDIA API uses z-ai/glm4.7 as the model identifier
         // GLM-4.7 supports standard OpenAI-compatible function calling
-        let model_name = if model == "glm-4" { "glm-4.7" } else { model };
+        let model_name = if model == "glm-4" || model == "glm-4.7" {
+            "z-ai/glm4.7"
+        } else {
+            model
+        };
 
         // Set tool_choice to "auto" when tools are present - this tells GLM to automatically decide when to call a tool
         let tool_choice = if tools.is_some() {
@@ -239,9 +267,16 @@ impl LLMProvider for GLMClient {
             messages,
             stream: Some(true),
             max_tokens: None,
-            temperature: None,
+            temperature: Some(1.0),
+            top_p: Some(1.0),
             tools: tools.cloned(),
             tool_choice,
+            extra_body: Some(GLMExtraBody {
+                chat_template_kwargs: GLMChatTemplateKwargs {
+                    enable_thinking: true,
+                    clear_thinking: false,
+                },
+            }),
         };
 
         let url = self.build_url();
@@ -307,12 +342,14 @@ impl LLMProvider for GLMClient {
                                         }
                                     }
 
-                                    // GLM/z.ai returns both reasoning_content (thinking) and content (response)
-                                    // We only send the actual content, ignoring reasoning_content
-                                    // This makes GLM behave like OpenAI-compatible APIs
-                                    if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
-                                        if !content.is_empty() {
-                                            match tx.send(content.to_string()).await {
+                                    // GLM-4.7 on NVIDIA sends text via reasoning_content when thinking is enabled
+                                    // content may be null; we accept both fields
+                                    let content = delta.get("content").and_then(|c| c.as_str())
+                                        .or_else(|| delta.get("reasoning_content").and_then(|c| c.as_str()));
+
+                                    if let Some(text) = content {
+                                        if !text.is_empty() {
+                                            match tx.send(text.to_string()).await {
                                                 Ok(_) => {},
                                                 Err(e) => {
                                                     error!("Failed to send to channel: {}", e);
