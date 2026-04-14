@@ -1,9 +1,4 @@
 use super::ModelHandler;
-use regex::Regex;
-use std::sync::LazyLock;
-
-static THINK_TAG_REGEX: LazyLock<Result<Regex, regex::Error>> =
-    LazyLock::new(|| Regex::new(r"(?s)<think>.*?</think>"));
 
 pub fn strip_think_tags(content: &str) -> String {
     // We want to strip <think>...</think> OR <think> until end of string (streaming)
