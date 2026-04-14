@@ -1599,6 +1599,9 @@ let mut send_task = tokio::spawn(async move {
             match msg {
                 Message::Text(text) => {
                     debug!("WebSocket received text: {}", text);
+                    // Add immediate trace
+                    info!("Processing message for session {}", session_id);
+                    
                     if let Ok(user_msg) = serde_json::from_str::<UserMessage>(&text) {
                         let orchestrator = BotOrchestrator::new(state_clone.clone());
                         if let Some(tx_clone) = state_clone
@@ -1639,6 +1642,8 @@ let mut send_task = tokio::spawn(async move {
                                 session_id: session.id.to_string(),
                                 ..user_msg
                             };
+                            info!("Calling orchestrator for session {}", session_id);
+                            
                             if let Err(e) = orchestrator
                                 .stream_response(corrected_msg, tx_clone.clone())
                                 .await
