@@ -207,8 +207,13 @@ impl LLMProvider for GLMClient {
                     let role = m.get("role")?.as_str()?;
                     let content = m.get("content")?.as_str()?;
                     let sanitized = Self::sanitize_utf8(content);
+                    let normalized_role = match role {
+                        "user" | "assistant" | "system" | "tool" => role,
+                        "episodic" | "compact" => "system",
+                        _ => "user",
+                    };
                     Some(GLMMessage {
-                        role: role.to_string(),
+                        role: normalized_role.to_string(),
                         content: Some(sanitized),
                         tool_calls: None,
                     })
