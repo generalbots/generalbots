@@ -890,8 +890,8 @@ pub async fn start_background_services(
         trace!("ensure_llama_servers_running completed");
     }
 
-    #[cfg(feature = "drive")]
-    start_drive_monitors(app_state.clone(), pool).await;
+    // DISABLED: DriveMonitor for testing WebSocket/LLM response in isolation
+    // start_drive_monitors(app_state.clone(), pool).await;
 
     // Local file monitoring removed - Drive (MinIO) is the only source now
     // #[cfg(feature = "local-files")]
