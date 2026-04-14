@@ -3,7 +3,7 @@ use super::ModelHandler;
 pub fn strip_think_tags(content: &str) -> String {
     let mut result = content.to_string();
 
-    // Chinese: （分析）...（/分析）
+    // Chinese: （分析）...（/分析） or unclosed （分析）...
     while let Some(start_idx) = result.find("（分析）") {
         if let Some(end_idx) = result[start_idx..].find("（/分析）") {
             result = format!(
@@ -12,11 +12,13 @@ pub fn strip_think_tags(content: &str) -> String {
                 &result[start_idx + end_idx + 4..]
             );
         } else {
+            // Unclosed - strip to the end
+            result = result[..start_idx].to_string();
             break;
         }
     }
 
-    // English: <think>...</think>
+    // English: <think>...</think> or unclosed <think>...
     while let Some(start_idx) = result.find("<think>") {
         if let Some(end_idx) = result[start_idx..].find("</think>") {
             result = format!(
@@ -25,11 +27,13 @@ pub fn strip_think_tags(content: &str) -> String {
                 &result[start_idx + end_idx + 8..]
             );
         } else {
+            // Unclosed - strip to the end
+            result = result[..start_idx].to_string();
             break;
         }
     }
 
-    // Chinese alternative: 【分析】...【/分析】
+    // Chinese alternative: 【分析】...【/分析】 or unclosed 【分析】...
     while let Some(start_idx) = result.find("【分析】") {
         if let Some(end_idx) = result[start_idx..].find("【/分析】") {
             result = format!(
@@ -38,6 +42,8 @@ pub fn strip_think_tags(content: &str) -> String {
                 &result[start_idx + end_idx + 5..]
             );
         } else {
+            // Unclosed - strip to the end
+            result = result[..start_idx].to_string();
             break;
         }
     }
