@@ -382,8 +382,17 @@ impl LLMProvider for OpenAIClient {
         let mut request_body = serde_json::json!({
             "model": model,
             "messages": messages,
-            "stream": true
+            "stream": true,
+            "max_tokens": 16384,
+            "temperature": 1.0,
+            "top_p": 1.0
         });
+
+        // Kimi K2.5 factory: enable thinking mode via chat_template_kwargs
+        if model.contains("kimi") {
+            request_body["chat_template_kwargs"] = serde_json::json!({"thinking": true});
+            info!("Kimi factory: enabled thinking mode (chat_template_kwargs)");
+        }
 
         // Add tools to the request if provided
         if let Some(tools_value) = tools {
