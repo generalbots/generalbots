@@ -231,8 +231,10 @@ impl VertexClient {
                 let content = msg.get("content").and_then(|c| c.as_str()).unwrap_or("");
                 
                 let gemini_role = match role {
+                    "user" => "user",
                     "assistant" => "model",
-                    "system" => "user", // Gemini doesn't have system role in 'contents' by default, often wrapped in systemInstruction
+                    "system" | "episodic" | "compact" => "user",
+                    "tool" => "user",
                     _ => "user",
                 };
 
