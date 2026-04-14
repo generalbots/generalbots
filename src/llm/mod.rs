@@ -402,10 +402,15 @@ impl LLMProvider for OpenAIClient {
             "top_p": 1.0
         });
 
-        // Kimi K2.5 factory: enable thinking mode via chat_template_kwargs
-        if model.contains("kimi") {
-            request_body["chat_template_kwargs"] = serde_json::json!({"thinking": true});
-            info!("Kimi factory: enabled thinking mode (chat_template_kwargs)");
+        // GLM 4.7 / Kimi K2.5 factory: enable thinking mode via chat_template_kwargs
+        if model.contains("kimi") || model.contains("glm") {
+            let kwargs = if model.contains("glm") {
+                serde_json::json!({"enable_thinking": true, "clear_thinking": false})
+            } else {
+                serde_json::json!({"thinking": true})
+            };
+            request_body["chat_template_kwargs"] = kwargs;
+            info!("Model factory: enabled thinking mode for {} (chat_template_kwargs)", model);
         }
 
         // Add tools to the request if provided
@@ -435,16 +440,44 @@ impl LLMProvider for OpenAIClient {
         let mut stream_state = String::new(); // State for the handler to track thinking tags across chunks
         let mut stream = response.bytes_stream();
 
+        let mut in_reasoning = false;
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result?;
             let chunk_str = String::from_utf8_lossy(&chunk);
             for line in chunk_str.lines() {
                 if line.starts_with("data: ") && !line.contains("[DONE]") {
                     if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
+                        // Handle reasoning_content (GLM 4.7 / deepseek / etc)
+                        if let Some(reasoning) = data["choices"][0]["delta"]["reasoning_content"].as_str() {
+                            if !reasoning.is_empty() {
+                                if !in_reasoning {
+                                    in_reasoning = true;
+                                }
+                                // Send thinking tokens to UI via JSON stringified message
+                                let thinking_msg = serde_json::json!({
+                                    "type": "thinking",
+                                    "content": reasoning
+                                }).to_string();
+                                let _ = tx.send(thinking_msg).await;
+                            }
+                        }
+
+                        // Handle regular content
                         if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
-                            let processed = handler.process_content_streaming(content, &mut stream_state);
-                            if !processed.is_empty() {
-                                let _ = tx.send(processed).await;
+                            if !content.is_empty() {
+                                if in_reasoning {
+                                    in_reasoning = false;
+                                    // Send clear signal
+                                    let clear_msg = serde_json::json!({
+                                        "type": "thinking_clear"
+                                    }).to_string();
+                                    let _ = tx.send(clear_msg).await;
+                                }
+                                
+                                let processed = handler.process_content_streaming(content, &mut stream_state);
+                                if !processed.is_empty() {
+                                    let _ = tx.send(processed).await;
+                                }
                             }
                         }
 
