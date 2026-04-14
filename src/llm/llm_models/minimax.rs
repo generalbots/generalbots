@@ -1,25 +1,47 @@
 use super::ModelHandler;
-use regex::Regex;
-use std::sync::LazyLock;
-
-static THINK_REGEX: LazyLock<Result<Regex, regex::Error>> =
-    LazyLock::new(|| Regex::new(r"(?s)（分析）.*?（/分析）"));
-static THINK_REGEX2: LazyLock<Result<Regex, regex::Error>> =
-    LazyLock::new(|| Regex::new(r"(?s)<think>.*?</think>"));
-static THINK_REGEX3: LazyLock<Result<Regex, regex::Error>> =
-    LazyLock::new(|| Regex::new(r"(?s)【分析】.*?【/分析】"));
 
 pub fn strip_think_tags(content: &str) -> String {
     let mut result = content.to_string();
-    if let Ok(re) = &*THINK_REGEX {
-        result = re.replace_all(&result, "").to_string();
+
+    // Chinese: （分析）...（/分析）
+    while let Some(start_idx) = result.find("（分析）") {
+        if let Some(end_idx) = result[start_idx..].find("（/分析）") {
+            result = format!(
+                "{}{}",
+                &result[..start_idx],
+                &result[start_idx + end_idx + 4..]
+            );
+        } else {
+            break;
+        }
     }
-    if let Ok(re) = &*THINK_REGEX2 {
-        result = re.replace_all(&result, "").to_string();
+
+    // English: <think>...</think>
+    while let Some(start_idx) = result.find("<think>") {
+        if let Some(end_idx) = result[start_idx..].find("</think>") {
+            result = format!(
+                "{}{}",
+                &result[..start_idx],
+                &result[start_idx + end_idx + 8..]
+            );
+        } else {
+            break;
+        }
     }
-    if let Ok(re) = &*THINK_REGEX3 {
-        result = re.replace_all(&result, "").to_string();
+
+    // Chinese alternative: 【分析】...【/分析】
+    while let Some(start_idx) = result.find("【分析】") {
+        if let Some(end_idx) = result[start_idx..].find("【/分析】") {
+            result = format!(
+                "{}{}",
+                &result[..start_idx],
+                &result[start_idx + end_idx + 5..]
+            );
+        } else {
+            break;
+        }
     }
+
     result
 }
 
