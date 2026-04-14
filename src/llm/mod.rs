@@ -461,80 +461,23 @@ impl LLMProvider for OpenAIClient {
         // Accumulate tool calls here because OpenAI streams them in fragments
         let mut active_tool_calls: Vec<serde_json::Value> = Vec::new();
 
-        // Track reasoning state for thinking indicator
-        let mut in_reasoning = false;
-        let mut has_sent_thinking = false;
-        let mut reasoning_buffer = String::new();
-
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result?;
             let chunk_str = String::from_utf8_lossy(&chunk);
             for line in chunk_str.lines() {
                 if line.starts_with("data: ") && !line.contains("[DONE]") {
             if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
-                let content = data["choices"][0]["delta"]["content"].as_str();
-                // Handle both reasoning_content (GLM4.7) and reasoning (Kimi K2.5)
-                let reasoning = data["choices"][0]["delta"]["reasoning_content"].as_str()
-                    .or_else(|| data["choices"][0]["delta"]["reasoning"].as_str());
-
-                // DEBUG: Log raw delta to see what Minimax actually sends
-                trace!("[LLM] Delta: content={:?}, reasoning={:?}", 
-                    content.map(|s| if s.len() > 50 { format!("{}...", &s[..50]) } else { s.to_string() }),
-                    reasoning.map(|s| if s.len() > 50 { format!("{}...", &s[..50]) } else { s.to_string() }));
-
-                // Detect reasoning phase (GLM4.7, Kimi K2.5, Minimax)
-                // Some models send BOTH reasoning and content - filter reasoning even when content exists
-                if reasoning.is_some() {
-                            if !in_reasoning {
-                                trace!("[LLM] Entering reasoning/thinking mode");
-                                in_reasoning = true;
-                            }
-                            // Accumulate reasoning text but don't send to user
-                            if let Some(r) = reasoning {
-                                reasoning_buffer.push_str(r);
-                            }
-                            // If only reasoning (no content yet), skip sending
-                            if content.is_none() {
-                                continue;
-                            }
-                            // If we have both reasoning AND content, just clear reasoning buffer and proceed with content
-                            trace!("[LLM] Got content alongside reasoning, discarding {} chars of reasoning", reasoning_buffer.len());
-                            reasoning_buffer.clear();
-                            // Send thinking indicator only once
-                            if !has_sent_thinking {
-                                let thinking = serde_json::json!({
-                                    "type": "thinking",
-                                    "content": "🤔 Pensando..."
-                                }).to_string();
-                                let _ = tx.send(thinking).await;
-                                has_sent_thinking = true;
-                                trace!("[LLM] Sent thinking indicator");
-                            }
-                            continue; // Don't send reasoning content to user
-                        }
-
-                        // Exited reasoning mode - content is now real response (or we got content alongside reasoning)
-                        if in_reasoning && (content.is_some() || !reasoning_buffer.is_empty()) {
-                            let reason_len = reasoning_buffer.len();
-                            if reason_len > 0 {
-                                trace!("[LLM] Exited reasoning mode, {} chars of reasoning discarded", reason_len);
-                            }
-                            in_reasoning = false;
-                            reasoning_buffer.clear();
-                            // Clear the thinking indicator
-                            let clear_thinking = serde_json::json!({
-                                "type": "thinking_clear",
-                                "content": ""
-                            }).to_string();
-                            let _ = tx.send(clear_thinking).await;
-                        }
-
-                        if let Some(text) = content {
-                            let processed = handler.process_content(text);
-                            if !processed.is_empty() {
-                                let _ = tx.send(processed).await;
-                            }
-                        }
+let content = data["choices"][0]["delta"]["content"].as_str();
+                
+                // TEMP DISABLED: Thinking detection causing deadlock issues
+                // Just pass content through directly without any thinking detection
+                
+                if let Some(text) = content {
+                    let processed = handler.process_content(text);
+                if !processed.is_empty() {
+                    let _ = tx.send(processed).await;
+                }
+            }
 
                         // Handle standard OpenAI tool_calls
                         if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
