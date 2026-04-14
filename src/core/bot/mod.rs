@@ -882,9 +882,10 @@ impl BotOrchestrator {
             // Add chunk to tool_call_buffer and try to parse
             // Tool calls arrive as JSON that can span multiple chunks
 
-            // Extract and send any thinking signals embedded in the chunk
-            // Thinking signals can appear anywhere in the chunk (start, middle, or end)
-            let thinking_regex = regex::Regex::new(r#"\{"content":"[^"]*","type":"thinking"\}|\{"type":"thinking_clear"\}"#).unwrap();
+        // Extract and send any thinking signals embedded in the chunk
+        // Thinking signals can appear anywhere in the chunk (start, middle, or end)
+        // Support both formats: {"content":"...","type":"thinking"} and {"type":"thinking","content":"..."}
+        let thinking_regex = regex::Regex::new(r#"\{"content":"([^"]*)"\s*,\s*"type":"thinking"\}|\{"type":"thinking"\s*,\s*"content":"([^"]*)"\}|\{"type":"thinking_clear"\}"#).unwrap();
             let mut cleaned_chunk = chunk.clone();
             let mut found_thinking = false;
 
