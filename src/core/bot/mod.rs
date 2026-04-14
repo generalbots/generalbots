@@ -912,15 +912,16 @@ impl BotOrchestrator {
                 continue; // Important: do not append to full_response or tool_buffer
             }
 
-            // Check if this chunk contains JSON (either starts with {/[ or contains {/[)
-            let chunk_contains_json = chunk.trim().starts_with('{') || chunk.trim().starts_with('[') ||
-                                        chunk.contains('{') || chunk.contains('[');
+            // Check if this chunk contains a tool call start
+            // We only accumulate if it strongly resembles a tool call to avoid swallowing regular JSON/text
+            let looks_like_tool_start = (chunk.trim().starts_with('{') || chunk.trim().starts_with('[')) && 
+                                        (chunk.contains("\"id\":\"call_") || chunk.contains("\"type\":\"tool_call\"") || chunk.contains("\"function\":"));
 
             let chunk_in_tool_buffer = if accumulating_tool_call {
                 // Already accumulating - add entire chunk to buffer
                 tool_call_buffer.push_str(&chunk);
                 true
-            } else if chunk_contains_json {
+            } else if looks_like_tool_start {
                 // Check if { appears in the middle of the chunk (mixed text + JSON)
                 let json_start = chunk.find('{').or_else(|| chunk.find('['));
 
