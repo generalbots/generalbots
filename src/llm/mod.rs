@@ -3,6 +3,7 @@ use futures::StreamExt;
 use log::{error, info};
 use serde_json::Value;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::{mpsc, RwLock};
 
 pub mod cache;
@@ -198,7 +199,10 @@ impl OpenAIClient {
         };
 
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(60))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
             base_url: base,
             endpoint_path: endpoint,
             rate_limiter: Arc::new(rate_limiter),
