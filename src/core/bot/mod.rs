@@ -882,9 +882,9 @@ impl BotOrchestrator {
             // Tool calls arrive as JSON that can span multiple chunks
 
             // Check if this chunk is an internal event (thinking/thinking_clear)
-            let is_internal_signal = if chunk.trim().starts_with("{\"type\"") {
+            let is_internal_signal = if chunk.trim().starts_with('{') {
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&chunk) {
-                    let t = v.get("type").and_then(|t: &serde_json::Value| t.as_str()).unwrap_or_default();
+                    let t = v.get("type").and_then(|t| t.as_str()).unwrap_or_default();
                     t == "thinking" || t == "thinking_clear"
                 } else { false }
             } else { false };
