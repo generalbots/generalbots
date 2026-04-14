@@ -40,6 +40,7 @@ use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use regex;
 #[cfg(feature = "drive")]
 #[cfg(feature = "drive")]
 use tokio::sync::Mutex as AsyncMutex;
@@ -881,21 +882,23 @@ impl BotOrchestrator {
             // Add chunk to tool_call_buffer and try to parse
             // Tool calls arrive as JSON that can span multiple chunks
 
-            // Check if this chunk is an internal event (thinking/thinking_clear)
-            let is_internal_signal = if chunk.trim().starts_with('{') {
-                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&chunk) {
-                    let t = v.get("type").and_then(|t| t.as_str()).unwrap_or_default();
-                    t == "thinking" || t == "thinking_clear"
-                } else { false }
-            } else { false };
+            // Extract and send any thinking signals embedded in the chunk
+            // Thinking signals can appear anywhere in the chunk (start, middle, or end)
+            let thinking_regex = regex::Regex::new(r#"\{"content":"[^"]*","type":"thinking"\}|\{"type":"thinking_clear"\}"#).unwrap();
+            let mut cleaned_chunk = chunk.clone();
+            let mut found_thinking = false;
 
-            if is_internal_signal {
+            for mat in thinking_regex.find_iter(&chunk) {
+                found_thinking = true;
+                let thinking_signal = mat.as_str();
+
+                // Send the thinking signal to the frontend
                 let response = BotResponse {
                     bot_id: message.bot_id.clone(),
                     user_id: message.user_id.clone(),
                     session_id: message.session_id.clone(),
                     channel: message.channel.clone(),
-                    content: chunk.clone(),
+                    content: thinking_signal.to_string(),
                     message_type: MessageType::BOT_RESPONSE,
                     stream_token: None,
                     is_complete: false,
@@ -909,8 +912,18 @@ impl BotOrchestrator {
                     warn!("Response channel closed during thinking event");
                     break;
                 }
-                continue; // Important: do not append to full_response or tool_buffer
+
+                // Remove the thinking signal from the cleaned chunk
+                cleaned_chunk = cleaned_chunk.replace(thinking_signal, "");
             }
+
+            // If the chunk contained only thinking signals, skip to next iteration
+            if found_thinking && cleaned_chunk.trim().is_empty() {
+                continue;
+            }
+
+            // Use the cleaned chunk for further processing
+            let chunk = cleaned_chunk;
 
             // Check if this chunk contains a tool call start
             // We only accumulate if it strongly resembles a tool call to avoid swallowing regular JSON/text
