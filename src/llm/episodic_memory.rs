@@ -44,9 +44,9 @@ async fn process_episodic_memory(
 
         let history_to_keep = config_manager
             .get_config(&session.bot_id, "history-limit", Some("20")) // Respect history-limit if present
-            .unwrap_or_else(|_| "20".to_string())
+            .unwrap_or_else(|_| "120".to_string())
             .parse::<usize>()
-            .unwrap_or(20);
+            .unwrap_or(120);
 
         if threshold == 0 {
             continue; // Skip this session, episodic memory is disabled for this bot

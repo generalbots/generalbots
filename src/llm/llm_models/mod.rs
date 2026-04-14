@@ -35,7 +35,7 @@ pub fn get_handler(model_path: &str) -> Box<dyn ModelHandler> {
         Box::new(gpt_oss_120b::GptOss120bHandler::new())
     } else if path.contains("20b") {
         Box::new(gpt_oss_20b::GptOss20bHandler)
-    } else if path.contains("minimax") || path.contains("minimax-m") {
+    } else if path.contains("minimax") || path.contains("minimax-m") || path.contains("kimi") {
         Box::new(minimax::MinimaxHandler::new())
     } else {
         Box::new(PassthroughHandler)
