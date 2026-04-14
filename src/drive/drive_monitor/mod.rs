@@ -24,6 +24,9 @@ use serde::{Deserialize, Serialize};
 use tokio::fs as tokio_fs;
 
 #[cfg(any(feature = "research", feature = "llm"))]
+use crate::drive::drive_files::DriveFileRepository;
+
+#[cfg(any(feature = "research", feature = "llm"))]
 static LLM_STREAMING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 #[cfg(any(feature = "research", feature = "llm"))]
@@ -78,6 +81,8 @@ pub struct DriveMonitor {
     kb_indexed_folders: Arc<TokioRwLock<HashSet<String>>>,
     #[cfg(not(any(feature = "research", feature = "llm")))]
     _pending_kb_index: Arc<TokioRwLock<HashSet<String>>>,
+    // Database-backed file state repository
+    file_repo: Arc<DriveFileRepository>,
 }
 impl DriveMonitor {
     fn normalize_config_value(value: &str) -> String {
@@ -93,6 +98,9 @@ impl DriveMonitor {
         let work_root = PathBuf::from(crate::core::shared::utils::get_work_path());
         #[cfg(any(feature = "research", feature = "llm"))]
         let kb_manager = Arc::new(KnowledgeBaseManager::with_bot_config(work_root.clone(), state.conn.clone(), bot_id));
+
+        // Initialize DB-backed file state repository
+        let file_repo = Arc::new(DriveFileRepository::new(state.conn.clone()));
 
         Self {
             state,
@@ -113,6 +121,7 @@ impl DriveMonitor {
             kb_indexed_folders: Arc::new(TokioRwLock::new(HashSet::new())),
             #[cfg(not(any(feature = "research", feature = "llm")))]
             _pending_kb_index: Arc::new(TokioRwLock::new(HashSet::new())),
+            file_repo,
         }
     }
 

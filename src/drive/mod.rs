@@ -25,6 +25,9 @@ use std::sync::Arc;
 pub mod document_processing;
 
 #[cfg(feature = "drive")]
+pub mod drive_files;
+
+#[cfg(feature = "drive")]
 pub mod drive_monitor;
 
 // Local file monitoring removed - Drive (MinIO) is the only source now
