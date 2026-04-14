@@ -200,7 +200,8 @@ impl OpenAIClient {
 
         Self {
             client: reqwest::Client::builder()
-                .timeout(Duration::from_secs(60))
+                .connect_timeout(Duration::from_secs(5))
+                .timeout(Duration::from_secs(30))
                 .build()
                 .unwrap_or_else(|_| reqwest::Client::new()),
             base_url: base,
