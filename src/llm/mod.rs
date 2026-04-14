@@ -227,8 +227,15 @@ impl OpenAIClient {
             }));
         }
         for (role, content) in history {
+            // Filter out internal roles not valid for OpenAI API
+            let api_role = match role.as_str() {
+                "user" | "assistant" | "system" | "developer" | "tool" => role.as_str(),
+                // Convert internal roles to valid API roles
+                "episodic" | "compact" => "system",
+                _ => "system",
+            };
             messages.push(serde_json::json!({
-                "role": role,
+                "role": api_role,
                 "content": Self::sanitize_utf8(content)
             }));
         }

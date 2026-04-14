@@ -845,8 +845,8 @@ fn init_llm_provider(
 
 /// Start background services and monitors
 pub async fn start_background_services(
-    app_state: Arc<AppState>,
-    pool: &crate::core::shared::utils::DbPool,
+  app_state: Arc<AppState>,
+  _pool: &crate::core::shared::utils::DbPool,
 ) {
     use crate::core::shared::memory_monitor::{log_process_memory, start_memory_monitor};
 
@@ -890,8 +890,9 @@ pub async fn start_background_services(
         trace!("ensure_llama_servers_running completed");
     }
 
-    // DISABLED: DriveMonitor for testing WebSocket/LLM response in isolation
-    // start_drive_monitors(app_state.clone(), pool).await;
+  // Start DriveMonitor for S3/MinIO file watching
+  #[cfg(feature = "drive")]
+  start_drive_monitors(app_state.clone(), _pool).await;
 
     // Local file monitoring removed - Drive (MinIO) is the only source now
     // #[cfg(feature = "local-files")]
@@ -901,17 +902,17 @@ pub async fn start_background_services(
     // start_config_watcher(app_state.clone()).await;
 }
 
-#[cfg(feature = "drive")]
-async fn start_drive_monitors(
+  #[cfg(feature = "drive")]
+  async fn start_drive_monitors(
     app_state: Arc<AppState>,
-    pool: &crate::core::shared::utils::DbPool,
-) {
+    _pool: &crate::core::shared::utils::DbPool,
+  ) {
     use crate::core::shared::memory_monitor::register_thread;
     use crate::core::shared::models::schema::bots;
     use diesel::prelude::*;
 
     let drive_monitor_state = app_state.clone();
-    let pool_clone = pool.clone();
+    let pool_clone = _pool.clone();
     let state_for_scan = app_state.clone();
 
     tokio::spawn(async move {
