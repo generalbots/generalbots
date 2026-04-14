@@ -833,6 +833,7 @@ impl BotOrchestrator {
         let mut in_analysis = false;
         let mut tool_call_buffer = String::new(); // Accumulate potential tool call JSON chunks
         let mut accumulating_tool_call = false; // Track if we're currently accumulating a tool call
+        let mut html_buffer = String::new(); // Buffer for HTML content
         let _handler = llm_models::get_handler(&model);
 
         trace!("Using model handler for {}", model);
@@ -1149,25 +1150,47 @@ impl BotOrchestrator {
 
             if !in_analysis {
                 full_response.push_str(&chunk);
+                html_buffer.push_str(&chunk);
 
-                let response = BotResponse {
-                    bot_id: message.bot_id.clone(),
-                    user_id: message.user_id.clone(),
-                    session_id: message.session_id.clone(),
-                    channel: message.channel.clone(),
-                    content: chunk.clone(),
-                    message_type: MessageType::BOT_RESPONSE,
-                    stream_token: None,
-                    is_complete: false,
-                    suggestions: Vec::new(),
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-                };
+                // Check if we should flush the buffer:
+                // 1. HTML tag pair completed (e.g., </div>, </h1>, </p>, </ul>, </li>)
+                // 2. Buffer is large enough (> 500 chars)
+                // 3. This is the last chunk (is_complete will be true next iteration)
+                let should_flush = html_buffer.len() > 500 
+                    || html_buffer.contains("</div>")
+                    || html_buffer.contains("</h1>")
+                    || html_buffer.contains("</h2>")
+                    || html_buffer.contains("</p>")
+                    || html_buffer.contains("</ul>")
+                    || html_buffer.contains("</ol>")
+                    || html_buffer.contains("</li>")
+                    || html_buffer.contains("</section>")
+                    || html_buffer.contains("</header>")
+                    || html_buffer.contains("</footer>");
 
-                if response_tx.send(response).await.is_err() {
-                    warn!("Response channel closed");
-                    break;
+                if should_flush {
+                    let content_to_send = html_buffer.clone();
+                    html_buffer.clear();
+
+                    let response = BotResponse {
+                        bot_id: message.bot_id.clone(),
+                        user_id: message.user_id.clone(),
+                        session_id: message.session_id.clone(),
+                        channel: message.channel.clone(),
+                        content: content_to_send,
+                        message_type: MessageType::BOT_RESPONSE,
+                        stream_token: None,
+                        is_complete: false,
+                        suggestions: Vec::new(),
+                        context_name: None,
+                        context_length: 0,
+                        context_max_length: 0,
+                    };
+
+                    if response_tx.send(response).await.is_err() {
+                        warn!("Response channel closed");
+                        break;
+                    }
                 }
             }
         }
@@ -1207,6 +1230,27 @@ impl BotOrchestrator {
         let suggestions = get_suggestions(self.state.cache.as_ref(), &bot_id_str, &session_id_str);
         #[cfg(not(feature = "chat"))]
         let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
+
+        // Flush any remaining HTML buffer before sending final response
+        if !html_buffer.is_empty() {
+            trace!("Flushing remaining {} chars in HTML buffer", html_buffer.len());
+            let final_chunk = BotResponse {
+                bot_id: message.bot_id.clone(),
+                user_id: message.user_id.clone(),
+                session_id: message.session_id.clone(),
+                channel: message.channel.clone(),
+                content: html_buffer.clone(),
+                message_type: MessageType::BOT_RESPONSE,
+                stream_token: None,
+                is_complete: false,
+                suggestions: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            };
+            let _ = response_tx.send(final_chunk).await;
+            html_buffer.clear();
+        }
 
         // Content was already sent as streaming chunks.
         // Sending full_response again would duplicate it (especially for WhatsApp which accumulates buffer).

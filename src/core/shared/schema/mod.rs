@@ -89,7 +89,10 @@ pub mod project;
 #[cfg(feature = "dashboards")]
 pub mod dashboards;
 
+// Drive (always available - used by DriveMonitor)
+pub mod drive;
+pub use self::drive::*;
+
 // Email integration (always available)
 pub mod email_integration;
 pub use self::email_integration::*;
-
