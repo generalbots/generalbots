@@ -6,6 +6,7 @@ pub mod tool_context;
 use tool_context::get_session_tools;
 pub mod tool_executor;
 use tool_executor::ToolExecutor;
+use std::sync::atomic::Ordering;
 #[cfg(feature = "llm")]
 use crate::core::config::ConfigManager;
 
@@ -1047,43 +1048,67 @@ impl BotOrchestrator {
 
             analysis_buffer.push_str(&chunk);
 
+            // Safety: if we've been in analysis > 30 seconds without completion, force exit
+            // This prevents getting stuck if model doesn't send closing tags
+            const ANALYSIS_TIMEOUT_SECS: u64 = 30;
+            static ANALYSIS_START_TIME: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
             if !in_analysis && handler.has_analysis_markers(&analysis_buffer) {
                 in_analysis = true;
+                ANALYSIS_START_TIME.store(
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs(),
+                    Ordering::SeqCst,
+                );
                 log::debug!(
                     "Detected start of thinking/analysis content for model {}",
                     model
                 );
 
-                let processed = handler.process_content(&analysis_buffer);
-                if !processed.is_empty() && processed != analysis_buffer {
-                    full_response.push_str(&processed);
-
-                    let response = BotResponse {
-                        bot_id: message.bot_id.clone(),
-                        user_id: message.user_id.clone(),
-                        session_id: message.session_id.clone(),
-                        channel: message.channel.clone(),
-                        content: processed,
-                        message_type: MessageType::BOT_RESPONSE,
-                        stream_token: None,
-                        is_complete: false,
-                        suggestions: Vec::new(),
-                        context_name: None,
-                        context_length: 0,
-                        context_max_length: 0,
-                    };
-
-                    if response_tx.send(response).await.is_err() {
-                        warn!("Response channel closed");
-                        break;
-                    }
+                // Send thinking indicator (not the filtered content!)
+                let thinking_msg = BotResponse {
+                    bot_id: message.bot_id.clone(),
+                    user_id: message.user_id.clone(),
+                    session_id: message.session_id.clone(),
+                    channel: message.channel.clone(),
+                    content: "🤔 Pensando...".to_string(),
+                    message_type: MessageType::BOT_RESPONSE,
+                    stream_token: None,
+                    is_complete: false,
+                    suggestions: Vec::new(),
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
+                };
+                
+                if response_tx.send(thinking_msg).await.is_err() {
+                    warn!("Response channel closed");
+                    break;
                 }
-                continue;
+                continue; // Skip sending raw content during thinking
+            }
+
+            // Check timeout
+            if in_analysis {
+                let elapsed = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+                    - ANALYSIS_START_TIME.load(Ordering::SeqCst);
+                if elapsed > ANALYSIS_TIMEOUT_SECS {
+                    warn!("Analysis timeout after {}s, forcing exit", elapsed);
+                    in_analysis = false;
+                }
             }
 
             if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
                 in_analysis = false;
                 trace!("Detected end of thinking for model {}", model);
+
+                // Clear thinking indicator - we'll send empty content that frontend understands
+                // Actually skip this - the next content will replace the thinking indicator
 
                 let processed = handler.process_content(&analysis_buffer);
                 if !processed.is_empty() {
