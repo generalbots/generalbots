@@ -102,16 +102,31 @@ jobs:
           set -e
           SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
           echo "=== Deploy started ==="
+
           echo "Step 1: Checking binary..."
           ls -lh /opt/gbo/data/botserver/target/debug/botserver
+
           echo "Step 2: Backing up old binary..."
           ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak"
-          echo "Step 3: Transferring new binary..."
+
+          echo "Step 3: Disabling auto-restart, then killing old botserver..."
+          ssh $SSH_ARGS system "sudo systemctl stop botserver; sleep 1; sudo systemctl disable botserver 2>/dev/null || true; sleep 1; killall botserver 2>/dev/null || true; sleep 2; killall -9 botserver 2>/dev/null || true; sleep 1; pgrep -f botserver && echo 'WARNING: still running, killing again' && killall -9 botserver || echo 'OK: botserver stopped'"
+
+          echo "Step 4: Transferring new binary..."
           tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && echo 'Transfer complete'"
-          echo "Step 4: Restarting botserver service..."
-          ssh $SSH_ARGS system "sudo systemctl restart botserver && echo 'Botserver restarted'"
-          echo "Step 5: Waiting for botserver to come back..."
-          ssh $SSH_ARGS system "for i in \$(seq 1 30); do curl -sf http://localhost:5858/health >/dev/null 2>&1 && break; sleep 2; done"
+
+          echo "Step 5: Verifying new binary on disk..."
+          ssh $SSH_ARGS system "ls -la /opt/gbo/bin/botserver && stat -c '%y' /opt/gbo/bin/botserver"
+
+          echo "Step 6: Re-enabling and starting botserver service..."
+          ssh $SSH_ARGS system "sudo systemctl enable botserver 2>/dev/null || true; sudo systemctl start botserver && echo 'Botserver started'"
+
+          echo "Step 7: Waiting for botserver to respond on health..."
+          ssh $SSH_ARGS system "for i in \$(seq 1 30); do curl -sf http://localhost:5858/api/health && echo && break; echo \"waiting (\$i/30)...\"; sleep 2; done"
+
+          echo "Step 8: Verifying running process..."
+          ssh $SSH_ARGS system "pgrep -fa botserver"
+
           echo "=== Deploy completed ==="
 
       - name: Verify botserver started
