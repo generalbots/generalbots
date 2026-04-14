@@ -1185,6 +1185,28 @@ impl BotOrchestrator {
 
         trace!("LLM stream complete. Full response: {}", full_response);
 
+        // CRITICAL: Clear thinking indicator when stream ends (in case closing tags weren't detected)
+        // This ensures the "Pensando..." message gets cleared
+        if in_analysis {
+            warn!("Stream ended while in_analysis=true, clearing thinking indicator");
+            in_analysis = false;
+            let clear_thinking = BotResponse {
+                bot_id: message.bot_id.clone(),
+                user_id: message.user_id.clone(),
+                session_id: message.session_id.clone(),
+                channel: message.channel.clone(),
+                content: String::new(),
+                message_type: MessageType::BOT_RESPONSE,
+                stream_token: None,
+                is_complete: false,
+                suggestions: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            };
+            let _ = response_tx.send(clear_thinking).await;
+        }
+
         let state_for_save = self.state.clone();
         let full_response_clone = full_response.clone();
         tokio::task::spawn_blocking(
