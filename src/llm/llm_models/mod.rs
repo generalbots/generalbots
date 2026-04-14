@@ -6,6 +6,9 @@ pub mod minimax;
 pub trait ModelHandler: Send + Sync {
     fn is_analysis_complete(&self, buffer: &str) -> bool;
     fn process_content(&self, content: &str) -> String;
+    fn process_content_streaming(&self, content: &str, _state_buffer: &mut String) -> String {
+        self.process_content(content)
+    }
     fn has_analysis_markers(&self, buffer: &str) -> bool;
 }
 

@@ -432,6 +432,7 @@ impl LLMProvider for OpenAIClient {
         }
 
         let handler = get_handler(model);
+        let mut stream_state = String::new(); // State for the handler to track thinking tags across chunks
         let mut stream = response.bytes_stream();
 
         while let Some(chunk_result) = stream.next().await {
@@ -441,7 +442,7 @@ impl LLMProvider for OpenAIClient {
                 if line.starts_with("data: ") && !line.contains("[DONE]") {
                     if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
                         if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
-                            let processed = handler.process_content(content);
+                            let processed = handler.process_content_streaming(content, &mut stream_state);
                             if !processed.is_empty() {
                                 let _ = tx.send(processed).await;
                             }

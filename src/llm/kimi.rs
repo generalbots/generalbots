@@ -282,6 +282,8 @@ impl LLMProvider for KimiClient {
 
         info!("[Kimi] Connection established, starting stream");
 
+        let handler = crate::llm::llm_models::get_handler(model);
+        let mut stream_state = String::new();
         let mut stream = response.bytes_stream();
         let mut total_content_chars: usize = 0;
         let mut chunk_count: usize = 0;
@@ -327,10 +329,13 @@ impl LLMProvider for KimiClient {
                                     // Kimi K2.5: content has the answer, reasoning/reasoning_content is thinking
                                     if let Some(text) = delta.get("content").and_then(|c| c.as_str()) {
                                         if !text.is_empty() {
-                                            total_content_chars += text.len();
-                                            if tx.send(text.to_string()).await.is_err() {
-                                                info!("[Kimi] Channel closed, stopping stream after {} content chars", total_content_chars);
-                                                return Ok(());
+                                            let processed = handler.process_content_streaming(text, &mut stream_state);
+                                            if !processed.is_empty() {
+                                                total_content_chars += processed.len();
+                                                if tx.send(processed).await.is_err() {
+                                                    info!("[Kimi] Channel closed, stopping stream after {} content chars", total_content_chars);
+                                                    return Ok(());
+                                                }
                                             }
                                         }
                                     }
