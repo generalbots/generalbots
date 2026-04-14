@@ -1,10 +1,15 @@
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
-use log::error;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
+
+/// Register the LLM keyword with a deadlock-free execution model.
+///
+/// Uses a dedicated background thread with its own single-threaded Tokio runtime
+/// to avoid blocking or starving the caller's runtime — the classic source of
+/// LLM deadlocks in this codebase.
 pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     engine
@@ -21,15 +26,34 @@ pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
             let state_for_async = Arc::clone(&state_clone);
             let prompt = build_llm_prompt(&text);
 
-            let handle = tokio::runtime::Handle::current();
-            let result = handle.block_on(async move {
-                tokio::time::timeout(
-                    Duration::from_secs(45),
-                    execute_llm_generation(state_for_async, prompt)
-                ).await
-            });
+            let (tx, rx) = std::sync::mpsc::channel();
 
-            match result {
+            // Spawn a dedicated worker thread with its own runtime.
+            // This prevents deadlocks caused by blocking the caller's runtime
+            // while simultaneously trying to run async code on it.
+            std::thread::Builder::new()
+                .name("llm-worker".into())
+                .spawn(move || {
+                    let result = std::thread::Builder::new()
+                        .name("llm-rt".into())
+                        .spawn(move || {
+                            let rt = tokio::runtime::Builder::new_current_thread()
+                                .enable_all()
+                                .build()?;
+                            rt.block_on(execute_llm_generation(state_for_async, prompt))
+                        });
+                    let outcome = match result {
+                        Ok(handle) => match handle.join() {
+                            Ok(res) => res,
+                            Err(_) => Err("LLM worker thread panicked".into()),
+                        },
+                        Err(e) => Err(format!("Failed to spawn LLM worker: {e}").into()),
+                    };
+                    let _ = tx.send(outcome);
+                })
+                .expect("LLM dispatcher thread");
+
+            match rx.recv_timeout(Duration::from_secs(45)) {
                 Ok(Ok(output)) => Ok(Dynamic::from(output)),
                 Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                     e.to_string().into(),
@@ -43,12 +67,14 @@ pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
         })
         .expect("valid syntax registration");
 }
+
 fn build_llm_prompt(user_text: &str) -> String {
     format!(
         "Você é um assistente virtual em português brasileiro. Responda sempre em português do Brasil, de forma clara e amigável.\n\nPedido do usuário: {}",
         user_text.trim()
     )
 }
+
 pub async fn execute_llm_generation(
     state: Arc<AppState>,
     prompt: String,
