@@ -35,20 +35,21 @@ async fn process_episodic_memory(
     for session in sessions {
         let config_manager = ConfigManager::new(state.conn.clone());
 
+        // Default to 0 (disabled) to respect user's request for false by default
         let threshold = config_manager
-            .get_config(&session.bot_id, "episodic-memory-threshold", None)
-            .unwrap_or_default()
+            .get_config(&session.bot_id, "episodic-memory-threshold", Some("0"))
+            .unwrap_or_else(|_| "0".to_string())
             .parse::<i32>()
-            .unwrap_or(4);
+            .unwrap_or(0);
 
         let history_to_keep = config_manager
-            .get_config(&session.bot_id, "episodic-memory-history", None)
-            .unwrap_or_default()
+            .get_config(&session.bot_id, "history-limit", Some("20")) // Respect history-limit if present
+            .unwrap_or_else(|_| "20".to_string())
             .parse::<usize>()
-            .unwrap_or(2);
+            .unwrap_or(20);
 
         if threshold == 0 {
-            return Ok(());
+            continue; // Skip this session, episodic memory is disabled for this bot
         } else if threshold < 0 {
             trace!(
                 "Negative episodic memory threshold detected for bot {}, skipping",
@@ -114,6 +115,9 @@ async fn process_episodic_memory(
                 "Not enough messages to create episodic memory for session {}",
                 session.id
             );
+            // Clear in-progress flag
+            let mut session_in_progress = SESSION_IN_PROGRESS.lock().await;
+            session_in_progress.remove(&session.id);
             continue;
         }
 
@@ -142,11 +146,13 @@ async fn process_episodic_memory(
         let llm_provider = state.llm_provider.clone();
         let mut filtered = String::new();
         let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
+        
+        // Use session.bot_id instead of Uuid::nil() to avoid using default bot settings
         let model = config_manager
-            .get_config(&Uuid::nil(), "llm-model", None)
+            .get_config(&session.bot_id, "llm-model", None)
             .unwrap_or_default();
         let key = config_manager
-            .get_config(&Uuid::nil(), "llm-key", None)
+            .get_config(&session.bot_id, "llm-key", None)
             .unwrap_or_default();
 
         let summarized = match llm_provider
@@ -159,12 +165,7 @@ async fn process_episodic_memory(
                     session.id,
                     summary.len()
                 );
-                let handler = llm_models::get_handler(
-                    config_manager
-                        .get_config(&session.bot_id, "llm-model", None)
-                        .unwrap_or_default()
-                        .as_str(),
-                );
+                let handler = llm_models::get_handler(&model);
 
                 filtered = handler.process_content(&summary);
                 format!("EPISODIC MEMORY: {}", filtered)

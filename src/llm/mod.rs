@@ -179,6 +179,13 @@ impl OpenAIClient {
             "/v1/chat/completions".to_string()
         };
 
+        // Final normalization: if the base URL already ends with the endpoint, empty the endpoint
+        let (final_base, final_endpoint) = if !endpoint.is_empty() && trimmed_base.ends_with(&endpoint) {
+            (trimmed_base, "".to_string())
+        } else {
+            (trimmed_base, endpoint)
+        };
+
         // Detect API provider and set appropriate rate limits
         let rate_limiter = if base.contains("groq.com") {
             ApiRateLimiter::new(RateLimits::groq_free_tier())
@@ -191,8 +198,8 @@ impl OpenAIClient {
 
         Self {
             client: reqwest::Client::new(),
-            base_url: base,
-            endpoint_path: endpoint,
+            base_url: final_base,
+            endpoint_path: final_endpoint,
             rate_limiter: Arc::new(rate_limiter),
         }
     }
