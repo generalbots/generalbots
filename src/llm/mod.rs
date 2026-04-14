@@ -438,13 +438,15 @@ impl LLMProvider for OpenAIClient {
             }
         }
 
-        let response = self
-            .client
-            .post(&full_url)
-            .header("Authorization", &auth_header)
-            .json(&request_body)
-            .send()
-            .await?;
+info!("LLM: Sending request to {}", full_url);
+let response = self
+    .client
+    .post(&full_url)
+    .header("Authorization", &auth_header)
+    .json(&request_body)
+    .send()
+    .await?;
+info!("LLM: Response received with status {}", response.status());
 
         let status = response.status();
         if status != reqwest::StatusCode::OK {
@@ -460,14 +462,19 @@ impl LLMProvider for OpenAIClient {
             return Err(format!("LLM request failed with status: {}", status).into());
         }
 
-        let handler = get_handler(model);
-        let mut stream = response.bytes_stream();
+let handler = get_handler(model);
+let mut stream = response.bytes_stream();
 
-        // Accumulate tool calls here because OpenAI streams them in fragments
-        let mut active_tool_calls: Vec<serde_json::Value> = Vec::new();
+// Accumulate tool calls here because OpenAI streams them in fragments
+let mut active_tool_calls: Vec<serde_json::Value> = Vec::new();
+let mut chunk_count = 0u32;
 
-        while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result?;
+while let Some(chunk_result) = stream.next().await {
+    chunk_count += 1;
+    if chunk_count <= 5 || chunk_count % 50 == 0 {
+        info!("LLM: Received chunk #{}", chunk_count);
+    }
+    let chunk = chunk_result?;
             let chunk_str = String::from_utf8_lossy(&chunk);
             for line in chunk_str.lines() {
                 if line.starts_with("data: ") && !line.contains("[DONE]") {
@@ -526,18 +533,19 @@ let content = data["choices"][0]["delta"]["content"].as_str();
             }
         }
         
-        // Send accumulated tool calls when stream finishes
-        for tool_call in active_tool_calls {
-            if !tool_call["function"]["name"].as_str().unwrap_or("").is_empty() {
-                let tool_call_json = serde_json::json!({
-                    "type": "tool_call",
-                    "content": tool_call
-                }).to_string();
-                let _ = tx.send(tool_call_json).await;
-            }
-        }
+// Send accumulated tool calls when stream finishes
+for tool_call in active_tool_calls {
+if !tool_call["function"]["name"].as_str().unwrap_or("").is_empty() {
+let tool_call_json = serde_json::json!({
+"type": "tool_call",
+"content": tool_call
+}).to_string();
+let _ = tx.send(tool_call_json).await;
+}
+}
 
-        Ok(())
+info!("LLM: Stream complete, sent {} chunks", chunk_count);
+Ok(())
     }
 
     async fn cancel_job(

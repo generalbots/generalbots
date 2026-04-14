@@ -859,7 +859,17 @@ impl BotOrchestrator {
             }
         }
 
-        while let Some(chunk) = stream_rx.recv().await {
+        let stream_timeout = tokio::time::Duration::from_secs(60);
+'stream_loop: loop {
+    let chunk_result = tokio::time::timeout(stream_timeout, stream_rx.recv()).await;
+    let chunk = match chunk_result {
+        Ok(Some(c)) => c,
+        Ok(None) => break 'stream_loop,
+        Err(_) => {
+            error!("LLM stream timeout after {}s - aborting response", stream_timeout.as_secs());
+            break 'stream_loop
+        }
+    };
 
             // ===== GENERIC TOOL EXECUTION =====
             // Add chunk to tool_call_buffer and try to parse

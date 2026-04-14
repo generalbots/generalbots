@@ -431,7 +431,7 @@ match result {
         trace!("start_monitoring: calling check_for_changes...");
         trace!("Calling initial check_for_changes...");
 
-        match tokio::time::timeout(Duration::from_secs(300), self.check_for_changes()).await {
+        match tokio::time::timeout(Duration::from_secs(12), self.check_for_changes()).await {
             Ok(Ok(_)) => {
                 self.consecutive_failures.store(0, Ordering::Relaxed);
             }
@@ -514,7 +514,7 @@ match result {
 
                 debug!("[DRIVE_MONITOR] About to call check_for_changes for bot {}", self_clone.bot_id);
                 // Add timeout to prevent hanging
-                match tokio::time::timeout(Duration::from_secs(300), self_clone.check_for_changes()).await {
+                match tokio::time::timeout(Duration::from_secs(12), self_clone.check_for_changes()).await {
                     Ok(Ok(_)) => {
                         let prev_failures =
                             self_clone.consecutive_failures.swap(0, Ordering::Relaxed);
