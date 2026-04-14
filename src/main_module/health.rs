@@ -17,8 +17,8 @@ pub async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Js
         StatusCode::SERVICE_UNAVAILABLE
     };
 
-    // Build timestamp set by CI via BOTSERVER_BUILD_DATE env var
     let build_date = option_env!("BOTSERVER_BUILD_DATE").unwrap_or("unknown");
+    let commit = option_env!("BOTSERVER_COMMIT").unwrap_or("unknown");
 
     (
         code,
@@ -27,18 +27,21 @@ pub async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Js
             "service": "botserver",
             "version": env!("CARGO_PKG_VERSION"),
             "build_date": build_date,
+            "commit": commit,
             "database": db_ok
         })),
     )
 }
 
 pub async fn health_check_simple() -> (StatusCode, Json<serde_json::Value>) {
+    let commit = option_env!("BOTSERVER_COMMIT").unwrap_or("unknown");
     (
         StatusCode::OK,
         Json(serde_json::json!({
             "status": "ok",
             "service": "botserver",
-            "version": env!("CARGO_PKG_VERSION")
+            "version": env!("CARGO_PKG_VERSION"),
+            "commit": commit
         })),
     )
 }
