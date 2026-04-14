@@ -45,6 +45,12 @@ pub struct DriveFileRepository {
     pool: DbPool,
 }
 
+impl std::fmt::Debug for DriveFileRepository {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DriveFileRepository").finish()
+    }
+}
+
 impl DriveFileRepository {
     pub fn new(pool: DbPool) -> Self {
         Self { pool }
@@ -77,6 +83,8 @@ impl DriveFileRepository {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 
         let now = Utc::now();
+        let etag_clone = etag.clone();
+        let last_modified_clone = last_modified.clone();
 
         diesel::insert_into(drive_files::table)
             .values((
@@ -93,8 +101,8 @@ impl DriveFileRepository {
             .on_conflict((drive_files::bot_id, drive_files::file_path))
             .do_update()
             .set((
-                drive_files::etag.eq(etag),
-                drive_files::last_modified.eq(last_modified),
+                drive_files::etag.eq(etag_clone),
+                drive_files::last_modified.eq(last_modified_clone),
                 drive_files::updated_at.eq(now),
             ))
             .execute(&mut conn)
@@ -152,7 +160,8 @@ impl DriveFileRepository {
         drive_files::table
             .filter(drive_files::bot_id.eq(bot_id))
             .select(max(drive_files::fail_count))
-            .first(&mut conn)
+            .first::<Option<i32>>(&mut conn)
+            .unwrap_or(Some(0))
             .unwrap_or(0)
     }
 
