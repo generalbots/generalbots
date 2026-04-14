@@ -6,7 +6,6 @@ pub mod tool_context;
 use tool_context::get_session_tools;
 pub mod tool_executor;
 use tool_executor::ToolExecutor;
-use std::sync::atomic::Ordering;
 #[cfg(feature = "llm")]
 use crate::core::config::ConfigManager;
 
@@ -833,7 +832,7 @@ impl BotOrchestrator {
         let mut in_analysis = false;
         let mut tool_call_buffer = String::new(); // Accumulate potential tool call JSON chunks
         let mut accumulating_tool_call = false; // Track if we're currently accumulating a tool call
-        let handler = llm_models::get_handler(&model);
+        let _handler = llm_models::get_handler(&model);
 
         trace!("Using model handler for {}", model);
         trace!("Receiving LLM stream chunks...");
@@ -1048,11 +1047,9 @@ impl BotOrchestrator {
 
             analysis_buffer.push_str(&chunk);
 
-            // Safety: if we've been in analysis > 30 seconds without completion, force exit
-            // This prevents getting stuck if model doesn't send closing tags
-            const ANALYSIS_TIMEOUT_SECS: u64 = 30;
-            static ANALYSIS_START_TIME: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-
+            // TEMP DISABLED: Thinking detection causing deadlock
+            // Just pass content through directly for now
+            /*
             if !in_analysis && handler.has_analysis_markers(&analysis_buffer) {
                 in_analysis = true;
                 ANALYSIS_START_TIME.store(
@@ -1067,7 +1064,7 @@ impl BotOrchestrator {
                     model
                 );
 
-                // Send thinking indicator (not the filtered content!)
+                // Send thinking indicator
                 let thinking_msg = BotResponse {
                     bot_id: message.bot_id.clone(),
                     user_id: message.user_id.clone(),
@@ -1087,10 +1084,9 @@ impl BotOrchestrator {
                     warn!("Response channel closed");
                     break;
                 }
-                continue; // Skip sending raw content during thinking
+                continue;
             }
 
-            // Check timeout
             if in_analysis {
                 let elapsed = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -1106,14 +1102,9 @@ impl BotOrchestrator {
             if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
                 in_analysis = false;
                 trace!("Detected end of thinking for model {}", model);
-
-                // Clear thinking indicator - we'll send empty content that frontend understands
-                // Actually skip this - the next content will replace the thinking indicator
-
                 let processed = handler.process_content(&analysis_buffer);
                 if !processed.is_empty() {
                     full_response.push_str(&processed);
-
                     let response = BotResponse {
                         bot_id: message.bot_id.clone(),
                         user_id: message.user_id.clone(),
@@ -1128,13 +1119,11 @@ impl BotOrchestrator {
                         context_length: 0,
                         context_max_length: 0,
                     };
-
                     if response_tx.send(response).await.is_err() {
                         warn!("Response channel closed");
                         break;
                     }
                 }
-
                 analysis_buffer.clear();
                 continue;
             }
@@ -1142,6 +1131,13 @@ impl BotOrchestrator {
             if in_analysis {
                 trace!("Accumulating thinking content, not sending to user");
                 continue;
+            }
+            */
+
+            // If in analysis mode from previous chunks, just clear and continue (TEMPORARY)
+            if in_analysis {
+                in_analysis = false;
+                trace!("Cleared leftover in_analysis state");
             }
 
             if !in_analysis {
@@ -1184,28 +1180,6 @@ impl BotOrchestrator {
             preview.replace('\n', "\\n"));
 
         trace!("LLM stream complete. Full response: {}", full_response);
-
-        // CRITICAL: Clear thinking indicator when stream ends (in case closing tags weren't detected)
-        // This ensures the "Pensando..." message gets cleared
-        if in_analysis {
-            warn!("Stream ended while in_analysis=true, clearing thinking indicator");
-            in_analysis = false;
-            let clear_thinking = BotResponse {
-                bot_id: message.bot_id.clone(),
-                user_id: message.user_id.clone(),
-                session_id: message.session_id.clone(),
-                channel: message.channel.clone(),
-                content: String::new(),
-                message_type: MessageType::BOT_RESPONSE,
-                stream_token: None,
-                is_complete: false,
-                suggestions: Vec::new(),
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
-            let _ = response_tx.send(clear_thinking).await;
-        }
 
         let state_for_save = self.state.clone();
         let full_response_clone = full_response.clone();
