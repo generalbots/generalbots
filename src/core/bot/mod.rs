@@ -881,6 +881,30 @@ impl BotOrchestrator {
             // Add chunk to tool_call_buffer and try to parse
             // Tool calls arrive as JSON that can span multiple chunks
 
+            // Check if this chunk is an internal event (thinking/thinking_clear)
+            if chunk.trim().starts_with("{\"type\":\"thinking\"") || chunk.trim().starts_with("{\"type\":\"thinking_clear\"") {
+                let response = BotResponse {
+                    bot_id: message.bot_id.clone(),
+                    user_id: message.user_id.clone(),
+                    session_id: message.session_id.clone(),
+                    channel: message.channel.clone(),
+                    content: chunk.clone(),
+                    message_type: MessageType::BOT_RESPONSE,
+                    stream_token: None,
+                    is_complete: false,
+                    suggestions: Vec::new(),
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
+                };
+
+                if response_tx.send(response).await.is_err() {
+                    warn!("Response channel closed during thinking event");
+                    break;
+                }
+                continue; // Important: do not append to full_response or tool_buffer
+            }
+
             // Check if this chunk contains JSON (either starts with {/[ or contains {/[)
             let chunk_contains_json = chunk.trim().starts_with('{') || chunk.trim().starts_with('[') ||
                                         chunk.contains('{') || chunk.contains('[');
