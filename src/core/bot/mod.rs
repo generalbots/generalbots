@@ -882,49 +882,27 @@ impl BotOrchestrator {
             // Add chunk to tool_call_buffer and try to parse
             // Tool calls arrive as JSON that can span multiple chunks
 
-        // Extract and send any thinking signals embedded in the chunk
-        // Thinking signals can appear anywhere in the chunk (start, middle, or end)
-        // Support both formats: {"content":"...","type":"thinking"} and {"type":"thinking","content":"..."}
-        let thinking_regex = regex::Regex::new(r#"\{"content":"([^"]*)"\s*,\s*"type":"thinking"\}|\{"type":"thinking"\s*,\s*"content":"([^"]*)"\}|\{"type":"thinking_clear"\}"#).unwrap();
-            let mut cleaned_chunk = chunk.clone();
-            let mut found_thinking = false;
+        // Strip GPT-oSS thinking content from chunks
+        // Thinking content appears as JSON objects: {"content":"...","type":"thinking"}
+        // We remove these completely as they are internal reasoning not meant for display
+        let thinking_regex = regex::Regex::new(r#"\{"content":"((?:[^"\\]|\\.)*?)"\s*,\s*"type":"thinking"\}|\{"type":"thinking"\s*,\s*"content":"((?:[^"\\]|\\.)*?)"\}|\{"type":"thinking_clear"\}"#).unwrap();
+        let mut cleaned_chunk = chunk.clone();
+        let mut found_thinking = false;
 
-            for mat in thinking_regex.find_iter(&chunk) {
-                found_thinking = true;
-                let thinking_signal = mat.as_str();
+        for mat in thinking_regex.find_iter(&chunk) {
+            found_thinking = true;
+            let thinking_signal = mat.as_str();
+            // Remove the thinking signal from the cleaned chunk
+            cleaned_chunk = cleaned_chunk.replace(thinking_signal, "");
+        }
 
-                // Send the thinking signal to the frontend
-                let response = BotResponse {
-                    bot_id: message.bot_id.clone(),
-                    user_id: message.user_id.clone(),
-                    session_id: message.session_id.clone(),
-                    channel: message.channel.clone(),
-                    content: thinking_signal.to_string(),
-                    message_type: MessageType::BOT_RESPONSE,
-                    stream_token: None,
-                    is_complete: false,
-                    suggestions: Vec::new(),
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-                };
+        // If the chunk contained only thinking signals, skip to next iteration
+        if found_thinking && cleaned_chunk.trim().is_empty() {
+            continue;
+        }
 
-                if response_tx.send(response).await.is_err() {
-                    warn!("Response channel closed during thinking event");
-                    break;
-                }
-
-                // Remove the thinking signal from the cleaned chunk
-                cleaned_chunk = cleaned_chunk.replace(thinking_signal, "");
-            }
-
-            // If the chunk contained only thinking signals, skip to next iteration
-            if found_thinking && cleaned_chunk.trim().is_empty() {
-                continue;
-            }
-
-            // Use the cleaned chunk for further processing
-            let chunk = cleaned_chunk;
+        // Use the cleaned chunk for further processing
+        let chunk = cleaned_chunk;
 
             // Check if this chunk contains a tool call start
             // We only accumulate if it strongly resembles a tool call to avoid swallowing regular JSON/text
