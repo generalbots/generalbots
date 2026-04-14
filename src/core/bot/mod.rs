@@ -405,6 +405,15 @@ impl BotOrchestrator {
                 };
 
                 // Direct tool execution — return result immediately, no LLM call
+                let mut suggestions = vec![];
+                if let Some(cache) = &self.state.cache {
+                    #[cfg(feature = "chat")]
+                    {
+                        // Try to restore existing suggestions so they don't disappear in the UI
+                        suggestions = get_suggestions(Some(cache), &message.bot_id, &message.session_id);
+                    }
+                }
+
                 let final_response = BotResponse {
                     bot_id: message.bot_id.clone(),
                     user_id: message.user_id.clone(),
@@ -414,7 +423,7 @@ impl BotOrchestrator {
                     message_type: MessageType::BOT_RESPONSE,
                     stream_token: None,
                     is_complete: true,
-                    suggestions: vec![],
+                    suggestions,
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
