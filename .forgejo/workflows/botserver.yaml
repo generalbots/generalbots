@@ -84,7 +84,7 @@ jobs:
         run: |
           sccache --start-server 2>/dev/null || true
           BOTSERVER_BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          BOTSERVER_COMMIT="$(git -C /opt/gbo/data/botserver rev-parse --short HEAD)"
+          BOTSERVER_COMMIT="$(git -C /opt/gbo/data/botserver/botserver rev-parse --short HEAD 2>/dev/null || echo unknown)"
           export BOTSERVER_BUILD_DATE
           export BOTSERVER_COMMIT
           echo "Build date: $BOTSERVER_BUILD_DATE"
@@ -108,10 +108,10 @@ jobs:
           ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak"
           echo "Step 3: Transferring new binary..."
           tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && echo 'Transfer complete'"
-          echo "Step 4: Restarting system container..."
-          ssh $SSH_ARGS system "sudo systemctl restart system" || ssh $SSH_ARGS system "sudo reboot"
+          echo "Step 4: Restarting botserver service..."
+          ssh $SSH_ARGS system "sudo systemctl restart botserver && echo 'Botserver restarted'"
           echo "Step 5: Waiting for botserver to come back..."
-          ssh $SSH_ARGS system "for i in \$(seq 1 60); do pgrep -f botserver >/dev/null 2>&1 && curl -sf http://localhost:5858/health >/dev/null 2>&1 && break; sleep 2; done"
+          ssh $SSH_ARGS system "for i in \$(seq 1 30); do curl -sf http://localhost:5858/health >/dev/null 2>&1 && break; sleep 2; done"
           echo "=== Deploy completed ==="
 
       - name: Verify botserver started
