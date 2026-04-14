@@ -1685,13 +1685,13 @@ let file_state = FileState {
                 files_processed += 1;
                 debug!("[GBKB] Queue size: {}/10", files_to_process.len());
 
-                // Skip downloads if LLM is actively streaming to prevent deadlock
-                #[cfg(any(feature = "research", feature = "llm"))]
-                if is_llm_streaming() {
-                    debug!("[GBKB] Skipping download - LLM is streaming, will retry later");
-                    files_to_process.clear();
-                    break;
-                }
+                // REMOVED: Skip downloads if LLM is actively streaming - was causing deadlocks
+                // #[cfg(any(feature = "research", feature = "llm"))]
+                // if is_llm_streaming() {
+                //     debug!("[GBKB] Skipping download - LLM is streaming, will retry later");
+                //     files_to_process.clear();
+                //     break;
+                // }
 
                 if files_to_process.len() >= 10 {
                     debug!("[GBKB] Downloading batch of {} files", files_to_process.len());
