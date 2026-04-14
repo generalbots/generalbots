@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{error, info, trace};
+use log::{error, info};
 use serde_json::Value;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
