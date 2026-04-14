@@ -836,7 +836,9 @@ impl BotOrchestrator {
         let _handler = llm_models::get_handler(&model);
 
         trace!("Using model handler for {}", model);
+        info!("LLM streaming started for session {}", session.id);
         trace!("Receiving LLM stream chunks...");
+        let mut chunk_count: usize = 0;
 
         #[cfg(feature = "nvidia")]
         {
@@ -860,6 +862,10 @@ impl BotOrchestrator {
         }
 
         while let Some(chunk) = stream_rx.recv().await {
+            chunk_count += 1;
+            if chunk_count <= 3 || chunk_count % 50 == 0 {
+                info!("LLM chunk #{chunk_count} received for session {} (len={})", session.id, chunk.len());
+            }
 
             // ===== GENERIC TOOL EXECUTION =====
             // Add chunk to tool_call_buffer and try to parse
