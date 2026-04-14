@@ -30,7 +30,4 @@ diesel::joinable!(kb_group_associations -> kb_collections (kb_id));
 diesel::joinable!(kb_group_associations -> rbac_groups (group_id));
 diesel::joinable!(kb_group_associations -> users (granted_by));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    kb_collections,
-    kb_group_associations,
-);
+diesel::allow_tables_to_appear_in_same_query!(kb_collections, kb_group_associations,);

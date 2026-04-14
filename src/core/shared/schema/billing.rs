@@ -1,4 +1,4 @@
-use crate::core::shared::schema::core::{organizations, bots};
+use crate::core::shared::schema::core::{bots, organizations};
 
 diesel::table! {
     billing_invoices (id) {
