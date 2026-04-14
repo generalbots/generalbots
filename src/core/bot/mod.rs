@@ -10,7 +10,7 @@ use tool_executor::ToolExecutor;
 use crate::core::config::ConfigManager;
 
 #[cfg(feature = "drive")]
-use crate::drive::drive_monitor::{DriveMonitor, set_llm_streaming};
+use crate::drive::drive_monitor::{DriveMonitor};
 #[cfg(feature = "llm")]
 use crate::llm::llm_models;
 #[cfg(feature = "llm")]
@@ -811,9 +811,9 @@ impl BotOrchestrator {
         // Clone messages for the async task
         let messages_clone = messages.clone();
 
-        // Set flag to prevent DriveMonitor PDF downloads during LLM streaming
-        #[cfg(feature = "drive")]
-        set_llm_streaming(true);
+        // REMOVED: LLM streaming lock was causing deadlocks
+        // #[cfg(feature = "drive")]
+        // set_llm_streaming(true);
 
         let stream_tx_clone = stream_tx.clone();
         tokio::spawn(async move {
@@ -823,8 +823,9 @@ impl BotOrchestrator {
             {
                 error!("LLM streaming error: {}", e);
             }
-            #[cfg(feature = "drive")]
-            set_llm_streaming(false);
+            // REMOVED: LLM streaming lock was causing deadlocks
+            // #[cfg(feature = "drive")]
+            // set_llm_streaming(false);
         });
 
         let mut full_response = String::new();
