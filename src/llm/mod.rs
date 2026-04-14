@@ -471,6 +471,11 @@ impl LLMProvider for OpenAIClient {
                 let reasoning = data["choices"][0]["delta"]["reasoning_content"].as_str()
                     .or_else(|| data["choices"][0]["delta"]["reasoning"].as_str());
 
+                // DEBUG: Log raw delta to see what Minimax actually sends
+                trace!("[LLM] Delta: content={:?}, reasoning={:?}", 
+                    content.map(|s| if s.len() > 50 { format!("{}...", &s[..50]) } else { s.to_string() }),
+                    reasoning.map(|s| if s.len() > 50 { format!("{}...", &s[..50]) } else { s.to_string() }));
+
                 // Detect reasoning phase (GLM4.7, Kimi K2.5, Minimax)
                 // Some models send BOTH reasoning and content - filter reasoning even when content exists
                 if reasoning.is_some() {
