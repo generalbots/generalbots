@@ -470,7 +470,7 @@ match result {
           } else if max_fail_count >= 1 {
             300
           } else {
-            30
+            60
           };
 
           if base_sleep > 10 {
