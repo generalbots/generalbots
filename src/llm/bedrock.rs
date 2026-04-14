@@ -59,7 +59,17 @@ impl BedrockClient {
         let mut messages_limited = Vec::new();
         if let Some(msg_array) = raw_messages.as_array() {
             for msg in msg_array {
-                messages_limited.push(msg.clone());
+                let role = msg.get("role").and_then(|r| r.as_str()).unwrap_or("user");
+                let normalized_role = match role {
+                    "user" | "assistant" | "system" | "developer" | "tool" => role,
+                    "episodic" | "compact" => "system",
+                    _ => "user",
+                };
+                let mut new_msg = msg.clone();
+                if let Some(obj) = new_msg.as_object_mut() {
+                    obj.insert("role".to_string(), serde_json::json!(normalized_role));
+                }
+                messages_limited.push(new_msg);
             }
         }
         Value::Array(messages_limited)
