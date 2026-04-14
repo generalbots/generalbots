@@ -322,7 +322,10 @@ impl LLMProvider for OpenAIClient {
                 "model": model,
                 "messages": messages,
                 "stream": false,
-                "max_tokens": 131072
+                "max_tokens": 131072,
+                "extra_body": {
+                    "reasoning_split": false
+                }
             }))
             .send()
             .await?;
@@ -416,7 +419,10 @@ impl LLMProvider for OpenAIClient {
             "model": model,
             "messages": messages,
             "stream": true,
-            "max_tokens": 131072
+            "max_tokens": 131072,
+            "extra_body": {
+                "reasoning_split": false
+            }
         });
 
         // Add tools to the request if provided
