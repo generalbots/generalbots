@@ -23,61 +23,6 @@ use crate::core::shared::state::AppState;
 #[cfg(feature = "chat")]
 use crate::basic::keywords::add_suggestion::get_suggestions;
 
-#[cfg(feature = "docs")]
-use crate::docs::utils::strip_html;
-#[cfg(feature = "paper")]
-use crate::paper::utils::strip_markdown;
-
-fn strip_html_local(html: &str) -> String {
-    let mut result = String::new();
-    let mut in_tag = false;
-    for ch in html.chars() {
-        match ch {
-            '<' => in_tag = true,
-            '>' => in_tag = false,
-            _ if !in_tag => result.push(ch),
-            _ => {}
-        }
-    }
-    result
-        .replace("&nbsp;", " ")
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-}
-
-fn strip_markdown_local(markdown: &str) -> String {
-    let mut result = String::new();
-    for line in markdown.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with("```") {
-            continue;
-        }
-        let content = if let Some(rest) = trimmed.strip_prefix("### ") {
-            rest
-        } else if let Some(rest) = trimmed.strip_prefix("## ") {
-            rest
-        } else if let Some(rest) = trimmed.strip_prefix("# ") {
-            rest
-        } else if let Some(rest) = trimmed.strip_prefix("- [ ] ") {
-            rest
-        } else if let Some(rest) = trimmed.strip_prefix("- [x] ") {
-            rest
-        } else if let Some(rest) = trimmed.strip_prefix("- ") {
-            rest
-        } else if let Some(rest) = trimmed.strip_prefix("* ") {
-            rest
-        } else {
-            trimmed
-        };
-        if !result.is_empty() {
-            result.push(' ');
-        }
-        result.push_str(content);
-    }
-    result.trim().to_string()
-}
 use axum::extract::ws::{Message, WebSocket};
 use axum::{
     extract::{ws::WebSocketUpgrade, Extension, Path, Query, State},
@@ -1332,25 +1277,24 @@ while let Some(chunk) = stream_rx.recv().await {
             session_id, has_html, has_div, has_style, is_truncated, full_response.len(), 
             preview.replace('\n', "\\n"));
 
-        let plain_text = strip_markdown_local(&strip_html_local(&full_response));
-        let plain_text_len = plain_text.len();
-        let history_preview = if plain_text.len() > 100 {
-            format!("{}...", plain_text.split_at(100).0)
+        let full_response_len = full_response.len();
+        let history_preview = if full_response.len() > 100 {
+            format!("{}...", full_response.split_at(100).0)
         } else {
-            plain_text.clone()
+            full_response.clone()
         };
-        info!("history_save: session_id={} user_id={} content_len={} preview={}", 
-            session.id, user_id, plain_text_len, history_preview);
+        info!("history_save: session_id={} user_id={} full_response_len={} preview={}", 
+            session.id, user_id, full_response_len, history_preview);
         
         let state_for_save = self.state.clone();
-        let plain_text_for_save = plain_text.clone();
+        let full_response_for_save = full_response.clone();
         let session_id_for_save = session.id;
         let user_id_for_save = user_id;
         
         let save_result = tokio::task::spawn_blocking(
             move || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 let mut sm = state_for_save.session_manager.blocking_lock();
-                sm.save_message(session_id_for_save, user_id_for_save, 2, &plain_text_for_save, 2)?;
+                sm.save_message(session_id_for_save, user_id_for_save, 2, &full_response_for_save, 2)?;
                 Ok(())
             },
         )
