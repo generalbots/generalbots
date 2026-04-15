@@ -201,8 +201,8 @@ async fn think_kb_search(
     // ── 3. Search KBs (KbContextManager handles Qdrant calls) ────────────────
     let context_manager = KbContextManager::new(kb_manager, db_pool);
 
-    let all_kb_contexts = context_manager
-        .search_active_kbs(session_id, bot_id, &bot_name, query, 10, 2000)
+        let all_kb_contexts = context_manager
+            .search_active_kbs(session_id, bot_id, &bot_name, query, 25, 2000)
         .await
         .map_err(|e| format!("KB search failed: {e}"))?;
 

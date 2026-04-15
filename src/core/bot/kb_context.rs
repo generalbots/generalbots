@@ -493,11 +493,11 @@ pub async fn inject_kb_context(
     let context_manager = KbContextManager::new(kb_manager.clone(), db_pool.clone());
 
     let kb_contexts = context_manager
-        .search_active_kbs(context.session_id, context.bot_id, context.bot_name, context.user_query, 5, context.max_context_tokens / 2)
+        .search_active_kbs(context.session_id, context.bot_id, context.bot_name, context.user_query, 20, context.max_context_tokens / 2)
         .await?;
 
     let website_contexts = context_manager
-        .search_active_websites(context.session_id, context.user_query, 5, context.max_context_tokens / 2)
+        .search_active_websites(context.session_id, context.user_query, 20, context.max_context_tokens / 2)
         .await?;
 
     let mut all_contexts = kb_contexts;
