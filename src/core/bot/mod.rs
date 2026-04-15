@@ -22,6 +22,7 @@ use crate::core::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::core::shared::state::AppState;
 #[cfg(feature = "chat")]
 use crate::basic::keywords::add_suggestion::get_suggestions;
+use html2md::parse_html;
 
 use axum::extract::ws::{Message, WebSocket};
 use axum::{
@@ -1278,23 +1279,29 @@ while let Some(chunk) = stream_rx.recv().await {
             preview.replace('\n', "\\n"));
 
         let full_response_len = full_response.len();
-        let history_preview = if full_response.len() > 100 {
-            format!("{}...", full_response.split_at(100).0)
+        let is_html = full_response.contains("<") && full_response.contains(">");
+        let content_for_save = if is_html {
+            parse_html(&full_response)
         } else {
             full_response.clone()
         };
-        info!("history_save: session_id={} user_id={} full_response_len={} preview={}", 
-            session.id, user_id, full_response_len, history_preview);
+        let history_preview = if content_for_save.len() > 100 {
+            format!("{}...", content_for_save.split_at(100).0)
+        } else {
+            content_for_save.clone()
+        };
+        info!("history_save: session_id={} user_id={} full_response_len={} is_html={} content_len={} preview={}", 
+            session.id, user_id, full_response_len, is_html, content_for_save.len(), history_preview);
         
         let state_for_save = self.state.clone();
-        let full_response_for_save = full_response.clone();
+        let content_for_save_owned = content_for_save;
         let session_id_for_save = session.id;
         let user_id_for_save = user_id;
         
         let save_result = tokio::task::spawn_blocking(
             move || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 let mut sm = state_for_save.session_manager.blocking_lock();
-                sm.save_message(session_id_for_save, user_id_for_save, 2, &full_response_for_save, 2)?;
+                sm.save_message(session_id_for_save, user_id_for_save, 2, &content_for_save_owned, 2)?;
                 Ok(())
             },
         )
