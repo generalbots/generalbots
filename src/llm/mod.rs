@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{error, info};
+use log::{error, info, trace};
 use serde_json::Value;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -291,15 +291,15 @@ impl LLMProvider for OpenAIClient {
         let auth_header = format!("Bearer {}", key);
 
         // Debug logging to help troubleshoot 401 errors
-        info!("LLM Request Details:");
-        info!("  URL: {}", full_url);
-        info!("  Authorization: Bearer <{} chars>", key.len());
-        info!("  Model: {}", model);
+        trace!("LLM Request Details:");
+        trace!("  URL: {}", full_url);
+        trace!("  Authorization: Bearer <{} chars>", key.len());
+        trace!("  Model: {}", model);
         if let Some(msg_array) = messages.as_array() {
-            info!("  Messages: {} messages", msg_array.len());
+            trace!("  Messages: {} messages", msg_array.len());
         }
-        info!("  API Key First 8 chars: '{}...'", &key.chars().take(8).collect::<String>());
-        info!("  API Key Last 8 chars: '...{}'", &key.chars().rev().take(8).collect::<String>());
+        trace!("  API Key First 8 chars: '{}...'", &key.chars().take(8).collect::<String>());
+        trace!("  API Key Last 8 chars: '...{}'", &key.chars().rev().take(8).collect::<String>());
 
         // Build the request body (no tools for non-streaming generate)
         let response = self
@@ -381,15 +381,15 @@ impl LLMProvider for OpenAIClient {
         let auth_header = format!("Bearer {}", key);
 
         // Debug logging to help troubleshoot 401 errors
-        info!("LLM Request Details:");
-        info!("  URL: {}", full_url);
-        info!("  Authorization: Bearer <{} chars>", key.len());
-        info!("  Model: {}", model);
+        trace!("LLM Request Details:");
+        trace!("  URL: {}", full_url);
+        trace!("  Authorization: Bearer <{} chars>", key.len());
+        trace!("  Model: {}", model);
         if let Some(msg_array) = messages.as_array() {
-            info!("  Messages: {} messages", msg_array.len());
+            trace!("  Messages: {} messages", msg_array.len());
         }
         if let Some(tools) = tools {
-            info!("  Tools: {} tools provided", tools.len());
+            trace!("  Tools: {} tools provided", tools.len());
         }
 
         // Build the request body - include tools if provided

@@ -788,11 +788,11 @@ impl BotOrchestrator {
 
         // Use bot-specific LLM provider if the bot has its own llm-url configured
         let llm: std::sync::Arc<dyn crate::llm::LLMProvider> = if let Some(ref url) = bot_llm_url {
-            info!("Bot has custom llm-url: {}, creating per-bot LLM provider", url);
+            trace!("Bot has custom llm-url: {}, creating per-bot LLM provider", url);
             // Parse explicit provider type if configured (e.g., "openai", "bedrock", "claude")
             let explicit_type = explicit_llm_provider.as_ref().map(|p| {
                 let parsed: crate::llm::LLMProviderType = p.as_str().into();
-                info!("Using explicit llm-provider config: {:?} for bot {}", parsed, session.bot_id);
+                trace!("Using explicit llm-provider config: {:?} for bot {}", parsed, session.bot_id);
                 parsed
             });
             crate::llm::create_llm_provider_from_url(url, Some(model.clone()), bot_endpoint_path, explicit_type)
@@ -849,13 +849,13 @@ impl BotOrchestrator {
         }
     });
 
-    // Wait for cancellation to abort LLM task
-    tokio::spawn(async move {
-        if cancel_rx_for_abort.recv().await.is_ok() {
-            info!("Aborting LLM task for session {}", session_id_str);
-            llm_task.abort();
-        }
-    });
+        // Wait for cancellation to abort LLM task
+        tokio::spawn(async move {
+            if cancel_rx_for_abort.recv().await.is_ok() {
+                trace!("Aborting LLM task for session {}", session_id_str);
+                llm_task.abort();
+            }
+        });
 
         let mut full_response = String::new();
         let mut analysis_buffer = String::new();
@@ -866,7 +866,7 @@ impl BotOrchestrator {
         let _handler = llm_models::get_handler(&model);
 
         trace!("Using model handler for {}", model);
-        info!("LLM streaming started for session {}", session.id);
+        trace!("LLM streaming started for session {}", session.id);
         trace!("Receiving LLM stream chunks...");
         let mut chunk_count: usize = 0;
 
@@ -903,10 +903,10 @@ while let Some(chunk) = stream_rx.recv().await {
         Err(broadcast::error::TryRecvError::Lagged(_)) => {}
     }
 
-    chunk_count += 1;
-        if chunk_count <= 3 || chunk_count % 50 == 0 {
-            info!("LLM chunk #{chunk_count} received for session {} (len={})", session.id, chunk.len());
-        }
+            chunk_count += 1;
+            if chunk_count <= 3 || chunk_count % 50 == 0 {
+                trace!("LLM chunk #{} received for session {} (len={})", chunk_count, session.id, chunk.len());
+            }
 
             // ===== GENERIC TOOL EXECUTION =====
             // Add chunk to tool_call_buffer and try to parse
