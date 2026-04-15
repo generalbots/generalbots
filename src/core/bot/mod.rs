@@ -22,6 +22,62 @@ use crate::core::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::core::shared::state::AppState;
 #[cfg(feature = "chat")]
 use crate::basic::keywords::add_suggestion::get_suggestions;
+
+#[cfg(feature = "docs")]
+use crate::docs::utils::strip_html;
+#[cfg(feature = "paper")]
+use crate::paper::utils::strip_markdown;
+
+fn strip_html_local(html: &str) -> String {
+    let mut result = String::new();
+    let mut in_tag = false;
+    for ch in html.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => result.push(ch),
+            _ => {}
+        }
+    }
+    result
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+}
+
+fn strip_markdown_local(markdown: &str) -> String {
+    let mut result = String::new();
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") {
+            continue;
+        }
+        let content = if let Some(rest) = trimmed.strip_prefix("### ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("## ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("# ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("- [ ] ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("- [x] ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("- ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("* ") {
+            rest
+        } else {
+            trimmed
+        };
+        if !result.is_empty() {
+            result.push(' ');
+        }
+        result.push_str(content);
+    }
+    result.trim().to_string()
+}
 use axum::extract::ws::{Message, WebSocket};
 use axum::{
     extract::{ws::WebSocketUpgrade, Extension, Path, Query, State},
@@ -1274,16 +1330,32 @@ while let Some(chunk) = stream_rx.recv().await {
 
         trace!("LLM stream complete. Full response: {}", full_response);
 
+        let plain_text = strip_markdown_local(&strip_html_local(&full_response));
         let state_for_save = self.state.clone();
-        let full_response_clone = full_response.clone();
-        tokio::task::spawn_blocking(
+        let plain_text_for_save = plain_text.clone();
+        let session_id_for_save = session.id;
+        let user_id_for_save = user_id;
+        
+        let save_result = tokio::task::spawn_blocking(
             move || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 let mut sm = state_for_save.session_manager.blocking_lock();
-                sm.save_message(session.id, user_id, 2, &full_response_clone, 2)?;
+                sm.save_message(session_id_for_save, user_id_for_save, 2, &plain_text_for_save, 2)?;
                 Ok(())
             },
         )
-        .await??;
+        .await;
+        
+        match save_result {
+            Ok(Ok(())) => {
+                trace!("Assistant message saved to history for session {}", session_id_for_save);
+            }
+            Ok(Err(e)) => {
+                error!("Failed to save assistant message to history for session {}: {}", session_id_for_save, e);
+            }
+            Err(e) => {
+                error!("Spawn blocking failed for saving assistant message: {}", e);
+            }
+        }
 
         // Extract bot_id and session_id before moving them into BotResponse
         let bot_id_str = message.bot_id.clone();
