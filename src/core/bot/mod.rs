@@ -432,7 +432,7 @@ impl BotOrchestrator {
         if message.message_type == MessageType::TOOL_EXEC {
             let tool_name = message_content.trim();
             if !tool_name.is_empty() {
-                info!("[TOOL_EXEC] Direct tool execution: {}", tool_name);
+                info!("tool_exec: Direct tool execution: {}", tool_name);
                 
                 // Get bot name from bot_id
                 let bot_name = if let Ok(bot_uuid) = Uuid::parse_str(&message.bot_id) {
@@ -922,7 +922,7 @@ impl BotOrchestrator {
         let _handler = llm_models::get_handler(&model);
 
         trace!("Using model handler for {}", model);
-        trace!("LLM streaming started for session {}", session.id);
+        info!("llm_start: Starting LLM streaming for session {}", session.id);
         trace!("Receiving LLM stream chunks...");
         let mut chunk_count: usize = 0;
 
@@ -1314,31 +1314,30 @@ while let Some(chunk) = stream_rx.recv().await {
             }
         }
 
-        // DEBUG: Log LLM output for troubleshooting HTML rendering issues
+        info!("llm_end: Streaming loop ended for session {}, chunk_count={}, full_response_len={}", session.id, chunk_count, full_response.len());
+
         let has_html = full_response.contains("</") || full_response.contains("<!--");
         let has_div = full_response.contains("<div") || full_response.contains("</div>");
         let has_style = full_response.contains("<style");
         let is_truncated = !full_response.trim_end().ends_with("</div>") && has_div;
         let preview = if full_response.len() > 800 {
-            format!("{}... ({} chars total)", &full_response[..800], full_response.len())
+            format!("{}... ({} chars total)", full_response.split_at(800).0, full_response.len())
         } else {
             full_response.clone()
         };
-        info!("[LLM_OUTPUT] session={} has_html={} has_div={} has_style={} is_truncated={} len={} preview=\"{}\"",
+        info!("llm_output: session={} has_html={} has_div={} has_style={} is_truncated={} len={} preview=\"{}\"",
             session_id, has_html, has_div, has_style, is_truncated, full_response.len(), 
             preview.replace('\n', "\\n"));
 
-        trace!("LLM stream complete. Full response: {}", full_response);
-
         let plain_text = strip_markdown_local(&strip_html_local(&full_response));
         let plain_text_len = plain_text.len();
-        let preview = if plain_text.len() > 100 {
+        let history_preview = if plain_text.len() > 100 {
             format!("{}...", plain_text.split_at(100).0)
         } else {
             plain_text.clone()
         };
-        info!("[HISTORY] Saving assistant message to history: session_id={}, user_id={}, content_len={}, preview={}", 
-            session.id, user_id, plain_text_len, preview);
+        info!("history_save: session_id={} user_id={} content_len={} preview={}", 
+            session.id, user_id, plain_text_len, history_preview);
         
         let state_for_save = self.state.clone();
         let plain_text_for_save = plain_text.clone();
@@ -1356,13 +1355,13 @@ while let Some(chunk) = stream_rx.recv().await {
         
         match save_result {
             Ok(Ok(())) => {
-                trace!("Assistant message saved to history for session {}", session_id_for_save);
+                trace!("history_save: Assistant message saved for session {}", session_id_for_save);
             }
             Ok(Err(e)) => {
-                error!("[HISTORY] Failed to save assistant message to history for session {}: {}", session_id_for_save, e);
+                error!("history_save: Failed to save assistant message for session {}: {}", session_id_for_save, e);
             }
             Err(e) => {
-                error!("[HISTORY] Spawn blocking failed for saving assistant message: {}", e);
+                error!("history_save: Spawn blocking failed for session {}: {}", session_id_for_save, e);
             }
         }
 
