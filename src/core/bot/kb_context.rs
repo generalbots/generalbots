@@ -315,45 +315,19 @@ impl KbContextManager {
             // Create a temporary indexer with bot-specific config
             let indexer = KbIndexer::new(embedding_config, qdrant_config);
 
-            // Use the bot-specific indexer for search
-            let search_results = indexer
-                .search(collection_name, query, max_results)
-                .await?;
+        // Use the bot-specific indexer for search
+        let search_results = indexer
+            .search(collection_name, query, max_results * 3)
+            .await?;
 
-            let mut kb_search_results = Vec::new();
-            let mut total_tokens = 0;
+        let deduplicated = self.deduplicate_by_document(search_results);
+        let kb_search_results = self.filter_by_tokens(deduplicated, max_tokens);
 
-            for result in search_results {
-                let tokens = estimate_tokens(&result.content);
-
-                if total_tokens + tokens > max_tokens {
-                    debug!(
-                        "Skipping result due to token limit ({} + {} > {})",
-                        total_tokens, tokens, max_tokens
-                    );
-                    break;
-                }
-
-                if result.score < 0.3 {
-                    debug!("Skipping low-relevance result (score: {})", result.score);
-                    continue;
-                }
-
-                kb_search_results.push(KbSearchResult {
-                    content: result.content,
-                    document_path: result.document_path,
-                    score: result.score,
-                    chunk_tokens: tokens,
-                });
-
-                total_tokens += tokens;
-            }
-
-            Ok(KbContext {
-                kb_name: display_name.to_string(),
-                search_results: kb_search_results,
-                total_tokens,
-            })
+        Ok(KbContext {
+            kb_name: display_name.to_string(),
+            search_results: kb_search_results,
+            total_tokens: 0,
+        })
         }
 
         async fn get_bot_id_by_name(&self, bot_name: &str) -> Result<Uuid> {
@@ -383,13 +357,55 @@ impl KbContextManager {
 
         let search_results = self
             .kb_manager
-            .search(bot_id, bot_name, kb_name, query, max_results)
+            .search(bot_id, bot_name, kb_name, query, max_results * 3)
             .await?;
 
+        let deduplicated = self.deduplicate_by_document(search_results);
+        let kb_search_results = self.filter_by_tokens(deduplicated, max_tokens);
+
+        Ok(KbContext {
+            kb_name: kb_name.to_string(),
+            search_results: kb_search_results,
+            total_tokens: 0,
+        })
+    }
+
+    fn deduplicate_by_document(&self, results: Vec<crate::core::kb::SearchResult>) -> Vec<crate::core::kb::SearchResult> {
+        use std::collections::HashMap;
+
+        let mut best_by_doc: HashMap<String, crate::core::kb::SearchResult> = HashMap::new();
+
+        for result in results {
+            let doc_key = if result.document_path.is_empty() {
+                format!("unknown_{}", result.content.len())
+            } else {
+                result.document_path.clone()
+            };
+
+            best_by_doc
+                .entry(doc_key)
+                .and_modify(|existing| {
+                    if result.score > existing.score {
+                        *existing = result.clone();
+                    }
+                })
+                .or_insert(result);
+        }
+
+        let mut results: Vec<_> = best_by_doc.into_values().collect();
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results
+    }
+
+    fn filter_by_tokens(
+        &self,
+        results: Vec<crate::core::kb::SearchResult>,
+        max_tokens: usize,
+    ) -> Vec<KbSearchResult> {
         let mut kb_search_results = Vec::new();
         let mut total_tokens = 0;
 
-        for result in search_results {
+        for result in results {
             let tokens = estimate_tokens(&result.content);
 
             if total_tokens + tokens > max_tokens {
@@ -400,7 +416,7 @@ impl KbContextManager {
                 break;
             }
 
-            if result.score < 0.3 {
+            if result.score < 0.25 {
                 debug!("Skipping low-relevance result (score: {})", result.score);
                 continue;
             }
@@ -415,11 +431,7 @@ impl KbContextManager {
             total_tokens += tokens;
         }
 
-        Ok(KbContext {
-            kb_name: kb_name.to_string(),
-            search_results: kb_search_results,
-            total_tokens,
-        })
+        kb_search_results
     }
 
     pub fn build_context_string(&self, kb_contexts: &[KbContext]) -> String {

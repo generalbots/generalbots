@@ -65,6 +65,8 @@ impl EmbeddingConfig {
             .get_config(_bot_id, "embedding-url", Some(""))
             .unwrap_or_default();
 
+        info!("EmbeddingConfig::from_bot_config - bot_id: {}, embedding_url: {}", _bot_id, embedding_url);
+
         let embedding_model = config_manager
             .get_config(_bot_id, "embedding-model", Some("BAAI/bge-multilingual-gemma2"))
             .unwrap_or_else(|_| "BAAI/bge-multilingual-gemma2".to_string());
