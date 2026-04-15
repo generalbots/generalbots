@@ -399,7 +399,7 @@ pub struct AppState {
     pub channels: Arc<tokio::sync::Mutex<HashMap<String, Arc<dyn ChannelAdapter>>>>,
     pub response_channels: Arc<tokio::sync::Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
     /// Active streaming sessions for cancellation: session_id → cancellation sender
-    pub active_streams: Arc<tokio::sync::Mutex<HashMap<String, mpsc::Sender<()>>>>,
+    pub active_streams: Arc<tokio::sync::Mutex<HashMap<String, broadcast::Sender<()>>>>,
     /// Blocking channels for HEAR: session_id → sender. Rhai thread blocks on receiver.
     pub hear_channels: Arc<std::sync::Mutex<HashMap<uuid::Uuid, std::sync::mpsc::SyncSender<String>>>>,
     pub web_adapter: Arc<WebChannelAdapter>,

@@ -40,6 +40,7 @@ use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use tokio::sync::broadcast;
 use regex;
 #[cfg(feature = "drive")]
 #[cfg(feature = "drive")]
@@ -826,27 +827,34 @@ impl BotOrchestrator {
         // set_llm_streaming(true);
 
     let stream_tx_clone = stream_tx.clone();
-    
+
     // Create cancellation channel for this streaming session
-    let (cancel_tx, mut cancel_rx) = mpsc::channel::<()>(1);
+    let (cancel_tx, mut cancel_rx) = broadcast::channel::<()>(1);
     let session_id_str = session.id.to_string();
-    
+
     // Register this streaming session for potential cancellation
     {
         let mut active_streams = self.state.active_streams.lock().await;
         active_streams.insert(session_id_str.clone(), cancel_tx);
     }
-    
-    tokio::spawn(async move {
+
+    // Wrap the LLM task in a JoinHandle so we can abort it
+    let mut cancel_rx_for_abort = cancel_rx.resubscribe();
+    let llm_task = tokio::spawn(async move {
         if let Err(e) = llm
         .generate_stream("", &messages_clone, stream_tx_clone, &model_clone, &key_clone, tools_for_llm.as_ref())
         .await
         {
             error!("LLM streaming error: {}", e);
         }
-        // REMOVED: LLM streaming lock was causing deadlocks
-        // #[cfg(feature = "drive")]
-        // set_llm_streaming(false);
+    });
+
+    // Wait for cancellation to abort LLM task
+    tokio::spawn(async move {
+        if cancel_rx_for_abort.recv().await.is_ok() {
+            info!("Aborting LLM task for session {}", session_id_str);
+            llm_task.abort();
+        }
     });
 
         let mut full_response = String::new();
@@ -883,14 +891,19 @@ impl BotOrchestrator {
             }
         }
 
-    while let Some(chunk) = stream_rx.recv().await {
-        // Check if cancellation was requested (user sent new message)
-        if cancel_rx.try_recv().is_ok() {
+while let Some(chunk) = stream_rx.recv().await {
+    // Check if cancellation was requested (user sent new message)
+    match cancel_rx.try_recv() {
+        Ok(_) => {
             info!("Streaming cancelled for session {} - user sent new message", session.id);
             break;
         }
-        
-        chunk_count += 1;
+        Err(broadcast::error::TryRecvError::Empty) => {}
+        Err(broadcast::error::TryRecvError::Closed) => break,
+        Err(broadcast::error::TryRecvError::Lagged(_)) => {}
+    }
+
+    chunk_count += 1;
         if chunk_count <= 3 || chunk_count % 50 == 0 {
             info!("LLM chunk #{chunk_count} received for session {} (len={})", session.id, chunk.len());
         }
@@ -1734,18 +1747,18 @@ let mut send_task = tokio::spawn(async move {
                             channels.get(&session_id.to_string()).cloned()
                         };
 
-                        if let Some(tx_clone) = tx_opt {
-                    // CANCEL any existing streaming for this session first
-                    let session_id_str = session_id.to_string();
-                    {
-                        let mut active_streams = state_clone.active_streams.lock().await;
-                        if let Some(cancel_tx) = active_streams.remove(&session_id_str) {
-                            info!("Cancelling existing streaming for session {}", session_id);
-                            let _ = cancel_tx.send(()).await;
-                            // Give a moment for the streaming to stop
-                            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-                        }
-                    }
+        if let Some(tx_clone) = tx_opt {
+            // CANCEL any existing streaming for this session first
+            let session_id_str = session_id.to_string();
+            {
+                let mut active_streams = state_clone.active_streams.lock().await;
+                if let Some(cancel_tx) = active_streams.remove(&session_id_str) {
+                    info!("Cancelling existing streaming for session {}", session_id);
+                    let _ = cancel_tx.send(());
+                    // Give a moment for the streaming to stop
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                }
+            }
                     
                     let corrected_msg = UserMessage {
                         bot_id: bot_id.to_string(),
