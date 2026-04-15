@@ -343,10 +343,10 @@ impl KbContextManager {
 
                 total_tokens += tokens;
 
-                if result.score < 0.4 {
-                    debug!("Skipping low-relevance result (score: {})", result.score);
-                    break;
-                }
+            if result.score < 0.4 {
+                debug!("Skipping low-relevance result (score: {})", result.score);
+                continue;
+            }
             }
 
             Ok(KbContext {
@@ -409,9 +409,9 @@ impl KbContextManager {
 
             total_tokens += tokens;
 
-            if result.score < 0.5 {
+            if result.score < 0.4 {
                 debug!("Skipping low-relevance result (score: {})", result.score);
-                break;
+                continue;
             }
         }
 
