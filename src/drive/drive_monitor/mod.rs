@@ -1594,7 +1594,7 @@ match result {
             .strip_suffix(".gbai")
             .unwrap_or(&self.bucket_name);
         let local_path = self.work_root.join(bot_name).join(&path);
-        
+
         if local_path.exists() {
             if let Err(e) = std::fs::remove_file(&local_path) {
                 warn!("Failed to delete orphaned .gbkb file {}: {}", local_path.display(), e);
@@ -1603,9 +1603,22 @@ match result {
             }
         }
 
+        // Delete vectors for this specific file from Qdrant
         let path_parts: Vec<&str> = path.split('/').collect();
         if path_parts.len() >= 2 {
             let kb_name = path_parts[1];
+
+            #[cfg(any(feature = "research", feature = "llm"))]
+            {
+                if let Err(e) = self.kb_manager.delete_file_from_kb(self.bot_id, bot_name, kb_name, &path).await {
+                    log::error!("Failed to delete vectors for file {}: {}", path, e);
+                }
+            }
+            #[cfg(not(any(feature = "research", feature = "llm")))]
+            {
+                let _ = (bot_name, kb_name);
+                debug!("Bypassing vector delete because research/llm features are not enabled");
+            }
 
             let kb_prefix = format!("{}{}/", gbkb_prefix, kb_name);
             if !self.file_repo.has_files_with_prefix(self.bot_id, &kb_prefix) {

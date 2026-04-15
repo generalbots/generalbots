@@ -272,6 +272,29 @@ impl KnowledgeBaseManager {
         }
     }
 
+    pub async fn delete_file_from_kb(&self, bot_id: Uuid, bot_name: &str, kb_name: &str, file_path: &str) -> Result<()> {
+        let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
+        let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
+
+        // Use the relative path within the gbkb folder (e.g., "cartas/file.pdf")
+        let relative_path = file_path
+            .strip_prefix(&format!("{}/", kb_name))
+            .unwrap_or(file_path);
+
+        info!("Deleting vectors for file {} from collection {}", relative_path, collection_name);
+
+        match self.indexer.delete_file_points(&collection_name, relative_path).await {
+            Ok(_) => {
+                info!("Successfully deleted vectors for file {} from {}", relative_path, collection_name);
+                Ok(())
+            }
+            Err(e) => {
+                error!("Failed to delete vectors for file {} from {}: {}", relative_path, collection_name, e);
+                Err(e)
+            }
+        }
+    }
+
     pub async fn get_kb_stats(&self, bot_id: Uuid, bot_name: &str, kb_name: &str) -> Result<KbStatistics> {
         let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
         let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
