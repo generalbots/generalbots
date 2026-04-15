@@ -334,6 +334,11 @@ impl KbContextManager {
                     break;
                 }
 
+                if result.score < 0.3 {
+                    debug!("Skipping low-relevance result (score: {})", result.score);
+                    continue;
+                }
+
                 kb_search_results.push(KbSearchResult {
                     content: result.content,
                     document_path: result.document_path,
@@ -342,11 +347,6 @@ impl KbContextManager {
                 });
 
                 total_tokens += tokens;
-
-            if result.score < 0.4 {
-                debug!("Skipping low-relevance result (score: {})", result.score);
-                continue;
-            }
             }
 
             Ok(KbContext {
@@ -400,6 +400,11 @@ impl KbContextManager {
                 break;
             }
 
+            if result.score < 0.3 {
+                debug!("Skipping low-relevance result (score: {})", result.score);
+                continue;
+            }
+
             kb_search_results.push(KbSearchResult {
                 content: result.content,
                 document_path: result.document_path,
@@ -408,11 +413,6 @@ impl KbContextManager {
             });
 
             total_tokens += tokens;
-
-            if result.score < 0.4 {
-                debug!("Skipping low-relevance result (score: {})", result.score);
-                continue;
-            }
         }
 
         Ok(KbContext {
