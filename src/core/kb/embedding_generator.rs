@@ -65,8 +65,6 @@ impl EmbeddingConfig {
             .get_config(_bot_id, "embedding-url", Some(""))
             .unwrap_or_default();
 
-        info!("EmbeddingConfig::from_bot_config - bot_id: {}, embedding_url: {}", _bot_id, embedding_url);
-
         let embedding_model = config_manager
             .get_config(_bot_id, "embedding-model", Some("BAAI/bge-multilingual-gemma2"))
             .unwrap_or_else(|_| "BAAI/bge-multilingual-gemma2".to_string());
@@ -81,6 +79,12 @@ impl EmbeddingConfig {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or_else(|| Self::detect_dimensions(&embedding_model));
+
+        info!("EmbeddingConfig::from_bot_config - bot_id: {}, embedding_url: {}, embedding_key: {}, dimensions: {}", 
+              _bot_id, 
+              if embedding_url.len() > 50 { &embedding_url[..50] } else { &embedding_url },
+              if embedding_key.is_some() { "SET" } else { "NONE" },
+              dimensions);
 
         let batch_size = config_manager
             .get_config(_bot_id, "embedding-batch-size", Some("16"))
