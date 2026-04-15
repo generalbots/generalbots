@@ -456,8 +456,8 @@ impl KbContextManager {
         context_parts.push("\n--- End Knowledge Base Context ---\n".to_string());
         let full_context = context_parts.join("\n");
 
-        // Truncate KB context to fit within token limits (max 400 tokens for KB context)
-        crate::core::shared::utils::truncate_text_for_model(&full_context, "local", 400)
+        // Truncate KB context to fit within token limits (max 8000 tokens for KB context)
+        crate::core::shared::utils::truncate_text_for_model(&full_context, "local", 8000)
     }
 
     pub fn get_active_tools(&self, session_id: Uuid) -> Result<Vec<String>> {

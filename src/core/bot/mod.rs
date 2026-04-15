@@ -809,7 +809,7 @@ impl BotOrchestrator {
                     bot_name: &bot_name_for_context,
                     user_query: &message_content,
                     messages: &mut messages,
-                    max_context_tokens: 8000,
+                    max_context_tokens: 16000,
                 };
                 if let Err(e) = inject_kb_context(
                     kb_manager.clone(),
