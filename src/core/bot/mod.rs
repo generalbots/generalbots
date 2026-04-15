@@ -1331,6 +1331,15 @@ while let Some(chunk) = stream_rx.recv().await {
         trace!("LLM stream complete. Full response: {}", full_response);
 
         let plain_text = strip_markdown_local(&strip_html_local(&full_response));
+        let plain_text_len = plain_text.len();
+        let preview = if plain_text.len() > 100 {
+            format!("{}...", plain_text.split_at(100).0)
+        } else {
+            plain_text.clone()
+        };
+        info!("[HISTORY] Saving assistant message to history: session_id={}, user_id={}, content_len={}, preview={}", 
+            session.id, user_id, plain_text_len, preview);
+        
         let state_for_save = self.state.clone();
         let plain_text_for_save = plain_text.clone();
         let session_id_for_save = session.id;
@@ -1350,10 +1359,10 @@ while let Some(chunk) = stream_rx.recv().await {
                 trace!("Assistant message saved to history for session {}", session_id_for_save);
             }
             Ok(Err(e)) => {
-                error!("Failed to save assistant message to history for session {}: {}", session_id_for_save, e);
+                error!("[HISTORY] Failed to save assistant message to history for session {}: {}", session_id_for_save, e);
             }
             Err(e) => {
-                error!("Spawn blocking failed for saving assistant message: {}", e);
+                error!("[HISTORY] Spawn blocking failed for saving assistant message: {}", e);
             }
         }
 
