@@ -744,7 +744,7 @@ impl KbIndexer {
             vector: search_vector,
             limit,
             with_payload: true,
-            score_threshold: Some(0.3),
+            score_threshold: None,
             filter: None,
         };
 
