@@ -407,6 +407,9 @@ impl KbContextManager {
 
         for result in results {
             let tokens = estimate_tokens(&result.content);
+            
+            info!("KB result - score: {:.3}, tokens: {}, content_len: {}, path: {}", 
+                  result.score, tokens, result.content.len(), result.document_path);
 
             if total_tokens + tokens > max_tokens {
                 debug!(
@@ -416,7 +419,7 @@ impl KbContextManager {
                 break;
             }
 
-            if result.score < 0.25 {
+            if result.score < 0.20 {
                 debug!("Skipping low-relevance result (score: {})", result.score);
                 continue;
             }
