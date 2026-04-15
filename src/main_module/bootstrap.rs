@@ -606,16 +606,17 @@ pub async fn create_app_state(
         dynamic_llm_provider: Some(dynamic_llm_provider.clone()),
         #[cfg(feature = "directory")]
         auth_service: auth_service.clone(),
-        channels: Arc::new(tokio::sync::Mutex::new({
-            let mut map = HashMap::new();
-            map.insert(
-                "web".to_string(),
-                web_adapter.clone() as Arc<dyn crate::core::bot::channels::ChannelAdapter>,
-            );
-            map
-        })),
-        response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
-        hear_channels: Arc::new(std::sync::Mutex::new(HashMap::new())),
+            channels: Arc::new(tokio::sync::Mutex::new({
+                let mut map = HashMap::new();
+                map.insert(
+                    "web".to_string(),
+                    web_adapter.clone() as Arc<dyn crate::core::bot::channels::ChannelAdapter>,
+                );
+                map
+            })),
+            response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            active_streams: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            hear_channels: Arc::new(std::sync::Mutex::new(HashMap::new())),
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
         #[cfg(any(feature = "research", feature = "llm"))]
