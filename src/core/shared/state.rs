@@ -398,6 +398,8 @@ pub struct AppState {
     pub auth_service: Arc<tokio::sync::Mutex<AuthService>>,
     pub channels: Arc<tokio::sync::Mutex<HashMap<String, Arc<dyn ChannelAdapter>>>>,
     pub response_channels: Arc<tokio::sync::Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
+    /// Active streaming sessions for cancellation: session_id → cancellation sender
+    pub active_streams: Arc<tokio::sync::Mutex<HashMap<String, mpsc::Sender<()>>>>,
     /// Blocking channels for HEAR: session_id → sender. Rhai thread blocks on receiver.
     pub hear_channels: Arc<std::sync::Mutex<HashMap<uuid::Uuid, std::sync::mpsc::SyncSender<String>>>>,
     pub web_adapter: Arc<WebChannelAdapter>,
@@ -450,6 +452,7 @@ impl Clone for AppState {
             kb_manager: self.kb_manager.clone(),
             channels: Arc::clone(&self.channels),
             response_channels: Arc::clone(&self.response_channels),
+            active_streams: Arc::clone(&self.active_streams),
             hear_channels: Arc::clone(&self.hear_channels),
             web_adapter: Arc::clone(&self.web_adapter),
             voice_adapter: Arc::clone(&self.voice_adapter),
@@ -665,6 +668,7 @@ impl Default for AppState {
             auth_service: Arc::new(tokio::sync::Mutex::new(create_mock_auth_service())),
             channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            active_streams: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             hear_channels: Arc::new(std::sync::Mutex::new(HashMap::new())),
             web_adapter: Arc::new(WebChannelAdapter::new()),
             voice_adapter: Arc::new(VoiceAdapter::new()),
