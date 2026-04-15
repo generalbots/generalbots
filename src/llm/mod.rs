@@ -436,60 +436,62 @@ impl LLMProvider for OpenAIClient {
             return Err(format!("LLM request failed with status: {}", status).into());
         }
 
-        let handler = get_handler(model);
-        let mut stream_state = String::new(); // State for the handler to track thinking tags across chunks
-        let mut stream = response.bytes_stream();
+    let handler = get_handler(model);
+    let mut stream_state = String::new();
+    let mut stream = response.bytes_stream();
+    let mut first_bytes: Option<String> = None;
+    let mut last_bytes: String = String::new();
+    let mut total_size: usize = 0;
+    let mut content_sent: usize = 0;
 
-        let mut in_reasoning = false;
-        while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result?;
-            let chunk_str = String::from_utf8_lossy(&chunk);
-            for line in chunk_str.lines() {
-                if line.starts_with("data: ") && !line.contains("[DONE]") {
-                    if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
-                        // Handle reasoning_content (GLM 4.7 / deepseek / etc)
-                        if let Some(reasoning) = data["choices"][0]["delta"]["reasoning_content"].as_str() {
-                            if !reasoning.is_empty() {
-                                if !in_reasoning {
-                                    in_reasoning = true;
-                                }
-                                // Send thinking tokens to UI via JSON stringified message
-                                let thinking_msg = serde_json::json!({
-                                    "type": "thinking",
-                                    "content": reasoning
-                                }).to_string();
-                                let _ = tx.send(thinking_msg).await;
+    info!("LLM stream starting for model: {}", model);
+
+    let mut in_reasoning = false;
+    while let Some(chunk_result) = stream.next().await {
+        let chunk = chunk_result?;
+        total_size += chunk.len();
+        let chunk_str = String::from_utf8_lossy(&chunk);
+        trace!("LLM chunk raw: {} bytes", chunk.len());
+        if first_bytes.is_none() {
+            first_bytes = Some(chunk_str.chars().take(100).collect());
+        }
+        last_bytes = chunk_str.chars().take(100).collect();
+        for line in chunk_str.lines() {
+            if line.starts_with("data: ") && !line.contains("[DONE]") {
+                if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
+                    if let Some(reasoning) = data["choices"][0]["delta"]["reasoning_content"].as_str() {
+                        if !reasoning.is_empty() {
+                            if !in_reasoning {
+                                in_reasoning = true;
+                            }
+                            let thinking_msg = serde_json::json!({
+                                "type": "thinking",
+                                "content": reasoning
+                            }).to_string();
+                            let _ = tx.send(thinking_msg).await;
+                        }
+                    }
+
+                    if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
+                        if !content.is_empty() {
+                            if in_reasoning {
+                                in_reasoning = false;
+                                let clear_msg = serde_json::json!({"type": "thinking_clear"}).to_string();
+                                let _ = tx.send(clear_msg).await;
+                            }
+                            let processed = handler.process_content_streaming(content, &mut stream_state);
+                            if !processed.is_empty() {
+                                content_sent += processed.len();
+                                let _ = tx.send(processed).await;
                             }
                         }
+                    }
 
-                        // Handle regular content
-                        if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
-                            if !content.is_empty() {
-                                if in_reasoning {
-                                    in_reasoning = false;
-                                    // Send clear signal
-                                    let clear_msg = serde_json::json!({
-                                        "type": "thinking_clear"
-                                    }).to_string();
-                                    let _ = tx.send(clear_msg).await;
-                                }
-                                
-                                let processed = handler.process_content_streaming(content, &mut stream_state);
-                                if !processed.is_empty() {
-                                    let _ = tx.send(processed).await;
-                                }
-                            }
-                        }
-
-                        // Handle standard OpenAI tool_calls
-                        if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
-                            for tool_call in tool_calls {
-                                // We send the tool_call object as a JSON string so stream_response
-                                // can buffer it and parse it using ToolExecutor::parse_tool_call
-                                if let Some(func) = tool_call.get("function") {
-                                    if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
-                                        let _ = tx.send(args.to_string()).await;
-                                    }
+                    if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
+                        for tool_call in tool_calls {
+                            if let Some(func) = tool_call.get("function") {
+                                if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
+                                    let _ = tx.send(args.to_string()).await;
                                 }
                             }
                         }
@@ -497,8 +499,12 @@ impl LLMProvider for OpenAIClient {
                 }
             }
         }
+    }
 
-        Ok(())
+    info!("LLM stream done: size={} bytes, content_sent={}, first={:?}, last={}", 
+          total_size, content_sent, first_bytes, last_bytes);
+
+    Ok(())
     }
 
     async fn cancel_job(
