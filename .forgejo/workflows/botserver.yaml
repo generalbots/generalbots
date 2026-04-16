@@ -79,6 +79,10 @@ jobs:
           # Clean old log files
           ssh $SSH_ARGS system "find /tmp -name '*.log' -type f -mtime +7 -print0 2>/dev/null | xargs -0 rm -f || true"
 
+      - name: Prepare build log
+        run: |
+          mkdir -p /tmp && touch /tmp/build.log && chmod 666 /tmp/build.log
+
       - name: Build BotServer
         working-directory: /opt/gbo/data/botserver
         run: |
