@@ -10,8 +10,10 @@ env:
   CARGO_BUILD_JOBS: 8
   CARGO_NET_RETRY: 10
   RUSTC_WRAPPER: sccache
-  WORKSPACE: /opt/gbo/data/botserver
-  CARGO_TARGET_DIR: /opt/gbo/data/botserver/target
+  # Diretórios persistentes para cache entre builds
+  SCCACHE_DIR: /opt/gbo/data/cache/sccache
+  CARGO_HOME: /opt/gbo/data/cache/cargo
+  CARGO_TARGET_DIR: /opt/gbo/data/persistent-botserver/target
   PATH: /home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 jobs:
@@ -19,30 +21,51 @@ jobs:
     runs-on: gbo
 
     steps:
+      - name: Setup Persistent Directories
+        run: |
+          # Criar diretórios persistentes para cache
+          mkdir -p /opt/gbo/data/cache/sccache
+          mkdir -p /opt/gbo/data/cache/cargo
+          mkdir -p /opt/gbo/data/persistent-botserver
+          mkdir -p /opt/gbo/data/gb-ws
+          chmod -R 755 /opt/gbo/data/cache
+          chmod -R 755 /opt/gbo/data/persistent-botserver
+
       - name: Setup Git
         run: |
           git config --global http.sslVerify false
           git config --global --add safe.directory "*"
 
-      - name: Setup Workspace
+      - name: Update Workspace (Incremental)
         run: |
-          mkdir -p $WORKSPACE
+          set -e
+          WORKSPACE="/opt/gbo/data/persistent-botserver"
           cd $WORKSPACE
-          # Update or clone botlib
+          
+          # Atualizar botlib (fetch + reset ao invés de clone)
           if [ -d botlib/.git ]; then
-            git -C botlib fetch --depth 1 origin main && git -C botlib checkout FETCH_HEAD
+            echo "Updating botlib..."
+            git -C botlib fetch --depth 1 origin main
+            git -C botlib reset --hard origin/main
           else
+            echo "Cloning botlib..."
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
-          # Update or clone botserver
+          
+          # Atualizar botserver (fetch + reset ao invés de clone)
           if [ -d botserver/.git ]; then
-            git -C botserver fetch --depth 1 origin main && git -C botserver checkout FETCH_HEAD
+            echo "Updating botserver..."
+            git -C botserver fetch --depth 1 origin main
+            git -C botserver reset --hard origin/main
           else
+            echo "Cloning botserver..."
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
-          # Get workspace Cargo.toml from gb and strip unused members
+          
+          # Atualizar workspace Cargo.toml do gb
           if [ -d /opt/gbo/data/gb-ws/.git ]; then
-            git -C /opt/gbo/data/gb-ws fetch --depth 1 origin main && git -C /opt/gbo/data/gb-ws checkout FETCH_HEAD
+            git -C /opt/gbo/data/gb-ws fetch --depth 1 origin main
+            git -C /opt/gbo/data/gb-ws reset --hard origin/main
           else
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
           fi
@@ -65,37 +88,29 @@ jobs:
             echo "All system dependencies already installed"
           fi
 
-      - name: Clean up all workspaces
+      - name: Clean up old artifacts
         run: |
-          set -e
-          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
-          echo "=== Cleaning up all workspaces on system container ==="
-          # Clean /opt/gbo/data/botserver workspace (keep only target)
-          ssh $SSH_ARGS system "find /opt/gbo/data/botserver -maxdepth 1 ! -path '*/target' ! -path '*/.git' -print0 2>/dev/null | xargs -0 rm -rf || true"
-          # Clean /opt/gbo/data/botserver/target (keep only current build)
-          ssh $SSH_ARGS system "find /opt/gbo/data/botserver/target -name '*.rlib' -type f -printf '%T@%p\n' 2>/dev/null | sort -r | tail -n +4 | while read t f; do [ -n \"\$f\" ] && rm -f \"\$f\"; done"
-          # Clean alm-ci workspaces (keep only what CI uses)
-          ssh $SSH_ARGS system "find /opt/gbo/data -maxdepth 2 ! -path '*/botserver' ! -path '*/gb-ws' -print0 2>/dev/null | xargs -0 rm -rf || true"
-          # Clean old log files
-          ssh $SSH_ARGS system "find /tmp -name '*.log' -type f -mtime +7 -print0 2>/dev/null | xargs -0 rm -f || true"
+          # Limpar apenas arquivos antigos do target, não todo o diretório
+          find /opt/gbo/data/persistent-botserver/target -name "*.rlib" -type f -mtime +7 -delete 2>/dev/null || true
 
-      - name: Build BotServer
-        working-directory: /opt/gbo/data/botserver
+      - name: Build BotServer (Incremental)
+        working-directory: /opt/gbo/data/persistent-botserver
         run: |
           sccache --start-server 2>/dev/null || true
           BOTSERVER_BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          BOTSERVER_COMMIT="$(git -C /opt/gbo/data/botserver/botserver rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          BOTSERVER_COMMIT="$(git -C botserver rev-parse --short HEAD 2>/dev/null || echo unknown)"
           export BOTSERVER_BUILD_DATE
           export BOTSERVER_COMMIT
           echo "Build date: $BOTSERVER_BUILD_DATE"
           echo "Commit: $BOTSERVER_COMMIT"
+          echo "Building incrementally with cache..."
           cargo build -p botserver -j 8 2>&1
           sccache --show-stats
           ls -lh target/debug/botserver
 
       - name: Save build log
         if: always()
-        run: ls -lh /opt/gbo/data/botserver/target/debug/botserver 2>&1 || echo "Binary not found"
+        run: ls -lh /opt/gbo/data/persistent-botserver/target/debug/botserver 2>&1 || echo "Binary not found"
 
       - name: Deploy via ssh tar gzip
         run: |
@@ -104,37 +119,30 @@ jobs:
           echo "=== Deploy started ==="
 
           echo "Step 1: Checking binary..."
-          ls -lh /opt/gbo/data/botserver/target/debug/botserver
+          ls -lh /opt/gbo/data/persistent-botserver/target/debug/botserver
 
           echo "Step 2: Backing up old binary..."
-          ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak"
+          ssh $SSH_ARGS system "cp /opt/gbo/bin/botserver /tmp/botserver.bak" || true
 
-          echo "Step 3: Disabling auto-restart, then killing old botserver..."
-          ssh $SSH_ARGS system "sudo systemctl stop botserver; sleep 1; sudo systemctl disable botserver 2>/dev/null || true; sleep 1; killall botserver 2>/dev/null || true; sleep 2; killall -9 botserver 2>/dev/null || true; sleep 1; pgrep -f botserver && echo 'WARNING: still running, killing again' && killall -9 botserver || echo 'OK: botserver stopped'"
+          echo "Step 3: Stopping botserver..."
+          ssh $SSH_ARGS system "sudo systemctl stop botserver 2>/dev/null || true; sleep 2; killall -9 botserver 2>/dev/null || true; echo 'OK: botserver stopped'"
 
           echo "Step 4: Transferring new binary..."
-          tar cf - -C /opt/gbo/data/botserver/target/debug botserver | gzip -1 | ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && echo 'Transfer complete'"
+          tar cf - -C /opt/gbo/data/persistent-botserver/target/debug botserver | gzip -1 | ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botserver && chown gbuser:gbuser /opt/gbo/bin/botserver && echo 'Transfer complete'"
 
-          echo "Step 5: Verifying new binary on disk..."
-          ssh $SSH_ARGS system "ls -la /opt/gbo/bin/botserver && stat -c '%y' /opt/gbo/bin/botserver"
+          echo "Step 5: Verifying binary..."
+          ssh $SSH_ARGS system "ls -la /opt/gbo/bin/botserver"
 
-          echo "Step 6: Re-enabling and starting botserver service..."
-          ssh $SSH_ARGS system "sudo systemctl enable botserver 2>/dev/null || true; sudo systemctl start botserver && echo 'Botserver started'"
+          echo "Step 6: Starting botserver..."
+          ssh $SSH_ARGS system "sudo systemctl start botserver && echo 'Botserver started'"
 
-          echo "Step 7: Waiting for botserver to respond on health..."
+          echo "Step 7: Health check..."
           ssh $SSH_ARGS system "for i in \$(seq 1 30); do curl -sf http://localhost:5858/api/health && echo && break; echo \"waiting (\$i/30)...\"; sleep 2; done"
-
-          echo "Step 8: Verifying running process..."
-          ssh $SSH_ARGS system "pgrep -fa botserver"
 
           echo "=== Deploy completed ==="
 
       - name: Verify botserver started
         run: |
-          sleep 30
+          sleep 5
           SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
-          ssh $SSH_ARGS system "pgrep -f botserver >/dev/null && echo 'OK: botserver is running' || echo 'WARNING: botserver may still be starting'"
-
-      - name: Save deploy log
-        if: always()
-        run: echo "Deploy completed" || true
+          ssh $SSH_ARGS system "pgrep -f botserver >/dev/null && echo 'OK: botserver running' || echo 'WARNING: check status'"
