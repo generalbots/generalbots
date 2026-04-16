@@ -136,7 +136,7 @@ pub struct MessageHistory {
     pub role: i32,
     pub content_encrypted: String,
     pub message_type: i32,
-    pub message_index: i64,
+    pub message_index: i32,
     pub created_at: DateTime<Utc>,
 }
 
