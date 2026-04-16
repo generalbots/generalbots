@@ -1281,7 +1281,13 @@ while let Some(chunk) = stream_rx.recv().await {
         let full_response_len = full_response.len();
         let is_html = full_response.contains("<") && full_response.contains(">");
         let content_for_save = if is_html {
-            parse_html(&full_response)
+            let parsed = parse_html(&full_response);
+            // Fallback to original if parsing returns empty
+            if parsed.trim().is_empty() {
+                full_response.clone()
+            } else {
+                parsed
+            }
         } else {
             full_response.clone()
         };
@@ -1290,7 +1296,7 @@ while let Some(chunk) = stream_rx.recv().await {
         } else {
             content_for_save.clone()
         };
-        info!("history_save: session_id={} user_id={} full_response_len={} is_html={} content_len={} preview={}", 
+        info!("history_save: session_id={} user_id={} full_response_len={} is_html={} content_len={} preview={}",
             session.id, user_id, full_response_len, is_html, content_for_save.len(), history_preview);
         
         let state_for_save = self.state.clone();
