@@ -341,19 +341,21 @@ impl SessionManager {
         use crate::core::shared::models::message_history::dsl::*;
         let limit_val = history_limit.unwrap_or(50);
 
+        // Get all messages ordered by index (chronological order)
         let messages = message_history
             .filter(session_id.eq(sess_id))
-            .order(message_index.desc())
-            .limit(limit_val)
-            .select((role, content_encrypted))
-            .load::<(i32, String)>(&mut self.conn)?;
+            .order(message_index.asc())
+            .select((role, content_encrypted, message_index))
+            .load::<(i32, String, i64)>(&mut self.conn)?;
 
-        // Reverse to get chronological order (oldest first)
-        let mut messages: Vec<(i32, String)> = messages;
-        messages.reverse();
+        // Get last N message pairs to ensure user/assistant alternation
+        // Each "turn" is 2 messages (user + assistant), so we need 2 * limit_val messages
+        let total_messages_needed = (limit_val * 2) as usize;
+        let start_idx = messages.len().saturating_sub(total_messages_needed);
+        let recent_messages: Vec<_> = messages.into_iter().skip(start_idx).collect();
 
         let mut history: Vec<(String, String)> = Vec::new();
-        for (other_role, content) in messages {
+        for (other_role, content, _idx) in recent_messages {
             let role_str = match other_role {
                 1 => "user".to_string(),
                 2 => "assistant".to_string(),
