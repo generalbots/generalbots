@@ -1,5 +1,6 @@
 use super::ModelHandler;
 
+/// Handler for GPT-OSS 120B model with thinking tags filtering
 #[derive(Debug)]
 pub struct GptOss120bHandler {}
 impl Default for GptOss120bHandler {
