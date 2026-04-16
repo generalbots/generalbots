@@ -79,28 +79,20 @@ jobs:
           # Clean old log files
           ssh $SSH_ARGS system "find /tmp -name '*.log' -type f -mtime +7 -print0 2>/dev/null | xargs -0 rm -f || true"
 
-      - name: Prepare build log
-        run: |
-          mkdir -p /tmp
-          cat > /tmp/build.sh << 'EOF'
-#!/bin/bash
-exec > >(tee /tmp/build.log) 2>&1
-sccache --start-server 2>/dev/null || true
-BOTSERVER_BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-BOTSERVER_COMMIT="$(git -C /opt/gbo/data/botserver/botserver rev-parse --short HEAD 2>/dev/null || echo unknown)"
-export BOTSERVER_BUILD_DATE
-export BOTSERVER_COMMIT
-echo "Build date: $BOTSERVER_BUILD_DATE"
-echo "Commit: $BOTSERVER_COMMIT"
-cargo build -p botserver -j 8
-sccache --show-stats
-ls -lh target/debug/botserver
-EOF
-          chmod +x /tmp/build.sh
-
       - name: Build BotServer
         working-directory: /opt/gbo/data/botserver
-        run: bash /tmp/build.sh
+        run: |
+          mkdir -p /tmp
+          sccache --start-server 2>/dev/null || true
+          BOTSERVER_BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          BOTSERVER_COMMIT="$(git -C /opt/gbo/data/botserver/botserver rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          export BOTSERVER_BUILD_DATE
+          export BOTSERVER_COMMIT
+          echo "Build date: $BOTSERVER_BUILD_DATE"
+          echo "Commit: $BOTSERVER_COMMIT"
+          cargo build -p botserver -j 8 >/tmp/build.log 2>&1 || true
+          sccache --show-stats
+          ls -lh target/debug/botserver
 
       - name: Save build log
         if: always()
