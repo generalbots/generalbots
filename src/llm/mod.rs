@@ -506,11 +506,17 @@ impl LLMProvider for OpenAIClient {
         }
 
         // Build the request body - include tools if provided
+        // GPT-5 models use max_completion_tokens instead of max_tokens
+        let token_key = if model.contains("gpt-5") {
+            "max_completion_tokens"
+        } else {
+            "max_tokens"
+        };
         let mut request_body = serde_json::json!({
             "model": model,
             "messages": messages,
             "stream": true,
-            "max_tokens": 16384,
+            token_key: 16384,
             "temperature": 1.0,
             "top_p": 1.0
         });
