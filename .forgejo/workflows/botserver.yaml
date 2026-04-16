@@ -80,23 +80,25 @@ jobs:
           ssh $SSH_ARGS system "find /tmp -name '*.log' -type f -mtime +7 -print0 2>/dev/null | xargs -0 rm -f || true"
 
       - name: Build BotServer
-        working-directory: /opt/gbo/data/botserver
-        run: |
-          mkdir -p /tmp
-          sccache --start-server 2>/dev/null || true
-          BOTSERVER_BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          BOTSERVER_COMMIT="$(git -C /opt/gbo/data/botserver/botserver rev-parse --short HEAD 2>/dev/null || echo unknown)"
-          export BOTSERVER_BUILD_DATE
-          export BOTSERVER_COMMIT
-          echo "Build date: $BOTSERVER_BUILD_DATE"
-          echo "Commit: $BOTSERVER_COMMIT"
-          cargo build -p botserver -j 8 >/tmp/build.log 2>&1 || true
-          sccache --show-stats
-          ls -lh target/debug/botserver
+    working-directory: /opt/gbo/data/botserver
+    run: |
+      sccache --start-server 2>/dev/null || true
+      BOTSERVER_BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+      BOTSERVER_COMMIT="$(git -C /opt/gbo/data/botserver/botserver rev-parse --short HEAD 2>/dev/null || echo unknown)"
+      export BOTSERVER_BUILD_DATE
+      export BOTSERVER_COMMIT
+      echo "Build date: $BOTSERVER_BUILD_DATE"
+      echo "Commit: $BOTSERVER_COMMIT"
+      cargo build -p botserver -j 8 2>&1
+      sccache --show-stats
+      ls -lh target/debug/botserver
 
       - name: Save build log
-        if: always()
-        run: cp /tmp/build.log /tmp/botserver-$(date +%Y%m%d-%H%M%S).log || true
+    if: always()
+    run: |
+      LOGFILE="/tmp/botserver-$(date +%Y%m%d-%H%M%S).log"
+      echo "Build log saved at: $LOGFILE"
+      ls -lh /opt/gbo/data/botserver/target/debug/botserver 2>&1 || echo "Binary not found"
 
       - name: Deploy via ssh tar gzip
         run: |
