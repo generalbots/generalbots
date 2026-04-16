@@ -326,20 +326,31 @@ impl LLMProvider for KimiClient {
                                         }
                                     }
 
-                                    // Kimi K2.5: content has the answer, reasoning/reasoning_content is thinking
-                                    if let Some(text) = delta.get("content").and_then(|c| c.as_str()) {
-                                        if !text.is_empty() {
-                                            let processed = handler.process_content_streaming(text, &mut stream_state);
-                                            if !processed.is_empty() {
-                                                total_content_chars += processed.len();
-                                                if tx.send(processed).await.is_err() {
-                                                    info!("[Kimi] Channel closed, stopping stream after {} content chars", total_content_chars);
-                                                    return Ok(());
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+              // Kimi K2.5: content has the answer, reasoning/reasoning_content is thinking
+              if let Some(text) = delta.get("content").and_then(|c| c.as_str()) {
+                if !text.is_empty() {
+                  let processed = handler.process_content_streaming(text, &mut stream_state);
+                  if !processed.is_empty() {
+                    total_content_chars += processed.len();
+                    if tx.send(processed).await.is_err() {
+                      info!("[Kimi] Channel closed, stopping stream after {} content chars", total_content_chars);
+                      return Ok(());
+                    }
+                  }
+                }
+              }
+
+              // Check for content filter errors
+              if let Some(filter_result) = delta.get("content_filter_result") {
+                if let Some(error) = filter_result.get("error") {
+                  let code = error.get("code").and_then(|c| c.as_str()).unwrap_or("unknown");
+                  let message = error.get("message").and_then(|m| m.as_str()).unwrap_or("no message");
+                  error!("[Kimi] Content filter error: code={}, message={}", code, message);
+                } else {
+                  log::trace!("[Kimi] Content filter result (no error): {:?}", filter_result);
+                }
+              }
+            }
 
                                 if let Some(reason) = choice.get("finish_reason").and_then(|r| r.as_str()) {
                                     if !reason.is_empty() {

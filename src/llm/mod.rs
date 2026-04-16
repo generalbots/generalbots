@@ -58,6 +58,119 @@ pub struct OpenAIClient {
     rate_limiter: Arc<ApiRateLimiter>,
 }
 
+#[derive(Debug)]
+pub struct AzureGPT5Client {
+    client: reqwest::Client,
+    base_url: String,
+    api_version: String,
+    rate_limiter: Arc<ApiRateLimiter>,
+}
+
+impl AzureGPT5Client {
+    pub fn new(base_url: String, api_version: Option<String>) -> Self {
+        let api_version = api_version.unwrap_or_else(|| "2025-04-01-preview".to_string());
+        let rate_limiter = Arc::new(ApiRateLimiter::unlimited());
+        Self {
+            client: reqwest::Client::new(),
+            base_url,
+            api_version,
+            rate_limiter,
+        }
+    }
+
+    fn sanitize_utf8(input: &str) -> String {
+        input.chars()
+            .filter(|c| {
+                let cp = *c as u32;
+                !(0xD800..=0xDBFF).contains(&cp) && !(0xDC00..=0xDFFF).contains(&cp)
+            })
+            .collect()
+    }
+}
+
+#[async_trait]
+impl LLMProvider for AzureGPT5Client {
+    async fn generate(
+        &self,
+        prompt: &str,
+        config: &Value,
+        model: &str,
+        key: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let raw_messages = if config.is_array() && !config.as_array().unwrap_or(&vec![]).is_empty() {
+            config
+        } else {
+            &serde_json::json!([{"role": "user", "content": prompt}])
+        };
+
+        let full_url = format!(
+            "{}/openai/responses?api-version={}",
+            self.base_url, self.api_version
+        );
+        let auth_header = format!("Bearer {}", key);
+
+        let input_array: Vec<Value> = raw_messages
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|msg| {
+                serde_json::json!({
+                    "role": msg.get("role").and_then(|r| r.as_str()).unwrap_or("user"),
+                    "content": Self::sanitize_utf8(msg.get("content").and_then(|c| c.as_str()).unwrap_or(""))
+                })
+            })
+            .collect();
+
+        let response = self
+            .client
+            .post(&full_url)
+            .header("Authorization", &auth_header)
+            .header("Content-Type", "application/json")
+            .json(&serde_json::json!({
+                "model": model,
+                "input": input_array,
+                "max_output_tokens": 16384
+            }))
+            .send()
+            .await?;
+
+        let status = response.status();
+        if status != reqwest::StatusCode::OK {
+            let error_text = response.text().await.unwrap_or_default();
+            error!("AzureGPT5 generate error: {}", error_text);
+            return Err(format!("AzureGPT5 request failed with status: {}", status).into());
+        }
+
+        let result: Value = response.json().await?;
+        let content = result["output"][0]["content"][0]["text"]
+            .as_str()
+            .unwrap_or("");
+
+        Ok(content.to_string())
+    }
+
+    async fn generate_stream(
+        &self,
+        prompt: &str,
+        config: &Value,
+        tx: mpsc::Sender<String>,
+        model: &str,
+        key: &str,
+        _tools: Option<&Vec<Value>>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let content = self.generate(prompt, config, model, key).await?;
+        tx.send(content).await?;
+        Ok(())
+    }
+
+    async fn cancel_job(
+        &self,
+        _session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        Ok(())
+    }
+}
+
 impl OpenAIClient {
     /// Estimates token count for a text string (roughly 4 characters per token for English)
     fn estimate_tokens(text: &str) -> usize {
@@ -458,45 +571,56 @@ impl LLMProvider for OpenAIClient {
         last_bytes = chunk_str.chars().take(100).collect();
         for line in chunk_str.lines() {
             if line.starts_with("data: ") && !line.contains("[DONE]") {
-                if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
-                    if let Some(reasoning) = data["choices"][0]["delta"]["reasoning_content"].as_str() {
-                        if !reasoning.is_empty() {
-                            if !in_reasoning {
-                                in_reasoning = true;
-                            }
-                            let thinking_msg = serde_json::json!({
-                                "type": "thinking",
-                                "content": reasoning
-                            }).to_string();
-                            let _ = tx.send(thinking_msg).await;
-                        }
-                    }
-
-                    if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
-                        if !content.is_empty() {
-                            if in_reasoning {
-                                in_reasoning = false;
-                                let clear_msg = serde_json::json!({"type": "thinking_clear"}).to_string();
-                                let _ = tx.send(clear_msg).await;
-                            }
-                            let processed = handler.process_content_streaming(content, &mut stream_state);
-                            if !processed.is_empty() {
-                                content_sent += processed.len();
-                                let _ = tx.send(processed).await;
-                            }
-                        }
-                    }
-
-                    if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
-                        for tool_call in tool_calls {
-                            if let Some(func) = tool_call.get("function") {
-                                if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
-                                    let _ = tx.send(args.to_string()).await;
-                                }
-                            }
-                        }
-                    }
+              if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
+                // Check for content filter errors
+                if let Some(filter_result) = data["choices"][0]["delta"]["content_filter_result"].as_object() {
+                  if let Some(error) = filter_result.get("error") {
+                    let code = error.get("code").and_then(|c| c.as_str()).unwrap_or("unknown");
+                    let message = error.get("message").and_then(|m| m.as_str()).unwrap_or("no message");
+                    error!("LLM Content filter error: code={}, message={}", code, message);
+                  } else {
+                    trace!("LLM Content filter result (no error): {:?}", filter_result);
+                  }
                 }
+
+                if let Some(reasoning) = data["choices"][0]["delta"]["reasoning_content"].as_str() {
+                  if !reasoning.is_empty() {
+                    if !in_reasoning {
+                      in_reasoning = true;
+                    }
+                    let thinking_msg = serde_json::json!({
+                      "type": "thinking",
+                      "content": reasoning
+                    }).to_string();
+                    let _ = tx.send(thinking_msg).await;
+                  }
+                }
+
+                if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
+                  if !content.is_empty() {
+                    if in_reasoning {
+                      in_reasoning = false;
+                      let clear_msg = serde_json::json!({"type": "thinking_clear"}).to_string();
+                      let _ = tx.send(clear_msg).await;
+                    }
+                    let processed = handler.process_content_streaming(content, &mut stream_state);
+                    if !processed.is_empty() {
+                      content_sent += processed.len();
+                      let _ = tx.send(processed).await;
+                    }
+                  }
+                }
+
+                if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
+                  for tool_call in tool_calls {
+                    if let Some(func) = tool_call.get("function") {
+                      if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
+                        let _ = tx.send(args.to_string()).await;
+                      }
+                    }
+                  }
+                }
+              }
             }
         }
     }
@@ -525,6 +649,7 @@ pub enum LLMProviderType {
     OpenAI,
     Claude,
     AzureClaude,
+    AzureGPT5,
     GLM,
     Bedrock,
     Vertex,
@@ -539,6 +664,10 @@ impl From<&str> for LLMProviderType {
             } else {
                 Self::Claude
             }
+        } else if lower.contains("azuregpt5") || lower.contains("gpt5") {
+            Self::AzureGPT5
+        } else if lower.contains("openai.azure.com") && lower.contains("responses") {
+            Self::AzureGPT5
         } else if lower.contains("z.ai") || lower.contains("glm") {
             Self::GLM
         } else if lower.contains("bedrock") {
@@ -577,6 +706,10 @@ pub fn create_llm_provider(
                 base_url, deployment
             );
             std::sync::Arc::new(ClaudeClient::azure(base_url, deployment))
+        }
+        LLMProviderType::AzureGPT5 => {
+            info!("Creating Azure GPT-5/Responses LLM provider with URL: {}", base_url);
+            std::sync::Arc::new(AzureGPT5Client::new(base_url, endpoint_path))
         }
         LLMProviderType::GLM => {
             info!("Creating GLM/z.ai LLM provider with URL: {}", base_url);
