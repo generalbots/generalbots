@@ -125,7 +125,7 @@ diesel::table! {
         role -> Int4,
         content_encrypted -> Text,
         message_type -> Int4,
-        message_index -> Int8,
+        message_index -> Int4,
         created_at -> Timestamptz,
     }
 }

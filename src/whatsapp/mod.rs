@@ -1410,7 +1410,7 @@ async fn save_message_to_history(
                 message_history::role.eq(if sender_clone == "user" { 1 } else { 2 }),
                 message_history::content_encrypted.eq(content_clone),
                 message_history::message_type.eq(1),
-                message_history::message_index.eq(0i64),
+                message_history::message_index.eq(0i32),
                 message_history::created_at.eq(diesel::dsl::now),
             ))
             .execute(&mut db_conn)

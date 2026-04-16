@@ -235,11 +235,11 @@ impl SessionManager {
         msg_type: i32,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         use crate::core::shared::models::message_history::dsl::*;
-        let next_index = message_history
+        let next_index: i32 = message_history
             .filter(session_id.eq(sess_id))
             .count()
             .get_result::<i64>(&mut self.conn)
-            .unwrap_or(0);
+            .unwrap_or(0) as i32;
         diesel::insert_into(message_history)
             .values((
                 id.eq(Uuid::new_v4()),
@@ -346,7 +346,7 @@ impl SessionManager {
             .filter(session_id.eq(sess_id))
             .order(message_index.asc())
             .select((role, content_encrypted, message_index))
-            .load::<(i32, String, i64)>(&mut self.conn)?;
+            .load::<(i32, String, i32)>(&mut self.conn)?;
 
         // Get last N message pairs to ensure user/assistant alternation
         // Each "turn" is 2 messages (user + assistant), so we need 2 * limit_val messages
