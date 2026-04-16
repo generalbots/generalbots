@@ -735,7 +735,9 @@ pub fn create_llm_provider_from_url(
     endpoint_path: Option<String>,
     explicit_provider: Option<LLMProviderType>,
 ) -> std::sync::Arc<dyn LLMProvider> {
-    let provider_type = explicit_provider.as_ref().map(|p| *p).unwrap_or_else(|| LLMProviderType::from(url));
+    let detected = LLMProviderType::from(url);
+    let provider_type = explicit_provider.as_ref().map(|p| *p).unwrap_or(detected);
+    info!("LLM provider: explicit={:?}, detected={:?}, URL={}", explicit_provider, detected, url);
     if explicit_provider.is_some() {
         info!("Using explicit LLM provider type: {:?} for URL: {}", provider_type, url);
     }
