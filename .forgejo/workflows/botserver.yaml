@@ -81,21 +81,26 @@ jobs:
 
       - name: Prepare build log
         run: |
-          mkdir -p /tmp && touch /tmp/build.log && chmod 666 /tmp/build.log
+          mkdir -p /tmp
+          cat > /tmp/build.sh << 'EOF'
+#!/bin/bash
+exec > >(tee /tmp/build.log) 2>&1
+sccache --start-server 2>/dev/null || true
+BOTSERVER_BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+BOTSERVER_COMMIT="$(git -C /opt/gbo/data/botserver/botserver rev-parse --short HEAD 2>/dev/null || echo unknown)"
+export BOTSERVER_BUILD_DATE
+export BOTSERVER_COMMIT
+echo "Build date: $BOTSERVER_BUILD_DATE"
+echo "Commit: $BOTSERVER_COMMIT"
+cargo build -p botserver -j 8
+sccache --show-stats
+ls -lh target/debug/botserver
+EOF
+          chmod +x /tmp/build.sh
 
       - name: Build BotServer
         working-directory: /opt/gbo/data/botserver
-        run: |
-          sccache --start-server 2>/dev/null || true
-          BOTSERVER_BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          BOTSERVER_COMMIT="$(git -C /opt/gbo/data/botserver/botserver rev-parse --short HEAD 2>/dev/null || echo unknown)"
-          export BOTSERVER_BUILD_DATE
-          export BOTSERVER_COMMIT
-          echo "Build date: $BOTSERVER_BUILD_DATE"
-          echo "Commit: $BOTSERVER_COMMIT"
-          cargo build -p botserver  -j 8 2>&1 | tee /tmp/build.log
-          sccache --show-stats
-          ls -lh target/debug/botserver
+        run: bash /tmp/build.sh
 
       - name: Save build log
         if: always()
