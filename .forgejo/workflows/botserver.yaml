@@ -39,12 +39,15 @@ jobs:
           mkdir -p /tmp/persistent-botserver
           mkdir -p /tmp/gb-ws
 
-      - name: Setup Git
-        run: |
-          git config --global http.sslVerify false
-          git config --global --add safe.directory "*"
+  - name: Setup Git
+    run: |
+      git config --global http.sslVerify false
+      git config --global --add safe.directory "*"
+      git config --global user.email "ci@pragmatismo.com.br"
+      git config --global user.name "CI Runner"
+      git config --global pull.rebase false
 
-      - name: Update Repositories
+  - name: Update Repositories
         run: |
           set -e
           cd /tmp/persistent-botserver
