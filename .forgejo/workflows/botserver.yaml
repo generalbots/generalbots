@@ -33,26 +33,23 @@ jobs:
 
       - name: Setup Workspace
         run: |
-          # Use /tmp for workspace (runner has full permissions)
           mkdir -p /tmp/sccache
           mkdir -p /tmp/cargo
           mkdir -p /tmp/persistent-botserver
           mkdir -p /tmp/gb-ws
 
-  - name: Setup Git
-    run: |
-      git config --global http.sslVerify false
-      git config --global --add safe.directory "*"
-      git config --global user.email "ci@pragmatismo.com.br"
-      git config --global user.name "CI Runner"
-      git config --global pull.rebase false
+      - name: Setup Git
+        run: |
+          git config --global http.sslVerify false
+          git config --global --add safe.directory "*"
+          git config --global user.email "ci@pragmatismo.com.br"
+          git config --global user.name "CI Runner"
 
-  - name: Update Repositories
+      - name: Update Repositories
         run: |
           set -e
           cd /tmp/persistent-botserver
-          
-          # Update botlib
+
           if [ -d botlib/.git ]; then
             echo "Updating botlib..."
             (cd botlib && git pull origin main)
@@ -60,24 +57,21 @@ jobs:
             echo "Cloning botlib..."
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
-          
-          # Update botserver
+
           if [ -d botserver/.git ]; then
             echo "Updating botserver..."
-            (cd botserver && git pull origin main)
+            (cd botserver && git config user.email "ci@pragmatismo.com.br" && git config user.name "CI Runner" && git pull origin main)
           else
             echo "Cloning botserver..."
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
-          
-          # Update gb workspace
+
           if [ -d /tmp/gb-ws/.git ]; then
             (cd /tmp/gb-ws && git pull origin main)
           else
             git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /tmp/gb-ws
           fi
-          
-          # Copy Cargo.toml
+
           cp /tmp/gb-ws/Cargo.toml Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
@@ -88,30 +82,20 @@ jobs:
         run: |
           export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
           sccache --start-server 2>/dev/null || true
-          echo "Building BotServer..."
           cargo build --package botserver 2>&1 | tee /tmp/build.log
           sccache --stop-server 2>/dev/null || true
         continue-on-error: true
 
       - name: Deploy
         run: |
-          set -e
-          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5"
-          
-          echo "Stopping botserver..."
+          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
           ssh $SSH_ARGS system "sudo systemctl stop botserver 2>/dev/null || true; sleep 2"
-          
-          echo "Deploying binary..."
-          scp $SSH_ARGS /tmp/persistent-botserver/target/debug/botserver system:/tmp/botserver-new
-          ssh $SSH_ARGS system "sudo mv /tmp/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
-          
-          echo "Starting botserver..."
-          ssh $SSH_ARGS system "sudo systemctl daemon-reload && sudo systemctl start botserver"
-          
-          echo "Health check..."
+          scp $SSH_ARGS /tmp/persistent-botserver/target/debug/botserver system:/opt/gbo/bin/botserver
+          ssh $SSH_ARGS system "sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
+          ssh $SSH_ARGS system "sudo systemctl start botserver"
           sleep 5
           for i in $(seq 1 30); do
-            if ssh $SSH_ARGS system "curl -sf http://localhost:8080/health" 2>/dev/null; then
+            if ssh $SSH_ARGS system "curl -sf http://localhost:8080/api/health" 2>/dev/null; then
               echo "Health check passed!"
               break
             fi
@@ -122,4 +106,4 @@ jobs:
       - name: Verify
         run: |
           SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
-          ssh $SSH_ARGS system "pgrep -f botserver >/dev/null && echo OK || echo FAIL"
+          ssh $SSH_ARGS system "pgrep -f botserver && echo 'OK: botserver running' || echo 'FAIL'"
