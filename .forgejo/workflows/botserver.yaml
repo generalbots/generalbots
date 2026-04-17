@@ -4,106 +4,45 @@ on:
   push:
     branches: ["main"]
 
-env:
-  CARGO_BUILD_JOBS: 8
-  CARGO_NET_RETRY: 10
-
 jobs:
   build:
     runs-on: gbo
 
     steps:
-      - name: Install system dependencies
+      - name: Install deps
         run: |
           PKGS="libpq-dev libssl-dev liblzma-dev pkg-config"
-          MISSING=""
           for pkg in $PKGS; do
-            dpkg -s "$pkg" >/dev/null 2>&1 || MISSING="$MISSING $pkg"
-          done
-          if [ -n "$MISSING" ]; then
-            apt-get update -qq
-            apt-get install -y --no-install-recommends $MISSING
-          fi
+            dpkg -s "$pkg" >/dev/null 2>&1 || apt-get install -y "$pkg"
+          done || apt-get update && apt-get install -y $PKGS
 
-      - name: Setup Workspace
+      - name: Clone
         run: |
-          mkdir -p /tmp/persistent-botserver
-          mkdir -p /tmp/gb-ws
+          cd /tmp
+          rm -rf botlib botserver gb-ws
+          git clone --depth 1 https://alm.pragmatismo.com.br/GeneralBots/botlib.git
+          git clone --depth 1 https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+          git clone --depth 1 https://alm.pragmatismo.com.br/GeneralBots/gb.git gb-ws
 
-      - name: Update botlib
-        run: |
-          cd /tmp/persistent-botserver
-          if [ -d botlib/.git ]; then
-            cd botlib && git fetch origin main && git reset --hard origin/main
-          else
-            rm -rf botlib
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
-          fi
-
-      - name: Update botserver
-        run: |
-          cd /tmp/persistent-botserver
-          if [ -d botserver/.git ]; then
-            cd botserver
-            git config user.email "ci@pragmatismo.com.br"
-            git config user.name "CI Runner"
-            git fetch origin main
-            git reset --hard origin/main
-          else
-            rm -rf botserver
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
-          fi
-
-      - name: Update gb workspace
-        run: |
-          if [ -d /tmp/gb-ws/.git ]; then
-            cd /tmp/gb-ws && git fetch origin main && git reset --hard origin/main
-          else
-            rm -rf /tmp/gb-ws
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /tmp/gb-ws
-          fi
-
-      - name: Setup Cargo.toml
-        run: |
-          cd /tmp/persistent-botserver
-          cp /tmp/gb-ws/Cargo.toml Cargo.toml
-          for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
-            grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
-          done
-
-      - name: Build BotServer
-        working-directory: /tmp/persistent-botserver
+      - name: Build
+        working-directory: /tmp
         run: |
           export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
-          cargo build --package botserver 2>&1
+          cp gb-ws/Cargo.toml .
+          sed -i '/botapp\|botdevice\|bottest\|botui\|botbook\|botmodels\|botplugin\|bottemplates/d' Cargo.toml
+          cargo build --package botserver
 
       - name: Deploy
         run: |
-          set -e
-          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
-          
-          echo "Stopping botserver..."
-          ssh $SSH_ARGS system "sudo systemctl stop botserver 2>/dev/null || true; sleep 2"
-          
-          echo "Transferring..."
-          scp $SSH_ARGS /tmp/persistent-botserver/target/debug/botserver system:/tmp/botserver-new
-          ssh $SSH_ARGS system "sudo mv /tmp/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
-          
-          echo "Starting..."
-          ssh $SSH_ARGS system "sudo systemctl start botserver"
-          
-          echo "Health check..."
+          SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
+          ssh $SSH system "sudo systemctl stop botserver || true"
+          scp $SSH /tmp/target/debug/botserver system:/tmp/botserver
+          ssh $SSH system "sudo mv /tmp/botserver /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
+          ssh $SSH system "sudo systemctl start botserver"
           sleep 5
-          for i in $(seq 1 30); do
-            if ssh $SSH_ARGS system "curl -sf http://localhost:8080/api/health" 2>/dev/null; then
-              echo "OK"
-              break
-            fi
-            echo "wait ($i/30)"
-            sleep 2
-          done
+          ssh $SSH system "curl -sf http://localhost:8080/api/health && echo 'Deploy OK'"
 
       - name: Verify
         run: |
-          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
-          ssh $SSH_ARGS system "pgrep -f botserver && echo OK || echo FAIL"
+          SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
+          ssh $SSH system "pgrep -f botserver && echo 'BotServer running'"
