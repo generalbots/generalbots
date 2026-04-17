@@ -10,46 +10,40 @@ env:
   CARGO_BUILD_JOBS: 8
   CARGO_NET_RETRY: 10
   RUSTC_WRAPPER: sccache
-  SCCACHE_DIR: /opt/gbo/data/cache/sccache
-  CARGO_HOME: /opt/gbo/data/cache/cargo
-  CARGO_TARGET_DIR: /opt/gbo/data/persistent-botserver/target
-  PATH: /home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+  SCCACHE_DIR: /home/gbuser/.cache/sccache
+  CARGO_HOME: /home/gbuser/.cargo
+  CARGO_TARGET_DIR: /home/gbuser/persistent-botserver/target
 
 jobs:
   build:
     runs-on: gbo
 
     steps:
-      - name: Setup Persistent Directories
+      - name: Setup Workspace
         run: |
-          # Run as root initially to set up directories
-          mkdir -p /opt/gbo/data/cache/sccache
-          mkdir -p /opt/gbo/data/cache/cargo
-          mkdir -p /opt/gbo/data/persistent-botserver
-          mkdir -p /opt/gbo/data/gb-ws
-          chown -R gbuser:gbuser /opt/gbo/data/cache
-          chown -R gbuser:gbuser /opt/gbo/data/persistent-botserver
-          chown -R gbuser:gbuser /opt/gbo/data/gb-ws
-          chmod -R 755 /opt/gbo/data/cache
-          chmod -R 755 /opt/gbo/data/persistent-botserver
-          chmod -R 755 /opt/gbo/data/gb-ws
+          # Use gbuser home directory instead of /opt/gbo/data
+          su - gbuser -c '
+            mkdir -p /home/gbuser/.cache/sccache
+            mkdir -p /home/gbuser/.cargo
+            mkdir -p /home/gbuser/persistent-botserver
+            mkdir -p /home/gbuser/gb-ws
+          '
 
-      - name: Setup Git Config
+      - name: Setup Git
         run: |
           su - gbuser -c 'git config --global http.sslVerify false'
           su - gbuser -c 'git config --global --add safe.directory "*"'
 
-      - name: Update Workspace
+      - name: Update Repositories
         run: |
           set -e
           su - gbuser -c '
-            WORKSPACE="/opt/gbo/data/persistent-botserver"
-            cd "$WORKSPACE"
+            cd /home/gbuser/persistent-botserver
             
             # Update botlib
             if [ -d botlib/.git ]; then
               echo "Updating botlib..."
-              cd botlib && git pull origin main && cd ..
+              (cd botlib && git pull origin main)
             else
               echo "Cloning botlib..."
               git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
@@ -58,21 +52,21 @@ jobs:
             # Update botserver
             if [ -d botserver/.git ]; then
               echo "Updating botserver..."
-              cd botserver && git pull origin main && cd ..
+              (cd botserver && git pull origin main)
             else
               echo "Cloning botserver..."
               git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
             fi
             
             # Update gb workspace
-            if [ -d /opt/gbo/data/gb-ws/.git ]; then
-              cd /opt/gbo/data/gb-ws && git pull origin main && cd "$WORKSPACE"
+            if [ -d /home/gbuser/gb-ws/.git ]; then
+              (cd /home/gbuser/gb-ws && git pull origin main)
             else
-              git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
+              git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /home/gbuser/gb-ws
             fi
             
             # Copy Cargo.toml
-            cp /opt/gbo/data/gb-ws/Cargo.toml Cargo.toml
+            cp /home/gbuser/gb-ws/Cargo.toml Cargo.toml
             for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
               grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
             done
@@ -86,53 +80,38 @@ jobs:
             dpkg -s "$pkg" >/dev/null 2>&1 || MISSING="$MISSING $pkg"
           done
           if [ -n "$MISSING" ]; then
-            apt-get update -qq -o Acquire::Retries=3 -o Acquire::http::Timeout=30
+            apt-get update -qq
             apt-get install -y --no-install-recommends $MISSING
-          else
-            echo "All system dependencies already installed"
           fi
 
-      - name: Clean old artifacts
-        run: |
-          su - gbuser -c 'find /opt/gbo/data/persistent-botserver/target -name "*.rlib" -type f -mtime +7 -delete 2>/dev/null || true'
-
       - name: Build BotServer
-        working-directory: /opt/gbo/data/persistent-botserver
+        working-directory: /home/gbuser/persistent-botserver
         run: |
-          su - gbuser -c "
-            cd /opt/gbo/data/persistent-botserver
+          su - gbuser -c '
+            cd /home/gbuser/persistent-botserver
             sccache --start-server 2>/dev/null || true
-            BOTSERVER_BUILD_DATE=\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\"
-            BOTSERVER_COMMIT=\"$(su - gbuser -c \"cd /opt/gbo/data/persistent-botserver/botserver && git rev-parse --short HEAD 2>/dev/null || echo unknown\")\"
-            echo \"Building BotServer (commit: \$BOTSERVER_COMMIT)...\"
+            echo "Building BotServer..."
             cargo build --package botserver 2>&1 | tee /tmp/build.log
             sccache --stop-server 2>/dev/null || true
-          "
-        continue-on-error: true
+          '
 
-      - name: Save build log
-        run: |
-          cp /tmp/build.log /tmp/build-output.log 2>/dev/null || true
-          chown gbuser:gbuser /tmp/build-output.log 2>/dev/null || true
-
-      - name: Deploy via SSH to system container
+      - name: Deploy
         run: |
           set -e
           su - gbuser -c '
             SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5"
-            echo "=== Deploy started ==="
             
-            echo "Step 1: Stopping botserver..."
-            ssh $SSH_ARGS system "sudo systemctl stop botserver 2>/dev/null || true; sleep 2; pkill -9 botserver 2>/dev/null || true; echo OK: botserver stopped"
+            echo "Stopping botserver..."
+            ssh $SSH_ARGS system "sudo systemctl stop botserver 2>/dev/null || true; sleep 2"
             
-            echo "Step 2: Transferring binary..."
-            scp $SSH_ARGS /opt/gbo/data/persistent-botserver/target/debug/botserver system:/tmp/botserver-new
-            ssh $SSH_ARGS system "sudo mv /tmp/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver && echo Binary deployed"
+            echo "Deploying binary..."
+            scp $SSH_ARGS /home/gbuser/persistent-botserver/target/debug/botserver system:/tmp/botserver-new
+            ssh $SSH_ARGS system "sudo mv /tmp/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
             
-            echo "Step 3: Starting botserver..."
-            ssh $SSH_ARGS system "sudo systemctl daemon-reload && sudo systemctl start botserver && echo Botserver started"
+            echo "Starting botserver..."
+            ssh $SSH_ARGS system "sudo systemctl daemon-reload && sudo systemctl start botserver"
             
-            echo "Step 4: Health check..."
+            echo "Health check..."
             sleep 5
             for i in $(seq 1 30); do
               if ssh $SSH_ARGS system "curl -sf http://localhost:8080/health" 2>/dev/null; then
@@ -142,18 +121,11 @@ jobs:
               echo "waiting ($i/30)..."
               sleep 2
             done
-            
-            echo "=== Deploy completed ==="
           '
 
-      - name: Verify botserver started
+      - name: Verify
         run: |
           su - gbuser -c '
-            SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5"
-            ssh $SSH_ARGS system "pgrep -f botserver >/dev/null && echo OK: botserver running || echo WARNING: check status"
+            SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
+            ssh $SSH_ARGS system "pgrep -f botserver >/dev/null && echo OK || echo FAIL"
           '
-
-      - name: Save deploy log
-        run: |
-          echo "Deploy completed at $(date)" > /tmp/deploy.log
-          chown gbuser:gbuser /tmp/deploy.log
