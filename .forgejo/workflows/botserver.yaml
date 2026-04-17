@@ -34,10 +34,10 @@ jobs:
             cd botlib && git pull && cd ..
           fi
           
-          if [ ! -d src ]; then
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git src
+          if [ ! -d botserver ]; then
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
           else
-            cd src && git pull && cd ..
+            cd botserver && git pull && cd ..
           fi
           
           if [ ! -d ~/workspace/gb-ws ]; then
