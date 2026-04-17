@@ -8,6 +8,7 @@ env:
   CARGO_BUILD_JOBS: 8
   RUSTC_WRAPPER: sccache
   CARGO_TARGET_DIR: /home/gbuser/workspace/botserver-target
+  PATH: /home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 jobs:
   build:
@@ -16,7 +17,6 @@ jobs:
     steps:
       - name: Setup environment
         run: |
-          export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
           sccache --start-server 2>/dev/null || true
 
       - name: Clone and Build
