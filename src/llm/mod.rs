@@ -1080,3 +1080,4 @@ mod tests {
         assert_eq!(tool_choice.finish_reason, "tool_calls");
     }
 }
+// Cache test 1776459528
