@@ -28,17 +28,21 @@ jobs:
       - name: Clone Sources (Fresh)
         run: |
           cd ~/workspace
-          rm -rf botlib botserver Cargo.toml Cargo.lock
+          rm -rf botlib botserver
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           
           rm -rf ~/gb-ws
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git ~/gb-ws
-          
-          cp ~/gb-ws/Cargo.toml .
+
+      - name: Setup Cargo.toml
+        working-directory: /home/gbuser/workspace
+        run: |
+          cp ~/gb-ws/Cargo.toml ~/workspace/Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
-            grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
+            grep -v "\"$m\"" ~/workspace/Cargo.toml > /tmp/c.toml && mv /tmp/c.toml ~/workspace/Cargo.toml
           done
+          ls -la ~/workspace/Cargo.toml
 
       - name: Build BotServer
         working-directory: /home/gbuser/workspace
