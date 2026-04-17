@@ -23,13 +23,12 @@ jobs:
     steps:
       - name: Setup Persistent Directories
         run: |
-          # Criar diretórios persistentes para cache
+          # Criar diretórios persistentes para cache (owned by root, CI runs as root)
           mkdir -p /opt/gbo/data/cache/sccache
           mkdir -p /opt/gbo/data/cache/cargo
           mkdir -p /opt/gbo/data/persistent-botserver
           mkdir -p /opt/gbo/data/gb-ws
-          chmod -R 755 /opt/gbo/data/cache
-          chmod -R 755 /opt/gbo/data/persistent-botserver
+          # Don't chmod - permissions handled by container
 
       - name: Setup Git
         run: |
