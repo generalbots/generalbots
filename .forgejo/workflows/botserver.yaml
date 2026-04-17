@@ -82,7 +82,7 @@ jobs:
         run: |
           export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
           sccache --start-server 2>/dev/null || true
-          cargo build --package botserver 2>&1 | tee /tmp/build.log
+          cargo build --package botserver 2>2>&1 | tee /tmp/build.log1
           sccache --stop-server 2>/dev/null || true
 
       - name: Deploy
