@@ -748,7 +748,7 @@ match result {
                     }
                     None => true,
                 };
-                debug!("check_gbot: config.csv should_sync={} (etag={}, last_modified={:?})", should_sync, etag, last_modified);
+debug!("check_gbot: config.csv should_sync={} (etag={}, last_modified={:?})", should_sync, etag, last_modified);
                 if should_sync {
                     match client
                         .head_object()
@@ -764,15 +764,44 @@ match result {
                                 .key(&path)
                                 .send()
                                 .await?;
-                        let bytes = response.body.collect().await?.into_bytes();
-                        let csv_content = String::from_utf8(bytes.to_vec())
-                            .map_err(|e| format!("UTF-8 error in {}: {}", path, e))?;
-                        let llm_lines: Vec<_> = csv_content
-                            .lines()
-                            .filter(|line| line.trim_start().starts_with("llm-"))
-                            .collect();
+                            let bytes = response.body.collect().await?.into_bytes();
+                            let csv_content = String::from_utf8(bytes.to_vec())
+                                .map_err(|e| format!("UTF-8 error in {}: {}", path, e))?;
+                            
+                            // Compute content hash to detect actual changes, not just etag changes
+                            use sha2::{Digest, Sha256};
+                            let mut hasher = Sha256::new();
+                            hasher.update(csv_content.as_bytes());
+                            let content_hash = format!("{:x}", hasher.finalize());
+                            
+                            // Check if content actually changed
+                            let config_hash_key = format!("__config_hash__{}", path);
+                            let content_changed = match self.file_repo.get_file_state(self.bot_id, &config_hash_key) {
+                                Some(prev) => prev.etag.as_deref() != Some(&content_hash),
+                                None => true,
+                            };
+                            
+                            if !content_changed {
+                                debug!("check_gbot: config.csv content unchanged (hash match), skipping sync");
+                                // Still update etag to prevent repeated checks
+                                if let Err(e) = self.file_repo.upsert_file_full(
+                                    self.bot_id, &config_state_key, "gbot-config",
+                                    Some(etag), last_modified.and_then(|s| DateTime::parse_from_rfc3339(&s).ok().map(|d| d.with_timezone(&Utc))), false, 0, None,
+                                ) {
+                                    warn!("Failed to update config file state: {}", e);
+                                }
+                                continue;
+                            }
+                            
+                            let llm_lines: Vec<_> = csv_content
+                                .lines()
+                                .filter(|line| line.trim_start().starts_with("llm-"))
+                                .collect();
                         if llm_lines.is_empty() {
                             let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
+                            // Store content hash to prevent unnecessary re-syncs
+                            let config_hash_key = format!("__config_hash__{}", path);
+                            let _ = self.file_repo.upsert_file_full(self.bot_id, &config_hash_key, "gbot", Some(content_hash.clone()), None, false, 0, None);
                         } else {
                             #[cfg(feature = "llm")]
                             {
@@ -812,6 +841,9 @@ match result {
                                 }
 
                                 let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
+                                // Store content hash to prevent unnecessary re-syncs
+                                let config_hash_key = format!("__config_hash__{}", path);
+                                let _ = self.file_repo.upsert_file_full(self.bot_id, &config_hash_key, "gbot", Some(content_hash.clone()), None, false, 0, None);
 
                                 if restart_needed {
                                     if let Err(e) =
@@ -874,6 +906,8 @@ match result {
                             #[cfg(not(feature = "llm"))]
                             {
                                 let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
+                                let config_hash_key = format!("__config_hash__{}", path);
+                                let _ = self.file_repo.upsert_file_full(self.bot_id, &config_hash_key, "gbot", Some(content_hash.clone()), None, false, 0, None);
                             }
                         }
                         if csv_content.lines().any(|line| line.starts_with("theme-")) {
