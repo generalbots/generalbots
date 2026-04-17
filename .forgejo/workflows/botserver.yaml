@@ -3,8 +3,6 @@ name: BotServer CI/CD
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
 env:
   CARGO_BUILD_JOBS: 8
@@ -69,20 +67,6 @@ jobs:
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
           done
-
-      - name: Install system dependencies
-        run: |
-          PKGS="libpq-dev libssl-dev liblzma-dev pkg-config"
-          MISSING=""
-          for pkg in $PKGS; do
-            dpkg -s "$pkg" >/dev/null 2>&1 || MISSING="$MISSING $pkg"
-          done
-          if [ -n "$MISSING" ]; then
-            sudo apt-get update -qq -o Acquire::Retries=3 -o Acquire::http::Timeout=30
-            sudo apt-get install -y --no-install-recommends $MISSING
-          else
-            echo "All system dependencies already installed"
-          fi
 
       - name: Clean up old artifacts
         run: |
