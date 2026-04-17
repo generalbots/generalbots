@@ -1260,15 +1260,11 @@ impl ScriptService {
     }
 
     /// Convert BASIC keywords to lowercase without touching variables
-    /// This is a simplified version of normalize_variables_to_lowercase for tools
+    /// Uses the centralized keyword list from get_all_keywords()
     pub fn convert_keywords_to_lowercase(script: &str) -> String {
-        let keywords = [
-            "IF", "THEN", "ELSE", "END IF", "FOR", "NEXT", "WHILE", "WEND",
-            "DO", "LOOP", "RETURN", "EXIT",
-            "WITH", "END WITH", "AND", "OR", "NOT", "MOD",
-            "DIM", "AS", "NEW", "FUNCTION", "SUB", "CALL",
-            "DETECT",
-        ];
+        use crate::basic::keywords::get_all_keywords;
+        
+        let keywords = get_all_keywords();
 
         let mut result = String::new();
         for line in script.lines() {
