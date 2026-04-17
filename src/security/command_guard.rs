@@ -71,6 +71,10 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         // Forgejo ALM commands
         "forgejo",
         "forgejo-runner",
+        // Incus container management
+        "incus",
+        "lxc",
+        "lxd",
         // Security protection tools
         "lynis",
         "rkhunter",
@@ -172,9 +176,10 @@ impl SafeCommand {
         })
     }
 
-    pub fn arg(mut self, arg: &str) -> Result<Self, CommandGuardError> {
-        validate_argument(arg)?;
-        self.args.push(arg.to_string());
+    pub fn arg<S: AsRef<str>>(mut self, arg: S) -> Result<Self, CommandGuardError> {
+        let arg_ref = arg.as_ref();
+        validate_argument(arg_ref)?;
+        self.args.push(arg_ref.to_string());
         Ok(self)
     }
 

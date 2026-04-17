@@ -103,6 +103,12 @@ impl LLMProvider for AzureGPT5Client {
             &serde_json::json!([{"role": "user", "content": prompt}])
         };
 
+        // Check rate limits before making the request
+        if let Err(e) = self.rate_limiter.acquire(4096).await {
+            error!("Rate limit exceeded: {}", e);
+            return Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>);
+        }
+
         let full_url = format!(
             "{}/openai/responses?api-version={}",
             self.base_url, self.api_version

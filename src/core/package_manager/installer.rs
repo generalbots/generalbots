@@ -258,6 +258,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
                 check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -307,6 +308,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30 > {{LOGS_PATH}}/stdout.log 2>&1 &".to_string(),
                 check_cmd: "{{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -341,6 +343,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --bind 127.0.0.1 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
                 check_cmd: "pgrep -x valkey-server >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -384,6 +387,7 @@ impl PackageManager {
                 ],
                 exec_cmd: "nohup {{BIN_PATH}}/build/bin/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --ubatch-size 512 > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/build/bin/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding --ubatch-size 512 > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8081/health >/dev/null 2>&1 && curl -f -k --connect-timeout 2 -m 5 https://localhost:8082/health >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -414,6 +418,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/stalwart-mail --config {{CONF_PATH}}/email/config.toml".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8025/health >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -446,6 +451,7 @@ impl PackageManager {
                 exec_cmd: "{{BIN_PATH}}/caddy run --config {{CONF_PATH}}/Caddyfile".to_string(),
                 check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost >/dev/null 2>&1"
                     .to_string(),
+            container: None,
             },
         );
     }
@@ -552,6 +558,7 @@ impl PackageManager {
                     "> {{LOGS_PATH}}/zitadel.log 2>&1 &",
                 ).to_string(),
                 check_cmd: "curl -f --connect-timeout 2 -m 5 /debug/healthz >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -581,6 +588,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 3000 --cert {{CONF_PATH}}/system/certificates/alm/server.crt --key {{CONF_PATH}}/system/certificates/alm/server.key > {{LOGS_PATH}}/forgejo.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:3000 >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -621,6 +629,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml > {{LOGS_PATH}}/forgejo-runner.log 2>&1 &".to_string(),
                 check_cmd: "ps -ef | grep forgejo-runner | grep -v grep | grep {{BIN_PATH}} >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -647,6 +656,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/coredns -conf {{CONF_PATH}}/dns/Corefile".to_string(),
                 check_cmd: "dig @localhost botserver.local >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -681,6 +691,7 @@ impl PackageManager {
                 check_cmd:
                     "curl -f -k --connect-timeout 2 -m 5 https://localhost:8300 >/dev/null 2>&1"
                         .to_string(),
+            container: None,
             },
         );
     }
@@ -707,6 +718,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/livekit-server --config {{CONF_PATH}}/meet/config.yaml --key-file {{CONF_PATH}}/system/certificates/meet/server.key --cert-file {{CONF_PATH}}/system/certificates/meet/server.crt".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:7880 >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -736,6 +748,7 @@ impl PackageManager {
                 check_cmd:
                     "curl -f -k --connect-timeout 2 -m 5 https://localhost:5757 >/dev/null 2>&1"
                         .to_string(),
+            container: None,
             },
         );
     }
@@ -765,6 +778,7 @@ impl PackageManager {
                 check_cmd:
                     "curl -f -k --connect-timeout 2 -m 5 https://localhost:9980 >/dev/null 2>&1"
                         .to_string(),
+            container: None,
             },
         );
     }
@@ -792,6 +806,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "xrdp --nodaemon".to_string(),
                 check_cmd: "netstat -tln | grep :3389 >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -819,6 +834,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
                 check_cmd: "".to_string(),
+            container: None,
             },
         );
     }
@@ -846,6 +862,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
                 check_cmd: "".to_string(),
+            container: None,
             },
         );
     }
@@ -873,6 +890,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/qdrant --config-path {{CONF_PATH}}/vector_db/config.yaml > {{LOGS_PATH}}/qdrant.log 2>&1 &".to_string(),
                 check_cmd: "pgrep -x qdrant >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -913,6 +931,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/influxdb/influxd.bolt --engine-path={{DATA_PATH}}/influxdb/engine --http-bind-address=:8086".to_string(),
                 check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -1016,6 +1035,7 @@ EOF"#.to_string(),
                     .to_string(),
                 check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; fi"
                     .to_string(),
+            container: None,
             },
         );
     }
@@ -1050,6 +1070,7 @@ EOF"#.to_string(),
                 exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml"
                     .to_string(),
                 check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
+            container: None,
             },
         );
     }
@@ -1085,6 +1106,7 @@ EOF"#.to_string(),
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
                 check_cmd: "".to_string(),
+            container: None,
             },
         );
     }

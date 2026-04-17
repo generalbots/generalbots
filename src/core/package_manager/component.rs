@@ -31,6 +31,8 @@ impl InstallResult {
     }
 }
 
+use super::container::ContainerSettings;
+
 #[derive(Debug, Clone)]
 pub struct ComponentConfig {
     pub name: String,
@@ -51,4 +53,5 @@ pub struct ComponentConfig {
     pub data_download_list: Vec<String>,
     pub exec_cmd: String,
     pub check_cmd: String,
+    pub container: Option<ContainerSettings>,
 }
