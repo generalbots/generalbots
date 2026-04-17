@@ -1267,6 +1267,7 @@ impl ScriptService {
             "DO", "LOOP", "RETURN", "EXIT",
             "WITH", "END WITH", "AND", "OR", "NOT", "MOD",
             "DIM", "AS", "NEW", "FUNCTION", "SUB", "CALL",
+            "DETECT",
         ];
 
         let mut result = String::new();
