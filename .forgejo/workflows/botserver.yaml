@@ -3,8 +3,6 @@ name: BotServer CI/CD
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
 env:
   CARGO_BUILD_JOBS: 8
@@ -12,7 +10,6 @@ env:
   RUSTC_WRAPPER: sccache
   SCCACHE_DIR: /tmp/sccache
   CARGO_HOME: /tmp/cargo
-  CARGO_TARGET_DIR: /tmp/persistent-botserver/target
 
 jobs:
   build:
@@ -38,40 +35,17 @@ jobs:
           mkdir -p /tmp/persistent-botserver
           mkdir -p /tmp/gb-ws
 
-      - name: Setup Git
-        run: |
-          git config --global http.sslVerify false
-          git config --global --add safe.directory "*"
-          git config --global user.email "ci@pragmatismo.com.br"
-          git config --global user.name "CI Runner"
-
-      - name: Update Repositories
+      - name: Clone Repositories (Fresh)
         run: |
           set -e
           cd /tmp/persistent-botserver
-
-          if [ -d botlib/.git ]; then
-            echo "Updating botlib..."
-            (cd botlib && git pull origin main)
-          else
-            echo "Cloning botlib..."
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
-          fi
-
-          if [ -d botserver/.git ]; then
-            echo "Updating botserver..."
-            (cd botserver && git config user.email "ci@pragmatismo.com.br" && git config user.name "CI Runner" && git pull origin main)
-          else
-            echo "Cloning botserver..."
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
-          fi
-
+          rm -rf botlib botserver Cargo.toml
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           if [ -d /tmp/gb-ws/.git ]; then
-            (cd /tmp/gb-ws && git pull origin main)
-          else
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /tmp/gb-ws
+            rm -rf /tmp/gb-ws
           fi
-
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /tmp/gb-ws
           cp /tmp/gb-ws/Cargo.toml Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
@@ -82,17 +56,26 @@ jobs:
         run: |
           export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
           sccache --start-server 2>/dev/null || true
+          echo "Building BotServer with cached target..."
           cargo build --package botserver 2>&1 | tee /tmp/build.log
           sccache --stop-server 2>/dev/null || true
-        continue-on-error: true
 
       - name: Deploy
         run: |
-          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
+          set -e
+          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5"
+          
+          echo "Stopping botserver..."
           ssh $SSH_ARGS system "sudo systemctl stop botserver 2>/dev/null || true; sleep 2"
-          scp $SSH_ARGS /tmp/persistent-botserver/target/debug/botserver system:/opt/gbo/bin/botserver
-          ssh $SSH_ARGS system "sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
+          
+          echo "Transferring new binary..."
+          scp $SSH_ARGS /tmp/persistent-botserver/target/debug/botserver system:/tmp/botserver-new
+          ssh $SSH_ARGS system "sudo mv /tmp/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
+          
+          echo "Starting botserver..."
           ssh $SSH_ARGS system "sudo systemctl start botserver"
+          
+          echo "Health check..."
           sleep 5
           for i in $(seq 1 30); do
             if ssh $SSH_ARGS system "curl -sf http://localhost:8080/api/health" 2>/dev/null; then
