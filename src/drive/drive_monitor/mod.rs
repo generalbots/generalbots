@@ -437,6 +437,7 @@ match result {
                 }
 
                 self.is_processing.store(true, Ordering::Release);
+                trace!("DriveMonitor checking {}", self.bucket_name);
 
                 match self.check_for_changes().await {
                     Ok(_) => {
@@ -463,14 +464,14 @@ match result {
         };
 
         // All checks run independently - one failure doesn't stop others
-        if let Err(e) = self.check_gbdialog_changes(client).await {
-            error!("gbdialog check failed: {}", e);
-        }
-        if let Err(e) = self.check_gbot(client).await {
-            error!("gbot check failed: {}", e);
-        }
-        if let Err(e) = self.check_gbkb_changes(client).await {
-            error!("gbkb check failed: {}", e);
+        let gbdialog_err = self.check_gbdialog_changes(client).await.err();
+        let gbot_err = self.check_gbot(client).await.err();
+        let gbkb_err = self.check_gbkb_changes(client).await.err();
+        
+        if gbdialog_err.is_some() || gbot_err.is_some() || gbkb_err.is_some() {
+            error!("Drive changes: gbdialog={:?}, gbot={:?}, gbkb={:?}", gbdialog_err, gbot_err, gbkb_err);
+        } else {
+            trace!("DriveMonitor: 0 changes for {}", self.bucket_name);
         }
 
         Ok(())

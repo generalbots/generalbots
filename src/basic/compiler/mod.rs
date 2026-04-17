@@ -116,9 +116,34 @@ impl BasicCompiler {
         let source_content = fs::read_to_string(source_path)
             .map_err(|e| format!("Failed to read source file: {e}"))?;
 
-        // Also process tables.bas to ensure tables are created
-        if let Err(e) = Self::process_tables_bas(&self.state, self.bot_id) {
-            log::warn!("Failed to process tables.bas: {}", e);
+        // Check if tables.bas has changed by comparing .bas vs .ast modification time
+        // Only process if .bas is newer than .ast or .ast doesn't exist
+        let should_process_tables = if source_path.contains("tables.bas") {
+            let work_path = crate::core::shared::utils::get_work_path();
+            let bot_name = Self::get_bot_name_from_state(&self.state, self.bot_id)?;
+            let tables_bas_path = format!(
+                "{}/{}.gbai/{}.gbdialog/tables.bas",
+                work_path, bot_name, bot_name
+            );
+            let tables_ast_path = tables_bas_path.replace(".bas", ".ast");
+
+            match (
+                std::fs::metadata(&tables_bas_path).ok(),
+                std::fs::metadata(&tables_ast_path).ok(),
+            ) {
+                (Some(bas_meta), Some(ast_meta)) => {
+                    bas_meta.modified().ok() > ast_meta.modified().ok()
+                }
+                _ => true,
+            }
+        } else {
+            true
+        };
+
+        if should_process_tables {
+            if let Err(e) = Self::process_tables_bas(&self.state, self.bot_id) {
+                log::warn!("Failed to process tables.bas: {}", e);
+            }
         }
 
         if let Err(e) =
