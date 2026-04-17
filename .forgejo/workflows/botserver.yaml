@@ -48,7 +48,8 @@ jobs:
           
           # Setup Cargo.toml
           cp ~/workspace/gb-ws/Cargo.toml .
-          sed -i '/botapp\|botdevice\|bottest\|botui\|botbook\|botmodels\|botplugin\|bottemplates/d' Cargo.toml
+          # Remove unwanted members but keep botserver and botlib
+          grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
           
           # Build
           cargo build -p botserver
