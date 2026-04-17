@@ -6,6 +6,9 @@ pub mod email;
 pub mod whatsapp;
 pub mod metrics;
 pub mod ai;
+pub mod warmup;
+pub mod advisor;
+pub mod ip_router;
 
 use axum::{
     body::Body,

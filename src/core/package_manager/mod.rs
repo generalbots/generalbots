@@ -1,10 +1,12 @@
 pub mod cache;
 pub mod component;
+pub mod container;
 pub mod installer;
 pub mod os;
 pub mod setup;
 pub mod alm_setup;
 pub use cache::{CacheResult, DownloadCache};
+pub use container::{ContainerOperations, ContainerSettings, NatRule};
 pub use installer::PackageManager;
 pub mod cli;
 pub mod facade;
