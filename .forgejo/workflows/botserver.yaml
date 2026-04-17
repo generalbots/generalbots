@@ -6,20 +6,26 @@ on:
 
 env:
   CARGO_BUILD_JOBS: 8
+  RUSTC_WRAPPER: sccache
+  CARGO_TARGET_DIR: /home/gbuser/workspace/botserver-target
 
 jobs:
   build:
     runs-on: gbo
 
     steps:
+      - name: Setup environment
+        run: |
+          export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
+          sccache --start-server 2>/dev/null || true
+
       - name: Clone and Build
         run: |
           set -e
           
-          # Setup directories
-          mkdir -p ~/workspace ~/cache
-          
-          cd ~/workspace
+          # Setup project workspace
+          mkdir -p ~/workspace/botserver
+          cd ~/workspace/botserver
           
           # Clone or update repos
           if [ ! -d botlib ]; then
@@ -28,34 +34,33 @@ jobs:
             cd botlib && git pull && cd ..
           fi
           
-          if [ ! -d botserver ]; then
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+          if [ ! -d src ]; then
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git src
           else
-            cd botserver && git pull && cd ..
+            cd src && git pull && cd ..
           fi
           
-          if [ ! -d ~/gb-ws ]; then
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git ~/gb-ws
+          if [ ! -d ~/workspace/gb-ws ]; then
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git ~/workspace/gb-ws
           else
-            cd ~/gb-ws && git pull && cd ~/workspace
+            cd ~/workspace/gb-ws && git pull && cd ~/workspace/botserver
           fi
           
           # Setup Cargo.toml
-          cp ~/gb-ws/Cargo.toml ~/workspace/Cargo.toml
-          sed -i '/botapp\|botdevice\|bottest\|botui\|botbook\|botmodels\|botplugin\|bottemplates/d' ~/workspace/Cargo.toml
+          cp ~/workspace/gb-ws/Cargo.toml .
+          sed -i '/botapp\|botdevice\|bottest\|botui\|botbook\|botmodels\|botplugin\|bottemplates/d' Cargo.toml
           
           # Build
-          export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
-          export CARGO_TARGET_DIR=~/workspace/target
           cargo build -p botserver
+          sccache --show-stats
           
-          ls -lh target/debug/botserver
+          ls -lh $CARGO_TARGET_DIR/debug/botserver
 
       - name: Deploy
         run: |
           SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
           ssh $SSH system "sudo systemctl stop botserver || true; sleep 2"
-          scp $SSH ~/workspace/target/debug/botserver system:/tmp/botserver
+          scp $SSH $CARGO_TARGET_DIR/debug/botserver system:/tmp/botserver
           ssh $SSH system "sudo mv /tmp/botserver /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver && sudo systemctl start botserver"
           sleep 5
           ssh $SSH system "curl -sf http://localhost:5858/api/health && echo Deployed"
