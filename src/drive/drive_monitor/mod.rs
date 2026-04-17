@@ -344,27 +344,8 @@ match result {
         .is_processing
         .load(std::sync::atomic::Ordering::SeqCst)
       {
-                
-        // Smart sleep based on fail_count - prevent excessive retries
-        {
-          let max_fail_count = self_clone.file_repo.get_max_fail_count(self_clone.bot_id);
-
-          let base_sleep = if max_fail_count >= 3 {
-            3600
-          } else if max_fail_count >= 2 {
-            900
-          } else if max_fail_count >= 1 {
-            300
-          } else {
-            60
-          };
-
-          if base_sleep > 10 {
-            debug!("Sleep {}s based on fail_count={}", base_sleep, max_fail_count);
-          }
-
-          tokio::time::sleep(Duration::from_secs(base_sleep as u64)).await;
-        }
+        // Fast check interval (1 second) for instant responsiveness
+        tokio::time::sleep(Duration::from_secs(1)).await;
 
         // Skip drive health check - just proceed with monitoring
                 if false {
