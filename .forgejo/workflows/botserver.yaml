@@ -34,7 +34,6 @@ jobs:
           mkdir -p /tmp/cargo
           mkdir -p /tmp/persistent-botserver
           mkdir -p /tmp/gb-ws
-          chown -R gbuser:gbuser /tmp/persistent-botserver
 
       - name: Update botlib
         run: |
@@ -82,7 +81,7 @@ jobs:
         run: |
           export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
           sccache --start-server 2>/dev/null || true
-          cargo build --package botserver 2>2>&1 | tee /tmp/build.log1
+          cargo build --package botserver
           sccache --stop-server 2>/dev/null || true
 
       - name: Deploy
@@ -93,7 +92,7 @@ jobs:
           echo "Stopping botserver..."
           ssh $SSH_ARGS system "sudo systemctl stop botserver 2>/dev/null || true; sleep 2"
           
-          echo "Transferring binary..."
+          echo "Transferring..."
           scp $SSH_ARGS /tmp/persistent-botserver/target/debug/botserver system:/tmp/botserver-new
           ssh $SSH_ARGS system "sudo mv /tmp/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
           
