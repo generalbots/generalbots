@@ -10,10 +10,9 @@ env:
   CARGO_BUILD_JOBS: 8
   CARGO_NET_RETRY: 10
   RUSTC_WRAPPER: sccache
-  SCCACHE_DIR: /opt/gbo/data/cache/sccache
-  CARGO_HOME: /opt/gbo/data/cache/cargo
-  CARGO_TARGET_DIR: /opt/gbo/data/persistent-botserver/target
-  HOME: /home/gbuser
+  SCCACHE_DIR: /tmp/sccache
+  CARGO_HOME: /tmp/cargo
+  CARGO_TARGET_DIR: /tmp/persistent-botserver/target
 
 jobs:
   build:
@@ -34,84 +33,57 @@ jobs:
 
       - name: Setup Workspace
         run: |
-          # Run as gbuser for workspace setup
-          export HOME=/home/gbuser
-          export USER=gbuser
-          
-          # Create directories as root then fix ownership
-          mkdir -p /opt/gbo/data/cache/sccache
-          mkdir -p /opt/gbo/data/cache/cargo
-          mkdir -p /opt/gbo/data/persistent-botserver
-          mkdir -p /opt/gbo/data/gb-ws
-          
-          # Fix ownership - use chown properly
-          chown gbuser:gbuser /opt/gbo/data/cache
-          chown gbuser:gbuser /opt/gbo/data/persistent-botserver
-          chown gbuser:gbuser /opt/gbo/data/gb-ws
-          chmod 755 /opt/gbo/data/cache
-          chmod 755 /opt/gbo/data/persistent-botserver
-          chmod 755 /opt/gbo/data/gb-ws
+          # Use /tmp for workspace (runner has full permissions)
+          mkdir -p /tmp/sccache
+          mkdir -p /tmp/cargo
+          mkdir -p /tmp/persistent-botserver
+          mkdir -p /tmp/gb-ws
 
       - name: Setup Git
         run: |
-          # Setup git config as gbuser using HOME
-          export HOME=/home/gbuser
-          export USER=gbuser
-          
-          # Write git config directly to gbuser home
-          echo "[safe]" > /home/gbuser/.gitconfig
-          echo "    directory = *" >> /home/gbuser/.gitconfig
-          echo "[http]" >> /home/gbuser/.gitconfig
-          echo "    sslVerify = false" >> /home/gbuser/.gitconfig
-          chown gbuser:gbuser /home/gbuser/.gitconfig
+          git config --global http.sslVerify false
+          git config --global --add safe.directory "*"
 
       - name: Update Repositories
         run: |
           set -e
-          cd /opt/gbo/data/persistent-botserver
-          
-          # Run git operations as gbuser by setting HOME
-          export HOME=/home/gbuser
-          export USER=gbuser
+          cd /tmp/persistent-botserver
           
           # Update botlib
           if [ -d botlib/.git ]; then
             echo "Updating botlib..."
-            (cd botlib && HOME=/home/gbuser USER=gbuser git pull origin main)
+            (cd botlib && git pull origin main)
           else
             echo "Cloning botlib..."
-            HOME=/home/gbuser USER=gbuser git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
           
           # Update botserver
           if [ -d botserver/.git ]; then
             echo "Updating botserver..."
-            (cd botserver && HOME=/home/gbuser USER=gbuser git pull origin main)
+            (cd botserver && git pull origin main)
           else
             echo "Cloning botserver..."
-            HOME=/home/gbuser USER=gbuser git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
           
           # Update gb workspace
-          if [ -d /opt/gbo/data/gb-ws/.git ]; then
-            (cd /opt/gbo/data/gb-ws && HOME=/home/gbuser USER=gbuser git pull origin main)
+          if [ -d /tmp/gb-ws/.git ]; then
+            (cd /tmp/gb-ws && git pull origin main)
           else
-            HOME=/home/gbuser USER=gbuser git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /tmp/gb-ws
           fi
           
           # Copy Cargo.toml
-          cp /opt/gbo/data/gb-ws/Cargo.toml Cargo.toml
+          cp /tmp/gb-ws/Cargo.toml Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
           done
 
       - name: Build BotServer
-        working-directory: /opt/gbo/data/persistent-botserver
+        working-directory: /tmp/persistent-botserver
         run: |
-          export HOME=/home/gbuser
-          export USER=gbuser
           export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
-          
           sccache --start-server 2>/dev/null || true
           echo "Building BotServer..."
           cargo build --package botserver 2>&1 | tee /tmp/build.log
@@ -121,14 +93,13 @@ jobs:
       - name: Deploy
         run: |
           set -e
-          export HOME=/home/gbuser
           SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5"
           
           echo "Stopping botserver..."
           ssh $SSH_ARGS system "sudo systemctl stop botserver 2>/dev/null || true; sleep 2"
           
           echo "Deploying binary..."
-          scp $SSH_ARGS /opt/gbo/data/persistent-botserver/target/debug/botserver system:/tmp/botserver-new
+          scp $SSH_ARGS /tmp/persistent-botserver/target/debug/botserver system:/tmp/botserver-new
           ssh $SSH_ARGS system "sudo mv /tmp/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
           
           echo "Starting botserver..."
@@ -144,3 +115,8 @@ jobs:
             echo "waiting ($i/30)..."
             sleep 2
           done
+
+      - name: Verify
+        run: |
+          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
+          ssh $SSH_ARGS system "pgrep -f botserver >/dev/null && echo OK || echo FAIL"
