@@ -34,18 +34,44 @@ jobs:
           mkdir -p /tmp/cargo
           mkdir -p /tmp/persistent-botserver
           mkdir -p /tmp/gb-ws
+          chown -R gbuser:gbuser /tmp/persistent-botserver
 
-      - name: Clone Repositories (Fresh)
+      - name: Update botlib
         run: |
-          set -e
           cd /tmp/persistent-botserver
-          rm -rf botlib botserver Cargo.toml
-          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
-          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
-          if [ -d /tmp/gb-ws/.git ]; then
-            rm -rf /tmp/gb-ws
+          if [ -d botlib/.git ]; then
+            cd botlib && git fetch origin main && git reset --hard origin/main
+          else
+            rm -rf botlib
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
-          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /tmp/gb-ws
+
+      - name: Update botserver
+        run: |
+          cd /tmp/persistent-botserver
+          if [ -d botserver/.git ]; then
+            cd botserver
+            git config user.email "ci@pragmatismo.com.br"
+            git config user.name "CI Runner"
+            git fetch origin main
+            git reset --hard origin/main
+          else
+            rm -rf botserver
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+          fi
+
+      - name: Update gb workspace
+        run: |
+          if [ -d /tmp/gb-ws/.git ]; then
+            cd /tmp/gb-ws && git fetch origin main && git reset --hard origin/main
+          else
+            rm -rf /tmp/gb-ws
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /tmp/gb-ws
+          fi
+
+      - name: Setup Cargo.toml
+        run: |
+          cd /tmp/persistent-botserver
           cp /tmp/gb-ws/Cargo.toml Cargo.toml
           for m in botapp botdevice bottest botui botbook botmodels botplugin bottemplates; do
             grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
@@ -56,37 +82,36 @@ jobs:
         run: |
           export PATH="/home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
           sccache --start-server 2>/dev/null || true
-          echo "Building BotServer with cached target..."
           cargo build --package botserver 2>&1 | tee /tmp/build.log
           sccache --stop-server 2>/dev/null || true
 
       - name: Deploy
         run: |
           set -e
-          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5"
+          SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
           
           echo "Stopping botserver..."
           ssh $SSH_ARGS system "sudo systemctl stop botserver 2>/dev/null || true; sleep 2"
           
-          echo "Transferring new binary..."
+          echo "Transferring binary..."
           scp $SSH_ARGS /tmp/persistent-botserver/target/debug/botserver system:/tmp/botserver-new
           ssh $SSH_ARGS system "sudo mv /tmp/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver"
           
-          echo "Starting botserver..."
+          echo "Starting..."
           ssh $SSH_ARGS system "sudo systemctl start botserver"
           
           echo "Health check..."
           sleep 5
           for i in $(seq 1 30); do
             if ssh $SSH_ARGS system "curl -sf http://localhost:8080/api/health" 2>/dev/null; then
-              echo "Health check passed!"
+              echo "OK"
               break
             fi
-            echo "waiting ($i/30)..."
+            echo "wait ($i/30)"
             sleep 2
           done
 
       - name: Verify
         run: |
           SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
-          ssh $SSH_ARGS system "pgrep -f botserver && echo 'OK: botserver running' || echo 'FAIL'"
+          ssh $SSH_ARGS system "pgrep -f botserver && echo OK || echo FAIL"
