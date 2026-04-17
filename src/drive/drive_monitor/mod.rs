@@ -2,7 +2,7 @@ use crate::basic::compiler::BasicCompiler;
 use crate::core::config::ConfigManager;
 #[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::KnowledgeBaseManager;
-use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
+use crate::core::shared::memory_monitor::MemoryStats;
 use crate::core::shared::message_types::MessageType;
 use crate::core::shared::state::AppState;
 
