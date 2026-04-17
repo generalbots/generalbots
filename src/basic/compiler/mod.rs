@@ -144,6 +144,23 @@ impl BasicCompiler {
             if let Err(e) = Self::process_tables_bas(&self.state, self.bot_id) {
                 log::warn!("Failed to process tables.bas: {}", e);
             }
+            // Skip processing the current file as TABLE definitions since we already processed tables.bas
+            // Generate AST without TABLE definition processing
+            let tool_def = self.parse_tool_definition(&source_content, source_path)?;
+            let file_name = Path::new(source_path)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .ok_or("Invalid file name")?;
+            let source_with_suggestions =
+                self.generate_enum_suggestions(&source_content, &tool_def)?;
+            let ast_path = format!("{output_dir}/{file_name}.ast");
+            let ast_content =
+                self.preprocess_basic(&source_with_suggestions, source_path, self.bot_id)?;
+            fs::write(&ast_path, &ast_content).map_err(|e| format!("Failed to write AST: {e}"))?;
+            return Ok(CompilationResult {
+                mcp_tool: None,
+                openai_tool: None,
+            });
         }
 
         if let Err(e) =
