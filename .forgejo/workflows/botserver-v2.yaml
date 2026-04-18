@@ -1,6 +1,6 @@
-# HASH-BUSTER-20260418-CONTAINER-v14
+# HASH-BUSTER-20260418-CONTAINER-v15
+# Dev machine approach: just pull, no clone
 # Pre-installed: Rust, Node, Python on runner (ci-alm)
-# No installs in YAML - offline first approach
 name: BotServer CI/CD
 
 on:
@@ -18,40 +18,30 @@ jobs:
   build:
     runs-on: gbo
     steps:
-    - name: Clone Clean
+    - name: Pull Latest
       run: |
-        echo "=== Clone Clean Workspace ==="
-        rm -rf /opt/gbo/work/build
-        mkdir -p /opt/gbo/work/build
-        cd /opt/gbo/work/build
-        git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
-        cd workspace
-        echo "Initializing submodules..."
-        git config -f .gitmodules submodule.botserver.url https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
-        git config -f .gitmodules submodule.botlib.url https://alm.pragmatismo.com.br/GeneralBots/botlib.git
-        git submodule update --init --depth 1 botserver
-        git submodule update --init --depth 1 botlib
-        echo "Preparing Cargo.toml..."
-        grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.clean || true
-        if [ -s Cargo.toml.clean ]; then
-          mv Cargo.toml.clean Cargo.toml
-        fi
+        echo "=== Pull Latest ==="
+        cd /opt/gbo/data
+        git pull --rebase
+        cd /opt/gbo/data/botserver
+        git pull --rebase
+        cd /opt/gbo/data/botlib
+        git pull --rebase
 
     - name: Build
       run: |
         echo "=== Build ==="
-        cd /opt/gbo/work/build/workspace
+        cd /opt/gbo/data/botserver
         cargo build -p botserver
         ls -lh target/debug/botserver
 
     - name: Deploy
       run: |
         echo "=== Deploy ==="
-        # Deploy binary to system container
-        BINARY="/opt/gbo/work/build/workspace/target/debug/botserver"
+        BINARY="/opt/gbo/data/botserver/target/debug/botserver"
         if [ -f "$BINARY" ]; then
           echo "Binary exists: $BINARY"
-          # Deploy via SSH to system container
+          # Copy to system container
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system@localhost \
             "bash -c 'cd /opt/gbo/bin && pkill -f botserver || true; sleep 2'"
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system@localhost \
