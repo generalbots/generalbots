@@ -176,7 +176,7 @@ pub async fn run_axum_server(
 
     #[cfg(feature = "drive")]
     {
-        api_router = api_router.merge(crate::drive::configure());
+        api_router = // drive routes are handled by DriveMonitor, no HTTP routes needed
     }
 
     #[cfg(feature = "directory")]
@@ -200,10 +200,10 @@ pub async fn run_axum_server(
             let bot_name = params.get("bot_name").cloned().unwrap_or_default();
             let existing_session_id = params.get("session_id").cloned();
             let existing_user_id = params.get("user_id").cloned();
-            
+
             let user_id = existing_user_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
             let session_id = existing_session_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-            
+
             // Create session in DB if it doesn't exist
             let session_uuid = match uuid::Uuid::parse_str(&session_id) {
                 Ok(uuid) => uuid,
@@ -213,7 +213,7 @@ pub async fn run_axum_server(
                 Ok(uuid) => uuid,
                 Err(_) => uuid::Uuid::new_v4(),
             };
-            
+
             // Get bot_id from bot_name
             let bot_id = {
                 let conn = state.conn.get().ok();
@@ -229,13 +229,13 @@ pub async fn run_axum_server(
                     uuid::Uuid::nil()
                 }
             };
-            
+
             // Check if session already exists and reuse it
             let mut final_session_id = session_id.clone();
             {
                 let mut sm = state.session_manager.lock().await;
                 sm.get_or_create_anonymous_user(Some(user_uuid)).ok();
-                
+
                 // Get or create session with the specified ID
                 let session = sm.get_or_create_session_by_id(
                     session_uuid,
@@ -243,14 +243,14 @@ pub async fn run_axum_server(
                     bot_id,
                     "Anonymous Chat"
                 );
-                
+
                 if let Ok(sess) = session {
                     final_session_id = sess.id.to_string();
                 }
             }
-            
+
             info!("Anonymous auth for bot: {}, session: {}", bot_name, final_session_id);
-            
+
             (
                 axum::http::StatusCode::OK,
                 Json(serde_json::json!({
