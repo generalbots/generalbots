@@ -1328,10 +1328,10 @@ debug!("check_gbot: config.csv should_sync={} (etag={}, last_modified={:?})", sh
         }
         Err(_) => {
           log::error!(
-            "Timeout listing .gbkb objects in bucket {}",
+            "Timeout listing .gbkb objects in bucket {} - will retry next tick",
             self.bucket_name
           );
-          return Ok(());
+          return Err("Timeout listing .gbkb objects".into());
         }
       };
 
