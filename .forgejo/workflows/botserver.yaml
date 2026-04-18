@@ -2,69 +2,36 @@ name: BotServer CI/CD
 
 on:
   push:
-    branches: ["main"]
-
-env:
-  CARGO_BUILD_JOBS: 8
-  RUSTC_WRAPPER: sccache
-  CARGO_TARGET_DIR: /home/gbuser/workspace/botserver-target
-  PATH: /home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: gbo
-
+    runs-on: gbo:host
     steps:
-      - name: Setup environment
+      - name: Pull and Build (Debug)
         run: |
-          sccache --start-server 2>/dev/null || true
-
-      - name: Clone and Build
-        run: |
-          set -e
+          echo "=== Iniciando Pull and Build (Debug Rápido) ==="
           
-          # Setup project workspace
-          mkdir -p ~/workspace/botserver
+          # 1. Navegar para o diretório fixo
           cd /opt/gbo/work/botserver/src
           
-          # Clone or update repos
-          if [ ! -d botlib ]; then
-          else
-            cd botlib && git pull && cd ..
-          fi
+          # 2. Atualizar o código
+          git pull origin main
           
-          if [ ! -d botserver/.git ]; then
-            rm -rf botserver
-          else
-            cd botserver && git pull && cd ..
-          fi
+          # 3. Atualizar submódulo botlib
+          cd ../botlib && git pull && cd ..
           
-          if [ ! -d ~/workspace/gb-ws ]; then
-          else
-            cd /opt/gbo/work/botserver/src && git pull && cd /opt/gbo/work/botserver/src
-          fi
+          # 4. Preparar Cargo.toml (limpar workspace members indesejados)
+          # Isso garante que apenas botserver e botlib sejam compilados
+          cp Cargo.toml Cargo.toml.bak
+          grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.tmp
+          mv Cargo.toml.tmp Cargo.toml
           
-          # Setup Cargo.toml
-          cp ~/workspace/gb-ws/Cargo.toml .
-          # Remove unwanted members but keep botserver and botlib
-          grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
+          # 5. BUILD RÁPIDO (Debug mode - sem otimizações, compila mais rápido)
+          cargo build
           
-          # Build
-          cargo build -p botserver
-          sccache --show-stats
+          # O binário estará em: target/debug/botserver
           
-          ls -lh $CARGO_TARGET_DIR/debug/botserver
-
-      - name: Deploy
-        run: |
-          SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
-          ssh $SSH system "sudo systemctl stop botserver || true; sleep 2"
-          scp $SSH $CARGO_TARGET_DIR/debug/botserver system:/tmp/botserver
-          ssh $SSH system "sudo mv /tmp/botserver /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo chown gbuser:gbuser /opt/gbo/bin/botserver && sudo systemctl start botserver"
-          sleep 5
-          ssh $SSH system "curl -sf http://localhost:5858/api/health && echo Deployed"
-
-      - name: Verify
-        run: |
-          SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
-          ssh $SSH system "pgrep -f botserver && echo Running || echo FAIL"
+          echo "=== Build Debug Concluído ==="
