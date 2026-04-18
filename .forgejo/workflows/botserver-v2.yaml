@@ -1,7 +1,5 @@
-# HASH-BUSTER-20260418-CONTAINER-v19
-# Dev machine approach: /opt/gbo/work/botserver
-# Pre-installed globally: Rust, Node.js, Python, sccache
-# ABORT any rebase first, then reset + pull
+# HASH-BUSTER-20260418-CONTAINER-v20
+# Deploy via Incus file copy instead of SSH
 name: BotServer CI/CD
 
 on:
@@ -24,23 +22,13 @@ jobs:
       run: |
         echo "=== Pull Latest ==="
         cd /opt/gbo/work/botserver
-        
-        # Abort any rebase in progress
         git rebase --abort 2>/dev/null || true
-        
-        # Reset to clean state
         git reset --hard HEAD
         git clean -fd
-        
-        # Pull latest (merge, not rebase)
         git pull
-        
-        # Remove .github submodule (causes auth issues)
         rm -rf .github
         grep -v "github" .gitmodules > .gitmodules.tmp || true
         mv .gitmodules.tmp .gitmodules
-        
-        # Initialize only required submodules
         git submodule update --init --recursive botlib botserver
 
     - name: Build BotServer Only
@@ -50,17 +38,18 @@ jobs:
         cargo build -p botserver
         ls -lh target/debug/botserver
 
-    - name: Deploy
+    - name: Deploy via Incus
       run: |
         echo "=== Deploy ==="
         BINARY="/opt/gbo/work/botserver/target/debug/botserver"
         if [ -f "$BINARY" ]; then
           echo "Binary exists: $BINARY"
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system@localhost \
-            "bash -c 'cd /opt/gbo/bin && pkill -f botserver || true; sleep 2'"
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system@localhost \
-            "bash -c 'cp $BINARY /opt/gbo/bin/botserver && systemctl restart botserver'"
-          echo "Deploy completed"
+          # Copy binary to system container via incus
+          sudo incus file push "$BINARY" system/opt/gbo/bin/botserver --mode=0755
+          # Restart botserver service
+          sudo incus exec system -- systemctl restart botserver
+          echo "✅ Deploy completed successfully!"
+          echo "Binary timestamp: $(stat -c '%y' /opt/gbo/bin/botserver 2>/dev/null || echo 'N/A')"
         else
           echo "ERROR: Binary not found at $BINARY"
           exit 1
