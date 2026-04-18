@@ -1,6 +1,7 @@
-# HASH-BUSTER-20260418-CONTAINER-v17
-# Only build botserver (not entire workspace)
+# HASH-BUSTER-20260418-CONTAINER-v18
+# Dev machine approach: /opt/gbo/work/botserver
 # Pre-installed globally: Rust, Node.js, Python, sccache
+# NO REBASE - use merge to avoid conflicts
 name: BotServer CI/CD
 
 on:
@@ -23,7 +24,9 @@ jobs:
       run: |
         echo "=== Pull Latest ==="
         cd /opt/gbo/work/botserver
-        git pull --rebase
+        git reset --hard HEAD
+        git clean -fd
+        git pull
         # Remove .github submodule (causes auth issues)
         rm -rf .github
         grep -v "github" .gitmodules > .gitmodules.tmp || true
