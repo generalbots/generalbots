@@ -1,12 +1,12 @@
-# HASH-BUSTER-20260418-UNIQUE-ID-v3
-# NOVO WORKFLOW - Forçar refresh do cache
+# HASH-BUSTER-20260418-UNIQUE-ID-v4
+# NOVO WORKFLOW - Forçar refresh do cache (v4 - corrige caminho do build)
 name: BotServer CI/CD v2
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   SCCACHE_DIR: /opt/gbo/work/botserver/.sccache
@@ -27,14 +27,13 @@ jobs:
       - name: Pull Sources
         run: |
           echo "=== Atualizando Código ==="
-          cd /opt/gbo/work/botserver/src
+          cd /opt/gbo/work/botserver
           git pull origin main
-          cd ../botlib && git pull && cd ..
           echo "Código atualizado."
 
       - name: Build Debug
         run: |
           echo "=== Compilando (Debug) ==="
-          cd /opt/gbo/work/botserver/src
+          cd /opt/gbo/work/botserver
           cargo build
           echo "Build finalizado."
