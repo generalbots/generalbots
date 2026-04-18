@@ -1,4 +1,4 @@
-# v23 - Simple deploy: stop, copy, start
+# v24 - Deploy with traces
 name: BotServer CI
 
 on:
@@ -29,9 +29,27 @@ jobs:
 
     - name: Deploy
       run: |
+        echo "Deploy step 1/4: Stopping..."
         sudo pkill -f botserver || true
         sleep 1
-        cp /opt/gbo/work/botserver/target/debug/botserver /opt/gbo/bin/botserver
-        cd /opt/gbo/bin && RUST_LOG=info nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2>&1 &
-        sleep 2
-        pgrep -f botserver && echo "✅ Running" || echo "❌ Failed"
+        
+        echo "Deploy step 2/4: Copying..."
+        cp -f /opt/gbo/work/botserver/target/debug/botserver /opt/gbo/bin/botserver
+        chmod +x /opt/gbo/bin/botserver
+        
+        echo "Deploy step 3/4: Starting..."
+        cd /opt/gbo/bin
+        nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2>&1 &
+        BOT_PID=$!
+        echo "Started PID: $BOT_PID"
+        
+        echo "Deploy step 4/4: Verifying..."
+        sleep 3
+        if pgrep -f botserver > /dev/null; then
+          echo "✅ Success - botserver running"
+          pgrep -f botserver
+        else
+          echo "❌ Failed - botserver not running"
+          cat /opt/gbo/logs/stdout.log | tail -10
+          exit 1
+        fi
