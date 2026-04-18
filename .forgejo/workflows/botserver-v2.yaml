@@ -1,4 +1,4 @@
-# v24 - Deploy with traces
+# v25 - Deploy: fixed pkill, correct paths
 name: BotServer CI
 
 on:
@@ -26,30 +26,27 @@ jobs:
       run: |
         cd /opt/gbo/work/botserver
         cargo build -p botserver
+        ls -lh target/debug/botserver
 
     - name: Deploy
       run: |
-        echo "Deploy step 1/4: Stopping..."
-        sudo pkill -f botserver || true
-        sleep 1
+        echo "1. Kill old..."
+        timeout 5 bash -c 'while pgrep -x botserver > /dev/null; do pkill -x botserver; sleep 0.5; done' || true
         
-        echo "Deploy step 2/4: Copying..."
-        cp -f /opt/gbo/work/botserver/target/debug/botserver /opt/gbo/bin/botserver
+        echo "2. Copy binary..."
+        mkdir -p /opt/gbo/bin
+        cp -f /opt/gbo/work/botserver/target/debug/botserver /opt/gbo/bin/
         chmod +x /opt/gbo/bin/botserver
         
-        echo "Deploy step 3/4: Starting..."
+        echo "3. Start new..."
         cd /opt/gbo/bin
-        nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2>&1 &
-        BOT_PID=$!
-        echo "Started PID: $BOT_PID"
-        
-        echo "Deploy step 4/4: Verifying..."
+        ./botserver --noconsole &
         sleep 3
-        if pgrep -f botserver > /dev/null; then
-          echo "✅ Success - botserver running"
-          pgrep -f botserver
+        
+        echo "4. Verify..."
+        if pgrep -x botserver > /dev/null 2>&1; then
+          echo "✅ Running: $(pgrep -x botserver)"
         else
-          echo "❌ Failed - botserver not running"
-          cat /opt/gbo/logs/stdout.log | tail -10
+          echo "❌ Not running"
           exit 1
         fi
