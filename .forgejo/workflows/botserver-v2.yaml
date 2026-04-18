@@ -1,5 +1,5 @@
-# HASH-BUSTER-20260418-UNIQUE-ID-v4
-# NOVO WORKFLOW - Forçar refresh do cache (v4 - corrige caminho do build)
+# HASH-BUSTER-20260418-UNIQUE-ID-v5
+# NOVO WORKFLOW - Forçar refresh do cache (v5 - corrige lógica de submodules)
 name: BotServer CI/CD v2
 
 on:
@@ -24,16 +24,49 @@ jobs:
           pkill -9 sccache || true
           echo "Setup concluído."
 
-      - name: Pull Sources
+      - name: Setup Repository Structure
         run: |
-          echo "=== Atualizando Código ==="
-          cd /opt/gbo/work/botserver
-          git pull origin main
-          echo "Código atualizado."
+          echo "=== Configurando Estrutura do Repositório ==="
+
+          # Criar diretório base se não existir
+          mkdir -p /opt/gbo/work/botserver
+
+          # Verificar se já é um repositório git
+          if [ ! -d /opt/gbo/work/botserver/.git ]; then
+            echo "Repositório não existe, clonando..."
+            cd /opt/gbo/work/botserver
+            git init
+            git remote add origin https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
+            git fetch --depth 1 origin main
+            git reset --hard origin/main
+          else
+            echo "Repositório já existe, atualizando..."
+            cd /opt/gbo/work/botserver
+            git pull origin main
+          fi
+
+          # Atualizar botlib se existir como submodule/pasta
+          if [ -d /opt/gbo/work/botserver/botlib ]; then
+            echo "Atualizando botlib..."
+            cd /opt/gbo/work/botserver/botlib
+            git pull origin main
+            cd ..
+          fi
+
+          echo "Estrutura configurada."
 
       - name: Build Debug
         run: |
           echo "=== Compilando (Debug) ==="
           cd /opt/gbo/work/botserver
+
+          # Verificar se Cargo.toml existe
+          if [ ! -f Cargo.toml ]; then
+            echo "ERRO: Cargo.toml não encontrado em $(pwd)"
+            ls -la
+            exit 1
+          fi
+
+          echo "Cargo.toml encontrado em $(pwd)/Cargo.toml"
           cargo build
           echo "Build finalizado."
