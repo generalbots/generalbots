@@ -1,5 +1,6 @@
-# HASH-BUSTER-20260418-CONTAINER-v13
-# Uses container with full shell support
+# HASH-BUSTER-20260418-CONTAINER-v14
+# Pre-installed: Rust, Node, Python on runner (ci-alm)
+# No installs in YAML - offline first approach
 name: BotServer CI/CD
 
 on:
@@ -11,50 +12,52 @@ on:
 env:
   SCCACHE_DIR: /opt/gbo/work/.sccache
   CARGO_TARGET_DIR: /opt/gbo/work/target
+  RUSTC_WRAPPER: sccache
 
 jobs:
   build:
     runs-on: gbo
-    container:
-      image: ubuntu:22.04
     steps:
-      - name: Install Dependencies
-        run: |
-          apt-get update
-          apt-get install -y git curl ssh ca-certificates
+    - name: Clone Clean
+      run: |
+        echo "=== Clone Clean Workspace ==="
+        rm -rf /opt/gbo/work/build
+        mkdir -p /opt/gbo/work/build
+        cd /opt/gbo/work/build
+        git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+        cd workspace
+        echo "Initializing submodules..."
+        git config -f .gitmodules submodule.botserver.url https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
+        git config -f .gitmodules submodule.botlib.url https://alm.pragmatismo.com.br/GeneralBots/botlib.git
+        git submodule update --init --depth 1 botserver
+        git submodule update --init --depth 1 botlib
+        echo "Preparing Cargo.toml..."
+        grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.clean || true
+        if [ -s Cargo.toml.clean ]; then
+          mv Cargo.toml.clean Cargo.toml
+        fi
 
-      - name: Setup Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    - name: Build
+      run: |
+        echo "=== Build ==="
+        cd /opt/gbo/work/build/workspace
+        cargo build -p botserver
+        ls -lh target/debug/botserver
 
-      - name: Clone Clean
-        run: |
-          echo "=== Clone Clean Workspace ==="
-          rm -rf /opt/gbo/work/build
-          mkdir -p /opt/gbo/work/build
-          cd /opt/gbo/work/build
-          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
-          cd workspace
-          echo "Initializing submodules..."
-          git config -f .gitmodules submodule.botserver.url https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
-          git config -f .gitmodules submodule.botlib.url https://alm.pragmatismo.com.br/GeneralBots/botlib.git
-          git submodule update --init --depth 1 botserver
-          git submodule update --init --depth 1 botlib
-          echo "Preparing Cargo.toml..."
-          grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.clean || true
-          if [ -s Cargo.toml.clean ]; then
-            mv Cargo.toml.clean Cargo.toml
-          fi
-
-      - name: Build
-        run: |
-          echo "=== Build ==="
-          cd /opt/gbo/work/build/workspace
-          cargo build -p botserver
-          ls -lh target/debug/botserver
-
-      - name: Deploy
-        run: |
-          echo "=== Deploy ==="
-          echo "Deploy step placeholder"
+    - name: Deploy
+      run: |
+        echo "=== Deploy ==="
+        # Deploy binary to system container
+        BINARY="/opt/gbo/work/build/workspace/target/debug/botserver"
+        if [ -f "$BINARY" ]; then
+          echo "Binary exists: $BINARY"
+          # Deploy via SSH to system container
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system@localhost \
+            "bash -c 'cd /opt/gbo/bin && pkill -f botserver || true; sleep 2'"
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 system@localhost \
+            "bash -c 'cp $BINARY /opt/gbo/bin/botserver && systemctl restart botserver'"
+          echo "Deploy completed"
+        else
+          echo "ERROR: Binary not found at $BINARY"
+          exit 1
+        fi
