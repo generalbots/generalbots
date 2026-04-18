@@ -1,11 +1,8 @@
-# HASH-BUSTER-20260418-CONTAINER-v21
-# Force clean git state before build
-name: BotServer CI/CD
+# v22 - Fast deploy
+name: BotServer CI
 
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
 
 env:
@@ -18,46 +15,21 @@ jobs:
   build:
     runs-on: gbo
     steps:
-    - name: Force Clean Git State
+    - name: Setup
       run: |
-        echo "=== Force Clean Git State ==="
         cd /opt/gbo/work/botserver
-        # Abort ANY git operation (rebase, merge, etc)
         git rebase --abort 2>/dev/null || true
-        git merge --abort 2>/dev/null || true
-        git cherry-pick --abort 2>/dev/null || true
-        # Reset to HEAD
-        git reset --hard HEAD
-        git clean -fd
-        # Pull fresh
-        git fetch origin main
-        git checkout main
-        git reset --hard origin/main
-        # Remove problematic submodules
+        git reset --hard HEAD && git clean -fd
+        git pull && git submodule update --init --recursive botlib botserver
         rm -rf .github
-        grep -v "github" .gitmodules > .gitmodules.tmp 2>/dev/null || true
-        mv .gitmodules.tmp .gitmodules 2>/dev/null || true
-        # Init only required submodules
-        git submodule update --init --recursive botlib botserver
-        echo "Git state: $(git status --short | wc -l) changes"
 
-    - name: Build BotServer Only
+    - name: Build
       run: |
-        echo "=== Build BotServer ==="
         cd /opt/gbo/work/botserver
         cargo build -p botserver
         ls -lh target/debug/botserver
 
-    - name: Deploy via Incus
+    - name: Deploy
       run: |
-        echo "=== Deploy ==="
-        BINARY="/opt/gbo/work/botserver/target/debug/botserver"
-        if [ -f "$BINARY" ]; then
-          echo "Binary exists: $BINARY"
-          sudo incus file push "$BINARY" system:/opt/gbo/bin/botserver --mode=0755
-          sudo incus exec system -- systemctl restart botserver
-          echo "✅ Deploy completed!"
-        else
-          echo "ERROR: Binary not found"
-          exit 1
-        fi
+        B="/opt/gbo/work/botserver/target/debug/botserver"
+        [ -f "$B" ] && sudo incus file push "$B" system:/opt/gbo/bin/botserver --mode=0755 && sudo incus exec system -- systemctl restart botserver && echo "✅ Deployed" || echo "❌ Failed"
