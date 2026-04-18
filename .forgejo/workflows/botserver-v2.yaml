@@ -1,7 +1,7 @@
-# HASH-BUSTER-20260418-CONTAINER-v18
+# HASH-BUSTER-20260418-CONTAINER-v19
 # Dev machine approach: /opt/gbo/work/botserver
 # Pre-installed globally: Rust, Node.js, Python, sccache
-# NO REBASE - use merge to avoid conflicts
+# ABORT any rebase first, then reset + pull
 name: BotServer CI/CD
 
 on:
@@ -24,13 +24,22 @@ jobs:
       run: |
         echo "=== Pull Latest ==="
         cd /opt/gbo/work/botserver
+        
+        # Abort any rebase in progress
+        git rebase --abort 2>/dev/null || true
+        
+        # Reset to clean state
         git reset --hard HEAD
         git clean -fd
+        
+        # Pull latest (merge, not rebase)
         git pull
+        
         # Remove .github submodule (causes auth issues)
         rm -rf .github
         grep -v "github" .gitmodules > .gitmodules.tmp || true
         mv .gitmodules.tmp .gitmodules
+        
         # Initialize only required submodules
         git submodule update --init --recursive botlib botserver
 
