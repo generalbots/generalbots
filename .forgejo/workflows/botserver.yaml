@@ -1,4 +1,5 @@
-name: BotServer CI/CD
+# NOVO WORKFLOW - Forçar refresh do cache
+name: BotServer CI/CD v2
 
 on:
   push:
@@ -6,32 +7,33 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  SCCACHE_DIR: /opt/gbo/work/botserver/.sccache
+  CARGO_TARGET_DIR: /opt/gbo/work/botserver/target
+
 jobs:
   build:
-    runs-on: gbo:host
+    runs-on: gbo
     steps:
-      - name: Pull and Build (Debug)
+      - name: Setup Isolado
         run: |
-          echo "=== Iniciando Pull and Build (Debug Rápido) ==="
-          
-          # 1. Navegar para o diretório fixo
+          echo "=== Setup Inicial ==="
+          mkdir -p $SCCACHE_DIR
+          mkdir -p $CARGO_TARGET_DIR
+          pkill -9 sccache || true
+          echo "Setup concluído."
+
+      - name: Pull Sources
+        run: |
+          echo "=== Atualizando Código ==="
           cd /opt/gbo/work/botserver/src
-          
-          # 2. Atualizar o código
           git pull origin main
-          
-          # 3. Atualizar submódulo botlib
           cd ../botlib && git pull && cd ..
-          
-          # 4. Preparar Cargo.toml (limpar workspace members indesejados)
-          # Isso garante que apenas botserver e botlib sejam compilados
-          cp Cargo.toml Cargo.toml.bak
-          grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.tmp
-          mv Cargo.toml.tmp Cargo.toml
-          
-          # 5. BUILD RÁPIDO (Debug mode - sem otimizações, compila mais rápido)
+          echo "Código atualizado."
+
+      - name: Build Debug
+        run: |
+          echo "=== Compilando (Debug) ==="
+          cd /opt/gbo/work/botserver/src
           cargo build
-          
-          # O binário estará em: target/debug/botserver
-          
-          echo "=== Build Debug Concluído ==="
+          echo "Build finalizado."
