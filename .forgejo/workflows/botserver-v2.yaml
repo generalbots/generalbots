@@ -1,6 +1,6 @@
 # HASH-BUSTER-20260418-CONTAINER-v15
-# Dev machine approach: just pull, no clone
-# Pre-installed: Rust, Node, Python on runner (ci-alm)
+# Dev machine approach: work folder is /opt/gbo/work/
+# Pre-installed: Rust, Node, Python, sccache on runner
 name: BotServer CI/CD
 
 on:
@@ -21,24 +21,31 @@ jobs:
     - name: Pull Latest
       run: |
         echo "=== Pull Latest ==="
-        cd /opt/gbo/data
+        cd /opt/gbo/work
+        if [ ! -d "gb" ]; then
+          git clone https://alm.pragmatismo.com.br/GeneralBots/gb.git
+        fi
+        cd /opt/gbo/work/gb
         git pull --rebase
-        cd /opt/gbo/data/botserver
+        cd /opt/gbo/work/gb/botserver
         git pull --rebase
-        cd /opt/gbo/data/botlib
+        cd /opt/gbo/work/gb/botlib
         git pull --rebase
 
     - name: Build
       run: |
         echo "=== Build ==="
-        cd /opt/gbo/data/botserver
+        cd /opt/gbo/work/gb
         cargo build -p botserver
+        cargo build -p botui
+        cargo build -p botlib
         ls -lh target/debug/botserver
+        ls -lh target/debug/botui
 
     - name: Deploy
       run: |
         echo "=== Deploy ==="
-        BINARY="/opt/gbo/data/botserver/target/debug/botserver"
+        BINARY="/opt/gbo/work/gb/target/debug/botserver"
         if [ -f "$BINARY" ]; then
           echo "Binary exists: $BINARY"
           # Copy to system container
