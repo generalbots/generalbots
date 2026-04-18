@@ -34,8 +34,9 @@ jobs:
             cd botlib && git pull && cd ..
           fi
           
-          if [ ! -d botserver ]; then
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
+          if [ ! -d botserver/.git ]; then
+            rm -rf botserver
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           else
             cd botserver && git pull && cd ..
           fi
