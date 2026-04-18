@@ -891,12 +891,13 @@ pub async fn start_background_services(
         trace!("ensure_llama_servers_running completed");
     }
 
-  // Start DriveMonitor for S3/MinIO file watching
+  // Start DriveMonitor for S3/MinIO file watching and syncing
   #[cfg(feature = "drive")]
   start_drive_monitors(app_state.clone(), _pool).await;
 
-  // Start LocalFileMonitor to compile .bas files from /opt/gbo/data to /opt/gbo/work
-  start_local_file_monitor(app_state.clone()).await;
+  // Start DriveCompiler to compile .bas files from drive_files table
+  #[cfg(feature = "drive")]
+  start_drive_compiler(app_state.clone()).await;
     // start_config_watcher(app_state.clone()).await;
 }
 
@@ -1129,15 +1130,16 @@ fn create_bot_from_drive(
 }
 
 
-// LocalFileMonitor compiles .bas files from /opt/gbo/data to /opt/gbo/work
-async fn start_local_file_monitor(app_state: Arc<AppState>) {
-use crate::drive::local_file_monitor::LocalFileMonitor;
+// DriveCompiler compiles .bas files based on drive_files table changes
+#[cfg(feature = "drive")]
+async fn start_drive_compiler(app_state: Arc<AppState>) {
+use crate::drive::drive_compiler::DriveCompiler;
 
-let monitor = LocalFileMonitor::new(app_state.clone());
-if let Err(e) = monitor.start_monitoring().await {
-error!("Failed to start LocalFileMonitor: {}", e);
+let compiler = DriveCompiler::new(app_state.clone());
+if let Err(e) = compiler.start_compiling().await {
+error!("Failed to start DriveCompiler: {}", e);
 } else {
-trace!("LocalFileMonitor started - monitoring /opt/gbo/data for bot changes");
+trace!("DriveCompiler started - compiling .bas files from drive_files");
 }
 }
 //
