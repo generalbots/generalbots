@@ -1,5 +1,5 @@
-# HASH-BUSTER-20260418-CONTAINER-v16
-# Dev machine approach: /opt/gbo/work/botserver
+# HASH-BUSTER-20260418-CONTAINER-v17
+# Only build botserver (not entire workspace)
 # Pre-installed globally: Rust, Node.js, Python, sccache
 name: BotServer CI/CD
 
@@ -28,18 +28,15 @@ jobs:
         rm -rf .github
         grep -v "github" .gitmodules > .gitmodules.tmp || true
         mv .gitmodules.tmp .gitmodules
-        # Initialize all submodules
-        git submodule update --init --recursive
+        # Initialize only required submodules
+        git submodule update --init --recursive botlib botserver
 
-    - name: Build
+    - name: Build BotServer Only
       run: |
-        echo "=== Build ==="
+        echo "=== Build BotServer ==="
         cd /opt/gbo/work/botserver
         cargo build -p botserver
-        cargo build -p botui
-        cargo build -p botlib
         ls -lh target/debug/botserver
-        ls -lh target/debug/botui
 
     - name: Deploy
       run: |
