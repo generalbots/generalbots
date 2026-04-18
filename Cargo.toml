@@ -244,3 +244,7 @@ bigdecimal = { workspace = true }
 # Force libgit2-sys to use system libgit2
 [patch.crates-io]
 libgit2-sys = { git = "https://github.com/rust-lang/git2-rs", branch = "main" }
+
+[dependencies.git2]
+version = "0.19"
+features = ["vendored-libgit2"]
