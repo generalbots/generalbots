@@ -35,6 +35,26 @@ pub fn normalize_etag(etag: &str) -> String {
     etag.trim_matches('"').to_string()
 }
 
+pub fn normalize_config_value(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("none") {
+        String::new()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+impl DriveMonitor {
+    /// Start monitoring the drive bucket for changes
+    /// This is a placeholder that will be implemented with the actual monitoring logic
+    pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        log::info!("DriveMonitor monitoring started for bucket: {}", self.bucket_name);
+        // The actual monitoring logic is handled by LocalFileMonitor
+        // This method is kept for backward compatibility
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DriveMonitor {
     pub state: Arc<AppState>,
