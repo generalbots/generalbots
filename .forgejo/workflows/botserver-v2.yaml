@@ -1,5 +1,5 @@
-# HASH-BUSTER-20260418-UNIQUE-ID-v5
-# NOVO WORKFLOW - Forçar refresh do cache (v5 - corrige lógica de submodules)
+# HASH-BUSTER-20260418-UNIQUE-ID-v6
+# WORKFLOW COM SUBMODULES - Usa git submodule update
 name: BotServer CI/CD v2
 
 on:
@@ -24,19 +24,19 @@ jobs:
           pkill -9 sccache || true
           echo "Setup concluído."
 
-      - name: Setup Repository Structure
+      - name: Setup Repository with Submodules
         run: |
-          echo "=== Configurando Estrutura do Repositório ==="
+          echo "=== Configurando Repositório com Submodules ==="
 
           # Criar diretório base se não existir
           mkdir -p /opt/gbo/work/botserver
 
           # Verificar se já é um repositório git
           if [ ! -d /opt/gbo/work/botserver/.git ]; then
-            echo "Repositório não existe, clonando..."
+            echo "Repositório não existe, clonando repositório gb..."
             cd /opt/gbo/work/botserver
             git init
-            git remote add origin https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
+            git remote add origin https://alm.pragmatismo.com.br/GeneralBots/gb.git
             git fetch --depth 1 origin main
             git reset --hard origin/main
           else
@@ -45,28 +45,31 @@ jobs:
             git pull origin main
           fi
 
-          # Atualizar botlib se existir como submodule/pasta
-          if [ -d /opt/gbo/work/botserver/botlib ]; then
-            echo "Atualizando botlib..."
-            cd /opt/gbo/work/botserver/botlib
-            git pull origin main
-            cd ..
-          fi
+          # Inicializar/atualizar submodules (botserver, botlib, etc)
+          echo "Atualizando submodules..."
+          git submodule update --init --recursive --depth 1
 
-          echo "Estrutura configurada."
+          echo "Repositório configurado com submodules."
 
       - name: Build Debug
         run: |
           echo "=== Compilando (Debug) ==="
           cd /opt/gbo/work/botserver
 
-          # Verificar se Cargo.toml existe
+          # Verificar se Cargo.toml do workspace existe
           if [ ! -f Cargo.toml ]; then
             echo "ERRO: Cargo.toml não encontrado em $(pwd)"
             ls -la
             exit 1
           fi
 
-          echo "Cargo.toml encontrado em $(pwd)/Cargo.toml"
-          cargo build
+          echo "Workspace Cargo.toml encontrado em $(pwd)/Cargo.toml"
+          echo "Conteúdo do Cargo.toml:"
+          head -20 Cargo.toml
+
+          # Build específico para botserver usando workspace
+          echo "Executando: cargo build -p botserver"
+          cargo build -p botserver
+
           echo "Build finalizado."
+          ls -lh target/debug/botserver
