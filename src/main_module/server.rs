@@ -176,7 +176,7 @@ pub async fn run_axum_server(
 
     #[cfg(feature = "drive")]
     {
-        api_router = // drive routes are handled by DriveMonitor, no HTTP routes needed
+        // drive routes are handled by DriveMonitor, no HTTP routes needed
     }
 
     #[cfg(feature = "directory")]
