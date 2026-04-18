@@ -1,4 +1,4 @@
-# v22 - Fast deploy
+# v23 - Simple deploy: stop, copy, start
 name: BotServer CI
 
 on:
@@ -21,15 +21,17 @@ jobs:
         git rebase --abort 2>/dev/null || true
         git reset --hard HEAD && git clean -fd
         git pull && git submodule update --init --recursive botlib botserver
-        rm -rf .github
 
     - name: Build
       run: |
         cd /opt/gbo/work/botserver
         cargo build -p botserver
-        ls -lh target/debug/botserver
 
     - name: Deploy
       run: |
-        B="/opt/gbo/work/botserver/target/debug/botserver"
-        [ -f "$B" ] && sudo incus file push "$B" system:/opt/gbo/bin/botserver --mode=0755 && sudo incus exec system -- systemctl restart botserver && echo "✅ Deployed" || echo "❌ Failed"
+        sudo pkill -f botserver || true
+        sleep 1
+        cp /opt/gbo/work/botserver/target/debug/botserver /opt/gbo/bin/botserver
+        cd /opt/gbo/bin && RUST_LOG=info nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2>&1 &
+        sleep 2
+        pgrep -f botserver && echo "✅ Running" || echo "❌ Failed"
