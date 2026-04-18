@@ -1,6 +1,6 @@
-# HASH-BUSTER-20260418-UNIQUE-ID-v9
-# WORKFLOW COM CLONE COMPLETO SE FALHAR
-name: BotServer CI/CD v2
+# HASH-BUSTER-20260418-SIMPLIFICADO-v10
+# SIMPLIFICADO: Clone limpo sempre, sem dependência de estado anterior
+name: BotServer CI/CD
 
 on:
   push:
@@ -9,90 +9,99 @@ on:
     branches: [main]
 
 env:
-  SCCACHE_DIR: /opt/gbo/work/botserver/.sccache
-  CARGO_TARGET_DIR: /opt/gbo/work/botserver/target
+  SCCACHE_DIR: /opt/gbo/work/.sccache
+  CARGO_TARGET_DIR: /opt/gbo/work/target
 
 jobs:
   build:
     runs-on: gbo
     steps:
-      - name: Setup Isolado
+      - name: Clone Limpo
         run: |
-          echo "=== Setup Inicial ==="
-          mkdir -p $SCCACHE_DIR
-          mkdir -p $CARGO_TARGET_DIR
-          pkill -9 sccache || true
-          echo "Setup concluído."
+          echo "=== Clone Limpo do Workspace ==="
 
-      - name: Setup Repository
-        run: |
-          echo "=== Configurando Repositório ==="
-          cd /opt/gbo/work
+          # Limpar diretório de trabalho anterior
+          rm -rf /opt/gbo/work/build
+          mkdir -p /opt/gbo/work/build
+          cd /opt/gbo/work/build
 
-          # Verificar se repositório gb existe e tem Cargo.toml
-          if [ ! -f botserver/Cargo.toml ] || [ ! -d botserver/.git ]; then
-            echo "Repositório inválido ou missing, clonando do zero..."
-            rm -rf botserver
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git botserver
-            cd botserver
-          else
-            echo "Repositório existe, atualizando..."
-            cd botserver
-            git fetch origin main
-            git reset --hard origin/main
-          fi
+          # Clonar repositório gb (workspace raiz)
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+          cd workspace
 
-          # Inicializar submodules necessários
-          echo "Inicializando submodules..."
+          # Inicializar APENAS submodules necessários
+          echo "Inicializando submodules necessários..."
+          git config -f .gitmodules submodule.botserver.url https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
+          git config -f .gitmodules submodule.botlib.url https://alm.pragmatismo.com.br/GeneralBots/botlib.git
           git submodule update --init --depth 1 botserver
           git submodule update --init --depth 1 botlib
 
-          # Se botserver ainda não tem Cargo.toml, clonar diretamente
-          if [ ! -f botserver/Cargo.toml ]; then
-            echo "botserver submodule inválido, clonando diretamente..."
-            rm -rf botserver
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
-          fi
-
-          # Se botlib não existe, clonar
-          if [ ! -f botlib/Cargo.toml ]; then
-            echo "botlib não existe, clonando..."
-            rm -rf botlib
-            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
-          fi
-
-          echo "Estrutura final:"
+          echo "Estrutura do workspace:"
           ls -la
           echo "botserver/:"
-          ls -la botserver/ | head -20
+          ls -la botserver/ | head -15
           echo "botlib/:"
-          ls -la botlib/ | head -10
+          ls -la botlib/ | head -15
 
-      - name: Build Debug
+          # Preparar Cargo.toml (remover members desnecessários)
+          echo "Preparando Cargo.toml..."
+          grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.clean || true
+          if [ -s Cargo.toml.clean ]; then
+            mv Cargo.toml.clean Cargo.toml
+          fi
+
+          echo "Workspace preparado com sucesso!"
+
+      - name: Build
         run: |
-          echo "=== Compilando (Debug) ==="
-          cd /opt/gbo/work/botserver
+          echo "=== Build (Debug) ==="
+          cd /opt/gbo/work/build/workspace
 
           # Verificar estrutura
           if [ ! -f Cargo.toml ]; then
-            echo "ERRO: Cargo.toml do workspace não encontrado"
-            echo "Diretório atual: $(pwd)"
-            ls -la
+            echo "ERRO: Cargo.toml não encontrado"
             exit 1
           fi
 
           if [ ! -f botserver/Cargo.toml ]; then
             echo "ERRO: botserver/Cargo.toml não encontrado"
-            echo "Diretório atual: $(pwd)"
-            ls -la botserver/ || echo "botserver/ não existe"
             exit 1
           fi
 
-          echo "Workspace OK: $(pwd)/Cargo.toml"
-          echo "Botserver OK: $(pwd)/botserver/Cargo.toml"
-
           # Build
-          echo "Executando: cargo build -p botserver"
           cargo build -p botserver
-          echo "Build finalizado!"
+
+          echo "Build concluído!"
           ls -lh target/debug/botserver
+
+      - name: Deploy
+        run: |
+          echo "=== Deploy ==="
+          SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
+
+          # Parar serviço atual
+          ssh $SSH system "sudo systemctl stop botserver || true"
+          sleep 2
+
+          # Copiar binário
+          scp $SSH /opt/gbo/work/build/workspace/target/debug/botserver system:/tmp/botserver
+
+          # Instalar e reiniciar
+          ssh $SSH system "
+            sudo mv /tmp/botserver /opt/gbo/bin/botserver
+            sudo chmod +x /opt/gbo/bin/botserver
+            sudo chown gbuser:gbuser /opt/gbo/bin/botserver
+            sudo systemctl start botserver
+          "
+
+          # Aguardar inicialização
+          sleep 5
+
+          # Verificar deploy
+          ssh $SSH system "curl -sf http://localhost:8080/health && echo '✅ Deploy OK'" || echo "⚠️  Health check falhou"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "=== Cleanup ==="
+          rm -rf /opt/gbo/work/build
