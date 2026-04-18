@@ -1,5 +1,5 @@
 # HASH-BUSTER-20260418-PULLONLY-v12
-# PULL-ONLY: Assume Rust, Node, Python jÃ¡ instalados no runner
+# PULL-ONLY: Assumes Rust, Node, Python already installed on runner
 name: BotServer CI/CD
 
 on:
@@ -19,70 +19,70 @@ jobs:
   build:
     runs-on: gbo
     steps:
-      - name: Clone Limpo
+      - name: Clone Clean
         run: |
-          echo "=== Clone Limpo do Workspace ==="
+          echo "=== Clone Clean Workspace ==="
           
-          # Limpar diretÃ³rio de trabalho anterior
+          # Clean previous build directory
           rm -rf /opt/gbo/work/build
           mkdir -p /opt/gbo/work/build
           cd /opt/gbo/work/build
           
-          # Clonar repositÃ³rio gb (workspace raiz)
+          # Clone gb repository (workspace root)
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
           cd workspace
           
-          # Inicializar APENAS submodules necessÃ¡rios
-          echo "Inicializando submodules necessÃ¡rios..."
+          # Initialize ONLY required submodules
+          echo "Initializing required submodules..."
           git config -f .gitmodules submodule.botserver.url https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
           git config -f .gitmodules submodule.botlib.url https://alm.pragmatismo.com.br/GeneralBots/botlib.git
           git submodule update --init --depth 1 botserver
           git submodule update --init --depth 1 botlib
           
-          echo "Estrutura do workspace:"
+          echo "Workspace structure:"
           ls -la
           echo "botserver/:"
           ls -la botserver/ | head -15
           echo "botlib/:"
           ls -la botlib/ | head -15
           
-          # Preparar Cargo.toml (remover members desnecessÃ¡rios)
-          echo "Preparando Cargo.toml..."
+          # Prepare Cargo.toml (remove unnecessary members)
+          echo "Preparing Cargo.toml..."
           grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.clean || true
           if [ -s Cargo.toml.clean ]; then
             mv Cargo.toml.clean Cargo.toml
           fi
           
-          echo "Workspace preparado com sucesso!"
+          echo "Workspace ready!"
 
       - name: Build
         run: |
           echo "=== Build (Debug) ==="
           cd /opt/gbo/work/build/workspace
           
-          # Verificar dependÃªncias
-          echo "Verificando dependÃªncias..."
-          cargo --version || { echo "ERRO: cargo nÃ£o encontrado"; exit 1; }
-          rustc --version || { echo "ERRO: rustc nÃ£o encontrado"; exit 1; }
-          node --version || echo "AVISO: node nÃ£o disponÃ­vel"
-          python3 --version || echo "AVISO: python3 nÃ£o disponÃ­vel"
+          # Check dependencies
+          echo "Checking dependencies..."
+          cargo --version || { echo "ERROR: cargo not found"; exit 1; }
+          rustc --version || { echo "ERROR: rustc not found"; exit 1; }
+          node --version || echo "WARNING: node not available"
+          python3 --version || echo "WARNING: python3 not available"
           
-          # Verificar estrutura
+          # Verify structure
           if [ ! -f Cargo.toml ]; then
-            echo "ERRO: Cargo.toml nÃ£o encontrado"
+            echo "ERROR: Cargo.toml not found"
             exit 1
           fi
           
           if [ ! -f botserver/Cargo.toml ]; then
-            echo "ERRO: botserver/Cargo.toml nÃ£o encontrado"
+            echo "ERROR: botserver/Cargo.toml not found"
             exit 1
           fi
           
           # Build
-          echo "Iniciando build..."
+          echo "Starting build..."
           cargo build -p botserver
           
-          echo "Build concluÃ­do!"
+          echo "Build complete!"
           ls -lh target/debug/botserver
 
       - name: Deploy
@@ -90,14 +90,14 @@ jobs:
           echo "=== Deploy ==="
           SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
           
-          # Parar serviÃ§o atual
+          # Stop current service
           ssh $SSH system "sudo systemctl stop botserver || true"
           sleep 2
           
-          # Copiar binÃ¡rio
+          # Copy binary
           scp $SSH /opt/gbo/work/build/workspace/target/debug/botserver system:/tmp/botserver
           
-          # Instalar e reiniciar
+          # Install and restart
           ssh $SSH system "
             sudo mv /tmp/botserver /opt/gbo/bin/botserver
             sudo chmod +x /opt/gbo/bin/botserver
@@ -105,11 +105,11 @@ jobs:
             sudo systemctl start botserver
           "
           
-          # Aguardar inicializaÃ§Ã£oo
+          # Wait for startup
           sleep 5
           
-          # Verificar deploy
-          ssh $SSH system "curl -sf http://localhost:8080/health && echo '✅ Deploy OK'" || echo "â ï¸  Health check falhou"
+          # Verify deploy
+          ssh $SSH system "curl -sf http://localhost:8080/health && echo 'Deploy OK'" || echo "Health check failed"
 
       - name: Cleanup
         if: always()
