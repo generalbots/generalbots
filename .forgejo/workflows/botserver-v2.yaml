@@ -1,5 +1,5 @@
-# HASH-BUSTER-20260418-COMPLETO-v11
-# COMPLETO: Rust setup + Clone limpo + Build + Deploy
+# HASH-BUSTER-20260418-PULLONLY-v12
+# PULL-ONLY: Assume Rust, Node, Python jÃ¡ instalados no runner
 name: BotServer CI/CD
 
 on:
@@ -13,62 +13,27 @@ env:
   CARGO_TARGET_DIR: /opt/gbo/work/target
   RUSTUP_HOME: /opt/gbo/work/.rustup
   CARGO_HOME: /opt/gbo/work/.cargo
+  PATH: /opt/gbo/work/.cargo/bin:/opt/gbo/work/.rustup/bin:$PATH
 
 jobs:
   build:
     runs-on: gbo
     steps:
-      - name: Setup Rust
-        run: |
-          echo "=== Setup do Rust ==="
-          export RUSTUP_HOME=/opt/gbo/work/.rustup
-          export CARGO_HOME=/opt/gbo/work/.cargo
-          export PATH="/opt/gbo/work/.cargo/bin:$PATH"
-          
-          # Verificar se Rust já está instalado
-          if [ ! -f /opt/gbo/work/.cargo/bin/cargo ]; then
-            echo "Instalando Rust..."
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-            echo "Rust instalado!"
-          else
-            echo "Rust já está instalado"
-          fi
-          
-          # Atualizar rustup
-          rustup update stable || true
-          
-          # Instalar sccache
-          echo "Instalando sccache..."
-          cargo install sccache || true
-          
-          # Configurar ambiente
-          echo "export PATH=/opt/gbo/work/.cargo/bin:\$PATH" >> /home/gbuser/.bashrc
-          echo "export RUSTUP_HOME=/opt/gbo/work/.rustup" >> /home/gbuser/.bashrc
-          echo "export CARGO_HOME=/opt/gbo/work/.cargo" >> /home/gbuser/.bashrc
-          
-          # Iniciar sccache
-          sccache --start-server || true
-          
-          echo "Setup do Rust concluído!"
-          cargo --version
-          rustc --version
-
       - name: Clone Limpo
         run: |
           echo "=== Clone Limpo do Workspace ==="
-          export PATH="/opt/gbo/work/.cargo/bin:$PATH"
           
-          # Limpar diretório de trabalho anterior
+          # Limpar diretÃ³rio de trabalho anterior
           rm -rf /opt/gbo/work/build
           mkdir -p /opt/gbo/work/build
           cd /opt/gbo/work/build
           
-          # Clonar repositório gb (workspace raiz)
+          # Clonar repositÃ³rio gb (workspace raiz)
           git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
           cd workspace
           
-          # Inicializar APENAS submodules necessários
-          echo "Inicializando submodules necessários..."
+          # Inicializar APENAS submodules necessÃ¡rios
+          echo "Inicializando submodules necessÃ¡rios..."
           git config -f .gitmodules submodule.botserver.url https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
           git config -f .gitmodules submodule.botlib.url https://alm.pragmatismo.com.br/GeneralBots/botlib.git
           git submodule update --init --depth 1 botserver
@@ -81,7 +46,7 @@ jobs:
           echo "botlib/:"
           ls -la botlib/ | head -15
           
-          # Preparar Cargo.toml (remover members desnecessários)
+          # Preparar Cargo.toml (remover members desnecessÃ¡rios)
           echo "Preparando Cargo.toml..."
           grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.clean || true
           if [ -s Cargo.toml.clean ]; then
@@ -93,40 +58,43 @@ jobs:
       - name: Build
         run: |
           echo "=== Build (Debug) ==="
-          export PATH="/opt/gbo/work/.cargo/bin:$PATH"
-          export RUSTUP_HOME=/opt/gbo/work/.rustup
-          export CARGO_HOME=/opt/gbo/work/.cargo
           cd /opt/gbo/work/build/workspace
+          
+          # Verificar dependÃªncias
+          echo "Verificando dependÃªncias..."
+          cargo --version || { echo "ERRO: cargo nÃ£o encontrado"; exit 1; }
+          rustc --version || { echo "ERRO: rustc nÃ£o encontrado"; exit 1; }
+          node --version || echo "AVISO: node nÃ£o disponÃ­vel"
+          python3 --version || echo "AVISO: python3 nÃ£o disponÃ­vel"
           
           # Verificar estrutura
           if [ ! -f Cargo.toml ]; then
-            echo "ERRO: Cargo.toml não encontrado"
+            echo "ERRO: Cargo.toml nÃ£o encontrado"
             exit 1
           fi
           
           if [ ! -f botserver/Cargo.toml ]; then
-            echo "ERRO: botserver/Cargo.toml não encontrado"
+            echo "ERRO: botserver/Cargo.toml nÃ£o encontrado"
             exit 1
           fi
           
-          # Build com sccache
-          echo "Iniciando build com sccache..."
-          RUSTC_WRAPPER=sccache cargo build -p botserver
+          # Build
+          echo "Iniciando build..."
+          cargo build -p botserver
           
-          echo "Build concluído!"
+          echo "Build concluÃ­do!"
           ls -lh target/debug/botserver
-          sccache --show-stats
 
       - name: Deploy
         run: |
           echo "=== Deploy ==="
           SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
           
-          # Parar serviço atual
+          # Parar serviÃ§o atual
           ssh $SSH system "sudo systemctl stop botserver || true"
           sleep 2
           
-          # Copiar binário
+          # Copiar binÃ¡rio
           scp $SSH /opt/gbo/work/build/workspace/target/debug/botserver system:/tmp/botserver
           
           # Instalar e reiniciar
@@ -137,11 +105,11 @@ jobs:
             sudo systemctl start botserver
           "
           
-          # Aguardar inicialização
+          # Aguardar inicializaÃ§Ã£oo
           sleep 5
           
           # Verificar deploy
-          ssh $SSH system "curl -sf http://localhost:8080/health && echo '✅ Deploy OK'" || echo "⚠️  Health check falhou"
+          ssh $SSH system "curl -sf http://localhost:8080/health && echo '✅ Deploy OK'" || echo "â ï¸  Health check falhou"
 
       - name: Cleanup
         if: always()
