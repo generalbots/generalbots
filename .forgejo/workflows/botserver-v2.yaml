@@ -1,5 +1,5 @@
-# HASH-BUSTER-20260418-CONTAINER-v20
-# Deploy via Incus file copy instead of SSH
+# HASH-BUSTER-20260418-CONTAINER-v21
+# Force clean git state before build
 name: BotServer CI/CD
 
 on:
@@ -18,18 +18,28 @@ jobs:
   build:
     runs-on: gbo
     steps:
-    - name: Pull Latest
+    - name: Force Clean Git State
       run: |
-        echo "=== Pull Latest ==="
+        echo "=== Force Clean Git State ==="
         cd /opt/gbo/work/botserver
+        # Abort ANY git operation (rebase, merge, etc)
         git rebase --abort 2>/dev/null || true
+        git merge --abort 2>/dev/null || true
+        git cherry-pick --abort 2>/dev/null || true
+        # Reset to HEAD
         git reset --hard HEAD
         git clean -fd
-        git pull
+        # Pull fresh
+        git fetch origin main
+        git checkout main
+        git reset --hard origin/main
+        # Remove problematic submodules
         rm -rf .github
-        grep -v "github" .gitmodules > .gitmodules.tmp || true
-        mv .gitmodules.tmp .gitmodules
+        grep -v "github" .gitmodules > .gitmodules.tmp 2>/dev/null || true
+        mv .gitmodules.tmp .gitmodules 2>/dev/null || true
+        # Init only required submodules
         git submodule update --init --recursive botlib botserver
+        echo "Git state: $(git status --short | wc -l) changes"
 
     - name: Build BotServer Only
       run: |
@@ -44,13 +54,10 @@ jobs:
         BINARY="/opt/gbo/work/botserver/target/debug/botserver"
         if [ -f "$BINARY" ]; then
           echo "Binary exists: $BINARY"
-          # Copy binary to system container via incus
-          sudo incus file push "$BINARY" system/opt/gbo/bin/botserver --mode=0755
-          # Restart botserver service
+          sudo incus file push "$BINARY" system:/opt/gbo/bin/botserver --mode=0755
           sudo incus exec system -- systemctl restart botserver
-          echo "✅ Deploy completed successfully!"
-          echo "Binary timestamp: $(stat -c '%y' /opt/gbo/bin/botserver 2>/dev/null || echo 'N/A')"
+          echo "✅ Deploy completed!"
         else
-          echo "ERROR: Binary not found at $BINARY"
+          echo "ERROR: Binary not found"
           exit 1
         fi
