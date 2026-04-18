@@ -13,7 +13,7 @@ use crate::core::shared::state::AppState;
 use crate::core::shared::utils::get_work_path;
 use crate::drive::drive_files::drive_files as drive_files_table;
 use diesel::prelude::*;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::PathBuf;
@@ -73,33 +73,33 @@ impl DriveCompiler {
         let mut conn = self.state.conn.get()?;
 
         // Selecionar todos os arquivos .gbdialog/*.bas
-        let files: Vec<(Uuid, String, String, Option<String>)> = drive_files_table
+        let files: Vec<(Uuid, String, String, Option<String>)> = drive_files_table::table
             .filter(file_type.eq("bas"))
             .filter(file_path.like("%.gbdialog/%"))
             .select((bot_id, file_path, file_type, etag))
             .load(&mut conn)?;
 
-        for (bot_id, file_path_str, _file_type, current_etag_opt) in files {
+        for (query_bot_id, query_file_path, _file_type, current_etag_opt) in files {
             let current_etag = current_etag_opt.unwrap_or_default();
 
             // Verificar se precisa compilar
             let should_compile = {
                 let etags = self.last_etags.read().await;
-                etags.get(&file_path_str).map(|e| e != &current_etag).unwrap_or(true)
+                etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true)
             };
 
             if should_compile {
-                debug!("DriveCompiler: {} changed, compiling...", file_path_str);
+                debug!("DriveCompiler: {} changed, compiling...", query_file_path);
 
                 // Compilar diretamente para work dir
-                if let Err(e) = self.compile_file(bot_id, &file_path_str).await {
-                    error!("Failed to compile {}: {}", file_path_str, e);
+                if let Err(e) = self.compile_file(query_bot_id, &query_file_path).await {
+                    error!("Failed to compile {}: {}", query_file_path, e);
                 } else {
                     // Atualizar estado
                     let mut etags = self.last_etags.write().await;
-                    etags.insert(file_path_str.clone(), current_etag.clone());
+                    etags.insert(query_file_path.clone(), current_etag.clone());
 
-                    info!("DriveCompiler: {} compiled successfully", file_path_str);
+                    info!("DriveCompiler: {} compiled successfully", query_file_path);
                 }
             }
         }
