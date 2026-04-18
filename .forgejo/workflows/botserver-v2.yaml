@@ -1,5 +1,5 @@
-# HASH-BUSTER-20260418-UNIQUE-ID-v6
-# WORKFLOW COM SUBMODULES - Usa git submodule update
+# HASH-BUSTER-20260418-UNIQUE-ID-v7
+# OTIMIZADO: Clone apenas submodules necessários (botserver + botlib)
 name: BotServer CI/CD v2
 
 on:
@@ -24,32 +24,35 @@ jobs:
           pkill -9 sccache || true
           echo "Setup concluído."
 
-      - name: Setup Repository with Submodules
+      - name: Setup Repository with Selective Submodules
         run: |
-          echo "=== Configurando Repositório com Submodules ==="
-
-          # Criar diretório base se não existir
-          mkdir -p /opt/gbo/work/botserver
+          echo "=== Configurando Repositório com Submodules Seletivos ==="
+          cd /opt/gbo/work/botserver
 
           # Verificar se já é um repositório git
-          if [ ! -d /opt/gbo/work/botserver/.git ]; then
+          if [ ! -d .git ]; then
             echo "Repositório não existe, clonando repositório gb..."
-            cd /opt/gbo/work/botserver
             git init
             git remote add origin https://alm.pragmatismo.com.br/GeneralBots/gb.git
             git fetch --depth 1 origin main
             git reset --hard origin/main
           else
             echo "Repositório já existe, atualizando..."
-            cd /opt/gbo/work/botserver
             git pull origin main
           fi
 
-          # Inicializar/atualizar submodules (botserver, botlib, etc)
-          echo "Atualizando submodules..."
-          git submodule update --init --recursive --depth 1
+          # Inicializar APENAS os submodules necessários (botserver e botlib)
+          echo "Inicializando submodule botserver..."
+          git config -f .gitmodules submodule.botserver.url https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
+          git submodule update --init --depth 1 botserver
 
-          echo "Repositório configurado com submodules."
+          echo "Inicializando submodule botlib..."
+          git config -f .gitmodules submodule.botlib.url https://alm.pragmatismo.com.br/GeneralBots/botlib.git
+          git submodule update --init --depth 1 botlib
+
+          echo "Submodules inicializados:"
+          ls -la botserver/
+          ls -la botlib/ || echo "botlib não encontrado"
 
       - name: Build Debug
         run: |
@@ -63,13 +66,20 @@ jobs:
             exit 1
           fi
 
+          # Verificar se submodule do botserver foi clonado
+          if [ ! -f botserver/Cargo.toml ]; then
+            echo "ERRO: botserver/Cargo.toml não encontrado"
+            echo "Conteúdo de botserver/:"
+            ls -la botserver/ || echo "Pasta botserver/ não existe"
+            exit 1
+          fi
+
           echo "Workspace Cargo.toml encontrado em $(pwd)/Cargo.toml"
-          echo "Conteúdo do Cargo.toml:"
-          head -20 Cargo.toml
+          echo "Botserver Cargo.toml encontrado em $(pwd)/botserver/Cargo.toml"
 
           # Build específico para botserver usando workspace
           echo "Executando: cargo build -p botserver"
           cargo build -p botserver
 
-          echo "Build finalizado."
+          echo "Build finalizado!"
           ls -lh target/debug/botserver
