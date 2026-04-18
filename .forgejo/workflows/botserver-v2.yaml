@@ -1,5 +1,5 @@
-# HASH-BUSTER-20260418-UNIQUE-ID-v8
-# WORKFLOW COM SUBMODULES + FALLBACK PARA CLONE COMPLETO
+# HASH-BUSTER-20260418-UNIQUE-ID-v9
+# WORKFLOW COM CLONE COMPLETO SE FALHAR
 name: BotServer CI/CD v2
 
 on:
@@ -24,92 +24,74 @@ jobs:
           pkill -9 sccache || true
           echo "Setup concluído."
 
-      - name: Setup Repository with Fallback
+      - name: Setup Repository
         run: |
           echo "=== Configurando Repositório ==="
-          cd /opt/gbo/work/botserver
+          cd /opt/gbo/work
 
-          # Verificar se já é um repositório git
-          if [ ! -d .git ]; then
-            echo "Repositório não existe, clonando repositório gb..."
-            git init
-            git remote add origin https://alm.pragmatismo.com.br/GeneralBots/gb.git
-            git fetch --depth 1 origin main
+          # Verificar se repositório gb existe e tem Cargo.toml
+          if [ ! -f botserver/Cargo.toml ] || [ ! -d botserver/.git ]; then
+            echo "Repositório inválido ou missing, clonando do zero..."
+            rm -rf botserver
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git botserver
+            cd botserver
+          else
+            echo "Repositório existe, atualizando..."
+            cd botserver
+            git fetch origin main
             git reset --hard origin/main
-          else
-            echo "Repositório já existe, atualizando..."
-            git pull origin main
           fi
 
-          # Tentar inicializar submodules específicos
-          echo "Tentando inicializar submodules..."
-          SUBMODULE_OK=true
+          # Inicializar submodules necessários
+          echo "Inicializando submodules..."
+          git submodule update --init --depth 1 botserver
+          git submodule update --init --depth 1 botlib
 
-          # Inicializar botserver
+          # Se botserver ainda não tem Cargo.toml, clonar diretamente
           if [ ! -f botserver/Cargo.toml ]; then
-            echo "botserver submodule não existe, tentando inicializar..."
-            if ! git submodule update --init --depth 1 botserver 2>/dev/null; then
-              echo "Falha ao inicializar botserver via submodule, tentando clone direto..."
-              rm -rf botserver
-              git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
-            fi
-          else
-            echo "botserver já existe, atualizando..."
-            cd botserver && git pull && cd ..
+            echo "botserver submodule inválido, clonando diretamente..."
+            rm -rf botserver
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
           fi
 
-          # Inicializar botlib
+          # Se botlib não existe, clonar
           if [ ! -f botlib/Cargo.toml ]; then
-            echo "botlib submodule não existe, tentando inicializar..."
-            if ! git submodule update --init --depth 1 botlib 2>/dev/null; then
-              echo "Falha ao inicializar botlib via submodule, tentando clone direto..."
-              rm -rf botlib
-              git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
-            fi
-          else
-            echo "botlib já existe, atualizando..."
-            cd botlib && git pull && cd ..
+            echo "botlib não existe, clonando..."
+            rm -rf botlib
+            git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
           fi
 
           echo "Estrutura final:"
           ls -la
           echo "botserver/:"
-          ls -la botserver/ 2>/dev/null || echo "botserver/ não existe"
+          ls -la botserver/ | head -20
           echo "botlib/:"
-          ls -la botlib/ 2>/dev/null || echo "botlib/ não existe"
+          ls -la botlib/ | head -10
 
       - name: Build Debug
         run: |
           echo "=== Compilando (Debug) ==="
           cd /opt/gbo/work/botserver
 
-          # Verificar se Cargo.toml do workspace existe
+          # Verificar estrutura
           if [ ! -f Cargo.toml ]; then
-            echo "ERRO: Cargo.toml do workspace não encontrado em $(pwd)"
+            echo "ERRO: Cargo.toml do workspace não encontrado"
+            echo "Diretório atual: $(pwd)"
             ls -la
             exit 1
           fi
 
-          # Verificar se submodule do botserver foi clonado
           if [ ! -f botserver/Cargo.toml ]; then
             echo "ERRO: botserver/Cargo.toml não encontrado"
-            echo "Conteúdo de botserver/:"
-            ls -la botserver/ || echo "Pasta botserver/ não existe"
+            echo "Diretório atual: $(pwd)"
+            ls -la botserver/ || echo "botserver/ não existe"
             exit 1
           fi
 
-          echo "Workspace Cargo.toml encontrado em $(pwd)/Cargo.toml"
-          echo "Botserver Cargo.toml encontrado em $(pwd)/botserver/Cargo.toml"
+          echo "Workspace OK: $(pwd)/Cargo.toml"
+          echo "Botserver OK: $(pwd)/botserver/Cargo.toml"
 
-          # Preparar Cargo.toml do workspace (remover members desnecessários)
-          echo "Preparando Cargo.toml do workspace..."
-          cp Cargo.toml Cargo.toml.bak
-          grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.tmp || true
-          if [ -s Cargo.toml.tmp ]; then
-            mv Cargo.toml.tmp Cargo.toml
-          fi
-
-          # Build específico para botserver usando workspace
+          # Build
           echo "Executando: cargo build -p botserver"
           cargo build -p botserver
           echo "Build finalizado!"
