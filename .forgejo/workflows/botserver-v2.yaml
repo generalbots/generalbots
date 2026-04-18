@@ -1,5 +1,5 @@
-# HASH-BUSTER-20260418-UNIQUE-ID-v7
-# OTIMIZADO: Clone apenas submodules necessários (botserver + botlib)
+# HASH-BUSTER-20260418-UNIQUE-ID-v8
+# WORKFLOW COM SUBMODULES + FALLBACK PARA CLONE COMPLETO
 name: BotServer CI/CD v2
 
 on:
@@ -24,9 +24,9 @@ jobs:
           pkill -9 sccache || true
           echo "Setup concluído."
 
-      - name: Setup Repository with Selective Submodules
+      - name: Setup Repository with Fallback
         run: |
-          echo "=== Configurando Repositório com Submodules Seletivos ==="
+          echo "=== Configurando Repositório ==="
           cd /opt/gbo/work/botserver
 
           # Verificar se já é um repositório git
@@ -41,18 +41,42 @@ jobs:
             git pull origin main
           fi
 
-          # Inicializar APENAS os submodules necessários (botserver e botlib)
-          echo "Inicializando submodule botserver..."
-          git config -f .gitmodules submodule.botserver.url https://alm.pragmatismo.com.br/GeneralBots/BotServer.git
-          git submodule update --init --depth 1 botserver
+          # Tentar inicializar submodules específicos
+          echo "Tentando inicializar submodules..."
+          SUBMODULE_OK=true
 
-          echo "Inicializando submodule botlib..."
-          git config -f .gitmodules submodule.botlib.url https://alm.pragmatismo.com.br/GeneralBots/botlib.git
-          git submodule update --init --depth 1 botlib
+          # Inicializar botserver
+          if [ ! -f botserver/Cargo.toml ]; then
+            echo "botserver submodule não existe, tentando inicializar..."
+            if ! git submodule update --init --depth 1 botserver 2>/dev/null; then
+              echo "Falha ao inicializar botserver via submodule, tentando clone direto..."
+              rm -rf botserver
+              git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/BotServer.git botserver
+            fi
+          else
+            echo "botserver já existe, atualizando..."
+            cd botserver && git pull && cd ..
+          fi
 
-          echo "Submodules inicializados:"
-          ls -la botserver/
-          ls -la botlib/ || echo "botlib não encontrado"
+          # Inicializar botlib
+          if [ ! -f botlib/Cargo.toml ]; then
+            echo "botlib submodule não existe, tentando inicializar..."
+            if ! git submodule update --init --depth 1 botlib 2>/dev/null; then
+              echo "Falha ao inicializar botlib via submodule, tentando clone direto..."
+              rm -rf botlib
+              git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
+            fi
+          else
+            echo "botlib já existe, atualizando..."
+            cd botlib && git pull && cd ..
+          fi
+
+          echo "Estrutura final:"
+          ls -la
+          echo "botserver/:"
+          ls -la botserver/ 2>/dev/null || echo "botserver/ não existe"
+          echo "botlib/:"
+          ls -la botlib/ 2>/dev/null || echo "botlib/ não existe"
 
       - name: Build Debug
         run: |
@@ -61,7 +85,7 @@ jobs:
 
           # Verificar se Cargo.toml do workspace existe
           if [ ! -f Cargo.toml ]; then
-            echo "ERRO: Cargo.toml não encontrado em $(pwd)"
+            echo "ERRO: Cargo.toml do workspace não encontrado em $(pwd)"
             ls -la
             exit 1
           fi
@@ -77,9 +101,16 @@ jobs:
           echo "Workspace Cargo.toml encontrado em $(pwd)/Cargo.toml"
           echo "Botserver Cargo.toml encontrado em $(pwd)/botserver/Cargo.toml"
 
+          # Preparar Cargo.toml do workspace (remover members desnecessários)
+          echo "Preparando Cargo.toml do workspace..."
+          cp Cargo.toml Cargo.toml.bak
+          grep -v '"botapp\|"botdevice\|"bottest\|"botui\|"botbook\|"botmodels\|"botplugin\|"bottemplates"' Cargo.toml > Cargo.toml.tmp || true
+          if [ -s Cargo.toml.tmp ]; then
+            mv Cargo.toml.tmp Cargo.toml
+          fi
+
           # Build específico para botserver usando workspace
           echo "Executando: cargo build -p botserver"
           cargo build -p botserver
-
           echo "Build finalizado!"
           ls -lh target/debug/botserver
