@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 830 480" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="830" height="480" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  <!-- Define gradients and effects -->
+  
+
+  <!-- Background -->
+  <rect x="0" y="0" width="750" height="400" fill="#4B5563" rx="8" filter="url(#shadow)">
+
+  <!-- Title with better padding -->
+  <rect x="200" y="10" width="350" height="35" fill="rgba(99, 102, 241, 0.05)" rx="8" filter="url(#shadow)">
+  <text x="375" y="33" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#4B5563">
+    Semantic Caching Architecture
+  </text>
+
+  <!-- User Query -->
+  <rect x="50" y="70" width="130" height="45" fill="url(#userQueryGrad)" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)">
+  <text x="115" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">User Query</text>
+  <text x="115" y="108" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">"What's the policy?"</text>
+
+  <!-- Arrow to Generate Key -->
+  <path d="M 180 92 L 220 92" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7">
+
+  <!-- Generate Key -->
+  <rect x="220" y="70" width="130" height="45" fill="url(#keyGenGrad)" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)">
+  <text x="285" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">Generate Key</text>
+  <text x="285" y="108" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Hash + Embed</text>
+
+  <!-- Arrow to Check Valkey -->
+  <path d="M 350 92 L 390 92" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7">
+
+  <!-- Check Valkey -->
+  <rect x="390" y="70" width="130" height="45" fill="url(#valkeyGrad)" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)">
+  <text x="455" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">Check Valkey</text>
+  <text x="455" y="108" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Memory Store</text>
+
+  <!-- Arrow to Decision -->
+  <path d="M 520 92 L 560 92" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7">
+
+  <!-- Hit/Miss Decision Diamond with glow -->
+  <g filter="url(#glowEffect)">
+    <path d="M 610 70 L 650 92 L 610 114 L 570 92 Z" fill="rgba(139, 92, 246, 0.2)" stroke="#2563EB" stroke-width="2.5">
+    <text x="610" y="97" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">Hit?</text>
+  </g>
+
+  <!-- Arrow down from Generate Key to Embedding -->
+  <path d="M 285 115 L 285 160" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7">
+
+  <!-- Embedding Hash -->
+  <rect x="210" y="160" width="150" height="45" fill="url(#embedGrad)" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)">
+  <text x="285" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">Embedding Hash</text>
+  <text x="285" y="198" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">384D Vector</text>
+
+  <!-- Arrow down from Embedding Hash -->
+  <path d="M 285 205 L 285 250" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7">
+
+  <!-- Semantic Search -->
+  <rect x="210" y="250" width="150" height="45" fill="url(#semanticGrad)" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)">
+  <text x="285" y="275" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">Semantic Search</text>
+  <text x="285" y="288" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Similarity > 0.95</text>
+
+  <!-- Cache Hit path (success) -->
+  <path d="M 610 70 L 610 40 L 455 40" stroke="url(#hitPathGrad)" stroke-width="3" fill="none" opacity="0.8" stroke-linecap="round">
+  <rect x="330" y="25" width="125" height="30" fill="rgba(16, 185, 129, 0.1)" stroke="#2563EB" stroke-width="2" stroke-dasharray="4,2" rx="6" filter="url(#shadow)">
+  <text x="392" y="44" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">✓ Cache Hit</text>
+
+  <!-- Miss path -->
+  <path d="M 610 114 L 610 160" stroke="url(#missPathGrad)" stroke-width="3" fill="none" marker-end="url(#arrowMiss)" opacity="0.8" stroke-linecap="round">
+  <text x="630" y="140" text-anchor="start" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">Miss</text>
+
+  <!-- Generate New Response -->
+  <rect x="530" y="160" width="150" height="45" fill="url(#generateGrad)" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)">
+  <text x="605" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">Generate New</text>
+  <text x="605" y="198" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">LLM Response</text>
+
+  <!-- Arrow down from Generate New -->
+  <path d="M 605 205 L 605 250" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7">
+
+  <!-- Store in Valkey -->
+  <rect x="510" y="250" width="190" height="45" fill="url(#storeGrad)" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)">
+  <text x="605" y="270" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">Store in Valkey</text>
+  <text x="605" y="285" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">TTL: 3600s</text>
+
+  <!-- Performance Metrics Box -->
+  <rect x="50" y="320" width="650" height="60" fill="rgba(99, 102, 241, 0.05)" stroke="#2563EB" stroke-width="2" stroke-dasharray="6,3" rx="8" filter="url(#shadow)">
+  <text x="375" y="343" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+    Performance Metrics
+  </text>
+  <text x="200" y="365" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Hit Rate: ~85%</text>
+  <text x="375" y="365" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Latency: &lt;50ms</text>
+  <text x="550" y="365" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Cost Reduction: 95%</text>
+
+
+  </g>
+
+</svg>

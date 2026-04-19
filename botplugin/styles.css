@@ -1,0 +1,666 @@
+/* General Bots - WhatsApp Web Extension Styles */
+
+/* ============================================
+   CSS Variables
+   ============================================ */
+:root {
+    --gb-primary: #3b82f6;
+    --gb-primary-hover: #2563eb;
+    --gb-secondary: #64748b;
+    --gb-success: #22c55e;
+    --gb-warning: #f59e0b;
+    --gb-error: #ef4444;
+    --gb-bg-dark: #1e293b;
+    --gb-bg-light: #f8fafc;
+    --gb-text-light: #f1f5f9;
+    --gb-text-dark: #1e293b;
+    --gb-border: #334155;
+    --gb-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --gb-shadow-lg:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --gb-radius: 8px;
+    --gb-radius-lg: 12px;
+    --gb-transition: all 0.2s ease;
+}
+
+/* ============================================
+   Hide Contacts Mode
+   ============================================ */
+.gb-hide-contacts {
+    width: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: var(--gb-transition);
+}
+
+/* ============================================
+   Control Panel
+   ============================================ */
+#gb-control-panel {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    width: 280px;
+    background: var(--gb-bg-dark);
+    border-radius: var(--gb-radius-lg);
+    box-shadow: var(--gb-shadow-lg);
+    z-index: 99999;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+        Cantarell, sans-serif;
+    color: var(--gb-text-light);
+    overflow: hidden;
+    border: 1px solid var(--gb-border);
+}
+
+.gb-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: linear-gradient(
+        135deg,
+        var(--gb-primary),
+        var(--gb-primary-hover)
+    );
+    cursor: move;
+}
+
+.gb-panel-logo {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+}
+
+.gb-panel-header span {
+    flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.gb-panel-toggle {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    transition: var(--gb-transition);
+}
+
+.gb-panel-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.gb-panel-body {
+    padding: 16px;
+}
+
+/* Status indicator */
+.gb-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--gb-radius);
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+.gb-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gb-secondary);
+}
+
+.gb-status.connected .gb-status-dot {
+    background: var(--gb-success);
+    box-shadow: 0 0 8px var(--gb-success);
+}
+
+.gb-status.disconnected .gb-status-dot {
+    background: var(--gb-error);
+}
+
+/* Controls */
+.gb-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.gb-switch-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.gb-switch-label input {
+    display: none;
+}
+
+.gb-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--gb-secondary);
+    border-radius: 12px;
+    transition: var(--gb-transition);
+}
+
+.gb-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: var(--gb-transition);
+}
+
+.gb-switch-label input:checked + .gb-switch {
+    background: var(--gb-primary);
+}
+
+.gb-switch-label input:checked + .gb-switch::after {
+    left: 22px;
+}
+
+/* Auth section */
+.gb-auth-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gb-border);
+}
+
+.gb-auth-section p {
+    font-size: 12px;
+    color: var(--gb-secondary);
+    margin-bottom: 12px;
+}
+
+.gb-auth-section input {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--gb-border);
+    border-radius: var(--gb-radius);
+    color: var(--gb-text-light);
+    font-size: 13px;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+}
+
+.gb-auth-section input::placeholder {
+    color: var(--gb-secondary);
+}
+
+.gb-auth-section input:focus {
+    outline: none;
+    border-color: var(--gb-primary);
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+.gb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--gb-radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--gb-transition);
+    width: 100%;
+}
+
+.gb-btn-primary {
+    background: var(--gb-primary);
+    color: white;
+}
+
+.gb-btn-primary:hover {
+    background: var(--gb-primary-hover);
+}
+
+.gb-btn-primary:disabled {
+    background: var(--gb-secondary);
+    cursor: not-allowed;
+}
+
+.gb-btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--gb-text-light);
+    border: 1px solid var(--gb-border);
+}
+
+.gb-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* ============================================
+   Correction Modal
+   ============================================ */
+.gb-correction-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    backdrop-filter: blur(4px);
+    animation: gb-fade-in 0.2s ease;
+}
+
+@keyframes gb-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.gb-correction-content {
+    background: var(--gb-bg-dark);
+    border-radius: var(--gb-radius-lg);
+    width: 90%;
+    max-width: 500px;
+    box-shadow: var(--gb-shadow-lg);
+    border: 1px solid var(--gb-border);
+    animation: gb-slide-up 0.3s ease;
+    overflow: hidden;
+}
+
+@keyframes gb-slide-up {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.gb-correction-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: linear-gradient(
+        135deg,
+        var(--gb-primary),
+        var(--gb-primary-hover)
+    );
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.gb-correction-icon {
+    font-size: 20px;
+}
+
+.gb-correction-body {
+    padding: 20px;
+}
+
+.gb-text-compare {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.gb-text-compare label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gb-secondary);
+    margin-bottom: 6px;
+}
+
+.gb-text-compare p {
+    margin: 0;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--gb-radius);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--gb-text-light);
+}
+
+.gb-original p {
+    border-left: 3px solid var(--gb-error);
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.gb-corrected p {
+    border-left: 3px solid var(--gb-success);
+}
+
+.gb-correction-actions {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid var(--gb-border);
+}
+
+.gb-correction-actions .gb-btn {
+    flex: 1;
+}
+
+/* ============================================
+   Auto Mode Indicator
+   ============================================ */
+.gb-auto-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--gb-success);
+    color: white;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: var(--gb-shadow);
+    z-index: 99999;
+    animation: gb-pulse 2s infinite;
+}
+
+@keyframes gb-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.gb-auto-dot {
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: gb-blink 1s infinite;
+}
+
+@keyframes gb-blink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* ============================================
+   Contact Controls
+   ============================================ */
+.gb-contact-controls {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    padding-right: 16px;
+}
+
+.gb-contact-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--gb-transition);
+}
+
+.gb-contact-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.gb-contact-btn.active {
+    background: var(--gb-success);
+    border-color: var(--gb-success);
+    color: white;
+}
+
+.gb-contact-btn .gb-icon {
+    font-size: 14px;
+}
+
+/* ============================================
+   Processing Indicator
+   ============================================ */
+.gb-processing-indicator {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--gb-bg-dark);
+    border-radius: var(--gb-radius) var(--gb-radius) 0 0;
+    color: var(--gb-text-light);
+    font-size: 13px;
+    z-index: 100;
+}
+
+.gb-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--gb-border);
+    border-top-color: var(--gb-primary);
+    border-radius: 50%;
+    animation: gb-spin 0.8s linear infinite;
+}
+
+@keyframes gb-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   Processed Message Indicator
+   ============================================ */
+.gb-processed-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--gb-success);
+    margin-top: 4px;
+    padding: 2px 6px;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 4px;
+}
+
+.gb-processed-message {
+    position: relative;
+}
+
+.gb-processed-message::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--gb-success);
+    border-radius: 2px;
+}
+
+/* ============================================
+   Monitored Input Indicator
+   ============================================ */
+.gb-monitored-input {
+    position: relative;
+}
+
+.gb-monitored-input::after {
+    content: "✨";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ============================================
+   Tooltip
+   ============================================ */
+.gb-tooltip {
+    position: absolute;
+    background: var(--gb-bg-dark);
+    color: var(--gb-text-light);
+    padding: 8px 12px;
+    border-radius: var(--gb-radius);
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 100000;
+    box-shadow: var(--gb-shadow);
+    pointer-events: none;
+    animation: gb-fade-in 0.2s ease;
+}
+
+.gb-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid var(--gb-bg-dark);
+}
+
+/* ============================================
+   Notification Toast
+   ============================================ */
+.gb-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--gb-bg-dark);
+    border-radius: var(--gb-radius);
+    box-shadow: var(--gb-shadow-lg);
+    color: var(--gb-text-light);
+    font-size: 14px;
+    z-index: 999999;
+    animation: gb-slide-in 0.3s ease;
+    border-left: 4px solid var(--gb-primary);
+}
+
+.gb-toast.success {
+    border-left-color: var(--gb-success);
+}
+
+.gb-toast.error {
+    border-left-color: var(--gb-error);
+}
+
+.gb-toast.warning {
+    border-left-color: var(--gb-warning);
+}
+
+@keyframes gb-slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.gb-toast-close {
+    background: none;
+    border: none;
+    color: var(--gb-secondary);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.gb-toast-close:hover {
+    color: var(--gb-text-light);
+}
+
+/* ============================================
+   Dark Mode Overrides for WhatsApp
+   ============================================ */
+[data-theme="dark"] #gb-control-panel,
+.dark #gb-control-panel {
+    background: #0b141a;
+    border-color: #222d34;
+}
+
+[data-theme="dark"] .gb-panel-body,
+.dark .gb-panel-body {
+    background: #0b141a;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+    #gb-control-panel {
+        width: 260px;
+        right: 10px;
+        top: 70px;
+    }
+
+    .gb-correction-content {
+        width: 95%;
+        margin: 10px;
+    }
+
+    .gb-auto-indicator {
+        font-size: 11px;
+        padding: 6px 12px;
+    }
+}

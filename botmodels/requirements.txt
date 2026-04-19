@@ -1,0 +1,51 @@
+# Core Framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.0
+pydantic-settings==2.5.2
+
+# Logging
+structlog==25.5.0
+python-json-logger==2.0.7
+
+# Generation Libraries
+diffusers==0.30.3
+torch>=2.5.0
+torchaudio>=2.5.0
+torchvision>=0.20.0
+transformers==4.46.0
+accelerate==1.1.1
+safetensors==0.4.5
+Pillow==11.0.0
+
+# Audio Generation & Processing
+openai-whisper==20231117
+TTS==0.22.0
+scipy==1.14.1
+librosa==0.10.2.post1
+
+# Video Processing
+imageio==2.36.0
+imageio-ffmpeg==0.5.1
+opencv-python==4.10.0.84
+
+# Vision & Multimodal
+timm==1.0.12
+
+# QR Code & Barcode Reading
+pyzbar==0.1.9
+
+# OCR - Optical Character Recognition
+pytesseract==0.3.10
+
+# HTTP & API
+httpx==0.27.2
+aiofiles==24.1.0
+python-multipart==0.0.12
+
+# Monitoring
+prometheus-client==0.21.0
+
+# Utils
+python-dotenv==1.0.1
+typing-extensions==4.12.2

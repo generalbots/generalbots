@@ -1,0 +1,160 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .result-card { fill: #f8fafc; stroke: #e2e8f0; stroke-width: 1; }
+    .source-tag { fill: #dbeafe; }
+    .ai-response { fill: #eff6ff; stroke: #3b82f6; stroke-width: 1; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .result-card { fill: #1e293b; stroke: #334155; }
+      .source-tag { fill: #1e3a5f; }
+      .ai-response { fill: #1e3a5f; stroke: #3b82f6; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Research - AI-Powered Search</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Search Header -->
+  <g transform="translate(50, 60)">
+    <rect x="0" y="0" width="700" height="50" rx="25" class="icon-btn"/>
+    <rect x="0" y="0" width="700" height="50" rx="25" class="border"/>
+    <text x="25" y="32" font-size="16">🔍</text>
+    <text x="55" y="32" font-size="15" class="main-text">How does machine learning work in recommendation systems?</text>
+
+    <rect x="620" y="8" width="70" height="34" rx="17" fill="url(#accentGrad)"/>
+    <text x="655" y="30" text-anchor="middle" font-size="13" class="white-text">Search</text>
+  </g>
+
+  <!-- Filter Pills -->
+  <g transform="translate(50, 125)">
+    <rect x="0" y="0" width="60" height="28" rx="14" fill="url(#accentGrad)"/>
+    <text x="30" y="19" text-anchor="middle" font-size="11" class="white-text">All</text>
+
+    <rect x="70" y="0" width="70" height="28" rx="14" class="icon-btn"/>
+    <text x="105" y="19" text-anchor="middle" font-size="11" class="secondary-text">Articles</text>
+
+    <rect x="150" y="0" width="65" height="28" rx="14" class="icon-btn"/>
+    <text x="182" y="19" text-anchor="middle" font-size="11" class="secondary-text">Papers</text>
+
+    <rect x="225" y="0" width="55" height="28" rx="14" class="icon-btn"/>
+    <text x="252" y="19" text-anchor="middle" font-size="11" class="secondary-text">Web</text>
+
+    <rect x="290" y="0" width="65" height="28" rx="14" class="icon-btn"/>
+    <text x="322" y="19" text-anchor="middle" font-size="11" class="secondary-text">Videos</text>
+
+    <text x="600" y="19" font-size="12" class="muted-text">23 results • 1.2s</text>
+  </g>
+
+  <!-- AI Summary -->
+  <g transform="translate(50, 170)">
+    <rect x="0" y="0" width="600" height="140" rx="12" class="ai-response"/>
+    <text x="20" y="25" font-size="13" font-weight="600" class="accent-text">✨ AI Summary</text>
+
+    <text x="20" y="50" font-size="13" class="main-text">Machine learning powers recommendation systems through several key techniques:</text>
+
+    <text x="20" y="75" font-size="13" class="main-text">• Collaborative filtering analyzes user behavior patterns to find similar users</text>
+    <text x="20" y="95" font-size="13" class="main-text">• Content-based filtering matches item attributes to user preferences</text>
+    <text x="20" y="115" font-size="13" class="main-text">• Deep learning models can capture complex non-linear relationships</text>
+
+    <text x="20" y="135" font-size="11" class="muted-text">Based on 5 sources</text>
+  </g>
+
+  <!-- Search Results -->
+  <g transform="translate(50, 325)">
+    <!-- Result 1 -->
+    <rect x="0" y="0" width="600" height="90" rx="8" class="result-card"/>
+    <text x="15" y="25" font-size="14" font-weight="600" class="accent-text">Understanding Recommendation Systems: A Complete Guide</text>
+    <text x="15" y="45" font-size="12" class="secondary-text">ml-guide.com • Published 2024</text>
+    <text x="15" y="68" font-size="13" class="main-text">A comprehensive overview of how modern recommendation systems</text>
+    <text x="15" y="85" font-size="13" class="main-text">leverage machine learning algorithms to personalize content...</text>
+
+    <rect x="520" y="60" width="65" height="22" rx="11" class="source-tag"/>
+    <text x="552" y="75" text-anchor="middle" font-size="10" class="accent-text">Article</text>
+  </g>
+
+  <g transform="translate(50, 425)">
+    <!-- Result 2 -->
+    <rect x="0" y="0" width="600" height="90" rx="8" class="result-card"/>
+    <text x="15" y="25" font-size="14" font-weight="600" class="accent-text">Collaborative Filtering vs Content-Based: A Comparison</text>
+    <text x="15" y="45" font-size="12" class="secondary-text">research.ai • IEEE 2023</text>
+    <text x="15" y="68" font-size="13" class="main-text">This paper compares the effectiveness of collaborative filtering and</text>
+    <text x="15" y="85" font-size="13" class="main-text">content-based approaches in various recommendation scenarios...</text>
+
+    <rect x="520" y="60" width="65" height="22" rx="11" class="source-tag"/>
+    <text x="552" y="75" text-anchor="middle" font-size="10" class="accent-text">Paper</text>
+  </g>
+
+  <!-- Sources Panel -->
+  <rect x="670" y="170" width="185" height="345" rx="8" class="sidebar-bg"/>
+  <rect x="670" y="170" width="185" height="345" rx="8" class="border"/>
+
+  <text x="685" y="195" font-size="13" font-weight="600" class="main-text">Sources (5)</text>
+
+  <g transform="translate(685, 215)">
+    <rect x="0" y="0" width="155" height="55" rx="6" class="icon-btn"/>
+    <text x="10" y="20" font-size="11" font-weight="500" class="main-text">ML Guide</text>
+    <text x="10" y="38" font-size="10" class="muted-text">ml-guide.com</text>
+    <circle cx="140" cy="27" r="8" fill="#22c55e"/>
+    <text x="140" y="31" text-anchor="middle" font-size="8" class="white-text">✓</text>
+  </g>
+
+  <g transform="translate(685, 280)">
+    <rect x="0" y="0" width="155" height="55" rx="6" class="icon-btn"/>
+    <text x="10" y="20" font-size="11" font-weight="500" class="main-text">IEEE Research</text>
+    <text x="10" y="38" font-size="10" class="muted-text">ieee.org</text>
+    <circle cx="140" cy="27" r="8" fill="#22c55e"/>
+    <text x="140" y="31" text-anchor="middle" font-size="8" class="white-text">✓</text>
+  </g>
+
+  <g transform="translate(685, 345)">
+    <rect x="0" y="0" width="155" height="55" rx="6" class="icon-btn"/>
+    <text x="10" y="20" font-size="11" font-weight="500" class="main-text">ArXiv Paper</text>
+    <text x="10" y="38" font-size="10" class="muted-text">arxiv.org</text>
+    <circle cx="140" cy="27" r="8" fill="#22c55e"/>
+    <text x="140" y="31" text-anchor="middle" font-size="8" class="white-text">✓</text>
+  </g>
+
+  <g transform="translate(685, 410)">
+    <rect x="0" y="0" width="155" height="55" rx="6" class="icon-btn"/>
+    <text x="10" y="20" font-size="11" font-weight="500" class="main-text">Medium Article</text>
+    <text x="10" y="38" font-size="10" class="muted-text">medium.com</text>
+    <circle cx="140" cy="27" r="8" fill="#22c55e"/>
+    <text x="140" y="31" text-anchor="middle" font-size="8" class="white-text">✓</text>
+  </g>
+
+  <g transform="translate(685, 475)">
+    <rect x="0" y="0" width="155" height="30" rx="6" fill="url(#accentGrad)"/>
+    <text x="77" y="20" text-anchor="middle" font-size="11" class="white-text">+ Add Source</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(50, 555)">
+    <text x="0" y="0" font-size="10" class="muted-text">Enter = Search | Tab = Next result | S = Save | E = Export citations</text>
+  </g>
+</svg>

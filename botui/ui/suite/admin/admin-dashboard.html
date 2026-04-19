@@ -1,0 +1,558 @@
+<section class="admin-dashboard">
+    <div class="dashboard-header">
+        <div class="header-title">
+            <h1>Organization Dashboard</h1>
+            <p>Overview of your organization's activity, members, and system health</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-secondary" hx-get="/api/admin/export-report" hx-swap="none">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export Report
+            </button>
+            <button class="btn-primary" onclick="showInviteMemberModal()">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+                Invite Member
+            </button>
+        </div>
+    </div>
+
+    <div class="stats-overview" hx-get="/api/admin/dashboard/stats" hx-trigger="load" hx-swap="innerHTML">
+        <div class="stat-card members">
+            <div class="stat-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value" id="totalMembers">24</span>
+                <span class="stat-label">Team Members</span>
+                <span class="stat-change positive">+3 this month</span>
+            </div>
+        </div>
+        <div class="stat-card bots">
+            <div class="stat-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <path d="M12 7v4"></path>
+                    <line x1="8" y1="16" x2="8" y2="16"></line>
+                    <line x1="16" y1="16" x2="16" y2="16"></line>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value" id="activeBots">8</span>
+                <span class="stat-label">Active Bots</span>
+                <span class="stat-change neutral">No change</span>
+            </div>
+        </div>
+        <div class="stat-card conversations">
+            <div class="stat-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value" id="totalConversations">12.4K</span>
+                <span class="stat-label">Conversations</span>
+                <span class="stat-change positive">+18% this week</span>
+            </div>
+        </div>
+        <div class="stat-card uptime">
+            <div class="stat-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value" id="systemUptime">99.9%</span>
+                <span class="stat-label">System Uptime</span>
+                <span class="stat-change positive">Last 30 days</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card system-health">
+            <div class="card-header">
+                <h2>System Health</h2>
+                <span class="health-badge healthy" id="overallHealth">All Systems Operational</span>
+            </div>
+            <div class="health-items" hx-get="/api/admin/dashboard/health" hx-trigger="load, every 30s" hx-swap="innerHTML">
+                <div class="health-item">
+                    <div class="health-indicator healthy"></div>
+                    <div class="health-info">
+                        <span class="health-name">API Server</span>
+                        <span class="health-status">Operational</span>
+                    </div>
+                    <div class="health-metrics">
+                        <span class="metric">Latency: 45ms</span>
+                        <span class="metric">Requests: 1.2K/min</span>
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator healthy"></div>
+                    <div class="health-info">
+                        <span class="health-name">Database</span>
+                        <span class="health-status">Operational</span>
+                    </div>
+                    <div class="health-metrics">
+                        <span class="metric">Connections: 45/100</span>
+                        <span class="metric">Query Time: 12ms</span>
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator healthy"></div>
+                    <div class="health-info">
+                        <span class="health-name">Vector Database</span>
+                        <span class="health-status">Operational</span>
+                    </div>
+                    <div class="health-metrics">
+                        <span class="metric">Vectors: 2.4M</span>
+                        <span class="metric">Search: 8ms</span>
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator healthy"></div>
+                    <div class="health-info">
+                        <span class="health-name">LLM Service</span>
+                        <span class="health-status">Operational</span>
+                    </div>
+                    <div class="health-metrics">
+                        <span class="metric">Tokens: 125K/min</span>
+                        <span class="metric">Latency: 850ms</span>
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator warning"></div>
+                    <div class="health-info">
+                        <span class="health-name">Cache</span>
+                        <span class="health-status">High Usage</span>
+                    </div>
+                    <div class="health-metrics">
+                        <span class="metric">Memory: 85%</span>
+                        <span class="metric">Hit Rate: 94%</span>
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator healthy"></div>
+                    <div class="health-info">
+                        <span class="health-name">Storage</span>
+                        <span class="health-status">Operational</span>
+                    </div>
+                    <div class="health-metrics">
+                        <span class="metric">Used: 34.5GB</span>
+                        <span class="metric">IOPS: 2.1K</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card activity-feed">
+            <div class="card-header">
+                <h2>Recent Activity</h2>
+                <div class="activity-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="members">Members</button>
+                    <button class="filter-btn" data-filter="bots">Bots</button>
+                    <button class="filter-btn" data-filter="security">Security</button>
+                </div>
+            </div>
+            <div class="activity-list" hx-get="/api/admin/dashboard/activity" hx-trigger="load" hx-swap="innerHTML">
+                <div class="activity-item">
+                    <div class="activity-avatar">
+                        <img src="/suite/assets/avatars/default.svg" alt="User avatar">
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-text">
+                            <strong>Sarah Johnson</strong> joined the organization as <span class="role-badge">Developer</span>
+                        </div>
+                        <span class="activity-time">5 minutes ago</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-avatar bot">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                            <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                            <circle cx="12" cy="5" r="2"></circle>
+                            <path d="M12 7v4"></path>
+                        </svg>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-text">
+                            <strong>Customer Support Bot</strong> was updated with new knowledge base
+                        </div>
+                        <span class="activity-time">23 minutes ago</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-avatar">
+                        <img src="/suite/assets/avatars/default.svg" alt="User avatar">
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-text">
+                            <strong>Mike Chen</strong> changed role from <span class="role-badge">Member</span> to <span class="role-badge">Manager</span>
+                        </div>
+                        <span class="activity-time">1 hour ago</span>
+                    </div>
+                </div>
+                <div class="activity-item security">
+                    <div class="activity-avatar security">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-text">
+                            <strong>Security Alert:</strong> New login from unrecognized device for <strong>admin@company.com</strong>
+                        </div>
+                        <span class="activity-time">2 hours ago</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-avatar">
+                        <img src="/suite/assets/avatars/default.svg" alt="User avatar">
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-text">
+                            <strong>Emily Davis</strong> created a new form <span class="resource-link">Customer Feedback Survey</span>
+                        </div>
+                        <span class="activity-time">3 hours ago</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-avatar bot">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                            <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                            <circle cx="12" cy="5" r="2"></circle>
+                            <path d="M12 7v4"></path>
+                        </svg>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-text">
+                            <strong>Sales Assistant</strong> reached 10,000 conversations milestone
+                        </div>
+                        <span class="activity-time">5 hours ago</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-text load-more" hx-get="/api/admin/dashboard/activity?page=2" hx-target=".activity-list" hx-swap="beforeend">
+                Load More Activity
+            </button>
+        </div>
+
+        <div class="card member-overview">
+            <div class="card-header">
+                <h2>Team Members</h2>
+                <a href="/admin/users" class="view-all-link">View All</a>
+            </div>
+            <div class="member-stats">
+                <div class="member-stat">
+                    <span class="stat-number">18</span>
+                    <span class="stat-desc">Active</span>
+                </div>
+                <div class="member-stat">
+                    <span class="stat-number">4</span>
+                    <span class="stat-desc">Pending</span>
+                </div>
+                <div class="member-stat">
+                    <span class="stat-number">2</span>
+                    <span class="stat-desc">Inactive</span>
+                </div>
+            </div>
+            <div class="member-list" hx-get="/api/admin/dashboard/members" hx-trigger="load" hx-swap="innerHTML">
+                <div class="member-item">
+                    <div class="member-avatar">
+                        <img src="/suite/assets/avatars/default.svg" alt="User avatar">
+                        <span class="status-indicator online"></span>
+                    </div>
+                    <div class="member-info">
+                        <span class="member-name">John Smith</span>
+                        <span class="member-role">Owner</span>
+                    </div>
+                    <span class="member-status online">Online</span>
+                </div>
+                <div class="member-item">
+                    <div class="member-avatar">
+                        <img src="/suite/assets/avatars/default.svg" alt="User avatar">
+                        <span class="status-indicator online"></span>
+                    </div>
+                    <div class="member-info">
+                        <span class="member-name">Sarah Johnson</span>
+                        <span class="member-role">Admin</span>
+                    </div>
+                    <span class="member-status online">Online</span>
+                </div>
+                <div class="member-item">
+                    <div class="member-avatar">
+                        <img src="/suite/assets/avatars/default.svg" alt="User avatar">
+                        <span class="status-indicator away"></span>
+                    </div>
+                    <div class="member-info">
+                        <span class="member-name">Mike Chen</span>
+                        <span class="member-role">Manager</span>
+                    </div>
+                    <span class="member-status away">Away</span>
+                </div>
+                <div class="member-item">
+                    <div class="member-avatar">
+                        <img src="/suite/assets/avatars/default.svg" alt="User avatar">
+                        <span class="status-indicator offline"></span>
+                    </div>
+                    <div class="member-info">
+                        <span class="member-name">Emily Davis</span>
+                        <span class="member-role">Member</span>
+                    </div>
+                    <span class="member-status offline">Offline</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card role-distribution">
+            <div class="card-header">
+                <h2>Role Distribution</h2>
+                <a href="/admin/roles" class="view-all-link">Manage Roles</a>
+            </div>
+            <div class="role-chart" hx-get="/api/admin/dashboard/roles" hx-trigger="load" hx-swap="innerHTML">
+                <div class="role-bars">
+                    <div class="role-bar-item">
+                        <div class="role-bar-label">
+                            <span class="role-name">Owner</span>
+                            <span class="role-count">1</span>
+                        </div>
+                        <div class="role-bar">
+                            <div class="role-bar-fill" style="width: 4%; background: var(--chart-1)"></div>
+                        </div>
+                    </div>
+                    <div class="role-bar-item">
+                        <div class="role-bar-label">
+                            <span class="role-name">Admin</span>
+                            <span class="role-count">3</span>
+                        </div>
+                        <div class="role-bar">
+                            <div class="role-bar-fill" style="width: 12%; background: var(--chart-2)"></div>
+                        </div>
+                    </div>
+                    <div class="role-bar-item">
+                        <div class="role-bar-label">
+                            <span class="role-name">Manager</span>
+                            <span class="role-count">5</span>
+                        </div>
+                        <div class="role-bar">
+                            <div class="role-bar-fill" style="width: 21%; background: var(--chart-3)"></div>
+                        </div>
+                    </div>
+                    <div class="role-bar-item">
+                        <div class="role-bar-label">
+                            <span class="role-name">Member</span>
+                            <span class="role-count">12</span>
+                        </div>
+                        <div class="role-bar">
+                            <div class="role-bar-fill" style="width: 50%; background: var(--chart-4)"></div>
+                        </div>
+                    </div>
+                    <div class="role-bar-item">
+                        <div class="role-bar-label">
+                            <span class="role-name">Viewer</span>
+                            <span class="role-count">3</span>
+                        </div>
+                        <div class="role-bar">
+                            <div class="role-bar-fill" style="width: 12%; background: var(--chart-5)"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bot-status">
+            <div class="card-header">
+                <h2>Bot Status</h2>
+                <a href="/bots" class="view-all-link">Manage Bots</a>
+            </div>
+            <div class="bot-list" hx-get="/api/admin/dashboard/bots" hx-trigger="load" hx-swap="innerHTML">
+                <div class="bot-item">
+                    <div class="bot-avatar">CS</div>
+                    <div class="bot-info">
+                        <span class="bot-name">Customer Support Bot</span>
+                        <span class="bot-desc">Handles customer inquiries</span>
+                    </div>
+                    <div class="bot-metrics">
+                        <span class="bot-metric">1.2K chats today</span>
+                    </div>
+                    <span class="bot-status running">Running</span>
+                </div>
+                <div class="bot-item">
+                    <div class="bot-avatar">SA</div>
+                    <div class="bot-info">
+                        <span class="bot-name">Sales Assistant</span>
+                        <span class="bot-desc">Product recommendations</span>
+                    </div>
+                    <div class="bot-metrics">
+                        <span class="bot-metric">856 chats today</span>
+                    </div>
+                    <span class="bot-status running">Running</span>
+                </div>
+                <div class="bot-item">
+                    <div class="bot-avatar">HR</div>
+                    <div class="bot-info">
+                        <span class="bot-name">HR Assistant</span>
+                        <span class="bot-desc">Employee questions</span>
+                    </div>
+                    <div class="bot-metrics">
+                        <span class="bot-metric">234 chats today</span>
+                    </div>
+                    <span class="bot-status running">Running</span>
+                </div>
+                <div class="bot-item">
+                    <div class="bot-avatar">IT</div>
+                    <div class="bot-info">
+                        <span class="bot-name">IT Helpdesk</span>
+                        <span class="bot-desc">Technical support</span>
+                    </div>
+                    <div class="bot-metrics">
+                        <span class="bot-metric">145 chats today</span>
+                    </div>
+                    <span class="bot-status paused">Paused</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card pending-invitations">
+            <div class="card-header">
+                <h2>Pending Invitations</h2>
+                <button class="btn-secondary btn-sm" onclick="showBulkInviteModal()">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Bulk Invite
+                </button>
+            </div>
+            <div class="invitation-list" hx-get="/api/admin/dashboard/invitations" hx-trigger="load" hx-swap="innerHTML">
+                <div class="invitation-item">
+                    <div class="invitation-info">
+                        <span class="invitation-email">jane.doe@example.com</span>
+                        <span class="invitation-role">Member</span>
+                    </div>
+                    <div class="invitation-meta">
+                        <span class="invitation-sent">Sent 2 days ago</span>
+                        <span class="invitation-expires">Expires in 5 days</span>
+                    </div>
+                    <div class="invitation-actions">
+                        <button class="btn-icon" title="Resend invitation" hx-post="/api/admin/invitations/resend/inv_001" hx-swap="none">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                        </button>
+                        <button class="btn-icon danger" title="Revoke invitation" hx-delete="/api/admin/invitations/inv_001" hx-swap="none" hx-confirm="Revoke this invitation?">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="invitation-item">
+                    <div class="invitation-info">
+                        <span class="invitation-email">bob.wilson@example.com</span>
+                        <span class="invitation-role">Developer</span>
+                    </div>
+                    <div class="invitation-meta">
+                        <span class="invitation-sent">Sent 5 days ago</span>
+                        <span class="invitation-expires warning">Expires in 2 days</span>
+                    </div>
+                    <div class="invitation-actions">
+                        <button class="btn-icon" title="Resend invitation" hx-post="/api/admin/invitations/resend/inv_002" hx-swap="none">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                        </button>
+                        <button class="btn-icon danger" title="Revoke invitation" hx-delete="/api/admin/invitations/inv_002" hx-swap="none" hx-confirm="Revoke this invitation?">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="invitation-item">
+                    <div class="invitation-info">
+                        <span class="invitation-email">alice.smith@example.com</span>
+                        <span class="invitation-role">Manager</span>
+                    </div>
+                    <div class="invitation-meta">
+                        <span class="invitation-sent">Sent 1 day ago</span>
+                        <span class="invitation-expires">Expires in 6 days</span>
+                    </div>
+                    <div class="invitation-actions">
+                        <button class="btn-icon" title="Resend invitation" hx-post="/api/admin/invitations/resend/inv_003" hx-swap="none">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                        </button>
+                        <button class="btn-icon danger" title="Revoke invitation" hx-delete="/api/admin/invitations/inv_003" hx-swap="none" hx-confirm="Revoke this invitation?">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card quick-actions">
+            <div class="card-header">
+                <h2>Quick Actions</h2>
+            </div>
+            <div class="actions-grid">
+                <a href="/admin/users" class="action-item">
+                    <div class="action-icon">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <span class="action-label">Manage Users</span>
+                </a>
+                <a href="/admin/roles" class="action-item">
+                    <div class="action-icon">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <span class="action-label">Roles & Permissions</span>
+                </a>
+                <a href="/admin/groups" class="action-item">
+                    <div class="action-icon">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </div>
+                    <span class="action-label">Groups</span>
+                </a>
+                <a href="/admin/billing" class="action-item">
+                    <div class="action-icon">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>

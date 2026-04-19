@@ -1,0 +1,16 @@
+name: Botmodels CI
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'botmodels/**'
+jobs:
+  build:
+    runs-on: gbo
+    steps:
+    - name: Build
+      run: |
+        cd /opt/gbo/work/botmodels
+        git reset --hard HEAD && git clean -fd
+        git pull
+        cargo build

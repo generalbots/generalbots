@@ -1,0 +1,181 @@
+<!-- Marketing Lists -->
+<link rel="stylesheet" href="/suite/crm/crm.css">
+<script src="/suite/js/vendor/htmx.min.js"></script>
+<script src="/suite/js/vendor/htmx-json-enc.js"></script>
+<script src="/suite/js/security-bootstrap.js"></script>
+
+<div class="crm-container">
+    <header class="crm-header">
+        <div class="crm-header-left">
+            <h1 data-i18n="lists-title">Marketing Lists</h1>
+            <nav class="crm-tabs">
+                <button class="crm-tab active" data-view="all" data-i18n="lists-all">All Lists</button>
+                <button class="crm-tab" data-view="static" data-i18n="lists-static">Static</button>
+                <button class="crm-tab" data-view="dynamic" data-i18n="lists-dynamic">Dynamic</button>
+            </nav>
+        </div>
+        <div class="crm-header-right">
+            <button class="btn-primary" onclick="showListModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span>New List</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="lists-grid" id="listsList" 
+         hx-get="/api/crm/lists"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-secondary);">
+            Loading lists...
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit List Modal -->
+<div id="list-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="hideListModal()"></div>
+    <div class="crm-modal-content">
+        <div class="crm-modal-header">
+            <h2 id="list-modal-title">Create List</h2>
+            <button class="crm-modal-close" onclick="hideListModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <form id="list-form" hx-post="/api/crm/lists" hx-swap="none">
+            <div class="crm-form-group">
+                <label>List Name</label>
+                <input type="text" name="name" required placeholder="e.g., Active Customers">
+            </div>
+            <div class="crm-form-group">
+                <label>List Type</label>
+                <select name="list_type" required>
+                    <option value="static">Static</option>
+                    <option value="dynamic">Dynamic</option>
+                </select>
+            </div>
+            <div class="crm-form-group">
+                <label>Query (for dynamic lists)</label>
+                <textarea name="query_text" rows="3" placeholder="e.g., status = 'active' AND country = 'US'"></textarea>
+            </div>
+            <div class="crm-form-actions">
+                <button type="button" class="btn-secondary" onclick="hideListModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Create List</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.lists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    padding: 24px;
+}
+
+.list-card {
+    background: var(--surface, #1a1a1a);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.15s ease;
+}
+
+.list-card:hover {
+    border-color: var(--accent, #d4f505);
+    transform: translateY(-2px);
+}
+
+.list-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.list-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text, #f8fafc);
+    margin: 0;
+}
+
+.list-type {
+    display: inline-flex;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.list-type.static {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+}
+
+.list-type.dynamic {
+    background: rgba(167, 139, 250, 0.15);
+    color: #a78bfa;
+}
+
+.list-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #333);
+}
+
+.list-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.list-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent, #d4f505);
+}
+
+.list-stat-label {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+}
+</style>
+
+<script>
+function showListModal(listId = null) {
+    const modal = document.getElementById('list-modal');
+    const title = document.getElementById('list-modal-title');
+    title.textContent = listId ? 'Edit List' : 'Create List';
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function hideListModal() {
+    document.getElementById('list-modal').style.display = 'none';
+    document.body.style.overflow = '';
+    document.getElementById('list-form').reset();
+}
+
+document.getElementById('list-form').addEventListener('htmx:afterRequest', function(e) {
+    if (e.detail.successful) {
+        hideListModal();
+        document.getElementById('listsList').dispatchEvent(new Event('refresh'));
+    }
+});
+
+document.querySelectorAll('.crm-tab[data-view]').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.crm-tab[data-view]').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+</script>

@@ -1,0 +1,216 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Light theme defaults */
+    .neon-blue { stroke: #4A90E2; stroke-width: 2.6; fill: none; }
+    .neon-orange { stroke: #F5A623; stroke-width: 2.6; fill: none; }
+    .neon-purple { stroke: #BD10E0; stroke-width: 2.6; fill: none; }
+    .neon-green { stroke: #7ED321; stroke-width: 2.6; fill: none; }
+    .neon-cyan { stroke: #50E3C2; stroke-width: 2.6; fill: none; }
+    .main-text { fill: #1a1a1a; }
+    .secondary-text { fill: #666; }
+    .arrow-color { stroke: #666; fill: #666; }
+
+    /* Dark theme with subtle neon effects */
+    @media (prefers-color-scheme: dark) {
+      .neon-blue {
+        stroke: #00D4FF;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00D4FF) drop-shadow(0 0 8px #00A0FF);
+      }
+      .neon-orange {
+        stroke: #FF9500;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF9500) drop-shadow(0 0 8px #FF7700);
+      }
+      .neon-purple {
+        stroke: #E040FB;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #E040FB) drop-shadow(0 0 8px #D500F9);
+      }
+      .neon-green {
+        stroke: #00FF88;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00FF88) drop-shadow(0 0 8px #00E676);
+      }
+      .neon-cyan {
+        stroke: #00E5EA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00E5EA) drop-shadow(0 0 8px #00BCD4);
+      }
+      .main-text { fill: #FFFFFF; }
+      .secondary-text { fill: #B0B0B0; }
+      .arrow-color { stroke: #B0B0B0; fill: #B0B0B0; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrow" markerWidth="13" markerHeight="13" refX="11.7" refY="3.9" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,7.8 L11.7,3.9 z" class="arrow-color"/>
+    </marker>
+    <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.3" />
+      <stop offset="25%" style="stop-color:#F5A623;stop-opacity:0.3" />
+      <stop offset="50%" style="stop-color:#BD10E0;stop-opacity:0.3" />
+      <stop offset="75%" style="stop-color:#7ED321;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#50E3C2;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title (positioned well above content) -->
+  <text x="700" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="600" class="main-text">Conversation Flow</text>
+  <text x="700" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="secondary-text">How General Bots processes user messages through the AI pipeline</text>
+
+  <!-- MAIN FLOW DIAGRAM (Upper Section) -->
+  <g id="main-flow">
+    <!-- Phase labels -->
+    <text x="140" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Input</text>
+    <text x="380" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Script</text>
+    <text x="620" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">AI Decision</text>
+    <text x="900" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Execution</text>
+    <text x="1180" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Response</text>
+
+    <!-- Main flow components -->
+    <!-- User Input -->
+    <rect x="50" y="145" width="180" height="70" class="neon-blue" rx="6.5"/>
+    <text x="140" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">User Input</text>
+    <text x="140" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Web / WhatsApp / Teams</text>
+
+    <!-- BASIC Script -->
+    <rect x="290" y="145" width="180" height="70" class="neon-orange" rx="6.5"/>
+    <text x="380" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">BASIC Script</text>
+    <text x="380" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">start.bas / tools</text>
+
+    <!-- LLM Decision -->
+    <rect x="530" y="145" width="180" height="70" class="neon-purple" rx="6.5"/>
+    <text x="620" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">LLM Decision</text>
+    <text x="620" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Intent / Tool Selection</text>
+
+    <!-- Bot Executor -->
+    <rect x="770" y="145" width="200" height="70" class="neon-green" rx="6.5"/>
+    <text x="870" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">Bot Executor</text>
+    <text x="870" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Run Keywords</text>
+
+    <!-- Bot Response -->
+    <rect x="1030" y="145" width="200" height="70" class="neon-cyan" rx="6.5"/>
+    <text x="1130" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">Bot Response</text>
+    <text x="1130" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">TALK / Send</text>
+
+    <!-- Parallel processes section -->
+    <text x="700" y="290" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Parallel Operations</text>
+
+    <!-- Vector Search -->
+    <rect x="420" y="320" width="200" height="65" class="neon-blue" rx="6.5"/>
+    <text x="520" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">Vector Search</text>
+    <text x="520" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Qdrant / USE KB</text>
+
+    <!-- External APIs -->
+    <rect x="680" y="320" width="200" height="65" class="neon-orange" rx="6.5"/>
+    <text x="780" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">External APIs</text>
+    <text x="780" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">GET / POST / GraphQL</text>
+
+    <!-- Database -->
+    <rect x="940" y="320" width="180" height="65" class="neon-purple" rx="6.5"/>
+    <text x="1030" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">Database</text>
+    <text x="1030" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">TABLE / SAVE</text>
+
+    <!-- Knowledge Base Box -->
+    <rect x="100" y="320" width="260" height="65" class="neon-cyan" rx="6.5"/>
+    <text x="230" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">Knowledge Base</text>
+    <text x="230" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">.gbkb Documents</text>
+  </g>
+
+  <!-- Flow Arrows -->
+  <g id="arrows" stroke-width="2.6" fill="none">
+    <!-- Main horizontal flow -->
+    <line x1="230" y1="180" x2="290" y2="180" class="arrow-color" marker-end="url(#arrow)" opacity="0.7"/>
+    <line x1="470" y1="180" x2="530" y2="180" class="arrow-color" marker-end="url(#arrow)" opacity="0.7"/>
+    <line x1="710" y1="180" x2="770" y2="180" class="arrow-color" marker-end="url(#arrow)" opacity="0.7"/>
+    <line x1="970" y1="180" x2="1030" y2="180" class="arrow-color" marker-end="url(#arrow)" opacity="0.7"/>
+
+    <!-- Branch down to parallel processes -->
+    <line x1="870" y1="215" x2="870" y2="260" class="arrow-color" stroke-dasharray="3.9,3.9" opacity="0.5"/>
+    <line x1="870" y1="260" x2="520" y2="320" class="arrow-color" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.5"/>
+    <line x1="870" y1="260" x2="780" y2="320" class="arrow-color" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.5"/>
+    <line x1="870" y1="260" x2="1030" y2="320" class="arrow-color" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.5"/>
+
+    <!-- Knowledge base to Vector Search -->
+    <line x1="360" y1="352" x2="420" y2="352" class="arrow-color" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.5"/>
+
+    <!-- Feedback from parallel to response -->
+    <path d="M520,385 Q520,440 1130,440 Q1130,240 1130,215" class="arrow-color" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.4"/>
+    <path d="M780,385 Q780,430 1110,430 Q1110,235 1110,215" class="arrow-color" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.4"/>
+    <path d="M1030,385 Q1030,420 1090,420 Q1090,230 1090,215" class="arrow-color" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.4"/>
+
+    <!-- Feedback loop from response to input -->
+    <path d="M140,145 Q140,50 1130,50 Q1130,100 1130,145" class="arrow-color" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.3"/>
+  </g>
+
+  <!-- PROGRESS INDICATOR (Lower Section) -->
+  <g id="progress-legend">
+    <!-- Background gradient bar -->
+    <rect x="100" y="520" width="1200" height="100" fill="url(#flowGradient)" rx="13" opacity="0.2"/>
+
+    <!-- Stage markers -->
+    <circle cx="200" cy="570" r="13" class="neon-blue"/>
+    <circle cx="440" cy="570" r="13" class="neon-orange"/>
+    <circle cx="680" cy="570" r="13" class="neon-purple"/>
+    <circle cx="920" cy="570" r="13" class="neon-green"/>
+    <circle cx="1160" cy="570" r="13" class="neon-cyan"/>
+
+    <!-- Connecting lines between stages -->
+    <line x1="213" y1="570" x2="427" y2="570" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="453" y1="570" x2="667" y2="570" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="693" y1="570" x2="907" y2="570" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="933" y1="570" x2="1147" y2="570" class="arrow-color" stroke-width="2" opacity="0.4"/>
+
+    <!-- Stage labels -->
+    <text x="200" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">Receive</text>
+    <text x="440" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">Parse</text>
+    <text x="680" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">Decide</text>
+    <text x="920" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">Execute</text>
+    <text x="1160" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">Respond</text>
+  </g>
+
+  <!-- Legend -->
+  <g id="legend" transform="translate(100, 670)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Legend:</text>
+
+    <line x1="100" y1="-5" x2="150" y2="-5" stroke="#666" stroke-width="2.6" opacity="0.7"/>
+    <text x="160" y="0" font-family="Arial, sans-serif" font-size="16" class="secondary-text">Main Flow</text>
+
+    <line x1="300" y1="-5" x2="350" y2="-5" stroke="#666" stroke-width="2.6" stroke-dasharray="3.9,3.9" opacity="0.5"/>
+    <text x="360" y="0" font-family="Arial, sans-serif" font-size="16" class="secondary-text">Parallel / Optional</text>
+
+    <line x1="550" y1="-5" x2="600" y2="-5" stroke="#666" stroke-width="2.6" stroke-dasharray="3.9,3.9" opacity="0.3"/>
+    <text x="610" y="0" font-family="Arial, sans-serif" font-size="16" class="secondary-text">Feedback Loop</text>
+  </g>
+
+  <!-- Description text (bottom) -->
+  <text x="700" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" class="secondary-text">
+    The AI handles everything automatically - understanding intent, searching knowledge,
+  </text>
+  <text x="700" y="790" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" class="secondary-text">
+    executing tools, and generating responses. Zero configuration required.
+  </text>
+
+  <!-- Feature highlights -->
+  <g id="features" transform="translate(100, 830)">
+    <rect x="0" y="0" width="180" height="40" class="neon-blue" rx="6.5" opacity="0.5"/>
+    <text x="90" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="main-text">Multi-Channel</text>
+
+    <rect x="200" y="0" width="180" height="40" class="neon-orange" rx="6.5" opacity="0.5"/>
+    <text x="290" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="main-text">BASIC Scripting</text>
+
+    <rect x="400" y="0" width="180" height="40" class="neon-purple" rx="6.5" opacity="0.5"/>
+    <text x="490" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="main-text">LLM Powered</text>
+
+    <rect x="600" y="0" width="180" height="40" class="neon-green" rx="6.5" opacity="0.5"/>
+    <text x="690" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="main-text">Tool Execution</text>
+
+    <rect x="800" y="0" width="180" height="40" class="neon-cyan" rx="6.5" opacity="0.5"/>
+    <text x="890" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="main-text">RAG Search</text>
+
+    <rect x="1000" y="0" width="180" height="40" class="neon-blue" rx="6.5" opacity="0.5"/>
+    <text x="1090" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="main-text">Real-time</text>
+  </g>
+</svg>

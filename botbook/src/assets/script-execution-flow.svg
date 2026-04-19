@@ -1,0 +1,239 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Light theme defaults */
+    .neon-blue { stroke: #4A90E2; stroke-width: 2.6; fill: none; }
+    .neon-orange { stroke: #F5A623; stroke-width: 2.6; fill: none; }
+    .neon-purple { stroke: #BD10E0; stroke-width: 2.6; fill: none; }
+    .neon-green { stroke: #7ED321; stroke-width: 2.6; fill: none; }
+    .neon-cyan { stroke: #50E3C2; stroke-width: 2.6; fill: none; }
+    .neon-gray { stroke: #888888; stroke-width: 2.6; fill: none; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .arrow-color { stroke: #666; fill: #666; }
+
+    /* Dark theme with subtle neon effects */
+    @media (prefers-color-scheme: dark) {
+      .neon-blue {
+        stroke: #00D4FF;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00D4FF) drop-shadow(0 0 8px #00A0FF);
+      }
+      .neon-orange {
+        stroke: #FF9500;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF9500) drop-shadow(0 0 8px #FF7700);
+      }
+      .neon-purple {
+        stroke: #E040FB;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #E040FB) drop-shadow(0 0 8px #D500F9);
+      }
+      .neon-green {
+        stroke: #00FF88;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00FF88) drop-shadow(0 0 8px #00E676);
+      }
+      .neon-cyan {
+        stroke: #00E5EA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00E5EA) drop-shadow(0 0 8px #00BCD4);
+      }
+      .neon-gray {
+        stroke: #AAAAAA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 2px #888888);
+      }
+      .main-text { fill: #FFFFFF; }
+      .secondary-text { fill: #B0B0B0; }
+      .arrow-color { stroke: #B0B0B0; fill: #B0B0B0; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrow" markerWidth="13" markerHeight="13" refX="11.7" refY="3.9" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,7.8 L11.7,3.9 z" class="arrow-color"/>
+    </marker>
+    <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.3" />
+      <stop offset="20%" style="stop-color:#F5A623;stop-opacity:0.3" />
+      <stop offset="40%" style="stop-color:#BD10E0;stop-opacity:0.3" />
+      <stop offset="60%" style="stop-color:#7ED321;stop-opacity:0.3" />
+      <stop offset="80%" style="stop-color:#50E3C2;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#4A90E2;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="45" text-anchor="middle" font-size="32" font-weight="600" class="main-text">Script Execution Flow</text>
+  <text x="700" y="75" text-anchor="middle" font-size="18" class="secondary-text">BASIC Compilation Pipeline - From Source to Execution</text>
+
+  <!-- MAIN FLOW DIAGRAM -->
+  <g id="main-flow">
+    <!-- Entry Points Section -->
+    <text x="200" y="115" text-anchor="middle" font-size="18" font-weight="500" class="secondary-text">Entry Points</text>
+
+    <!-- start.bas -->
+    <rect x="50" y="135" width="140" height="65" class="neon-blue" rx="6.5"/>
+    <text x="120" y="165" text-anchor="middle" font-size="16" font-weight="500" class="main-text">start.bas</text>
+    <text x="120" y="185" text-anchor="middle" font-size="12" class="secondary-text">(Bot Start)</text>
+
+    <!-- SET SCHEDULE -->
+    <rect x="210" y="135" width="140" height="65" class="neon-orange" rx="6.5"/>
+    <text x="280" y="165" text-anchor="middle" font-size="16" font-weight="500" class="main-text">SET SCHEDULE</text>
+    <text x="280" y="185" text-anchor="middle" font-size="12" class="secondary-text">(Cron Jobs)</text>
+
+    <!-- WEBHOOK -->
+    <rect x="370" y="135" width="140" height="65" class="neon-purple" rx="6.5"/>
+    <text x="440" y="165" text-anchor="middle" font-size="16" font-weight="500" class="main-text">WEBHOOK</text>
+    <text x="440" y="185" text-anchor="middle" font-size="12" class="secondary-text">(HTTP POST)</text>
+
+    <!-- Compilation Pipeline Box -->
+    <rect x="50" y="240" width="550" height="220" class="neon-gray" rx="10"/>
+    <text x="325" y="270" text-anchor="middle" font-size="20" font-weight="600" class="main-text">BASIC Compiler &amp; Runtime</text>
+
+    <!-- Pipeline Steps -->
+    <rect x="70" y="295" width="120" height="50" class="neon-blue" rx="6.5"/>
+    <text x="130" y="325" text-anchor="middle" font-size="14" font-weight="500" class="main-text">1. Load Source</text>
+
+    <rect x="210" y="295" width="120" height="50" class="neon-orange" rx="6.5"/>
+    <text x="270" y="325" text-anchor="middle" font-size="14" font-weight="500" class="main-text">2. Load Config</text>
+
+    <rect x="350" y="295" width="120" height="50" class="neon-purple" rx="6.5"/>
+    <text x="410" y="325" text-anchor="middle" font-size="14" font-weight="500" class="main-text">3. Preprocess</text>
+
+    <rect x="490" y="295" width="90" height="50" class="neon-green" rx="6.5"/>
+    <text x="535" y="325" text-anchor="middle" font-size="14" font-weight="500" class="main-text">4. Compile</text>
+
+    <!-- Pipeline descriptions -->
+    <text x="130" y="365" text-anchor="middle" font-size="11" class="secondary-text">Read .bas file</text>
+    <text x="270" y="365" text-anchor="middle" font-size="11" class="secondary-text">param-* vars</text>
+    <text x="410" y="365" text-anchor="middle" font-size="11" class="secondary-text">Transform</text>
+    <text x="535" y="365" text-anchor="middle" font-size="11" class="secondary-text">Rhai AST</text>
+
+    <!-- Execute Box -->
+    <rect x="70" y="390" width="510" height="55" class="neon-cyan" rx="6.5"/>
+    <text x="325" y="415" text-anchor="middle" font-size="16" font-weight="500" class="main-text">5. Execute with Injected Scope</text>
+    <text x="325" y="435" text-anchor="middle" font-size="12" class="secondary-text">Keywords call registered handlers → LLM Tools → API Calls</text>
+
+    <!-- Arrows between pipeline steps -->
+    <g stroke="#666" stroke-width="2" opacity="0.7">
+      <line x1="190" y1="320" x2="210" y2="320" marker-end="url(#arrow)"/>
+      <line x1="330" y1="320" x2="350" y2="320" marker-end="url(#arrow)"/>
+      <line x1="470" y1="320" x2="490" y2="320" marker-end="url(#arrow)"/>
+    </g>
+
+    <!-- Entry points to pipeline -->
+    <g stroke="#666" stroke-width="2.6" opacity="0.7">
+      <line x1="120" y1="200" x2="120" y2="240" marker-end="url(#arrow)"/>
+      <line x1="280" y1="200" x2="280" y2="240" marker-end="url(#arrow)"/>
+      <line x1="440" y1="200" x2="440" y2="240" marker-end="url(#arrow)"/>
+    </g>
+
+    <!-- Output Components -->
+    <text x="900" y="115" text-anchor="middle" font-size="18" font-weight="500" class="secondary-text">Execution Outputs</text>
+
+    <!-- LLM Tools -->
+    <rect x="650" y="135" width="160" height="65" class="neon-purple" rx="6.5"/>
+    <text x="730" y="165" text-anchor="middle" font-size="16" font-weight="500" class="main-text">LLM Tools</text>
+    <text x="730" y="185" text-anchor="middle" font-size="12" class="secondary-text">(ADD TOOL)</text>
+
+    <!-- ON Events -->
+    <rect x="830" y="135" width="160" height="65" class="neon-green" rx="6.5"/>
+    <text x="910" y="165" text-anchor="middle" font-size="16" font-weight="500" class="main-text">ON Events</text>
+    <text x="910" y="185" text-anchor="middle" font-size="12" class="secondary-text">(Triggers)</text>
+
+    <!-- API Calls -->
+    <rect x="1010" y="135" width="160" height="65" class="neon-cyan" rx="6.5"/>
+    <text x="1090" y="165" text-anchor="middle" font-size="16" font-weight="500" class="main-text">API Calls</text>
+    <text x="1090" y="185" text-anchor="middle" font-size="12" class="secondary-text">(External)</text>
+
+    <!-- Connection from Execute to outputs -->
+    <g stroke="#666" stroke-width="2.6" opacity="0.7">
+      <line x1="580" y1="420" x2="620" y2="420"/>
+      <line x1="620" y1="420" x2="620" y2="167"/>
+      <line x1="620" y1="167" x2="650" y2="167" marker-end="url(#arrow)"/>
+      <line x1="620" y1="167" x2="830" y2="167" marker-end="url(#arrow)"/>
+      <line x1="620" y1="167" x2="1010" y2="167" marker-end="url(#arrow)"/>
+    </g>
+  </g>
+
+  <!-- Package Structure -->
+  <g id="package-structure" transform="translate(650, 240)">
+    <rect width="520" height="220" class="neon-orange" rx="10"/>
+    <text x="260" y="35" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Package Structure (mybot.gbai)</text>
+
+    <text x="30" y="70" font-family="monospace" font-size="14" class="secondary-text">mybot.gbai/</text>
+    <text x="45" y="95" font-family="monospace" font-size="14" class="secondary-text">├── mybot.gbdialog/</text>
+    <text x="65" y="118" font-family="monospace" font-size="13" class="secondary-text">├── start.bas        ' Entry point</text>
+    <text x="65" y="138" font-family="monospace" font-size="13" class="secondary-text">├── tables.bas       ' TABLE definitions</text>
+    <text x="65" y="158" font-family="monospace" font-size="13" class="secondary-text">├── create-order.bas ' Tool script</text>
+    <text x="65" y="178" font-family="monospace" font-size="13" class="secondary-text">└── sync-data.bas    ' Scheduled script</text>
+    <text x="45" y="200" font-family="monospace" font-size="14" class="secondary-text">└── mybot.gbot/config.csv</text>
+  </g>
+
+  <!-- Config Details -->
+  <g id="config-details" transform="translate(50, 500)">
+    <rect width="400" height="140" class="neon-blue" rx="6.5"/>
+    <text x="200" y="30" text-anchor="middle" font-size="18" font-weight="500" class="main-text">config.csv (Injected Variables)</text>
+    <text x="20" y="60" font-family="monospace" font-size="14" class="secondary-text">param-api-key,sk-xxxxx</text>
+    <text x="20" y="85" font-family="monospace" font-size="14" class="secondary-text">param-webhook-url,https://...</text>
+    <text x="20" y="110" font-family="monospace" font-size="14" class="secondary-text">param-max-retries,3</text>
+    <text x="20" y="130" font-family="monospace" font-size="12" class="secondary-text">→ Available as variables in BASIC</text>
+  </g>
+
+  <!-- Preprocessing Details -->
+  <g id="preprocess-details" transform="translate(500, 500)">
+    <rect width="400" height="140" class="neon-purple" rx="6.5"/>
+    <text x="200" y="30" text-anchor="middle" font-size="18" font-weight="500" class="main-text">Preprocessing Steps</text>
+    <text x="20" y="60" font-size="14" class="secondary-text">• Case normalization (TALK → talk)</text>
+    <text x="20" y="85" font-size="14" class="secondary-text">• Multi-word keyword transform</text>
+    <text x="20" y="110" font-size="14" class="secondary-text">• FOR EACH block handling</text>
+    <text x="20" y="130" font-size="14" class="secondary-text">• Variable scope injection</text>
+  </g>
+
+  <!-- Keyword Execution -->
+  <g id="keyword-exec" transform="translate(950, 500)">
+    <rect width="370" height="140" class="neon-green" rx="6.5"/>
+    <text x="185" y="30" text-anchor="middle" font-size="18" font-weight="500" class="main-text">Keyword Execution</text>
+    <text x="20" y="60" font-size="14" class="secondary-text">• TALK → Send message to channel</text>
+    <text x="20" y="85" font-size="14" class="secondary-text">• HEAR → Wait for user input</text>
+    <text x="20" y="110" font-size="14" class="secondary-text">• LLM → Call language model</text>
+    <text x="20" y="130" font-size="14" class="secondary-text">• GET/POST → HTTP requests</text>
+  </g>
+
+  <!-- PROGRESS INDICATOR -->
+  <g id="progress-legend">
+    <rect x="50" y="680" width="1300" height="80" fill="url(#flowGradient)" rx="10" opacity="0.2"/>
+
+    <!-- Stage markers -->
+    <circle cx="150" cy="720" r="12" class="neon-blue"/>
+    <circle cx="380" cy="720" r="12" class="neon-orange"/>
+    <circle cx="610" cy="720" r="12" class="neon-purple"/>
+    <circle cx="840" cy="720" r="12" class="neon-green"/>
+    <circle cx="1070" cy="720" r="12" class="neon-cyan"/>
+    <circle cx="1250" cy="720" r="12" class="neon-blue"/>
+
+    <!-- Connecting lines -->
+    <line x1="162" y1="720" x2="368" y2="720" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="392" y1="720" x2="598" y2="720" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="622" y1="720" x2="828" y2="720" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="852" y1="720" x2="1058" y2="720" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="1082" y1="720" x2="1238" y2="720" class="arrow-color" stroke-width="2" opacity="0.4"/>
+
+    <!-- Stage labels -->
+    <text x="150" y="750" text-anchor="middle" font-size="14" class="secondary-text">Load</text>
+    <text x="380" y="750" text-anchor="middle" font-size="14" class="secondary-text">Config</text>
+    <text x="610" y="750" text-anchor="middle" font-size="14" class="secondary-text">Preprocess</text>
+    <text x="840" y="750" text-anchor="middle" font-size="14" class="secondary-text">Compile</text>
+    <text x="1070" y="750" text-anchor="middle" font-size="14" class="secondary-text">Execute</text>
+    <text x="1250" y="750" text-anchor="middle" font-size="14" class="secondary-text">Respond</text>
+  </g>
+
+  <!-- Description -->
+  <text x="700" y="810" text-anchor="middle" font-size="21" class="secondary-text">
+    BASIC scripts compile to Rhai AST and execute with registered keyword handlers
+  </text>
+  <text x="700" y="845" text-anchor="middle" font-size="18" class="secondary-text">
+    Scripts in .gbdialog/ are hot-reloaded on change - no restart required
+  </text>
+</svg>

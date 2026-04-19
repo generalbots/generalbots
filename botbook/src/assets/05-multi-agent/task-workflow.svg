@@ -1,0 +1,152 @@
+<svg width="900" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6"/>
+    </marker>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="400" fill="#FAFBFC"/>
+  <rect width="900" height="400" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="600" class="title-text">Task Workflow</text>
+  <text x="450" y="55" text-anchor="middle" font-size="12" class="secondary-text">From Intent to Working Application</text>
+
+  <!-- Phase 1: Describe -->
+  <g transform="translate(50, 90)">
+    <rect width="180" height="140" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="180" height="45" rx="12" fill="url(#primaryGrad)"/>
+    <rect y="33" width="180" height="12" fill="url(#primaryGrad)"/>
+    <text x="90" y="30" text-anchor="middle" font-size="14" font-weight="600" class="white-text">1. DESCRIBE</text>
+    <text x="90" y="70" text-anchor="middle" font-size="11" class="main-text">You tell the bot</text>
+    <text x="90" y="85" text-anchor="middle" font-size="11" class="main-text">what you want</text>
+    <text x="15" y="110" font-size="10" class="secondary-text">• Natural language</text>
+    <text x="15" y="125" font-size="10" class="secondary-text">• "cria app de vendas"</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <line x1="235" y1="160" x2="270" y2="160" stroke="#8B5CF6" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- Phase 2: Plan -->
+  <g transform="translate(275, 90)">
+    <rect width="180" height="140" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="180" height="45" rx="12" fill="url(#cyanGrad)"/>
+    <rect y="33" width="180" height="12" fill="url(#cyanGrad)"/>
+    <text x="90" y="30" text-anchor="middle" font-size="14" font-weight="600" class="white-text">2. PLAN</text>
+    <text x="90" y="70" text-anchor="middle" font-size="11" class="main-text">System creates</text>
+    <text x="90" y="85" text-anchor="middle" font-size="11" class="main-text">execution plan</text>
+    <text x="15" y="110" font-size="10" class="secondary-text">• Steps identified</text>
+    <text x="15" y="125" font-size="10" class="secondary-text">• You review &amp; confirm</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <line x1="460" y1="160" x2="495" y2="160" stroke="#8B5CF6" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- Phase 3: Execute -->
+  <g transform="translate(500, 90)">
+    <rect width="180" height="140" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="180" height="45" rx="12" fill="url(#orangeGrad)"/>
+    <rect y="33" width="180" height="12" fill="url(#orangeGrad)"/>
+    <text x="90" y="30" text-anchor="middle" font-size="14" font-weight="600" class="white-text">3. EXECUTE</text>
+    <text x="90" y="70" text-anchor="middle" font-size="11" class="main-text">Steps run</text>
+    <text x="90" y="85" text-anchor="middle" font-size="11" class="main-text">automatically</text>
+    <text x="15" y="110" font-size="10" class="secondary-text">• Real-time progress</text>
+    <text x="15" y="125" font-size="10" class="secondary-text">• Pause/resume anytime</text>
+  </g>
+
+  <!-- Arrow 3 -->
+  <line x1="685" y1="160" x2="720" y2="160" stroke="#8B5CF6" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- Phase 4: Deliver -->
+  <g transform="translate(725, 90)">
+    <rect width="150" height="140" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="150" height="45" rx="12" fill="url(#greenGrad)"/>
+    <rect y="33" width="150" height="12" fill="url(#greenGrad)"/>
+    <text x="75" y="30" text-anchor="middle" font-size="14" font-weight="600" class="white-text">4. DELIVER</text>
+    <text x="75" y="70" text-anchor="middle" font-size="11" class="main-text">App is ready</text>
+    <text x="75" y="85" text-anchor="middle" font-size="11" class="main-text">to use</text>
+    <text x="15" y="110" font-size="10" class="secondary-text">• Tables created</text>
+    <text x="15" y="125" font-size="10" class="secondary-text">• Tools ready</text>
+  </g>
+
+  <!-- Output Section -->
+  <g transform="translate(50, 260)">
+    <rect width="825" height="120" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <text x="412" y="25" text-anchor="middle" font-size="13" font-weight="600" class="main-text">What Gets Created</text>
+
+    <!-- Output items -->
+    <g transform="translate(30, 45)">
+      <rect width="150" height="60" rx="6" fill="#EEF2FF" stroke="#C7D2FE"/>
+      <text x="75" y="25" text-anchor="middle" font-size="11" font-weight="500" class="main-text">Database Tables</text>
+      <text x="75" y="45" text-anchor="middle" font-size="10" class="mono-text">tables.bas</text>
+    </g>
+
+    <g transform="translate(200, 45)">
+      <rect width="150" height="60" rx="6" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="75" y="25" text-anchor="middle" font-size="11" font-weight="500" class="main-text">Web App</text>
+      <text x="75" y="45" text-anchor="middle" font-size="10" class="mono-text">/apps/name/</text>
+    </g>
+
+    <g transform="translate(370, 45)">
+      <rect width="150" height="60" rx="6" fill="#FEF3C7" stroke="#FCD34D"/>
+      <text x="75" y="25" text-anchor="middle" font-size="11" font-weight="500" class="main-text">Voice Tools</text>
+      <text x="75" y="45" text-anchor="middle" font-size="10" class="mono-text">tools/*.bas</text>
+    </g>
+
+    <g transform="translate(540, 45)">
+      <rect width="150" height="60" rx="6" fill="#FCE7F3" stroke="#F9A8D4"/>
+      <text x="75" y="25" text-anchor="middle" font-size="11" font-weight="500" class="main-text">Schedulers</text>
+      <text x="75" y="45" text-anchor="middle" font-size="10" class="mono-text">schedulers/*.bas</text>
+    </g>
+
+    <g transform="translate(710, 45)">
+      <rect width="95" height="60" rx="6" fill="#E0E7FF" stroke="#A5B4FC"/>
+      <text x="47" y="25" text-anchor="middle" font-size="11" font-weight="500" class="main-text">Monitors</text>
+      <text x="47" y="45" text-anchor="middle" font-size="10" class="mono-text">events/</text>
+    </g>
+  </g>
+</svg>

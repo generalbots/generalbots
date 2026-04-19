@@ -1,0 +1,241 @@
+/* Markdown Message Styling - Better lists and spacing for chat messages */
+
+/* Lists in message content */
+.message-content ul,
+.message-content ol {
+    margin: 16px 0 !important;
+    padding-left: 28px !important;
+}
+
+/* Extra space between list container edge and bullets */
+.message-content ul li,
+.message-content ol li {
+    margin-left: 0px !important;
+}
+
+/* List items with better spacing */
+.message-content li {
+    margin: 10px 0;
+    line-height: 1.8;
+    position: relative;
+    padding-left: 6px;
+}
+
+/* Nested lists with visual hierarchy */
+.message-content ul ul,
+.message-content ol ol,
+.message-content ul ol,
+.message-content ol ul {
+    margin: 12px 0;
+    padding-left: 32px;
+}
+
+/* Bullet points with better visual weight */
+.message-content ul li {
+    list-style-type: disc;
+    font-weight: 400;
+}
+
+.message-content ul li::marker {
+    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    font-size: 1.1em;
+}
+
+/* Nested bullets with distinct styles */
+.message-content ul ul li {
+    list-style-type: circle;
+}
+
+.message-content ul ul li::marker {
+    font-size: 1em;
+    opacity: 0.85;
+}
+
+.message-content ul ul ul li {
+    list-style-type: square;
+}
+
+.message-content ul ul ul li::marker {
+    font-size: 0.95em;
+    opacity: 0.75;
+}
+
+/* Numbered lists with better styling */
+.message-content ol li {
+    list-style-type: decimal;
+    font-weight: 500;
+}
+
+.message-content ol li::marker {
+    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    font-weight: 600;
+}
+
+/* Nested numbered lists with visual hierarchy */
+.message-content ol ol li {
+    list-style-type: lower-alpha;
+}
+
+.message-content ol ol li::marker {
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.message-content ol ol ol li {
+    list-style-type: lower-roman;
+}
+
+.message-content ol ol ol li::marker {
+    font-weight: 400;
+    opacity: 0.85;
+}
+
+/* Lists in user messages (white text on colored background) */
+.message.user .message-content ul li::marker,
+.message.user .message-content ol li::marker {
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.message.user .message-content ul ul li::marker,
+.message.user .message-content ol ol li::marker {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Lists in bot messages with better contrast */
+.message.bot .message-content ul li::marker,
+.message.bot .message-content ol li::marker {
+    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+}
+
+.message.bot .message-content ul ul li::marker,
+.message.bot .message-content ol ol li::marker {
+    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    opacity: 0.8;
+}
+
+/* Paragraphs in messages */
+.message-content p {
+    margin: 10px 0;
+    line-height: 1.75;
+}
+
+/* First and last paragraph spacing */
+.message-content p:first-child {
+    margin-top: 0;
+}
+
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Lists with better visual separation from paragraphs */
+.message-content ul + p,
+.message-content ol + p,
+.message-content p + ul,
+.message-content p + ol {
+    margin-top: 14px;
+}
+
+/* Headings in messages */
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+    margin: 18px 0 10px 0;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+}
+
+.message-content h1 { font-size: 1.5em; }
+.message-content h2 { font-size: 1.3em; }
+.message-content h3 { font-size: 1.15em; }
+.message-content h4 { font-size: 1.05em; }
+
+/* Headings in user messages */
+.message.user .message-content h1,
+.message.user .message-content h2,
+.message.user .message-content h3 {
+    color: #ffffff;
+}
+
+/* Headings in bot messages */
+.message.bot .message-content h1,
+.message.bot .message-content h2,
+.message.bot .message-content h3 {
+    color: #1a1a1a;
+}
+
+/* Code blocks */
+.message-content pre {
+    margin: 12px 0;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Inline code */
+.message-content code {
+    padding: 3px 7px;
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 5px;
+    font-size: 0.9em;
+    font-family: "Monaco", "Menlo", "Consolas", monospace;
+    letter-spacing: 0.02em;
+}
+
+.message.user .message-content code {
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.message.bot .message-content code {
+    background: rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Blockquotes */
+.message-content blockquote {
+    margin: 12px 0;
+    padding-left: 16px;
+    border-left: 3px solid var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    font-style: italic;
+}
+
+/* Horizontal rules */
+.message-content hr {
+    margin: 16px 0;
+    border: none;
+    border-top: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+/* Links in messages */
+.message-content a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(128, 128, 128, 0.5);
+    transition: text-decoration-color 0.2s;
+}
+
+.message-content a:hover {
+    text-decoration-color: currentColor;
+}
+
+/* Strong/bold text */
+.message-content strong,
+.message-content b {
+    font-weight: 600;
+}
+
+/* Emphasis/italic text */
+.message-content em,
+.message-content i {
+    font-style: italic;
+}

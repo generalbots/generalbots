@@ -1,0 +1,32 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- GB-inspired globe/web icon -->
+  <defs>
+    <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Main globe circle -->
+  <circle cx="12" cy="12" r="10" stroke="url(#globeGradient)" stroke-width="1.5" fill="none"/>
+
+  <!-- Horizontal latitude lines - GB curved style -->
+  <ellipse cx="12" cy="12" rx="10" ry="4" stroke="currentColor" stroke-width="1" fill="none" opacity="0.4"/>
+  <ellipse cx="12" cy="12" rx="10" ry="7" stroke="currentColor" stroke-width="1" fill="none" opacity="0.25"/>
+
+  <!-- Vertical meridian line -->
+  <ellipse cx="12" cy="12" rx="4" ry="10" stroke="currentColor" stroke-width="1" fill="none" opacity="0.5"/>
+
+  <!-- Center vertical line -->
+  <line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+
+  <!-- Center horizontal line -->
+  <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+
+  <!-- GB bot eyes on globe - subtle branding -->
+  <circle cx="9" cy="10" r="1" fill="url(#globeGradient)" opacity="0.7"/>
+  <circle cx="15" cy="10" r="1" fill="url(#globeGradient)" opacity="0.7"/>
+
+  <!-- Subtle highlight arc -->
+  <path d="M6 6 Q8 4 12 4" stroke="white" stroke-width="1.5" fill="none" opacity="0.3" stroke-linecap="round"/>
+</svg>

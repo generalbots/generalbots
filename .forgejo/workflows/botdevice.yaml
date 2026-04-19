@@ -1,0 +1,16 @@
+name: Botdevice CI
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'botdevice/**'
+jobs:
+  build:
+    runs-on: gbo
+    steps:
+    - name: Build
+      run: |
+        cd /opt/gbo/work/botdevice
+        git reset --hard HEAD && git clean -fd
+        git pull
+        cargo build

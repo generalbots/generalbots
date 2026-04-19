@@ -1,250 +1,269 @@
-[package]
-name = "botserver"
-version = "6.3.1"
-edition = "2021"
+
+[workspace]
 resolver = "2"
+members = [
+    "botapp",
+    "botdevice",
+    "botlib",
+    "botserver",
+    "bottest",
+    "botui",
+]
+exclude = ["backup-to-s3"]
 
-[dependencies.botlib]
-workspace = true
-features = ["database", "i18n"]
+[workspace.lints.rust]
 
-[features]
-# ===== DEFAULT =====
-default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory"]
+[workspace.lints.clippy]
 
-# ===== SECURITY MODES =====
-# no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
-# Build with: cargo build --no-default-features --features "no-security,chat,llm"
-no-security = []
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORKSPACE DEPENDENCIES - Single source of truth for all member crates
+# Member crates reference these with: dependency = { workspace = true }
+# ═══════════════════════════════════════════════════════════════════════════════
 
-browser = ["automation", "drive", "cache"]
-terminal = ["automation", "drive", "cache"]
-external_sync = ["automation", "drive", "cache"]
+[workspace.dependencies]
+# ─── INTERNAL CRATES ───
+botlib = { path = "botlib" }
 
-# ===== CORE INFRASTRUCTURE (Can be used standalone) =====
-scripting = ["dep:rhai"]
-automation = ["scripting", "dep:cron"]
-drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
-cache = ["dep:redis"]
-directory = ["rbac"]
-rbac = []
-crawler = ["drive", "cache"]
+# ─── CORE / ERROR HANDLING ───
+anyhow = "1.0"
+thiserror = "2.0"
+log = "0.4"
+env_logger = "0.11"
+color-eyre = "0.6.5"
 
-# ===== APPS (Each includes what it needs from core) =====
-# Communication
-chat = ["automation", "cache"]
-people = ["automation", "drive", "cache"]
-mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap"]
-meet = ["automation", "drive", "cache"]
-social = ["automation", "drive", "cache"]
-marketing = ["people", "automation", "drive", "cache"]
+# ─── ASYNC RUNTIME ───
+tokio = { version = "1.41", default-features = false }
+tokio-stream = "0.1"
+tokio-util = { version = "0.7", default-features = false }
+tokio-rustls = "0.26"
+tokio-test = "0.4"
+tokio-tungstenite = { version = "0.24", default-features = false }
+async-trait = "0.1"
+async-lock = "2.8.0"
+async-stream = "0.3"
+futures = "0.3"
+futures-util = { version = "0.3", default-features = false }
+scopeguard = "1.2.0"
 
-# Productivity
-calendar = ["automation", "drive", "cache"]
-tasks = ["automation", "drive", "cache", "dep:cron"]
-project = ["automation", "drive", "cache", "quick-xml"]
-goals = ["automation", "drive", "cache"]
-workspaces = ["automation", "drive", "cache"]
-tickets = ["automation", "drive", "cache"]
-billing = ["automation", "drive", "cache"]
+# ─── SERIALIZATION ───
+serde = { version = "1.0", default-features = false }
+serde_json = "1.0"
+toml = "0.8"
+ciborium = "0.2"
 
-# Documents
-docs = ["automation", "drive", "cache", "docx-rs", "ooxmlsdk"]
-sheet = ["automation", "drive", "cache", "calamine", "dep:rust_xlsxwriter", "dep:umya-spreadsheet"]
-slides = ["automation", "drive", "cache", "ooxmlsdk"]
-paper = ["automation", "drive", "cache"]
+# ─── DATE / TIME ───
+chrono = { version = "0.4", default-features = false }
+time = { version = "0.3", default-features = false }
+cron = "0.15.0"
 
-# Media
-video = ["automation", "drive", "cache"]
-player = ["automation", "drive", "cache"]
-canvas = ["automation", "drive", "cache"]
+# ─── UUID ───
+uuid = { version = "1.11", default-features = false }
 
-# Learning
-learn = ["automation", "drive", "cache", "crawler"]
-research = ["automation", "drive", "cache", "llm", "vectordb"]
-sources = ["automation", "drive", "cache"]
+# ─── WEB FRAMEWORK ───
+axum = { version = "0.7.5", features = ["ws", "multipart", "macros"] }
+axum-server = { version = "0.8", features = ["tls-rustls"] }
+tower = "0.4"
+tower-http = { version = "0.6", default-features = false }
+tower-cookies = "0.10"
+hyper = { version = "1.4", default-features = false }
+hyper-rustls = { version = "0.27", default-features = false }
+hyper-util = { version = "0.1.19", default-features = false }
+http-body-util = "0.1.3"
 
-# Analytics
-analytics = ["automation", "drive", "cache"]
-dashboards = ["automation", "drive", "cache"]
-monitoring = ["automation", "drive", "cache", "dep:sysinfo"]
+# ─── HTTP CLIENT ───
+reqwest = { version = "0.12", default-features = false }
 
-# Development
-designer = ["automation", "drive", "cache"]
-editor = ["automation", "drive", "cache"]
+# ─── DATABASE ───
+diesel = { version = "2.2" }
+diesel_migrations = "2.2"
 
-# Admin
-attendant = ["automation", "drive", "cache"]
-security = ["automation", "drive", "cache"]
-settings = ["automation", "drive", "cache"]
+# ─── CACHING ───
+redis = { version = "0.27", default-features = false }
 
-whatsapp = ["automation", "drive", "cache"]
-telegram = ["automation", "drive", "cache"]
-instagram = ["automation", "drive", "cache"]
-msteams = ["automation", "drive", "cache"]
-# Core Tech
-llm = ["automation", "cache"]
-vectordb = ["automation", "drive", "cache", "dep:qdrant-client"]
-nvidia = ["automation", "drive", "cache"]
-compliance = ["automation", "drive", "cache", "dep:csv"]
-timeseries = ["automation", "drive", "cache"]
-weba = ["automation", "drive", "cache"]
-progress-bars = ["automation", "drive", "cache", "dep:indicatif"]
-grpc = ["automation", "drive", "cache"]
-jemalloc = ["automation", "drive", "cache", "dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
-console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
+# ─── SECURITY / CRYPTO ───
+jsonwebtoken = "9.3"
+base64 = "0.22"
+aes-gcm = "0.10"
+argon2 = "0.5"
+hmac = "0.12.1"
+sha2 = "0.10.9"
+sha1 = "0.10.6"
+hex = "0.4"
+rand = "0.9.2"
+ring = "0.17"
 
-# ===== BUNDLES (Optional - for convenience) =====
-minimal = ["chat"]
-minimal-chat = ["chat", "automation", "cache"]  # No security at all
-lightweight = ["chat", "tasks", "people"]
-full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
-embed-ui = ["dep:rust-embed"]
+# ─── TLS / CERTIFICATES ───
+rustls = { version = "0.23", default-features = false }
+rcgen = { version = "0.14", default-features = false }
+x509-parser = "0.15"
+rustls-native-certs = "0.8"
+webpki-roots = "0.25"
+native-tls = "0.2"
 
-[dependencies]
-diesel_migrations = { workspace = true }
-bigdecimal = { workspace = true }
+# ─── REGEX / TEXT ───
+regex = "1.11"
+smartstring = "1.0.1"
+urlencoding = "2.1"
+url = "2.5"
 
-# === CORE RUNTIME ===
-aes-gcm = { workspace = true }
-anyhow = { workspace = true }
-argon2 = { workspace = true }
-async-trait = { workspace = true }
-axum = { workspace = true }
-axum-server = { workspace = true }
-base64 = { workspace = true }
-chrono = { workspace = true, features = ["clock", "std"] }
-html2md = "0.2"
-color-eyre = { workspace = true }
-diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
-dirs = { workspace = true }
-dotenvy = { workspace = true }
-futures = { workspace = true }
-futures-util = { workspace = true }
-git2 = "0.19"
-hex = { workspace = true }
-hmac = { workspace = true }
-log = { workspace = true }
-num-format = { workspace = true }
-once_cell = { workspace = true }
-rand = { workspace = true }
-regex = { workspace = true }
-reqwest = { workspace = true, features = ["rustls-tls", "multipart", "stream", "json"] }
-serde = { workspace = true, features = ["derive", "std"] }
-serde_json = { workspace = true }
-toml = { workspace = true }
-sha2 = { workspace = true }
-sha1 = { workspace = true }
-tokio = { workspace = true, features = ["full", "process"] }
-tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
-tracing = { workspace = true }
-url = { workspace = true }
-urlencoding = { workspace = true }
-uuid = { workspace = true, features = ["v4", "v5"] }
+# ─── FILESYSTEM ───
+dirs = "5.0"
+tempfile = "3"
+walkdir = "2.5.0"
+notify = "8.0"
 
-# === TLS/SECURITY DEPENDENCIES ===
-rustls = { workspace = true, features = ["ring", "std", "tls12"] }
-tokio-rustls = { workspace = true }
-rcgen = { workspace = true, features = ["crypto", "ring", "pem"] }
-x509-parser = { workspace = true }
-ring = { workspace = true }
-ciborium = { workspace = true }
-time = { workspace = true, features = ["formatting"] }
-jsonwebtoken = { workspace = true }
+# ─── COMPRESSION / ARCHIVES ───
+flate2 = "1.0"
+zip = "2.2"
+tar = "0.4"
 
-# === APP-SPECIFIC DEPENDENCIES ===
+# ─── DOCUMENT PROCESSING ───
+docx-rs = "0.4"
+ooxmlsdk = { version = "0.3", default-features = false }
+calamine = "0.26"
+spreadsheet-ods = "1.0"
+pdf-extract = "0.10.0"
+quick-xml = { version = "0.37", features = ["serialize"] }
+rust_xlsxwriter = "0.77"
+umya-spreadsheet = "2.1"
 
-# mail Integration (mail feature)
-imap = { workspace = true, optional = true }
-lettre = { workspace = true, optional = true }
-mailparse = { workspace = true, optional = true }
+# ─── IMAGE / MEDIA ───
+png = "0.18"
+qrcode = { version = "0.14", default-features = false }
 
-# Vector Database (vectordb feature)
-qdrant-client = { workspace = true, optional = true }
+# ─── EMAIL ───
+imap = "3.0.0-alpha.15"
+lettre = { version = "0.11", features = ["smtp-transport", "builder"] }
+mailparse = "0.15"
 
-# Document Processing
-docx-rs = { workspace = true, optional = true }
-ooxmlsdk = { workspace = true, optional = true, features = ["parts"] }
-calamine = { workspace = true, optional = true }
-rust_xlsxwriter = { workspace = true, optional = true }
-umya-spreadsheet = { workspace = true, optional = true }
+# ─── CONFIGURATION ───
+dotenvy = "0.15"
+figment = { version = "0.10", default-features = false }
+once_cell = "1.18.0"
 
-# File Storage & Drive (drive feature)
-aws-config = { workspace = true, features = ["behavior-version-latest", "rt-tokio", "rustls"], optional = true }
-aws-sdk-s3 = { workspace = true, features = ["rt-tokio", "rustls"], optional = true }
-aws-smithy-async = { workspace = true, optional = true }
-pdf-extract = { workspace = true, optional = true }
-quick-xml = { workspace = true, optional = true }
-flate2 = { workspace = true }
-zip = { workspace = true }
-tar = { workspace = true }
+# ─── TRACING / LOGGING ───
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false }
 
-# Task Management (tasks feature)
-cron = { workspace = true, optional = true }
+# ─── NUMERIC ───
+num-format = "0.4"
+bigdecimal = { version = "0.4", features = ["serde"] }
 
-# Automation & Scripting (automation feature)
-rhai = { workspace = true, optional = true }
+# ─── UTILITIES ───
+bytes = "1.8"
 
-# Compliance & Reporting (compliance feature)
-csv = { workspace = true, optional = true }
+# ─── CLOUD / AWS ───
+aws-config = { version = "1.8.8", default-features = false }
+aws-sdk-s3 = { version = "1.120", default-features = false }
+aws-smithy-async = { version = "1.2", features = ["rt-tokio"] }
 
-# Console/TUI (console feature)
-crossterm = { workspace = true, optional = true }
-ratatui = { workspace = true, optional = true }
+# ─── SCRIPTING ───
+rhai = { version = "1.23", features = ["sync"] }
 
-# QR Code Generation
-png = { workspace = true }
-qrcode = { workspace = true }
+# ─── VECTOR DB ───
+qdrant-client = "1.16"
 
-# Error handling
-thiserror = { workspace = true }
+# ─── VIDEO / MEETINGS ───
+livekit = "0.7"
 
-# Caching/Sessions (cache feature)
-redis = { workspace = true, features = ["tokio-comp"], optional = true }
+# ─── SYSTEM MONITORING ───
+sysinfo = "0.37.2"
 
-# System Monitoring (monitoring feature)
-sysinfo = { workspace = true, optional = true }
+# ─── CONSOLE / TUI ───
+crossterm = "0.29.0"
+ratatui = "0.30"
+indicatif = "0.18.0"
 
-# UI Enhancement (progress-bars feature)
-indicatif = { workspace = true, optional = true }
-smartstring = { workspace = true }
+# ─── MEMORY ALLOCATOR ───
+tikv-jemallocator = "0.6"
+tikv-jemalloc-ctl = { version = "0.6", default-features = false, features = ["stats"] }
 
-# Memory allocator (jemalloc feature)
-tikv-jemallocator = { workspace = true, optional = true }
-tikv-jemalloc-ctl = { workspace = true, optional = true }
-scopeguard = { workspace = true }
+# ─── SECRETS / VAULT ───
+vaultrs = "0.7"
 
-# Vault secrets management
-vaultrs = { workspace = true }
+# ─── CALENDAR / RSS ───
+icalendar = "0.17"
+rss = "2.0"
 
-# Calendar standards (RFC 5545)
-icalendar = { workspace = true }
+# ─── WEB SCRAPING ───
+scraper = "0.25"
 
-# Rate limiting
-governor = { workspace = true }
+# ─── RATE LIMITING ───
+governor = "0.10"
 
-# RSS feed parsing
-rss = { workspace = true }
+# ─── CSV ───
+csv = "1.3"
 
-# HTML parsing/web scraping
-scraper = { workspace = true }
-walkdir = { workspace = true }
+# ─── GRPC ───
+tonic = { version = "0.14.2", default-features = false }
 
-# Embedded static files
-rust-embed = { workspace = true, optional = true }
+# ─── STATIC FILES ───
+rust-embed = { version = "8.5", features = ["interpolate-folder-path"] }
+mime_guess = "2.0"
 
-# Blocking HTTP for Vault config
-ureq = { version = "2", features = ["json"] }
+# ─── TAURI (Desktop/Mobile) ───
+tauri = { version = "2", features = ["unstable"] }
+tauri-build = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-http = "2"
+tauri-plugin-geolocation = "2"
 
-[dev-dependencies]
-mockito = { workspace = true }
-tempfile = { workspace = true }
-bigdecimal = { workspace = true }
+# ─── TESTING ───
+mockito = "1.7.0"
+wiremock = "0.6"
+cookie = "0.18"
+chromiumoxide = { version = "0.7", features = ["tokio-runtime"], default-features = false }
+pretty_assertions = "1.4"
+insta = { version = "1.40", features = ["json", "yaml"] }
 
-# Force libgit2-sys to use system libgit2
-[patch.crates-io]
-libgit2-sys = { git = "https://github.com/rust-lang/git2-rs", branch = "main" }
+# ─── PROCESS CONTROL ───
+nix = { version = "0.29", features = ["signal", "process"] }
+which = "7"
 
-[dependencies.git2]
-version = "0.19"
-features = ["vendored-libgit2"]
+# ─── ANDROID ───
+android_logger = "0.14"
+
+# ─── VALIDATOR ───
+validator = { version = "0.20", features = ["derive"] }
+
+# ─── MISC ───
+webbrowser = "0.8"
+hostname = "0.4"
+local-ip-address = "0.6.5"
+image = "0.25"
+libc = "0.2"
+
+trayicon = "0.2"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROFILES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[profile.release]
+lto = true
+opt-level = "z"
+strip = true
+panic = "abort"
+codegen-units = 1
+
+[profile.ci]
+inherits = "release"
+lto = false
+codegen-units = 8
+debug = false
+
+[profile.low-memory]
+inherits = "release"
+lto = "thin"
+codegen-units = 16
+debug = false
+incremental = false
+opt-level = "s"
+
+[profile.dev]
+debug = 1
+incremental = true
+codegen-units = 32
+opt-level = 0

@@ -1,8 +1,0 @@
-DESCRIPTION "Obter informações sobre os cursos e séries disponíveis na Escola Salesiana"
-PARAM serie AS STRING LIKE "6º ano" DESCRIPTION "Série ou curso desejado (opcional)"
-
-
-resultado = "Cursos e Séries Disponíveis na Escola Salesiana - ENSINO FUNDAMENTAL I (1º ao 5º ano): Horário Manhã (7h30 às 11h30) ou Tarde (13h às 17h), Máximo 30 alunos por turma, Educação integral disponível. ENSINO FUNDAMENTAL II (6º ao 9º ano): Horário Manhã (7h15 às 11h45) ou Tarde (13h15 às 17h45), Laboratórios de ciências e informática, Inglês desde o 6º ano. ENSINO MÉDIO (1º ao 3º ano): Horário Manhã (7h às 12h20), Preparação para o ENEM, Laboratórios de física química e biologia, Opções de cursos técnicos integrados. Para fazer sua inscrição utilize a ferramenta inscricao. Para visitar a escola utilize agendamento_visita."
-
-TALK resultado
-RETURN resultado

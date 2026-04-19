@@ -1,0 +1,1439 @@
+<link rel="stylesheet" href="dashboards/dashboards.css" />
+
+<div class="dashboards-container" id="dashboards-app">
+    <header class="dashboards-header">
+        <div class="header-title">
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                class="header-icon"
+            >
+                <rect
+                    x="3"
+                    y="3"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                />
+                <rect
+                    x="14"
+                    y="3"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                />
+                <rect
+                    x="3"
+                    y="14"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                />
+                <rect
+                    x="14"
+                    y="14"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                />
+            </svg>
+            <h2 data-i18n="dashboards-title">Dashboards</h2>
+        </div>
+        <div class="header-actions">
+            <div class="search-box">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                </svg>
+                <input
+                    type="text"
+                    id="dashboardSearch"
+                    placeholder="Search dashboards..."
+                    data-i18n-placeholder="dashboards-search-placeholder"
+                    hx-get="/api/dashboards"
+                    hx-trigger="keyup changed delay:300ms"
+                    hx-target="#dashboards-grid"
+                    hx-include="this"
+                    name="search"
+                />
+            </div>
+            <select
+                id="dashboardFilter"
+                class="filter-select"
+                hx-get="/api/dashboards"
+                hx-trigger="change"
+                hx-target="#dashboards-grid"
+                hx-include="#dashboardSearch"
+                name="tag"
+            >
+                <option value="" data-i18n="dashboards-filter-all">
+                    All Dashboards
+                </option>
+                <option value="sales" data-i18n="dashboards-filter-sales">
+                    Sales
+                </option>
+                <option
+                    value="marketing"
+                    data-i18n="dashboards-filter-marketing"
+                >
+                    Marketing
+                </option>
+                <option
+                    value="operations"
+                    data-i18n="dashboards-filter-operations"
+                >
+                    Operations
+                </option>
+                <option value="finance" data-i18n="dashboards-filter-finance">
+                    Finance
+                </option>
+                <option value="hr" data-i18n="dashboards-filter-hr">HR</option>
+            </select>
+            <button class="btn-primary" onclick="showCreateDashboardModal()">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span data-i18n="dashboards-create">New Dashboard</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="dashboards-layout">
+        <aside class="dashboards-sidebar">
+            <div class="sidebar-section">
+                <h3 data-i18n="dashboards-my-dashboards">My Dashboards</h3>
+                <nav
+                    class="dashboard-nav"
+                    hx-get="/api/dashboards?owner=me"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="loading-placeholder">
+                        <div class="skeleton-item"></div>
+                        <div class="skeleton-item"></div>
+                        <div class="skeleton-item"></div>
+                    </div>
+                </nav>
+            </div>
+            <div class="sidebar-section">
+                <h3 data-i18n="dashboards-shared">Shared With Me</h3>
+                <nav
+                    class="dashboard-nav shared-nav"
+                    hx-get="/api/dashboards?shared=true"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="loading-placeholder">
+                        <div class="skeleton-item"></div>
+                    </div>
+                </nav>
+            </div>
+            <div class="sidebar-section">
+                <h3 data-i18n="dashboards-templates">Templates</h3>
+                <nav
+                    class="dashboard-nav templates-nav"
+                    hx-get="/api/dashboards/templates"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="loading-placeholder">
+                        <div class="skeleton-item"></div>
+                        <div class="skeleton-item"></div>
+                    </div>
+                </nav>
+            </div>
+            <div class="sidebar-section data-sources-section">
+                <h3 data-i18n="dashboards-data-sources">Data Sources</h3>
+                <div
+                    class="data-sources-list"
+                    hx-get="/api/dashboards/sources"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="loading-placeholder">
+                        <div class="skeleton-item small"></div>
+                        <div class="skeleton-item small"></div>
+                    </div>
+                </div>
+                <button
+                    class="btn-link add-source-btn"
+                    onclick="showAddDataSourceModal()"
+                >
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span data-i18n="dashboards-add-source"
+                        >Add Data Source</span
+                    >
+                </button>
+            </div>
+        </aside>
+
+        <main class="dashboards-main">
+            <div
+                class="dashboards-grid"
+                id="dashboards-grid"
+                hx-get="/api/dashboards"
+                hx-trigger="load"
+                hx-swap="innerHTML"
+            >
+                <div class="grid-loading">
+                    <div class="dashboard-card-skeleton">
+                        <div class="skeleton-header"></div>
+                        <div class="skeleton-body">
+                            <div class="skeleton-chart"></div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-skeleton">
+                        <div class="skeleton-header"></div>
+                        <div class="skeleton-body">
+                            <div class="skeleton-chart"></div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-skeleton">
+                        <div class="skeleton-header"></div>
+                        <div class="skeleton-body">
+                            <div class="skeleton-chart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="dashboard-viewer"
+                id="dashboard-viewer"
+                style="display: none"
+            >
+                <div class="viewer-toolbar">
+                    <button
+                        class="btn-icon back-btn"
+                        onclick="closeDashboardViewer()"
+                    >
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path d="M19 12H5" />
+                            <path d="M12 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <h3 id="viewer-title">Dashboard</h3>
+                    <div class="viewer-actions">
+                        <select
+                            id="viewerDateRange"
+                            class="date-range-select"
+                            onchange="updateDashboardData()"
+                        >
+                            <option value="today" data-i18n="dashboards-today">
+                                Today
+                            </option>
+                            <option
+                                value="7d"
+                                selected
+                                data-i18n="dashboards-last-7d"
+                            >
+                                Last 7 Days
+                            </option>
+                            <option value="30d" data-i18n="dashboards-last-30d">
+                                Last 30 Days
+                            </option>
+                            <option value="90d" data-i18n="dashboards-last-90d">
+                                Last 90 Days
+                            </option>
+                            <option value="1y" data-i18n="dashboards-last-year">
+                                Last Year
+                            </option>
+                            <option
+                                value="custom"
+                                data-i18n="dashboards-custom-range"
+                            >
+                                Custom Range
+                            </option>
+                        </select>
+                        <button
+                            class="btn-icon"
+                            onclick="refreshDashboard()"
+                            title="Refresh"
+                        >
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"
+                                />
+                                <path d="M21 3v5h-5" />
+                            </svg>
+                        </button>
+                        <button
+                            class="btn-icon"
+                            onclick="editDashboard()"
+                            title="Edit"
+                        >
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                                />
+                                <path
+                                    d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                                />
+                            </svg>
+                        </button>
+                        <button
+                            class="btn-icon"
+                            onclick="shareDashboard()"
+                            title="Share"
+                        >
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="18" cy="5" r="3" />
+                                <circle cx="6" cy="12" r="3" />
+                                <circle cx="18" cy="19" r="3" />
+                                <line
+                                    x1="8.59"
+                                    y1="13.51"
+                                    x2="15.42"
+                                    y2="17.49"
+                                />
+                                <line
+                                    x1="15.41"
+                                    y1="6.51"
+                                    x2="8.59"
+                                    y2="10.49"
+                                />
+                            </svg>
+                        </button>
+                        <button
+                            class="btn-icon"
+                            onclick="exportDashboard()"
+                            title="Export"
+                        >
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                                />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="viewer-content" id="viewer-content"></div>
+            </div>
+
+            <div class="conversational-query" id="conversational-query">
+                <div class="query-header">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <span data-i18n="dashboards-ask-data"
+                        >Ask about your data</span
+                    >
+                </div>
+                <div class="query-input-wrapper">
+                    <input
+                        type="text"
+                        id="naturalLanguageQuery"
+                        placeholder="e.g., Show me sales by region for last quarter..."
+                        data-i18n-placeholder="dashboards-query-placeholder"
+                    />
+                    <button
+                        class="query-submit-btn"
+                        hx-post="/api/dashboards/query"
+                        hx-target="#query-results"
+                        hx-include="#naturalLanguageQuery, #queryDataSource"
+                        hx-indicator="#query-loading"
+                    >
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <line x1="22" y1="2" x2="11" y2="13" />
+                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                        </svg>
+                    </button>
+                </div>
+                <select id="queryDataSource" class="query-source-select">
+                    <option value="" data-i18n="dashboards-all-sources">
+                        All Data Sources
+                    </option>
+                </select>
+                <div id="query-loading" class="query-loading htmx-indicator">
+                    <div class="loading-spinner small"></div>
+                    <span data-i18n="dashboards-analyzing"
+                        >Analyzing your data...</span
+                    >
+                </div>
+                <div id="query-results" class="query-results"></div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal" id="createDashboardModal" style="display: none">
+        <div class="modal-backdrop" onclick="closeCreateDashboardModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="dashboards-create-title">
+                    Create New Dashboard
+                </h3>
+                <button
+                    class="modal-close"
+                    onclick="closeCreateDashboardModal()"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <form
+                id="createDashboardForm"
+                hx-post="/api/dashboards"
+                hx-target="#dashboards-grid"
+                hx-swap="innerHTML"
+                hx-on::after-request="closeCreateDashboardModal()"
+            >
+                <div class="form-group">
+                    <label for="dashboardName" data-i18n="dashboards-name"
+                        >Name</label
+                    >
+                    <input
+                        type="text"
+                        id="dashboardName"
+                        name="name"
+                        required
+                        placeholder="My Dashboard"
+                        data-i18n-placeholder="dashboards-name-placeholder"
+                    />
+                </div>
+                <div class="form-group">
+                    <label
+                        for="dashboardDescription"
+                        data-i18n="dashboards-description"
+                        >Description</label
+                    >
+                    <textarea
+                        id="dashboardDescription"
+                        name="description"
+                        rows="3"
+                        placeholder="Describe what this dashboard shows..."
+                        data-i18n-placeholder="dashboards-description-placeholder"
+                    ></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label
+                            for="dashboardLayout"
+                            data-i18n="dashboards-layout"
+                            >Layout</label
+                        >
+                        <select id="dashboardLayout" name="layout">
+                            <option
+                                value="grid-12"
+                                data-i18n="dashboards-layout-12col"
+                            >
+                                12 Columns
+                            </option>
+                            <option
+                                value="grid-6"
+                                data-i18n="dashboards-layout-6col"
+                            >
+                                6 Columns
+                            </option>
+                            <option
+                                value="grid-4"
+                                data-i18n="dashboards-layout-4col"
+                            >
+                                4 Columns
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dashboardTags" data-i18n="dashboards-tags"
+                            >Tags</label
+                        >
+                        <input
+                            type="text"
+                            id="dashboardTags"
+                            name="tags"
+                            placeholder="sales, marketing"
+                            data-i18n-placeholder="dashboards-tags-placeholder"
+                        />
+                    </div>
+                </div>
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input
+                            type="checkbox"
+                            id="dashboardPublic"
+                            name="is_public"
+                        />
+                        <span data-i18n="dashboards-public"
+                            >Make dashboard public</span
+                        >
+                    </label>
+                </div>
+                <div class="form-group template-selection">
+                    <label data-i18n="dashboards-start-from">Start from</label>
+                    <div class="template-options">
+                        <button
+                            type="button"
+                            class="template-option active"
+                            data-template="blank"
+                        >
+                            <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                />
+                                <line x1="12" y1="8" x2="12" y2="16" />
+                                <line x1="8" y1="12" x2="16" y2="12" />
+                            </svg>
+                            <span data-i18n="dashboards-blank">Blank</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="template-option"
+                            data-template="sales"
+                        >
+                            <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <line x1="12" y1="20" x2="12" y2="10" />
+                                <line x1="18" y1="20" x2="18" y2="4" />
+                                <line x1="6" y1="20" x2="6" y2="14" />
+                            </svg>
+                            <span data-i18n="dashboards-sales-template"
+                                >Sales</span
+                            >
+                        </button>
+                        <button
+                            type="button"
+                            class="template-option"
+                            data-template="marketing"
+                        >
+                            <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path
+                                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                                />
+                            </svg>
+                            <span data-i18n="dashboards-marketing-template"
+                                >Marketing</span
+                            >
+                        </button>
+                        <button
+                            type="button"
+                            class="template-option"
+                            data-template="operations"
+                        >
+                            <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <circle cx="12" cy="12" r="3" />
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                />
+                            </svg>
+                            <span data-i18n="dashboards-operations-template"
+                                >Operations</span
+                            >
+                        </button>
+                    </div>
+                    <input
+                        type="hidden"
+                        id="selectedTemplate"
+                        name="template"
+                        value="blank"
+                    />
+                </div>
+                <div class="modal-footer">
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="closeCreateDashboardModal()"
+                        data-i18n="action-cancel"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        class="btn-primary"
+                        data-i18n="action-create"
+                    >
+                        Create Dashboard
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="addDataSourceModal" style="display: none">
+        <div class="modal-backdrop" onclick="closeAddDataSourceModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="dashboards-add-data-source">Add Data Source</h3>
+                <button class="modal-close" onclick="closeAddDataSourceModal()">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <form
+                id="addDataSourceForm"
+                hx-post="/api/dashboards/sources"
+                hx-target=".data-sources-list"
+                hx-swap="innerHTML"
+                hx-on::after-request="closeAddDataSourceModal()"
+            >
+                <div class="form-group">
+                    <label for="sourceName" data-i18n="dashboards-source-name"
+                        >Name</label
+                    >
+                    <input
+                        type="text"
+                        id="sourceName"
+                        name="name"
+                        required
+                        placeholder="My Database"
+                        data-i18n-placeholder="dashboards-source-name-placeholder"
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="sourceType" data-i18n="dashboards-source-type"
+                        >Type</label
+                    >
+                    <select
+                        id="sourceType"
+                        name="source_type"
+                        required
+                        onchange="updateConnectionFields()"
+                    >
+                        <option value="" data-i18n="dashboards-select-type">
+                            Select type...
+                        </option>
+                        <optgroup
+                            label="Databases"
+                            data-i18n-label="dashboards-databases"
+                        >
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="sqlserver">SQL Server</option>
+                            <option value="mongodb">MongoDB</option>
+                        </optgroup>
+                        <optgroup
+                            label="Cloud Data Warehouses"
+                            data-i18n-label="dashboards-warehouses"
+                        >
+                            <option value="bigquery">BigQuery</option>
+                            <option value="snowflake">Snowflake</option>
+                            <option value="redshift">Redshift</option>
+                        </optgroup>
+                        <optgroup
+                            label="APIs"
+                            data-i18n-label="dashboards-apis"
+                        >
+                            <option value="rest_api">REST API</option>
+                            <option value="graphql_api">GraphQL API</option>
+                        </optgroup>
+                        <optgroup
+                            label="Files"
+                            data-i18n-label="dashboards-files"
+                        >
+                            <option value="csv">CSV</option>
+                            <option value="excel">Excel</option>
+                            <option value="google_sheets">Google Sheets</option>
+                        </optgroup>
+                        <optgroup
+                            label="Internal"
+                            data-i18n-label="dashboards-internal"
+                        >
+                            <option value="internal_tables">
+                                Internal Tables
+                            </option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div id="connectionFields" class="connection-fields"></div>
+                <div class="form-group">
+                    <label
+                        for="sourceDescription"
+                        data-i18n="dashboards-source-description"
+                        >Description</label
+                    >
+                    <textarea
+                        id="sourceDescription"
+                        name="description"
+                        rows="2"
+                        placeholder="Optional description..."
+                        data-i18n-placeholder="dashboards-source-description-placeholder"
+                    ></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="testDataSourceConnection()"
+                        data-i18n="dashboards-test-connection"
+                    >
+                        Test Connection
+                    </button>
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="closeAddDataSourceModal()"
+                        data-i18n="action-cancel"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        class="btn-primary"
+                        data-i18n="action-add"
+                    >
+                        Add Source
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="addWidgetModal" style="display: none">
+        <div class="modal-backdrop" onclick="closeAddWidgetModal()"></div>
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 data-i18n="dashboards-add-widget">Add Widget</h3>
+                <button class="modal-close" onclick="closeAddWidgetModal()">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="widget-type-grid">
+                <div class="widget-category">
+                    <h4 data-i18n="dashboards-charts">Charts</h4>
+                    <div class="widget-options">
+                        <button
+                            class="widget-option"
+                            data-type="line_chart"
+                            onclick="selectWidgetType('line_chart')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path d="M3 3v18h18" />
+                                <path d="M7 16l4-4 4 4 5-6" />
+                            </svg>
+                            <span>Line Chart</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="bar_chart"
+                            onclick="selectWidgetType('bar_chart')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <line x1="12" y1="20" x2="12" y2="10" />
+                                <line x1="18" y1="20" x2="18" y2="4" />
+                                <line x1="6" y1="20" x2="6" y2="14" />
+                            </svg>
+                            <span>Bar Chart</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="pie_chart"
+                            onclick="selectWidgetType('pie_chart')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+                                <path d="M22 12A10 10 0 0 0 12 2v10z" />
+                            </svg>
+                            <span>Pie Chart</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="area_chart"
+                            onclick="selectWidgetType('area_chart')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path d="M3 3v18h18" />
+                                <path
+                                    d="M7 16l4-4 4 4 5-6v10H7z"
+                                    fill="currentColor"
+                                    opacity="0.2"
+                                />
+                                <path d="M7 16l4-4 4 4 5-6" />
+                            </svg>
+                            <span>Area Chart</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="scatter_plot"
+                            onclick="selectWidgetType('scatter_plot')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path d="M3 3v18h18" />
+                                <circle
+                                    cx="9"
+                                    cy="9"
+                                    r="2"
+                                    fill="currentColor"
+                                />
+                                <circle
+                                    cx="15"
+                                    cy="7"
+                                    r="2"
+                                    fill="currentColor"
+                                />
+                                <circle
+                                    cx="12"
+                                    cy="14"
+                                    r="2"
+                                    fill="currentColor"
+                                />
+                                <circle
+                                    cx="18"
+                                    cy="12"
+                                    r="2"
+                                    fill="currentColor"
+                                />
+                            </svg>
+                            <span>Scatter Plot</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-category">
+                    <h4 data-i18n="dashboards-data-display">Data Display</h4>
+                    <div class="widget-options">
+                        <button
+                            class="widget-option"
+                            data-type="kpi"
+                            onclick="selectWidgetType('kpi')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                />
+                                <path d="M7 12h10M12 7v10" />
+                            </svg>
+                            <span>KPI Card</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="table"
+                            onclick="selectWidgetType('table')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                />
+                                <line x1="3" y1="9" x2="21" y2="9" />
+                                <line x1="3" y1="15" x2="21" y2="15" />
+                                <line x1="9" y1="3" x2="9" y2="21" />
+                            </svg>
+                            <span>Table</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="gauge"
+                            onclick="selectWidgetType('gauge')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path d="M12 2a10 10 0 0 0-7.07 17.07" />
+                                <path d="M12 2a10 10 0 0 1 7.07 17.07" />
+                                <circle cx="12" cy="12" r="2" />
+                                <path d="M12 12l4-4" />
+                            </svg>
+                            <span>Gauge</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="map"
+                            onclick="selectWidgetType('map')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <polygon
+                                    points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"
+                                />
+                                <line x1="8" y1="2" x2="8" y2="18" />
+                                <line x1="16" y1="6" x2="16" y2="22" />
+                            </svg>
+                            <span>Map</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-category">
+                    <h4 data-i18n="dashboards-content">Content</h4>
+                    <div class="widget-options">
+                        <button
+                            class="widget-option"
+                            data-type="text"
+                            onclick="selectWidgetType('text')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <polyline points="4 7 4 4 20 4 20 7" />
+                                <line x1="9" y1="20" x2="15" y2="20" />
+                                <line x1="12" y1="4" x2="12" y2="20" />
+                            </svg>
+                            <span>Text</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="image"
+                            onclick="selectWidgetType('image')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                    ry="2"
+                                />
+                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                            <span>Image</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="iframe"
+                            onclick="selectWidgetType('iframe')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                />
+                                <line x1="3" y1="9" x2="21" y2="9" />
+                                <circle
+                                    cx="6"
+                                    cy="6"
+                                    r="1"
+                                    fill="currentColor"
+                                />
+                                <circle
+                                    cx="9"
+                                    cy="6"
+                                    r="1"
+                                    fill="currentColor"
+                                />
+                            </svg>
+                            <span>Embed</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-category">
+                    <h4 data-i18n="dashboards-filters">Filters</h4>
+                    <div class="widget-options">
+                        <button
+                            class="widget-option"
+                            data-type="filter"
+                            onclick="selectWidgetType('filter')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <polygon
+                                    points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"
+                                />
+                            </svg>
+                            <span>Filter</span>
+                        </button>
+                        <button
+                            class="widget-option"
+                            data-type="date_range"
+                            onclick="selectWidgetType('date_range')"
+                        >
+                            <svg
+                                width="40"
+                                height="40"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <rect
+                                    x="3"
+                                    y="4"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                    ry="2"
+                                />
+                                <line x1="16" y1="2" x2="16" y2="6" />
+                                <line x1="8" y1="2" x2="8" y2="6" />
+                                <line x1="3" y1="10" x2="21" y2="10" />
+                            </svg>
+                            <span>Date Range</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="closeAddWidgetModal()"
+                    data-i18n="action-cancel"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentDashboardId = null;
+    let editMode = false;
+
+    function showCreateDashboardModal() {
+        document.getElementById("createDashboardModal").style.display = "flex";
+    }
+
+    function closeCreateDashboardModal() {
+        document.getElementById("createDashboardModal").style.display = "none";
+        document.getElementById("createDashboardForm").reset();
+    }
+
+    function showAddDataSourceModal() {
+        document.getElementById("addDataSourceModal").style.display = "flex";
+    }
+
+    function closeAddDataSourceModal() {
+        document.getElementById("addDataSourceModal").style.display = "none";
+        document.getElementById("addDataSourceForm").reset();
+        document.getElementById("connectionFields").innerHTML = "";
+    }
+
+    function showAddWidgetModal() {
+        document.getElementById("addWidgetModal").style.display = "flex";
+    }
+
+    function closeAddWidgetModal() {
+        document.getElementById("addWidgetModal").style.display = "none";
+    }
+
+    function selectWidgetType(type) {
+        closeAddWidgetModal();
+        if (currentDashboardId) {
+            htmx.ajax("POST", `/api/dashboards/${currentDashboardId}/widgets`, {
+                target: "#viewer-content",
+                swap: "innerHTML",
+                values: {
+                    widget_type: type,
+                    title: `New ${type.replace("_", " ")}`,
+                },
+            });
+        }
+    }
+
+    function openDashboard(id, name) {
+        currentDashboardId = id;
+        document.getElementById("viewer-title").textContent = name;
+        document.getElementById("dashboards-grid").style.display = "none";
+        document.getElementById("dashboard-viewer").style.display = "block";
+        htmx.ajax("GET", `/api/dashboards/${id}`, {
+            target: "#viewer-content",
+            swap: "innerHTML",
+        });
+    }
+
+    function closeDashboardViewer() {
+        currentDashboardId = null;
+        document.getElementById("dashboard-viewer").style.display = "none";
+        document.getElementById("dashboards-grid").style.display = "grid";
+    }
+
+    function refreshDashboard() {
+        if (currentDashboardId) {
+            htmx.ajax("GET", `/api/dashboards/${currentDashboardId}`, {
+                target: "#viewer-content",
+                swap: "innerHTML",
+            });
+        }
+    }
+
+    function updateDashboardData() {
+        const range = document.getElementById("viewerDateRange").value;
+        if (currentDashboardId) {
+            htmx.ajax(
+                "GET",
+                `/api/dashboards/${currentDashboardId}?range=${range}`,
+                {
+                    target: "#viewer-content",
+                    swap: "innerHTML",
+                },
+            );
+        }
+    }
+
+    function editDashboard() {
+        editMode = !editMode;
+        const viewer = document.getElementById("viewer-content");
+        if (editMode) {
+            viewer.classList.add("edit-mode");
+            showAddWidgetModal();
+        } else {
+            viewer.classList.remove("edit-mode");
+        }
+    }
+
+    function shareDashboard() {
+        if (currentDashboardId) {
+            const url = `${window.location.origin}/dashboards/${currentDashboardId}`;
+            navigator.clipboard.writeText(url).then(() => {
+                showNotification(
+                    "Dashboard link copied to clipboard!",
+                    "success",
+                );
+            });
+        }
+    }
+
+    function exportDashboard() {
+        if (currentDashboardId) {
+            window.open(
+                `/api/dashboards/${currentDashboardId}/export?format=pdf`,
+                "_blank",
+            );
+        }
+    }
+
+    function updateConnectionFields() {
+        const type = document.getElementById("sourceType").value;
+        const container = document.getElementById("connectionFields");
+
+        const dbFields = `
+        <div class="form-row">
+            <div class="form-group">
+                <label for="connHost" data-i18n="dashboards-host">Host</label>
+                <input type="text" id="connHost" name="connection.host" placeholder="localhost"/>
+            </div>
+            <div class="form-group">
+                <label for="connPort" data-i18n="dashboards-port">Port</label>
+                <input type="number" id="connPort" name="connection.port" placeholder="5432"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="connDatabase" data-i18n="dashboards-database">Database</label>
+            <input type="text" id="connDatabase" name="connection.database" required/>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="connUsername" data-i18n="dashboards-username">Username</label>
+                <input type="text" id="connUsername" name="connection.username"/>
+            </div>
+            <div class="form-group">
+                <label for="connPassword" data-i18n="dashboards-password">Password</label>
+                <input type="password" id="connPassword" name="connection.password"/>
+            </div>
+        </div>
+        <div class="form-group checkbox-group">
+            <label>
+                <input type="checkbox" id="connSsl" name="connection.ssl"/>
+                <span data-i18n="dashboards-use-ssl">Use SSL</span>
+            </label>
+        </div>
+    `;
+
+        const apiFields = `
+        <div class="form-group">
+            <label for="connUrl" data-i18n="dashboards-api-url">API URL</label>
+            <input type="url" id="connUrl" name="connection.url" required placeholder="https://api.example.com"/>
+        </div>
+        <div class="form-group">
+            <label for="connApiKey" data-i18n="dashboards-api-key">API Key</label>
+            <input type="password" id="connApiKey" name="connection.api_key"/>
+        </div>
+    `;
+
+        const fileFields = `
+        <div class="form-group">
+            <label for="connUrl" data-i18n="dashboards-file-url">File URL or Path</label>
+            <input type="text" id="connUrl" name="connection.url" required placeholder="/path/to/file.csv or https://..."/>
+        </div>
+    `;
+
+        if (["postgresql", "mysql", "sqlserver", "mongodb"].includes(type)) {
+            container.innerHTML = dbFields;
+        } else if (["rest_api", "graphql_api"].includes(type)) {
+            container.innerHTML = apiFields;
+        } else if (["csv", "excel", "google_sheets"].includes(type)) {
+            container.innerHTML = fileFields;
+        } else if (["bigquery", "snowflake", "redshift"].includes(type)) {
+            container.innerHTML = `
+            <div class="form-group">
+                <label for="connString" data-i18n="dashboards-connection-string">Connection String</label>
+                <textarea id="connString" name="connection.connection_string" rows="3" required></textarea>
+            </div>
+        `;
+        } else {
+            container.innerHTML = "";
+        }
+    }
+
+    function testDataSourceConnection() {
+        const form = document.getElementById("addDataSourceForm");
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        htmx.ajax("POST", "/api/dashboards/sources/test", {
+            target: "#connectionFields",
+            swap: "beforeend",
+            values: data,
+        });
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement("div");
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+
+    document.querySelectorAll(".template-option").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            document
+                .querySelectorAll(".template-option")
+                .forEach((b) => b.classList.remove("active"));
+            this.classList.add("active");
+            document.getElementById("selectedTemplate").value =
+                this.dataset.template;
+        });
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+            closeCreateDashboardModal();
+            closeAddDataSourceModal();
+            closeAddWidgetModal();
+            if (currentDashboardId && !editMode) {
+                closeDashboardViewer();
+            }
+        }
+    });
+</script>

@@ -1,0 +1,54 @@
+name: GBCI
+
+on:
+  workflow_dispatch:
+  # Disabled auto-trigger - enable when needed
+  # push:
+  #   branches: ["main"]
+  # pull_request:
+  #   branches: ["main"]
+
+jobs:
+  build:
+    runs-on: gbo
+
+    steps:
+      - name: Disable SSL verification (temporary)
+        run: git config --global http.sslVerify false
+
+      - uses: actions/checkout@v4
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-botlib-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-botlib-
+
+      - name: Install Rust
+        uses: msrd0/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build library (default features)
+        run: cargo build --locked
+
+      - name: Build library (full features)
+        run: cargo build --locked --features full
+
+      - name: Run tests
+        run: cargo test --locked --features full
+
+      - name: Build release
+        run: cargo build --locked --release --features full
+
+      - name: Deploy library
+        run: |
+          sudo mkdir -p /opt/gbo/lib/botlib
+          sudo cp ./target/release/libbotlib.rlib /opt/gbo/lib/botlib/ || true
+          sudo cp ./target/release/libbotlib.a /opt/gbo/lib/botlib/ || true
+          sudo cp ./target/release/libbotlib.so /opt/gbo/lib/botlib/ || true

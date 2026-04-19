@@ -1,0 +1,173 @@
+<svg width="750" height="400" viewBox="0 0 750 400" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <!-- Define gradients and effects -->
+  <defs>
+    <!-- Beautiful gradients with vibrant colors -->
+    <linearGradient id="userQueryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:0.4" />
+    </linearGradient>
+
+    <linearGradient id="keyGenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:0.4" />
+    </linearGradient>
+
+    <linearGradient id="valkeyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#ee5a24;stop-opacity:0.4" />
+    </linearGradient>
+
+    <linearGradient id="embedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:0.4" />
+    </linearGradient>
+
+    <linearGradient id="semanticGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#43e97b;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#38f9d7;stop-opacity:0.4" />
+    </linearGradient>
+
+    <linearGradient id="generateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fa709a;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#fee140;stop-opacity:0.4" />
+    </linearGradient>
+
+    <linearGradient id="storeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#30cfd0;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#330867;stop-opacity:0.4" />
+    </linearGradient>
+
+    <!-- Hit path gradient -->
+    <linearGradient id="hitPathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#34d399;stop-opacity:0.4" />
+    </linearGradient>
+
+    <!-- Miss path gradient -->
+    <linearGradient id="missPathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:0.4" />
+    </linearGradient>
+
+    <!-- Improved arrow marker with color -->
+    <marker id="arrowCache" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#4a5568" opacity="0.8"/>
+    </marker>
+
+    <marker id="arrowHit" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#10b981" opacity="0.9"/>
+    </marker>
+
+    <marker id="arrowMiss" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#f59e0b" opacity="0.9"/>
+    </marker>
+
+    <!-- Drop shadow effect -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="3" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Glow effect for decision diamond -->
+    <filter id="glowEffect" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="750" height="400" fill="#fafafa"/>
+
+  <!-- Title with better padding -->
+  <rect x="200" y="10" width="350" height="35" fill="rgba(99, 102, 241, 0.05)" rx="8"/>
+  <text x="375" y="33" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#1e293b">
+    Semantic Caching Architecture
+  </text>
+
+  <!-- User Query -->
+  <rect x="50" y="70" width="130" height="45" fill="url(#userQueryGrad)" stroke="#667eea" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="115" y="95" text-anchor="middle" font-family="system-ui" sans-serif" font-size="20" font-weight="600" fill="#1e293b">User Query</text>
+  <text x="115" y="108" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">"What's the policy?"</text>
+
+  <!-- Arrow to Generate Key -->
+  <path d="M 180 92 L 220 92" stroke="#4a5568" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7"/>
+
+  <!-- Generate Key -->
+  <rect x="220" y="70" width="130" height="45" fill="url(#keyGenGrad)" stroke="#f5576c" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="285" y="95" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">Generate Key</text>
+  <text x="285" y="108" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">Hash + Embed</text>
+
+  <!-- Arrow to Check Valkey -->
+  <path d="M 350 92 L 390 92" stroke="#4a5568" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7"/>
+
+  <!-- Check Valkey -->
+  <rect x="390" y="70" width="130" height="45" fill="url(#valkeyGrad)" stroke="#ee5a24" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="455" y="95" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">Check Valkey</text>
+  <text x="455" y="108" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">Memory Store</text>
+
+  <!-- Arrow to Decision -->
+  <path d="M 520 92 L 560 92" stroke="#4a5568" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7"/>
+
+  <!-- Hit/Miss Decision Diamond with glow -->
+  <g filter="url(#glowEffect)">
+    <path d="M 610 70 L 650 92 L 610 114 L 570 92 Z" fill="rgba(139, 92, 246, 0.2)" stroke="#8b5cf6" stroke-width="2.5"/>
+    <text x="610" y="97" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="#1e293b">Hit?</text>
+  </g>
+
+  <!-- Arrow down from Generate Key to Embedding -->
+  <path d="M 285 115 L 285 160" stroke="#4a5568" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7"/>
+
+  <!-- Embedding Hash -->
+  <rect x="210" y="160" width="150" height="45" fill="url(#embedGrad)" stroke="#00f2fe" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="285" y="185" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">Embedding Hash</text>
+  <text x="285" y="198" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">384D Vector</text>
+
+  <!-- Arrow down from Embedding Hash -->
+  <path d="M 285 205 L 285 250" stroke="#4a5568" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7"/>
+
+  <!-- Semantic Search -->
+  <rect x="210" y="250" width="150" height="45" fill="url(#semanticGrad)" stroke="#38f9d7" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="285" y="275" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">Semantic Search</text>
+  <text x="285" y="288" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">Similarity > 0.95</text>
+
+  <!-- Cache Hit path (success) -->
+  <path d="M 610 70 L 610 40 L 455 40" stroke="url(#hitPathGrad)" stroke-width="3" fill="none" opacity="0.8" stroke-linecap="round"/>
+  <rect x="330" y="25" width="125" height="30" fill="rgba(16, 185, 129, 0.1)" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2" rx="6"/>
+  <text x="392" y="44" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#047857">✓ Cache Hit</text>
+
+  <!-- Miss path -->
+  <path d="M 610 114 L 610 160" stroke="url(#missPathGrad)" stroke-width="3" fill="none" marker-end="url(#arrowMiss)" opacity="0.8" stroke-linecap="round"/>
+  <text x="630" y="140" text-anchor="start" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#d97706">Miss</text>
+
+  <!-- Generate New Response -->
+  <rect x="530" y="160" width="150" height="45" fill="url(#generateGrad)" stroke="#fa709a" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="605" y="185" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">Generate New</text>
+  <text x="605" y="198" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">LLM Response</text>
+
+  <!-- Arrow down from Generate New -->
+  <path d="M 605 205 L 605 250" stroke="#4a5568" stroke-width="2.5" fill="none" marker-end="url(#arrowCache)" opacity="0.7"/>
+
+  <!-- Store in Valkey -->
+  <rect x="510" y="250" width="190" height="45" fill="url(#storeGrad)" stroke="#330867" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="605" y="270" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">Store in Valkey</text>
+  <text x="605" y="285" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">TTL: 3600s</text>
+
+  <!-- Performance Metrics Box -->
+  <rect x="50" y="320" width="650" height="60" fill="rgba(99, 102, 241, 0.05)" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="6,3" rx="8"/>
+  <text x="375" y="343" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">
+    Performance Metrics
+  </text>
+  <text x="200" y="365" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">Hit Rate: ~85%</text>
+  <text x="375" y="365" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">Latency: &lt;50ms</text>
+  <text x="550" y="365" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">Cost Reduction: 95%</text>
+</svg>

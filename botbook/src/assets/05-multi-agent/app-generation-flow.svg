@@ -1,0 +1,199 @@
+<svg width="900" height="520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#EC4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F472B6;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6"/>
+    </marker>
+
+    <marker id="arrowDown" markerWidth="10" markerHeight="10" refX="3" refY="9" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,0 L3,9 z" fill="#8B5CF6"/>
+    </marker>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="520" fill="#FAFBFC"/>
+  <rect width="900" height="520" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="600" class="title-text">App Generation Flow</text>
+  <text x="450" y="55" text-anchor="middle" font-size="12" class="secondary-text">From Natural Language Request to Complete Application</text>
+
+  <!-- Step 1: User Request -->
+  <g transform="translate(40, 80)">
+    <rect width="250" height="120" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="250" height="40" rx="12" fill="url(#primaryGrad)"/>
+    <rect y="28" width="250" height="12" fill="url(#primaryGrad)"/>
+    <text x="125" y="28" text-anchor="middle" font-size="13" font-weight="600" class="white-text">1. User Describes App</text>
+
+    <!-- Chat bubble -->
+    <rect x="15" y="52" width="220" height="55" rx="8" fill="#EEF2FF" stroke="#C7D2FE"/>
+    <text x="125" y="72" text-anchor="middle" font-size="9" class="main-text">"cria um CRM para minha loja</text>
+    <text x="125" y="85" text-anchor="middle" font-size="9" class="main-text">com clientes, produtos e vendas"</text>
+    <text x="205" y="100" text-anchor="end" font-size="8" class="secondary-text">10:30</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <line x1="295" y1="140" x2="335" y2="140" stroke="#8B5CF6" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- Step 2: Analysis -->
+  <g transform="translate(340, 80)">
+    <rect width="220" height="120" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="220" height="40" rx="12" fill="url(#cyanGrad)"/>
+    <rect y="28" width="220" height="12" fill="url(#cyanGrad)"/>
+    <text x="110" y="28" text-anchor="middle" font-size="13" font-weight="600" class="white-text">2. Intent Analysis</text>
+
+    <text x="15" y="65" font-size="9" class="secondary-text">Extracted:</text>
+    <text x="15" y="82" font-size="9" class="main-text">• Domain: retail/CRM</text>
+    <text x="15" y="97" font-size="9" class="main-text">• Entities: customers, products, sales</text>
+    <text x="15" y="112" font-size="9" class="main-text">• Features: CRUD, relationships</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <line x1="565" y1="140" x2="605" y2="140" stroke="#8B5CF6" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- Step 3: Plan -->
+  <g transform="translate(610, 80)">
+    <rect width="250" height="120" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="250" height="40" rx="12" fill="url(#orangeGrad)"/>
+    <rect y="28" width="250" height="12" fill="url(#orangeGrad)"/>
+    <text x="125" y="28" text-anchor="middle" font-size="13" font-weight="600" class="white-text">3. Execution Plan</text>
+
+    <text x="15" y="65" font-size="9" class="main-text">Step 1: Create database tables</text>
+    <text x="15" y="80" font-size="9" class="main-text">Step 2: Generate web pages</text>
+    <text x="15" y="95" font-size="9" class="main-text">Step 3: Create voice tools</text>
+    <text x="15" y="110" font-size="9" class="main-text">Step 4: Setup schedulers</text>
+  </g>
+
+  <!-- Central arrow down -->
+  <line x1="450" y1="205" x2="450" y2="240" stroke="#8B5CF6" stroke-width="2" marker-end="url(#arrowDown)"/>
+
+  <!-- Generated Outputs Section -->
+  <g transform="translate(40, 250)">
+    <rect width="820" height="250" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="820" height="40" rx="12" fill="url(#greenGrad)"/>
+    <rect y="28" width="820" height="12" fill="url(#greenGrad)"/>
+    <text x="410" y="28" text-anchor="middle" font-size="14" font-weight="600" class="white-text">4. Generated Output</text>
+
+    <!-- Tables output -->
+    <g transform="translate(20, 55)">
+      <rect width="185" height="180" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <rect width="185" height="30" rx="8" fill="#EEF2FF" stroke="#C7D2FE"/>
+      <rect y="22" width="185" height="8" fill="#EEF2FF"/>
+      <text x="92" y="22" text-anchor="middle" font-size="11" font-weight="500" class="main-text">📊 tables.bas</text>
+
+      <rect x="10" y="40" width="165" height="130" rx="4" fill="#1E1B4B"/>
+      <text x="20" y="58" font-size="8" fill="#A5B4FC" font-family="monospace">TABLE customers</text>
+      <text x="20" y="72" font-size="8" fill="#94A3B8" font-family="monospace">  name AS STRING</text>
+      <text x="20" y="86" font-size="8" fill="#94A3B8" font-family="monospace">  phone AS STRING</text>
+      <text x="20" y="100" font-size="8" fill="#A5B4FC" font-family="monospace">END TABLE</text>
+      <text x="20" y="118" font-size="8" fill="#A5B4FC" font-family="monospace">TABLE products</text>
+      <text x="20" y="132" font-size="8" fill="#94A3B8" font-family="monospace">  name AS STRING</text>
+      <text x="20" y="146" font-size="8" fill="#94A3B8" font-family="monospace">  price AS DECIMAL</text>
+      <text x="20" y="160" font-size="8" fill="#A5B4FC" font-family="monospace">END TABLE</text>
+    </g>
+
+    <!-- Web App output -->
+    <g transform="translate(220, 55)">
+      <rect width="185" height="180" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <rect width="185" height="30" rx="8" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <rect y="22" width="185" height="8" fill="#ECFDF5"/>
+      <text x="92" y="22" text-anchor="middle" font-size="11" font-weight="500" class="main-text">📱 Web App</text>
+
+      <text x="15" y="55" font-size="9" class="secondary-text">/apps/crm-loja/</text>
+      <rect x="10" y="65" width="165" height="22" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="92" y="80" text-anchor="middle" font-size="9" class="mono-text">index.html</text>
+      <rect x="10" y="92" width="165" height="22" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="92" y="107" text-anchor="middle" font-size="9" class="mono-text">customers.html</text>
+      <rect x="10" y="119" width="165" height="22" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="92" y="134" text-anchor="middle" font-size="9" class="mono-text">products.html</text>
+      <rect x="10" y="146" width="165" height="22" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="92" y="161" text-anchor="middle" font-size="9" class="mono-text">sales.html</text>
+    </g>
+
+    <!-- Tools output -->
+    <g transform="translate(420, 55)">
+      <rect width="185" height="180" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <rect width="185" height="30" rx="8" fill="#FEF3C7" stroke="#FCD34D"/>
+      <rect y="22" width="185" height="8" fill="#FEF3C7"/>
+      <text x="92" y="22" text-anchor="middle" font-size="11" font-weight="500" class="main-text">🔧 Voice Tools</text>
+
+      <text x="15" y="55" font-size="9" class="secondary-text">tools/</text>
+      <rect x="10" y="65" width="165" height="35" rx="4" fill="#FEF3C7" stroke="#FCD34D"/>
+      <text x="92" y="80" text-anchor="middle" font-size="9" class="mono-text">buscar-cliente.bas</text>
+      <text x="92" y="93" text-anchor="middle" font-size="7" class="secondary-text">"buscar cliente, encontrar..."</text>
+
+      <rect x="10" y="105" width="165" height="35" rx="4" fill="#FEF3C7" stroke="#FCD34D"/>
+      <text x="92" y="120" text-anchor="middle" font-size="9" class="mono-text">nova-venda.bas</text>
+      <text x="92" y="133" text-anchor="middle" font-size="7" class="secondary-text">"nova venda, registrar..."</text>
+
+      <rect x="10" y="145" width="165" height="27" rx="4" fill="#FEF3C7" stroke="#FCD34D"/>
+      <text x="92" y="162" text-anchor="middle" font-size="9" class="mono-text">+ more tools...</text>
+    </g>
+
+    <!-- Schedulers output -->
+    <g transform="translate(620, 55)">
+      <rect width="185" height="180" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <rect width="185" height="30" rx="8" fill="#FCE7F3" stroke="#F9A8D4"/>
+      <rect y="22" width="185" height="8" fill="#FCE7F3"/>
+      <text x="92" y="22" text-anchor="middle" font-size="11" font-weight="500" class="main-text">⏰ Schedulers</text>
+
+      <text x="15" y="55" font-size="9" class="secondary-text">schedulers/</text>
+      <rect x="10" y="65" width="165" height="50" rx="4" fill="#FCE7F3" stroke="#F9A8D4"/>
+      <text x="92" y="82" text-anchor="middle" font-size="9" class="mono-text">alerta-estoque.bas</text>
+      <text x="92" y="97" text-anchor="middle" font-size="7" class="secondary-text">SET SCHEDULE "0 9 * * *"</text>
+      <text x="92" y="108" text-anchor="middle" font-size="7" class="secondary-text">Daily stock check at 9am</text>
+
+      <rect x="10" y="120" width="165" height="50" rx="4" fill="#FCE7F3" stroke="#F9A8D4"/>
+      <text x="92" y="137" text-anchor="middle" font-size="9" class="mono-text">relatorio-diario.bas</text>
+      <text x="92" y="152" text-anchor="middle" font-size="7" class="secondary-text">SET SCHEDULE "0 18 * * *"</text>
+      <text x="92" y="163" text-anchor="middle" font-size="7" class="secondary-text">Daily report at 6pm</text>
+    </g>
+  </g>
+</svg>

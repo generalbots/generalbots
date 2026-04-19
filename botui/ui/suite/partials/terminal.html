@@ -1,0 +1,23 @@
+<link rel="stylesheet" href="/suite/css/terminal.css" />
+<link rel="stylesheet" href="/suite/css/xterm.css" />
+
+<div class="botcoder-terminal-container">
+    <div class="botcoder-terminal-header">
+        <div class="botcoder-terminal-tabs" id="botcoderTerminalTabs">
+            <div class="botcoder-term-tab active">
+                <span>Terminal 1</span>
+                <span class="close-tab" onclick="botCoderTerminal.closeTerminal()">×</span>
+            </div>
+        </div>
+        <div class="botcoder-terminal-actions">
+            <button class="botcoder-btn-icon" onclick="botCoderTerminal.newTerminal()" title="New Terminal">➕</button>
+            <button class="botcoder-btn-icon" onclick="botCoderTerminal.clearTerminal()" title="Clear">🗑️</button>
+        </div>
+    </div>
+    
+    <div class="botcoder-terminal-body">
+        <div id="xtermContainer" class="xterm-container"></div>
+    </div>
+</div>
+
+<script src="/suite/js/terminal.js"></script>

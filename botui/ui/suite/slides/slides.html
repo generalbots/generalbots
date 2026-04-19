@@ -1,0 +1,1425 @@
+<link rel="stylesheet" href="slides/slides.css" />
+
+<div class="slides-app" id="slides-app">
+    <div class="slides-toolbar">
+        <div class="toolbar-left">
+            <input
+                type="text"
+                class="presentation-name-input"
+                id="presentationName"
+                value="Untitled Presentation"
+                spellcheck="false"
+            />
+        </div>
+        <div class="toolbar-center">
+            <div class="toolbar-group">
+                <button class="btn-icon" id="undoBtn" title="Undo (Ctrl+Z)">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M3 7v6h6"></path>
+                        <path
+                            d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"
+                        ></path>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="redoBtn" title="Redo (Ctrl+Y)">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M21 7v6h-6"></path>
+                        <path
+                            d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"
+                        ></path>
+                    </svg>
+                </button>
+            </div>
+            <span class="toolbar-divider"></span>
+            <div class="toolbar-group">
+                <button class="btn-icon" id="addTextBtn" title="Add Text Box">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                        <line x1="9" y1="20" x2="15" y2="20"></line>
+                        <line x1="12" y1="4" x2="12" y2="20"></line>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="addImageBtn" title="Add Image">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect
+                            x="3"
+                            y="3"
+                            width="18"
+                            height="18"
+                            rx="2"
+                            ry="2"
+                        ></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="addShapeBtn" title="Add Shape">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="addTableBtn" title="Add Table">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                        <line x1="3" y1="15" x2="21" y2="15"></line>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                        <line x1="15" y1="3" x2="15" y2="21"></line>
+                    </svg>
+                </button>
+            </div>
+            <span class="toolbar-divider"></span>
+            <div class="toolbar-group">
+                <button
+                    class="btn-icon"
+                    id="transitionsBtn"
+                    title="Slide Transitions"
+                >
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="2" y="3" width="8" height="14" rx="1"></rect>
+                        <rect x="14" y="7" width="8" height="14" rx="1"></rect>
+                        <path d="M10 10l4 4m0-4l-4 4"></path>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="animationsBtn" title="Animations">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 2v4m0 12v4m10-10h-4M6 12H2"></path>
+                        <path
+                            d="M19.07 4.93l-2.83 2.83m-8.48 8.48l-2.83 2.83"
+                        ></path>
+                        <path
+                            d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"
+                        ></path>
+                    </svg>
+                </button>
+            </div>
+            <span class="toolbar-divider"></span>
+            <div class="toolbar-group">
+                <select
+                    class="toolbar-select font-family"
+                    id="fontFamily"
+                    title="Font"
+                >
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                </select>
+                <select
+                    class="toolbar-select font-size"
+                    id="fontSize"
+                    title="Size"
+                >
+                    <option value="12">12</option>
+                    <option value="14">14</option>
+                    <option value="18">18</option>
+                    <option value="24" selected>24</option>
+                    <option value="36">36</option>
+                    <option value="48">48</option>
+                    <option value="72">72</option>
+                </select>
+            </div>
+            <span class="toolbar-divider"></span>
+            <div class="toolbar-group format-group">
+                <button class="btn-icon" id="boldBtn" title="Bold (Ctrl+B)">
+                    <strong>B</strong>
+                </button>
+                <button class="btn-icon" id="italicBtn" title="Italic (Ctrl+I)">
+                    <em>I</em>
+                </button>
+                <button
+                    class="btn-icon"
+                    id="underlineBtn"
+                    title="Underline (Ctrl+U)"
+                >
+                    <u>U</u>
+                </button>
+            </div>
+            <span class="toolbar-divider"></span>
+            <div class="toolbar-group">
+                <button
+                    class="btn-icon color-btn"
+                    id="textColorBtn"
+                    title="Text Color"
+                >
+                    <span class="color-letter">A</span>
+                    <span
+                        class="color-indicator"
+                        style="background: #000000"
+                    ></span>
+                    <input
+                        type="color"
+                        id="textColorPicker"
+                        class="color-input"
+                        value="#000000"
+                    />
+                </button>
+                <button
+                    class="btn-icon color-btn"
+                    id="fillColorBtn"
+                    title="Fill Color"
+                >
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        stroke="none"
+                    >
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    </svg>
+                    <span
+                        class="color-indicator fill-indicator"
+                        style="background: #ffffff"
+                    ></span>
+                    <input
+                        type="color"
+                        id="fillColorPicker"
+                        class="color-input"
+                        value="#ffffff"
+                    />
+                </button>
+            </div>
+            <span class="toolbar-divider"></span>
+            <div class="toolbar-group">
+                <button class="btn-icon" id="alignLeftBtn" title="Align Left">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="15" y2="12"></line>
+                        <line x1="3" y1="18" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                <button
+                    class="btn-icon"
+                    id="alignCenterBtn"
+                    title="Align Center"
+                >
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="6" y1="12" x2="18" y2="12"></line>
+                        <line x1="4" y1="18" x2="20" y2="18"></line>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="alignRightBtn" title="Align Right">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="9" y1="12" x2="21" y2="12"></line>
+                        <line x1="6" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="toolbar-right">
+            <div class="collaborators" id="collaborators"></div>
+            <button
+                class="btn-icon"
+                id="masterSlideBtn"
+                title="Edit Master Slide"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="3" y="3" width="18" height="14" rx="2"></rect>
+                    <path d="M3 7h18"></path>
+                    <circle cx="7" cy="5" r="1" fill="currentColor"></circle>
+                    <circle cx="10" cy="5" r="1" fill="currentColor"></circle>
+                </svg>
+            </button>
+            <button
+                class="btn-icon"
+                id="slideSorterBtn"
+                title="Slide Sorter View"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="3" y="3" width="7" height="5" rx="1"></rect>
+                    <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+                    <rect x="3" y="10" width="7" height="5" rx="1"></rect>
+                    <rect x="14" y="10" width="7" height="5" rx="1"></rect>
+                    <rect x="3" y="17" width="7" height="5" rx="1"></rect>
+                    <rect x="14" y="17" width="7" height="5" rx="1"></rect>
+                </svg>
+            </button>
+            <button class="btn-icon" id="exportPdfBtn" title="Export to PDF">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    ></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <path d="M9 15h6"></path>
+                    <path d="M12 12v6"></path>
+                </svg>
+            </button>
+            <button class="btn-icon" id="presentBtn" title="Present (F5)">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    stroke="none"
+                >
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+            </button>
+            <button class="btn-primary" id="shareBtn">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+                <span>Share</span>
+            </button>
+            <button
+                class="btn-icon chat-toggle"
+                id="chatToggle"
+                title="Toggle AI Chat"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                    ></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="slides-main">
+        <aside class="slide-thumbnails-panel" id="thumbnailsPanel">
+            <div class="thumbnails-container" id="thumbnails"></div>
+            <button class="btn-add-slide" id="addSlideBtn" title="Add Slide">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Add Slide</span>
+            </button>
+        </aside>
+
+        <div class="slide-canvas-area">
+            <div class="slide-canvas-container" id="canvasContainer">
+                <div class="slide-canvas" id="slideCanvas">
+                    <div class="canvas-content" id="canvasContent"></div>
+                    <div class="selection-handles hidden" id="selectionHandles">
+                        <div class="handle nw" data-handle="nw"></div>
+                        <div class="handle n" data-handle="n"></div>
+                        <div class="handle ne" data-handle="ne"></div>
+                        <div class="handle w" data-handle="w"></div>
+                        <div class="handle e" data-handle="e"></div>
+                        <div class="handle sw" data-handle="sw"></div>
+                        <div class="handle s" data-handle="s"></div>
+                        <div class="handle se" data-handle="se"></div>
+                        <div class="rotate-handle" data-handle="rotate"></div>
+                    </div>
+                    <div class="cursor-indicators" id="cursorIndicators"></div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="chat-panel" id="chatPanel">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <div class="chat-avatar">
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"
+                            />
+                            <circle cx="12" cy="10" r="3" />
+                            <path
+                                d="M12 15c-3 0-5 1.5-5 3v1h10v-1c0-1.5-2-3-5-3z"
+                            />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3>AI Assistant</h3>
+                        <span class="chat-status">Ready to help</span>
+                    </div>
+                </div>
+                <button class="chat-close" id="chatClose" title="Close">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message assistant">
+                    <div class="message-bubble">
+                        <p>
+                            Hi! I can help you create and edit your
+                            presentation. Try asking me to:
+                        </p>
+                        <ul>
+                            <li>Add a title slide</li>
+                            <li>Insert an image or shape</li>
+                            <li>Change the slide background</li>
+                            <li>Add speaker notes</li>
+                            <li>Duplicate or delete slides</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-suggestions" id="chatSuggestions">
+                <button class="suggestion-btn" data-action="title">
+                    Add title slide
+                </button>
+                <button class="suggestion-btn" data-action="image">
+                    Insert image
+                </button>
+                <button class="suggestion-btn" data-action="duplicate">
+                    Duplicate slide
+                </button>
+                <button class="suggestion-btn" data-action="notes">
+                    Add notes
+                </button>
+            </div>
+            <form class="chat-input-container" id="chatForm">
+                <input
+                    type="text"
+                    class="chat-input"
+                    id="chatInput"
+                    placeholder="Ask me to edit your slides..."
+                    autocomplete="off"
+                />
+                <button
+                    type="submit"
+                    class="chat-send"
+                    id="chatSend"
+                    title="Send"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </form>
+        </aside>
+    </div>
+
+    <div class="slides-status-bar">
+        <div class="status-left">
+            <span id="slideInfo">Slide 1 of 1</span>
+        </div>
+        <div class="status-center">
+            <span id="saveStatus">Saved</span>
+        </div>
+        <div class="status-right">
+            <div class="zoom-control">
+                <button class="btn-zoom" id="zoomOutBtn">−</button>
+                <span id="zoomLevel">100%</span>
+                <button class="btn-zoom" id="zoomInBtn">+</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="shareModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Share Presentation</h3>
+            <button class="btn-close" id="closeShareModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="share-input-group">
+                <input
+                    type="email"
+                    placeholder="Enter email address"
+                    id="shareEmail"
+                />
+                <select id="sharePermission">
+                    <option value="view">Can view</option>
+                    <option value="comment">Can comment</option>
+                    <option value="edit">Can edit</option>
+                </select>
+                <button class="btn-primary" id="sendShareBtn">Share</button>
+            </div>
+            <div class="share-link-section">
+                <h4>Or share with link</h4>
+                <div class="share-link-group">
+                    <input type="text" readonly id="shareLink" />
+                    <button class="btn-icon" id="copyLinkBtn" title="Copy link">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <rect
+                                x="9"
+                                y="9"
+                                width="13"
+                                height="13"
+                                rx="2"
+                            ></rect>
+                            <path
+                                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                            ></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="imageModal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h3>Insert Image</h3>
+            <button class="btn-close" id="closeImageModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Image URL</label>
+                <input
+                    type="url"
+                    id="imageUrl"
+                    placeholder="https://example.com/image.jpg"
+                />
+            </div>
+            <div class="form-group">
+                <label>Alt Text</label>
+                <input
+                    type="text"
+                    id="imageAlt"
+                    placeholder="Describe the image"
+                />
+            </div>
+            <div class="modal-actions">
+                <button
+                    class="btn-secondary"
+                    onclick="window.slidesApp.hideModal('imageModal')"
+                >
+                    Cancel
+                </button>
+                <button class="btn-primary" id="insertImageBtn">Insert</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="shapeModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Insert Shape</h3>
+            <button class="btn-close" id="closeShapeModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="shape-grid">
+                <button
+                    class="shape-btn"
+                    data-shape="rectangle"
+                    title="Rectangle"
+                >
+                    <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    </svg>
+                </button>
+                <button
+                    class="shape-btn"
+                    data-shape="rounded"
+                    title="Rounded Rectangle"
+                >
+                    <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="3" y="3" width="18" height="18" rx="6"></rect>
+                    </svg>
+                </button>
+                <button class="shape-btn" data-shape="ellipse" title="Ellipse">
+                    <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <ellipse cx="12" cy="12" rx="10" ry="8"></ellipse>
+                    </svg>
+                </button>
+                <button class="shape-btn" data-shape="circle" title="Circle">
+                    <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                </button>
+                <button
+                    class="shape-btn"
+                    data-shape="triangle"
+                    title="Triangle"
+                >
+                    <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polygon points="12 2 22 22 2 22"></polygon>
+                    </svg>
+                </button>
+                <button class="shape-btn" data-shape="arrow" title="Arrow">
+                    <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+                <button class="shape-btn" data-shape="star" title="Star">
+                    <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                        ></polygon>
+                    </svg>
+                </button>
+                <button class="shape-btn" data-shape="line" title="Line">
+                    <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="4" y1="20" x2="20" y2="4"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="notesModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Speaker Notes</h3>
+            <button class="btn-close" id="closeNotesModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <textarea
+                    id="speakerNotes"
+                    rows="8"
+                    placeholder="Add your speaker notes here..."
+                ></textarea>
+            </div>
+            <div class="modal-actions">
+                <button
+                    class="btn-secondary"
+                    onclick="window.slidesApp.hideModal('notesModal')"
+                >
+                    Cancel
+                </button>
+                <button class="btn-primary" id="saveNotesBtn">
+                    Save Notes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="backgroundModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Slide Background</h3>
+            <button class="btn-close" id="closeBackgroundModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Background Color</label>
+                <input type="color" id="bgColor" value="#ffffff" />
+            </div>
+            <div class="form-group">
+                <label>Or use an image URL</label>
+                <input
+                    type="url"
+                    id="bgImageUrl"
+                    placeholder="https://example.com/background.jpg"
+                />
+            </div>
+            <div class="modal-actions">
+                <button
+                    class="btn-secondary"
+                    onclick="window.slidesApp.hideModal('backgroundModal')"
+                >
+                    Cancel
+                </button>
+                <button class="btn-primary" id="applyBgBtn">Apply</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="context-menu hidden" id="contextMenu">
+    <div class="context-item" data-action="cut">
+        Cut <span class="shortcut">Ctrl+X</span>
+    </div>
+    <div class="context-item" data-action="copy">
+        Copy <span class="shortcut">Ctrl+C</span>
+    </div>
+    <div class="context-item" data-action="paste">
+        Paste <span class="shortcut">Ctrl+V</span>
+    </div>
+    <div class="context-divider"></div>
+    <div class="context-item" data-action="duplicate">
+        Duplicate <span class="shortcut">Ctrl+D</span>
+    </div>
+    <div class="context-item" data-action="delete">
+        Delete <span class="shortcut">Del</span>
+    </div>
+    <div class="context-divider"></div>
+    <div class="context-item" data-action="bringFront">Bring to Front</div>
+    <div class="context-item" data-action="sendBack">Send to Back</div>
+</div>
+
+<div class="context-menu hidden" id="slideContextMenu">
+    <div class="context-item" data-action="newSlide">New Slide</div>
+    <div class="context-item" data-action="duplicateSlide">Duplicate Slide</div>
+    <div class="context-item" data-action="deleteSlide">Delete Slide</div>
+    <div class="context-divider"></div>
+    <div class="context-item" data-action="slideBackground">
+        Change Background
+    </div>
+    <div class="context-item" data-action="slideNotes">Speaker Notes</div>
+</div>
+
+<div class="presenter-modal hidden" id="presenterModal">
+    <div class="presenter-view">
+        <div class="presenter-slide" id="presenterSlide"></div>
+        <div class="presenter-controls">
+            <button class="btn-icon" id="prevSlideBtn" title="Previous Slide">
+                <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                >
+                    <polygon points="15 18 9 12 15 6 15 18"></polygon>
+                </svg>
+            </button>
+            <span class="presenter-slide-number" id="presenterSlideNumber"
+                >1 / 1</span
+            >
+            <button class="btn-icon" id="nextSlideBtn" title="Next Slide">
+                <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                >
+                    <polygon points="9 18 15 12 9 6 9 18"></polygon>
+                </svg>
+            </button>
+            <button class="btn-icon" id="exitPresenterBtn" title="Exit (Esc)">
+                <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="transitionsModal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3>Slide Transitions</h3>
+            <button class="btn-close" id="closeTransitionsModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="transitions-section">
+                <label>Transition Effect:</label>
+                <div class="transitions-grid">
+                    <button
+                        class="transition-btn active"
+                        data-transition="none"
+                        title="None"
+                    >
+                        <div class="transition-preview none"></div>
+                        <span>None</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="fade"
+                        title="Fade"
+                    >
+                        <div class="transition-preview fade"></div>
+                        <span>Fade</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="slide-left"
+                        title="Slide Left"
+                    >
+                        <div class="transition-preview slide-left"></div>
+                        <span>Slide Left</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="slide-right"
+                        title="Slide Right"
+                    >
+                        <div class="transition-preview slide-right"></div>
+                        <span>Slide Right</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="slide-up"
+                        title="Slide Up"
+                    >
+                        <div class="transition-preview slide-up"></div>
+                        <span>Slide Up</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="slide-down"
+                        title="Slide Down"
+                    >
+                        <div class="transition-preview slide-down"></div>
+                        <span>Slide Down</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="zoom-in"
+                        title="Zoom In"
+                    >
+                        <div class="transition-preview zoom-in"></div>
+                        <span>Zoom In</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="zoom-out"
+                        title="Zoom Out"
+                    >
+                        <div class="transition-preview zoom-out"></div>
+                        <span>Zoom Out</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="flip"
+                        title="Flip"
+                    >
+                        <div class="transition-preview flip"></div>
+                        <span>Flip</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="cube"
+                        title="Cube"
+                    >
+                        <div class="transition-preview cube"></div>
+                        <span>Cube</span>
+                    </button>
+                </div>
+            </div>
+            <div class="transitions-section">
+                <label>Duration:</label>
+                <div class="duration-control">
+                    <input
+                        type="range"
+                        id="transitionDuration"
+                        min="0.1"
+                        max="3"
+                        step="0.1"
+                        value="0.5"
+                    />
+                    <span id="durationValue">0.5s</span>
+                </div>
+            </div>
+            <div class="transitions-section">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="applyToAllSlides" />
+                    Apply to all slides
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancelTransitionsBtn">
+                    Cancel
+                </button>
+                <button class="btn-primary" id="applyTransitionsBtn">
+                    Apply
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="animationsModal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3>Animations</h3>
+            <button class="btn-close" id="closeAnimationsModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="animations-section">
+                <label>Select element on slide to animate</label>
+                <div class="selected-element-info" id="selectedElementInfo">
+                    No element selected
+                </div>
+            </div>
+            <div class="animations-section">
+                <label>Entrance Animation:</label>
+                <select id="entranceAnimation">
+                    <option value="none">None</option>
+                    <option value="fade-in">Fade In</option>
+                    <option value="fly-in-left">Fly In (Left)</option>
+                    <option value="fly-in-right">Fly In (Right)</option>
+                    <option value="fly-in-top">Fly In (Top)</option>
+                    <option value="fly-in-bottom">Fly In (Bottom)</option>
+                    <option value="zoom-in">Zoom In</option>
+                    <option value="bounce-in">Bounce In</option>
+                    <option value="spin-in">Spin In</option>
+                    <option value="wipe-left">Wipe (Left)</option>
+                    <option value="wipe-right">Wipe (Right)</option>
+                </select>
+            </div>
+            <div class="animations-section">
+                <label>Emphasis Animation:</label>
+                <select id="emphasisAnimation">
+                    <option value="none">None</option>
+                    <option value="pulse">Pulse</option>
+                    <option value="shake">Shake</option>
+                    <option value="bounce">Bounce</option>
+                    <option value="spin">Spin</option>
+                    <option value="grow">Grow/Shrink</option>
+                    <option value="flash">Flash</option>
+                </select>
+            </div>
+            <div class="animations-section">
+                <label>Exit Animation:</label>
+                <select id="exitAnimation">
+                    <option value="none">None</option>
+                    <option value="fade-out">Fade Out</option>
+                    <option value="fly-out-left">Fly Out (Left)</option>
+                    <option value="fly-out-right">Fly Out (Right)</option>
+                    <option value="fly-out-top">Fly Out (Top)</option>
+                    <option value="fly-out-bottom">Fly Out (Bottom)</option>
+                    <option value="zoom-out">Zoom Out</option>
+                    <option value="spin-out">Spin Out</option>
+                </select>
+            </div>
+            <div class="animations-section">
+                <div class="animation-timing">
+                    <div class="timing-group">
+                        <label>Start:</label>
+                        <select id="animationStart">
+                            <option value="on-click">On Click</option>
+                            <option value="with-previous">With Previous</option>
+                            <option value="after-previous">
+                                After Previous
+                            </option>
+                        </select>
+                    </div>
+                    <div class="timing-group">
+                        <label>Duration:</label>
+                        <input
+                            type="number"
+                            id="animationDuration"
+                            value="0.5"
+                            min="0.1"
+                            max="5"
+                            step="0.1"
+                        />
+                        <span>sec</span>
+                    </div>
+                    <div class="timing-group">
+                        <label>Delay:</label>
+                        <input
+                            type="number"
+                            id="animationDelay"
+                            value="0"
+                            min="0"
+                            max="10"
+                            step="0.1"
+                        />
+                        <span>sec</span>
+                    </div>
+                </div>
+            </div>
+            <div class="animations-section">
+                <label>Animation Order:</label>
+                <div class="animation-order-list" id="animationOrderList">
+                    <p class="no-animations">No animations added yet</p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="previewAnimationBtn">
+                    Preview
+                </button>
+                <button class="btn-secondary" id="cancelAnimationsBtn">
+                    Cancel
+                </button>
+                <button class="btn-primary" id="applyAnimationsBtn">
+                    Apply
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="slideSorterModal">
+    <div class="modal-content modal-fullscreen">
+        <div class="modal-header">
+            <h3>Slide Sorter</h3>
+            <div class="sorter-toolbar">
+                <button class="btn-secondary" id="sorterAddSlide">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Slide
+                </button>
+                <button class="btn-secondary" id="sorterDuplicateSlide">
+                    Duplicate
+                </button>
+                <button class="btn-secondary" id="sorterDeleteSlide">
+                    Delete
+                </button>
+            </div>
+            <button class="btn-close" id="closeSlideSorterModal">×</button>
+        </div>
+        <div class="modal-body sorter-body">
+            <div class="sorter-grid" id="sorterGrid"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="cancelSorterBtn">Cancel</button>
+            <button class="btn-primary" id="applySorterBtn">Apply</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="exportPdfModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Export to PDF</h3>
+            <button class="btn-close" id="closeExportPdfModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="export-section">
+                <label>Slide Range:</label>
+                <div class="export-range-options">
+                    <label class="radio-label">
+                        <input
+                            type="radio"
+                            name="slideRange"
+                            value="all"
+                            checked
+                        />
+                        All slides
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="slideRange" value="current" />
+                        Current slide
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="slideRange" value="custom" />
+                        Custom range:
+                        <input
+                            type="text"
+                            id="customRange"
+                            placeholder="e.g., 1-5, 8"
+                            class="range-input"
+                        />
+                    </label>
+                </div>
+            </div>
+            <div class="export-section">
+                <label>Layout:</label>
+                <select id="pdfLayout">
+                    <option value="full">Full page slides</option>
+                    <option value="notes">Slides with notes</option>
+                    <option value="handout-2">Handouts (2 per page)</option>
+                    <option value="handout-4">Handouts (4 per page)</option>
+                    <option value="handout-6">Handouts (6 per page)</option>
+                    <option value="outline">Outline only</option>
+                </select>
+            </div>
+            <div class="export-section">
+                <label>Orientation:</label>
+                <select id="pdfOrientation">
+                    <option value="landscape">Landscape</option>
+                    <option value="portrait">Portrait</option>
+                </select>
+            </div>
+            <div class="export-section">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="pdfIncludeHidden" />
+                    Include hidden slides
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancelExportPdfBtn">
+                    Cancel
+                </button>
+                <button class="btn-primary" id="exportPdfBtnConfirm">
+                    Export PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal hidden" id="masterSlideModal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3>Edit Master Slide</h3>
+            <button class="btn-close" id="closeMasterSlideModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="master-layout">
+                <div class="master-sidebar">
+                    <h4>Master Layouts</h4>
+                    <div class="master-layout-list" id="masterLayoutList">
+                        <div
+                            class="master-layout-item active"
+                            data-layout="title"
+                        >
+                            <div class="layout-preview title-preview">
+                                <div class="preview-title"></div>
+                                <div class="preview-subtitle"></div>
+                            </div>
+                            <span>Title Slide</span>
+                        </div>
+                        <div
+                            class="master-layout-item"
+                            data-layout="title_content"
+                        >
+                            <div class="layout-preview title-content-preview">
+                                <div class="preview-title small"></div>
+                                <div class="preview-content"></div>
+                            </div>
+                            <span>Title and Content</span>
+                        </div>
+                        <div
+                            class="master-layout-item"
+                            data-layout="two_content"
+                        >
+                            <div class="layout-preview two-content-preview">
+                                <div class="preview-title small"></div>
+                                <div class="preview-columns">
+                                    <div class="preview-col"></div>
+                                    <div class="preview-col"></div>
+                                </div>
+                            </div>
+                            <span>Two Content</span>
+                        </div>
+                        <div class="master-layout-item" data-layout="section">
+                            <div class="layout-preview section-preview">
+                                <div class="preview-section-title"></div>
+                            </div>
+                            <span>Section Header</span>
+                        </div>
+                        <div class="master-layout-item" data-layout="blank">
+                            <div class="layout-preview blank-preview"></div>
+                            <span>Blank</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="master-editor">
+                    <div class="master-section">
+                        <h4>Theme Colors</h4>
+                        <div class="color-grid">
+                            <div class="color-item">
+                                <label>Primary:</label>
+                                <input
+                                    type="color"
+                                    id="masterPrimaryColor"
+                                    value="#4285f4"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Secondary:</label>
+                                <input
+                                    type="color"
+                                    id="masterSecondaryColor"
+                                    value="#34a853"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Accent:</label>
+                                <input
+                                    type="color"
+                                    id="masterAccentColor"
+                                    value="#fbbc04"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Background:</label>
+                                <input
+                                    type="color"
+                                    id="masterBgColor"
+                                    value="#ffffff"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Text:</label>
+                                <input
+                                    type="color"
+                                    id="masterTextColor"
+                                    value="#212121"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Text Light:</label>
+                                <input
+                                    type="color"
+                                    id="masterTextLightColor"
+                                    value="#666666"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="master-section">
+                        <h4>Theme Fonts</h4>
+                        <div class="font-grid">
+                            <div class="font-item">
+                                <label>Heading Font:</label>
+                                <select id="masterHeadingFont">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Helvetica">Helvetica</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Times New Roman">
+                                        Times New Roman
+                                    </option>
+                                    <option value="Verdana">Verdana</option>
+                                    <option value="Trebuchet MS">
+                                        Trebuchet MS
+                                    </option>
+                                    <option value="Impact">Impact</option>
+                                </select>
+                            </div>
+                            <div class="font-item">
+                                <label>Body Font:</label>
+                                <select id="masterBodyFont">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Helvetica">Helvetica</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Times New Roman">
+                                        Times New Roman
+                                    </option>
+                                    <option value="Verdana">Verdana</option>
+                                    <option value="Calibri">Calibri</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="master-section">
+                        <h4>Preview</h4>
+                        <div class="master-preview" id="masterPreview">
+                            <div class="preview-slide">
+                                <h2 class="preview-heading" id="previewHeading">
+                                    Title Text
+                                </h2>
+                                <p class="preview-body" id="previewBody">
+                                    Body text example
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="resetMasterBtn">
+                    Reset to Default
+                </button>
+                <button class="btn-secondary" id="cancelMasterBtn">
+                    Cancel
+                </button>
+                <button class="btn-primary" id="applyMasterBtn">
+                    Apply to All Slides
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="slides/slides.js"></script>

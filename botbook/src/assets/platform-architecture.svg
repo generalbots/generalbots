@@ -1,0 +1,162 @@
+<svg width="900" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6"/>
+    </marker>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="500" fill="#FAFBFC"/>
+  <rect width="900" height="500" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="450" y="40" text-anchor="middle" font-size="22" font-weight="600" class="title-text">General Bots Platform</text>
+  <text x="450" y="62" text-anchor="middle" font-size="12" class="secondary-text">Enterprise-Grade LLM Orchestrator &amp; AI Automation Platform</text>
+
+  <!-- Main Container -->
+  <rect x="30" y="85" width="840" height="385" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+
+  <!-- Top Row: botapp → botui → botserver -->
+
+  <!-- botapp -->
+  <g transform="translate(70, 120)">
+    <rect x="0" y="0" width="200" height="100" rx="10" fill="#FFFFFF" stroke="#0EA5E9" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="32" rx="10" fill="url(#cyanGrad)"/>
+    <rect x="0" y="25" width="200" height="7" fill="url(#cyanGrad)"/>
+    <text x="100" y="22" text-anchor="middle" font-size="13" font-weight="600" class="white-text">botapp</text>
+
+    <text x="100" y="55" text-anchor="middle" font-size="11" font-weight="500" class="main-text">(Tauri)</text>
+    <text x="100" y="72" text-anchor="middle" font-size="10" class="secondary-text">Desktop</text>
+    <text x="100" y="88" text-anchor="middle" font-size="9" class="mono-text">Native file access</text>
+  </g>
+
+  <!-- Arrow botapp → botui -->
+  <path d="M275 170 L330 170" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- botui -->
+  <g transform="translate(340, 120)">
+    <rect x="0" y="0" width="200" height="100" rx="10" fill="#FFFFFF" stroke="#10B981" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="32" rx="10" fill="url(#greenGrad)"/>
+    <rect x="0" y="25" width="200" height="7" fill="url(#greenGrad)"/>
+    <text x="100" y="22" text-anchor="middle" font-size="13" font-weight="600" class="white-text">botui</text>
+
+    <text x="100" y="55" text-anchor="middle" font-size="11" font-weight="500" class="main-text">(Pure Web)</text>
+    <text x="100" y="72" text-anchor="middle" font-size="10" class="secondary-text">HTMX/HTML</text>
+    <text x="100" y="88" text-anchor="middle" font-size="9" class="mono-text">Suite &amp; Minimal UI</text>
+  </g>
+
+  <!-- Arrow botui → botserver -->
+  <path d="M545 170 L600 170" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- botserver -->
+  <g transform="translate(610, 120)">
+    <rect x="0" y="0" width="200" height="100" rx="10" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="32" rx="10" fill="url(#primaryGrad)"/>
+    <rect x="0" y="25" width="200" height="7" fill="url(#primaryGrad)"/>
+    <text x="100" y="22" text-anchor="middle" font-size="13" font-weight="600" class="white-text">botserver</text>
+
+    <text x="100" y="55" text-anchor="middle" font-size="11" font-weight="500" class="main-text">(API)</text>
+    <text x="100" y="72" text-anchor="middle" font-size="10" class="secondary-text">Rust</text>
+    <text x="100" y="88" text-anchor="middle" font-size="9" class="mono-text">LLM Orchestration</text>
+  </g>
+
+  <!-- Vertical connector from botserver -->
+  <path d="M710 225 L710 280" stroke="#8B5CF6" stroke-width="2" fill="none"/>
+
+  <!-- Horizontal split line -->
+  <path d="M450 280 L710 280" stroke="#8B5CF6" stroke-width="2" fill="none"/>
+
+  <!-- Vertical lines down to bottom components -->
+  <path d="M450 280 L450 320" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+  <path d="M710 280 L710 320" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- Bottom Row: botlib and botbook -->
+
+  <!-- botlib -->
+  <g transform="translate(340, 330)">
+    <rect x="0" y="0" width="220" height="100" rx="10" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="220" height="32" rx="10" fill="url(#orangeGrad)"/>
+    <rect x="0" y="25" width="220" height="7" fill="url(#orangeGrad)"/>
+    <text x="110" y="22" text-anchor="middle" font-size="13" font-weight="600" class="white-text">botlib</text>
+
+    <text x="110" y="55" text-anchor="middle" font-size="11" font-weight="500" class="main-text">(Shared)</text>
+    <text x="110" y="72" text-anchor="middle" font-size="10" class="secondary-text">Rust Library</text>
+    <text x="110" y="88" text-anchor="middle" font-size="9" class="mono-text">Common types, HTTP client</text>
+  </g>
+
+  <!-- botbook -->
+  <g transform="translate(600, 330)">
+    <rect x="0" y="0" width="220" height="100" rx="10" fill="#FFFFFF" stroke="#64748B" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="220" height="32" rx="10" fill="#64748B"/>
+    <rect x="0" y="25" width="220" height="7" fill="#64748B"/>
+    <text x="110" y="22" text-anchor="middle" font-size="13" font-weight="600" class="white-text">botbook</text>
+
+    <text x="110" y="55" text-anchor="middle" font-size="11" font-weight="500" class="main-text">(Docs)</text>
+    <text x="110" y="72" text-anchor="middle" font-size="10" class="secondary-text">mdBook</text>
+    <text x="110" y="88" text-anchor="middle" font-size="9" class="mono-text">Documentation</text>
+  </g>
+
+  <!-- Legend on left side -->
+  <g transform="translate(70, 280)">
+    <rect x="0" y="0" width="220" height="150" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="110" y="22" text-anchor="middle" font-size="11" font-weight="600" class="main-text">Components</text>
+
+    <rect x="15" y="38" width="12" height="12" rx="2" fill="url(#cyanGrad)"/>
+    <text x="35" y="48" font-size="10" class="secondary-text">Desktop wrapper</text>
+
+    <rect x="15" y="58" width="12" height="12" rx="2" fill="url(#greenGrad)"/>
+    <text x="35" y="68" font-size="10" class="secondary-text">Web interface</text>
+
+    <rect x="15" y="78" width="12" height="12" rx="2" fill="url(#primaryGrad)"/>
+    <text x="35" y="88" font-size="10" class="secondary-text">Core API server</text>
+
+    <rect x="15" y="98" width="12" height="12" rx="2" fill="url(#orangeGrad)"/>
+    <text x="35" y="108" font-size="10" class="secondary-text">Shared library</text>
+
+    <rect x="15" y="118" width="12" height="12" rx="2" fill="#64748B"/>
+    <text x="35" y="128" font-size="10" class="secondary-text">Documentation</text>
+  </g>
+</svg>

@@ -1,0 +1,738 @@
+<!-- Editor - General Bots (Code & Text Editor) -->
+<style>
+            /* Editor uses global theme variables from base.css */
+
+            .editor-container {
+                display: flex;
+                flex-direction: column;
+                height: calc(100vh - 64px);
+                background: var(--bg, #0f172a);
+                color: var(--text, #f8fafc);
+            }
+
+            .editor-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 20px;
+                background: var(--surface, #1e293b);
+                border-bottom: 1px solid var(--border, #334155);
+            }
+
+            .editor-title {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .editor-title-icon {
+                font-size: 24px;
+            }
+
+            .editor-title-text {
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .editor-path {
+                font-size: 12px;
+                color: var(--text-secondary, #94a3b8);
+            }
+
+            .editor-toolbar {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 20px;
+                background: var(--surface, #1e293b);
+                border-bottom: 1px solid var(--border, #334155);
+            }
+
+            .toolbar-group {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                padding-right: 12px;
+                border-right: 1px solid var(--border, #334155);
+            }
+
+            .toolbar-group:last-child {
+                border-right: none;
+            }
+
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 14px;
+                border: none;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+                background: var(--surface-hover, #334155);
+                color: var(--text, #f8fafc);
+            }
+
+            .btn:hover {
+                background: var(--border-light, #475569);
+            }
+
+            .btn-primary {
+                background: var(--primary, #3b82f6);
+                color: white;
+            }
+
+            .btn-primary:hover {
+                background: var(--primary-hover, #2563eb);
+            }
+
+            .btn-magic {
+                background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+                color: white;
+                border: none;
+            }
+
+            .btn-magic:hover {
+                background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+                transform: scale(1.02);
+            }
+
+            .magic-panel {
+                position: fixed;
+                right: 20px;
+                bottom: 60px;
+                width: 400px;
+                max-height: 500px;
+                background: var(--surface, #1e293b);
+                border: 1px solid var(--border, #334155);
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                z-index: 1000;
+                display: none;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .magic-panel.visible {
+                display: flex;
+            }
+
+            .magic-header {
+                padding: 16px;
+                border-bottom: 1px solid var(--border, #334155);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(59,130,246,0.1));
+            }
+
+            .magic-header h3 {
+                font-size: 14px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .magic-close {
+                background: none;
+                border: none;
+                color: var(--text-secondary, #94a3b8);
+                cursor: pointer;
+                font-size: 18px;
+            }
+
+            .magic-content {
+                flex: 1;
+                overflow-y: auto;
+                padding: 16px;
+            }
+
+            .magic-loading {
+                text-align: center;
+                padding: 40px;
+                color: var(--text-secondary, #94a3b8);
+            }
+
+            .magic-result {
+                background: var(--surface-hover, #334155);
+                border-radius: 8px;
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+
+            .magic-result pre {
+                font-family: monospace;
+                font-size: 12px;
+                white-space: pre-wrap;
+                overflow-x: auto;
+            }
+
+            .magic-apply-btn {
+                background: var(--success);
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                cursor: pointer;
+                margin-top: 12px;
+            }
+
+            .btn-small {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .editor-content {
+                flex: 1;
+                display: flex;
+                overflow: hidden;
+            }
+
+            .editor-wrapper {
+                display: flex;
+                flex: 1;
+                overflow: hidden;
+            }
+
+            .line-numbers {
+                width: 50px;
+                background: var(--surface, #1e293b);
+                border-right: 1px solid var(--border, #334155);
+                padding: 16px 8px;
+                overflow: hidden;
+                text-align: right;
+                user-select: none;
+                font-family: "Consolas", monospace;
+                font-size: 13px;
+                line-height: 1.6;
+                color: var(--text-secondary, #94a3b8);
+            }
+
+            .text-editor {
+                flex: 1;
+                background: var(--bg, #0f172a);
+                color: var(--text, #f8fafc);
+                border: none;
+                padding: 16px;
+                font-family: "Consolas", monospace;
+                font-size: 13px;
+                line-height: 1.6;
+                resize: none;
+                outline: none;
+                white-space: pre;
+                overflow: auto;
+                tab-size: 4;
+            }
+
+            .csv-editor {
+                flex: 1;
+                overflow: auto;
+                padding: 16px;
+            }
+
+            .csv-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+            }
+
+            .csv-table th,
+            .csv-table td {
+                border: 1px solid var(--border, #334155);
+                padding: 0;
+                min-width: 120px;
+            }
+
+            .csv-table th {
+                background: var(--surface-hover, #334155);
+                font-weight: 600;
+            }
+
+            .csv-table .row-num {
+                width: 40px;
+                min-width: 40px;
+                background: var(--surface, #1e293b);
+                color: var(--text-secondary, #94a3b8);
+                text-align: center;
+                padding: 8px 4px;
+                font-size: 12px;
+            }
+
+            .csv-input {
+                width: 100%;
+                background: transparent;
+                border: none;
+                color: var(--text, #f8fafc);
+                padding: 8px 12px;
+                font-size: 13px;
+                outline: none;
+            }
+
+            .csv-input:focus {
+                background: var(--surface, #1e293b);
+            }
+
+            .status-bar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 6px 16px;
+                background: var(--surface, #1e293b);
+                border-top: 1px solid var(--border, #334155);
+                font-size: 12px;
+                color: var(--text-secondary, #94a3b8);
+            }
+
+            .status-left,
+            .status-right {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+            }
+
+            .dirty-indicator {
+                width: 8px;
+                height: 8px;
+                background: var(--warning);
+                border-radius: 50%;
+                margin-left: 8px;
+            }
+
+            .htmx-indicator {
+                display: none;
+            }
+
+            .htmx-request .htmx-indicator {
+                display: inline-block;
+            }
+
+            .spinner {
+                width: 14px;
+                height: 14px;
+                border: 2px solid transparent;
+                border-top-color: currentColor;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+
+            .notification {
+                position: fixed;
+                bottom: 60px;
+                right: 20px;
+                padding: 12px 20px;
+                background: var(--surface-hover, #334155);
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                border-left: 4px solid var(--primary, #3b82f6);
+                opacity: 0;
+                transform: translateX(100%);
+                transition: all 0.3s ease;
+            }
+
+            .notification.show {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+            .notification.success {
+                border-left-color: var(--success);
+            }
+
+            .notification.error {
+                border-left-color: var(--error);
+            }
+    </style>
+
+    <div class="editor-container">
+            <!-- Header -->
+            <div class="editor-header">
+                <div class="editor-title">
+                    <span class="editor-title-icon">📝</span>
+                    <div>
+                        <span
+                            class="editor-title-text"
+                            id="editor-filename"
+                            hx-get="/api/editor/filename"
+                            hx-trigger="load"
+                            hx-swap="innerHTML"></div>
+                            Untitled
+                        </span>
+                        <div
+                            class="editor-path"
+                            id="editor-filepath"
+                            hx-get="/api/editor/filepath"
+                            hx-trigger="load"
+                            hx-swap="innerHTML">
+                        </div>
+                    </div>
+                    <span
+                        class="dirty-indicator"
+                        id="dirty-indicator"
+                        style="display: none;"
+                        title="Unsaved changes">
+                    </span>
+                </div>
+                <div>
+                    <a href="#drive"
+                       class="btn btn-small"
+                       hx-get="/api/drive/list"
+                       hx-target="#main-content"
+                       hx-push-url="true">
+                        ✕ Close
+                    </a>
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="editor-toolbar">
+                <div class="toolbar-group">
+                    <button
+                        class="btn btn-primary btn-small"
+                        hx-post="/api/editor/save"
+                        hx-include="#text-editor"
+                        hx-indicator="#save-spinner"
+                        hx-swap="none"
+                        hx-on::after-request="showSaveNotification(event)">
+                        <span class="htmx-indicator spinner" id="save-spinner"></span>
+                        💾 Save
+                    </button>
+                    <button
+                        class="btn btn-small"
+                        hx-get="/api/editor/save-as"
+                        hx-target="#save-dialog"
+                        hx-swap="innerHTML">
+                        Save As
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <button
+                        class="btn btn-small"
+                        hx-post="/api/editor/undo"
+                        hx-target="#editor-content"
+                        hx-swap="innerHTML">
+                        ↩️ Undo
+                    </button>
+                    <button
+                        class="btn btn-small"
+                        hx-post="/api/editor/redo"
+                        hx-target="#editor-content"
+                        hx-swap="innerHTML">
+                        ↪️ Redo
+                    </button>
+                </div>
+
+                <div class="toolbar-group" id="text-tools">
+                    <button
+                        class="btn btn-small"
+                        hx-post="/api/editor/format"
+                        hx-include="#text-editor"
+                        hx-target="#text-editor"
+                        hx-swap="innerHTML">
+                        { } Format
+                    </button>
+                    <button
+                        class="btn btn-small btn-magic"
+                        onclick="showMagicPanel()"
+                        title="AI Improvements (Ctrl+M)">
+                        ✨ Magic
+                    </button>
+                </div>
+
+                <div class="toolbar-group" id="csv-tools" style="display: none;">
+                    <button
+                        class="btn btn-small"
+                        hx-post="/api/editor/csv/add-row"
+                        hx-target="#csv-table-body"
+                        hx-swap="beforeend">
+                        ➕ Row
+                    </button>
+                    <button
+                        class="btn btn-small"
+                        hx-post="/api/editor/csv/add-column"
+                        hx-target="#csv-editor"
+                        hx-swap="innerHTML">
+                        ➕ Column
+                    </button>
+                </div>
+            </div>
+
+            <!-- Magic AI Panel -->
+            <div class="magic-panel" id="magic-panel">
+                <div class="magic-header">
+                    <h3>✨ AI Improvements</h3>
+                    <button class="magic-close" onclick="hideMagicPanel()">×</button>
+                </div>
+                <div class="magic-content" id="magic-content">
+                    <div class="magic-loading">Analyzing code...</div>
+                </div>
+            </div>
+
+            <!-- Editor Content - loaded via HTMX based on file type -->
+            <div class="editor-content" id="editor-content">
+                <!-- Text Editor (default) -->
+                <div class="editor-wrapper" id="text-editor-wrapper" style="position: relative;">
+                    <textarea
+                        class="text-editor"
+                        id="text-editor"
+                        name="content"
+                        style="display: none;"
+                        hx-post="/api/editor/autosave"
+                        hx-trigger="autosave-trigger delay:5s"
+                        hx-swap="none"
+                        hx-indicator="#autosave-indicator"></textarea>
+                    <div id="monaco-editor" style="width: 100%; height: 100%;"></div>
+                </div>
+
+                <!-- CSV Editor (shown for .csv files) -->
+                <div class="csv-editor" id="csv-editor" style="display: none;">
+                    <table class="csv-table">
+                        <thead id="csv-table-head">
+                            <tr>
+                                <th class="row-num">#</th>
+                                <th>
+                                    <input
+                                        type="text"
+                                        class="csv-input"
+                                        name="header_0"
+                                        value="Column 1"
+                                        hx-post="/api/editor/csv/update-header"
+                                        hx-trigger="change"
+                                        hx-swap="none">
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody
+                            id="csv-table-body"
+                            hx-get="/api/editor/csv/rows"
+                            hx-trigger="load"
+                            hx-swap="innerHTML">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-left">
+                    <span
+                        id="file-type"
+                        hx-get="/api/editor/filetype"
+                        hx-trigger="load"
+                        hx-swap="innerHTML">
+                        📄 Plain Text
+                    </span>
+                    <span>UTF-8</span>
+                    <span
+                        id="autosave-indicator"
+                        class="htmx-indicator"
+                        style="font-size: 11px;">
+                        Saving...
+                    </span>
+                </div>
+                <div class="status-right">
+                    <span
+                        id="cursor-position"
+                        hx-get="/api/editor/position"
+                        hx-trigger="click from:#text-editor, keyup from:#text-editor"
+                        hx-swap="innerHTML">
+                        Ln 1, Col 1
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Dialog (loaded via HTMX) -->
+        <div id="save-dialog"></div>
+
+        <!-- Notification -->
+        <div class="notification" id="notification"></div>
+
+        <script>
+            // Minimal JS for notification display (could be replaced with htmx extension)
+            function showSaveNotification(event) {
+                const notification = document.getElementById('notification');
+                if (event.detail.successful) {
+                    notification.textContent = '✓ File saved';
+                    notification.className = 'notification success show';
+                    document.getElementById('dirty-indicator').style.display = 'none';
+                } else {
+                    notification.textContent = '✗ Save failed';
+                    notification.className = 'notification error show';
+                }
+                setTimeout(() => notification.classList.remove('show'), 3000);
+            }
+
+            // Mark as dirty on edit
+            document.getElementById('text-editor')?.addEventListener('input', function() {
+                document.getElementById('dirty-indicator').style.display = 'inline-block';
+            });
+
+            // Keyboard shortcuts using htmx triggers
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    htmx.trigger(document.querySelector('[hx-post="/api/editor/save"]'), 'click');
+                }
+            });
+        function showMagicPanel() {
+            document.getElementById('magic-panel').classList.add('visible');
+            runMagicAnalysis();
+        }
+
+        function hideMagicPanel() {
+            document.getElementById('magic-panel').classList.remove('visible');
+        }
+
+        async function runMagicAnalysis() {
+            const content = document.getElementById('magic-content');
+            const code = document.getElementById('text-editor').value;
+
+            if (!code.trim()) {
+                content.innerHTML = '<p style="color:var(--text-secondary, #94a3b8);text-align:center;padding:40px;">No code to analyze. Start typing or open a file.</p>';
+                return;
+            }
+
+            content.innerHTML = '<div class="magic-loading">✨ Analyzing your code...</div>';
+
+            try {
+                const response = await fetch('/api/editor/magic', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    renderMagicResult(result);
+                } else {
+                    content.innerHTML = '<p style="color:var(--error);padding:20px;">Failed to analyze. Try again.</p>';
+                }
+            } catch (e) {
+                content.innerHTML = '<p style="color:var(--error);padding:20px;">Error connecting to AI service.</p>';
+            }
+        }
+
+        function renderMagicResult(result) {
+            const content = document.getElementById('magic-content');
+            if (result.improved_code) {
+                content.innerHTML = `
+                    <div class="magic-result">
+                        <p><strong>Suggested improvements:</strong></p>
+                        <p style="color:var(--text-secondary, #94a3b8);margin:8px 0;">${result.explanation || 'Improved code structure and patterns.'}</p>
+                        <pre>${escapeHtml(result.improved_code)}</pre>
+                        <button class="magic-apply-btn" onclick="applyMagicCode()">Apply Changes</button>
+                    </div>
+                `;
+                window.magicImprovedCode = result.improved_code;
+            } else if (result.suggestions) {
+                content.innerHTML = result.suggestions.map(s => `
+                    <div class="magic-result">
+                        <p><strong>${s.title}</strong></p>
+                        <p style="color:var(--text-secondary, #94a3b8);">${s.description}</p>
+                    </div>
+                `).join('');
+            } else {
+                content.innerHTML = '<p style="padding:20px;">Your code looks good! No suggestions at this time.</p>';
+            }
+        }
+
+        function applyMagicCode() {
+            if (window.magicImprovedCode) {
+                document.getElementById('text-editor').value = window.magicImprovedCode;
+                hideMagicPanel();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'm') {
+                e.preventDefault();
+                showMagicPanel();
+            }
+        });
+
+        // Load Monaco Editor
+        if (!document.getElementById('monaco-script')) {
+            const script = document.createElement('script');
+            script.id = 'monaco-script';
+            script.src = 'js/vendor/vs/loader.js';
+            script.onload = () => {
+                require.config({ paths: { 'vs': 'js/vendor/vs' }});
+                require(['vs/editor/editor.main'], function() {
+                    initMonaco();
+                });
+            };
+            document.head.appendChild(script);
+        } else if (window.monaco) {
+            initMonaco();
+        }
+
+        let monacoEditorInstance = null;
+
+        function initMonaco() {
+            const container = document.getElementById('monaco-editor');
+            if (!container) return;
+            
+            const textarea = document.getElementById('text-editor');
+            
+            const filenameElement = document.getElementById('editor-filename');
+            const filepath = filenameElement ? (filenameElement.innerText || filenameElement.textContent).trim() : '';
+            let language = 'plaintext';
+            if (filepath.endsWith('.js')) language = 'javascript';
+            else if (filepath.endsWith('.html')) language = 'html';
+            else if (filepath.endsWith('.css')) language = 'css';
+            else if (filepath.endsWith('.rs')) language = 'rust';
+            else if (filepath.endsWith('.json')) language = 'json';
+            else if (filepath.endsWith('.md')) language = 'markdown';
+            
+            document.getElementById('file-type').textContent = '📄 ' + language.toUpperCase();
+            
+            monacoEditorInstance = monaco.editor.create(container, {
+                value: textarea.value,
+                language: language,
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: false },
+                fontSize: 13,
+                fontFamily: 'Consolas, monospace',
+                scrollBeyondLastLine: false
+            });
+
+            monacoEditorInstance.onDidChangeModelContent(() => {
+                textarea.value = monacoEditorInstance.getValue();
+                document.getElementById('dirty-indicator').style.display = 'inline-block';
+                htmx.trigger(textarea, 'autosave-trigger');
+
+                const pos = monacoEditorInstance.getPosition();
+                const statusPos = document.getElementById('cursor-position');
+                if (statusPos) {
+                    statusPos.textContent = `Ln ${pos.lineNumber}, Col ${pos.column}`;
+                }
+            });
+
+            monacoEditorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+                htmx.trigger(document.querySelector('[hx-post="/api/editor/save"]'), 'click');
+            });
+            
+            // Apply magic code hook using Monaco
+            window.applyMagicCode = function() {
+                if (window.magicImprovedCode && monacoEditorInstance) {
+                    monacoEditorInstance.setValue(window.magicImprovedCode);
+                    hideMagicPanel();
+                }
+            };
+        }
+        </script>

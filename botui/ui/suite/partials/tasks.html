@@ -1,0 +1,317 @@
+<link rel="stylesheet" href="/suite/tasks/tasks-scoped.css" />
+<script src="/suite/tasks/tasks-scoped.js"></script>
+
+<!-- =============================================================================
+     TASKS APP - Autonomous Task Management
+     Respects Theme Manager - No hardcoded theme
+     ============================================================================= -->
+
+<div class="tasks-app">
+    <!-- Hidden element to load stats on page load -->
+    <div
+        hx-get="/api/ui/tasks/stats"
+        hx-trigger="load, taskCreated from:div"
+        hx-swap="innerHTML"
+        style="display: none"
+    ></div>
+
+    <!-- Status Filter Pills Row -->
+    <div class="status-filter-row">
+        <button
+            class="filter-pill"
+            data-filter="complete"
+            hx-get="/api/ui/tasks?filter=complete"
+            hx-target="closest .window-body #task-list"
+            hx-swap="innerHTML"
+        >
+            <span class="pill-icon">✓</span>
+            <span class="pill-label" data-i18n="tasks-completed">Complete</span>
+            <span class="pill-count" id="count-complete">-</span>
+        </button>
+        <button
+            class="filter-pill active"
+            data-filter="all"
+            hx-get="/api/ui/tasks?filter=all"
+            hx-target="closest .window-body #task-list"
+            hx-swap="innerHTML"
+        >
+            <span class="pill-icon">📋</span>
+            <span class="pill-label" data-i18n="tasks-all">All Tasks</span>
+            <span class="pill-count" id="count-all">-</span>
+        </button>
+        <button
+            class="filter-pill"
+            data-filter="active"
+            hx-get="/api/ui/tasks?filter=active"
+            hx-target="closest .window-body #task-list"
+            hx-swap="innerHTML"
+        >
+            <span class="pill-icon">⚡</span>
+            <span class="pill-label" data-i18n="tasks-active"
+                >Active Intents</span
+            >
+            <span class="pill-count" id="count-active">-</span>
+        </button>
+        <button
+            class="filter-pill"
+            data-filter="awaiting"
+            hx-get="/api/ui/tasks?filter=awaiting"
+            hx-target="closest .window-body #task-list"
+            hx-swap="innerHTML"
+        >
+            <span class="pill-icon">⏳</span>
+            <span class="pill-label" data-i18n="tasks-awaiting"
+                >Awaiting Decision</span
+            >
+            <span class="pill-count" id="count-awaiting">-</span>
+        </button>
+        <button
+            class="filter-pill"
+            data-filter="paused"
+            hx-get="/api/ui/tasks?filter=paused"
+            hx-target="closest .window-body #task-list"
+            hx-swap="innerHTML"
+        >
+            <span class="pill-icon">⏸</span>
+            <span class="pill-label" data-i18n="tasks-paused">Paused</span>
+            <span class="pill-count" id="count-paused">-</span>
+        </button>
+        <button
+            class="filter-pill"
+            data-filter="blocked"
+            hx-get="/api/ui/tasks?filter=blocked"
+            hx-target="closest .window-body #task-list"
+            hx-swap="innerHTML"
+        >
+            <span class="pill-icon">⚠</span>
+            <span class="pill-label" data-i18n="tasks-blocked"
+                >Blocked/Issues</span
+            >
+            <span class="pill-count" id="count-blocked">-</span>
+        </button>
+        <div class="time-saved-badge">
+            <span class="time-label" data-i18n="tasks-time-saved"
+                >Active Time Saved:</span
+            >
+            <span class="time-value" id="time-saved-value">-</span>
+        </div>
+    </div>
+
+    <!-- Quick Intent Input -->
+    <div class="quick-intent-bar">
+        <div class="intent-input-wrapper">
+            <input
+                type="text"
+                id="quick-intent-input"
+                name="intent"
+                class="quick-intent-input"
+                placeholder="What would you like to do? e.g., 'create a CRM app' or 'remind me to call John tomorrow'"
+                data-i18n-placeholder="tasks-input-placeholder"
+                autocomplete="off"
+            />
+            <button
+                id="quick-intent-btn"
+                class="btn-create-run"
+                hx-post="/api/ui/autotask/create"
+                hx-ext="json-enc"
+                hx-include="#quick-intent-input"
+                hx-target="closest .window-body #intent-result-hidden"
+                hx-swap="none"
+                hx-indicator="#intent-spinner"
+                hx-timeout="300000"
+            >
+                <span class="btn-text">Create & Run</span>
+                <span class="spinner" id="intent-spinner"></span>
+            </button>
+        </div>
+        <div id="intent-result" class="intent-result"></div>
+        <div id="intent-result-hidden" style="display: none"></div>
+    </div>
+
+    <!-- Main Two-Column Layout with Splitter -->
+    <main class="tasks-main">
+        <!-- Left Panel: Task Cards List -->
+        <section class="tasks-list-panel">
+            <div
+                class="tasks-list-scroll"
+                id="task-list"
+                hx-get="/api/ui/tasks?filter=all"
+                hx-trigger="load, taskCreated from:div throttle:2s"
+                hx-swap="innerHTML transition:false"
+            >
+                <!-- Loading state - replaced by HTMX -->
+                <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>Loading tasks...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Splitter -->
+        <div class="tasks-splitter" id="tasks-splitter"></div>
+
+        <!-- Right Panel: Task Detail -->
+        <aside class="task-detail-panel" id="task-detail-panel">
+            <!-- Detail content loaded dynamically -->
+            <div class="detail-empty" id="detail-empty">
+                <div class="empty-icon">📋</div>
+                <h3 class="empty-title">Select a task</h3>
+                <p class="empty-description">
+                    Click on a task from the list to view details
+                </p>
+                <div class="empty-info">
+                    <p>
+                        <strong>Bot Database:</strong> All apps share the same
+                        database tables.
+                    </p>
+                    <p>
+                        <strong>Shared Resources:</strong> Schedulers, tools,
+                        and monitors work across all apps.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Dynamic detail content -->
+            <div
+                id="task-detail-content"
+                style="display: none"
+                hx-get=""
+                hx-trigger="taskSelected from:div"
+                hx-swap="innerHTML"
+            >
+                <!-- Loaded via HTMX when task selected -->
+            </div>
+        </aside>
+    </main>
+</div>
+
+<!-- Floating Progress Panel - Shows live task generation progress -->
+<div
+    class="floating-progress-panel"
+    id="floating-progress"
+    style="display: none"
+>
+    <div class="floating-progress-header">
+        <div class="floating-progress-title">
+            <span class="progress-dot"></span>
+            <span id="floating-task-name">Processing...</span>
+        </div>
+        <div class="floating-progress-actions">
+            <button class="btn-minimize" onclick="minimizeFloatingProgress()">
+                —
+            </button>
+            <button class="btn-close-float" onclick="closeFloatingProgress()">
+                ×
+            </button>
+        </div>
+    </div>
+    <div class="floating-progress-div">
+        <div class="floating-progress-bar">
+            <div
+                class="floating-progress-fill"
+                id="floating-progress-fill"
+                style="width: 0%"
+            ></div>
+        </div>
+        <div class="floating-progress-info">
+            <span id="floating-progress-step">Starting...</span>
+            <span id="floating-progress-percent">0%</span>
+        </div>
+        <div class="floating-progress-log" id="floating-progress-log">
+            <!-- Live log entries appear here -->
+        </div>
+        <div class="floating-llm-terminal" id="floating-llm-terminal">
+            <!-- LLM streaming output appears here -->
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- New Intent Modal -->
+<div class="modal" id="new-intent-modal" style="display: none">
+    <div class="modal-backdrop" onclick="closeNewIntentModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Create New Intent</h3>
+            <button class="btn-close" onclick="closeNewIntentModal()">×</button>
+        </div>
+        <div class="modal-div">
+            <form id="new-intent-form">
+                <div class="form-group">
+                    <label for="intent-text"
+                        >What would you like to accomplish?</label
+                    >
+                    <textarea
+                        id="intent-text"
+                        name="intent"
+                        rows="4"
+                        placeholder="Describe what you want to create or automate..."
+                    ></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="intent-priority">Priority</label>
+                        <select id="intent-priority" name="priority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="intent-mode">Execution Mode</label>
+                        <select id="intent-mode" name="mode">
+                            <option value="auto">Automatic</option>
+                            <option value="supervised">Supervised</option>
+                            <option value="manual">Manual Approval</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeNewIntentModal()">
+                Cancel
+            </button>
+            <button class="btn-primary" onclick="submitNewIntent()">
+                Create & Run
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Decision Modal -->
+<div class="modal" id="decision-modal" style="display: none">
+    <div class="modal-backdrop" onclick="closeDecisionModal()"></div>
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h3>Make Decision</h3>
+            <button class="btn-close" onclick="closeDecisionModal()">×</button>
+        </div>
+        <div class="modal-div">
+            <div class="decision-question" id="decision-question">
+                <h4>Decision Required</h4>
+                <p>Loading decision details...</p>
+            </div>
+            <div class="decision-options" id="decision-options">
+                <!-- Options loaded dynamically -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeDecisionModal()">
+                Cancel
+            </button>
+            <button class="btn-secondary" onclick="skipDecision()">
+                Skip for Now
+            </button>
+            <button class="btn-primary" onclick="submitDecision()">
+                Confirm Decision
+            </button>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="/suite/tasks/tasks-scoped.css" />
+<script src="/suite/tasks/tasks-scoped.js"></script>

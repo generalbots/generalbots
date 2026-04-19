@@ -1,0 +1,386 @@
+<div class="app-guide native-settings">
+    <header class="guide-header">
+        <h1></h1>⚙️ App Settings</h1>
+        <p>Configure native desktop application preferences</p>
+    </header>
+
+    <form
+        id="settings-form"
+        hx-post="/app/api/settings/save"
+        hx-target="#save-status"
+        hx-swap="innerHTML"
+        hx-indicator="#saving"
+    >
+        <section class="settings-section">
+            <h2>General</h2>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <label for="startOnLogin" class="setting-label"
+                        >Start on login</label
+                    >
+                    <div class="setting-description">
+                        Automatically start General Bots when you log in
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <input
+                        type="checkbox"
+                        id="startOnLogin"
+                        name="startOnLogin"
+                        class="toggle-input"
+                    />
+                    <label for="startOnLogin" class="toggle-switch"></label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <label for="minimizeToTray" class="setting-label"
+                        >Minimize to tray</label
+                    >
+                    <div class="setting-description">
+                        Keep running in system tray when window is closed
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <input
+                        type="checkbox"
+                        id="minimizeToTray"
+                        name="minimizeToTray"
+                        class="toggle-input"
+                        checked
+                    />
+                    <label for="minimizeToTray" class="toggle-switch"></label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <label class="setting-label">Default download location</label>
+                    <div class="setting-description">
+                        Where to save downloaded files
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <input
+                        type="text"
+                        id="downloadPath"
+                        name="downloadPath"
+                        readonly
+                        placeholder="Select folder..."
+                    />
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        hx-get="/app/api/settings/select-download-path"
+                        hx-target="#downloadPath"
+                        hx-swap="outerHTML"
+                    >
+                        Browse...
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h2>Server Connection</h2>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <label for="serverUrl" class="setting-label">Server URL</label>
+                    <div class="setting-description">BotServer API endpoint</div>
+                </div>
+                <div class="setting-control">
+                    <input
+                        type="url"
+                        id="serverUrl"
+                        name="serverUrl"
+                        value="http://localhost:8080"
+                        hx-post="/app/api/settings/test-connection"
+                        hx-target="#connection-status"
+                        hx-trigger="blur changed"
+                        hx-indicator="#testing-connection"
+                    />
+                    <span id="testing-connection" class="htmx-indicator">⏳</span>
+                    <span id="connection-status"></span>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <label for="autoReconnect" class="setting-label"
+                        >Auto-reconnect</label
+                    >
+                    <div class="setting-description">
+                        Automatically reconnect when connection is lost
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <input
+                        type="checkbox"
+                        id="autoReconnect"
+                        name="autoReconnect"
+                        class="toggle-input"
+                        checked
+                    />
+                    <label for="autoReconnect" class="toggle-switch"></label>
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h2>Notifications</h2>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <label for="desktopNotifications" class="setting-label"
+                        >Desktop notifications</label
+                    >
+                    <div class="setting-description">
+                        Show native desktop notifications
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <input
+                        type="checkbox"
+                        id="desktopNotifications"
+                        name="desktopNotifications"
+                        class="toggle-input"
+                        checked
+                    />
+                    <label
+                        for="desktopNotifications"
+                        class="toggle-switch"
+                    ></label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <label for="soundAlerts" class="setting-label"
+                        >Sound alerts</label
+                    >
+                    <div class="setting-description">
+                        Play sound when receiving messages
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <input
+                        type="checkbox"
+                        id="soundAlerts"
+                        name="soundAlerts"
+                        class="toggle-input"
+                    />
+                    <label for="soundAlerts" class="toggle-switch"></label>
+                </div>
+            </div>
+        </section>
+
+        <div class="actions">
+            <button type="submit" class="btn btn-primary">
+                <span class="btn-text">Save Settings</span>
+                <span id="saving" class="htmx-indicator">Saving...</span>
+            </button>
+            <button
+                type="button"
+                class="btn btn-secondary"
+                hx-get="/app/api/settings/defaults"
+                hx-target="#settings-form"
+                hx-swap="outerHTML"
+            >
+                Reset to Defaults
+            </button>
+            <span id="save-status"></span>
+        </div>
+    </form>
+
+    <div
+        class="version-info"
+        hx-get="/app/api/settings/version"
+        hx-trigger="load"
+        hx-swap="innerHTML"
+    >
+        <strong>General Bots App</strong><br />
+        Loading version info...
+    </div>
+
+    <style>
+        .native-settings {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .guide-header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color, #e0e0e0);
+            padding-bottom: 1rem;
+        }
+
+        .guide-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+
+        .guide-header p {
+            margin: 0;
+            color: var(--text-secondary, #666);
+        }
+
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+
+        .settings-section h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary, #333);
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            display: block;
+            cursor: pointer;
+        }
+
+        .setting-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary, #666);
+        }
+
+        .setting-control {
+            margin-left: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Toggle switch using CSS only */
+        .toggle-input {
+            display: none;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: var(--bg-tertiary, #ccc);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch::after {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle-input:checked + .toggle-switch {
+            background: var(--accent-color, #4caf50);
+        }
+
+        .toggle-input:checked + .toggle-switch::after {
+            transform: translateX(24px);
+        }
+
+        input[type="text"],
+        input[type="url"] {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color, #ddd);
+            border-radius: 4px;
+            font-size: 0.875rem;
+            min-width: 200px;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .btn-primary {
+            background: var(--accent-color, #2196f3);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary, #e0e0e0);
+            color: var(--text-primary, #333);
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color, #e0e0e0);
+        }
+
+        #save-status {
+            margin-left: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .version-info {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary, #666);
+        }
+
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            display: inline;
+        }
+
+        .htmx-request .btn-text {
+            display: none;
+        }
+
+        #connection-status.success {
+            color: #4caf50;
+        }
+
+        #connection-status.error {
+            color: #f44336;
+        }
+    </style>
+</div>

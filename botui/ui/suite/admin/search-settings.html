@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Search Settings - General Bots</title>
+        <link rel="stylesheet" href="admin.css" />
+        <style>
+            .search-settings {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 24px;
+            }
+
+            .settings-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 32px;
+            }
+
+            .settings-header h1 {
+                font-size: 28px;
+                font-weight: 600;
+                color: #1a1a2e;
+                margin: 0;
+            }
+
+            .header-actions {
+                display: flex;
+                gap: 12px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                border: none;
+                transition: all 0.2s;
+            }
+
+            .btn-primary {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+
+            .btn-primary:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            }
+
+            .btn-secondary {
+                background: #f0f0f5;
+                color: #1a1a2e;
+            }
+
+            .btn-secondary:hover {
+                background: #e5e5ed;
+            }
+
+            .btn-danger {
+                background: #ef4444;
+                color: white;
+            }
+
+            .btn-danger:hover {
+                background: #dc2626;
+            }
+
+            .settings-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 24px;
+                margin-bottom: 32px;
+            }
+
+            @media (max-width: 900px) {
+                .settings-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            .settings-card {
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            }
+
+            .settings-card.full-width {
+                grid-column: 1 / -1;
+            }
+
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+
+            .card-title {
+                font-size: 18px;
+                font-weight: 600;
+                color: #1a1a2e;
+                margin: 0;
+            }
+
+            .card-subtitle {
+                font-size: 13px;
+                color: #6b7280;
+                margin-top: 4px;
+            }
+
+            .source-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .source-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 16px;
+                background: #f8f9fc;
+                border-radius: 12px;
+                transition: background 0.2s;
+            }
+
+            .source-item:hover {
+                background: #f0f1f5;
+            }
+
+            .source-info {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+            }
+
+            .source-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+            }
+
+            .source-icon.email {
+                background: #dbeafe;
+            }
+            .source-icon.drive {
+                background: #fef3c7;
+            }
+            .source-icon.calendar {
+                background: #dcfce7;
+            }
+            .source-icon.tasks {
+                background: #fce7f3;
+            }
+            .source-icon.transcription {
+                background: #e0e7ff;
+            }
+            .source-icon.chat {
+                background: #f3e8ff;
+            }
+            .source-icon.contacts {
+                background: #cffafe;
+            }
+            .source-icon.notes {
+                background: #fef9c3;
+            }
+
+            .source-details h4 {
+                font-size: 15px;
+                font-weight: 600;
+                color: #1a1a2e;
+                margin: 0 0 4px 0;
+            }
+
+            .source-details p {
+                font-size: 13px;
+                color: #6b7280;
+                margin: 0;
+            }
+
+            .source-toggle {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .toggle-switch {
+                position: relative;
+                width: 48px;
+                height: 26px;
+            }
+
+            .toggle-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+            .toggle-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #d1d5db;
+                transition: 0.3s;
+                border-radius: 26px;
+            }
+
+            .toggle-slider:before {
+                position: absolute;
+                content: "";
+                height: 20px;
+                width: 20px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                transition: 0.3s;
+                border-radius: 50%;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            input:checked + .toggle-slider {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+
+            input:checked + .toggle-slider:before {
+                transform: translateX(22px);
+            }
+
+            .retention-config {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .config-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px;
+                background: #f8f9fc;
+                border-radius: 12px;
+            }
+
+            .config-label {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .config-label h4 {
+                font-size: 15px;
+                font-weight: 600;
+                color: #1a1a2e;
+                margin: 0;
+            }
+
+            .config-label p {
+                font-size: 13px;
+                color: #6b7280;
+                margin: 0;
+            }
+
+            .config-input {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .config-input input[type="number"],
+            .config-input select {
+                padding: 10px 14px;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                font-size: 14px;
+                width: 120px;
+                background: white;
+            }
+
+            .config-input input[type="number"]:focus,
+            .config-input select:focus {
+                outline: none;
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+
+            @media (max-width: 900px) {
+                .stats-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+
+            .stat-card {
+                background: #f8f9fc;
+                border-radius: 12px;
+                padding: 20px;
+                text-align: center;
+            }
+
+            .stat-value {
+                font-size: 28px;
+                font-weight: 700;
+                color: #1a1a2e;
+                margin-bottom: 4px;
+            }
+
+            .stat-label {
+                font-size: 13px;
+                color: #6b7280;
+            }
+
+            .index-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .index-table th,
+            .index-table td {
+                padding: 14px 16px;
+                text-align: left;
+                border-bottom: 1px solid #f0f0f5;
+            }
+
+            .index-table th {
+                font-size: 12px;
+                font-weight: 600;
+                color: #6b7280;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .index-table td {
+                font-size: 14px;
+                color: #1a1a2e;
+            }
+
+            .index-table tr:last-child td {
+                border-bottom: none;
+            }
+
+            .index-table tr:hover td {
+                background: #f8f9fc;
+            }
+
+            .status-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+
+            .status-badge.indexed {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .status-badge.pending {
+                background: #fef3c7;
+                color: #92400e;
+            }
+
+            .status-badge.error {
+                background: #fee2e2;
+                color: #dc2626;
+            }
+
+            .status-dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: currentColor;
+            }
+
+            .action-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+                border-radius: 6px;
+                border: 1px solid #e5e7eb;
+                background: white;
+                color: #374151;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .action-btn:hover {
+                background: #f3f4f6;
+                border-color: #d1d5db;
+            }
+
+            .progress-bar {
+                width: 100%;
+                height: 8px;
+                background: #e5e7eb;
+                border-radius: 4px;
+                overflow: hidden;
+                margin-top: 8px;
+            }
+
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 4px;
+                transition: width 0.3s;
+            }
+
+            .reindex-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            }
+
+            .reindex-modal.active {
+                display: flex;
+            }
+
+            .modal-content {
+                background: white;
+                border-radius: 16px;
+                padding: 32px;
+                max-width: 500px;
+                width: 90%;
+            }
+
+            .modal-header {
+                margin-bottom: 20px;
+            }
+
+            .modal-header h2 {
+                font-size: 20px;
+                font-weight: 600;
+                color: #1a1a2e;
+                margin: 0 0 8px 0;
+            }
+
+            .modal-header p {
+                font-size: 14px;
+                color: #6b7280;
+                margin: 0;
+            }
+
+            .modal-body {
+                margin-bottom: 24px;
+            }
+
+            .checkbox-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .checkbox-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px;
+                background: #f8f9fc;
+                border-radius: 8px;
+                cursor: pointer;
+            }
+
+            .checkbox-item:hover {
+                background: #f0f1f5;
+            }
+
+            .checkbox-item input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+                accent-color: #667eea;
+            }
+
+            .checkbox-item label {
+                font-size: 14px;
+                color: #1a1a2e;
+                cursor: pointer;
+            }
+
+            .modal-footer {
+                display: flex;
+                justify-content: flex-end;
+                gap: 12px;
+            }
+
+            .alert {
+                padding: 16px;
+                border-radius: 12px;
+                margin-bottom: 24px;
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .alert.info {
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+            }
+
+            .alert.info .alert-icon {
+                color: #3b82f6;
+            }
+
+            .alert.warning {
+                background: #fffbeb;
+                border: 1px solid #fde68a;
+            }
+
+            .alert.warning .alert-icon {
+                color: #f59e0b;
+            }
+
+            .alert-icon {
+                font-size: 20px;
+                flex-shrink: 0;
+            }
+
+            .alert-content h4 {
+                font-size: 14px;
+                font-weight: 600;
+                color: #1a1a2e;
+                margin: 0 0 4px 0;
+            }
+
+            .alert-content p {
+                font-size: 13px;
+                color: #4b5563;
+                margin: 0;
+            }
+
+            .last-updated {
+                font-size: 12px;
+                color: #9ca3af;
+                margin-top: 16px;
+                text-align: right;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="search-settings">
+            <div class="settings-header">
+                <div>
+                    <h1>Search Settings</h1>
+                    <p style="color: #6b7280; margin-top: 4px">
+                        Configure what gets indexed and how long data is
+                        retained
+                    </p>
+                </div>
+                <div class="header-actions">
+                    <button
+                        class="btn btn-secondary"
+                        onclick="openReindexModal()"
+                    >
+                        🔄 Reindex All
+                    </button>
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        💾 Save Changes
+                    </button>
+                </div>
+            </div>
+
+            <div class="alert info">
+                <span class="alert-icon">ℹ️</span>
+                <div class="alert-content">
+                    <h4>PostgreSQL Full-Text Search</h4>
+                    <p>
+                        Your search index uses PostgreSQL tsvector for efficient
+                        full-text search across all enabled sources. Changes to
+                        indexing settings will take effect on the next scheduled
+                        reindex.
+                    </p>
+                </div>
+            </div>
+
+            <div class="settings-grid">
+                <div class="settings-card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Search Sources</h3>
+                            <p class="card-subtitle">
+                                Select which data sources to include in search
+                            </p>
+                        </div>
+                    </div>
+                    <div class="source-list">
+                        <div class="source-item">
+                            <div class="source-info">
+                                <div class="source-icon email">📧</div>
+                                <div class="source-details">
+                                    <h4>Email</h4>
+                                    <p>
+                                        Search email subjects and body content
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="source-toggle">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="source-email"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="source-item">
+                            <div class="source-info">
+                                <div class="source-icon drive">📁</div>
+                                <div class="source-details">
+                                    <h4>Drive</h4>
+                                    <p>
+                                        Index document content from Drive files
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="source-toggle">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="source-drive"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="source-item">
+                            <div class="source-info">
+                                <div class="source-icon calendar">📅</div>
+                                <div class="source-details">
+                                    <h4>Calendar</h4>
+                                    <p>
+                                        Search event titles, descriptions,
+                                        locations
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="source-toggle">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="source-calendar"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="source-item">
+                            <div class="source-info">
+                                <div class="source-icon tasks">✅</div>
+                                <div class="source-details">
+                                    <h4>Tasks</h4>
+                                    <p>Index task titles and descriptions</p>
+                                </div>
+                            </div>
+                            <div class="source-toggle">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="source-tasks"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="source-item">
+                            <div class="source-info">
+                                <div class="source-icon transcription">🎙️</div>
+                                <div class="source-details">
+                                    <h4>Meeting Transcriptions</h4>
+                                    <p>Search transcribed meeting content</p>
+                                </div>
+                            </div>
+                            <div class="source-toggle">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="source-transcription"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="source-item">
+                            <div class="source-info">
+                                <div class="source-icon chat">💬</div>
+                                <div class="source-details">
+                                    <h4>Chat Messages</h4>
+                                    <p>Index chat conversations</p>
+                                </div>
+                            </div>
+                            <div class="source-toggle">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="source-chat" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="source-item">
+                            <div class="source-info">
+                                <div class="source-icon contacts">👥</div>
+                                <div class="source-details">
+                                    <h4>Contacts</h4>
+                                    <p>Search contact names, emails, notes</p>
+                                </div>
+                            </div>
+                            <div class="source-toggle">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="source-contacts"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="source-item">
+                            <div class="source-info">
+                                <div class="source-icon notes">📝</div>
+                                <div class="source-details">
+                                    <h4>Notes</h4>
+                                    <p>Index Paper and notes content</p>
+                                </div>
+                            </div>
+                            <div class="source-toggle">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="source-notes"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Retention & Performance</h3>
+                            <p class="card-subtitle">
+                                Configure index retention and search behavior
+                            </p>
+                        </div>
+                    </div>
+                    <div class="retention-config">
+                        <div class="config-row">
+                            <div class="config-label">
+                                <h4>Index Retention</h4>
+                                <p>How long to keep indexed documents</p>
+                            </div>
+                            <div class="config-input">
+                                <input
+                                    type="number"
+                                    id="retention-days"
+                                    value="365"
+                                    min="30"
+                                    max="3650"
+                                />
+                                <span>days</span>
+                            </div>
+                        </div>
+                        <div class="config-row">
+                            <div class="config-label">
+                                <h4>Max Results Per Source</h4>
+                                <p>Limit results returned per source type</p>
+                            </div>
+                            <div class="config-input">
+                                <input
+                                    type="number"
+                                    id="max-results"
+                                    value="50"
+                                    min="10"
+                                    max="200"
+                                />
+                            </div>
+                        </div>
+                        <div class="config-row">
+                            <div class="config-label">
+                                <h4>Snippet Length</h4>
+                                <p>Characters to show in search snippets</p>
+                            </div>
+                            <div class="config-input">
+                                <input
+                                    type="number"
+                                    id="snippet-length"
+                                    value="200"
+                                    min="50"
+                                    max="500"
+                                />
+                            </div>
+                        </div>
+                        <div class="config-row">
+                            <div class="config-label">
+                                <h4>FTS Configuration</h4>
+                                <p>PostgreSQL text search configuration</p>
+                            </div>
+                            <div class="config-input">
+                                <select id="fts-config">
+                                    <option value="english" selected>
+                                        English
+                                    </option>
+                                    <option value="simple">Simple</option>
+                                    <option value="portuguese">
+                                        Portuguese
+                                    </option>
+                                    <option value="spanish">Spanish</option>
+                                    <option value="french">French</option>
+                                    <option value="german">German</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="config-row">
+                            <div class="config-label">
+                                <h4>Auto-Reindex Schedule</h4>
+                                <p>When to automatically refresh the index</p>
+                            </div>
+                            <div class="config-input">
+                                <select id="reindex-schedule">
+                                    <option value="hourly">Every Hour</option>
+                                    <option value="daily" selected>
+                                        Daily
+                                    </option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="manual">Manual Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card full-width">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Index Statistics</h3>
+                            <p class="card-subtitle">
+                                Current state of your search index
+                            </p>
+                        </div>
+                        <button
+                            class="btn btn-secondary"
+                            onclick="refreshStats()"
+                        >
+                            🔄 Refresh
+                        </button>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-total-docs">
+                                24,567
+                            </div>
+                            <div class="stat-label">Total Documents</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-index-size">
+                                1.2 GB
+                            </div>
+                            <div class="stat-label">Index Size</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-last-indexed">
+                                2h ago
+                            </div>
+                            <div class="stat-label">Last Indexed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-avg-query">
+                                45ms
+                            </div>
+                            <div class="stat-label">Avg Query Time</div>
+                        </div>
+                    </div>
+
+                    <table class="index-table">
+                        <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Documents</th>
+                                <th>Size</th>
+                                <th>Last Indexed</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="index-stats-body">
+                            <tr>
+                                <td>📧 Email</td>
+                                <td>12,450</td>
+                                <td>520 MB</td>
+                                <td>2024-01-25 10:30</td>
+                                <td>
+                                    <span class="status-badge indexed"
+                                        ><span class="status-dot"></span
+                                        >Indexed</span
+                                    >
+                                </td>
+                                <td>
+                                    <button
+                                        class="action-btn"
+                                        onclick="reindexSource('email')"
+                                    >
+                                        Reindex
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>📁 Drive</td>
+                                <td>5,234</td>
+                                <td>380 MB</td>
+                                <td>2024-01-25 10:30</td>
+                                <td>
+                                    <span class="status-badge indexed"
+                                        ><span class="status-dot"></span
+                                        >Indexed</span
+                                    >
+                                </td>
+                                <td>
+                                    <button
+                                        class="action-btn"
+                                        onclick="reindexSource('drive')"
+                                    >
+                                        Reindex
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>📅 Calendar</td>
+                                <td>1,892</td>
+                                <td>45 MB</td>
+                                <td>2024-01-25 10:30</td>
+                                <td>
+                                    <span class="status-badge indexed"
+                                        ><span class="status-dot"></span
+                                        >Indexed</span
+                                    >
+                                </td>
+                                <td>
+                                    <button
+                                        class="action-btn"
+                                        onclick="reindexSource('calendar')"
+                                    >
+                                        Reindex
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>✅ Tasks</td>
+                                <td>3,456</td>
+                                <td>28 MB</td>
+                                <td>2024-01-25 10:30</td>
+                                <td>
+                                    <span class="status-badge indexed"
+                                        ><span class="status-dot"></span
+                                        >Indexed</span
+                                    >
+                                </td>
+                                <td>
+                                    <button
+                                        class="action-btn"
+                                        onclick="reindexSource('tasks')"
+                                    >
+                                        Reindex
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>🎙️ Transcriptions</td>
+                                <td>567</td>
+                                <td>180 MB</td>
+                                <td>2024-01-25 09:15</td>
+                                <td>
+                                    <span class="status-badge pending"
+                                        ><span class="status-dot"></span
+                                        >Pending</span
+                                    >
+                                </td>
+                                <td>
+                                    <button
+                                        class="action-btn"
+                                        onclick="reindexSource('transcription')"
+                                    >
+                                        Reindex
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>👥 Contacts</td>
+                                <td>968</td>
+                                <td>12 MB</td>
+                                <td>2024-01-25 10:30</td>
+                                <td>
+                                    <span class="status-badge indexed"
+                                        ><span class="status-dot"></span
+                                        >Indexed</span
+                                    >
+                                </td>
+                                <td>
+                                    <button
+                                        class="action-btn"
+                                        onclick="reindexSource('contacts')"
+                                    >
+                                        Reindex
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p class="last-updated">
+                        Last updated:
+                        <span id="last-refresh-time">Just now</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="reindex-modal" id="reindex-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>🔄 Reindex Sources</h2>
+                    <p>
+                        Select which sources to reindex. This may take several
+                        minutes depending on the amount of data.
+                    </p>
+                </div>
+                <div class="modal-body">
+                    <div class="checkbox-list">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="reindex-email" checked />
+                            <label for="reindex-email">📧 Email</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="reindex-drive" checked />
+                            <label for="reindex-drive">📁 Drive</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input
+                                type="checkbox"
+                                id="reindex-calendar"
+                                checked
+                            />
+                            <label for="reindex-calendar">📅 Calendar</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="reindex-tasks" checked />
+                            <label for="reindex-tasks">✅ Tasks</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input
+                                type="checkbox"
+                                id="reindex-transcription"
+                                checked
+                            />
+                            <label for="reindex-transcription"
+                                >🎙️ Transcriptions</label
+                            >
+                        </div>
+                        <div class="checkbox-item">
+                            <input
+                                type="checkbox"
+                                id="reindex-contacts"
+                                checked
+                            />
+                            <label for="reindex-contacts">👥 Contacts</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="reindex-notes" checked />
+                            <label for="reindex-notes">📝 Notes</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button
+                        class="btn btn-secondary"
+                        onclick="closeReindexModal()"
+                    >
+                        Cancel
+                    </button>
+                    <button class="btn btn-primary" onclick="startReindex()">
+                        Start Reindex
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function openReindexModal() {
+                document
+                    .getElementById("reindex-modal")
+                    .classList.add("active");
+            }
+
+            function closeReindexModal() {
+                document
+                    .getElementById("reindex-modal")
+                    .classList.remove("active");
+            }
+
+            function saveSettings() {
+                const settings = {
+                    sources: {
+                        email: document.getElementById("source-email").checked,
+                        drive: document.getElementById("source-drive").checked,
+                        calendar:
+                            document.getElementById("source-calendar").checked,
+                        tasks: document.getElementById("source-tasks").checked,
+                        transcription: document.getElementById(
+                            "source-transcription",
+                        ).checked,
+                        chat: document.getElementById("source-chat").checked,
+                        contacts:
+                            document.getElementById("source-contacts").checked,
+                        notes: document.getElementById("source-notes").checked,
+                    },
+                    retentionDays: parseInt(
+                        document.getElementById("retention-days").value,
+                    ),
+                    maxResults: parseInt(
+                        document.getElementById("max-results").value,
+                    ),
+                    snippetLength: parseInt(
+                        document.getElementById("snippet-length").value,
+                    ),
+                    ftsConfig: document.getElementById("fts-config").value,
+                    reindexSchedule:
+                        document.getElementById("reindex-schedule").value,
+                };
+
+                fetch("/api/search/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(settings),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        showNotification(
+                            "Settings saved successfully!",
+                            "success",
+                        );
+                    })
+                    .catch((error) => {
+                        showNotification("Failed to save settings", "error");
+                    });
+            }
+
+            function refreshStats() {
+                fetch("/api/search/stats")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        document.getElementById("stat-total-docs").textContent =
+                            formatNumber(data.totalDocuments);
+                        document.getElementById("stat-index-size").textContent =
+                            formatBytes(data.indexSizeBytes);
+                        document.getElementById(
+                            "stat-last-indexed",
+                        ).textContent = formatTimeAgo(data.lastIndexed);
+                        document.getElementById("stat-avg-query").textContent =
+                            data.avgQueryTimeMs + "ms";
+                        document.getElementById(
+                            "last-refresh-time",
+                        ).textContent = "Just now";
+                    })
+                    .catch((error) => {
+                        console.error("Failed to refresh stats:", error);
+                    });
+            }
+
+            function reindexSource(source) {
+                if (
+                    !confirm(
+                        "Are you sure you want to reindex " +
+                            source +
+                            "? This may take several minutes.",
+                    )
+                ) {
+                    return;
+                }
+
+                fetch("/api/search/reindex/" + source, { method: "POST" })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        showNotification(
+                            "Reindexing " + source + " started",
+                            "success",
+                        );
+                        setTimeout(refreshStats, 2000);
+                    })
+                    .catch((error) => {
+                        showNotification("Failed to start reindex", "error");
+                    });
+            }
+
+            function startReindex() {
+                const sources = [];
+                if (document.getElementById("reindex-email").checked)
+                    sources.push("email");
+                if (document.getElementById("reindex-drive").checked)
+                    sources.push("drive");
+                if (document.getElementById("reindex-calendar").checked)
+                    sources.push("calendar");
+                if (document.getElementById("reindex-tasks").checked)
+                    sources.push("tasks");
+                if (document.getElementById("reindex-transcription").checked)
+                    sources.push("transcription");
+                if (document.getElementById("reindex-contacts").checked)
+                    sources.push("contacts");
+                if (document.getElementById("reindex-notes").checked)
+                    sources.push("notes");
+
+                if (sources.length === 0) {
+                    showNotification(
+                        "Please select at least one source",
+                        "warning",
+                    );
+                    return;
+                }
+
+                closeReindexModal();
+
+                fetch("/api/search/reindex", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sources: sources }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        showNotification(
+                            "Reindexing started for " +
+                                sources.length +
+                                " sources",
+                            "success",
+                        );
+                        setTimeout(refreshStats, 2000);
+                    })
+                    .catch((error) => {
+                        showNotification("Failed to start reindex", "error");
+                    });
+            }
+
+            function formatNumber(num) {
+                return new Intl.NumberFormat().format(num);
+            }
+
+            function formatBytes(bytes) {
+                if (bytes === 0) return "0 Bytes";
+                const k = 1024;
+                const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return (
+                    parseFloat((bytes / Math.pow(k, i)).toFixed(2)) +
+                    " " +
+                    sizes[i]
+                );
+            }
+
+            function formatTimeAgo(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const seconds = Math.floor((now - date) / 1000);
+                if (seconds < 60) return "Just now";
+                if (seconds < 3600) return Math.floor(seconds / 60) + "m ago";
+                if (seconds < 86400)
+                    return Math.floor(seconds / 3600) + "h ago";
+                return Math.floor(seconds / 86400) + "d ago";
+            }
+
+            function showNotification(message, type) {
+                const notification = document.createElement("div");
+                notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 16px 24px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 9999;
+                animation: slideIn 0.3s ease;
+                background: ${type === "success" ? "#10b981" : type === "error" ? "#ef4444" : "#f59e0b"};
+            `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            }
+
+            document.addEventListener("DOMContentLoaded", function () {
+                refreshStats();
+            });
+        </script>
+    </body>
+</html>

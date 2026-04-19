@@ -1,0 +1,144 @@
+<!-- Service Form - Products Partial -->
+<form class="product-form" hx-post="/api/products/services" hx-target="#services-table-body" hx-swap="innerHTML" hx-on::after-request="closeProductsModal()">
+    <div class="product-form-header">
+        <h2 class="product-form-title" data-i18n="products-new-service">New Service</h2>
+        <button type="button" class="form-close" onclick="closeProductsModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Basic Info -->
+    <div class="form-group">
+        <label class="form-label" data-i18n="products-service-name">Service Name *</label>
+        <input type="text" name="name" class="form-input" required placeholder="e.g., Technical Consulting">
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" data-i18n="products-description">Description</label>
+        <textarea name="description" class="form-textarea" rows="3" placeholder="Describe the service offering..."></textarea>
+    </div>
+
+    <!-- Pricing Type -->
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-billing-type">Billing Type *</label>
+            <select name="billing_type" class="form-select" required onchange="updatePricingFields(this.value)">
+                <option value="" data-i18n="products-select-type">Select type...</option>
+                <option value="hourly" data-i18n="products-type-hourly">Hourly Rate</option>
+                <option value="fixed" data-i18n="products-type-fixed">Fixed Price</option>
+                <option value="recurring" data-i18n="products-type-recurring">Recurring (Subscription)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-category">Category</label>
+            <select name="category" class="form-select">
+                <option value="consulting" data-i18n="products-cat-consulting">Consulting</option>
+                <option value="development" data-i18n="products-cat-development">Development</option>
+                <option value="training" data-i18n="products-cat-training">Training</option>
+                <option value="support" data-i18n="products-cat-support">Support</option>
+                <option value="maintenance" data-i18n="products-cat-maintenance">Maintenance</option>
+                <option value="implementation" data-i18n="products-cat-implementation">Implementation</option>
+                <option value="other" data-i18n="products-cat-other">Other</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="form-row" id="pricing-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-price">Price *</label>
+            <input type="number" name="price" class="form-input" required placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group" id="unit-group">
+            <label class="form-label" data-i18n="products-unit">Unit</label>
+            <select name="unit" class="form-select">
+                <option value="hour" data-i18n="products-unit-hour">Per Hour</option>
+                <option value="day" data-i18n="products-unit-day">Per Day</option>
+                <option value="project" data-i18n="products-unit-project">Per Project</option>
+                <option value="month" data-i18n="products-unit-month">Per Month</option>
+                <option value="year" data-i18n="products-unit-year">Per Year</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Recurring Options (shown only for recurring type) -->
+    <div class="form-row" id="recurring-options" style="display: none;">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-billing-cycle">Billing Cycle</label>
+            <select name="billing_cycle" class="form-select">
+                <option value="monthly" data-i18n="products-cycle-monthly">Monthly</option>
+                <option value="quarterly" data-i18n="products-cycle-quarterly">Quarterly</option>
+                <option value="annually" data-i18n="products-cycle-annually">Annually</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-trial-days">Trial Period (days)</label>
+            <input type="number" name="trial_days" class="form-input" placeholder="0" min="0" step="1">
+        </div>
+    </div>
+
+    <!-- Estimated Duration (for fixed/hourly) -->
+    <div class="form-row" id="duration-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-min-hours">Min. Hours</label>
+            <input type="number" name="min_hours" class="form-input" placeholder="1" min="0" step="0.5">
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-max-hours">Max. Hours (estimate)</label>
+            <input type="number" name="max_hours" class="form-input" placeholder="40" min="0" step="0.5">
+        </div>
+    </div>
+
+    <!-- Status -->
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-status">Status</label>
+            <select name="status" class="form-select">
+                <option value="active" data-i18n="products-status-active">Active</option>
+                <option value="inactive" data-i18n="products-status-inactive">Inactive</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-taxable">Taxable</label>
+            <select name="taxable" class="form-select">
+                <option value="yes" data-i18n="common-yes">Yes</option>
+                <option value="no" data-i18n="common-no">No</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="form-btn secondary" onclick="closeProductsModal()" data-i18n="common-cancel">Cancel</button>
+        <button type="submit" class="form-btn primary" data-i18n="products-create-service">Create Service</button>
+    </div>
+</form>
+
+<script>
+(function() {
+    window.updatePricingFields = function(billingType) {
+        const recurringOptions = document.getElementById('recurring-options');
+        const durationRow = document.getElementById('duration-row');
+        const unitSelect = document.querySelector('select[name="unit"]');
+
+        if (billingType === 'recurring') {
+            recurringOptions.style.display = 'grid';
+            durationRow.style.display = 'none';
+            unitSelect.value = 'month';
+        } else if (billingType === 'fixed') {
+            recurringOptions.style.display = 'none';
+            durationRow.style.display = 'grid';
+            unitSelect.value = 'project';
+        } else if (billingType === 'hourly') {
+            recurringOptions.style.display = 'none';
+            durationRow.style.display = 'grid';
+            unitSelect.value = 'hour';
+        } else {
+            recurringOptions.style.display = 'none';
+            durationRow.style.display = 'grid';
+        }
+    };
+})();
+</script>

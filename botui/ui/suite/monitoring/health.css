@@ -1,0 +1,628 @@
+/* Health page styles */
+
+.health-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.health-overview {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.health-status {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.status-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    flex-shrink: 0;
+}
+
+.health-status.healthy .status-icon {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.health-status.degraded .status-icon {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.health-status.unhealthy .status-icon {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+.status-info {
+    flex: 1;
+}
+
+.status-info h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+.status-info p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.status-badge.healthy {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.status-badge.degraded {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.status-badge.unhealthy {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+/* Uptime Stats */
+.uptime-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.stat-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.stat-icon.success {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.stat-icon.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.stat-icon.info {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
+}
+
+/* Health Section */
+.health-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.section-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.section-header h3 svg {
+    color: var(--primary);
+}
+
+.section-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.view-all-link {
+    font-size: 0.8125rem;
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.view-all-link:hover {
+    text-decoration: underline;
+}
+
+/* Health Checks Grid */
+.health-checks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    padding: 1.25rem;
+}
+
+.health-check-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.check-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.check-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.check-status.healthy {
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
+
+.check-status.degraded {
+    background: var(--warning);
+    box-shadow: 0 0 8px var(--warning);
+}
+
+.check-status.unhealthy {
+    background: var(--error);
+    box-shadow: 0 0 8px var(--error);
+}
+
+.check-name {
+    flex: 1;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.check-badge {
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.check-badge.healthy {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.check-badge.degraded {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.check-badge.unhealthy {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+.check-details {
+    padding: 0.75rem 1rem;
+}
+
+.check-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.375rem 0;
+}
+
+.check-row:not(:last-child) {
+    border-bottom: 1px solid var(--border);
+}
+
+.check-label {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.check-value {
+    font-size: 0.8125rem;
+    color: var(--text);
+    font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+}
+
+/* Health Grid */
+.health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.health-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.health-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.health-card-title {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.health-status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.health-status-badge.healthy {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.health-status-badge.unhealthy {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+.health-status-badge.degraded {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+/* Dependencies */
+.dependencies-list {
+    padding: 0.5rem 0;
+}
+
+.dependency-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.dependency-row:last-child {
+    border-bottom: none;
+}
+
+.dependency-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dependency-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dependency-status.healthy {
+    background: var(--success);
+}
+.dependency-status.degraded {
+    background: var(--warning);
+}
+.dependency-status.unhealthy {
+    background: var(--error);
+}
+
+.dependency-name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.dependency-url {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+}
+
+.dependency-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.dependency-stats .stat {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+}
+
+.dependency-stats .stat svg {
+    color: var(--primary);
+}
+
+.dependency-badge {
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+.dependency-badge.healthy {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.dependency-badge.unhealthy {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+/* Uptime Chart */
+.uptime-legend {
+    display: flex;
+    gap: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-dot.healthy {
+    background: var(--success);
+}
+.legend-dot.degraded {
+    background: var(--warning);
+}
+.legend-dot.outage {
+    background: var(--error);
+}
+
+.uptime-chart {
+    padding: 1.25rem;
+}
+
+.uptime-bars {
+    display: flex;
+    gap: 2px;
+    height: 32px;
+    margin-bottom: 0.5rem;
+}
+
+.uptime-bar {
+    flex: 1;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.uptime-bar:hover {
+    opacity: 0.8;
+}
+
+.uptime-bar.healthy {
+    background: var(--success);
+}
+.uptime-bar.degraded {
+    background: var(--warning);
+}
+.uptime-bar.outage {
+    background: var(--error);
+}
+
+.uptime-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6875rem;
+    color: var(--text-secondary);
+}
+
+/* Incidents */
+.incidents-list {
+    padding: 1rem 1.25rem;
+}
+
+.incident-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+}
+
+.incident-item:last-child {
+    margin-bottom: 0;
+}
+
+.incident-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.incident-item.resolved .incident-icon {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.incident-item.ongoing .incident-icon {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+.incident-content {
+    flex: 1;
+}
+
+.incident-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+.incident-description {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.incident-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.incident-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.incident-placeholder svg {
+    margin-bottom: 0.75rem;
+    color: var(--success);
+    opacity: 0.6;
+}
+
+.incident-placeholder p {
+    font-size: 0.9375rem;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .health-status {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .uptime-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .health-checks-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .dependency-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .dependency-stats {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .uptime-legend {
+        flex-wrap: wrap;
+    }
+
+    .uptime-bars {
+        gap: 1px;
+    }
+}
+
+@media (max-width: 480px) {
+    .uptime-stats {
+        grid-template-columns: 1fr;
+    }
+}

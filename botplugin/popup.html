@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>General Bots</title>
+        <link rel="stylesheet" href="popup.css" />
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <img src="icons/icon48.png" alt="General Bots Logo" />
+                <div class="header-text">
+                    <h1>General Bots</h1>
+                    <p class="version">v2.0.0</p>
+                </div>
+            </div>
+
+            <!-- Connection Status -->
+            <div class="status-bar" id="status-bar">
+                <span class="status-dot"></span>
+                <span class="status-text">Checking connection...</span>
+            </div>
+
+            <!-- Authentication Section -->
+            <div class="section auth-section" id="auth-section">
+                <h3>🔐 Connect to General Bots</h3>
+                <p class="description">
+                    Authenticate using your WhatsApp number to enable AI
+                    features.
+                </p>
+
+                <div class="input-group">
+                    <label for="whatsapp-number">WhatsApp Number</label>
+                    <input
+                        type="tel"
+                        id="whatsapp-number"
+                        placeholder="+55 11 99999-9999"
+                    />
+                    <small>Include country code</small>
+                </div>
+
+                <button class="btn btn-primary" id="auth-btn">
+                    <span class="btn-icon">🤖</span>
+                    Authenticate via WhatsApp
+                </button>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="section settings-section">
+                <h3>⚙️ Settings</h3>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Server URL</span>
+                        <span class="setting-hint"
+                            >General Bots API endpoint</span
+                        >
+                    </div>
+                    <input
+                        type="text"
+                        id="server-url"
+                        class="input-small"
+                        placeholder="https://api.generalbots.com"
+                    />
+                </div>
+
+                <div class="setting-item toggle">
+                    <div class="setting-info">
+                        <span class="setting-label">✨ Grammar Correction</span>
+                        <span class="setting-hint"
+                            >Fix spelling & grammar with AI</span
+                        >
+                    </div>
+                    <label class="switch">
+                        <input
+                            type="checkbox"
+                            id="grammar-correction"
+                            checked
+                        />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item toggle">
+                    <div class="setting-info">
+                        <span class="setting-label">📝 Enable Processing</span>
+                        <span class="setting-hint"
+                            >Process messages before sending</span
+                        >
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="enable-processing" checked />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item toggle">
+                    <div class="setting-info">
+                        <span class="setting-label">👁️ Hide Contacts</span>
+                        <span class="setting-hint"
+                            >Hide contact list for privacy</span
+                        >
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="hide-contacts" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item toggle">
+                    <div class="setting-info">
+                        <span class="setting-label">🤖 Auto Mode</span>
+                        <span class="setting-hint"
+                            >Enable automatic replies</span
+                        >
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="auto-mode" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="section stats-section" id="stats-section">
+                <h3>📊 Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value" id="messages-processed"
+                            >0</span
+                        >
+                        <span class="stat-label">Messages Processed</span>
+                    </div>
+                    <div class="</h3>stat-item">
+                        <span class="stat-value" id="corrections-made">0</span>
+                        <span class="stat-label">Corrections Made</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="auto-replies">0</span>
+                        <span class="stat-label">Auto Replies</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <button class="btn btn-primary" id="save-settings">
+                    <span class="btn-icon">💾</span>
+                    Save Settings
+                </button>
+                <button class="btn btn-secondary" id="open-options">
+                    <span class="btn-icon">⚙️</span>
+                    Advanced
+                </button>
+            </div>
+
+            <div class="footer">
+                <p class="copyright">
+                    ©
+                    <a href="https://pragmatismo.com.br" target="_blank"
+                        >pragmatismo.com.br</a
+                    >
+                    •
+                    <a
+                        href="https://github.com/GeneralBots/BotServer"
+                        target="_blank"
+                        >AGPL License</a
+                    >
+                </p>
+            </div>
+        </div>
+        <script src="popup.js"></script>
+    </body>
+</html>

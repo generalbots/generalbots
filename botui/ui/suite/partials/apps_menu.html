@@ -1,0 +1,101 @@
+<div class="apps-menu" id="apps-menu">
+    <div class="apps-menu-header">
+        <h3>Apps</h3>
+    </div>
+    <div class="apps-grid">
+        {% for app in apps %}
+        <a href="{{ app.url }}" class="app-item{% if app.active %} active{% endif %}">
+            <div class="app-icon">
+                {{ app.icon|safe }}
+            </div>
+            <span class="app-name">{{ app.name }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .apps-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 8px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        padding: 16px;
+        min-width: 280px;
+        z-index: 1000;
+        animation: fadeIn 0.15s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .apps-menu-header {
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .apps-menu-header h3 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .apps-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .app-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 8px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text);
+        transition: all 0.15s;
+    }
+
+    .app-item:hover {
+        background: var(--surface-hover);
+    }
+
+    .app-item.active {
+        background: var(--primary-light);
+    }
+
+    .app-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: var(--surface-hover);
+    }
+
+    .app-icon svg {
+        width: 24px;
+        height: 24px;
+        color: var(--primary);
+    }
+
+    .app-name {
+        font-size: 12px;
+        font-weight: 500;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+</style>

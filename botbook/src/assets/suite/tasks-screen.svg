@@ -1,0 +1,211 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .checkbox { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; }
+    .checkbox-checked { fill: #22c55e; stroke: #22c55e; stroke-width: 2; }
+    .task-row { fill: #ffffff; }
+    .task-row-hover { fill: #f8fafc; }
+    .priority-high { fill: #ef4444; }
+    .priority-medium { fill: #f97316; }
+    .priority-low { fill: #22c55e; }
+    .nav-active { fill: #eff6ff; }
+    .tag-blue { fill: #dbeafe; }
+    .tag-green { fill: #dcfce7; }
+    .tag-purple { fill: #f3e8ff; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .checkbox { fill: #1e293b; stroke: #475569; }
+      .task-row { fill: #0f172a; }
+      .task-row-hover { fill: #1e293b; }
+      .nav-active { fill: #1e3a5f; }
+      .tag-blue { fill: #1e3a5f; }
+      .tag-green { fill: #14532d; }
+      .tag-purple { fill: #3b0764; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Tasks - To-Do Manager</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Sidebar -->
+  <rect x="30" y="40" width="180" height="530" class="sidebar-bg"/>
+  <line x1="210" y1="40" x2="210" y2="570" class="border"/>
+
+  <!-- Add Task Button -->
+  <g transform="translate(45, 55)">
+    <rect x="0" y="0" width="150" height="40" rx="8" fill="url(#accentGrad)"/>
+    <text x="75" y="26" text-anchor="middle" font-size="14" font-weight="500" class="white-text">+ Add Task</text>
+  </g>
+
+  <!-- Navigation -->
+  <g transform="translate(45, 115)">
+    <rect x="-10" y="-8" width="160" height="36" rx="6" class="nav-active"/>
+    <text x="0" y="14" font-size="14">📋</text>
+    <text x="25" y="14" font-size="14" class="accent-text">All Tasks</text>
+    <text x="130" y="14" font-size="12" class="accent-text">12</text>
+
+    <text x="0" y="54" font-size="14">📅</text>
+    <text x="25" y="54" font-size="14" class="secondary-text">Today</text>
+    <text x="130" y="54" font-size="12" class="secondary-text">5</text>
+
+    <text x="0" y="94" font-size="14">📆</text>
+    <text x="25" y="94" font-size="14" class="secondary-text">Upcoming</text>
+    <text x="130" y="94" font-size="12" class="secondary-text">8</text>
+
+    <text x="0" y="134" font-size="14">⭐</text>
+    <text x="25" y="134" font-size="14" class="secondary-text">Important</text>
+    <text x="130" y="134" font-size="12" class="secondary-text">3</text>
+
+    <text x="0" y="174" font-size="14">✅</text>
+    <text x="25" y="174" font-size="14" class="secondary-text">Completed</text>
+    <text x="130" y="174" font-size="12" class="secondary-text">24</text>
+  </g>
+
+  <!-- Projects Section -->
+  <g transform="translate(45, 320)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">PROJECTS</text>
+
+    <g transform="translate(0, 20)">
+      <circle cx="7" cy="7" r="5" fill="#3b82f6"/>
+      <text x="20" y="11" font-size="13" class="main-text">Work</text>
+    </g>
+
+    <g transform="translate(0, 45)">
+      <circle cx="7" cy="7" r="5" fill="#22c55e"/>
+      <text x="20" y="11" font-size="13" class="main-text">Personal</text>
+    </g>
+
+    <g transform="translate(0, 70)">
+      <circle cx="7" cy="7" r="5" fill="#8b5cf6"/>
+      <text x="20" y="11" font-size="13" class="main-text">Learning</text>
+    </g>
+  </g>
+
+  <!-- Main Content Header -->
+  <g transform="translate(230, 55)">
+    <text x="0" y="20" font-size="18" font-weight="600" class="main-text">All Tasks</text>
+    <text x="0" y="40" font-size="13" class="secondary-text">12 tasks, 5 due today</text>
+
+    <!-- Filter/Sort -->
+    <g transform="translate(450, 5)">
+      <rect x="0" y="0" width="80" height="32" rx="6" class="icon-btn"/>
+      <text x="40" y="21" text-anchor="middle" font-size="12" class="secondary-text">Filter ▾</text>
+
+      <rect x="90" y="0" width="70" height="32" rx="6" class="icon-btn"/>
+      <text x="125" y="21" text-anchor="middle" font-size="12" class="secondary-text">Sort ▾</text>
+    </g>
+  </g>
+
+  <!-- Task Input -->
+  <g transform="translate(230, 100)">
+    <rect x="0" y="0" width="620" height="45" rx="8" class="icon-btn"/>
+    <rect x="0" y="0" width="620" height="45" rx="8" class="border"/>
+    <circle cx="25" cy="22" r="10" class="checkbox"/>
+    <text x="50" y="27" font-size="14" class="muted-text">Add a new task...</text>
+  </g>
+
+  <!-- Task List -->
+  <g transform="translate(230, 160)">
+    <!-- Task 1 - High Priority -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="620" height="55" rx="6" class="task-row-hover"/>
+      <circle cx="25" cy="27" r="10" class="checkbox"/>
+      <rect x="45" y="20" width="4" height="16" rx="2" class="priority-high"/>
+      <text x="60" y="25" font-size="14" font-weight="500" class="main-text">Complete quarterly report</text>
+      <rect x="60" y="32" width="45" height="18" rx="9" class="tag-blue"/>
+      <text x="82" y="44" text-anchor="middle" font-size="10" class="accent-text">Work</text>
+      <text x="500" y="30" font-size="12" class="priority-high">Today</text>
+      <text x="580" y="30" font-size="14" class="muted-text">⭐</text>
+    </g>
+
+    <!-- Task 2 - High Priority -->
+    <g transform="translate(0, 60)">
+      <rect x="0" y="0" width="620" height="55" rx="6" class="task-row"/>
+      <circle cx="25" cy="27" r="10" class="checkbox"/>
+      <rect x="45" y="20" width="4" height="16" rx="2" class="priority-high"/>
+      <text x="60" y="25" font-size="14" font-weight="500" class="main-text">Review pull request #234</text>
+      <rect x="60" y="32" width="45" height="18" rx="9" class="tag-blue"/>
+      <text x="82" y="44" text-anchor="middle" font-size="10" class="accent-text">Work</text>
+      <text x="500" y="30" font-size="12" class="priority-high">Today</text>
+      <text x="580" y="30" font-size="14" class="secondary-text">☆</text>
+    </g>
+
+    <!-- Task 3 - Medium Priority -->
+    <g transform="translate(0, 120)">
+      <rect x="0" y="0" width="620" height="55" rx="6" class="task-row"/>
+      <circle cx="25" cy="27" r="10" class="checkbox"/>
+      <rect x="45" y="20" width="4" height="16" rx="2" class="priority-medium"/>
+      <text x="60" y="25" font-size="14" font-weight="500" class="main-text">Prepare presentation slides</text>
+      <rect x="60" y="32" width="45" height="18" rx="9" class="tag-blue"/>
+      <text x="82" y="44" text-anchor="middle" font-size="10" class="accent-text">Work</text>
+      <text x="500" y="30" font-size="12" class="secondary-text">Tomorrow</text>
+      <text x="580" y="30" font-size="14" class="secondary-text">☆</text>
+    </g>
+
+    <!-- Task 4 - Low Priority -->
+    <g transform="translate(0, 180)">
+      <rect x="0" y="0" width="620" height="55" rx="6" class="task-row"/>
+      <circle cx="25" cy="27" r="10" class="checkbox"/>
+      <rect x="45" y="20" width="4" height="16" rx="2" class="priority-low"/>
+      <text x="60" y="25" font-size="14" font-weight="500" class="main-text">Read documentation updates</text>
+      <rect x="60" y="32" width="55" height="18" rx="9" class="tag-purple"/>
+      <text x="87" y="44" text-anchor="middle" font-size="10" fill="#7c3aed">Learning</text>
+      <text x="500" y="30" font-size="12" class="secondary-text">Mar 20</text>
+      <text x="580" y="30" font-size="14" class="secondary-text">☆</text>
+    </g>
+
+    <!-- Task 5 - Completed -->
+    <g transform="translate(0, 240)">
+      <rect x="0" y="0" width="620" height="55" rx="6" class="task-row"/>
+      <circle cx="25" cy="27" r="10" class="checkbox-checked"/>
+      <text x="25" y="32" text-anchor="middle" font-size="12" class="white-text">✓</text>
+      <text x="60" y="25" font-size="14" class="muted-text" text-decoration="line-through">Update team meeting notes</text>
+      <rect x="60" y="32" width="45" height="18" rx="9" class="tag-blue"/>
+      <text x="82" y="44" text-anchor="middle" font-size="10" class="muted-text">Work</text>
+      <text x="500" y="30" font-size="12" class="muted-text">Completed</text>
+      <text x="580" y="30" font-size="14" class="muted-text">☆</text>
+    </g>
+
+    <!-- Task 6 - Completed -->
+    <g transform="translate(0, 300)">
+      <rect x="0" y="0" width="620" height="55" rx="6" class="task-row"/>
+      <circle cx="25" cy="27" r="10" class="checkbox-checked"/>
+      <text x="25" y="32" text-anchor="middle" font-size="12" class="white-text">✓</text>
+      <text x="60" y="25" font-size="14" class="muted-text" text-decoration="line-through">Schedule dentist appointment</text>
+      <rect x="60" y="32" width="55" height="18" rx="9" class="tag-green"/>
+      <text x="87" y="44" text-anchor="middle" font-size="10" fill="#16a34a">Personal</text>
+      <text x="500" y="30" font-size="12" class="muted-text">Completed</text>
+      <text x="580" y="30" font-size="14" class="muted-text">☆</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(230, 555)">
+    <text x="0" y="0" font-size="10" class="muted-text">Enter = Add task | Space = Toggle complete | Del = Delete | S = Star</text>
+  </g>
+</svg>

@@ -1,0 +1,44 @@
+<link rel="stylesheet" href="/suite/css/git.css" />
+
+<div class="botcoder-git-container">
+    <div class="botcoder-git-sidebar">
+        <div class="botcoder-git-header">
+            <h3>🌱 Source Control</h3>
+            <button class="botcoder-btn-icon" onclick="botCoderGit.refreshStatus()" title="Refresh">↻</button>
+        </div>
+        
+        <div class="botcoder-git-commit-box">
+            <textarea id="gitCommitMessage" placeholder="Message (Ctrl+Enter to commit)"></textarea>
+            <button class="botcoder-btn botcoder-btn-primary" onclick="botCoderGit.commitAndPush()">Commit & Push</button>
+        </div>
+
+        <div class="botcoder-git-changes">
+            <div class="botcoder-git-changes-header">
+                <span>Changes</span>
+                <span class="botcoder-badge" id="gitChangesCount">0</span>
+            </div>
+            <div id="gitChangesList" class="botcoder-git-file-list">
+                <div class="botcoder-loading">Loading status...</div>
+            </div>
+        </div>
+        
+        <div class="botcoder-git-branches">
+            <div class="botcoder-git-changes-header">
+                <span>Branches</span>
+                <button class="botcoder-btn-icon" onclick="botCoderGit.newBranch()">+</button>
+            </div>
+            <select id="gitBranchSelect" onchange="botCoderGit.switchBranch()">
+                <option value="main">main</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="botcoder-git-main">
+        <div id="gitDiffViewer" class="botcoder-git-diff-viewer">
+            <!-- Diff viewer injected via hx-get or js -->
+            <div class="botcoder-empty">Select a file to view changes</div>
+        </div>
+    </div>
+</div>
+
+<script src="/suite/js/git.js"></script>

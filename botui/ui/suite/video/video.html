@@ -1,0 +1,1347 @@
+<!-- Video Editor - General Bots -->
+<aside class="sidebar video-sidebar">
+    <div class="sidebar-header">
+        <h2 data-i18n="video.title">Video Editor</h2>
+        <button class="btn-icon" id="collapse-sidebar">
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Project Stats -->
+    <div class="sidebar-section stats-section">
+        <div class="stat-header">
+            <span data-i18n="video.project_info">Project Info</span>
+            <span class="badge" id="project-status">Draft</span>
+        </div>
+        <div class="stat-grid">
+            <div class="stat-item">
+                <span class="stat-value" id="stat-duration">00:00</span>
+                <span class="stat-label" data-i18n="video.duration"
+                    >Duration</span
+                >
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-clips">0</span>
+                <span class="stat-label" data-i18n="video.clips">Clips</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-layers">0</span>
+                <span class="stat-label" data-i18n="video.layers">Layers</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-resolution">1920x1080</span>
+                <span class="stat-label" data-i18n="video.resolution"
+                    >Resolution</span
+                >
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Elements -->
+    <div class="sidebar-section">
+        <h3 data-i18n="video.add_elements">Add Elements</h3>
+        <div class="element-buttons">
+            <button class="element-btn" data-action="add-clip">
+                <span class="element-icon">🎬</span>
+                <span class="element-label" data-i18n="video.add_clip"
+                    >Video Clip</span
+                >
+            </button>
+            <button class="element-btn" data-action="add-text">
+                <span class="element-icon">T</span>
+                <span class="element-label" data-i18n="video.add_text"
+                    >Text</span
+                >
+            </button>
+            <button class="element-btn" data-action="add-image">
+                <span class="element-icon">🖼️</span>
+                <span class="element-label" data-i18n="video.add_image"
+                    >Image</span
+                >
+            </button>
+            <button class="element-btn" data-action="add-shape">
+                <span class="element-icon">⬜</span>
+                <span class="element-label" data-i18n="video.add_shape"
+                    >Shape</span
+                >
+            </button>
+            <button class="element-btn" data-action="add-audio">
+                <span class="element-icon">🎵</span>
+                <span class="element-label" data-i18n="video.add_audio"
+                    >Audio</span
+                >
+            </button>
+            <button class="element-btn" data-action="add-narration">
+                <span class="element-icon">🎤</span>
+                <span class="element-label" data-i18n="video.add_narration"
+                    >Narration</span
+                >
+            </button>
+        </div>
+    </div>
+
+    <!-- AI Tools -->
+    <div class="sidebar-section ai-tools-section">
+        <h3>🤖 AI Tools</h3>
+        <div class="element-buttons">
+            <button class="element-btn ai-btn" data-action="auto-captions">
+                <span class="element-icon">💬</span>
+                <span class="element-label">Auto Captions</span>
+            </button>
+            <button class="element-btn ai-btn" data-action="tts">
+                <span class="element-icon">🗣️</span>
+                <span class="element-label">Text to Speech</span>
+            </button>
+            <button class="element-btn ai-btn" data-action="detect-scenes">
+                <span class="element-icon">🎞️</span>
+                <span class="element-label">Detect Scenes</span>
+            </button>
+            <button class="element-btn ai-btn" data-action="templates">
+                <span class="element-icon">📋</span>
+                <span class="element-label">Templates</span>
+            </button>
+            <button class="element-btn ai-btn" data-action="reframe">
+                <span class="element-icon">📐</span>
+                <span class="element-label">Auto Reframe</span>
+            </button>
+            <button class="element-btn ai-btn" data-action="transitions">
+                <span class="element-icon">✨</span>
+                <span class="element-label">Transitions</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Properties Panel -->
+    <div
+        class="sidebar-section properties-panel"
+        id="properties-panel"
+        style="display: none"
+    >
+        <h3 data-i18n="video.properties">Properties</h3>
+        <div id="properties-content">
+            <!-- Dynamic properties based on selection -->
+        </div>
+    </div>
+
+    <!-- Recent Projects -->
+    <div class="sidebar-section">
+        <div class="section-header">
+            <h3 data-i18n="video.recent_projects">Recent Projects</h3>
+            <button class="btn-text" id="new-project-btn">
+                <span data-i18n="video.new">+ New</span>
+            </button>
+        </div>
+        <div class="project-list" id="project-list">
+            <div class="empty-state">
+                <span data-i18n="video.no_projects">No projects yet</span>
+                <p data-i18n="video.create_first">
+                    Create your first video project
+                </p>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<main class="video-main">
+    <!-- Top Toolbar -->
+    <div class="video-toolbar">
+        <div class="toolbar-left">
+            <div class="toolbar-group">
+                <button class="toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M3 7v6h6"></path>
+                        <path
+                            d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"
+                        ></path>
+                    </svg>
+                </button>
+                <button class="toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M21 7v6h-6"></path>
+                        <path
+                            d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"
+                        ></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="toolbar-group">
+                <button class="toolbar-btn" id="btn-cut" title="Cut (Ctrl+X)">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="6" cy="6" r="3"></circle>
+                        <circle cx="6" cy="18" r="3"></circle>
+                        <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                        <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                        <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+                    </svg>
+                </button>
+                <button
+                    class="toolbar-btn"
+                    id="btn-split"
+                    title="Split Clip (S)"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="12" y1="2" x2="12" y2="22"></line>
+                        <path
+                            d="M17 5H9a4 4 0 0 0 0 8h8a4 4 0 0 1 0 8H9"
+                        ></path>
+                    </svg>
+                </button>
+                <button
+                    class="toolbar-btn"
+                    id="btn-delete"
+                    title="Delete (Del)"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path
+                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        ></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="toolbar-center">
+            <input
+                type="text"
+                class="project-name-input"
+                id="project-name"
+                value="Untitled Project"
+            />
+        </div>
+        <div class="toolbar-right">
+            <button class="btn-secondary" id="btn-preview">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span data-i18n="video.preview">Preview</span>
+            </button>
+            <button class="btn-primary" id="btn-export">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span data-i18n="video.export">Export</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Preview Area -->
+    <div class="video-preview-container">
+        <div class="video-preview" id="video-preview">
+            <div class="preview-canvas" id="preview-canvas">
+                <div class="preview-placeholder">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="64"
+                        height="64"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        opacity="0.5"
+                    >
+                        <rect
+                            x="2"
+                            y="2"
+                            width="20"
+                            height="20"
+                            rx="2.18"
+                            ry="2.18"
+                        ></rect>
+                        <line x1="7" y1="2" x2="7" y2="22"></line>
+                        <line x1="17" y1="2" x2="17" y2="22"></line>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <line x1="2" y1="7" x2="7" y2="7"></line>
+                        <line x1="2" y1="17" x2="7" y2="17"></line>
+                        <line x1="17" y1="17" x2="22" y2="17"></line>
+                        <line x1="17" y1="7" x2="22" y2="7"></line>
+                    </svg>
+                    <p data-i18n="video.add_content">
+                        Add clips or elements to start editing
+                    </p>
+                </div>
+                <!-- Layers will be rendered here -->
+                <div class="layer-overlays" id="layer-overlays"></div>
+            </div>
+            <div class="preview-controls">
+                <button class="preview-btn" id="btn-play-pause">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                    >
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </button>
+                <div class="time-display">
+                    <span id="current-time">00:00:00</span>
+                    <span class="time-separator">/</span>
+                    <span id="total-time">00:00:00</span>
+                </div>
+                <div class="volume-control">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polygon
+                            points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"
+                        ></polygon>
+                        <path
+                            d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"
+                        ></path>
+                    </svg>
+                    <input
+                        type="range"
+                        id="volume-slider"
+                        min="0"
+                        max="100"
+                        value="100"
+                    />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="video-timeline-container">
+        <div class="timeline-header">
+            <div class="timeline-controls">
+                <button class="timeline-btn" id="btn-zoom-out" title="Zoom Out">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        <line x1="8" y1="11" x2="14" y2="11"></line>
+                    </svg>
+                </button>
+                <input
+                    type="range"
+                    id="zoom-slider"
+                    min="1"
+                    max="10"
+                    value="5"
+                />
+                <button class="timeline-btn" id="btn-zoom-in" title="Zoom In">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        <line x1="11" y1="8" x2="11" y2="14"></line>
+                        <line x1="8" y1="11" x2="14" y2="11"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="timeline-time-ruler" id="time-ruler">
+                <!-- Time markers will be generated by JS -->
+            </div>
+        </div>
+        <div class="timeline-body" id="timeline-body">
+            <div class="timeline-tracks">
+                <!-- Video Track -->
+                <div class="timeline-track" data-track="video">
+                    <div class="track-header">
+                        <span class="track-icon">🎬</span>
+                        <span class="track-name" data-i18n="video.video_track"
+                            >Video</span
+                        >
+                    </div>
+                    <div class="track-content" id="video-track">
+                        <!-- Video clips will be rendered here -->
+                    </div>
+                </div>
+                <!-- Text/Overlay Track -->
+                <div class="timeline-track" data-track="layers">
+                    <div class="track-header">
+                        <span class="track-icon">T</span>
+                        <span class="track-name" data-i18n="video.text_track"
+                            >Text & Overlays</span
+                        >
+                    </div>
+                    <div class="track-content" id="layers-track">
+                        <!-- Layers will be rendered here -->
+                    </div>
+                </div>
+                <!-- Audio Track -->
+                <div class="timeline-track" data-track="audio">
+                    <div class="track-header">
+                        <span class="track-icon">🎵</span>
+                        <span class="track-name" data-i18n="video.audio_track"
+                            >Audio</span
+                        >
+                    </div>
+                    <div class="track-content" id="audio-track">
+                        <!-- Audio tracks will be rendered here -->
+                    </div>
+                </div>
+            </div>
+            <!-- Playhead -->
+            <div class="playhead" id="playhead">
+                <div class="playhead-head"></div>
+                <div class="playhead-line"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Panel -->
+    <div class="chat-panel" id="chat-panel">
+        <div class="chat-header">
+            <h3 data-i18n="video.ai_assistant">AI Assistant</h3>
+            <div class="chat-context" id="chat-context">
+                <span class="context-item">
+                    <span class="context-label" data-i18n="video.playhead_at"
+                        >Playhead:</span
+                    >
+                    <span class="context-value" id="context-playhead"
+                        >00:00</span
+                    >
+                </span>
+                <span
+                    class="context-item"
+                    id="context-selection-container"
+                    style="display: none"
+                >
+                    <span class="context-label" data-i18n="video.selected"
+                        >Selected:</span
+                    >
+                    <span class="context-value" id="context-selection"
+                        >None</span
+                    >
+                </span>
+            </div>
+            <button class="btn-icon" id="toggle-chat">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="chat-message assistant">
+                <p data-i18n="video.chat_welcome">
+                    Hi! I'm your video editing assistant. You can tell me what
+                    to change, like "add a title here" or "make it bigger". I'll
+                    understand your current selection and playhead position.
+                </p>
+            </div>
+        </div>
+        <div class="chat-input-container">
+            <input
+                type="text"
+                class="chat-input"
+                id="chat-input"
+                placeholder="Describe what you want to change..."
+                data-i18n-placeholder="video.chat_placeholder"
+            />
+            <button class="btn-primary" id="btn-send-chat">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+</main>
+
+<!-- Export Modal -->
+<div class="modal" id="export-modal" style="display: none">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 data-i18n="video.export_video">Export Video</h3>
+            <button class="btn-icon modal-close" id="close-export-modal">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="video.format">Format</label>
+                <select id="export-format">
+                    <option value="mp4">MP4 (H.264)</option>
+                    <option value="webm">WebM (VP9)</option>
+                    <option value="mov">MOV (ProRes)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label data-i18n="video.quality">Quality</label>
+                <select id="export-quality">
+                    <option value="high">High (1080p)</option>
+                    <option value="medium">Medium (720p)</option>
+                    <option value="low">Low (480p)</option>
+                    <option value="4k">4K (2160p)</option>
+                </select>
+            </div>
+            <div
+                class="export-progress"
+                id="export-progress"
+                style="display: none"
+            >
+                <div class="progress-bar">
+                    <div
+                        class="progress-fill"
+                        id="export-progress-fill"
+                        style="width: 0%"
+                    ></div>
+                </div>
+                <span class="progress-text" id="export-progress-text"
+                    >Preparing...</span
+                >
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button
+                class="btn-secondary"
+                id="cancel-export"
+                data-i18n="common.cancel"
+            >
+                Cancel
+            </button>
+            <button
+                class="btn-primary"
+                id="start-export"
+                data-i18n="video.start_export"
+            >
+                Start Export
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- New Project Modal -->
+<div class="modal" id="new-project-modal" style="display: none">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 data-i18n="video.new_project">New Project</h3>
+            <button class="btn-icon modal-close" id="close-new-project-modal">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="video.project_name">Project Name</label>
+                <input
+                    type="text"
+                    id="new-project-name"
+                    placeholder="My Video Project"
+                />
+            </div>
+            <div class="form-group">
+                <label data-i18n="video.aspect_ratio">Aspect Ratio</label>
+                <div class="aspect-ratio-options">
+                    <button
+                        class="aspect-btn active"
+                        data-width="1920"
+                        data-height="1080"
+                    >
+                        <span class="aspect-preview landscape"></span>
+                        <span>16:9</span>
+                    </button>
+                    <button
+                        class="aspect-btn"
+                        data-width="1080"
+                        data-height="1920"
+                    >
+                        <span class="aspect-preview portrait"></span>
+                        <span>9:16</span>
+                    </button>
+                    <button
+                        class="aspect-btn"
+                        data-width="1080"
+                        data-height="1080"
+                    >
+                        <span class="aspect-preview square"></span>
+                        <span>1:1</span>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label data-i18n="video.frame_rate">Frame Rate</label>
+                <select id="new-project-fps">
+                    <option value="24">24 fps (Cinema)</option>
+                    <option value="30" selected>30 fps (Standard)</option>
+                    <option value="60">60 fps (Smooth)</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button
+                class="btn-secondary"
+                id="cancel-new-project"
+                data-i18n="common.cancel"
+            >
+                Cancel
+            </button>
+            <button
+                class="btn-primary"
+                id="create-project"
+                data-i18n="video.create"
+            >
+                Create
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Text Modal -->
+<div class="modal" id="add-text-modal" style="display: none">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 data-i18n="video.add_text">Add Text</h3>
+            <button class="btn-icon modal-close" id="close-add-text-modal">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="video.text_content">Text Content</label>
+                <textarea
+                    id="text-content"
+                    rows="3"
+                    placeholder="Enter your text..."
+                ></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label data-i18n="video.font_family">Font</label>
+                    <select id="text-font">
+                        <option value="Arial">Arial</option>
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Verdana">Verdana</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="video.font_size">Size</label>
+                    <input
+                        type="number"
+                        id="text-size"
+                        value="48"
+                        min="8"
+                        max="200"
+                    />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label data-i18n="video.text_color">Color</label>
+                    <input type="color" id="text-color" value="#FFFFFF" />
+                </div>
+                <div class="form-group">
+                    <label data-i18n="video.duration_sec">Duration (sec)</label>
+                    <input
+                        type="number"
+                        id="text-duration"
+                        value="5"
+                        min="1"
+                        max="60"
+                    />
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button
+                class="btn-secondary"
+                id="cancel-add-text"
+                data-i18n="common.cancel"
+            >
+                Cancel
+            </button>
+            <button
+                class="btn-primary"
+                id="confirm-add-text"
+                data-i18n="video.add"
+            >
+                Add
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .video-sidebar {
+        width: 280px;
+        background: var(--bg-secondary);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .video-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg-primary);
+    }
+
+    .video-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 16px;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        gap: 16px;
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .toolbar-center {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+    }
+
+    .toolbar-group {
+        display: flex;
+        gap: 4px;
+        padding: 0 8px;
+        border-right: 1px solid var(--border-color);
+    }
+
+    .toolbar-group:last-child {
+        border-right: none;
+    }
+
+    .toolbar-btn {
+        padding: 8px;
+        background: transparent;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+
+    .toolbar-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .project-name-input {
+        background: transparent;
+        border: 1px solid transparent;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: 500;
+        text-align: center;
+        color: var(--text-primary);
+        border-radius: 4px;
+        min-width: 200px;
+    }
+
+    .project-name-input:hover,
+    .project-name-input:focus {
+        border-color: var(--border-color);
+        background: var(--bg-primary);
+    }
+
+    .video-preview-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: #1a1a1a;
+        min-height: 300px;
+    }
+
+    .video-preview {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .preview-canvas {
+        position: relative;
+        background: #000;
+        aspect-ratio: 16/9;
+        width: 100%;
+        max-width: 800px;
+        border-radius: 4px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .preview-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        color: var(--text-tertiary);
+    }
+
+    .preview-placeholder p {
+        font-size: 14px;
+    }
+
+    .layer-overlays {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .layer-overlays .layer-item {
+        position: absolute;
+        pointer-events: auto;
+        cursor: move;
+        border: 2px solid transparent;
+        transition: border-color 0.2s;
+    }
+
+    .layer-overlays .layer-item:hover,
+    .layer-overlays .layer-item.selected {
+        border-color: var(--accent-color);
+    }
+
+    .preview-controls {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 16px;
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+
+    .preview-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--accent-color);
+        border: none;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+    }
+
+    .preview-btn:hover {
+        transform: scale(1.1);
+    }
+
+    .time-display {
+        font-family: monospace;
+        font-size: 14px;
+        color: white;
+    }
+
+    .time-separator {
+        margin: 0 4px;
+        opacity: 0.5;
+    }
+
+    .volume-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: white;
+    }
+
+    .volume-control input[type="range"] {
+        width: 80px;
+    }
+
+    .video-timeline-container {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border-color);
+        height: 200px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .timeline-header {
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--border-color);
+        gap: 16px;
+    }
+
+    .timeline-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .timeline-btn {
+        padding: 4px;
+        background: transparent;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: var(--text-secondary);
+    }
+
+    .timeline-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .timeline-time-ruler {
+        flex: 1;
+        height: 24px;
+        background: var(--bg-primary);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .timeline-body {
+        flex: 1;
+        position: relative;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .timeline-tracks {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .timeline-track {
+        display: flex;
+        border-bottom: 1px solid var(--border-color);
+        min-height: 48px;
+    }
+
+    .track-header {
+        width: 140px;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-tertiary);
+        border-right: 1px solid var(--border-color);
+        flex-shrink: 0;
+    }
+
+    .track-icon {
+        font-size: 14px;
+    }
+
+    .track-name {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+    .track-content {
+        flex: 1;
+        position: relative;
+        min-height: 48px;
+        background: var(--bg-primary);
+    }
+
+    .timeline-block {
+        position: absolute;
+        height: 36px;
+        top: 6px;
+        background: var(--accent-color);
+        border-radius: 4px;
+        cursor: move;
+        display: flex;
+        align-items: center;
+        padding: 0 8px;
+        font-size: 12px;
+        color: white;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        transition: box-shadow 0.2s;
+    }
+
+    .timeline-block:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .timeline-block.selected {
+        box-shadow: 0 0 0 2px white;
+    }
+
+    .timeline-block .resize-handle {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 8px;
+        cursor: ew-resize;
+        background: rgba(255, 255, 255, 0.2);
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .timeline-block:hover .resize-handle {
+        opacity: 1;
+    }
+
+    .resize-handle.left {
+        left: 0;
+        border-radius: 4px 0 0 4px;
+    }
+
+    .resize-handle.right {
+        right: 0;
+        border-radius: 0 4px 4px 0;
+    }
+
+    .playhead {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #ff4444;
+        z-index: 100;
+        pointer-events: none;
+    }
+
+    .playhead-head {
+        position: absolute;
+        top: -8px;
+        left: -6px;
+        width: 14px;
+        height: 14px;
+        background: #ff4444;
+        clip-path: polygon(50% 100%, 0 0, 100% 0);
+    }
+
+    .playhead-line {
+        position: absolute;
+        top: 6px;
+        bottom: 0;
+        left: 0;
+        width: 2px;
+        background: #ff4444;
+    }
+
+    .chat-panel {
+        position: fixed;
+        bottom: 220px;
+        right: 20px;
+        width: 360px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        max-height: 400px;
+        z-index: 1000;
+    }
+
+    .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .chat-header h3 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .chat-context {
+        display: flex;
+        gap: 12px;
+        font-size: 11px;
+    }
+
+    .context-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .context-label {
+        color: var(--text-tertiary);
+    }
+
+    .context-value {
+        color: var(--accent-color);
+        font-weight: 500;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 200px;
+    }
+
+    .chat-message {
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .chat-message.assistant {
+        background: var(--bg-tertiary);
+        margin-right: 24px;
+    }
+
+    .chat-message.user {
+        background: var(--accent-color);
+        color: white;
+        margin-left: 24px;
+    }
+
+    .chat-input-container {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .chat-input {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        background: var(--bg-primary);
+        font-size: 13px;
+        color: var(--text-primary);
+    }
+
+    .chat-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
+
+    .element-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .element-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 8px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .element-btn:hover {
+        background: var(--bg-hover);
+        border-color: var(--accent-color);
+    }
+
+    .element-icon {
+        font-size: 20px;
+    }
+
+    .element-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
+
+    .aspect-ratio-options {
+        display: flex;
+        gap: 12px;
+    }
+
+    .aspect-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 12px;
+        background: var(--bg-primary);
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .aspect-btn.active {
+        border-color: var(--accent-color);
+        background: var(--accent-color-light);
+    }
+
+    .aspect-preview {
+        background: var(--text-tertiary);
+        border-radius: 2px;
+    }
+
+    .aspect-preview.landscape {
+        width: 48px;
+        height: 27px;
+    }
+
+    .aspect-preview.portrait {
+        width: 27px;
+        height: 48px;
+    }
+
+    .aspect-preview.square {
+        width: 36px;
+        height: 36px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 16px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+</style>

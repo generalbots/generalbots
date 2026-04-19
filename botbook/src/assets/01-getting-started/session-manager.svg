@@ -1,0 +1,178 @@
+<svg width="800" height="720" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <style>
+    /* Light Mode Colors */
+    .title-text { fill: #1E1B4B; }
+    .main-text { fill: #334155; }
+    .box-stroke { stroke: #4B5563; }
+    .arrow-stroke { stroke: #6B7280; }
+    .arrow-fill { fill: #4B5563; }
+    .arrow-double-fill { fill: #6B7280; }
+
+    /* Box-specific colors */
+    .user-input-stroke { stroke: #3B82F6; }
+    .user-input-text { fill: #1E40AF; }
+
+    .bot-response-stroke { stroke: #10B981; }
+    .bot-response-text { fill: #047857; }
+
+    .websocket-stroke { stroke: #F97316; }
+    .websocket-text { fill: #C2410C; }
+    .websocket-subtext { fill: #FDBA74; }
+
+    .session-manager-stroke { stroke: #8B5CF6; }
+    .session-manager-text { fill: #7C3AED; }
+    .session-manager-steps { fill: #6D28D9; }
+
+    .valkey-stroke { stroke: #DC2626; }
+    .valkey-text { fill: #B91C1C; }
+    .valkey-subtext { fill: #EF4444; }
+
+    .postgres-stroke { stroke: #2563EB; }
+    .postgres-text { fill: #1D4ED8; }
+    .postgres-subtext { fill: #3B82F6; }
+
+    .features-stroke { stroke: #4B5563; }
+    .features-text { fill: #1F2937; }
+
+    .circle-stroke { stroke: #64748B; }
+
+    /* Dark Mode Colors */
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .box-stroke { stroke: #9CA3AF; }
+      .arrow-stroke { stroke: #9CA3AF; }
+      .arrow-fill { fill: #9CA3AF; }
+      .arrow-double-fill { fill: #A1A1AA; }
+
+      .user-input-stroke { stroke: #60A5FA; }
+      .user-input-text { fill: #93C5FD; }
+
+      .bot-response-stroke { stroke: #34D399; }
+      .bot-response-text { fill: #6EE7B7; }
+
+      .websocket-stroke { stroke: #FB923C; }
+      .websocket-text { fill: #FDBA74; }
+      .websocket-subtext { fill: #FED7AA; }
+
+      .session-manager-stroke { stroke: #A78BFA; }
+      .session-manager-text { fill: #C4B5FD; }
+      .session-manager-steps { fill: #DDD6FE; }
+
+      .valkey-stroke { stroke: #F87171; }
+      .valkey-text { fill: #FCA5A5; }
+      .valkey-subtext { fill: #FECACA; }
+
+      .postgres-stroke { stroke: #60A5FA; }
+      .postgres-text { fill: #93C5FD; }
+      .postgres-subtext { fill: #BFDBFE; }
+
+      .features-stroke { stroke: #6B7280; }
+      .features-text { fill: #F9FAFB; }
+
+      .circle-stroke { stroke: #94A3B8; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 z" class="arrow-fill"/>
+    </marker>
+    <marker id="arrow-double" markerWidth="16" markerHeight="12" refX="8" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,6 L0,12 z" class="arrow-double-fill"/>
+      <path d="M16,0 L8,6 L16,12 z" class="arrow-double-fill"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" class="title-text">Session Manager Architecture</text>
+
+  <!-- User Input -->
+  <rect x="50" y="60" width="150" height="50" fill="none" class="user-input-stroke" stroke-width="2" rx="8"/>
+  <text x="125" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" class="user-input-text">User Input</text>
+
+  <!-- Bot Response -->
+  <rect x="600" y="60" width="150" height="50" fill="none" class="bot-response-stroke" stroke-width="2" rx="8"/>
+  <text x="675" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" class="bot-response-text">Bot Response</text>
+
+  <!-- Arrows down from User Input and up to Bot Response -->
+  <line x1="125" y1="120" x2="125" y2="180" class="arrow-stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="675" y1="180" x2="675" y2="120" class="arrow-stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- WebSocket/HTTP boxes -->
+  <rect x="50" y="180" width="150" height="60" fill="none" class="websocket-stroke" stroke-width="2" rx="6"/>
+  <text x="125" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" class="websocket-text">WebSocket</text>
+  <text x="125" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="websocket-subtext">/HTTP</text>
+
+  <rect x="600" y="180" width="150" height="60" fill="none" class="websocket-stroke" stroke-width="2" rx="6"/>
+  <text x="675" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" class="websocket-text">WebSocket</text>
+  <text x="675" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="websocket-subtext">/HTTP</text>
+
+  <!-- Arrows to/from Session Manager -->
+  <line x1="125" y1="250" x2="125" y2="310" class="arrow-stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="675" y1="310" x2="675" y2="250" class="arrow-stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Session Manager Box -->
+  <rect x="100" y="310" width="600" height="130" fill="none" class="session-manager-stroke" stroke-width="3" rx="10"/>
+  <text x="400" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" class="session-manager-text">Session Manager</text>
+
+  <!-- Session Manager Steps -->
+  <g font-family="Arial, sans-serif" font-size="18" class="session-manager-steps">
+    <text x="150" y="370">1. Validate Token</text>
+    <text x="150" y="390">2. Load Session</text>
+    <text x="150" y="410">3. Update State</text>
+
+    <text x="450" y="370">4. Execute BASIC</text>
+    <text x="450" y="390">5. Generate Response</text>
+    <text x="450" y="410">6. Save History</text>
+  </g>
+
+  <!-- Arrows down to databases -->
+  <line x1="250" y1="450" x2="250" y2="490" class="arrow-stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="550" y1="450" x2="550" y2="490" class="arrow-stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Database boxes -->
+  <rect x="150" y="490" width="200" height="80" fill="none" class="valkey-stroke" stroke-width="2" rx="8"/>
+  <text x="250" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" class="valkey-text">Valkey</text>
+  <text x="250" y="540" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="valkey-subtext">(Cache)</text>
+
+  <rect x="450" y="490" width="200" height="80" fill="none" class="postgres-stroke" stroke-width="2" rx="8"/>
+  <text x="550" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" class="postgres-text">PostgreSQL</text>
+  <text x="550" y="540" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="postgres-subtext">(Persist)</text>
+
+  <!-- Sync arrow between databases -->
+  <path d="M 350 530 L 450 530" class="arrow-stroke" stroke-width="1.5" marker-end="url(#arrow-double)" stroke-dasharray="5,5" opacity="0.7"/>
+  <text x="400" y="525" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="main-text">Sync Every</text>
+  <text x="400" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="main-text">Message</text>
+
+  <!-- Process Flow Numbers -->
+  <g font-family="Arial, sans-serif" font-size="16" class="main-text">
+    <circle cx="95" cy="140" r="12" fill="none" class="circle-stroke" stroke-width="1"/>
+    <text x="95" y="144" text-anchor="middle">1</text>
+
+    <circle cx="95" cy="270" r="12" fill="none" class="circle-stroke" stroke-width="1"/>
+    <text x="95" y="274" text-anchor="middle">2</text>
+
+    <circle cx="400" cy="375" r="12" fill="none" class="circle-stroke" stroke-width="1"/>
+    <text x="400" y="379" text-anchor="middle">3</text>
+
+    <circle cx="705" cy="270" r="12" fill="none" class="circle-stroke" stroke-width="1"/>
+    <text x="705" y="274" text-anchor="middle">4</text>
+
+    <circle cx="705" cy="140" r="12" fill="none" class="circle-stroke" stroke-width="1"/>
+    <text x="705" y="144" text-anchor="middle">5</text>
+  </g>
+
+  <!-- Features box -->
+  <g id="features" transform="translate(50, 600)">
+    <rect x="0" y="0" width="700" height="100" fill="none" class="features-stroke" stroke-width="1" rx="5" stroke-dasharray="2,2" opacity="0.5"/>
+    <text x="350" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" class="features-text">Key Features</text>
+
+    <g font-family="Arial, sans-serif" font-size="14" class="main-text">
+      <text x="50" y="45">• Real-time WebSocket support</text>
+      <text x="400" y="45">• Automatic session persistence</text>
+      <text x="50" y="75">• Redis-compatible caching</text>
+      <text x="400" y="75">• ACID compliance</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,200 @@
+<!-- Marketing Templates -->
+<link rel="stylesheet" href="/suite/crm/crm.css">
+<script src="/suite/js/vendor/htmx.min.js"></script>
+<script src="/suite/js/vendor/htmx-json-enc.js"></script>
+<script src="/suite/js/security-bootstrap.js"></script>
+
+<div class="crm-container">
+    <header class="crm-header">
+        <div class="crm-header-left">
+            <h1 data-i18n="templates-title">Content Templates</h1>
+            <nav class="crm-tabs">
+                <button class="crm-tab active" data-view="all">All Templates</button>
+                <button class="crm-tab" data-view="email">Email</button>
+                <button class="crm-tab" data-view="whatsapp">WhatsApp</button>
+                <button class="crm-tab" data-view="social">Social</button>
+            </nav>
+        </div>
+        <div class="crm-header-right">
+            <button class="btn-primary" onclick="showTemplateModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span>New Template</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="templates-grid" id="templatesList" 
+         hx-get="/api/crm/templates"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-secondary);">
+            Loading templates...
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Template Modal -->
+<div id="template-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="hideTemplateModal()"></div>
+    <div class="crm-modal-content" style="max-width: 600px;">
+        <div class="crm-modal-header">
+            <h2 id="template-modal-title">Create Template</h2>
+            <button class="crm-modal-close" onclick="hideTemplateModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <form id="template-form" hx-post="/api/crm/templates" hx-swap="none">
+            <div class="crm-form-group">
+                <label>Template Name</label>
+                <input type="text" name="name" required placeholder="e.g., Welcome Email">
+            </div>
+            <div class="crm-form-group">
+                <label>Channel</label>
+                <select name="channel" required>
+                    <option value="email">Email</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                </select>
+            </div>
+            <div class="crm-form-group">
+                <label>Subject (for email)</label>
+                <input type="text" name="subject" placeholder="e.g., Welcome to {{company}}!">
+            </div>
+            <div class="crm-form-group">
+                <label>Body</label>
+                <textarea name="body" rows="6" placeholder="Write your message here. Use {{variable}} for personalization."></textarea>
+            </div>
+            <div class="crm-form-group">
+                <label>AI Prompt (optional)</label>
+                <textarea name="ai_prompt" rows="3" placeholder="Describe how AI should generate content..."></textarea>
+            </div>
+            <div class="crm-form-actions">
+                <button type="button" class="btn-secondary" onclick="hideTemplateModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Create Template</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    padding: 24px;
+}
+
+.template-card {
+    background: var(--surface, #1a1a1a);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.15s ease;
+}
+
+.template-card:hover {
+    border-color: var(--accent, #d4f505);
+    transform: translateY(-2px);
+}
+
+.template-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.template-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text, #f8fafc);
+    margin: 0;
+}
+
+.template-channel {
+    display: inline-flex;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.template-channel.email { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+.template-channel.whatsapp { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+.template-channel.instagram { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+.template-channel.facebook { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+
+.template-preview {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #333);
+    font-size: 13px;
+    color: var(--text-secondary, #888);
+    max-height: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.template-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.template-approved {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.template-approved.yes {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+}
+
+.template-approved.no {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+</style>
+
+<script>
+function showTemplateModal(templateId = null) {
+    const modal = document.getElementById('template-modal');
+    const title = document.getElementById('template-modal-title');
+    title.textContent = templateId ? 'Edit Template' : 'Create Template';
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function hideTemplateModal() {
+    document.getElementById('template-modal').style.display = 'none';
+    document.body.style.overflow = '';
+    document.getElementById('template-form').reset();
+}
+
+document.getElementById('template-form').addEventListener('htmx:afterRequest', function(e) {
+    if (e.detail.successful) {
+        hideTemplateModal();
+        document.getElementById('templatesList').dispatchEvent(new Event('refresh'));
+    }
+});
+
+document.querySelectorAll('.crm-tab[data-view]').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.crm-tab[data-view]').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+</script>

@@ -1,0 +1,270 @@
+<!-- Products - Product & Service Catalog -->
+<!-- Dynamics nomenclature: Product, Service, PriceList -->
+
+<link rel="stylesheet" href="products/products.css">
+
+<div class="products-container">
+    <!-- Header -->
+    <header class="products-header">
+        <div class="products-header-left">
+            <h1 data-i18n="products-title">Products</h1>
+            <nav class="products-tabs">
+                <button class="products-tab active" data-view="catalog" data-i18n="products-catalog">Catalog</button>
+                <button class="products-tab" data-view="services" data-i18n="products-services">Services</button>
+                <button class="products-tab" data-view="pricelists" data-i18n="products-pricelists">Price Lists</button>
+            </nav>
+        </div>
+        <div class="products-header-right">
+            <div class="products-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="text"
+                       placeholder="Search products, services..."
+                       data-i18n-placeholder="products-search-placeholder"
+                       hx-get="/api/products/search"
+                       hx-trigger="keyup changed delay:300ms"
+                       hx-target="#products-search-results">
+            </div>
+            <button class="btn-primary" id="products-new-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span data-i18n="products-new">New Product</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Search Results -->
+    <div id="products-search-results" class="products-search-results"></div>
+
+    <!-- Summary Cards -->
+    <div class="products-summary">
+        <div class="summary-card">
+            <div class="summary-icon products">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="products-total-products">Total Products</span>
+                <span class="summary-value" hx-get="/api/products/stats/total-products" hx-trigger="load">0</span>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon services">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="products-total-services">Total Services</span>
+                <span class="summary-value" hx-get="/api/products/stats/total-services" hx-trigger="load">0</span>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon active">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="products-active">Active Items</span>
+                <span class="summary-value active" hx-get="/api/products/stats/active" hx-trigger="load">0</span>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon pricelists">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="products-price-lists">Price Lists</span>
+                <span class="summary-value" hx-get="/api/products/stats/pricelists" hx-trigger="load">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catalog View (Default) -->
+    <div id="products-catalog-view" class="products-view active">
+        <div class="products-list-header">
+            <div class="list-filters">
+                <select hx-get="/api/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="category">
+                    <option value="all" data-i18n="products-cat-all">All Categories</option>
+                    <option value="software" data-i18n="products-cat-software">Software</option>
+                    <option value="hardware" data-i18n="products-cat-hardware">Hardware</option>
+                    <option value="subscription" data-i18n="products-cat-subscription">Subscription</option>
+                    <option value="consulting" data-i18n="products-cat-consulting">Consulting</option>
+                    <option value="training" data-i18n="products-cat-training">Training</option>
+                    <option value="support" data-i18n="products-cat-support">Support</option>
+                </select>
+                <select hx-get="/api/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="status">
+                    <option value="active" data-i18n="products-status-active">Active</option>
+                    <option value="all" data-i18n="products-status-all">All</option>
+                    <option value="inactive" data-i18n="products-status-inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="grid" title="Grid view">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                </button>
+                <button class="view-btn" data-view="list" title="List view">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+                        <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div id="products-grid" class="products-grid" hx-get="/api/products/items" hx-trigger="load">
+            <!-- Products loaded via HTMX -->
+        </div>
+    </div>
+
+    <!-- Services View -->
+    <div id="products-services-view" class="products-view">
+        <div class="products-list-header">
+            <div class="list-filters">
+                <select hx-get="/api/products/services" hx-trigger="change" hx-target="#services-table-body" hx-include="this" name="type">
+                    <option value="all" data-i18n="products-type-all">All Types</option>
+                    <option value="hourly" data-i18n="products-type-hourly">Hourly</option>
+                    <option value="fixed" data-i18n="products-type-fixed">Fixed Price</option>
+                    <option value="recurring" data-i18n="products-type-recurring">Recurring</option>
+                </select>
+            </div>
+            <button class="btn-primary" hx-get="/suite/products/partials/service-form.html" hx-target="#products-modal-content" hx-on::after-request="openProductsModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span data-i18n="products-new-service">New Service</span>
+            </button>
+        </div>
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th data-i18n="products-col-name">Name</th>
+                    <th data-i18n="products-col-description">Description</th>
+                    <th data-i18n="products-col-type">Type</th>
+                    <th data-i18n="products-col-price">Price</th>
+                    <th data-i18n="products-col-unit">Unit</th>
+                    <th data-i18n="products-col-status">Status</th>
+                    <th data-i18n="products-col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="services-table-body" hx-get="/api/products/services" hx-trigger="load">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Price Lists View -->
+    <div id="products-pricelists-view" class="products-view">
+        <div class="products-list-header">
+            <div class="list-filters">
+                <select hx-get="/api/products/pricelists" hx-trigger="change" hx-target="#pricelists-table-body" hx-include="this" name="currency">
+                    <option value="all" data-i18n="products-currency-all">All Currencies</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="BRL">BRL</option>
+                    <option value="GBP">GBP</option>
+                </select>
+            </div>
+            <button class="btn-primary" hx-get="/suite/products/partials/pricelist-form.html" hx-target="#products-modal-content" hx-on::after-request="openProductsModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span data-i18n="products-new-pricelist">New Price List</span>
+            </button>
+        </div>
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th data-i18n="products-col-name">Name</th>
+                    <th data-i18n="products-col-description">Description</th>
+                    <th data-i18n="products-col-currency">Currency</th>
+                    <th data-i18n="products-col-items">Items</th>
+                    <th data-i18n="products-col-valid-from">Valid From</th>
+                    <th data-i18n="products-col-valid-to">Valid To</th>
+                    <th data-i18n="products-col-default">Default</th>
+                    <th data-i18n="products-col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="pricelists-table-body" hx-get="/api/products/pricelists" hx-trigger="load">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for forms -->
+<div id="products-modal" class="products-modal">
+    <div class="products-modal-backdrop" onclick="closeProductsModal()"></div>
+    <div class="products-modal-content" id="products-modal-content">
+        <!-- Form content loaded via HTMX -->
+    </div>
+</div>
+
+<script>
+(function() {
+    // Tab switching
+    document.querySelectorAll('.products-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.products-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.products-view').forEach(v => v.classList.remove('active'));
+            this.classList.add('active');
+            const view = this.dataset.view;
+            document.getElementById(`products-${view}-view`).classList.add('active');
+        });
+    });
+
+    // View toggle (grid/list)
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const grid = document.getElementById('products-grid');
+            if (this.dataset.view === 'list') {
+                grid.classList.add('list-view');
+            } else {
+                grid.classList.remove('list-view');
+            }
+        });
+    });
+
+    // New Product button
+    document.getElementById('products-new-btn').addEventListener('click', function() {
+        htmx.ajax('GET', '/suite/products/partials/product-form.html', '#products-modal-content').then(() => {
+            openProductsModal();
+        });
+    });
+
+    // Modal functions
+    window.openProductsModal = function() {
+        document.getElementById('products-modal').classList.add('open');
+    };
+
+    window.closeProductsModal = function() {
+        document.getElementById('products-modal').classList.remove('open');
+    };
+
+    // Keyboard shortcut: Escape to close modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeProductsModal();
+        }
+    });
+
+    // Initialize i18n if available
+    if (window.i18n && window.i18n.translatePage) {
+        window.i18n.translatePage();
+    }
+})();
+</script>

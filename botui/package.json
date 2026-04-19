@@ -1,0 +1,15 @@
+{
+  "name": "botui",
+  "version": "1.0.0",
+  "description": "**Version:** 6.2.0   **Purpose:** Web UI server for General Bots (Axum + HTMX + CSS)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "monaco-editor": "^0.45.0"
+  }
+}

@@ -1,0 +1,337 @@
+<!-- Health partial -->
+<link rel="stylesheet" href="monitoring/health.css">
+<div class="health-container">
+    <!-- Health Overview -->
+    <div class="health-overview"
+         hx-get="/api/ui/monitoring/health/overview"
+         hx-trigger="load, every 10s"
+         hx-swap="innerHTML">
+        <div class="health-status healthy">
+            <div class="status-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <div class="status-info">
+                <h2>All Systems Operational</h2>
+                <p>All health checks are passing</p>
+            </div>
+            <div class="status-badge healthy">Healthy</div>
+        </div>
+    </div>
+
+    <!-- Uptime Stats -->
+    <div class="uptime-stats">
+        <div class="stat-card"
+             hx-get="/api/ui/monitoring/health/uptime"
+             hx-trigger="load, every 60s"
+             hx-swap="innerHTML">
+            <div class="stat-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">--</span>
+                <span class="stat-label">Uptime</span>
+            </div>
+        </div>
+        <div class="stat-card"
+             hx-get="/api/ui/monitoring/health/uptime-percent"
+             hx-trigger="load, every 60s"
+             hx-swap="innerHTML">
+            <div class="stat-icon success">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">--%</span>
+                <span class="stat-label">Uptime (30 days)</span>
+            </div>
+        </div>
+        <div class="stat-card"
+             hx-get="/api/ui/monitoring/health/last-incident"
+             hx-trigger="load, every 60s"
+             hx-swap="innerHTML">
+            <div class="stat-icon warning">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">--</span>
+                <span class="stat-label">Last Incident</span>
+            </div>
+        </div>
+        <div class="stat-card"
+             hx-get="/api/ui/monitoring/health/response-time"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+            <div class="stat-icon info">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">-- ms</span>
+                <span class="stat-label">Avg Response Time</span>
+</div>
+</div>
+</div>
+
+    <!-- Health Checks Grid -->
+    <div class="health-section">
+        <div class="section-header">
+            <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                Health Check Endpoints
+            </h3>
+            <div class="section-actions">
+                <button class="action-btn secondary" onclick="refreshAllChecks()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    Refresh All
+                </button>
+                <a href="/health" target="_blank" class="action-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                    View Raw
+                </a>
+            </div>
+        </div>
+
+        <div class="health-checks-grid" id="health-checks"
+             hx-get="/api/ui/monitoring/health/checks"
+             hx-trigger="load, every 10s"
+             hx-swap="innerHTML">
+            <div class="health-check-card">
+                <div class="check-header">
+                    <span class="check-status healthy"></span>
+                    <span class="check-name">Database</span>
+                    <span class="check-badge healthy">Healthy</span>
+                </div>
+                <div class="check-details">
+                    <div class="check-row">
+                        <span class="check-label">Response Time</span>
+                        <span class="check-value">-- ms</span>
+                    </div>
+                    <div class="check-row">
+                        <span class="check-label">Last Check</span>
+                        <span class="check-value">--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="health-check-card">
+                <div class="check-header">
+                    <span class="check-status healthy"></span>
+                    <span class="check-name">Cache</span>
+                    <span class="check-badge healthy">Healthy</span>
+                </div>
+                <div class="check-details">
+                    <div class="check-row">
+                        <span class="check-label">Response Time</span>
+                        <span class="check-value">-- ms</span>
+                    </div>
+                    <div class="check-row">
+                        <span class="check-label">Last Check</span>
+                        <span class="check-value">--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="health-check-card">
+                <div class="check-header">
+                    <span class="check-status healthy"></span>
+                    <span class="check-name">Message Queue</span>
+                    <span class="check-badge healthy">Healthy</span>
+                </div>
+                <div class="check-details">
+                    <div class="check-row">
+                        <span class="check-label">Response Time</span>
+                        <span class="check-value">-- ms</span>
+                    </div>
+                    <div class="check-row">
+                        <span class="check-label">Last Check</span>
+                        <span class="check-value">--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="health-check-card">
+                <div class="check-header">
+                    <span class="check-status healthy"></span>
+                    <span class="check-name">Storage</span>
+                    <span class="check-badge healthy">Healthy</span>
+                </div>
+                <div class="check-details">
+                    <div class="check-row">
+                        <span class="check-label">Response Time</span>
+                        <span class="check-value">-- ms</span>
+                    </div>
+                    <div class="check-row">
+                        <span class="check-label">Last Check</span>
+                        <span class="check-value">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dependencies Section -->
+    <div class="health-section">
+        <div class="section-header">
+            <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                External Dependencies
+            </h3>
+        </div>
+
+        <div class="dependencies-list" id="dependencies"
+             hx-get="/api/ui/monitoring/health/dependencies"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+            <div class="dependency-row">
+                <div class="dependency-info">
+                    <span class="dependency-status healthy"></span>
+                    <span class="dependency-name">OpenAI API</span>
+                    <span class="dependency-url">api.openai.com</span>
+                </div>
+                <div class="dependency-stats">
+                    <span class="stat">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        -- ms
+                    </span>
+                    <span class="dependency-badge healthy">Online</span>
+                </div>
+            </div>
+            <div class="dependency-row">
+                <div class="dependency-info">
+                    <span class="dependency-status healthy"></span>
+                    <span class="dependency-name">WhatsApp Business API</span>
+                    <span class="dependency-url">graph.facebook.com</span>
+                </div>
+                <div class="dependency-stats">
+                    <span class="stat">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        -- ms
+                    </span>
+                    <span class="dependency-badge healthy">Online</span>
+                </div>
+            </div>
+            <div class="dependency-row">
+                <div class="dependency-info">
+                    <span class="dependency-status healthy"></span>
+                    <span class="dependency-name">Email Service</span>
+                    <span class="dependency-url">smtp.sendgrid.net</span>
+                </div>
+                <div class="dependency-stats">
+                    <span class="stat">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        -- ms
+                    </span>
+                    <span class="dependency-badge healthy">Online</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Uptime History -->
+    <div class="health-section">
+        <div class="section-header">
+            <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Uptime History (Last 90 Days)
+            </h3>
+            <div class="uptime-legend">
+                <span class="legend-item"><span class="legend-dot healthy"></span>Operational</span>
+                <span class="legend-item"><span class="legend-dot degraded"></span>Degraded</span>
+                <span class="legend-item"><span class="legend-dot outage"></span>Outage</span>
+            </div>
+        </div>
+
+        <div class="uptime-chart" id="uptime-chart"
+             hx-get="/api/ui/monitoring/health/uptime-history"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="uptime-bars">
+                <div class="uptime-bar healthy" title="Jan 15 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 14 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 13 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 12 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 11 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 10 - 100%"></div>
+                <div class="uptime-bar degraded" title="Jan 9 - 99.5%"></div>
+                <div class="uptime-bar healthy" title="Jan 8 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 7 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 6 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 5 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 4 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 3 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 2 - 100%"></div>
+                <div class="uptime-bar healthy" title="Jan 1 - 100%"></div>
+            </div>
+            <div class="uptime-labels">
+                <span>90 days ago</span>
+                <span>Today</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Incidents -->
+    <div class="health-section">
+        <div class="section-header">
+            <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Recent Incidents
+            </h3>
+            <a href="#" class="view-all-link">View All</a>
+        </div>
+
+        <div class="incidents-list" id="incidents"
+             hx-get="/api/ui/monitoring/health/incidents"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="incident-placeholder">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <p>No recent incidents</p>
+                <span>System has been stable</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/suite/monitoring/health.js"></script>

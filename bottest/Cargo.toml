@@ -1,0 +1,86 @@
+[package]
+name = "bottest"
+version = "6.3.0"
+edition = "2021"
+description = "Comprehensive test suite for General Bots - Unit, Integration, and E2E testing"
+license = "AGPL-3.0"
+repository = "https://github.com/GeneralBots/BotServer"
+readme = "README.md"
+keywords = ["testing", "bot", "integration-testing", "e2e", "general-bots"]
+categories = ["development-tools::testing"]
+
+[dependencies]
+# Async runtime
+tokio = { workspace = true, features = ["full", "test-util", "macros"] }
+async-trait = { workspace = true }
+futures = { workspace = true }
+
+# Database
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2"] }
+
+# HTTP mocking and testing
+wiremock = { workspace = true }
+cookie = { workspace = true }
+reqwest = { workspace = true, features = ["json", "cookies", "blocking", "rustls-tls"] }
+
+# Web/E2E testing - using Chrome DevTools Protocol directly (no chromedriver)
+chromiumoxide = { workspace = true }
+
+# Serialization
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+# Utilities
+uuid = { workspace = true, features = ["serde", "v4"] }
+chrono = { workspace = true, features = ["serde"] }
+which = { workspace = true }
+regex = { workspace = true }
+
+# Process management for services
+nix = { workspace = true }
+
+# Archive extraction
+zip = { workspace = true }
+
+# Logging and tracing
+log = { workspace = true }
+env_logger = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["fmt", "env-filter"] }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Test framework enhancements
+# Rhai for BASIC function testing
+rhai = { workspace = true, features = ["sync"] }
+
+[dev-dependencies]
+insta = { workspace = true }
+
+[features]
+default = ["full"]
+integration = []
+e2e = []
+full = ["integration", "e2e"]
+
+[[test]]
+name = "unit"
+path = "tests/unit/mod.rs"
+
+[[test]]
+name = "integration"
+path = "tests/integration/mod.rs"
+required-features = ["integration"]
+
+[[test]]
+name = "e2e"
+path = "tests/e2e/mod.rs"
+required-features = ["e2e"]
+
+[[bin]]
+name = "bottest"
+path = "src/main.rs"
+
+[lints]
+workspace = true

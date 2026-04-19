@@ -1,8 +1,0 @@
-DESCRIPTION "Consultar o calendário letivo com datas importantes da Escola Salesiana"
-PARAM ano AS STRING LIKE "2026" DESCRIPTION "Ano letivo desejado (opcional, padrão: ano atual)"
-
-
-resultado = "Calendário Letivo - PRIMEIRO SEMESTRE: Início das aulas 03/02, Carnaval 03/03 a 05/03, Semana Pedagógica 20 a 24/04, Dia do Trabalho 01/05, Recesso 15 a 19/07, Término do 1º semestre 18/07. SEGUNDO SEMESTRE: Retorno às aulas 22/07, Independência 07/09, Nossa Senhora Aparecida 12/10, Proclamação da República 15/11, Dia da Consciência Negra 20/11, Recuperação 02/12 a 13/12, Término das aulas 18/12. AVALIAÇÕES BIMESTRAIS: 1º Bim 07 a 18/04, 2º Bim 23/06 a 04/07, 3º Bim 15 a 26/09, 4º Bim 04 a 15/11. REUNIÕES DE PAIS (19h30): 21/03, 06/06, 19/09, 21/11. EVENTOS ESPECIAIS: Festa Junina 14/06, Feira de Ciências 29/08, Jogos Internos 10 a 13/09, Formatura Ensino Médio 12/12."
-
-TALK resultado
-RETURN resultado

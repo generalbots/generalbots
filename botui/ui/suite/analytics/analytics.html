@@ -1,0 +1,541 @@
+<link rel="stylesheet" href="analytics/analytics.css" />
+
+<div class="analytics-container" id="analytics-app">
+    <header class="analytics-header">
+        <div class="header-title">
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                class="header-icon"
+            >
+                <path
+                    d="M3 3v18h18"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+                <path
+                    d="M7 16l4-4 4 4 5-6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+            </svg>
+            <h2 data-i18n="analytics-dashboard-title">Analytics Dashboard</h2>
+        </div>
+        <div class="header-actions">
+            <select
+                id="timeRange"
+                class="time-selector"
+                onchange="updateTimeRange(this.value)"
+            >
+                <option value="1h" data-i18n="analytics-last-hour">
+                    Last Hour
+                </option>
+                <option value="6h" data-i18n="analytics-last-6h">
+                    Last 6 Hours
+                </option>
+                <option value="24h" selected data-i18n="analytics-last-24h">
+                    Last 24 Hours
+                </option>
+                <option value="7d" data-i18n="analytics-last-7d">
+                    Last 7 Days
+                </option>
+                <option value="30d" data-i18n="analytics-last-30d">
+                    Last 30 Days
+                </option>
+            </select>
+            <button
+                class="btn-refresh"
+                onclick="refreshDashboard()"
+                data-i18n-title="action-refresh"
+                title="Refresh Data"
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                    <path
+                        d="M21 3v5h-5"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="analytics-layout">
+        <!-- Left Panel: Metrics Overview -->
+        <aside class="metrics-sidebar">
+            <div
+                class="metric-card"
+                hx-get="/api/ui/analytics/messages/count"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon messages">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Messages Today</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/ui/analytics/sessions/active"
+                hx-trigger="load, every 10s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon sessions">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <circle
+                            cx="9"
+                            cy="7"
+                            r="4"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                        <path
+                            d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Active Sessions</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/ui/analytics/response/avg"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon response">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <polygon
+                            points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Avg Response Time</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/ui/analytics/llm/tokens"
+                hx-trigger="load, every 60s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon tokens">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M12 2a10 10 0 1 0 10 10H12V2z"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            d="M12 2a10 10 0 0 1 10 10"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="4"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">LLM Tokens Used</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/ui/analytics/storage/usage"
+                hx-trigger="load, every 120s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon storage">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <ellipse
+                            cx="12"
+                            cy="5"
+                            rx="9"
+                            ry="3"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                        <path
+                            d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                        <path
+                            d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Storage Used</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/ui/analytics/errors/count"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon errors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <line
+                            x1="12"
+                            y1="9"
+                            x2="12"
+                            y2="13"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        />
+                        <line
+                            x1="12"
+                            y1="17"
+                            x2="12.01"
+                            y2="17"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Errors Today</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="analytics-main">
+            <!-- Charts Row -->
+            <div class="charts-grid">
+                <!-- Messages Over Time Chart -->
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3>Messages Over Time</h3>
+                        <div class="chart-actions">
+                            <button
+                                class="chart-btn active"
+                                data-chart="messages"
+                                data-type="line"
+                            >
+                                Line
+                            </button>
+                            <button
+                                class="chart-btn"
+                                data-chart="messages"
+                                data-type="bar"
+                            >
+                                Bar
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="chart-container"
+                        id="messagesChart"
+                        hx-get="/api/ui/analytics/timeseries/messages"
+                        hx-trigger="load, every 60s"
+                        hx-swap="innerHTML"
+                    >
+                        <div class="chart-loading">
+                            <div class="spinner"></div>
+                            <span>Loading chart data...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Response Time Chart -->
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3>Response Time Distribution</h3>
+                        <div class="chart-actions">
+                            <button
+                                class="chart-btn active"
+                                data-chart="response"
+                                data-type="area"
+                            >
+                                Area
+                            </button>
+                            <button
+                                class="chart-btn"
+                                data-chart="response"
+                                data-type="line"
+                            >
+                                Line
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="chart-container"
+                        id="responseChart"
+                        hx-get="/api/ui/analytics/timeseries/response_time"
+                        hx-trigger="load, every 60s"
+                        hx-swap="innerHTML"
+                    >
+                        <div class="chart-loading">
+                            <div class="spinner"></div>
+                            <span>Loading chart data...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Channel Distribution -->
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3>Channel Distribution</h3>
+                    </div>
+                    <div
+                        class="chart-container"
+                        id="channelChart"
+                        hx-get="/api/ui/analytics/channels/distribution"
+                        hx-trigger="load, every 120s"
+                        hx-swap="innerHTML"
+                    >
+                        <div class="chart-loading">
+                            <div class="spinner"></div>
+                            <span>Loading chart data...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bot Performance -->
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3>Bot Performance</h3>
+                    </div>
+                    <div
+                        class="chart-container"
+                        id="botChart"
+                        hx-get="/api/ui/analytics/bots/performance"
+                        hx-trigger="load, every 60s"
+                        hx-swap="innerHTML"
+                    >
+                        <div class="chart-loading">
+                            <div class="spinner"></div>
+                            <span>Loading chart data...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Analytics Chat Interface -->
+            <div class="analytics-chat-panel">
+                <div class="chat-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                        <path
+                            d="M12 16v-4M12 8h.01"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                    <h3>AI Analytics Assistant</h3>
+                    <span class="chat-hint"
+                        >Ask questions about your metrics and data</span
+                    >
+                </div>
+
+                <div class="chat-messages" id="analyticsChatMessages">
+                    <div class="chat-message assistant">
+                        <div class="message-avatar">
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                            >
+                                <rect
+                                    x="3"
+                                    y="4"
+                                    width="18"
+                                    height="16"
+                                    rx="2"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                />
+                                <circle
+                                    cx="9"
+                                    cy="10"
+                                    r="2"
+                                    fill="currentColor"
+                                />
+                                <circle
+                                    cx="15"
+                                    cy="10"
+                                    r="2"
+                                    fill="currentColor"
+                                />
+                                <path
+                                    d="M9 15h6"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                />
+                            </svg>
+                        </div>
+                        <div class="message-content">
+                            <p>
+                                Hello! I can help you analyze your time-series
+                                data. Try asking:
+                            </p>
+                            <ul class="suggestion-list">
+                                <li
+                                    onclick="askAnalytics('What was the peak message volume today?')"
+                                >
+                                    What was the peak message volume today?
+                                </li>
+                                <li
+                                    onclick="askAnalytics('Why did response times increase last hour</p>?')"
+                                >
+                                    Why did response times increase last hour?
+                                </li>
+                                <li
+                                    onclick="askAnalytics('Compare this week vs last week traffic')"
+                                >
+                                    Compare this week vs last week traffic
+                                </li>
+                                <li
+                                    onclick="askAnalytics('Show me error patterns')"
+                                >
+                                    Show me error patterns
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <input
+                        type="text"
+                        id="analyticsQuery"
+                        class="chat-input"
+                        placeholder="Ask about your analytics data..."
+                        onkeypress="if(event.key==='Enter') sendAnalyticsQuery()"
+                    />
+                    <button
+                        class="chat-send-btn"
+                        onclick="sendAnalyticsQuery()"
+                    >
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                        >
+                            <path
+                                d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Recent Activity -->
+        <aside class="activity-sidebar">
+            <h3>Recent Activity</h3>
+            <div
+                class="activity-feed"
+                id="activityFeed"
+                hx-get="/api/ui/analytics/activity/recent"
+                hx-trigger="load, every 15s"
+                hx-swap="innerHTML"
+            >
+                <div class="activity-loading">Loading activity...</div>
+            </div>
+
+            <h3 class="mt-4">Top Queries</h3>
+            <div
+                class="top-queries"
+                hx-get="/api/ui/analytics/queries/top"
+                hx-trigger="load, every 60s"
+                hx-swap="innerHTML"
+            >
+                <div class="activity-loading">Loading queries...</div>
+            </div>
+        </aside>
+    </div>
+
+    <link rel="stylesheet" href="analytics/analytics.css" />
+    <script src="analytics/analytics.js"></script>
+</div>

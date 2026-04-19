@@ -1,0 +1,139 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #1a1a1a; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .panel-bg { fill: #252525; }
+    .header-bg { fill: #2a2a2a; }
+    .main-text { fill: #ffffff; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #aaa; font-family: Arial, sans-serif; }
+    .icon-text { fill: #ddd; font-family: Arial, sans-serif; }
+    .divider { stroke: #444; stroke-width: 1; }
+    .video-frame { fill: #333; stroke: #444; stroke-width: 2; }
+    .avatar-bg { fill: #4A90E2; }
+    .control-btn { fill: #444; stroke: #555; stroke-width: 1; }
+    .control-btn-active { fill: #4A90E2; }
+    .control-btn-danger { fill: #E74C3C; }
+    .control-text { fill: #fff; font-family: Arial, sans-serif; }
+    .timer { fill: #7ED321; font-family: monospace; }
+    .participant-count { fill: #4A90E2; }
+    .chat-icon { fill: #fff; }
+
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #2a2a2a; }
+      .frame { stroke: #444; }
+      .panel-bg { fill: #333; }
+      .header-bg { fill: #3a3a3a; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Meet - Video Calls Interface</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="50" width="840" height="470" rx="8" class="frame bg"/>
+
+  <!-- Header Bar -->
+  <rect x="30" y="50" width="840" height="45" rx="8" class="header-bg"/>
+  <rect x="30" y="87" width="840" height="8" class="bg"/>
+
+  <!-- Meeting Title -->
+  <text x="55" y="78" font-size="16" font-weight="500" class="main-text">Meeting Room</text>
+
+  <!-- Timer -->
+  <text x="450" y="78" text-anchor="middle" font-size="16" class="timer">00:15:32</text>
+
+  <!-- Header Right Controls -->
+  <g transform="translate(720, 58)">
+    <!-- Participants -->
+    <rect x="0" y="0" width="45" height="30" rx="4" class="control-btn"/>
+    <text x="15" y="20" font-size="14" class="control-text">👥</text>
+    <text x="35" y="20" font-size="12" class="participant-count">3</text>
+
+    <!-- Chat -->
+    <rect x="55" y="0" width="35" height="30" rx="4" class="control-btn"/>
+    <text x="72" y="20" text-anchor="middle" font-size="14" class="chat-icon">💬</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="30" y1="95" x2="870" y2="95" class="divider"/>
+
+  <!-- Video Grid Area -->
+  <g transform="translate(50, 110)">
+    <!-- Main Participant 1 (You) -->
+    <rect x="0" y="0" width="380" height="220" rx="8" class="video-frame"/>
+    <circle cx="190" cy="90" r="45" class="avatar-bg"/>
+    <text x="190" y="100" text-anchor="middle" font-size="32" class="main-text">👤</text>
+    <text x="190" y="150" text-anchor="middle" font-size="16" class="main-text">You</text>
+    <text x="190" y="175" text-anchor="middle" font-size="13" class="secondary-text">(Camera)</text>
+    <!-- Name label -->
+    <rect x="10" y="190" width="60" height="22" rx="4" fill="#000" opacity="0.6"/>
+    <text x="40" y="206" text-anchor="middle" font-size="12" class="main-text">You</text>
+    <!-- Mute indicator -->
+    <circle cx="355" cy="195" r="12" fill="#E74C3C"/>
+    <text x="355" y="200" text-anchor="middle" font-size="10" class="main-text">🎤</text>
+
+    <!-- Main Participant 2 (John) -->
+    <rect x="400" y="0" width="380" height="220" rx="8" class="video-frame"/>
+    <circle cx="590" cy="90" r="45" class="avatar-bg"/>
+    <text x="590" y="100" text-anchor="middle" font-size="32" class="main-text">👤</text>
+    <text x="590" y="150" text-anchor="middle" font-size="16" class="main-text">John</text>
+    <text x="590" y="175" text-anchor="middle" font-size="13" class="secondary-text">(Camera)</text>
+    <!-- Name label -->
+    <rect x="410" y="190" width="60" height="22" rx="4" fill="#000" opacity="0.6"/>
+    <text x="440" y="206" text-anchor="middle" font-size="12" class="main-text">John</text>
+
+    <!-- Participant 3 (Sarah) - Smaller -->
+    <rect x="0" y="235" width="250" height="145" rx="8" class="video-frame"/>
+    <circle cx="125" cy="290" r="35" class="avatar-bg"/>
+    <text x="125" y="298" text-anchor="middle" font-size="26" class="main-text">👤</text>
+    <text x="125" y="340" text-anchor="middle" font-size="14" class="main-text">Sarah</text>
+    <!-- Name label -->
+    <rect x="10" y="355" width="55" height="20" rx="4" fill="#000" opacity="0.6"/>
+    <text x="37" y="369" text-anchor="middle" font-size="11" class="main-text">Sarah</text>
+  </g>
+
+  <!-- Control Bar -->
+  <rect x="30" y="470" width="840" height="50" rx="8" class="header-bg"/>
+  <rect x="30" y="470" width="840" height="8" class="bg"/>
+
+  <!-- Control Buttons -->
+  <g transform="translate(200, 480)">
+    <!-- Mute Button -->
+    <rect x="0" y="0" width="55" height="38" rx="6" class="control-btn-danger"/>
+    <text x="27" y="25" text-anchor="middle" font-size="18" class="control-text">🎤</text>
+
+    <!-- Video Button -->
+    <rect x="70" y="0" width="55" height="38" rx="6" class="control-btn-active"/>
+    <text x="97" y="25" text-anchor="middle" font-size="18" class="control-text">📹</text>
+
+    <!-- Share Screen Button -->
+    <rect x="140" y="0" width="55" height="38" rx="6" class="control-btn"/>
+    <text x="167" y="25" text-anchor="middle" font-size="18" class="control-text">🖥</text>
+
+    <!-- Record Button -->
+    <rect x="210" y="0" width="55" height="38" rx="6" class="control-btn"/>
+    <text x="237" y="25" text-anchor="middle" font-size="18" class="control-text">🔴</text>
+
+    <!-- Transcribe Button -->
+    <rect x="280" y="0" width="55" height="38" rx="6" class="control-btn"/>
+    <text x="307" y="25" text-anchor="middle" font-size="18" class="control-text">📝</text>
+
+    <!-- End Call Button -->
+    <rect x="365" y="0" width="70" height="38" rx="6" class="control-btn-danger"/>
+    <text x="400" y="25" text-anchor="middle" font-size="18" class="control-text">📞</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(30, 535)">
+    <rect x="0" y="-10" width="20" height="14" rx="3" class="control-btn-active"/>
+    <text x="28" y="0" font-size="11" class="secondary-text">Active</text>
+
+    <rect x="80" y="-10" width="20" height="14" rx="3" class="control-btn-danger"/>
+    <text x="108" y="0" font-size="11" class="secondary-text">Muted/End</text>
+
+    <rect x="180" y="-10" width="20" height="14" rx="3" class="control-btn"/>
+    <text x="208" y="0" font-size="11" class="secondary-text">Available</text>
+
+    <text x="350" y="0" font-size="11" class="secondary-text">Shortcuts: M = Mute | V = Video | S = Share | Space = Push-to-talk</text>
+  </g>
+</svg>

@@ -1,0 +1,495 @@
+<div class="monitoring-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="monitoring-sidebar">
+        <div class="monitoring-header">
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <circle cx="12" cy="12" r="10" opacity="0.3"></circle>
+                <circle cx="12" cy="12" r="6.5" opacity="0.6"></circle>
+                <circle
+                    cx="12"
+                    cy="12"
+                    r="2"
+                    fill="currentColor"
+                    stroke="none"
+                ></circle>
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="12" y1="19" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="5" y2="12"></line>
+                <line x1="19" y1="12" x2="22" y2="12"></line>
+            </svg>
+            <span>Monitoring</span>
+        </div>
+
+        <nav class="monitoring-nav">
+            <a
+                href="#dashboard"
+                class="nav-item active"
+                hx-get="/api/ui/monitoring/dashboard"
+                hx-target="#monitoring-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="3" y="3" width="7" height="9"></rect>
+                    <rect x="14" y="3" width="7" height="5"></rect>
+                    <rect x="14" y="12" width="7" height="9"></rect>
+                    <rect x="3" y="16" width="7" height="5"></rect>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a
+                href="#services"
+                class="nav-item"
+                hx-get="/api/ui/monitoring/services"
+                hx-target="#monitoring-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect
+                        x="2"
+                        y="2"
+                        width="20"
+                        height="8"
+                        rx="2"
+                        ry="2"
+                    ></rect>
+                    <rect
+                        x="2"
+                        y="14"
+                        width="20"
+                        height="8"
+                        rx="2"
+                        ry="2"
+                    ></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                </svg>
+                <span>Services</span>
+            </a>
+            <a
+                href="#resources"
+                class="nav-item"
+                hx-get="/api/ui/monitoring/resources"
+                hx-target="#monitoring-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                    <rect x="9" y="9" width="6" height="6"></rect>
+                    <line x1="9" y1="1" x2="9" y2="4"></line>
+                    <line x1="15" y1="1" x2="15" y2="4"></line>
+                    <line x1="9" y1="20" x2="9" y2="23"></line>
+                    <line x1="15" y1="20" x2="15" y2="23"></line>
+                    <line x1="20" y1="9" x2="23" y2="9"></line>
+                    <line x1="20" y1="14" x2="23" y2="14"></line>
+                    <line x1="1" y1="9" x2="4" y2="9"></line>
+                    <line x1="1" y1="14" x2="4" y2="14"></line>
+                </svg>
+                <span>Resources</span>
+            </a>
+            <a
+                href="#logs"
+                class="nav-item"
+                hx-get="/api/ui/monitoring/logs"
+                hx-target="#monitoring-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    ></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span>Logs</span>
+            </a>
+            <a
+                href="#metrics"
+                class="nav-item"
+                hx-get="/api/ui/monitoring/metrics"
+                hx-target="#monitoring-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <span>Metrics</span>
+            </a>
+            <a
+                href="#alerts"
+                class="nav-item"
+                hx-get="/api/ui/monitoring/alerts"
+                hx-target="#monitoring-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
+                    ></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span>Alerts</span>
+                <span
+                    class="alert-badge"
+                    id="alert-count"
+                    hx-get="/api/ui/monitoring/alerts/count"
+                    hx-trigger="load, every 30s"
+                    hx-swap="innerHTML"
+                    >0</span
+                >
+            </a>
+            <a
+                href="#health"
+                class="nav-item"
+                hx-get="/api/ui/monitoring/health"
+                hx-target="#monitoring-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                <span>Health</span>
+                <span
+                    class="health-indicator"
+                    hx-get="/api/ui/monitoring/health/status"
+                    hx-trigger="load, every 10s"
+                    hx-swap="outerHTML"
+                ></span>
+            </a>
+        </nav>
+
+        <div class="monitoring-footer">
+            <a href="/suite" class="back-link">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Suite
+            </a>
+            <div class="system-status">
+                <span class="status-indicator running"></span>
+                <span
+                    class="status-text"
+                    hx-get="/api/ui/monitoring/system/status"
+                    hx-trigger="load, every 15s"
+                    hx-swap="innerHTML"
+                    >All Systems Operational</span
+                >
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="monitoring-main">
+        <div class="monitoring-toolbar">
+            <div class="toolbar-left">
+                <h1 id="page-title">Dashboard</h1>
+                <span
+                    class="last-updated"
+                    hx-get="/api/ui/monitoring/timestamp"
+                    hx-trigger="load, every 5s"
+                    hx-swap="innerHTML"
+                    >--</span
+                >
+            </div>
+            <div class="toolbar-right">
+                <div class="time-range-selector">
+                    <select
+                        id="time-range"
+                        onchange="updateTimeRange(this.value)"
+                    >
+                        <option value="15m">Last 15 minutes</option>
+                        <option value="1h" selected>Last 1 hour</option>
+                        <option value="6h">Last 6 hours</option>
+                        <option value="24h">Last 24 hours</option>
+                        <option value="7d">Last 7 days</option>
+                        <option value="30d">Last 30 days</option>
+                    </select>
+                </div>
+                <button
+                    class="toolbar-btn"
+                    onclick="refreshMonitoring()"
+                    title="Refresh"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path
+                            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                        ></path>
+                    </svg>
+                </button>
+                <button
+                    class="toolbar-btn"
+                    onclick="toggleAutoRefresh()"
+                    id="auto-refresh-btn"
+                    title="Auto Refresh"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </button>
+                <button
+                    class="toolbar-btn"
+                    onclick="exportData()"
+                    title="Export"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                        ></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+                <a
+                    href="/metrics"
+                    target="_blank"
+                    class="toolbar-btn"
+                    title="Prometheus Metrics"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <div
+            class="monitoring-content"
+            id="monitoring-content"
+            hx-get="/api/ui/monitoring/dashboard"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <!-- Dashboard content loaded via HTMX -->
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading monitoring data...</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Quick Stats Bar (always visible) -->
+<div class="quick-stats-bar">
+    <div
+        class="quick-stat"
+        hx-get="/api/ui/monitoring/quick/cpu"
+        hx-trigger="load, every 5s"
+        hx-swap="innerHTML"
+    >
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+        >
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <rect x="9" y="9" width="6" height="6"></rect>
+        </svg>
+        <span class="stat-label">CPU</span>
+        <span class="stat-value">--%</span>
+    </div>
+    <div
+        class="quick-stat"
+        hx-get="/api/ui/monitoring/quick/memory"
+        hx-trigger="load, every 5s"
+        hx-swap="innerHTML"
+    >
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+        >
+            <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+            <line x1="6" y1="12" x2="6" y2="12"></line>
+            <line x1="10" y1="12" x2="10" y2="12"></line>
+            <line x1="14" y1="12" x2="14" y2="12"></line>
+            <line x1="18" y1="12" x2="18" y2="12"></line>
+        </svg>
+        <span class="stat-label">Memory</span>
+        <span class="stat-value">--%</span>
+    </div>
+    <div
+        class="quick-stat"
+        hx-get="/api/ui/monitoring/quick/disk"
+        hx-trigger="load, every 30s"
+        hx-swap="innerHTML"
+    >
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+        >
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+        </svg>
+        <span class="stat-label">Disk</span>
+        <span class="stat-value">--%</span>
+    </div>
+    <div
+        class="quick-stat"
+        hx-get="/api/ui/monitoring/quick/network"
+        hx-trigger="load, every 5s"
+        hx-swap="innerHTML"
+    >
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+        >
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+        <span class="stat-label">Network</span>
+        <span class="stat-value">-- MB/s</span>
+    </div>
+    <div
+        class="quick-stat"
+        hx-get="/api/ui/monitoring/quick/requests"
+        hx-trigger="load, every 5s"
+        hx-swap="innerHTML"
+    >
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+        >
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        <span class="stat-label">Requests</span>
+        <span class="stat-value">--/s</span>
+    </div>
+</div>
+
+<link rel="stylesheet" href="monitoring/monitoring.css" />
+<script src="/static/suite/monitoring/monitoring.js"></script>

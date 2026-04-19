@@ -1,0 +1,15 @@
+.tmp*
+.tmp/*
+*.log
+target*
+.env
+target
+*.env
+work
+*.out
+bin
+botserver-stack
+*logfile*
+*-log*
+docs/book
+*.rdb

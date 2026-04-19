@@ -1,0 +1,205 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <!-- Define gradients and effects -->
+  <defs>
+    <!-- Gradients for different layers -->
+    <linearGradient id="clientGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:0.3" />
+    </linearGradient>
+
+    <linearGradient id="gatewayGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06ffa5;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#00d2ff;stop-opacity:0.3" />
+    </linearGradient>
+
+    <linearGradient id="authGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:0.3" />
+    </linearGradient>
+
+    <linearGradient id="businessGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:0.3" />
+    </linearGradient>
+
+    <linearGradient id="adminGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fa709a;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#fee140;stop-opacity:0.3" />
+    </linearGradient>
+
+    <linearGradient id="serviceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#30cfd0;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#330867;stop-opacity:0.3" />
+    </linearGradient>
+
+    <linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#43e97b;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#38f9d7;stop-opacity:0.3" />
+    </linearGradient>
+
+    <!-- Arrow marker -->
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#4a5568" opacity="0.7"/>
+    </marker>
+
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.15"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="800" height="600" fill="#fafafa"/>
+
+  <!-- Title -->
+  <rect x="250" y="10" width="300" height="35" fill="rgba(99, 102, 241, 0.05)" rx="8"/>
+  <text x="400" y="33" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="600" fill="#1e293b">
+    BotServer API Architecture
+  </text>
+
+  <!-- Client Applications Layer -->
+  <rect x="250" y="60" width="300" height="50" fill="url(#clientGrad)" stroke="#667eea" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="90" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+    Client Applications
+  </text>
+
+  <!-- Arrow down -->
+  <path d="M 400 110 L 400 130" stroke="#4a5568" stroke-width="2.5" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- HTTP/HTTPS Layer -->
+  <rect x="300" y="130" width="200" height="45" fill="rgba(99, 102, 241, 0.08)" stroke="#8b5cf6" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+  <text x="400" y="150" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">
+    HTTP/HTTPS
+  </text>
+  <text x="400" y="165" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+    Port 8080
+  </text>
+
+  <!-- Arrow down -->
+  <path d="M 400 175 L 400 195" stroke="#4a5568" stroke-width="2.5" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- API Gateway -->
+  <rect x="250" y="195" width="300" height="50" fill="url(#gatewayGrad)" stroke="#00d2ff" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="220" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+    API Gateway
+  </text>
+  <text x="400" y="235" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /api/*
+  </text>
+
+  <!-- Arrows to endpoint groups -->
+  <path d="M 400 245 L 400 260 L 180 260 L 180 280" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+  <path d="M 400 245 L 400 280" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+  <path d="M 400 245 L 400 260 L 620 260 L 620 280" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- Auth Endpoints -->
+  <rect x="80" y="280" width="200" height="80" fill="url(#authGrad)" stroke="#f5576c" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="180" y="305" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+    Auth Endpoints
+  </text>
+  <text x="180" y="325" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /auth/login
+  </text>
+  <text x="180" y="340" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /auth/logout
+  </text>
+  <text x="180" y="355" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /auth/token
+  </text>
+
+  <!-- Business Endpoints -->
+  <rect x="300" y="280" width="200" height="80" fill="url(#businessGrad)" stroke="#00f2fe" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="305" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+    Business Endpoints
+  </text>
+  <text x="400" y="325" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /files/* • /users/*
+  </text>
+  <text x="400" y="340" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /groups/* • /tasks/*
+  </text>
+  <text x="400" y="355" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /sessions/*
+  </text>
+
+  <!-- Admin Endpoints -->
+  <rect x="520" y="280" width="200" height="80" fill="url(#adminGrad)" stroke="#fa709a" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="620" y="305" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+    Admin Endpoints
+  </text>
+  <text x="620" y="325" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /admin/*
+  </text>
+  <text x="620" y="340" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /monitoring
+  </text>
+  <text x="620" y="355" text-anchor="middle" font-family="system-ui, monospace" font-size="16" fill="#475569">
+    /analytics
+  </text>
+
+  <!-- Arrows converging to service layer -->
+  <path d="M 180 360 L 180 380 L 400 380 L 400 400" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+  <path d="M 400 360 L 400 400" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+  <path d="M 620 360 L 620 380 L 400 380 L 400 400" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- Service Layer -->
+  <rect x="250" y="400" width="300" height="70" fill="url(#serviceGrad)" stroke="#330867" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="425" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+    Service Layer
+  </text>
+  <text x="400" y="445" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+    • Session Manager
+  </text>
+  <text x="400" y="460" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+    • Auth Service • Bot Service
+  </text>
+
+  <!-- Arrows to databases -->
+  <path d="M 400 470 L 400 485 L 180 485 L 180 500" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+  <path d="M 400 470 L 400 500" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+  <path d="M 400 470 L 400 485 L 620 485 L 620 500" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- PostgreSQL -->
+  <rect x="80" y="500" width="200" height="70" fill="url(#dbGrad)" stroke="#38f9d7" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="180" y="525" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+    PostgreSQL
+  </text>
+  <text x="180" y="545" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+    Database
+  </text>
+  <text x="180" y="560" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">
+    Sessions • Users • Config
+  </text>
+
+  <!-- Valkey Cache -->
+  <rect x="300" y="500" width="200" height="70" fill="url(#dbGrad)" stroke="#38f9d7" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="525" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+    Valkey
+  </text>
+  <text x="400" y="545" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+    Cache
+  </text>
+  <text x="400" y="560" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">
+    Semantic • Session • Temp
+  </text>
+
+  <!-- Qdrant -->
+  <rect x="520" y="500" width="200" height="70" fill="url(#dbGrad)" stroke="#38f9d7" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="620" y="525" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+    Qdrant
+  </text>
+  <text x="620" y="545" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+    Vectors
+  </text>
+  <text x="620" y="560" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">
+    Embeddings • Search
+  </text>
+</svg>

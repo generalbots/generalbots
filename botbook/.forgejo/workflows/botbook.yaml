@@ -1,0 +1,38 @@
+name: GBCI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: gbo
+
+    steps:
+      - name: Disable SSL verification (temporary)
+        run: git config --global http.sslVerify false
+
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install mdBook
+        run: |
+          if ! command -v mdbook &> /dev/null; then
+            cargo install mdbook
+          fi
+
+      - name: Build documentation
+        run: mdbook build
+
+      - name: Deploy documentation
+        run: |
+          sudo rm -rf /opt/gbo/bin/proxy/docs.pragmatismo.com.br/*
+          sudo cp -r ./book/* /opt/gbo/bin/proxy/docs.pragmatismo.com.br/
+          sudo chmod -R 777 /opt/gbo/bin/proxy/docs.pragmatismo.com.br/
