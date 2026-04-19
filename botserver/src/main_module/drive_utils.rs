@@ -1,8 +1,7 @@
 //! Drive-related utilities
 
 #[cfg(feature = "drive")]
-pub async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
-    use aws_sdk_s3::primitives::ByteStream;
+pub async fn ensure_vendor_files_in_minio(drive: &crate::drive::s3_repository::S3Repository) {
     use log::{info, warn};
 
     let htmx_paths = [
@@ -24,7 +23,7 @@ pub async fn ensure_vendor_files_in_minio(drive: &aws_sdk_s3::Client) {
         .put_object()
         .bucket(bucket)
         .key(key)
-        .body(ByteStream::from(content))
+        .body(content.clone())
         .content_type("application/javascript")
         .send()
         .await

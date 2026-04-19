@@ -158,7 +158,7 @@ struct ContactInfo {
 }
 
 async fn get_llm_config(state: &Arc<AppState>, bot_id: Uuid) -> Result<(String, String, String), String> {
-    let config = ConfigManager::new(state.conn.clone());
+    let config = ConfigManager::new(state.conn.clone().into());
 
     let llm_url = config
         .get_config(&bot_id, "llm-url", Some(""))

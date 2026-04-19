@@ -1,7 +1,5 @@
 use anyhow::{anyhow, Result};
-use aws_config::BehaviorVersion;
-use aws_sdk_s3::primitives::ByteStream;
-use aws_sdk_s3::Client;
+use crate::drive::s3_repository::S3Repository;
 use chrono::TimeZone;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -12,7 +10,9 @@ pub struct AttendanceDriveConfig {
     pub bucket_name: String,
     pub prefix: String,
     pub sync_enabled: bool,
-    pub region: Option<String>,
+    pub endpoint: Option<String>,
+    pub access_key: Option<String>,
+    pub secret_key: Option<String>,
 }
 
 impl Default for AttendanceDriveConfig {
@@ -21,7 +21,9 @@ impl Default for AttendanceDriveConfig {
             bucket_name: "attendance".to_string(),
             prefix: "records/".to_string(),
             sync_enabled: true,
-            region: None,
+            endpoint: None,
+            access_key: None,
+            secret_key: None,
         }
     }
 }
@@ -29,26 +31,22 @@ impl Default for AttendanceDriveConfig {
 #[derive(Debug, Clone)]
 pub struct AttendanceDriveService {
     config: AttendanceDriveConfig,
-    client: Client,
+    client: S3Repository,
 }
 
 impl AttendanceDriveService {
     pub async fn new(config: AttendanceDriveConfig) -> Result<Self> {
-        let sdk_config = if let Some(region) = &config.region {
-            aws_config::defaults(BehaviorVersion::latest())
-                .region(aws_config::Region::new(region.clone()))
-                .load()
-                .await
-        } else {
-            aws_config::defaults(BehaviorVersion::latest()).load().await
-        };
+        let endpoint = config.endpoint.as_deref().unwrap_or("http://localhost:9100");
+        let access_key = config.access_key.as_deref().unwrap_or("minioadmin");
+        let secret_key = config.secret_key.as_deref().unwrap_or("minioadmin");
 
-        let client = Client::new(&sdk_config);
+        let client = S3Repository::new(endpoint, access_key, secret_key, &config.bucket_name)
+            .map_err(|e| anyhow!("Failed to create S3 repository: {}", e))?;
 
         Ok(Self { config, client })
     }
 
-    pub fn with_client(config: AttendanceDriveConfig, client: Client) -> Self {
+    pub fn with_client(config: AttendanceDriveConfig, client: S3Repository) -> Self {
         Self { config, client }
     }
 
@@ -61,20 +59,11 @@ impl AttendanceDriveService {
 
         log::info!(
             "Uploading attendance record {} to s3://{}/{}",
-            record_id,
-            self.config.bucket_name,
-            key
+            record_id, self.config.bucket_name, key
         );
 
-        let body = ByteStream::from(data);
-
         self.client
-            .put_object()
-            .bucket(&self.config.bucket_name)
-            .key(&key)
-            .body(body)
-            .content_type("application/octet-stream")
-            .send()
+            .put_object(&self.config.bucket_name, &key, data, Some("application/octet-stream"))
             .await
             .map_err(|e| anyhow!("Failed to upload attendance record: {}", e))?;
 
@@ -87,28 +76,16 @@ impl AttendanceDriveService {
 
         log::info!(
             "Downloading attendance record {} from s3://{}/{}",
-            record_id,
-            self.config.bucket_name,
-            key
+            record_id, self.config.bucket_name, key
         );
 
-        let result = self
-            .client
-            .get_object()
-            .bucket(&self.config.bucket_name)
-            .key(&key)
-            .send()
+        let data = self.client
+            .get_object(&self.config.bucket_name, &key)
             .await
             .map_err(|e| anyhow!("Failed to download attendance record: {}", e))?;
 
-        let data = result
-            .body
-            .collect()
-            .await
-            .map_err(|e| anyhow!("Failed to read attendance record body: {}", e))?;
-
         log::debug!("Successfully downloaded attendance record {}", record_id);
-        Ok(data.into_bytes().to_vec())
+        Ok(data)
     }
 
     pub async fn list_records(&self, prefix: Option<&str>) -> Result<Vec<String>> {
@@ -120,46 +97,18 @@ impl AttendanceDriveService {
 
         log::info!(
             "Listing attendance records in s3://{}/{}",
-            self.config.bucket_name,
-            list_prefix
+            self.config.bucket_name, list_prefix
         );
 
-        let mut records = Vec::new();
-        let mut continuation_token = None;
+        let keys = self.client
+            .list_objects(&self.config.bucket_name, Some(&list_prefix))
+            .await
+            .map_err(|e| anyhow!("Failed to list attendance records: {}", e))?;
 
-        loop {
-            let mut request = self
-                .client
-                .list_objects_v2()
-                .bucket(&self.config.bucket_name)
-                .prefix(&list_prefix)
-                .max_keys(1000);
-
-            if let Some(token) = continuation_token {
-                request = request.continuation_token(token);
-            }
-
-            let result = request
-                .send()
-                .await
-                .map_err(|e| anyhow!("Failed to list attendance records: {}", e))?;
-
-            if let Some(contents) = result.contents {
-                for obj in contents {
-                    if let Some(key) = obj.key {
-                        if let Some(record_id) = key.strip_prefix(&self.config.prefix) {
-                            records.push(record_id.to_string());
-                        }
-                    }
-                }
-            }
-
-            if result.is_truncated.unwrap_or(false) {
-                continuation_token = result.next_continuation_token;
-            } else {
-                break;
-            }
-        }
+        let records: Vec<String> = keys
+            .iter()
+            .filter_map(|key| key.strip_prefix(&self.config.prefix).map(|s| s.to_string()))
+            .collect();
 
         log::debug!("Found {} attendance records", records.len());
         Ok(records)
@@ -170,16 +119,11 @@ impl AttendanceDriveService {
 
         log::info!(
             "Deleting attendance record {} from s3://{}/{}",
-            record_id,
-            self.config.bucket_name,
-            key
+            record_id, self.config.bucket_name, key
         );
 
         self.client
-            .delete_object()
-            .bucket(&self.config.bucket_name)
-            .key(&key)
-            .send()
+            .delete_object(&self.config.bucket_name, &key)
             .await
             .map_err(|e| anyhow!("Failed to delete attendance record: {}", e))?;
 
@@ -194,65 +138,26 @@ impl AttendanceDriveService {
 
         log::info!(
             "Batch deleting {} attendance records from bucket {}",
-            record_ids.len(),
-            self.config.bucket_name
+            record_ids.len(), self.config.bucket_name
         );
 
-        for chunk in record_ids.chunks(1000) {
-            let objects: Vec<_> = chunk
-                .iter()
-                .map(|id| {
-                    aws_sdk_s3::types::ObjectIdentifier::builder()
-                        .key(self.get_record_key(id))
-                        .build()
-                        .map_err(|e| anyhow!("Failed to build object identifier: {}", e))
-                })
-                .collect::<Result<Vec<_>>>()?;
+        let keys: Vec<String> = record_ids.iter().map(|id| self.get_record_key(id)).collect();
+        
+        self.client
+            .delete_objects(&self.config.bucket_name, keys)
+            .await
+            .map_err(|e| anyhow!("Failed to batch delete attendance records: {}", e))?;
 
-            let delete = aws_sdk_s3::types::Delete::builder()
-                .set_objects(Some(objects))
-                .build()
-                .map_err(|e| anyhow!("Failed to build delete request: {}", e))?;
-
-            self.client
-                .delete_objects()
-                .bucket(&self.config.bucket_name)
-                .delete(delete)
-                .send()
-                .await
-                .map_err(|e| anyhow!("Failed to batch delete attendance records: {}", e))?;
-        }
-
-        log::debug!(
-            "Successfully batch deleted {} attendance records",
-            record_ids.len()
-        );
+        log::debug!("Successfully batch deleted {} attendance records", record_ids.len());
         Ok(())
     }
 
     pub async fn record_exists(&self, record_id: &str) -> Result<bool> {
         let key = self.get_record_key(record_id);
-
-        match self
-            .client
-            .head_object()
-            .bucket(&self.config.bucket_name)
-            .key(&key)
-            .send()
+        self.client
+            .object_exists(&self.config.bucket_name, &key)
             .await
-        {
-            Ok(_) => Ok(true),
-            Err(sdk_err) => {
-                if sdk_err.to_string().contains("404") || sdk_err.to_string().contains("NotFound") {
-                    Ok(false)
-                } else {
-                    Err(anyhow!(
-                        "Failed to check attendance record existence: {}",
-                        sdk_err
-                    ))
-                }
-            }
-        }
+            .map_err(|e| anyhow!("Failed to check attendance record existence: {}", e))
     }
 
     pub async fn sync_records(&self, local_path: PathBuf) -> Result<SyncResult> {
@@ -263,16 +168,11 @@ impl AttendanceDriveService {
 
         log::info!(
             "Syncing attendance records from {} to s3://{}/{}",
-            local_path.display(),
-            self.config.bucket_name,
-            self.config.prefix
+            local_path.display(), self.config.bucket_name, self.config.prefix
         );
 
         if !local_path.exists() {
-            return Err(anyhow!(
-                "Local path does not exist: {}",
-                local_path.display()
-            ));
+            return Err(anyhow!("Local path does not exist: {}", local_path.display()));
         }
 
         let mut uploaded = 0;
@@ -326,17 +226,11 @@ impl AttendanceDriveService {
             }
         }
 
-        let result = SyncResult {
-            uploaded,
-            failed,
-            skipped,
-        };
+        let result = SyncResult { uploaded, failed, skipped };
 
         log::info!(
             "Sync completed: {} uploaded, {} failed, {} skipped",
-            result.uploaded,
-            result.failed,
-            result.skipped
+            result.uploaded, result.failed, result.skipped
         );
 
         Ok(result)
@@ -345,24 +239,23 @@ impl AttendanceDriveService {
     pub async fn get_record_metadata(&self, record_id: &str) -> Result<RecordMetadata> {
         let key = self.get_record_key(record_id);
 
-        let result = self
-            .client
-            .head_object()
-            .bucket(&self.config.bucket_name)
-            .key(&key)
-            .send()
+        let metadata = self.client
+            .get_object_metadata(&self.config.bucket_name, &key)
             .await
             .map_err(|e| anyhow!("Failed to get attendance record metadata: {}", e))?;
 
-        Ok(RecordMetadata {
-            size: result.content_length.unwrap_or(0) as usize,
-            last_modified: result
-                .last_modified
-                .and_then(|t| t.to_millis().ok())
-                .map(|ms| chrono::Utc.timestamp_millis_opt(ms).single().unwrap_or_default()),
-            content_type: result.content_type,
-            etag: result.e_tag,
-        })
+        match metadata {
+            Some(m) => Ok(RecordMetadata {
+                size: m.size as usize,
+                last_modified: m.last_modified.and_then(|s| {
+                    chrono::DateTime::parse_from_rfc2822(&s).ok()
+                        .map(|dt| dt.with_timezone(&chrono::Utc))
+                }),
+                content_type: m.content_type,
+                etag: m.etag,
+            }),
+            None => Err(anyhow!("Record not found: {}", record_id)),
+        }
     }
 }
 

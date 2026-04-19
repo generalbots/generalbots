@@ -251,7 +251,7 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
 
     if let Some(s3_client) = &state.drive {
         if let Ok(result) = s3_client.list_buckets().send().await {
-            status.drive = result.buckets.is_some();
+            status.drive = !result.buckets.is_empty();
         }
     }
 

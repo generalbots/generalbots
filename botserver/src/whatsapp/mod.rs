@@ -1271,7 +1271,7 @@ async fn route_to_bot(
                 let state_for_voice = state_clone.clone();
                 let phone_for_voice = phone.clone();
 
-                let config_manager = ConfigManager::new(state_for_voice.conn.clone());
+                let config_manager = ConfigManager::new(state_for_voice.conn.clone().into());
                 let voice_response = config_manager
                     .get_config(&bot_id_for_voice, "whatsapp-voice-response", Some("false"))
                     .unwrap_or_else(|_| "false".to_string())
@@ -1653,7 +1653,7 @@ pub async fn attendant_respond(
 }
 
 async fn get_verify_token_for_bot(state: &Arc<AppState>, bot_id: &Uuid) -> String {
-    let config_manager = ConfigManager::new(state.conn.clone());
+    let config_manager = ConfigManager::new(state.conn.clone().into());
     let bot_id_clone = *bot_id;
 
     tokio::task::spawn_blocking(move || {

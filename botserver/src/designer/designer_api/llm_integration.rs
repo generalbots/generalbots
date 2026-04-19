@@ -282,7 +282,7 @@ async fn call_designer_llm(
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     use crate::core::config::ConfigManager;
 
-    let config_manager = ConfigManager::new(state.conn.clone());
+    let config_manager = ConfigManager::new(state.conn.clone().into());
 
     // Get LLM configuration from bot config or use defaults
     let model = config_manager
@@ -427,26 +427,28 @@ pub async fn apply_file_change(
     log::info!("Designer updated local file: {local_path}");
 
     // Also sync to S3/MinIO if available (with bucket creation retry like app_generator)
-    if let Some(ref s3_client) = state.drive {
-        use aws_sdk_s3::primitives::ByteStream;
-
-        // Use same path pattern as app_server/app_generator: {sanitized_name}.gbapp/{app_name}/{file}
+if let Some(ref s3_client) = state.drive {
         let file_path = format!("{}.gbapp/{}/{}", sanitized_name, app_name, file_name);
 
         log::info!("Designer syncing to S3: bucket={}, key={}", bucket_name, file_path);
 
         match s3_client
-            .put_object()
-            .bucket(&bucket_name)
-            .key(&file_path)
-            .body(ByteStream::from(content.as_bytes().to_vec()))
-            .content_type(get_content_type(file_name))
-            .send()
+            .put_object(
+                &bucket_name,
+                &file_path,
+                content.as_bytes().to_vec(),
+                Some(get_content_type(file_name)),
+            )
             .await
         {
             Ok(_) => {
-                log::info!("Designer synced to S3: s3://{bucket_name}/{file_path}");
+                log::info!("Designer synced to S3: s3://{}/{}", bucket_name, file_path);
             }
+            Err(e) => {
+                log::warn!("Failed to sync to S3: {}", e);
+            }
+        }
+    }
             Err(e) => {
                 // Check if bucket doesn't exist and try to create it (like app_generator)
                 let err_str = format!("{:?}", e);
@@ -470,16 +472,16 @@ pub async fn apply_file_change(
 
                     // Retry the write after bucket creation
                     match s3_client
-                        .put_object()
-                        .bucket(&bucket_name)
-                        .key(&file_path)
-                        .body(ByteStream::from(content.as_bytes().to_vec()))
-                        .content_type(get_content_type(file_name))
-                        .send()
+                        .put_object(
+                            &bucket_name,
+                            &file_path,
+                            content.as_bytes().to_vec(),
+                            Some(get_content_type(file_name)),
+                        )
                         .await
                     {
                         Ok(_) => {
-                            log::info!("Designer synced to S3 after bucket creation: s3://{bucket_name}/{file_path}");
+                            log::info!("Designer synced to S3 after bucket creation: s3://{}/{}", bucket_name, file_path);
                         }
                         Err(retry_err) => {
                             log::warn!("Designer S3 retry failed (local write succeeded): {retry_err}");

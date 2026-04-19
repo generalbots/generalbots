@@ -26,7 +26,7 @@ pub struct WhatsAppAdapter {
 
 impl WhatsAppAdapter {
     pub fn new(state: &Arc<AppState>, bot_id: Uuid) -> Self {
-        let config_manager = ConfigManager::new(state.conn.clone());
+        let config_manager = ConfigManager::new(state.conn.clone().into());
 
         let api_key = config_manager
             .get_config(&bot_id, "whatsapp-api-key", None)

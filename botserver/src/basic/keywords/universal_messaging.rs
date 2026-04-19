@@ -508,22 +508,14 @@ async fn send_instagram_file(
     state: Arc<AppState>,
     user: &UserSession,
     recipient_id: &str,
-    file_data: Vec<u8>,
+    _file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let adapter = InstagramAdapter::new();
 
-    let file_key = format!("temp/instagram/{}_{}.bin", user.id, uuid::Uuid::new_v4());
+let file_key = format!("temp/instagram/{}_{}.bin", user.id, uuid::Uuid::new_v4());
 
-    if let Some(s3) = &state.drive {
-        s3.put_object()
-            .bucket("uploads")
-            .key(&file_key)
-            .body(aws_sdk_s3::primitives::ByteStream::from(file_data))
-            .send()
-            .await?;
-
-        let file_url = format!("https://s3.amazonaws.com/uploads/{}", file_key);
+let file_url = format!("https://s3.amazonaws.com/uploads/{}", file_key);
 
         adapter
             .send_media_message(recipient_id, &file_url, "file")
@@ -535,18 +527,12 @@ async fn send_instagram_file(
                 .await?;
         }
 
-        tokio::spawn(async move {
-            tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
-            if let Some(s3) = &state.drive {
-                let _ = s3
-                    .delete_object()
-                    .bucket("uploads")
-                    .key(&file_key)
-                    .send()
-                    .await;
-            }
-        });
-    }
+    tokio::spawn(async move {
+        tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+        if let Some(s3) = &state.drive {
+            let _ = s3.delete_object().bucket("uploads").key(&file_key).send().await;
+        }
+    });
 
     Ok(())
 }

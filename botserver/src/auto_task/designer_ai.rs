@@ -1050,7 +1050,7 @@ Respond ONLY with valid JSON."#
             let prompt = _prompt;
             let bot_id = _bot_id;
             // Get model and key from bot configuration
-            let config_manager = ConfigManager::new(self.state.conn.clone());
+            let config_manager = ConfigManager::new(self.state.conn.clone().into());
             let model = config_manager
                 .get_config(&bot_id, "llm-model", None)
                 .unwrap_or_else(|_| {

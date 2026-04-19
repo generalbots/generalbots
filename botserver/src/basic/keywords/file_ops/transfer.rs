@@ -64,8 +64,6 @@ pub async fn execute_upload(
     let bucket_name = format!("{bot_name}.gbai");
     let key = format!("{bot_name}.gbdrive/{destination}");
 
-    let content_disposition = format!("attachment; filename=\"{}\"", file_data.filename);
-
     trace!(
         "Uploading file '{}' to {bucket_name}/{key} ({} bytes)",
         file_data.filename,
@@ -76,8 +74,7 @@ pub async fn execute_upload(
         .put_object()
         .bucket(&bucket_name)
         .key(&key)
-        .content_disposition(&content_disposition)
-        .body(file_data.content.into())
+        .body(file_data.content)
         .send()
         .await
         .map_err(|e| format!("S3 put failed: {e}"))?;

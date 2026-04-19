@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 use crate::core::bot::channels::ChannelAdapter;
 use crate::core::config::ConfigManager;
@@ -87,7 +88,7 @@ pub struct TelegramAdapter {
 
 impl TelegramAdapter {
     pub fn new(pool: Pool<ConnectionManager<PgConnection>>, bot_id: uuid::Uuid) -> Self {
-        let config_manager = ConfigManager::new(pool);
+        let config_manager = ConfigManager::new(Arc::new(pool));
 
         let bot_token = config_manager
             .get_config(&bot_id, "telegram-bot-token", None)

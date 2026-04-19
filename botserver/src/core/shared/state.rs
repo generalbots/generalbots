@@ -26,7 +26,7 @@ use crate::core::shared::utils::DbPool;
 #[cfg(feature = "tasks")]
 use crate::tasks::{TaskEngine, TaskScheduler};
 #[cfg(feature = "drive")]
-use aws_sdk_s3::Client as S3Client;
+use crate::drive::s3_repository::S3Repository;
 #[cfg(test)]
 use diesel::r2d2::{ConnectionManager, Pool};
 #[cfg(test)]
@@ -375,7 +375,7 @@ pub struct BillingAlertNotification {
 
 pub struct AppState {
     #[cfg(feature = "drive")]
-    pub drive: Option<S3Client>,
+    pub drive: Option<S3Repository>,
     #[cfg(not(feature = "drive"))]
     #[allow(non_snake_case)]
     pub drive: Option<crate::core::shared::state::NoDrive>,

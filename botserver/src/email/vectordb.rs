@@ -9,8 +9,8 @@ use uuid::Uuid;
 #[cfg(feature = "vectordb")]
 use std::sync::Arc;
 #[cfg(feature = "vectordb")]
-use qdrant_client::{
-    qdrant::{Distance, PointStruct, VectorParams},
+use crate::vector_db::qdrant_native::{
+    Distance, PointStruct, VectorParams,
     Qdrant,
 };
 
@@ -94,7 +94,7 @@ impl UserEmailVectorDB {
         if !exists {
             client
                 .create_collection(
-                    qdrant_client::qdrant::CreateCollectionBuilder::new(&self.collection_name)
+                    crate::vector_db::qdrant_native::CreateCollectionBuilder::new(&self.collection_name)
                         .vectors_config(VectorParams {
                             size: 1536,
                             distance: Distance::Cosine.into(),
@@ -135,19 +135,19 @@ impl UserEmailVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        let payload: qdrant_client::Payload = serde_json::to_value(email)?
+        let payload: crate::vector_db::qdrant_native::Payload = serde_json::to_value(email)?
             .as_object()
             .cloned()
             .unwrap_or_default()
             .into_iter()
-            .map(|(k, v)| (k, qdrant_client::qdrant::Value::from(v.to_string())))
+            .map(|(k, v)| (k, crate::vector_db::qdrant_native::Value::from(v.to_string())))
             .collect::<std::collections::HashMap<_, _>>()
             .into();
 
         let point = PointStruct::new(email.id.clone(), embedding, payload);
 
         client
-            .upsert_points(qdrant_client::qdrant::UpsertPointsBuilder::new(
+            .upsert_points(crate::vector_db::qdrant_native::UpsertPointsBuilder::new(
                 &self.collection_name,
                 vec![point],
             ))
@@ -187,25 +187,25 @@ impl UserEmailVectorDB {
             let mut conditions = vec![];
 
             if let Some(account_id) = &query.account_id {
-                conditions.push(qdrant_client::qdrant::Condition::matches(
+                conditions.push(crate::vector_db::qdrant_native::Condition::matches(
                     "account_id",
                     account_id.clone(),
                 ));
             }
 
             if let Some(folder) = &query.folder {
-                conditions.push(qdrant_client::qdrant::Condition::matches(
+                conditions.push(crate::vector_db::qdrant_native::Condition::matches(
                     "folder",
                     folder.clone(),
                 ));
             }
 
-            Some(qdrant_client::qdrant::Filter::must(conditions))
+            Some(crate::vector_db::qdrant_native::Filter::must(conditions))
         } else {
             None
         };
 
-        let mut search_builder = qdrant_client::qdrant::SearchPointsBuilder::new(
+        let mut search_builder = crate::vector_db::qdrant_native::SearchPointsBuilder::new(
             &self.collection_name,
             query_embedding,
             query.limit as u64,
@@ -314,8 +314,8 @@ impl UserEmailVectorDB {
 
         client
             .delete_points(
-                qdrant_client::qdrant::DeletePointsBuilder::new(&self.collection_name).points(
-                    vec![qdrant_client::qdrant::PointId::from(email_id.to_string())],
+                crate::vector_db::qdrant_native::DeletePointsBuilder::new(&self.collection_name).points(
+                    vec![crate::vector_db::qdrant_native::PointId::from(email_id.to_string())],
                 ),
             )
             .await?;
@@ -373,7 +373,7 @@ impl UserEmailVectorDB {
 
         client
             .create_collection(
-                qdrant_client::qdrant::CreateCollectionBuilder::new(&self.collection_name)
+                crate::vector_db::qdrant_native::CreateCollectionBuilder::new(&self.collection_name)
                     .vectors_config(VectorParams {
                         size: 1536,
                         distance: Distance::Cosine.into(),

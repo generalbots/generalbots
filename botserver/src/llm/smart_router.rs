@@ -161,7 +161,7 @@ pub async fn enhanced_llm_call(
         .await?;
 
     // Get actual LLM configuration from bot's config
-    let config_manager = ConfigManager::new(state.conn.clone());
+    let config_manager = ConfigManager::new(state.conn.clone().into());
     let actual_model = config_manager
         .get_config(&uuid::Uuid::nil(), "llm-model", None)
         .unwrap_or_else(|_| model.clone());

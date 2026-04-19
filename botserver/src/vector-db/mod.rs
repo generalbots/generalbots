@@ -30,7 +30,7 @@
 pub mod bm25_config;
 pub mod hybrid_search;
 pub mod vectordb_indexer;
-
+pub mod qdrant_native;
 
 pub use bm25_config::{is_stopword, Bm25Config, DEFAULT_STOPWORDS};
 
