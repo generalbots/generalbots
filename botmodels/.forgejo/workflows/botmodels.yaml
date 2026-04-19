@@ -1,0 +1,63 @@
+name: BotModels CI/CD
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: gbo
+
+    steps:
+      - name: Clone and Build
+        run: |
+          set -e
+          
+          mkdir -p ~/workspace/botmodels
+          cd ~/workspace/botmodels
+          
+          # Clone fresh every time
+          rm -rf botmodels
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botmodels.git
+          
+          # Build in alm-ci (create venv, install deps)
+          cd botmodels
+          python3 -m venv venv
+          ./venv/bin/pip install --upgrade pip
+          ./venv/bin/pip install fastapi uvicorn pydantic numpy scipy
+
+      - name: Deploy to models container
+        run: |
+          SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5"
+          TARGET="10.157.134.251"
+          
+          # Setup models container if needed
+          ssh $SSH $TARGET "mkdir -p /opt/gbo/bin 2>/dev/null || true"
+          
+          # Stop any running process
+          ssh $SSH $TARGET "pkill -f anomaly_detection.py 2>/dev/null || true; pkill -f main.py 2>/dev/null || true; sleep 2"
+          
+          # Transfer code
+          cd ~/workspace/botmodels/botmodels
+          tar czf - src requirements.txt | ssh $SSH $TARGET "mkdir -p /opt/gbo/bin/botmodels && cd /opt/gbo/bin/botmodels && rm -rf venv && tar xzf -"
+          
+          # Install deps and start
+          ssh $SSH $TARGET "cd /opt/gbo/bin/botmodels && python3 -m venv venv && ./venv/bin/pip install --upgrade pip && ./venv/bin/pip install fastapi uvicorn pydantic numpy scipy"
+          
+          # Start in background
+          ssh $SSH $TARGET "cd /opt/gbo/bin/botmodels && nohup ./venv/bin/python src/main.py > /tmp/botmodels.log 2>&1 &"
+          
+          # Health check
+          for i in $(seq 1 30); do
+            if ssh $SSH $TARGET "curl -sf http://localhost:8082/health" 2>/dev/null; then
+              echo "Deployed"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Verify
+        run: |
+          SSH="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5"
+          TARGET="10.157.134.251"
+          ssh $SSH $TARGET "pgrep -f 'main.py|anomaly_detection' && echo Running || echo FAIL"

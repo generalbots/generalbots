@@ -1,0 +1,185 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="endCallGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #0f172a; }
+    .panel-bg { fill: #1e293b; }
+    .main-text { fill: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #60a5fa; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #334155; stroke-width: 1; fill: none; }
+    .control-btn { fill: #334155; }
+    .control-btn-active { fill: #3b82f6; }
+    .control-btn-off { fill: #ef4444; }
+    .video-bg { fill: #1e293b; }
+    .participant-border { stroke: #3b82f6; stroke-width: 2; fill: none; }
+    .speaking-border { stroke: #22c55e; stroke-width: 3; fill: none; }
+    .muted-indicator { fill: #ef4444; }
+    .online-dot { fill: #22c55e; }
+
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #f1f5f9; }
+      .panel-bg { fill: #ffffff; }
+      .main-text { fill: #1e293b; }
+      .secondary-text { fill: #64748b; }
+      .muted-text { fill: #94a3b8; }
+      .border { stroke: #e2e8f0; }
+      .control-btn { fill: #e2e8f0; }
+      .video-bg { fill: #e2e8f0; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Meet - Video Conference</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Main Video Area -->
+  <rect x="45" y="55" width="620" height="420" rx="12" class="video-bg"/>
+  <rect x="45" y="55" width="620" height="420" rx="12" class="speaking-border"/>
+
+  <!-- Main Speaker Avatar/Video -->
+  <circle cx="355" cy="230" r="80" fill="#3b82f6"/>
+  <text x="355" y="250" text-anchor="middle" font-size="48" class="white-text">JS</text>
+  <text x="355" y="340" text-anchor="middle" font-size="18" font-weight="500" class="main-text">John Smith</text>
+  <text x="355" y="365" text-anchor="middle" font-size="14" class="secondary-text">Speaking...</text>
+
+  <!-- Speaking indicator animation dots -->
+  <g transform="translate(315, 380)">
+    <circle cx="0" cy="0" r="4" class="online-dot" opacity="0.4"/>
+    <circle cx="15" cy="0" r="4" class="online-dot" opacity="0.7"/>
+    <circle cx="30" cy="0" r="4" class="online-dot"/>
+    <circle cx="45" cy="0" r="4" class="online-dot" opacity="0.7"/>
+    <circle cx="60" cy="0" r="4" class="online-dot" opacity="0.4"/>
+  </g>
+
+  <!-- Meeting Info Overlay -->
+  <g transform="translate(60, 70)">
+    <rect x="0" y="0" width="200" height="30" rx="6" fill="#0f172a" opacity="0.7"/>
+    <circle cx="15" cy="15" r="5" class="online-dot"/>
+    <text x="28" y="20" font-size="13" class="main-text">Team Standup • 15:32</text>
+  </g>
+
+  <!-- Self View (Picture-in-Picture) -->
+  <rect x="500" y="370" width="150" height="95" rx="8" class="video-bg"/>
+  <rect x="500" y="370" width="150" height="95" rx="8" class="participant-border"/>
+  <circle cx="575" cy="410" r="25" fill="#8b5cf6"/>
+  <text x="575" y="418" text-anchor="middle" font-size="18" class="white-text">ME</text>
+  <text x="575" y="455" text-anchor="middle" font-size="11" class="main-text">You</text>
+
+  <!-- Participants Sidebar -->
+  <rect x="680" y="55" width="175" height="420" rx="8" class="panel-bg"/>
+  <rect x="680" y="55" width="175" height="420" rx="8" class="border"/>
+
+  <text x="695" y="80" font-size="14" font-weight="600" class="main-text">Participants (5)</text>
+
+  <!-- Participant 1 -->
+  <g transform="translate(695, 95)">
+    <rect x="0" y="0" width="145" height="65" rx="6" class="video-bg"/>
+    <circle cx="35" cy="32" r="20" fill="#22c55e"/>
+    <text x="35" y="40" text-anchor="middle" font-size="14" class="white-text">SW</text>
+    <text x="65" y="28" font-size="12" class="main-text">Sarah Wilson</text>
+    <circle cx="65" cy="42" r="4" class="online-dot"/>
+    <text x="75" y="45" font-size="10" class="secondary-text">Online</text>
+  </g>
+
+  <!-- Participant 2 -->
+  <g transform="translate(695, 170)">
+    <rect x="0" y="0" width="145" height="65" rx="6" class="video-bg"/>
+    <circle cx="35" cy="32" r="20" fill="#f97316"/>
+    <text x="35" y="40" text-anchor="middle" font-size="14" class="white-text">MJ</text>
+    <text x="65" y="28" font-size="12" class="main-text">Mike Johnson</text>
+    <circle cx="65" cy="42" r="4" class="muted-indicator"/>
+    <text x="75" y="45" font-size="10" class="secondary-text">Muted</text>
+  </g>
+
+  <!-- Participant 3 -->
+  <g transform="translate(695, 245)">
+    <rect x="0" y="0" width="145" height="65" rx="6" class="video-bg"/>
+    <circle cx="35" cy="32" r="20" fill="#ec4899"/>
+    <text x="35" y="40" text-anchor="middle" font-size="14" class="white-text">AC</text>
+    <text x="65" y="28" font-size="12" class="main-text">Alex Chen</text>
+    <circle cx="65" cy="42" r="4" class="online-dot"/>
+    <text x="75" y="45" font-size="10" class="secondary-text">Online</text>
+  </g>
+
+  <!-- Participant 4 -->
+  <g transform="translate(695, 320)">
+    <rect x="0" y="0" width="145" height="65" rx="6" class="video-bg"/>
+    <circle cx="35" cy="32" r="20" fill="#14b8a6"/>
+    <text x="35" y="40" text-anchor="middle" font-size="14" class="white-text">EM</text>
+    <text x="65" y="28" font-size="12" class="main-text">Emma Miller</text>
+    <circle cx="65" cy="42" r="4" class="online-dot"/>
+    <text x="75" y="45" font-size="10" class="secondary-text">Online</text>
+  </g>
+
+  <!-- Invite Button -->
+  <g transform="translate(695, 400)">
+    <rect x="0" y="0" width="145" height="35" rx="6" fill="url(#accentGrad)"/>
+    <text x="72" y="23" text-anchor="middle" font-size="12" font-weight="500" class="white-text">+ Invite People</text>
+  </g>
+
+  <!-- Bottom Control Bar -->
+  <rect x="45" y="490" width="810" height="70" rx="8" class="panel-bg"/>
+  <rect x="45" y="490" width="810" height="70" rx="8" class="border"/>
+
+  <!-- Left Controls - Meeting Info -->
+  <g transform="translate(70, 510)">
+    <text x="0" y="15" font-size="14" font-weight="500" class="main-text">Team Standup</text>
+    <text x="0" y="35" font-size="12" class="secondary-text">5 participants • 15:32</text>
+  </g>
+
+  <!-- Center Controls -->
+  <g transform="translate(350, 505)">
+    <!-- Microphone (On) -->
+    <circle cx="0" cy="25" r="25" class="control-btn"/>
+    <text x="0" y="32" text-anchor="middle" font-size="18">🎤</text>
+
+    <!-- Camera (On) -->
+    <circle cx="65" cy="25" r="25" class="control-btn"/>
+    <text x="65" y="32" text-anchor="middle" font-size="18">📹</text>
+
+    <!-- Screen Share -->
+    <circle cx="130" cy="25" r="25" class="control-btn"/>
+    <text x="130" y="32" text-anchor="middle" font-size="18">🖥</text>
+
+    <!-- Chat -->
+    <circle cx="195" cy="25" r="25" class="control-btn"/>
+    <text x="195" y="32" text-anchor="middle" font-size="18">💬</text>
+
+    <!-- End Call -->
+    <circle cx="275" cy="25" r="28" fill="url(#endCallGrad)"/>
+    <text x="275" y="32" text-anchor="middle" font-size="18">📞</text>
+  </g>
+
+  <!-- Right Controls -->
+  <g transform="translate(720, 505)">
+    <!-- More Options -->
+    <circle cx="0" cy="25" r="22" class="control-btn"/>
+    <text x="0" y="32" text-anchor="middle" font-size="16">⚙</text>
+
+    <!-- Fullscreen -->
+    <circle cx="55" cy="25" r="22" class="control-btn"/>
+    <text x="55" y="32" text-anchor="middle" font-size="16">⛶</text>
+
+    <!-- Layout -->
+    <circle cx="110" cy="25" r="22" class="control-btn"/>
+    <text x="110" y="32" text-anchor="middle" font-size="16">⊞</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(50, 575)">
+    <text x="0" y="0" font-size="10" class="muted-text">M = Mute | V = Camera | S = Share Screen | C = Chat | L = Leave</text>
+  </g>
+</svg>

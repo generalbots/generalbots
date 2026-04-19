@@ -1,0 +1,2456 @@
+<link rel="stylesheet" href="settings/settings.css" />
+
+<div class="settings-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="settings-sidebar">
+        <div class="settings-header">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                </path>
+            </svg>
+            <span>Settings</span>
+        </div>
+
+        <nav class="settings-nav">
+            <a href="#profile" class="nav-item active" onclick="showSection('profile', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Profile</span>
+            </a>
+            <a href="#security" class="nav-item" onclick="showSection('security', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Security</span>
+            </a>
+            <a href="#appearance" class="nav-item" onclick="showSection('appearance', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <span>Appearance</span>
+            </a>
+            <a href="#language" class="nav-item" onclick="showSection('language', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path
+                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                    </path>
+                </svg>
+                <span>Language</span>
+            </a>
+            <a href="#notifications" class="nav-item" onclick="showSection('notifications', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span>Notifications</span>
+            </a>
+            <a href="#storage" class="nav-item" onclick="showSection('storage', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                </svg>
+                <span>Storage</span>
+            </a>
+            <a href="#integrations" class="nav-item" onclick="showSection('integrations', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                <span>Integrations</span>
+            </a>
+            <a href="#privacy" class="nav-item" onclick="showSection('privacy', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Privacy</span>
+            </a>
+            <a href="#billing" class="nav-item" onclick="showSection('billing', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+                <span>Billing</span>
+            </a>
+
+            <!-- Admin Section Divider -->
+            <div class="nav-divider">
+                <span>Administration</span>
+            </div>
+
+            <a href="#users" class="nav-item" onclick="showSection('users', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span data-i18n="admin-users">Users</span>
+            </a>
+            <a href="#groups" class="nav-item" onclick="showSection('groups', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <circle cx="19" cy="11" r="2"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-2-3.46"></path>
+                </svg>
+                <span data-i18n="admin-groups">Groups</span>
+            </a>
+            <a href="#bots" class="nav-item" onclick="showSection('bots', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <path d="M12 7v4"></path>
+                    <line x1="8" y1="16" x2="8" y2="16"></line>
+                    <line x1="16" y1="16" x2="16" y2="16"></line>
+                </svg>
+                <span data-i18n="admin-bots">Bots</span>
+            </a>
+            <a href="#dns" class="nav-item" onclick="showSection('dns', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path
+                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                    </path>
+                </svg>
+                <span data-i18n="admin-dns">DNS</span>
+            </a>
+            <a href="#audit" class="nav-item" onclick="showSection('audit', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span data-i18n="admin-audit">Audit Log</span>
+            </a>
+            <a href="#about" class="nav-item" hx-get="/suite/about/about.html" hx-target="#main-content"
+                hx-push-url="/#about">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span data-i18n="nav-about">About</span>
+            </a>
+        </nav>
+
+        <div class="settings-footer">
+            <a href="/suite" class="back-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Suite
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="settings-main">
+        <!-- Profile Section -->
+        <section id="profile-section" class="settings-section active">
+            <div class="section-header">
+                <h1>Profile Settings</h1>
+                <p class="subtitle">Manage your personal information and preferences</p>
+            </div>
+
+            <form class="settings-form" hx-put="/api/user/profile" hx-swap="none"
+                hx-on::after-request="showToast('Profile updated successfully')">
+                <!-- Avatar -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Profile Photo</h2>
+                        <p>Your profile photo is visible to other users</p>
+                    </div>
+                    <div class="avatar-section">
+                        <div class="current-avatar" id="current-avatar">
+                            <span>JD</span>
+                        </div>
+                        <div class="avatar-actions">
+                            <label class="btn-secondary upload-btn">
+                                <input type="file" name="avatar" accept="image/*" hidden onchange="previewAvatar(this)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                Upload Photo
+                            </label>
+                            <button type="button" class="btn-text" onclick="removeAvatar()">Remove</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Basic Info -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Basic Information</h2>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Display Name</label>
+                            <input type="text" name="display_name" placeholder="John Doe" hx-get="/api/user/profile"
+                                hx-trigger="load" hx-swap="outerHTML" hx-select="[name='display_name']">
+                        </div>
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" name="username" placeholder="johndoe">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Email Address</label>
+                            <input type="email" name="email" placeholder="john@example.com">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Bio</label>
+                            <textarea name="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Contact Information</h2>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" name="phone" placeholder="+1 (555) 000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" name="location" placeholder="City, Country">
+                        </div>
+                        <div class="form-group">
+                            <label>Website</label>
+                            <input type="url" name="website" placeholder="https://example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Timezone</label>
+                            <select name="timezone">
+                                <option value="UTC">UTC</option>
+                                <option value="America/New_York">Eastern Time</option>
+                                <option value="America/Chicago">Central Time</option>
+                                <option value="America/Denver">Mountain Time</option>
+                                <option value="America/Los_Angeles">Pacific Time</option>
+                                <option value="Europe/London">London</option>
+                                <option value="Europe/Paris">Paris</option>
+                                <option value="Asia/Tokyo">Tokyo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Security Section -->
+        <section id="security-section" class="settings-section">
+            <div class="section-header">
+                <h1>Security Settings</h1>
+                <p class="subtitle">Protect your account with enhanced security</p>
+            </div>
+
+            <!-- Password Change -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Change Password</h2>
+                    <p>Update your password regularly for better security</p>
+                </div>
+                <form hx-post="/api/user/password" hx-swap="none"
+                    hx-on::after-request="this.reset(); showToast('Password changed successfully')">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>Current Password</label>
+                            <input type="password" name="current_password" required autocomplete="current-password">
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" name="new_password" required minlength="8"
+                                autocomplete="new-password">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" name="confirm_password" required autocomplete="new-password">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Update Password</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Two-Factor Authentication -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Two-Factor Authentication</h2>
+                    <p>Add an extra layer of security to your account</p>
+                </div>
+                <div class="setting-row" id="2fa-status" hx-get="/api/user/security/2fa/status" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="setting-info">
+                        <span class="setting-title">Authenticator App</span>
+                        <span class="setting-desc">Use an authenticator app for 2FA codes</span>
+                    </div>
+                    <button class="btn-primary" hx-post="/api/user/security/2fa/enable" hx-swap="none">
+                        Enable 2FA
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Sessions -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Active Sessions</h2>
+                    <p>Manage your active login sessions</p>
+                </div>
+                <div class="sessions-list" id="sessions-list" hx-get="/api/user/security/sessions" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn-danger-outline" hx-post="/api/user/security/sessions/revoke-all"
+                        hx-confirm="Sign out of all other devices?"
+                        hx-on::after-request="htmx.trigger('#sessions-list', 'load'); showToast('All other sessions revoked')">
+                        Sign Out All Other Sessions
+                    </button>
+                </div>
+            </div>
+
+            <!-- Connected Devices -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Connected Devices</h2>
+                    <p>Devices that have accessed your account</p>
+                </div>
+                <div class="devices-list" id="devices-list" hx-get="/api/user/security/devices" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Language Section -->
+        <section id="language-section" class="settings-section">
+            <div class="section-header">
+                <h1>Language & Region</h1>
+                <p class="subtitle">Choose your preferred language and regional settings</p>
+            </div>
+
+            <!-- Language Selection -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Display Language</h2>
+                    <p>Choose the language for the application interface</p>
+                </div>
+                <div class="language-grid"
+                    style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
+                    <button class="language-option" data-locale="en" onclick="selectLanguage('en', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇺🇸</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">English</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">English</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="pt-BR" onclick="selectLanguage('pt-BR', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇧🇷</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Portuguese (Brazil)</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Português (Brasil)</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="es" disabled
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: not-allowed; position: relative; opacity: 0.5; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇪🇸</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Spanish</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Español</div>
+                        </div>
+                        <span
+                            style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; background: #334155; border-radius: 4px; color: #94a3b8;">Coming
+                            Soon</span>
+                    </button>
+                    <button class="language-option" data-locale="zh-CN" disabled
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: not-allowed; position: relative; opacity: 0.5; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇨🇳</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Chinese (Simplified)</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">简体中文</div>
+                        </div>
+                        <span
+                            style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; background: #334155; border-radius: 4px; color: #94a3b8;">Coming
+                            Soon</span>
+                    </button>
+                    <button class="language-option" data-locale="fr" disabled
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: not-allowed; position: relative; opacity: 0.5; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇫🇷</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">French</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Français</div>
+                        </div>
+                        <span
+                            style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; background: #334155; border-radius: 4px; color: #94a3b8;">Coming
+                            Soon</span>
+                    </button>
+                    <button class="language-option" data-locale="de" disabled
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: not-allowed; position: relative; opacity: 0.5; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇩🇪</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">German</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Deutsch</div>
+                        </div>
+                        <span
+                            style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; background: #334155; border-radius: 4px; color: #94a3b8;">Coming
+                            Soon</span>
+                    </button>
+                </div>
+            </div>
+
+            <script>
+                (function () {
+                    function initLanguageSelector() {
+                        var savedLocale = localStorage.getItem('gb-locale') || 'en';
+                        var buttons = document.querySelectorAll('.language-option[data-locale]');
+
+                        buttons.forEach(function (btn) {
+                            var locale = btn.dataset.locale;
+                            var checkmark = btn.querySelector('.lang-check');
+
+                            if (locale === savedLocale && checkmark) {
+                                btn.style.borderColor = '#3b82f6';
+                                btn.style.background = 'rgba(59, 130, 246, 0.1)';
+                                checkmark.style.opacity = '1';
+                            }
+
+                            btn.addEventListener('mouseover', function () {
+                                if (!btn.disabled) {
+                                    btn.style.borderColor = '#3b82f6';
+                                }
+                            });
+
+                            btn.addEventListener('mouseout', function () {
+                                if (!btn.disabled && locale !== localStorage.getItem('gb-locale')) {
+                                    btn.style.borderColor = '#334155';
+                                    btn.style.background = '#0f172a';
+                                }
+                            });
+                        });
+                    }
+
+                    window.selectLanguage = function (locale, element) {
+                        var buttons = document.querySelectorAll('.language-option[data-locale]');
+                        buttons.forEach(function (btn) {
+                            btn.style.borderColor = '#334155';
+                            btn.style.background = '#0f172a';
+                            var check = btn.querySelector('.lang-check');
+                            if (check) check.style.opacity = '0';
+                        });
+
+                        if (element) {
+                            element.style.borderColor = '#3b82f6';
+                            element.style.background = 'rgba(59, 130, 246, 0.1)';
+                            var check = element.querySelector('.lang-check');
+                            if (check) check.style.opacity = '1';
+                        }
+
+                        localStorage.setItem('gb-locale', locale);
+                        document.documentElement.lang = locale;
+
+                        if (window.showToast) {
+                            showToast('Language changed to ' + (locale === 'pt-BR' ? 'Português' : 'English') + '. Reloading...');
+                        }
+
+                        setTimeout(function () {
+                            location.reload();
+                        }, 1000);
+                    };
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', initLanguageSelector);
+                    } else {
+                        initLanguageSelector();
+                    }
+                })();
+            </script>
+
+            <!-- Regional Settings -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Regional Settings</h2>
+                    <p>Configure date, time, and number formats</p>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Date Format</label>
+                        <select id="date-format-select" class="form-select" onchange="changeDateFormat(this.value)">
+                            <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
+                            <option value="DD/MM/YYYY">DD/MM/YYYY (EU/BR)</option>
+                            <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Time Format</label>
+                        <select id="time-format-select" class="form-select" onchange="changeTimeFormat(this.value)">
+                            <option value="12h">12-hour (1:30 PM)</option>
+                            <option value="24h">24-hour (13:30)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Timezone</label>
+                        <select id="timezone-select" class="form-select" onchange="changeTimezone(this.value)">
+                            <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
+                            <option value="America/New_York">New York (GMT-5)</option>
+                            <option value="America/Los_Angeles">Los Angeles (GMT-8)</option>
+                            <option value="Europe/London">London (GMT+0)</option>
+                            <option value="Europe/Paris">Paris (GMT+1)</option>
+                            <option value="Asia/Tokyo">Tokyo (GMT+9)</option>
+                            <option value="UTC">UTC</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>First Day of Week</label>
+                        <select id="first-day-select" class="form-select">
+                            <option value="sunday">Sunday</option>
+                            <option value="monday">Monday</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Appearance Section -->
+        <section id="appearance-section" class="settings-section">
+            <div class="section-header">
+                <h1>Appearance</h1>
+                <p class="subtitle">Customize how the application looks</p>
+            </div>
+
+            <!-- Theme Selection -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Theme</h2>
+                    <p>Choose your preferred color theme</p>
+                </div>
+                <div class="theme-grid">
+                    <button class="theme-option" data-theme="dark" onclick="setTheme('dark', this)">
+                        <div class="theme-preview dark">
+                            <div class="preview-sidebar"></div>
+                            <div class="preview-content">
+                                <div class="preview-header"></div>
+                                <div class="preview-body"></div>
+                            </div>
+                        </div>
+                        <span>Dark</span>
+                    </button>
+                    <button class="theme-option" data-theme="light" onclick="setTheme('light', this)">
+                        <div class="theme-preview light">
+                            <div class="preview-sidebar"></div>
+                            <div class="preview-content">
+                                <div class="preview-header"></div>
+                                <div class="preview-body"></div>
+                            </div>
+                        </div>
+                        <span>Light</span>
+                    </button>
+                    <button class="theme-option" data-theme="blue" onclick="setTheme('blue', this)">
+                        <div class="theme-preview blue">
+                            <div class="preview-sidebar"></div>
+                            <div class="preview-content">
+                                <div class="preview-header"></div>
+                                <div class="preview-body"></div>
+                            </div>
+                        </div>
+                        <span>Blue</span>
+                    </button>
+                    <button class="theme-option" data-theme="purple" onclick="setTheme('purple', this)">
+                        <div class="theme-preview purple">
+                            <div class="preview-sidebar"></div>
+                            <div class="preview-content">
+                                <div class="preview-header"></div>
+                                <div class="preview-body"></div>
+                            </div>
+                        </div>
+                        <span>Purple</span>
+                    </button>
+                    <button class="theme-option" data-theme="green" onclick="setTheme('green', this)">
+                        <div class="theme-preview green">
+                            <div class="preview-sidebar"></div>
+                            <div class="preview-content">
+                                <div class="preview-header"></div>
+                                <div class="preview-body"></div>
+                            </div>
+                        </div>
+                        <span>Green</span>
+                    </button>
+                    <button class="theme-option" data-theme="orange" onclick="setTheme('orange', this)">
+                        <div class="theme-preview orange">
+                            <div class="preview-sidebar"></div>
+                            <div class="preview-content">
+                                <div class="preview-header"></div>
+                                <div class="preview-body"></div>
+                            </div>
+                        </div>
+                        <span>Orange</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Layout Preferences -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Layout Preferences</h2>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Compact Mode</span>
+                        <span class="setting-desc">Reduce spacing for more content</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="compact_mode" onchange="toggleCompactMode(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Show Sidebar</span>
+                        <span class="setting-desc">Always show navigation sidebar</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="show_sidebar" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Animations</span>
+                        <span class="setting-desc">Enable UI animations and transitions</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="animations" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Language Selection -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2 data-i18n="settings-language">Language</h2>
+                    <p data-i18n="settings-language-desc">Choose your preferred language</p>
+                </div>
+                <div class="language-selector-container">
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title" data-i18n="settings-display-language">Display Language</span>
+                            <span class="setting-desc" data-i18n="settings-language-affects">Affects all text in the
+                                application</span>
+                        </div>
+                        <select id="language-select" class="form-select" onchange="changeLanguage(this.value)">
+                            <option value="en">🇺🇸 English</option>
+                            <option value="pt-BR">🇧🇷 Português (Brasil)</option>
+                            <option value="es" disabled>🇪🇸 Español (Coming soon)</option>
+                            <option value="zh-CN" disabled>🇨🇳 简体中文 (Coming soon)</option>
+                            <option value="fr" disabled>🇫🇷 Français (Coming soon)</option>
+                            <option value="de" disabled>🇩🇪 Deutsch (Coming soon)</option>
+                            <option value="ja" disabled>🇯🇵 日本語 (Coming soon)</option>
+                            <option value="ko" disabled>🇰🇷 한국어 (Coming soon)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title" data-i18n="settings-date-format">Date Format</span>
+                            <span class="setting-desc" data-i18n="settings-date-format-desc">How dates are
+                                displayed</span>
+                        </div>
+                        <select id="date-format-select" class="form-select" onchange="changeDateFormat(this.value)">
+                            <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
+                            <option value="DD/MM/YYYY">DD/MM/YYYY (EU/BR)</option>
+                            <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title" data-i18n="settings-time-format">Time Format</span>
+                            <span class="setting-desc" data-i18n="settings-time-format-desc">12-hour or 24-hour
+                                clock</span>
+                        </div>
+                        <select id="time-format-select" class="form-select" onchange="changeTimeFormat(this.value)">
+                            <option value="12h">12-hour (1:30 PM)</option>
+                            <option value="24h">24-hour (13:30)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notifications Section -->
+        <section id="notifications-section" class="settings-section">
+            <div class="section-header">
+                <h1>Notifications</h1>
+                <p class="subtitle">Control how you receive notifications</p>
+            </div>
+
+            <form hx-put="/api/user/notifications/preferences" hx-swap="none"
+                hx-on::after-request="showToast('Notification preferences saved')">
+
+                <!-- Email Notifications -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Email Notifications</h2>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Direct Messages</span>
+                            <span class="setting-desc">Receive email for new direct messages</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="email_dm" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Mentions</span>
+                            <span class="setting-desc">Receive email when someone mentions you</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="email_mentions" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Weekly Digest</span>
+                            <span class="setting-desc">Get a weekly summary of activity</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="email_digest">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Marketing</span>
+                            <span class="setting-desc">Receive news and product updates</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="email_marketing">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Push Notifications -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Push Notifications</h2>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Enable Push Notifications</span>
+                            <span class="setting-desc">Receive browser push notifications</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="push_enabled" onchange="togglePushNotifications(this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Sound</span>
+                            <span class="setting-desc">Play sound for notifications</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="push_sound" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- In-App Notifications -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>In-App Notifications</h2>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Desktop Notifications</span>
+                            <span class="setting-desc">Show notifications on desktop</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="desktop_notifications" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Badge Count</span>
+                            <span class="setting-desc">Show unread count badge</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="badge_count" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Save Preferences</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Storage Section -->
+        <section id="storage-section" class="settings-section">
+            <div class="section-header">
+                <h1>Storage</h1>
+                <p class="subtitle">Manage your storage and sync settings</p>
+            </div>
+
+            <!-- Storage Usage -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Storage Usage</h2>
+                </div>
+                <div class="storage-display" hx-get="/api/user/storage" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="storage-bar-container">
+                        <div class="storage-bar">
+                            <div class="storage-bar-fill" style="width: 45%"></div>
+                        </div>
+                        <div class="storage-stats">
+                            <span>4.5 GB used of 10 GB</span>
+                            <span>5.5 GB available</span>
+                        </div>
+                    </div></span>
+                    <div class="storage-breakdown">
+                        <div class="breakdown-item">
+                            <div class="breakdown-color" style="background: #3b82f6"></div>
+                            <span class="breakdown-label">Documents</span>
+                            <span class="breakdown-value">2.1 GB</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="breakdown-color" style="background: #10b981"></div>
+                            <span class="breakdown-label">Images</span>
+                            <span class="breakdown-value">1.8 GB</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="breakdown-color" style="background: #f59e0b"></div>
+                            <span class="breakdown-label">Videos</span>
+                            <span class="breakdown-value">0.4 GB</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="breakdown-color" style="background: #6b7280"></div>
+                            <span class="breakdown-label">Other</span>
+                            <span class="breakdown-value">0.2 GB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync Settings -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Sync Settings</h2>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Auto-Sync</span>
+                        <span class="setting-desc">Automatically sync files across devices</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="auto_sync" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Sync on Wi-Fi Only</span>
+                        <span class="setting-desc">Only sync when connected to Wi-Fi</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="wifi_only">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Offline Access</span>
+                        <span class="setting-desc">Keep recent files available offline</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="offline_access" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Connected Storage -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Connected Cloud Storage</h2>
+                </div>
+                <div class="connections-list" id="storage-connections" hx-get="/api/user/storage/connections"
+                    hx-trigger="load" hx-swap="innerHTML">
+                    <div class="connection-item">
+                        <div class="connection-icon google-drive">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M4.433 22l-1.6-2.773 8.167-14.167L19.4 19.227 17.8 22H4.433z"></path>
+                            </svg>
+                        </div>
+                        <div class="connection-info">
+                            <span class="connection-name">Google Drive</span>
+                            <span class="connection-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm">Connect</button>
+                    </div>
+                    <div class="connection-item">
+                        <div class="connection-icon dropbox">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M6 2l6 3.75L6 9.5 0 5.75 6 2zm12 0l6 3.75-6 3.75-6-3.75L18 2zM0 13.25L6 9.5l6 3.75-6 3.75-6-3.75zm18-3.75l6 3.75-6 3.75-6-3.75 6-3.75zM6 18.25l6-3.75 6 3.75-6 3.75-6-3.75z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="connection-info">
+                            <span class="connection-name">Dropbox</span>
+                            <span class="connection-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm">Connect</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Integrations Section -->
+        <section id="integrations-section" class="settings-section">
+            <div class="section-header">
+                <h1>Integrations</h1>
+                <p class="subtitle">Connect external services and manage API access</p>
+            </div>
+
+            <!-- API Keys -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>API Keys</h2>
+                    <button class="btn-primary btn-sm" disabled title="Coming soon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Create Key
+                    </button>
+                </div>
+                <div class="api-keys-list" id="api-keys-list" hx-get="/api/user/api-keys" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="empty-state">
+                        <p>No API keys created yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Webhooks -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Webhooks</h2>
+                    <button class="btn-primary btn-sm" disabled title="Coming soon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Webhook
+                    </button>
+                </div>
+                <div class="webhooks-list" id="webhooks-list" hx-get="/api/user/webhooks" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="empty-state">
+                        <p>No webhooks configured</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OAuth Connections -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Connected Accounts</h2>
+                </div>
+                <div class="oauth-list">
+                    <div class="oauth-item">
+                        <div class="oauth-icon google">
+                            <svg width="20" height="20" viewBox="0 0 24 24">
+                                <path fill="#4285F4"
+                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z">
+                                </path>
+                                <path fill="#34A853"
+                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z">
+                                </path>
+                                <path fill="#FBBC05"
+                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z">
+                                </path>
+                                <path fill="#EA4335"
+                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="oauth-info">
+                            <span class="oauth-name">Google</span>
+                            <span class="oauth-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm" hx-post="/api/oauth/google/connect"
+                            hx-swap="none">Connect</button>
+                    </div>
+                    <div class="oauth-item">
+                        <div class="oauth-icon microsoft">
+                            <svg width="20" height="20" viewBox="0 0 24 24">
+                                <path fill="#F25022" d="M1 1h10v10H1z"></path>
+                                <path fill="#00A4EF" d="M1 13h10v10H1z"></path>
+                                <path fill="#7FBA00" d="M13 1h10v10H13z"></path>
+                                <path fill="#FFB900" d="M13 13h10v10H13z"></path>
+                            </svg>
+                        </div>
+                        <div class="oauth-info">
+                            <span class="oauth-name">Microsoft</span>
+                            <span class="oauth-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm" hx-post="/api/oauth/microsoft/connect"
+                            hx-swap="none">Connect</button>
+                    </div>
+                    <div class="oauth-item">
+                        <div class="oauth-icon github">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="oauth-info">
+                            <span class="oauth-name">GitHub</span>
+                            <span class="oauth-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm" hx-post="/api/oauth/github/connect"
+                            hx-swap="none">Connect</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Privacy Section -->
+        <section id="privacy-section" class="settings-section">
+            <div class="section-header">
+                <h1>Privacy</h1>
+                <p class="subtitle">Manage your data and privacy settings</p>
+            </div>
+
+            <!-- Privacy Settings -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Privacy Preferences</h2>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Profile Visibility</span>
+                        <span class="setting-desc">Who can see your profile</span>
+                    </div>
+                    <select name="profile_visibility" class="select-sm">
+                        <option value="public">Public</option>
+                        <option value="contacts">Contacts Only</option>
+                        <option value="private">Private</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Online Status</span>
+                        <span class="setting-desc">Show when you're online</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="show_online" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Read Receipts</span>
+                        <span class="setting-desc">Let others know when you've read messages</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="read_receipts" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Data Export -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Your Data</h2>
+                    <p>Download a copy of your data</p>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Export Data</span>
+                        <span class="setting-desc">Download all your data in a portable format</span>
+                    </div>
+                    <button class="btn-secondary" hx-post="/api/user/data/export" hx-swap="none"
+                        hx-on::after-request="showToast('Export started. You will receive an email when ready.')">
+                        Request Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Account Deletion -->
+            <div class="setting-card danger-card">
+                <div class="card-header">
+                    <h2>Delete Account</h2>
+                    <p>Permanently delete your account and all associated data</p>
+                </div>
+                <div class="danger-content">
+                    <p>Once you delete your account, there is no going back. Please be certain.</p>
+                    <button class="btn-danger" disabled title="Contact support to delete account">
+                        Delete My Account
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Billing Section -->
+        <section id="billing-section" class="settings-section">
+            <div class="section-header">
+                <h1>Billing</h1>
+                <p class="subtitle">Manage your subscription and payment methods</p>
+            </div>
+
+            <!-- Current Plan -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Current Plan</h2>
+                </div>
+                <div class="plan-display" hx-get="/api/user/billing/plan" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="plan-info">
+                        <div class="plan-badge">Pro</div>
+                        <div class="plan-details">
+                            <span class="plan-price">$19/month</span>
+                            <span class="plan-cycle">Billed monthly</span>
+                        </div>
+                    </div>
+                    <div class="plan-actions">
+                        <button class="btn-secondary">Change Plan</button>
+                        <button class="btn-text">Cancel Subscription</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Payment Method</h2>
+                    <button class="btn-primary btn-sm" disabled title="Coming soon">
+                        Add Method
+                    </button>
+                </div>
+                <div class="payment-methods" id="payment-methods" hx-get="/api/user/billing/payment-methods"
+                    hx-trigger="load" hx-swap="innerHTML">
+                    <div class="payment-card">
+                        <div class="card-brand visa">
+                            <svg width="32" height="20" viewBox="0 0 32 20">
+                                <rect width="32" height="20" rx="2" fill="#1A1F71"></rect>
+                                <text x="16" y="13" text-anchor="middle" fill="white" font-size="8"
+                                    font-weight="bold">VISA</text>
+                            </svg>
+                        </div>
+                        <div class="card-details">
+                            <span class="card-number">•••• •••• •••• 4242</span>
+                            <span class="card-expiry">Expires 12/25</span>
+                        </div>
+                        <span class="default-badge">Default</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoices -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Billing History</h2>
+                </div>
+                <div class="invoices-list" id="invoices-list" hx-get="/api/user/billing/invoices" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <table class="invoices-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Jan 1, 2025</td>
+                                <td>Pro Plan - Monthly</td>
+                                <td>$19.00</td>
+                                <td><span class="status-badge paid">Paid</span></td>
+                                <td><a href="#" class="invoice-link">Download</a></td>
+                            </tr>
+                            <tr>
+                                <td>Dec 1, 2024</td>
+                                <td>Pro Plan - Monthly</td>
+                                <td>$19.00</td>
+                                <td><span class="status-badge paid">Paid</span></td>
+                                <td><a href="#" class="invoice-link">Download</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Users Section (Admin) -->
+        <section id="users-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="admin-users">Users</h1>
+                <p class="subtitle" data-i18n="admin-users-subtitle">Manage user accounts and permissions</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>User Management</h2>
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('create-user-modal').showModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add User
+                    </button>
+                </div>
+                <div hx-get="/api/admin/users" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading users...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Groups Section (Admin) -->
+        <section id="groups-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="admin-groups">Groups</h1>
+                <p class="subtitle" data-i18n="admin-groups-subtitle">Manage groups and team permissions</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Group Management</h2>
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('create-group-modal').showModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Group
+                    </button>
+                </div>
+                <div hx-get="/api/admin/groups" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading groups...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bots Section (Admin) -->
+        <section id="bots-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="admin-bots">Bots</h1>
+                <p class="subtitle" data-i18n="admin-bots-subtitle">Manage bot instances and deployments</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Bot Management</h2>
+                </div>
+                <div hx-get="/api/admin/bots" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading bots...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DNS Section (Admin) -->
+        <section id="dns-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="admin-dns">DNS Management</h1>
+                <p class="subtitle" data-i18n="admin-dns-subtitle">Configure custom domains and DNS settings</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Domain Configuration</h2>
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('register-dns-modal').showModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Domain
+                    </button>
+                </div>
+                <div hx-get="/api/admin/dns" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading DNS records...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Audit Section (Admin) -->
+        <section id="audit-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="admin-audit">Audit Log</h1>
+                <p class="subtitle" data-i18n="admin-audit-subtitle">Track system events and user actions</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Recent Activity</h2>
+                </div>
+                <div hx-get="/api/admin/audit" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading audit log...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- Create User Modal -->
+<dialog id="create-user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="admin-create-user">Create User</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('create-user-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/users/create" hx-swap="none"
+            hx-on::after-request="if(event.detail.successful) { document.getElementById('create-user-modal').close(); showToast('User created successfully'); }">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" required placeholder="username" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" required placeholder="user@example.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" name="display_name" placeholder="John Doe" autocomplete="name">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required placeholder="••••••••" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('create-user-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Create User</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Create Group Modal -->
+<dialog id="create-group-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="admin-create-group">Create Group</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('create-group-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/groups/create" hx-swap="none"
+            hx-on::after-request="if(event.detail.successful) { document.getElementById('create-group-modal').close(); showToast('Group created successfully'); }">
+            <div class="form-group">
+                <label>Group Name</label>
+                <input type="text" name="name" required placeholder="Engineering Team">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" placeholder="Group description..." rows="3"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('create-group-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Create Group</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Register DNS Modal -->
+<dialog id="register-dns-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Register DNS Hostname</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('register-dns-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/dns/register" hx-swap="none"
+            hx-on::after-request="if(event.detail.successful) { document.getElementById('register-dns-modal').close(); showToast('DNS record registered'); }">
+            <div class="form-group">
+                <label>Hostname</label>
+                <input type="text" name="hostname" required placeholder="mybot.example.com">
+            </div>
+            <div class="form-group">
+                <label>Record Type</label>
+                <select name="record_type">
+                    <option value="A">A (IPv4)</option>
+                    <option value="AAAA">AAAA (IPv6)</option>
+                    <option value="CNAME">CNAME</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target</label>
+                <input type="text" name="target" placeholder="192.168.1.1 or target.domain.com">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('register-dns-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Register</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+
+
+<style>
+    /* Fix dialog elements - ensure they're hidden by default */
+    dialog.modal {
+        display: none;
+        padding: 0;
+        border: none;
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-width: 480px;
+        width: 90%;
+    }
+
+    dialog.modal[open] {
+        display: flex;
+        flex-direction: column;
+    }
+
+    dialog.modal::backdrop {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    dialog.modal form {
+        padding: 24px;
+    }
+
+    dialog.modal .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    dialog.modal .modal-header h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    dialog.modal .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        background: var(--surface-hover);
+        border-radius: 0 0 16px 16px;
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px;
+        color: var(--text-secondary);
+    }
+
+    .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .settings-layout {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        min-height: 100%;
+        background: var(--bg);
+    }
+
+    .settings-sidebar {
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .nav-divider {
+        padding: 16px 16px 8px 16px;
+        margin-top: 8px;
+        border-top: 1px solid var(--border);
+    }
+
+    .nav-divider span {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+    }
+
+    .settings-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 24px 24px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 16px;
+        color: var(--text);
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .settings-header svg {
+        color: var(--primary);
+    }
+
+    .settings-nav {
+        flex: 1;
+        padding: 0 12px;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+        margin-bottom: 4px;
+    }
+
+    .nav-item:hover {
+        background: var(--hover);
+        color: var(--text);
+    }
+
+    .nav-item.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .nav-item.active svg {
+        color: white;
+    }
+
+    .settings-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+    }
+
+    .back-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+
+    .back-link:hover {
+        color: var(--primary);
+    }
+
+    .settings-main {
+        padding: 32px 48px;
+        overflow-y: auto;
+        max-width: 900px;
+    }
+
+    .settings-section {
+        display: none;
+    }
+
+    .settings-section.active {
+        display: block;
+    }
+
+    .section-header {
+        margin-bottom: 32px;
+    }
+
+    .section-header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: var(--text);
+        margin: 0 0 8px;
+    }
+
+    .section-header .subtitle {
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    .setting-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .setting-card.danger-card {
+        border-color: var(--danger);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .card-header h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text);
+        margin: 0 0 4px;
+    }
+
+    .card-header p {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .setting-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .setting-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .setting-row:first-child {
+        padding-top: 0;
+    }
+
+    .setting-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .setting-title {
+        font-weight: 500;
+        color: var(--text);
+    }
+
+    .setting-desc {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px 14px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 0.9375rem;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover);
+    }
+
+    .btn-danger {
+        background: var(--danger);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .btn-danger:hover {
+        filter: brightness(1.1);
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 0.875rem;
+    }
+
+    .btn-text {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 10px 20px;
+    }
+
+    .btn-text:hover {
+        color: var(--text);
+    }
+
+    .toggle {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 26px;
+    }
+
+    .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--border);
+        border-radius: 26px;
+        transition: 0.3s;
+    }
+
+    .toggle-slider::before {
+        content: "";
+        position: absolute;
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background: white;
+        border-radius: 50%;
+        transition: 0.3s;
+    }
+
+    .toggle input:checked+.toggle-slider {
+        background: var(--primary);
+    }
+
+    .toggle input:checked+.toggle-slider::before {
+        transform: translateX(22px);
+    }
+
+    .avatar-upload {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .current-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+    }
+
+    .theme-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .theme-card {
+        background: var(--bg);
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+
+    .theme-card:hover {
+        border-color: var(--primary);
+    }
+
+    .theme-card.active {
+        border-color: var(--primary);
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .theme-preview {
+        width: 100%;
+        height: 60px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+
+    .theme-name {
+        font-weight: 500;
+        color: var(--text);
+    }
+
+    .storage-bar {
+        height: 8px;
+        background: var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 16px 0;
+    }
+
+    .storage-bar-fill {
+        height: 100%;
+        background: var(--primary);
+        border-radius: 4px;
+        transition: width 0.3s;
+    }
+
+    .storage-info {
+        display: flex;
+        justify-content: space-between;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .breakdown-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+    }
+
+    .breakdown-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+
+    .breakdown-label {
+        flex: 1;
+        color: var(--text);
+    }
+
+    .breakdown-value {
+        color: var(--text-secondary);
+    }
+
+    .plan-display {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .plan-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .plan-badge {
+        background: var(--primary);
+        color: white;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .plan-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .plan-price {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .plan-cycle {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .plan-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .payment-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: var(--bg);
+        border-radius: 8px;
+    }
+
+    .card-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-number {
+        font-weight: 500;
+        color: var(--text);
+    }
+
+    .card-expiry {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .default-badge {
+        background: var(--success);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .invoices-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .invoices-table th,
+    .invoices-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .invoices-table th {
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .invoices-table td {
+        color: var(--text);
+    }
+
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-badge.paid {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+    }
+
+    .invoice-link {
+        color: var(--primary);
+        text-decoration: none;
+    }
+
+    .invoice-link:hover {
+        text-decoration: underline;
+    }
+
+    .danger-content {
+        text-align: center;
+        padding: 16px;
+    }
+
+    .danger-content p {
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+    }
+
+    .danger-alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+        background: rgba(239, 68, 68, 0.1);
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .danger-alert svg {
+        color: var(--danger);
+        flex-shrink: 0;
+    }
+
+    .danger-alert p {
+        margin: 0;
+        color: var(--text);
+    }
+
+
+
+    .modal-content {
+        background: var(--surface, #1a1a24);
+        border-radius: 16px;
+        border: 1px solid var(--border, #2a2a2a);
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: var(--text);
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 4px;
+    }
+
+    .close-btn:hover {
+        color: var(--text);
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        margin-top: 8px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Mobile Toggle Button */
+    .mobile-menu-toggle {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        border: none;
+        cursor: pointer;
+        z-index: 100;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .settings-main {
+            padding: 24px 32px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .settings-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .settings-sidebar {
+            position: fixed;
+            left: -280px;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            z-index: 200;
+            transition: left 0.3s ease;
+        }
+
+        .settings-sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        .mobile-menu-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-main {
+            padding: 20px 16px;
+        }
+
+        .section-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .setting-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .plan-display {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .plan-actions {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .plan-actions button {
+            width: 100%;
+        }
+
+        .theme-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .card-header {
+            flex-direction: column;
+            gap: 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .avatar-upload {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .theme-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .invoices-table {
+            font-size: 0.875rem;
+        }
+
+        .invoices-table th:nth-child(3),
+        .invoices-table td:nth-child(3) {
+            display: none;
+        }
+    }
+</style>
+
+<!-- Sidebar overlay for mobile -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSettingsSidebar()"></div>
+
+<!-- Mobile menu toggle -->
+<button class="mobile-menu-toggle" id="mobile-menu-toggle" onclick="toggleSettingsSidebar()"
+    aria-label="Toggle settings menu">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+</button>
+
+<script>
+    function showSection(sectionId, element) {
+        // Hide all sections
+        document.querySelectorAll('.settings-section').forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // Show selected section
+        document.getElementById(sectionId + '-section').classList.add('active');
+
+        // Update nav items
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        element.classList.add('active');
+
+        // Close mobile sidebar
+        if (window.innerWidth <= 768) {
+            toggleSettingsSidebar();
+        }
+
+        return false;
+    }
+
+    function toggleSettingsSidebar() {
+        const sidebar = document.querySelector('.settings-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('show');
+    }
+
+    function showToast(message, type = 'success') {
+        if (window.showNotification) {
+            window.showNotification(message, type);
+        } else {
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification toast-' + type;
+            toast.textContent = message;
+            toast.style.cssText = 'position:fixed;top:20px;right:20px;padding:12px 24px;background:#333;color:#fff;border-radius:8px;z-index:10000;animation:fadeIn 0.3s';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    }
+
+    // Handle hash navigation on load
+    document.addEventListener('DOMContentLoaded', function () {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            const navItem = document.querySelector(`a[href="#${hash}"]`);
+            if (navItem) {
+                showSection(hash, navItem);
+            }
+        }
+    });
+
+    // Theme selection - handle both .theme-card and .theme-option elements
+    document.querySelectorAll('.theme-card').forEach(card => {
+        card.addEventListener('click', function () {
+            const theme = this.dataset.theme;
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('gb-theme', theme);
+
+            document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Initialize theme options - mark current theme as active
+    (function initThemeOptions() {
+        const savedTheme = localStorage.getItem('gb-theme') || 'sentient';
+
+        // Mark the active theme option
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            if (opt.dataset.theme === savedTheme) {
+                opt.classList.add('active');
+            } else {
+                opt.classList.remove('active');
+            }
+        });
+
+        // Also mark theme-card if present
+        document.querySelectorAll('.theme-card').forEach(card => {
+            if (card.dataset.theme === savedTheme) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
+    })();
+
+    // Load translation script and translate page
+    (function loadTranslations() {
+        var script = document.createElement('script');
+        script.src = '/suite/js/translations.js';
+        script.onload = function () {
+            if (window.gbTranslations) {
+                window.gbTranslations.translatePage();
+            }
+        };
+        document.head.appendChild(script);
+    })();
+</script>

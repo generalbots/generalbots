@@ -1,17 +1,94 @@
-.tmp*
-.tmp/*
-*.log
-target*
-.env
-*.env
-work
+# Build artifacts
+target/
 *.out
-bin
-botserver-stack
+bin/
+*.png
+*.jpg
+# Logs
+*.log
 *logfile*
 *-log*
-docs/book
+.vscode
+.zed
+.gemini
+.claude
+
+
+# Temporary files
+.tmp*
+.tmp/*
+.tmp
+
+
+# Environment files
+.env
+*.env
+
+# Work directories
+work/
+
+# Redis
 *.rdb
-botserver-installers
-.git-rewrite
+
+# Documentation build
+docs/book
+.ruff_cache
+.goutputstream*
+# Installers (keep gitkeep)
+botserver-installers/*
+!botserver-installers/.gitkeep
+botserver-stack
+TODO*
+work
+.swp
+
+# Lock file
+# Cargo.lock (should be tracked)
+.kiro
+config
+
+# Data directory (contains bot configs and API keys)
+data/
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+.playwright*
+.ruff_cache
+.opencode
+config/directory_config.json
+# CI cache bust: Fri Feb 13 22:33:51 UTC 2026
+
+# Secrets - NEVER commit these files
 vault-unseal-keys
+start-and-unseal.sh
+vault-token-*
+init.json
+*.pem
+*.key
+*.crt
+*.cert
+$null
+AppData/
+build_errors*.txt
+build_errors_utf8.txt
+check.json
+clippy*.txt
+errors.txt
+errors_utf8.txt
+
+vault-unseal-keysdefault-vault.tar
+prompts/sec-bots.md
+AGENTS-PROD.md
+
+# Backup files
+*.head
+*.bad2
+*.bad
+*.check
+*.fix
+*.bak

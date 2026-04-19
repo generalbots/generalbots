@@ -1,0 +1,155 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f5f5f5; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .panel-bg { fill: #fafafa; }
+    .header-bg { fill: #e8e8e8; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .icon-text { fill: #333; font-family: Arial, sans-serif; }
+    .divider { stroke: #ddd; stroke-width: 1; }
+    .button { fill: #4A90E2; }
+    .button-text { fill: #fff; font-family: Arial, sans-serif; }
+    .input-field { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .row-hover { fill: #f0f7ff; }
+    .folder-icon { fill: #F5A623; }
+    .file-icon { fill: #4A90E2; }
+    .image-icon { fill: #7ED321; }
+    .sidebar-item { fill: none; }
+    .sidebar-item:hover { fill: #e8e8e8; }
+    .label-blue { fill: #4A90E2; }
+    .label-green { fill: #7ED321; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a1a; }
+      .frame { stroke: #555; }
+      .panel-bg { fill: #222; }
+      .header-bg { fill: #2a2a2a; }
+      .main-text { fill: #ffffff; }
+      .secondary-text { fill: #aaa; }
+      .icon-text { fill: #ddd; }
+      .divider { stroke: #444; }
+      .input-field { fill: #2a2a2a; stroke: #444; }
+      .row-hover { fill: #2a3a4a; }
+      .button { fill: #00D4FF; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Drive - File Management Interface</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="50" width="840" height="470" rx="8" class="frame bg"/>
+
+  <!-- Toolbar -->
+  <rect x="30" y="50" width="840" height="45" rx="8" class="header-bg"/>
+  <rect x="30" y="87" width="840" height="8" class="bg"/>
+
+  <!-- New Button -->
+  <rect x="50" y="60" width="80" height="28" rx="4" class="button"/>
+  <text x="90" y="79" text-anchor="middle" font-size="13" class="button-text">+ New ▼</text>
+
+  <!-- Search Bar -->
+  <rect x="300" y="60" width="250" height="28" rx="14" class="input-field"/>
+  <text x="320" y="79" font-size="13" class="secondary-text">🔍 Search files...</text>
+
+  <!-- View Toggle -->
+  <g transform="translate(750, 60)">
+    <rect x="0" y="0" width="30" height="28" rx="4" class="input-field"/>
+    <text x="15" y="19" text-anchor="middle" font-size="14" class="icon-text">⊞</text>
+    <rect x="35" y="0" width="30" height="28" rx="4" class="input-field"/>
+    <text x="50" y="19" text-anchor="middle" font-size="14" class="icon-text">≡</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="30" y1="95" x2="870" y2="95" class="divider"/>
+
+  <!-- Left Sidebar -->
+  <rect x="30" y="95" width="140" height="425" class="panel-bg"/>
+  <line x1="170" y1="95" x2="170" y2="520" class="divider"/>
+
+  <!-- Sidebar Items -->
+  <g transform="translate(45, 110)">
+    <rect x="-5" y="-5" width="120" height="28" rx="4" class="row-hover"/>
+    <text x="0" y="14" font-size="14" class="main-text">📁 My Drive</text>
+
+    <text x="0" y="50" font-size="14" class="secondary-text">⭐ Starred</text>
+    <text x="0" y="80" font-size="14" class="secondary-text">🕐 Recent</text>
+    <text x="0" y="110" font-size="14" class="secondary-text">🗑 Trash</text>
+
+    <line x1="-5" y1="130" x2="115" y2="130" class="divider"/>
+
+    <text x="0" y="155" font-size="12" font-weight="500" class="secondary-text">Labels</text>
+    <circle cx="10" cy="175" r="6" class="label-blue"/>
+    <text x="25" y="180" font-size="13" class="main-text">Work</text>
+    <circle cx="10" cy="200" r="6" class="label-green"/>
+    <text x="25" y="205" font-size="13" class="main-text">Personal</text>
+  </g>
+
+  <!-- Breadcrumb -->
+  <text x="190" y="120" font-size="13" class="secondary-text">📁 My Drive › Projects › 2024</text>
+
+  <!-- Column Headers -->
+  <g transform="translate(185, 140)">
+    <rect x="0" y="0" width="680" height="25" class="header-bg"/>
+    <text x="30" y="17" font-size="12" font-weight="500" class="secondary-text">☐</text>
+    <text x="60" y="17" font-size="12" font-weight="500" class="secondary-text">Name</text>
+    <text x="400" y="17" font-size="12" font-weight="500" class="secondary-text">Size</text>
+    <text x="520" y="17" font-size="12" font-weight="500" class="secondary-text">Modified</text>
+  </g>
+
+  <!-- File List -->
+  <g transform="translate(185, 170)">
+    <!-- Row 1 - Folder -->
+    <rect x="0" y="0" width="680" height="35" class="row-hover" opacity="0.5"/>
+    <text x="30" y="23" font-size="14" class="secondary-text">☐</text>
+    <text x="55" y="23" font-size="16" class="folder-icon">📁</text>
+    <text x="80" y="23" font-size="14" class="main-text">Reports</text>
+    <text x="400" y="23" font-size="13" class="secondary-text">—</text>
+    <text x="520" y="23" font-size="13" class="secondary-text">Today</text>
+
+    <!-- Row 2 - Folder -->
+    <rect x="0" y="40" width="680" height="35" fill="none"/>
+    <text x="30" y="63" font-size="14" class="secondary-text">☐</text>
+    <text x="55" y="63" font-size="16" class="folder-icon">📁</text>
+    <text x="80" y="63" font-size="14" class="main-text">Presentations</text>
+    <text x="400" y="63" font-size="13" class="secondary-text">—</text>
+    <text x="520" y="63" font-size="13" class="secondary-text">Yesterday</text>
+
+    <!-- Row 3 - Excel File -->
+    <rect x="0" y="80" width="680" height="35" fill="none"/>
+    <text x="30" y="103" font-size="14" class="secondary-text">☐</text>
+    <text x="55" y="103" font-size="16" class="file-icon">📄</text>
+    <text x="80" y="103" font-size="14" class="main-text">Budget.xlsx</text>
+    <text x="400" y="103" font-size="13" class="secondary-text">245 KB</text>
+    <text x="520" y="103" font-size="13" class="secondary-text">Mar 15</text>
+
+    <!-- Row 4 - Doc File -->
+    <rect x="0" y="120" width="680" height="35" fill="none"/>
+    <text x="30" y="143" font-size="14" class="secondary-text">☐</text>
+    <text x="55" y="143" font-size="16" class="file-icon">📄</text>
+    <text x="80" y="143" font-size="14" class="main-text">Notes.docx</text>
+    <text x="400" y="143" font-size="13" class="secondary-text">12 KB</text>
+    <text x="520" y="143" font-size="13" class="secondary-text">Mar 14</text>
+
+    <!-- Row 5 - Image File -->
+    <rect x="0" y="160" width="680" height="35" fill="none"/>
+    <text x="30" y="183" font-size="14" class="secondary-text">☐</text>
+    <text x="55" y="183" font-size="16" class="image-icon">🖼</text>
+    <text x="80" y="183" font-size="14" class="main-text">Logo.png</text>
+    <text x="400" y="183" font-size="13" class="secondary-text">89 KB</text>
+    <text x="520" y="183" font-size="13" class="secondary-text">Mar 10</text>
+  </g>
+
+  <!-- Drag & Drop Zone -->
+  <rect x="185" y="380" width="680" height="100" rx="8" fill="none" stroke="#4A90E2" stroke-width="2" stroke-dasharray="8,4"/>
+  <text x="525" y="425" text-anchor="middle" font-size="16" class="secondary-text">📤 Drag files here to upload</text>
+  <text x="525" y="450" text-anchor="middle" font-size="13" class="secondary-text">or click + New to create</text>
+
+  <!-- Legend -->
+  <g transform="translate(30, 535)">
+    <text x="0" y="0" font-size="11" class="secondary-text">Sidebar: Quick access, Labels</text>
+    <text x="200" y="0" font-size="11" class="secondary-text">Main: File browser with sort columns</text>
+    <text x="500" y="0" font-size="11" class="secondary-text">Actions: Upload, Create, Search, View toggle</text>
+  </g>
+</svg>

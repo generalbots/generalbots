@@ -1,0 +1,351 @@
+<!-- Marketing Campaigns - Multi-Channel Marketing -->
+<link rel="stylesheet" href="/suite/crm/crm.css">
+<script src="/suite/js/vendor/htmx.min.js"></script>
+<script src="/suite/js/vendor/htmx-json-enc.js"></script>
+<script src="/suite/js/security-bootstrap.js"></script>
+
+<div class="crm-container">
+    <!-- Header -->
+    <header class="crm-header">
+        <div class="crm-header-left">
+            <h1 data-i18n="campaigns-title">Campaigns</h1>
+            <nav class="crm-tabs">
+                <button class="crm-tab active" data-view="all" data-i18n="campaigns-all">All Campaigns</button>
+                <button class="crm-tab" data-view="lists" data-i18n="campaigns-lists">Lists</button>
+                <button class="crm-tab" data-view="templates" data-i18n="campaigns-templates">Templates</button>
+                <button class="crm-tab" data-view="email" data-i18n="campaigns-email">Email</button>
+                <button class="crm-tab" data-view="whatsapp" data-i18n="campaigns-whatsapp">WhatsApp</button>
+                <button class="crm-tab" data-view="social" data-i18n="campaigns-social">Social</button>
+            </nav>
+        </div>
+        <div class="crm-header-right">
+            <button class="btn-primary" id="campaign-new-btn" onclick="showCampaignModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span data-i18n="campaign-new">New Campaign</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Campaigns Grid -->
+    <div id="campaigns-view" class="crm-view active">
+        <div class="campaigns-grid" id="campaignsList" 
+             hx-get="/api/crm/campaigns"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <!-- Campaigns loaded via HTMX -->
+            <div class="pipeline-column" style="grid-column: 1 / -1;">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                    Loading campaigns...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lists Grid -->
+    <div id="lists-view" class="crm-view">
+        <div class="crm-view-header" style="padding: 16px 24px; display: flex; justify-content: flex-end;">
+            <button class="btn-primary" onclick="showListModal()">
+                <span>New List</span>
+            </button>
+        </div>
+        <div class="campaigns-grid" id="listsList" 
+             hx-get="/api/crm/lists"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="pipeline-column" style="grid-column: 1 / -1;">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                    Loading lists...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates Grid -->
+    <div id="templates-view" class="crm-view">
+        <div class="crm-view-header" style="padding: 16px 24px; display: flex; justify-content: flex-end;">
+            <button class="btn-primary" onclick="showTemplateModal()">
+                <span>New Template</span>
+            </button>
+        </div>
+        <div class="campaigns-grid" id="templatesList" 
+             hx-get="/api/crm/templates"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="pipeline-column" style="grid-column: 1 / -1;">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                    Loading templates...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Campaign Modal -->
+<div id="campaign-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="hideCampaignModal()"></div>
+    <div class="crm-modal-content">
+        <div class="crm-modal-header">
+            <h2 id="campaign-modal-title" data-i18n="campaign-create">Create Campaign</h2>
+            <button class="crm-modal-close" onclick="hideCampaignModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <form id="campaign-form" hx-post="/api/crm/campaigns" hx-swap="none">
+            <div class="crm-form-group">
+                <label for="campaign-name" data-i18n="campaign-name">Campaign Name</label>
+                <input type="text" id="campaign-name" name="name" required 
+                       placeholder="e.g., Welcome Series">
+            </div>
+            <div class="crm-form-group">
+                <label for="campaign-channel" data-i18n="campaign-channel">Channel</label>
+                <select id="campaign-channel" name="channel" required>
+                    <option value="email">📧 Email</option>
+                    <option value="whatsapp">💬 WhatsApp</option>
+                    <option value="instagram">📸 Instagram</option>
+                    <option value="facebook">📘 Facebook</option>
+                    <option value="multi">🔄 Multi-Channel</option>
+                </select>
+            </div>
+            <div class="crm-form-group">
+                <label for="campaign-budget" data-i18n="campaign-budget">Budget (optional)</label>
+                <input type="number" id="campaign-budget" name="budget" step="0.01" 
+                       placeholder="0.00">
+            </div>
+            <div class="crm-form-group">
+                <label for="campaign-schedule" data-i18n="campaign-schedule">Schedule (optional)</label>
+                <input type="datetime-local" id="campaign-schedule" name="scheduled_at">
+            </div>
+            <div class="crm-form-actions">
+                <button type="button" class="btn-secondary" onclick="hideCampaignModal()" data-i18n="cancel">Cancel</button>
+                <button type="submit" class="btn-primary" data-i18n="campaign-save">Create Campaign</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.campaigns-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    padding: 24px;
+}
+
+.campaign-card {
+    background: var(--surface, #1a1a1a);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.15s ease;
+}
+
+.campaign-card:hover {
+    border-color: var(--accent, #d4f505);
+    transform: translateY(-2px);
+}
+
+.campaign-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.campaign-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text, #f8fafc);
+    margin: 0;
+}
+
+.campaign-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.campaign-status.draft {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+.campaign-status.scheduled {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+}
+
+.campaign-status.running {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+}
+
+.campaign-status.completed {
+    background: rgba(156, 163, 175, 0.15);
+    color: #9ca3af;
+}
+
+.campaign-channels {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.campaign-channel-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-secondary, #888);
+}
+
+.campaign-metrics {
+    display: flex;
+    gap: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #333);
+}
+
+.campaign-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.campaign-metric-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent, #d4f505);
+}
+
+.campaign-metric-label {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+
+.campaign-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #333);
+}
+
+.campaign-action-btn {
+    flex: 1;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border, #333);
+    border-radius: 4px;
+    color: var(--text-secondary, #888);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.campaign-action-btn:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text, #f8fafc);
+    border-color: var(--text-secondary, #888);
+}
+
+.campaign-action-btn.primary {
+    background: var(--accent, #d4f505);
+    color: var(--bg, #0a0a0a);
+    border-color: var(--accent, #d4f505);
+}
+
+.campaign-action-btn.primary:hover {
+    opacity: 0.9;
+}
+</style>
+
+<script>
+function showCampaignModal(campaignId = null) {
+    const modal = document.getElementById('campaign-modal');
+    const title = document.getElementById('campaign-modal-title');
+    
+    if (campaignId) {
+        title.textContent = 'Edit Campaign';
+    } else {
+        title.textContent = 'Create Campaign';
+    }
+    
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function hideCampaignModal() {
+    const modal = document.getElementById('campaign-modal');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+    
+    document.getElementById('campaign-form').reset();
+}
+
+function showListModal() {
+    alert('List creation coming soon!');
+}
+
+function showTemplateModal() {
+    alert('Template creation coming soon!');
+}
+
+document.getElementById('campaign-form').addEventListener('htmx:afterRequest', function(e) {
+    if (e.detail.successful) {
+        hideCampaignModal();
+        document.getElementById('campaignsList').dispatchEvent(new Event('refresh'));
+    }
+});
+
+// Tab switching
+document.querySelectorAll('.crm-tab[data-view]').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.crm-tab[data-view]').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.crm-view').forEach(v => v.classList.remove('active'));
+        this.classList.add('active');
+        
+        const view = this.dataset.view;
+        
+        // Show the appropriate view
+        const viewElement = document.getElementById(`${view}-view`);
+        if (viewElement) {
+            viewElement.classList.add('active');
+        }
+        
+        // For channel filters, use the existing filter function
+        if (['all', 'email', 'whatsapp', 'social'].includes(view)) {
+            filterCampaigns(view);
+        }
+    });
+});
+
+function filterCampaigns(view) {
+    const cards = document.querySelectorAll('.campaign-card');
+    cards.forEach(card => {
+        if (view === 'all') {
+            card.style.display = '';
+        } else {
+            const channels = card.querySelector('.campaign-channels');
+            if (channels && channels.textContent.toLowerCase().includes(view)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        }
+    });
+}
+</script>

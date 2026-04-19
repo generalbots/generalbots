@@ -1,0 +1,205 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Light theme defaults */
+    .neon-blue { stroke: #4A90E2; stroke-width: 2.6; fill: none; }
+    .neon-orange { stroke: #F5A623; stroke-width: 2.6; fill: none; }
+    .neon-purple { stroke: #BD10E0; stroke-width: 2.6; fill: none; }
+    .neon-green { stroke: #7ED321; stroke-width: 2.6; fill: none; }
+    .neon-cyan { stroke: #50E3C2; stroke-width: 2.6; fill: none; }
+    .main-text { fill: #1a1a1a; }
+    .secondary-text { fill: #666; }
+    .arrow-color { stroke: #666; fill: #666; }
+
+    /* Dark theme with subtle neon effects */
+    @media (prefers-color-scheme: dark) {
+      .neon-blue {
+        stroke: #00D4FF;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00D4FF) drop-shadow(0 0 8px #00A0FF);
+      }
+      .neon-orange {
+        stroke: #FF9500;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF9500) drop-shadow(0 0 8px #FF7700);
+      }
+      .neon-purple {
+        stroke: #E040FB;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #E040FB) drop-shadow(0 0 8px #D500F9);
+      }
+      .neon-green {
+        stroke: #00FF88;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00FF88) drop-shadow(0 0 8px #00E676);
+      }
+      .neon-cyan {
+        stroke: #00E5EA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00E5EA) drop-shadow(0 0 8px #00BCD4);
+      }
+      .main-text { fill: #FFFFFF; }
+      .secondary-text { fill: #B0B0B0; }
+      .arrow-color { stroke: #B0B0B0; fill: #B0B0B0; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrow" markerWidth="13" markerHeight="13" refX="11.7" refY="3.9" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,7.8 L11.7,3.9 z" class="arrow-color"/>
+    </marker>
+    <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.3" />
+      <stop offset="25%" style="stop-color:#F5A623;stop-opacity:0.3" />
+      <stop offset="50%" style="stop-color:#BD10E0;stop-opacity:0.3" />
+      <stop offset="75%" style="stop-color:#7ED321;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#50E3C2;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="600" class="main-text">Package System Flow</text>
+  <text x="700" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="secondary-text">How .gbai packages orchestrate bot behavior</text>
+
+  <!-- MAIN FLOW DIAGRAM -->
+  <g id="main-flow">
+    <!-- Phase Labels -->
+    <text x="120" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Input</text>
+    <text x="320" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Script</text>
+    <text x="560" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Intelligence</text>
+    <text x="820" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Execution</text>
+    <text x="1060" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="secondary-text">Output</text>
+
+    <!-- Main Flow Components -->
+    <!-- User Request -->
+    <rect x="50" y="140" width="140" height="70" class="neon-blue" rx="6.5"/>
+    <text x="120" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">User Request</text>
+
+    <!-- start.bas -->
+    <rect x="250" y="140" width="140" height="70" class="neon-orange" rx="6.5"/>
+    <text x="320" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">start.bas</text>
+
+    <!-- LLM Engine -->
+    <rect x="470" y="140" width="180" height="70" class="neon-purple" rx="6.5"/>
+    <text x="560" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">LLM Engine</text>
+
+    <!-- Tool Executor -->
+    <rect x="730" y="140" width="180" height="70" class="neon-green" rx="6.5"/>
+    <text x="820" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">Tool Executor</text>
+
+    <!-- Bot Response -->
+    <rect x="990" y="140" width="140" height="70" class="neon-cyan" rx="6.5"/>
+    <text x="1060" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">Bot Response</text>
+
+    <!-- Supporting Components Row -->
+    <!-- Vector Search -->
+    <rect x="450" y="280" width="160" height="60" class="neon-blue" rx="6.5"/>
+    <text x="530" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">Vector Search</text>
+
+    <!-- Knowledge Base -->
+    <rect x="650" y="280" width="160" height="60" class="neon-orange" rx="6.5"/>
+    <text x="730" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">.gbkb Docs</text>
+
+    <!-- External APIs -->
+    <rect x="850" y="280" width="160" height="60" class="neon-purple" rx="6.5"/>
+    <text x="930" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">External APIs</text>
+
+    <!-- Flow Arrows -->
+    <g stroke="#666" stroke-width="2.6" fill="none" opacity="0.7">
+      <!-- Main horizontal flow -->
+      <line x1="190" y1="175" x2="250" y2="175" marker-end="url(#arrow)"/>
+      <line x1="390" y1="175" x2="470" y2="175" marker-end="url(#arrow)"/>
+      <line x1="650" y1="175" x2="730" y2="175" marker-end="url(#arrow)"/>
+      <line x1="910" y1="175" x2="990" y2="175" marker-end="url(#arrow)"/>
+
+      <!-- LLM to Vector Search -->
+      <line x1="530" y1="210" x2="530" y2="280" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.5"/>
+
+      <!-- Vector Search to Knowledge Base -->
+      <line x1="610" y1="310" x2="650" y2="310" marker-end="url(#arrow)" opacity="0.6"/>
+
+      <!-- Tool Executor to External APIs -->
+      <line x1="850" y1="210" x2="930" y2="280" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.5"/>
+
+      <!-- Context feedback to LLM -->
+      <path d="M730,280 Q680,250 620,210" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.5"/>
+    </g>
+
+    <!-- Labels -->
+    <text x="460" y="250" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Query</text>
+    <text x="680" y="250" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Context</text>
+  </g>
+
+  <!-- Package Structure Detail -->
+  <g id="package-structure" transform="translate(50, 380)">
+    <rect width="300" height="180" class="neon-green" rx="6.5"/>
+    <text x="150" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">Package Structure</text>
+    <text x="20" y="60" font-family="monospace" font-size="16" class="secondary-text">my-bot.gbai/</text>
+    <text x="35" y="85" font-family="monospace" font-size="16" class="secondary-text">├── .gbdialog/</text>
+    <text x="55" y="105" font-family="monospace" font-size="14" class="secondary-text">└── start.bas, tools.bas</text>
+    <text x="35" y="130" font-family="monospace" font-size="16" class="secondary-text">├── .gbkb/</text>
+    <text x="55" y="150" font-family="monospace" font-size="14" class="secondary-text">└── docs, PDFs, data</text>
+    <text x="35" y="170" font-family="monospace" font-size="16" class="secondary-text">└── .gbot/config.csv</text>
+  </g>
+
+  <!-- BASIC Commands Detail -->
+  <g id="basic-commands" transform="translate(400, 380)">
+    <rect width="300" height="180" class="neon-purple" rx="6.5"/>
+    <text x="150" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">BASIC Commands</text>
+    <text x="20" y="60" font-family="monospace" font-size="16" class="secondary-text">USE KB "knowledge"</text>
+    <text x="20" y="85" font-family="monospace" font-size="16" class="secondary-text">question = HEAR</text>
+    <text x="20" y="110" font-family="monospace" font-size="16" class="secondary-text">answer = LLM(question)</text>
+    <text x="20" y="135" font-family="monospace" font-size="16" class="secondary-text">TALK answer</text>
+    <text x="20" y="165" font-family="monospace" font-size="14" class="secondary-text">// Zero configuration AI</text>
+  </g>
+
+  <!-- Key Features -->
+  <g id="features" transform="translate(750, 380)">
+    <rect width="300" height="180" class="neon-cyan" rx="6.5"/>
+    <text x="150" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="500" class="main-text">Key Features</text>
+    <text x="20" y="60" font-family="Arial, sans-serif" font-size="16" class="secondary-text">✓ Auto tool registration</text>
+    <text x="20" y="85" font-family="Arial, sans-serif" font-size="16" class="secondary-text">✓ RAG from any document</text>
+    <text x="20" y="110" font-family="Arial, sans-serif" font-size="16" class="secondary-text">✓ Multi-channel deploy</text>
+    <text x="20" y="135" font-family="Arial, sans-serif" font-size="16" class="secondary-text">✓ Hot reload packages</text>
+    <text x="20" y="160" font-family="Arial, sans-serif" font-size="16" class="secondary-text">✓ Session persistence</text>
+  </g>
+
+  <!-- Connection lines from boxes to main flow -->
+  <g stroke="#666" stroke-width="1.5" fill="none" opacity="0.3">
+    <path d="M200,380 Q200,350 320,210"/>
+    <path d="M550,380 Q550,350 560,210"/>
+    <path d="M900,380 Q900,350 850,210"/>
+  </g>
+
+  <!-- PROGRESS INDICATOR -->
+  <g id="progress-legend">
+    <rect x="50" y="600" width="1300" height="80" fill="url(#flowGradient)" rx="10" opacity="0.2"/>
+
+    <!-- Stage markers -->
+    <circle cx="150" cy="640" r="12" class="neon-blue"/>
+    <circle cx="400" cy="640" r="12" class="neon-orange"/>
+    <circle cx="650" cy="640" r="12" class="neon-purple"/>
+    <circle cx="900" cy="640" r="12" class="neon-green"/>
+    <circle cx="1150" cy="640" r="12" class="neon-cyan"/>
+
+    <!-- Connecting lines -->
+    <line x1="162" y1="640" x2="388" y2="640" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="412" y1="640" x2="638" y2="640" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="662" y1="640" x2="888" y2="640" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="912" y1="640" x2="1138" y2="640" class="arrow-color" stroke-width="2" opacity="0.4"/>
+
+    <!-- Stage labels -->
+    <text x="150" y="695" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="secondary-text">Receive</text>
+    <text x="400" y="695" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="secondary-text">Parse Script</text>
+    <text x="650" y="695" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="secondary-text">LLM Process</text>
+    <text x="900" y="695" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="secondary-text">Execute Tools</text>
+    <text x="1150" y="695" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="secondary-text">Respond</text>
+  </g>
+
+  <!-- Description -->
+  <text x="700" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" class="secondary-text">
+    BASIC scripts orchestrate LLM decisions, vector search, and responses with zero configuration
+  </text>
+  <text x="700" y="790" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="secondary-text">
+    Drop files in .gbkb → Write scripts in .gbdialog → Deploy instantly
+  </text>
+</svg>

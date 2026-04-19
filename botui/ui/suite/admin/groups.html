@@ -1,0 +1,1098 @@
+<div class="groups-view">
+    <div class="page-header">
+        <div class="header-left">
+            <h1>Group Management</h1>
+            <p class="subtitle">Manage groups, members, and permissions</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-primary" onclick="document.getElementById('create-group-modal').showModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <line x1="19" y1="8" x2="19" y2="14"></line>
+                    <line x1="22" y1="11" x2="16" y2="11"></line>
+                </svg>
+                Create Group
+            </button>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="toolbar">
+        <div class="search-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text"
+                   placeholder="Search groups..."
+                   name="q"
+                   hx-get="/groups/search"
+                   hx-trigger="keyup changed delay:300ms"
+                   hx-target="#groups-grid"
+                   hx-swap="innerHTML">
+        </div>
+        <div class="filters">
+            <select name="visibility"
+                    hx-get="/groups/list"
+                    hx-trigger="change"
+                    hx-target="#groups-grid"
+                    hx-swap="innerHTML">
+                <option value="">All Visibility</option>
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+                <option value="hidden">Hidden</option>
+            </select>
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="setView('grid', this)" title="Grid view">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </button>
+                <button class="view-btn" onclick="setView('list', this)" title="List view">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Groups Grid -->
+    <div class="groups-grid" id="groups-grid"
+         hx-get="/groups/list"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading groups...</p>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="groups-pagination"
+         hx-get="/groups/list/pagination"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+    </div>
+</div>
+
+<!-- Group Detail Panel -->
+<div class="detail-panel" id="group-detail-panel">
+    <div class="panel-header">
+        <h2 id="panel-group-name">Group Details</h2>
+        <button class="close-btn" onclick="closeDetailPanel()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    <div class="panel-tabs">
+        <button class="tab-btn active" data-tab="overview" onclick="switchTab(this, 'overview')">Overview</button>
+        <button class="tab-btn" data-tab="members" onclick="switchTab(this, 'members')">Members</button>
+        <button class="tab-btn" data-tab="permissions" onclick="switchTab(this, 'permissions')">Permissions</button>
+        <button class="tab-btn" data-tab="kbs" onclick="switchTab(this, 'kbs')">Knowledge Bases</button>
+        <button class="tab-btn" data-tab="settings" onclick="switchTab(this, 'settings')">Settings</button>
+        <button class="tab-btn" data-tab="analytics" onclick="switchTab(this, 'analytics')">Analytics</button>
+    </div>
+    <div class="panel-content" id="group-detail-content">
+        <!-- Content loaded via HTMX -->
+    </div>
+</div>
+
+<!-- Create Group Modal -->
+<dialog id="create-group-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Create New Group</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('create-group-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/groups/create"
+              hx-target="#groups-grid"
+              hx-swap="innerHTML"
+              hx-on::after-request="if(event.detail.successful) { document.getElementById('create-group-modal').close(); showToast('Group created successfully'); }">
+            <div class="form-group">
+                <label></label>Group Name <span class="required">*</span></label>
+                <input type="text" name="name" required placeholder="Engineering Team">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" rows="3" placeholder="Describe the purpose of this group..."></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Visibility</label>
+                    <select name="visibility">
+                        <option value="private">Private</option>
+                        <option value="public">Public</option>
+                        <option value="hidden">Hidden</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Join Policy</label>
+                    <select name="join_policy">
+                        <option value="invite_only">Invite Only</option>
+                        <option value="request">Request to Join</option>
+                        <option value="open">Open</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="allow_member_invite" checked>
+                    <span>Allow members to invite others</span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="enable_chat" checked>
+                    <span>Enable group chat</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('create-group-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Create Group</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Add Member Modal -->
+<dialog id="add-member-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Members</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('add-member-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form id="add-member-form"
+              hx-post="/groups/{group_id}/members/add"
+              hx-target="#group-members-list"
+              hx-swap="innerHTML"
+              hx-on::after-request="if(event.detail.successful) { document.getElementById('add-member-modal').close(); showToast('Members added'); }">
+            <input type="hidden" name="group_id" id="add-member-group-id">
+            <div class="form-group">
+                <label>Search Users</label>
+                <div class="user-search">
+                    <input type="text"
+                           placeholder="Search by name or email..."
+                           hx-get="/users/search"
+                           hx-trigger="keyup changed delay:300ms"
+                           hx-target="#user-search-results"
+                           hx-swap="innerHTML">
+                </div>
+                <div id="user-search-results" class="search-results"></div>
+            </div>
+            <div class="form-group">
+                <label>Selected Users</label>
+                <div id="selected-users" class="selected-users">
+                    <p class="empty-text">No users selected</p>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role">
+                    <option value="member">Member</option>
+                    <option value="moderator">Moderator</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('add-member-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Add Members</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Send Invite Modal -->
+<dialog id="send-invite-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Send Invites</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('send-invite-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form id="send-invite-form"
+              hx-post="/groups/{group_id}/invites/send"
+              hx-swap="none"
+              hx-on::after-request="if(event.detail.successful) { document.getElementById('send-invite-modal').close(); showToast('Invites sent'); }">
+            <input type="hidden" name="group_id" id="invite-group-id">
+            <div class="form-group">
+                <label>Email Addresses</label>
+                <textarea name="emails" rows="4" placeholder="Enter email addresses, one per line..."></textarea>
+                <p class="help-text">Enter one email address per line</p>
+            </div>
+            <div class="form-group">
+                <label>Personal Message (optional)</label>
+                <textarea name="message" rows="3" placeholder="Add a personal message to the invite..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('send-invite-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Send Invites</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Delete Group Modal -->
+<dialog id="delete-group-modal" class="modal modal-small">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Delete Group</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('delete-group-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="warning-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <p>Are you sure you want to delete <strong id="delete-group-name"></strong>?</p>
+            <p class="warning-text">This will remove all members and delete all group data. This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="document.getElementById('delete-group-modal').close()">Cancel</button>
+            <button type="button" class="btn-danger" id="confirm-delete-group-btn"
+                    hx-delete="/groups/{group_id}/delete"
+                    hx-target="#groups-grid"
+                    hx-swap="innerHTML"
+                    hx-on::after-request="document.getElementById('delete-group-modal').close(); closeDetailPanel(); showToast('Group deleted');">
+                Delete Group
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<style>
+/* Groups View */
+.groups-view {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.header-left h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+.header-left .subtitle {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Toolbar */
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-box svg {
+    color: var(--text-secondary);
+}
+
+.search-box input {
+    border: none;
+    background: none;
+    outline: none;
+    color: var(--text);
+    font-size: 14px;
+    width: 100%;
+}
+
+.filters {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.filters select {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+}
+
+.view-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.view-btn {
+    padding: 8px 12px;
+    background: var(--surface);
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.view-btn:not(:last-child) {
+    border-right: 1px solid var(--border);
+}
+
+.view-btn:hover {
+    background: var(--surface-hover);
+}
+
+.view-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* Groups Grid */
+.groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.groups-grid.list-view {
+    grid-template-columns: 1fr;
+}
+
+/* Group Card */
+.group-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.group-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.group-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.group-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), #a855f7);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.group-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.group-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.group-description {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.group-meta {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.meta-item svg {
+    width: 14px;
+    height: 14px;
+}
+
+.group-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.visibility-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.visibility-badge.public {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.visibility-badge.private {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.visibility-badge.hidden {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+}
+
+.group-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.card-action-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.card-action-btn:hover {
+    background: var(--surface-hover);
+}
+
+.card-action-btn.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.card-action-btn.primary:hover {
+    opacity: 0.9;
+}
+
+/* Detail Panel */
+.detail-panel {
+    position: fixed;
+    top: 56px;
+    right: -520px;
+    width: 520px;
+    height: calc(100vh - 56px);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    z-index: 100;
+    transition: right 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-panel.open {
+    right: 0;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.panel-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.panel-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    overflow-x: auto;
+}
+
+.tab-btn {
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    color: var(--text);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* Members List in Panel */
+.members-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 8px;
+}
+
+.member-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.member-role {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.member-actions {
+    display: flex;
+    gap: 4px;
+}
+
+/* Modal */
+.modal {
+    padding: 0;
+    border: none;
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    max-width: 520px;
+    width: 90%;
+}
+
+.modal.modal-small {
+    max-width: 400px;
+}
+
+.modal::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-body {
+    padding: 24px;
+    text-align: center;
+}
+
+.warning-icon {
+    color: #f59e0b;
+    margin-bottom: 16px;
+}
+
+.warning-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.modal form {
+    padding: 24px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.form-group label .required {
+    color: #ef4444;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.help-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.checkbox-label input {
+    width: auto;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-hover);
+    border-radius: 0 0 16px 16px;
+}
+
+/* User Search */
+.search-results {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-result-item:hover {
+    background: var(--surface-hover);
+}
+
+.selected-users {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+}
+
+.selected-user-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--primary);
+    color: white;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.selected-user-tag button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+}
+
+.empty-text {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin: 0;
+}
+
+/* Buttons */
+.close-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-radius: 8px;
+}
+
+.close-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: var(--surface-hover);
+}
+
+.btn-danger {
+    padding: 10px 20px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* Loading */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: var(--text-secondary);
+    grid-column: 1 / -1;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.page-btn {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.page-btn:hover:not(:disabled) {
+    background: var(--surface-hover);
+}
+
+.page-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-box {
+        max-width: none;
+    }
+
+    .filters {
+        flex-wrap: wrap;
+    }
+
+    .groups-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-panel {
+        width: 100%;
+        right: -100%;
+    }
+}
+</style>
+
+<script></script>
+    function setView(view, btn) {
+        const grid = document.getElementById('groups-grid');
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if (view === 'list') {
+            grid.classList.add('list-view');
+        } else {
+            grid.classList.remove('list-view');
+        }
+    }
+
+    function openDetailPanel(groupId, groupName) {
+        const panel = document.getElementById('group-detail-panel');
+        panel.dataset.groupId = groupId;
+        document.getElementById('panel-group-name').textContent = groupName;
+        panel.classList.add('open');
+
+        // Load overview by default
+        htmx.ajax('GET', `/groups/${groupId}/overview`, {target: '#group-detail-content'});
+    }
+
+    function closeDetailPanel() {
+        document.getElementById('group-detail-panel').classList.remove('open');
+    }
+
+    function switchTab(btn, tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const groupId = document.getElementById('group-detail-panel').dataset.groupId;
+        if (groupId) {
+            htmx.ajax('GET', `/groups/${groupId}/${tab}`, {target: '#group-detail-content'});
+        }
+    }
+
+    function openAddMemberModal(groupId) {
+        document.getElementById('add-member-group-id').value = groupId;
+        const form = document.getElementById('add-member-form');
+        form.setAttribute('hx-post', `/groups/${groupId}/members/add`);
+        htmx.process(form);
+        document.getElementById('add-member-modal').showModal();
+    }
+
+    function openInviteModal(groupId) {
+        document.getElementById('invite-group-id').value = groupId;
+        const form = document.getElementById('send-invite-form');
+        form.setAttribute('hx-post', `/groups/${groupId}/invites/send`);
+        htmx.process(form);
+        document.getElementById('send-invite-modal').showModal();
+    }
+
+    function confirmDeleteGroup(groupId, groupName) {
+        document.getElementById('delete-group-name').textContent = groupName;
+        const deleteBtn = document.getElementById('confirm-delete-group-btn');
+        deleteBtn.setAttribute('hx-delete', `/groups/${groupId}/delete`);
+        htmx.process(deleteBtn);
+        document.getElementById('delete-group-modal').showModal();
+    }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+</script>

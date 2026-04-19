@@ -1,0 +1,106 @@
+<!-- Product Form - Products Partial -->
+<form class="product-form" hx-post="/api/products/items" hx-target="#products-grid" hx-swap="innerHTML" hx-on::after-request="closeProductsModal()">
+    <div class="product-form-header">
+        <h2 class="product-form-title" data-i18n="products-new-product">New Product</h2>
+        <button type="button" class="form-close" onclick="closeProductsModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Image Upload -->
+    <div class="form-group">
+        <label class="form-label" data-i18n="products-image">Product Image</label>
+        <label class="image-upload" for="product-image">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <span data-i18n="products-upload-image">Click to upload image</span>
+            <input type="file" id="product-image" name="image" accept="image/*" style="display: none;">
+        </label>
+    </div>
+
+    <!-- Basic Info -->
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-name">Product Name *</label>
+            <input type="text" name="name" class="form-input" required placeholder="Enter product name">
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-sku">SKU</label>
+            <input type="text" name="sku" class="form-input" placeholder="PRD-001">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" data-i18n="products-description">Description</label>
+        <textarea name="description" class="form-textarea" rows="3" placeholder="Product description..."></textarea>
+    </div>
+
+    <!-- Pricing -->
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-price">Price *</label>
+            <input type="number" name="price" class="form-input" required placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-cost">Cost</label>
+            <input type="number" name="cost" class="form-input" placeholder="0.00" min="0" step="0.01">
+        </div>
+    </div>
+
+    <!-- Category & Type -->
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-category">Category *</label>
+            <select name="category" class="form-select" required>
+                <option value="" data-i18n="products-select-category">Select category...</option>
+                <option value="software" data-i18n="products-cat-software">Software</option>
+                <option value="hardware" data-i18n="products-cat-hardware">Hardware</option>
+                <option value="subscription" data-i18n="products-cat-subscription">Subscription</option>
+                <option value="consulting" data-i18n="products-cat-consulting">Consulting</option>
+                <option value="training" data-i18n="products-cat-training">Training</option>
+                <option value="support" data-i18n="products-cat-support">Support</option>
+                <option value="other" data-i18n="products-cat-other">Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-unit">Unit</label>
+            <select name="unit" class="form-select">
+                <option value="unit" data-i18n="products-unit-unit">Unit</option>
+                <option value="license" data-i18n="products-unit-license">License</option>
+                <option value="seat" data-i18n="products-unit-seat">Seat</option>
+                <option value="hour" data-i18n="products-unit-hour">Hour</option>
+                <option value="month" data-i18n="products-unit-month">Month</option>
+                <option value="year" data-i18n="products-unit-year">Year</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Status -->
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-status">Status</label>
+            <select name="status" class="form-select">
+                <option value="active" data-i18n="products-status-active">Active</option>
+                <option value="inactive" data-i18n="products-status-inactive">Inactive</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-taxable">Taxable</label>
+            <select name="taxable" class="form-select">
+                <option value="yes" data-i18n="common-yes">Yes</option>
+                <option value="no" data-i18n="common-no">No</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="form-btn secondary" onclick="closeProductsModal()" data-i18n="common-cancel">Cancel</button>
+        <button type="submit" class="form-btn primary" data-i18n="products-create">Create Product</button>
+    </div>
+</form>

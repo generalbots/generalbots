@@ -1,0 +1,890 @@
+<!-- Paper - Single Page Actionable Notes -->
+<div class="paper-app" id="paper-app">
+    <!-- Header -->
+    <header class="paper-header">
+        <div class="header-left">
+            <h1 class="paper-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span>Paper</span>
+            </h1>
+        </div>
+        <div class="header-center">
+            <span class="paper-date" id="paper-date"></span>
+        </div>
+        <div class="header-right">
+            <div class="sync-status" id="sync-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Synced</span>
+            </div>
+            <button class="btn-icon" onclick="showHistory()" title="History">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+            </button>
+            <button class="btn-icon" onclick="showSettings()" title="Settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="paper-main">
+        <div class="paper-container">
+            <!-- The single note area -->
+            <div class="paper-note" id="paper-note">
+                <div
+                    class="note-content"
+                    id="note-content"
+                    contenteditable="true"
+                    spellcheck="true"
+                    data-placeholder="Start writing... Type anything - meeting notes, ideas, tasks, reminders. Press the ✨ button to transform your notes into actions."
+                    oninput="handleNoteInput()"
+                    onpaste="handlePaste(event)"
+                ></div>
+            </div>
+
+            <!-- Quick format bar (appears on text selection) -->
+            <div class="format-popup hidden" id="format-popup">
+                <button class="format-btn" onclick="formatText('bold')" title="Bold">
+                    <strong>B</strong>
+                </button>
+                <button class="format-btn" onclick="formatText('italic')" title="Italic">
+                    <em>I</em>
+                </button>
+                <button class="format-btn" onclick="formatText('underline')" title="Underline">
+                    <u>U</u>
+                </button>
+                <span class="format-divider"></span>
+                <button class="format-btn" onclick="formatText('insertUnorderedList')" title="Bullet List">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"/>
+                        <line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <circle cx="3" cy="6" r="1" fill="currentColor"/>
+                        <circle cx="3" cy="12" r="1" fill="currentColor"/>
+                        <circle cx="3" cy="18" r="1" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="format-btn" onclick="formatText('insertOrderedList')" title="Numbered List">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="10" y1="6" x2="21" y2="6"/>
+                        <line x1="10" y1="12" x2="21" y2="12"/>
+                        <line x1="10" y1="18" x2="21" y2="18"/>
+                        <text x="3" y="8" font-size="8" fill="currentColor">1</text>
+                        <text x="3" y="14" font-size="8" fill="currentColor">2</text>
+                        <text x="3" y="20" font-size="8" fill="currentColor">3</text>
+                    </svg>
+                </button>
+                <button class="format-btn" onclick="insertCheckbox()" title="Checkbox">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Action Button - The Magic Button -->
+    <div class="action-button-container">
+        <button class="action-button" id="action-button" onclick="processNotes()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+                <path d="M5 19l1 3 3-1-1-3-3 1z"/>
+                <path d="M19 5l-1-3-3 1 1 3 3-1z"/>
+            </svg>
+            <span>Transform to Actions</span>
+        </button>
+        <div class="action-hint">AI will create tasks, events, emails & files from your notes</div>
+    </div>
+
+    <!-- Footer with stats -->
+    <footer class="paper-footer">
+        <div class="footer-left">
+            <span class="word-count"><span id="word-count">0</span> words</span>
+            <span class="char-count"><span id="char-count">0</span> characters</span>
+        </div>
+        <div class="footer-center">
+            <span class="last-saved" id="last-saved">Not saved yet</span>
+        </div>
+        <div class="footer-right">
+            <button class="btn-text" onclick="clearNote()">Clear</button>
+            <button class="btn-text" onclick="exportNote()">Export</button>
+        </div>
+    </footer>
+
+    <!-- Processing Modal -->
+    <div class="modal hidden" id="processing-modal">
+        <div class="modal-content modal-processing">
+            <div class="processing-animation">
+                <div class="processing-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+                    </svg>
+                </div>
+                <div class="processing-spinner"></div>
+            </div>
+            <h3>Analyzing your notes...</h3>
+            <p id="processing-status">Identifying actionable items</p>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div class="modal hidden" id="results-modal">
+        <div class="modal-content modal-results">
+            <div class="modal-header">
+                <h3>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+                    </svg>
+                    Actions Found
+                </h3>
+                <button class="btn-close" onclick="hideModal('results-modal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="results-summary" id="results-summary">
+                    <!-- Summary stats -->
+                </div>
+                <div class="results-list" id="results-list">
+                    <!-- Action items will be rendered here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideModal('results-modal')">Review Later</button>
+                <button class="btn-primary" onclick="executeAllActions()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Execute All Actions
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal hidden" id="history-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Note History</h3>
+                <button class="btn-close" onclick="hideModal('history-modal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="history-list" id="history-list">
+                    <!-- History items -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal hidden" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="btn-close" onclick="hideModal('settings-modal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label>Auto-save</label>
+                    <label class="toggle">
+                        <input type="checkbox" id="setting-autosave" checked onchange="updateSetting('autosave', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label>Default calendar for events</label>
+                    <select id="setting-calendar" onchange="updateSetting('calendar', this.value)">
+                        <option value="default">Default Calendar</option>
+                        <option value="work">Work</option>
+                        <option value="personal">Personal</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Default task list</label>
+                    <select id="setting-tasklist" onchange="updateSetting('tasklist', this.value)">
+                        <option value="default">Default List</option>
+                        <option value="inbox">Inbox</option>
+                        <option value="today">Today</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    --paper-bg: #fafafa;
+    --paper-surface: #ffffff;
+    --paper-border: #e5e7eb;
+    --paper-text: #1f2937;
+    --paper-text-light: #6b7280;
+    --paper-primary: #6366f1;
+    --paper-primary-dark: #4f46e5;
+    --paper-accent: #f59e0b;
+    --paper-success: #10b981;
+    --paper-danger: #ef4444;
+    --paper-note-bg: #fffef5;
+    --paper-line-color: #e8e5d8;
+}
+
+.paper-app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--paper-bg);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Header */
+.paper-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--paper-surface);
+    border-bottom: 1px solid var(--paper-border);
+}
+
+.header-left, .header-center, .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.paper-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--paper-text);
+    margin: 0;
+}
+
+.paper-logo svg {
+    color: var(--paper-primary);
+}
+
+.paper-date {
+    font-size: 14px;
+    color: var(--paper-text-light);
+}
+
+.sync-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--paper-text-light);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--paper-success);
+}
+
+.sync-status.syncing .status-dot {
+    background: var(--paper-accent);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--paper-text-light);
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--paper-bg);
+    color: var(--paper-text);
+}
+
+/* Main Content */
+.paper-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+    display: flex;
+    justify-content: center;
+}
+
+.paper-container {
+    width: 100%;
+    max-width: 800px;
+    position: relative;
+}
+
+.paper-note {
+    background: var(--paper-note-bg);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    min-height: calc(100vh - 280px);
+    position: relative;
+}
+
+.paper-note::before {
+    content: '';
+    position: absolute;
+    left: 60px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #f0c4c4;
+    opacity: 0.5;
+}
+
+.note-content {
+    padding: 32px 32px 32px 80px;
+    min-height: 400px;
+    font-size: 16px;
+    line-height: 2;
+    color: var(--paper-text);
+    outline: none;
+    background-image: repeating-linear-gradient(
+        transparent,
+        transparent 31px,
+        var(--paper-line-color) 31px,
+        var(--paper-line-color) 32px
+    );
+    background-position: 0 31px;
+}
+
+.note-content:empty::before {
+    content: attr(data-placeholder);
+    color: var(--paper-text-light);
+    pointer-events: none;
+}
+
+.note-content h1, .note-content h2, .note-content h3 {
+    font-weight: 600;
+    margin: 0 0 0.5em 0;
+}
+
+.note-content ul, .note-content ol {
+    padding-left: 20px;
+}
+
+.note-content .checkbox-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.note-content .checkbox-item input[type="checkbox"] {
+    margin-top: 6px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--paper-primary);
+}
+
+.note-content .checkbox-item.checked {
+    text-decoration: line-through;
+    color: var(--paper-text-light);
+}
+
+/* Format Popup */
+.format-popup {
+    position: absolute;
+    background: var(--paper-surface);
+    border: 1px solid var(--paper-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    z-index: 100;
+}
+
+.format-popup.hidden {
+    display: none;
+}
+
+.format-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--paper-text);
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.format-btn:hover {
+    background: var(--paper-bg);
+}
+
+.format-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--paper-border);
+    margin: 0 4px;
+}
+
+/* Action Button */
+.action-button-container {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 50;
+}
+
+.action-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, var(--paper-primary), var(--paper-primary-dark));
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    transition: all 0.3s;
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5);
+}
+
+.action-button:active {
+    transform: translateY(0);
+}
+
+.action-button svg {
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(10deg) scale(1.1); }
+    75% { transform: rotate(-10deg) scale(1.1); }
+}
+
+.action-hint {
+    font-size: 12px;
+    color: var(--paper-text-light);
+    text-align: center;
+}
+
+/* Footer */
+.paper-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--paper-surface);
+    border-top: 1px solid var(--paper-border);
+    font-size: 13px;
+    color: var(--paper-text-light);
+}
+
+.footer-left, .footer-center, .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--paper-text-light);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-text:hover {
+    color: var(--paper-text);
+    background: var(--paper-bg);
+}
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: var(--paper-surface);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-content.modal-results {
+    max-width: 600px;
+}
+
+.modal-content.modal-processing {
+    max-width: 320px;
+    padding: 48px 32px;
+    text-align: center;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--paper-border);
+}
+
+.modal-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-header h3 svg {
+    color: var(--paper-primary);
+}
+
+.btn-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--paper-text-light);
+}
+
+.btn-close:hover {
+    background: var(--paper-bg);
+    color: var(--paper-text);
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--paper-border);
+}
+
+.btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--paper-primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background: var(--paper-primary-dark);
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    background: var(--paper-bg);
+    color: var(--paper-text);
+    border: 1px solid var(--paper-border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: var(--paper-border);
+}
+
+/* Processing Animation */
+.processing-animation {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+}
+
+.processing-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--paper-primary);
+    animation: sparkle 1s ease-in-out infinite;
+}
+
+.processing-spinner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 3px solid var(--paper-border);
+    border-top-color: var(--paper-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.modal-processing h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.modal-processing p {
+    font-size: 14px;
+    color: var(--paper-text-light);
+    margin: 0;
+}
+
+/* Results */
+.results-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.summary-item {
+    text-align: center;
+    padding: 12px;
+    background: var(--paper-bg);
+    border-radius: 8px;
+}
+
+.summary-item .count {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--paper-primary);
+}
+
+.summary-item .label {
+    font-size: 11px;
+    color: var(--paper-text-light);
+    text-transform: uppercase;
+}
+
+.results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.result-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--paper-bg);
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+}
+
+.result-item.task { border-left-color: var(--paper-primary); }
+.result-item.event { border-left-color: var(--paper-success); }
+.result-item.email { border-left-color: var(--paper-accent); }
+.result-item.file { border-left-color: #8b5cf6; }
+
+.result-item-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.result-item.task .result-item-icon { background: rgba(99, 102, 241, 0.1); }
+.result-item.event .result-item-icon { background: rgba(16, 185, 129, 0.1); }
+.result-item.email .result-item-icon { background: rgba(245, 158, 11, 0.1); }
+.result-item.file .result-item-icon { background: rgba(139, 92, 246, 0.1); }
+
+.result-item-content {
+    flex: 1;
+}
+
+.result-item-title {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.result-item-meta {
+    font-size: 12px;
+    color: var(--paper-text-light);
+}
+
+.result-item-checkbox {
+    margin-top: 4px;
+}
+
+.result-item-checkbox input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--paper-primary);
+}
+
+/* Settings */
+.setting-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--paper-border);
+}
+
+.setting-group:last-child {
+    border-bottom: none;
+}
+
+.setting-group label {
+    font-size: 14px;
+    color: var(--paper-text);
+}
+
+.setting-group select {
+    padding: 8px 12px;
+    border: 1px solid var(--paper-border);
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--paper-surface);
+}
+
+.toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--paper-border);
+    border-radius: 24px;
+    transition: 0.3s;
+}
+
+.toggle-slider::before {
+    position: absolute;
+    content: '';
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle input:checked + .toggle-slider {
+    background: var(

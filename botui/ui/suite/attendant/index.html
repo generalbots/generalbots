@@ -1,0 +1,575 @@
+<!-- Attendant Console - General Bots -->
+<link rel="stylesheet" href="attendant/attendant.css" />
+
+<!-- CRM Disabled State -->
+<!-- CRM Disabled State - Hidden by default, CRM is now enabled by default -->
+<div class="crm-disabled" id="crmDisabled" style="display: none">
+            <div class="crm-disabled-icon">🚫</div>
+            <h2 data-i18n="attendant-crm-disabled">CRM Features Not Enabled</h2>
+            <p>
+                The Attendant Console requires CRM features to be enabled for
+                this bot. This allows human agents to receive and respond to
+                conversations transferred from the bot.
+            </p>
+        </div>
+
+        <!-- Main Layout - Shown by default, CRM is enabled by default -->
+<div class="attendant-layout" id="mainLayout" style="display: grid">
+            <!-- Left Sidebar - Queue -->
+            <aside class="queue-sidebar">
+                <div class="queue-header">
+                    <div class="queue-title">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                            />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        <span data-i18n="attendant-title">Attendant Console</span>
+                    </div>
+                    <div
+                        class="attendant-status"
+                        id="attendantStatus"
+                        onclick="toggleStatusDropdown()"
+                    >
+                        <div
+                            class="status-indicator online"
+                            id="statusIndicator"
+                        ></div>
+                        <div class="status-info">
+                            <div class="status-name" id="attendantName">
+                                Loading...
+                            </div>
+                            <div class="status-text" id="statusText" data-i18n="attendant-status-online">
+                                Online - Ready for conversations
+                            </div>
+                        </div>
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path d="M6 9l6 6 6-6" />
+                        </svg>
+                        <div class="status-dropdown" id="statusDropdown">
+                            <div
+                                class="status-option"
+                                onclick="setStatus('online')"
+                            >
+                                <div class="status-indicator online"></div>
+                                <span>Online</span>
+                            </div>
+                            <div
+                                class="status-option"
+                                onclick="setStatus('busy')"
+                            >
+                                <div class="status-indicator busy"></div>
+                                <span>Busy</span>
+                            </div>
+                            <div
+                                class="status-option"
+                                onclick="setStatus('away')"
+                            >
+                                <div class="status-indicator away"></div>
+                                <span>Away</span>
+                            </div>
+                            <div
+                                class="status-option"
+                                onclick="setStatus('offline')"
+                            >
+                                <div class="status-indicator offline"></div>
+                                <span>Offline</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="queue-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="waitingCount">0</div>
+                        <div class="stat-label">Waiting</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="activeCount">0</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="resolvedCount">0</div>
+                        <div class="stat-label">Resolved</div>
+                    </div>
+                </div>
+
+                <div class="queue-filters">
+                    <button
+                        class="filter-btn active"
+                        data-filter="all"
+                        onclick="filterQueue('all')"
+                    >
+                        All <span class="badge" id="allBadge">0</span>
+                    </button>
+                    <button
+                        class="filter-btn"
+                        data-filter="waiting"
+                        onclick="filterQueue('waiting')"
+                    >
+                        Waiting <span class="badge" id="waitingBadge">0</span>
+                    </button>
+                    <button
+                        class="filter-btn"
+                        data-filter="mine"
+                        onclick="filterQueue('mine')"
+                    >
+                        Mine <span class="badge" id="mineBadge">0</span>
+                    </button>
+                    <button
+                        class="filter-btn"
+                        data-filter="high"
+                        onclick="filterQueue('high')"
+                    >
+                        🔥 Priority
+                    </button>
+                </div>
+
+                <div class="conversation-list" id="conversationList">
+                    <div class="empty-queue" id="emptyQueue">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                        >
+                            <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                        <p>No conversations in queue</p>
+                        <small>New conversations will appear here</small>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Chat Area -->
+            <main class="chat-area" id="chatArea">
+                <div class="no-conversation" id="noConversation">
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    >
+                        <path
+                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                        />
+                    </svg>
+                    <h3 data-i18n="attendant-select-conversation">Select a conversation</h3>
+                    <p>
+                        Choose a conversation from the queue to start responding
+                    </p>
+                </div>
+
+                <div
+                    id="activeChat"
+                    style="display: none; flex-direction: column; height: 100%"
+                >
+                    <div class="chat-header">
+                        <div class="customer-info">
+                            <div class="customer-avatar" id="customerAvatar">
+                                ?
+                            </div>
+                            <div class="customer-details">
+                                <h3 id="customerName">Customer Name</h3>
+                                <div class="customer-status-line">
+                                    <span
+                                        class="channel-tag"
+                                        id="customerChannel"
+                                        >web</span
+                                    >
+                                    <span id="customerStatusText"
+                                        >Active now</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-actions">
+                            <button
+                                class="action-btn"
+                                onclick="showTransferModal()"
+                                title="Transfer"
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path d="M17 1l4 4-4 4" />
+                                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                                    <path d="M7 23l-4-4 4-4" />
+                                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                                </svg>
+                                Transfer
+                            </button>
+                            <button
+                                class="action-btn primary"
+                                onclick="resolveConversation()"
+                                title="Resolve"
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path d="M20 6L9 17l-5-5" />
+                                </svg>
+                                Resolve
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Messages loaded dynamically -->
+                    </div>
+
+                    <div class="chat-input-area">
+                        <div class="quick-responses" id="quickResponses">
+                            <button
+                                class="quick-response-btn"
+                                onclick="useQuickResponse('Hello! How can I help you today?')"
+                            >
+                                👋 Greeting
+                            </button>
+                            <button
+                                class="quick-response-btn"
+                                onclick="useQuickResponse('Thank you for your patience.')"
+                            >
+                                🙏 Thanks
+                            </button>
+                            <button
+                                class="quick-response-btn"
+                                onclick="useQuickResponse('Let me look into that for you.')"
+                            >
+                                🔍 Looking into it
+                            </button>
+                            <button
+                                class="quick-response-btn"
+                                onclick="useQuickResponse('Is there anything else I can help you with?')"
+                            >
+                                ❓ Anything else
+                            </button>
+                        </div>
+                        <div class="input-wrapper">
+                            <div class="input-actions">
+                                <button
+                                    class="input-action-btn"
+                                    onclick="attachFile()"
+                                    title="Attach file"
+                                >
+                                    <button class="input-action-btn" onclick="attachFile()" title="Attach file">
+                                         <svg
+                                             width="18"
+                                             height="18"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                         >
+                                             <path
+                                                 d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
+                                             />
+                                         </svg>
+                                     </button>
+                                     <button
+                                         class="input-action-btn"
+                                         onclick="polishMessage()"
+                                         title="✨ Polish message with AI"
+                                         style="color: var(--primary);"
+                                     >
+                                         <svg
+                                             width="18"
+                                             height="18"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                         >
+                                             <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+                                             <path d="M19 13l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z"/>
+                                         </svg>
+                                     </button>
+                                     <button
+                                         class="input-action-btn"
+                                         onclick="insertEmoji()"
+                                         title="Insert emoji"
+                                     >
+                                         <svg
+                                             width="18"
+                                             height="18"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                         >
+                                             <circle cx="12" cy="12" r="10" />
+                                             <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                                             <line x1="9" y1="9" x2="9.01" y2="9" />
+                                             <line x1="15" y1="9" x2="15.01" y2="9" />
+                                         </svg>
+                                     </button>
+                            </div>
+                            <textarea
+                                class="chat-input"
+                                id="chatInput"
+                                placeholder="Type your message..."
+                                rows="1"
+                            ></textarea>
+                            <button
+                                class="send-btn"
+                                id="sendBtn"
+                                onclick="sendMessage()"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <line x1="22" y1="2" x2="11" y2="13" />
+                                    <polygon
+                                        points="22 2 15 22 11 13 2 9 22 2"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar - Insights -->
+            <aside class="insights-sidebar">
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"
+                            />
+                            <path d="M12 6v6l4 2" />
+                        </svg>
+                        AI Insights
+                    </div>
+                    <div class="ai-insight" id="sentimentInsight">
+                        <div class="insight-header">
+                            <span class="insight-label"
+                                >Customer Sentiment</span
+                            >
+                        </div>
+                        <div class="insight-value">
+                            <span
+                                class="sentiment-indicator sentiment-neutral"
+                                id="sentimentValue"
+                                >😐 Neutral</span
+                            >
+                        </div>
+                    </div>
+                    <div class="ai-insight" id="intentInsight">
+                        <div class="insight-header">
+                            <span class="insight-label">Detected Intent</span>
+                        </div>
+                        <div class="insight-value" id="intentValue">
+                            Awaiting messages...
+                        </div>
+                    </div>
+                    <div class="ai-insight" id="summaryInsight">
+                        <div class="insight-header">
+                            <span class="insight-label"
+                                >Conversation Summary</span
+                            >
+                        </div>
+                        <div class="insight-value" id="summaryValue">
+                            No conversation selected
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                            />
+                        </svg>
+                        Suggested Replies
+                    </div>
+                    <div id="suggestedReplies">
+                        <div
+                            class="suggested-reply"
+                            onclick="useSuggestion(this)"
+                        >
+                            <div class="suggested-reply-text">
+                                Select a conversation to see AI-suggested
+                                replies
+                            </div>
+                            <div class="suggestion-meta">
+                                <span class="suggestion-source"
+                                    >AI Assistant</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="sidebar-section"
+                    id="customerDetails"
+                    style="display: none"
+                >
+                    <div class="section-title">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+                            />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        Customer Details
+                    </div>
+                    <div class="customer-detail-item">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value" id="detailEmail">-</div>
+                    </div>
+                    <div class="customer-detail-item">
+                        <div class="detail-label">Phone</div>
+                        <div class="detail-value" id="detailPhone">-</div>
+                    </div>
+                    <div class="customer-detail-item">
+                        <div class="detail-label">Location</div>
+                        <div class="detail-value" id="detailLocation">-</div>
+                    </div>
+                    <div class="customer-detail-item">
+                        <div class="detail-label">Tags</div>
+                        <div class="tags-container" id="detailTags">
+                            <span class="tag">new-customer</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        Previous Conversations
+                    </div>
+                    <div id="conversationHistory">
+                        <div
+                            class="history-item"
+                            onclick="loadHistoricalConversation('123')"
+                        >
+                            <div class="history-header">
+                                <span class="history-date"
+                                    >No history available</span
+                                >
+                            </div>
+                            <div class="history-summary">
+                                Select a customer to view their history
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Transfer Modal -->
+        <div class="modal-overlay" id="transferModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 data-i18n="attendant-transfer">Transfer Conversation</h3>
+                    <button class="modal-close" onclick="closeTransferModal()">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Transfer to</label>
+                        <div class="attendant-list" id="attendantList">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Reason (optional)</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="transferReason"
+                            placeholder="e.g., Technical issue, needs specialist"
+                        />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="action-btn" onclick="closeTransferModal()">
+                        Cancel
+                    </button>
+                    <button
+                        class="action-btn primary"
+                        onclick="confirmTransfer()"
+                    >
+                        Transfer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+<script src="attendant/attendant.js"></script>

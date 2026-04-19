@@ -1,0 +1,16 @@
+name: Bottest CI
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bottest/**'
+jobs:
+  build:
+    runs-on: gbo
+    steps:
+    - name: Build
+      run: |
+        cd /opt/gbo/work/bottest
+        git reset --hard HEAD && git clean -fd
+        git pull
+        cargo build

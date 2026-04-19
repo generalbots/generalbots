@@ -1,0 +1,152 @@
+<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <marker id="arrowGray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#94A3B8"/>
+    </marker>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="800" height="450" fill="#FAFBFC"/>
+  <rect width="800" height="450" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="400" y="35" text-anchor="middle" font-size="20" font-weight="600" class="title-text">Hardware Budget Decision Tree</text>
+  <text x="400" y="55" text-anchor="middle" font-size="12" class="secondary-text">Choose the right single-board computer for your project</text>
+
+  <!-- Decision Node: Budget Question -->
+  <g transform="translate(300, 80)">
+    <rect x="0" y="0" width="200" height="50" rx="25" fill="url(#primaryGrad)" filter="url(#cardShadow)"/>
+    <text x="100" y="30" text-anchor="middle" font-size="13" font-weight="600" class="white-text">What's your budget?</text>
+  </g>
+
+  <!-- Connector Lines from Decision -->
+  <g stroke="#94A3B8" stroke-width="2" fill="none">
+    <!-- Left branch -->
+    <path d="M350 130 L350 160 L150 160 L150 190" marker-end="url(#arrowGray)"/>
+    <!-- Center branch -->
+    <path d="M400 130 L400 190" marker-end="url(#arrowGray)"/>
+    <!-- Right branch -->
+    <path d="M450 130 L450 160 L650 160 L650 190" marker-end="url(#arrowGray)"/>
+  </g>
+
+  <!-- Budget Labels on Lines -->
+  <text x="200" y="155" text-anchor="middle" font-size="11" font-weight="600" class="secondary-text">Under $30</text>
+  <text x="400" y="175" text-anchor="middle" font-size="11" font-weight="600" class="secondary-text">$30 - $80</text>
+  <text x="600" y="155" text-anchor="middle" font-size="11" font-weight="600" class="secondary-text">$80 - $150</text>
+
+  <!-- Option 1: Orange Pi Zero 3 -->
+  <g transform="translate(50, 200)">
+    <rect x="0" y="0" width="200" height="140" rx="10" fill="#FFFFFF" stroke="#FCD34D" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="35" rx="10" fill="url(#orangeGrad)"/>
+    <rect x="0" y="28" width="200" height="7" fill="url(#orangeGrad)"/>
+    <text x="100" y="24" text-anchor="middle" font-size="12" font-weight="600" class="white-text">Orange Pi Zero 3</text>
+
+    <text x="100" y="60" text-anchor="middle" font-size="18" font-weight="700" class="main-text">~$20</text>
+
+    <text x="15" y="85" font-size="10" class="secondary-text">• 1GB RAM</text>
+    <text x="15" y="100" font-size="10" class="secondary-text">• Basic display</text>
+    <text x="15" y="115" font-size="10" class="secondary-text">• Simple tasks</text>
+
+    <rect x="15" y="122" width="170" height="10" rx="3" fill="#FEF3C7"/>
+    <text x="100" y="130" text-anchor="middle" font-size="8" font-weight="500" class="secondary-text">Entry Level</text>
+  </g>
+
+  <!-- Option 2: Raspberry Pi 4/5 -->
+  <g transform="translate(300, 200)">
+    <rect x="0" y="0" width="200" height="140" rx="10" fill="#FFFFFF" stroke="#A7F3D0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="35" rx="10" fill="url(#greenGrad)"/>
+    <rect x="0" y="28" width="200" height="7" fill="url(#greenGrad)"/>
+    <text x="100" y="24" text-anchor="middle" font-size="12" font-weight="600" class="white-text">Raspberry Pi 4 / 5</text>
+
+    <text x="100" y="60" text-anchor="middle" font-size="18" font-weight="700" class="main-text">$35 - $80</text>
+
+    <text x="15" y="85" font-size="10" class="secondary-text">• 2-8GB RAM</text>
+    <text x="15" y="100" font-size="10" class="secondary-text">• Full desktop</text>
+    <text x="15" y="115" font-size="10" class="secondary-text">• Most projects</text>
+
+    <rect x="15" y="122" width="170" height="10" rx="3" fill="#ECFDF5"/>
+    <text x="100" y="130" text-anchor="middle" font-size="8" font-weight="500" class="secondary-text">Recommended</text>
+  </g>
+
+  <!-- Option 3: Orange Pi 5 -->
+  <g transform="translate(550, 200)">
+    <rect x="0" y="0" width="200" height="140" rx="10" fill="#FFFFFF" stroke="#C7D2FE" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="35" rx="10" fill="url(#primaryGrad)"/>
+    <rect x="0" y="28" width="200" height="7" fill="url(#primaryGrad)"/>
+    <text x="100" y="24" text-anchor="middle" font-size="12" font-weight="600" class="white-text">Orange Pi 5</text>
+
+    <text x="100" y="60" text-anchor="middle" font-size="18" font-weight="700" class="main-text">~$89</text>
+
+    <text x="15" y="85" font-size="10" class="secondary-text">• 8-16GB RAM + NPU</text>
+    <text x="15" y="100" font-size="10" class="secondary-text">• Local AI / LLM</text>
+    <text x="15" y="115" font-size="10" class="secondary-text">• Edge AI ready</text>
+
+    <rect x="15" y="122" width="170" height="10" rx="3" fill="#EEF2FF"/>
+    <text x="100" y="130" text-anchor="middle" font-size="8" font-weight="500" class="secondary-text">Best for Local AI</text>
+  </g>
+
+  <!-- Use Case Icons/Labels -->
+  <g transform="translate(50, 365)">
+    <rect x="0" y="0" width="200" height="60" rx="8" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+    <text x="100" y="22" text-anchor="middle" font-size="10" font-weight="600" class="main-text">Best For</text>
+    <text x="100" y="40" text-anchor="middle" font-size="9" class="secondary-text">Sensors, displays</text>
+    <text x="100" y="52" text-anchor="middle" font-size="9" class="secondary-text">Simple automation</text>
+  </g>
+
+  <g transform="translate(300, 365)">
+    <rect x="0" y="0" width="200" height="60" rx="8" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1"/>
+    <text x="100" y="22" text-anchor="middle" font-size="10" font-weight="600" class="main-text">Best For</text>
+    <text x="100" y="40" text-anchor="middle" font-size="9" class="secondary-text">General projects</text>
+    <text x="100" y="52" text-anchor="middle" font-size="9" class="secondary-text">Home assistant, kiosk</text>
+  </g>
+
+  <g transform="translate(550, 365)">
+    <rect x="0" y="0" width="200" height="60" rx="8" fill="#EEF2FF" stroke="#A5B4FC" stroke-width="1"/>
+    <text x="100" y="22" text-anchor="middle" font-size="10" font-weight="600" class="main-text">Best For</text>
+    <text x="100" y="40" text-anchor="middle" font-size="9" class="secondary-text">Offline LLM, AI voice</text>
+    <text x="100" y="52" text-anchor="middle" font-size="9" class="secondary-text">Edge computing</text>
+  </g>
+</svg>

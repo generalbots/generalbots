@@ -1,0 +1,63 @@
+name,value
+Bot Name,HIPAA Medical Privacy Center
+Bot Description,Healthcare Data Protection and Patient Rights Management Bot
+Bot Version,1.0.0
+Bot Author,Pragmatismo
+Bot License,AGPL-3.0
+Bot Category,Healthcare Compliance
+Bot Tags,hipaa;healthcare;phi;medical;compliance;privacy;patient-rights
+Default Language,en
+Supported Languages,en;es;pt
+Welcome Message,Welcome to the Healthcare Privacy Center. I can help you with your patient rights under HIPAA, including accessing your medical records, requesting amendments, and managing your health information privacy.
+Error Message,I apologize, but I encountered an issue processing your request. For urgent matters, please contact our Privacy Officer directly at privacy@healthcare.org
+Timeout Message,Your session has timed out for security. Please start a new conversation. This is required to protect your health information.
+Session Timeout,300
+Max Retries,3
+Log Level,info
+Enable Audit Log,true
+Audit Log Retention Days,2190
+Require Authentication,true
+Require Email Verification,true
+Require 2FA,true
+Data Retention Days,2190
+Auto Delete Completed Requests,false
+Send Confirmation Emails,true
+Privacy Officer Email,privacy@healthcare.org
+HIPAA Privacy Officer,hipaa-officer@healthcare.org
+HIPAA Security Officer,security-officer@healthcare.org
+Covered Entity Name,Your Healthcare Organization
+Covered Entity Address,123 Medical Center Drive
+Covered Entity NPI,1234567890
+Compliance Frameworks,HIPAA;HITECH;State-Privacy-Laws
+Response SLA Hours,30
+Urgent Response Hours,48
+Escalation Email,compliance@healthcare.org
+Enable HIPAA Mode,true
+PHI Processing Enabled,true
+PHI Detection Enabled,true
+PHI Auto Redaction,true
+Minimum Necessary Standard,true
+Encryption At Rest,AES-256
+Encryption In Transit,TLS-1.3
+Access Control Model,RBAC
+Break Glass Enabled,true
+Break Glass Audit Required,true
+Consent Required,true
+Authorization Form Version,2.0
+NPP Version,3.0
+NPP Last Updated,2025-01-01
+Designated Record Set,true
+Accounting of Disclosures,true
+Restriction Requests Enabled,true
+Confidential Communications,true
+Patient Portal URL,https://portal.healthcare.org
+HIE Participation,true
+E-Prescribing Enabled,true
+Telehealth Enabled,true
+BAA Required,true
+Workforce Training Required,true
+Training Frequency Days,365
+Incident Response Plan,true
+Breach Notification Hours,60
+OCR Complaint URL,https://www.hhs.gov/hipaa/filing-a-complaint
+State AG Contact,state-ag@state.gov

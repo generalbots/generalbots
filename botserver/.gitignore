@@ -1,0 +1,17 @@
+.tmp*
+.tmp/*
+*.log
+target*
+.env
+*.env
+work
+*.out
+bin
+botserver-stack
+*logfile*
+*-log*
+docs/book
+*.rdb
+botserver-installers
+.git-rewrite
+vault-unseal-keys

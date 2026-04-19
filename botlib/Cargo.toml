@@ -1,0 +1,44 @@
+[package]
+name = "botlib"
+version = "6.3.0"
+edition = "2021"
+description = "Shared library for General Bots - common types, utilities, and HTTP client"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+keywords = ["bot", "chatbot", "ai", "conversational", "library"]
+categories = ["api-bindings", "web-programming"]
+
+[features]
+default = ["database", "i18n"]
+full = ["database", "http-client", "validation", "resilience", "i18n"]
+database = ["i18n"]
+http-client = ["dep:reqwest"]
+validation = []
+resilience = []
+i18n = ["dep:rust-embed"]
+
+[dependencies]
+# Core
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+chrono = { workspace = true, features = ["serde", "clock"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+toml = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time"] }
+
+# Optional: HTTP Client
+reqwest = { workspace = true, features = ["json", "rustls-tls"], optional = true }
+
+# Optional: i18n
+rust-embed = { workspace = true, optional = true, features = ["debug-embed"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }
+
+[lints]
+workspace = true

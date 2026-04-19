@@ -1,0 +1,51 @@
+<link rel="stylesheet" href="/suite/css/editor.css" />
+
+<div class="botcoder-editor-container">
+    <div class="botcoder-sidebar">
+        <div class="botcoder-sidebar-header">
+            <h3>Files</h3>
+            <button class="botcoder-btn-icon" onclick="botCoderEditor.refreshFiles()" title="Refresh">↻</button>
+        </div>
+        <div id="botcoderFileTree" class="botcoder-file-tree">
+            <!-- Files injected here -->
+            <div class="botcoder-loading">Loading workspace...</div>
+        </div>
+    </div>
+    
+    <div class="botcoder-main-area">
+        <div class="botcoder-tabs" id="botcoderTabs">
+            <!-- Tabs injected here -->
+        </div>
+        
+        <div class="botcoder-toolbar">
+            <div class="botcoder-toolbar-left">
+                <span id="botcoderCurrentFile" class="botcoder-current-file">No file open</span>
+                <span id="botcoderFileStatus" class="botcoder-file-status"></span>
+            </div>
+            <div class="botcoder-toolbar-right">
+                <button class="botcoder-btn" onclick="botCoderEditor.saveCurrentFile()" title="Save (Ctrl+S)">Save</button>
+                <button class="botcoder-btn botcoder-btn-primary" onclick="botCoderEditor.publishFile()" title="Publish">Publish</button>
+            </div>
+        </div>
+        
+        <div id="monacoEditorContainer" class="monaco-editor-container"></div>
+    </div>
+</div>
+
+<script>
+    // Load VS AMD loader before initializing editor
+    if (typeof require === 'undefined') {
+        const script = document.createElement('script');
+        script.src = '/suite/js/vendor/vs/loader.js';
+        script.onload = () => {
+            const editorScript = document.createElement('script');
+            editorScript.src = '/suite/js/editor.js';
+            document.body.appendChild(editorScript);
+        };
+        document.body.appendChild(script);
+    } else {
+        const editorScript = document.createElement('script');
+        editorScript.src = '/suite/js/editor.js';
+        document.body.appendChild(editorScript);
+    }
+</script>

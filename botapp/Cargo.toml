@@ -1,0 +1,46 @@
+[package]
+name = "botapp"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots App - Tauri wrapper for desktop/mobile"
+license = "AGPL-3.0"
+repository = "https://github.com/GeneralBots/BotServer"
+keywords = ["bot", "ai", "chatbot", "tauri", "desktop"]
+categories = ["gui", "network-programming"]
+
+[dependencies]
+# Core from botlib
+botlib = { workspace = true, features = ["http-client"] }
+
+# Tauri
+tauri = { workspace = true, features = ["tray-icon", "image"] }
+tauri-plugin-dialog = { workspace = true }
+tauri-plugin-opener = { workspace = true }
+
+# Common
+anyhow = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
+dirs = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["full"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+
+# Unix process control
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+image = { workspace = true }
+thiserror = { workspace = true }
+
+[features]
+default = ["desktop"]
+desktop = ["desktop-tray"]
+desktop-tray = []
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[lints]
+workspace = true

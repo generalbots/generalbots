@@ -1,0 +1,119 @@
+name: BotUI CI/CD
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_BUILD_JOBS: 8
+  CARGO_NET_RETRY: 10
+  RUSTC_WRAPPER: sccache
+  WORKSPACE: /opt/gbo/data/botui
+  CARGO_TARGET_DIR: /opt/gbo/data/botui/target
+  PATH: /home/gbuser/.cargo/bin:/home/gbuser/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+jobs:
+  build:
+    runs-on: gbo
+
+    steps:
+    - name: Setup Git
+      run: |
+        git config --global http.sslVerify false
+        git config --global --add safe.directory "*"
+
+    - name: Setup Workspace
+      run: |
+        mkdir -p $WORKSPACE
+        cd $WORKSPACE
+        # Update or clone botlib
+        if [ -d botlib/.git ]; then
+          git -C botlib fetch --depth 1 origin main && git -C botlib checkout FETCH_HEAD
+        else
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botlib.git botlib
+        fi
+        # Update or clone botui
+        if [ -d botui/.git ]; then
+          git -C botui fetch --depth 1 origin main && git -C botui checkout FETCH_HEAD
+        else
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botui.git botui
+        fi
+        # Get workspace Cargo.toml from gb and strip unused members
+        if [ -d /opt/gbo/data/gb-ws/.git ]; then
+          git -C /opt/gbo/data/gb-ws fetch --depth 1 origin main && git -C /opt/gbo/data/gb-ws checkout FETCH_HEAD
+        else
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git /opt/gbo/data/gb-ws
+        fi
+        cp /opt/gbo/data/gb-ws/Cargo.toml Cargo.toml
+        for m in botapp botdevice bottest botserver botbook botmodels botplugin bottemplates; do
+          grep -v "\"$m\"" Cargo.toml > /tmp/c.toml && mv /tmp/c.toml Cargo.toml
+        done
+
+    - name: Install system dependencies
+      run: |
+        PKGS="libpq-dev libssl-dev liblzma-dev pkg-config"
+        MISSING=""
+        for pkg in $PKGS; do
+          dpkg -s "$pkg" >/dev/null 2>&1 || MISSING="$MISSING $pkg"
+        done
+        if [ -n "$MISSING" ]; then
+          sudo apt-get update -qq -o Acquire::Retries=3 -o Acquire::http::Timeout=30
+          sudo apt-get install -y --no-install-recommends $MISSING
+        else
+          echo "All system dependencies already installed"
+        fi
+
+    - name: Clean up all workspaces
+      run: |
+        set -e
+        SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
+        echo "=== Cleaning up all workspaces on system container ==="
+        # Clean /opt/gbo/data/botui workspace (keep only target)
+        ssh $SSH_ARGS system "find /opt/gbo/data/botui -maxdepth 1 ! -path '*/target' ! -path '*/.git' -print0 2>/dev/null | xargs -0 rm -rf || true"
+        # Clean /opt/gbo/data/botui/target (keep only current build)
+        ssh $SSH_ARGS system "find /opt/gbo/data/botui/target -name '*.rlib' -type f -printf '%T@%p\n' 2>/dev/null | sort -r | tail -n +4 | while read t f; do [ -n \"\$f\" ] && rm -f \"\$f\"; done"
+        # Clean alm-ci workspaces (keep only what CI uses)
+        ssh $SSH_ARGS system "find /opt/gbo/data -maxdepth 2 ! -path '*/botserver' ! -path '*/botui' ! -path '*/gb-ws' -print0 2>/dev/null | xargs -0 rm -rf || true"
+        # Clean old log files
+        ssh $SSH_ARGS system "find /tmp -name '*.log' -type f -mtime +7 -print0 2>/dev/null | xargs -0 rm -f || true"
+
+    - name: Build BotUI
+      working-directory: /opt/gbo/data/botui
+      run: |
+        sccache --start-server 2>/dev/null || true
+        cargo build -p botui --features embed-ui -j 8 2>&1 | tee /tmp/build.log
+        sccache --show-stats
+        ls -lh target/debug/botui
+
+    - name: Save build log
+      if: always()
+      run: cp /tmp/build.log /tmp/botui-$(date +%Y%m%d-%H%M%S).log || true
+
+    - name: Deploy via ssh tar gzip
+      run: |
+        set -e
+        SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
+        echo "=== Deploy started ==="
+        echo "Step 1: Checking binary..."
+        ls -lh /opt/gbo/data/botui/target/debug/botui
+        echo "Step 2: Backing up old binary..."
+        ssh $SSH_ARGS system "cp /opt/gbo/bin/botui /tmp/botui.bak"
+        echo "Step 3: Stopping botui service..."
+        ssh $SSH_ARGS system "sudo systemctl stop ui || true"
+        echo "Step 4: Transferring new binary..."
+        tar cf - -C /opt/gbo/data/botui/target/debug botui | gzip -1 | ssh $SSH_ARGS system "gzip -d | tar xf - -C /opt/gbo/bin && chmod +x /opt/gbo/bin/botui && chown gbuser:gbuser /opt/gbo/bin/botui && echo 'Transfer complete'"
+        echo "Step 5: Starting botui service..."
+        ssh $SSH_ARGS system "sudo systemctl start ui && echo 'BotUI started'"
+        echo "=== Deploy completed ==="
+
+    - name: Verify botui started
+      run: |
+        sleep 15
+        SSH_ARGS="-i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o BatchMode=yes"
+        ssh $SSH_ARGS system "pgrep -f botui >/dev/null && echo 'OK: ui is running' || echo 'WARNING: ui may still be starting'"
+
+    - name: Save deploy log
+      if: always()
+      run: cp /tmp/deploy.log /tmp/deploy-$(date +%Y%m%d-%H%M%S).log || true

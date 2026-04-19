@@ -1,0 +1,295 @@
+.app-icon {
+    background: var(--surface-hover, #ffffff);
+    border: 1px solid var(--border, #e5e7eb);
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.05);
+    /* removed border */
+    /* removed border bottom */
+}
+
+.workspace-bg {
+    background-color: var(--bg, #fafdfa);
+}
+
+.workspace-grid {
+    background-image:
+        linear-gradient(to right, var(--border, #f0fdf4) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border, #f0fdf4) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+/* Custom scrollbar for terminal */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--surface-active, #333);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover, #555);
+}
+
+/* Window Manager Core Styles (replacing missing Tailwind classes) */
+.window-element {
+    position: absolute;
+    width: 700px;
+    height: 500px;
+    background-color: var(--surface, white);
+    border-radius: 8px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border, #e5e7eb);
+    overflow: hidden;
+    z-index: 100;
+}
+
+.window-header {
+    height: 40px;
+    background-color: var(--surface, #ffffff);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    user-select: none;
+    cursor: move;
+    position: relative;
+    z-index: 10;
+}
+
+.window-header .font-mono {
+    font-family: "Fira Code", monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent, #16a34a); /* brand-600 */
+    letter-spacing: 0.025em;
+}
+
+.window-header-controls {
+    display: flex;
+    gap: 12px;
+    color: var(--text-muted, #9ca3af);
+}
+
+.window-header button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    font-size: 14px;
+}
+
+.window-header .btn-minimize:hover,
+.window-header .btn-maximize:hover {
+    color: var(--text, #4b5563);
+}
+
+.window-header .btn-close:hover {
+    color: var(--error, #ef4444);
+}
+
+.window-body {
+    position: relative;
+    flex: 1 1 0%;
+    overflow-y: auto;
+    background-color: var(--bg, #fafdfa);
+    padding: 16px;
+}
+
+.w-\[700px\] {
+    width: 700px;
+}
+.h-\[500px\] {
+    height: 500px;
+}
+.bg-white {
+    background-color: #fff;
+}
+.rounded-lg {
+    border-radius: 0.5rem;
+}
+.shadow-2xl {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+.flex {
+    display: flex;
+}
+.flex-col {
+    flex-direction: column;
+}
+.border {
+    border-width: 1px;
+    border-style: solid;
+}
+.border-gray-200 {
+    border-color: #e5e7eb;
+}
+.overflow-hidden {
+    overflow: hidden;
+}
+.absolute {
+    position: absolute;
+}
+
+.h-10 {
+    height: 2.5rem;
+}
+.bg-white\/95 {
+    background-color: var(--surface, rgba(255, 255, 255, 0.95));
+}
+.backdrop-blur {
+    backdrop-filter: blur(8px);
+}
+.items-center {
+    align-items: center;
+}
+.justify-between {
+    justify-content: space-between;
+}
+.px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+.border-b {
+    border-bottom-width: 1px;
+}
+.select-none {
+    user-select: none;
+}
+.cursor-move {
+    cursor: move;
+}
+.font-mono {
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+}
+.text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+}
+.font-bold {
+    font-weight: 700;
+}
+.text-brand-600 {
+    color: var(--accent, #84d669);
+}
+.tracking-wide {
+    letter-spacing: 0.025em;
+}
+.space-x-3 > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-x-reverse: 0;
+    margin-right: calc(0.75rem * var(--tw-space-x-reverse));
+    margin-left: calc(0.75rem * calc(1 - var(--tw-space-x-reverse)));
+}
+.text-gray-400 {
+    color: var(--text-muted, #9ca3af);
+}
+.hover\:text-gray-600:hover {
+    color: var(--text, #4b5563);
+}
+.hover\:text-red-500:hover {
+    color: var(--error, #ef4444);
+}
+.relative {
+    position: relative;
+}
+.flex-1 {
+    flex: 1 1 0%;
+}
+.overflow-y-auto {
+    overflow-y: auto;
+}
+.bg-\[\#fafdfa\] {
+    background-color: var(--bg, #fafdfa);
+}
+
+.window-header {
+    height: 40px;
+    background-color: var(--surface, #ffffff);
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    user-select: none;
+    cursor: move;
+    position: relative;
+    z-index: 10;
+}
+.window-header .font-mono {
+    font-family: "Fira Code", monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent, #16a34a);
+    letter-spacing: 0.025em;
+}
+.window-header .flex {
+    display: flex;
+    gap: 12px;
+    color: var(--text-muted, #9ca3af);
+}
+.window-header button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+.window-header button:hover {
+    color: var(--text, #4b5563);
+}
+.window-header .btn-close:hover {
+    color: var(--error, #ef4444);
+}
+.window-content {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    background-color: var(--bg, #ffffff);
+}
+
+/* Hide background content when window is maximized */
+body.window-maximized .sidebar,
+body.window-maximized .toolbar,
+body.window-maximized .sidebar-item,
+body.window-maximized .desktop-icon,
+body.window-maximized .panel-grid,
+body.window-maximized .workspace-grid,
+body.window-maximized .bg-grid,
+body.window-maximized .bg-svg {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Ensure maximized window fills the screen without minibar offset */
+body.window-maximized .window-element {
+    z-index: 9998 !important; /* Lower than minibar's 9999 */
+    top: 0 !important; /* No minibar offset - start at top */
+    height: 100vh !important; /* Fill entire screen height */
+    width: 100vw !important; /* Fill entire screen width */
+}
+
+/* Ensure window body is opaque */
+.window-body {
+    background-color: var(--bg, #fafdfa) !important;
+    opacity: 1 !important;
+}
+
+/* Ensure window element is fully opaque */
+.window-element {
+    background-color: var(--surface, #ffffff) !important;
+    opacity: 1 !important;
+}
+
+/* Fix theme dropdown background - use surface color to adapt to theme */
+/* This overrides hardcoded black background from other CSS files */
+#themeDropdown,
+select.theme-dropdown {
+    background: var(--surface) !important;
+}

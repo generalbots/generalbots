@@ -1,0 +1,257 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 700">
+  <defs>
+    <linearGradient id="bgGradDetail" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tableGradDetail" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f3460;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadowDetail">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="700" fill="url(#bgGradDetail)" rx="12"/>
+
+  <!-- Title -->
+  <text x="550" y="35" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="20" font-weight="bold">Detailed Database Schema</text>
+
+  <!-- Organizations Table -->
+  <g transform="translate(30, 60)" filter="url(#shadowDetail)">
+    <rect width="160" height="145" rx="6" fill="url(#tableGradDetail)" stroke="#e94560" stroke-width="2"/>
+    <rect width="160" height="26" rx="6" fill="#e94560"/>
+    <text x="80" y="18" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">organizations</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#a0a0a0" font-family="monospace" font-size="9">name VARCHAR(255)</text>
+    <text x="10" y="70" fill="#a0a0a0" font-family="monospace" font-size="9">slug VARCHAR(100)</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">settings JSONB</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">updated_at TIMESTAMPTZ</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">deleted_at TIMESTAMPTZ</text>
+    <text x="10" y="140" fill="#60a5fa" font-family="monospace" font-size="8">IDX: slug (unique)</text>
+  </g>
+
+  <!-- Bots Table -->
+  <g transform="translate(220, 60)" filter="url(#shadowDetail)">
+    <rect width="170" height="175" rx="6" fill="url(#tableGradDetail)" stroke="#4ade80" stroke-width="2"/>
+    <rect width="170" height="26" rx="6" fill="#4ade80"/>
+    <text x="85" y="18" text-anchor="middle" fill="#1a1a2e" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">bots</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 organization_id UUID</text>
+    <text x="10" y="70" fill="#a0a0a0" font-family="monospace" font-size="9">name VARCHAR(255)</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">description TEXT</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">config JSONB</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">status VARCHAR(50)</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">llm_provider VARCHAR</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="154" fill="#a0a0a0" font-family="monospace" font-size="9">updated_at TIMESTAMPTZ</text>
+    <text x="10" y="168" fill="#60a5fa" font-family="monospace" font-size="8">IDX: org_id, name</text>
+  </g>
+
+  <!-- Users Table -->
+  <g transform="translate(30, 230)" filter="url(#shadowDetail)">
+    <rect width="170" height="205" rx="6" fill="url(#tableGradDetail)" stroke="#60a5fa" stroke-width="2"/>
+    <rect width="170" height="26" rx="6" fill="#60a5fa"/>
+    <text x="85" y="18" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">users</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 organization_id UUID</text>
+    <text x="10" y="70" fill="#a0a0a0" font-family="monospace" font-size="9">username VARCHAR(100)</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">email VARCHAR(255)</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">password_hash TEXT</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">display_name VARCHAR</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">avatar_url TEXT</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">role VARCHAR(50)</text>
+    <text x="10" y="154" fill="#a0a0a0" font-family="monospace" font-size="9">preferences JSONB</text>
+    <text x="10" y="168" fill="#a0a0a0" font-family="monospace" font-size="9">last_login TIMESTAMPTZ</text>
+    <text x="10" y="182" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="196" fill="#60a5fa" font-family="monospace" font-size="8">IDX: email (unique)</text>
+  </g>
+
+  <!-- Sessions Table -->
+  <g transform="translate(220, 260)" filter="url(#shadowDetail)">
+    <rect width="175" height="190" rx="6" fill="url(#tableGradDetail)" stroke="#f472b6" stroke-width="2"/>
+    <rect width="175" height="26" rx="6" fill="#f472b6"/>
+    <text x="87" y="18" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">sessions</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 user_id UUID</text>
+    <text x="10" y="70" fill="#f472b6" font-family="monospace" font-size="9">🔗 bot_id UUID</text>
+    <text x="10" y="84" fill="#f472b6" font-family="monospace" font-size="9">🔗 kb_collection_id UUID</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">channel VARCHAR(50)</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">channel_user_id TEXT</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">context JSONB</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">started_at TIMESTAMPTZ</text>
+    <text x="10" y="154" fill="#a0a0a0" font-family="monospace" font-size="9">last_active TIMESTAMPTZ</text>
+    <text x="10" y="168" fill="#a0a0a0" font-family="monospace" font-size="9">expires_at TIMESTAMPTZ</text>
+    <text x="10" y="182" fill="#60a5fa" font-family="monospace" font-size="8">IDX: user_id, bot_id</text>
+  </g>
+
+  <!-- Messages Table -->
+  <g transform="translate(420, 260)" filter="url(#shadowDetail)">
+    <rect width="170" height="175" rx="6" fill="url(#tableGradDetail)" stroke="#fbbf24" stroke-width="2"/>
+    <rect width="170" height="26" rx="6" fill="#fbbf24"/>
+    <text x="85" y="18" text-anchor="middle" fill="#1a1a2e" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">messages</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 session_id UUID</text>
+    <text x="10" y="70" fill="#a0a0a0" font-family="monospace" font-size="9">role VARCHAR(20)</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">content TEXT</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">metadata JSONB</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">tokens_used INTEGER</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">tool_calls JSONB</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="154" fill="#a0a0a0" font-family="monospace" font-size="9">edited_at TIMESTAMPTZ</text>
+    <text x="10" y="168" fill="#60a5fa" font-family="monospace" font-size="8">IDX: session_id, created</text>
+  </g>
+
+  <!-- KB Collections Table -->
+  <g transform="translate(420, 60)" filter="url(#shadowDetail)">
+    <rect width="170" height="160" rx="6" fill="url(#tableGradDetail)" stroke="#a78bfa" stroke-width="2"/>
+    <rect width="170" height="26" rx="6" fill="#a78bfa"/>
+    <text x="85" y="18" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">kb_collections</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 bot_id UUID</text>
+    <text x="10" y="70" fill="#a0a0a0" font-family="monospace" font-size="9">name VARCHAR(255)</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">description TEXT</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">embedding_model VARCHAR</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">chunk_size INTEGER</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">vector_config JSONB</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="154" fill="#60a5fa" font-family="monospace" font-size="8">IDX: bot_id, name</text>
+  </g>
+
+  <!-- KB Documents Table -->
+  <g transform="translate(620, 60)" filter="url(#shadowDetail)">
+    <rect width="170" height="190" rx="6" fill="url(#tableGradDetail)" stroke="#c084fc" stroke-width="2"/>
+    <rect width="170" height="26" rx="6" fill="#c084fc"/>
+    <text x="85" y="18" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">kb_documents</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 collection_id UUID</text>
+    <text x="10" y="70" fill="#a0a0a0" font-family="monospace" font-size="9">title VARCHAR(500)</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">source_path TEXT</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">content_hash VARCHAR</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">chunk_count INTEGER</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">status VARCHAR(50)</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">metadata JSONB</text>
+    <text x="10" y="154" fill="#a0a0a0" font-family="monospace" font-size="9">indexed_at TIMESTAMPTZ</text>
+    <text x="10" y="168" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="182" fill="#60a5fa" font-family="monospace" font-size="8">IDX: collection_id</text>
+  </g>
+
+  <!-- Basic Tools Table -->
+  <g transform="translate(820, 60)" filter="url(#shadowDetail)">
+    <rect width="170" height="175" rx="6" fill="url(#tableGradDetail)" stroke="#22d3d1" stroke-width="2"/>
+    <rect width="170" height="26" rx="6" fill="#22d3d1"/>
+    <text x="85" y="18" text-anchor="middle" fill="#1a1a2e" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">basic_tools</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 bot_id UUID</text>
+    <text x="10" y="70" fill="#a0a0a0" font-family="monospace" font-size="9">name VARCHAR(100)</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">description TEXT</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">source_code TEXT</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">parameters JSONB</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">is_active BOOLEAN</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">compiled_at TIMESTAMPTZ</text>
+    <text x="10" y="154" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="168" fill="#60a5fa" font-family="monospace" font-size="8">IDX: bot_id, name</text>
+  </g>
+
+  <!-- Files Table -->
+  <g transform="translate(620, 280)" filter="url(#shadowDetail)">
+    <rect width="170" height="175" rx="6" fill="url(#tableGradDetail)" stroke="#fb923c" stroke-width="2"/>
+    <rect width="170" height="26" rx="6" fill="#fb923c"/>
+    <text x="85" y="18" text-anchor="middle" fill="#1a1a2e" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">files</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 bot_id UUID</text>
+    <text x="10" y="70" fill="#f472b6" font-family="monospace" font-size="9">🔗 kb_doc_id UUID</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">path VARCHAR(1000)</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">filename VARCHAR(255)</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">mime_type VARCHAR(100)</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">size_bytes BIGINT</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">storage_key TEXT</text>
+    <text x="10" y="154" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="168" fill="#60a5fa" font-family="monospace" font-size="8">IDX: bot_id, path</text>
+  </g>
+
+  <!-- Bot Memories Table -->
+  <g transform="translate(820, 280)" filter="url(#shadowDetail)">
+    <rect width="170" height="160" rx="6" fill="url(#tableGradDetail)" stroke="#34d399" stroke-width="2"/>
+    <rect width="170" height="26" rx="6" fill="#34d399"/>
+    <text x="85" y="18" text-anchor="middle" fill="#1a1a2e" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">bot_memories</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 bot_id UUID</text>
+    <text x="10" y="70" fill="#f472b6" font-family="monospace" font-size="9">🔗 user_id UUID</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">key VARCHAR(255)</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">value JSONB</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">scope VARCHAR(50)</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">expires_at TIMESTAMPTZ</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="154" fill="#60a5fa" font-family="monospace" font-size="8">IDX: bot_id, user, key</text>
+  </g>
+
+  <!-- System Automations Table -->
+  <g transform="translate(30, 460)" filter="url(#shadowDetail)">
+    <rect width="180" height="175" rx="6" fill="url(#tableGradDetail)" stroke="#f43f5e" stroke-width="2"/>
+    <rect width="180" height="26" rx="6" fill="#f43f5e"/>
+    <text x="90" y="18" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">system_automations</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 bot_id UUID</text>
+    <text x="10" y="70" fill="#a0a0a0" font-family="monospace" font-size="9">name VARCHAR(255)</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">trigger_type VARCHAR</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">schedule JSONB</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">action JSONB</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">is_active BOOLEAN</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">last_run TIMESTAMPTZ</text>
+    <text x="10" y="154" fill="#a0a0a0" font-family="monospace" font-size="9">next_run TIMESTAMPTZ</text>
+    <text x="10" y="168" fill="#60a5fa" font-family="monospace" font-size="8">IDX: bot_id, next_run</text>
+  </g>
+
+  <!-- User Email Accounts Table -->
+  <g transform="translate(240, 475)" filter="url(#shadowDetail)">
+    <rect width="175" height="160" rx="6" fill="url(#tableGradDetail)" stroke="#06b6d4" stroke-width="2"/>
+    <rect width="175" height="26" rx="6" fill="#06b6d4"/>
+    <text x="87" y="18" text-anchor="middle" fill="#1a1a2e" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">user_email_accounts</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 user_id UUID</text>
+    <text x="10" y="70" fill="#a0a0a0" font-family="monospace" font-size="9">email VARCHAR(255)</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">provider VARCHAR(50)</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">credentials_enc TEXT</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">is_primary BOOLEAN</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">sync_status VARCHAR</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">last_sync TIMESTAMPTZ</text>
+    <text x="10" y="154" fill="#60a5fa" font-family="monospace" font-size="8">IDX: user_id, email</text>
+  </g>
+
+  <!-- Clicks/Analytics Table -->
+  <g transform="translate(445, 475)" filter="url(#shadowDetail)">
+    <rect width="165" height="160" rx="6" fill="url(#tableGradDetail)" stroke="#8b5cf6" stroke-width="2"/>
+    <rect width="165" height="26" rx="6" fill="#8b5cf6"/>
+    <text x="82" y="18" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">clicks</text>
+    <text x="10" y="42" fill="#4ade80" font-family="monospace" font-size="9">🔑 id UUID</text>
+    <text x="10" y="56" fill="#f472b6" font-family="monospace" font-size="9">🔗 session_id UUID</text>
+    <text x="10" y="70" fill="#f472b6" font-family="monospace" font-size="9">🔗 message_id UUID</text>
+    <text x="10" y="84" fill="#a0a0a0" font-family="monospace" font-size="9">event_type VARCHAR</text>
+    <text x="10" y="98" fill="#a0a0a0" font-family="monospace" font-size="9">target VARCHAR(255)</text>
+    <text x="10" y="112" fill="#a0a0a0" font-family="monospace" font-size="9">metadata JSONB</text>
+    <text x="10" y="126" fill="#a0a0a0" font-family="monospace" font-size="9">created_at TIMESTAMPTZ</text>
+    <text x="10" y="140" fill="#a0a0a0" font-family="monospace" font-size="9">ip_address INET</text>
+    <text x="10" y="154" fill="#60a5fa" font-family="monospace" font-size="8">IDX: session_id, time</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(640, 475)">
+    <rect width="350" height="145" rx="8" fill="#0f3460" opacity="0.5"/>
+    <text x="175" y="22" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Legend</text>
+
+    <text x="20" y="45" fill="#4ade80" font-family="monospace" font-size="10">🔑</text>
+    <text x="40" y="45" fill="#a0a0a0" font-family="system-ui, sans-serif" font-size="10">Primary Key (UUID)</text>
+
+    <text x="20" y="65" fill="#f472b6" font-family="monospace" font-size="10">🔗</text>
+    <text x="40" y="65" fill="#a0a0a0" font-family="system-ui, sans-serif" font-size="10">Foreign Key Reference</text>
+
+    <text x="20" y="85" fill="#60a5fa" font-family="system-ui, sans-serif" font-size="10">IDX:</text>
+    <text x="50" y="85" fill="#a0a0a0" font-family="system-ui, sans-serif" font-size="10">Database Index</text>
+
+    <text x="180" y="45" fill="#a0a0a0" font-family="system-ui, sans-serif" font-size="10">JSONB = JSON Binary</text>
+    <text x="180" y="65" fill="#a0a0a0" font-family="system-ui, sans-serif" font-size="10">TIMESTAMPTZ = Timestamp w/ TZ</text>
+    <text x="180" y="85" fill="#a0a0a0" font

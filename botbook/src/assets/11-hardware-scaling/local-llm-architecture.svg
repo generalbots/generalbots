@@ -1,0 +1,182 @@
+<svg width="900" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:0.3" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:0.3" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6"/>
+    </marker>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="400" fill="#FAFBFC"/>
+  <rect width="900" height="400" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="600" class="title-text">Local LLM Architecture</text>
+  <text x="450" y="55" text-anchor="middle" font-size="12" class="secondary-text">Offline inference with llama.cpp on embedded devices</text>
+
+  <!-- Main Container -->
+  <rect x="30" y="75" width="840" height="295" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+
+  <!-- Main Flow: User Input → botserver → llama.cpp → Response -->
+
+  <!-- User Input -->
+  <g transform="translate(60, 105)">
+    <rect x="0" y="0" width="130" height="80" rx="8" fill="#FFFFFF" stroke="#0EA5E9" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="130" height="28" rx="8" fill="url(#cyanGrad)"/>
+    <rect x="0" y="22" width="130" height="6" fill="url(#cyanGrad)"/>
+    <text x="65" y="19" text-anchor="middle" font-size="11" font-weight="600" class="white-text">User Input</text>
+
+    <text x="65" y="52" text-anchor="middle" font-size="10" class="main-text">Text / Voice</text>
+    <text x="65" y="68" text-anchor="middle" font-size="9" class="mono-text">HTTP / WebSocket</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <path d="M195 145 L240 145" stroke="url(#flowGrad)" stroke-width="3" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- BotServer -->
+  <g transform="translate(250, 95)">
+    <rect x="0" y="0" width="170" height="100" rx="8" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="170" height="28" rx="8" fill="url(#primaryGrad)"/>
+    <rect x="0" y="22" width="170" height="6" fill="url(#primaryGrad)"/>
+    <text x="85" y="19" text-anchor="middle" font-size="11" font-weight="600" class="white-text">botserver</text>
+
+    <text x="85" y="52" text-anchor="middle" font-size="10" class="main-text">Rust Runtime</text>
+    <text x="85" y="68" text-anchor="middle" font-size="9" class="mono-text">Session Manager</text>
+    <text x="85" y="84" text-anchor="middle" font-size="9" class="mono-text">Port 9000</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <path d="M425 145 L475 145" stroke="url(#flowGrad)" stroke-width="3" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- llama.cpp -->
+  <g transform="translate(485, 95)">
+    <rect x="0" y="0" width="170" height="100" rx="8" fill="#FFFFFF" stroke="#34D399" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="170" height="28" rx="8" fill="url(#greenGrad)"/>
+    <rect x="0" y="22" width="170" height="6" fill="url(#greenGrad)"/>
+    <text x="85" y="19" text-anchor="middle" font-size="11" font-weight="600" class="white-text">llama.cpp</text>
+
+    <text x="85" y="52" text-anchor="middle" font-size="10" class="main-text">Local Inference</text>
+    <text x="85" y="68" text-anchor="middle" font-size="9" class="mono-text">OpenAI API compat</text>
+    <text x="85" y="84" text-anchor="middle" font-size="9" class="mono-text">Port 8080</text>
+  </g>
+
+  <!-- Arrow 3 -->
+  <path d="M660 145 L710 145" stroke="url(#flowGrad)" stroke-width="3" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- Response -->
+  <g transform="translate(720, 105)">
+    <rect x="0" y="0" width="130" height="80" rx="8" fill="#FFFFFF" stroke="#0EA5E9" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="130" height="28" rx="8" fill="url(#cyanGrad)"/>
+    <rect x="0" y="22" width="130" height="6" fill="url(#cyanGrad)"/>
+    <text x="65" y="19" text-anchor="middle" font-size="11" font-weight="600" class="white-text">Response</text>
+
+    <text x="65" y="52" text-anchor="middle" font-size="10" class="main-text">Generated Text</text>
+    <text x="65" y="68" text-anchor="middle" font-size="9" class="mono-text">Streaming</text>
+  </g>
+
+  <!-- Lower components: SQLite and Model -->
+
+  <!-- Vertical connector from botserver -->
+  <path d="M335 200 L335 240" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- SQLite DB -->
+  <g transform="translate(250, 250)">
+    <rect x="0" y="0" width="170" height="90" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="170" height="28" rx="8" fill="#64748B"/>
+    <rect x="0" y="22" width="170" height="6" fill="#64748B"/>
+    <text x="85" y="19" text-anchor="middle" font-size="11" font-weight="600" class="white-text">SQLite DB</text>
+
+    <text x="85" y="52" text-anchor="middle" font-size="10" class="main-text">(sessions)</text>
+    <text x="85" y="68" text-anchor="middle" font-size="9" class="mono-text">Conversations</text>
+    <text x="85" y="82" text-anchor="middle" font-size="9" class="mono-text">Context history</text>
+  </g>
+
+  <!-- Vertical connector from llama.cpp -->
+  <path d="M570 200 L570 240" stroke="#10B981" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- Model GGUF -->
+  <g transform="translate(485, 250)">
+    <rect x="0" y="0" width="170" height="90" rx="8" fill="#F0FDF4" stroke="#A7F3D0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="170" height="28" rx="8" fill="url(#greenGrad)"/>
+    <rect x="0" y="22" width="170" height="6" fill="url(#greenGrad)"/>
+    <text x="85" y="19" text-anchor="middle" font-size="11" font-weight="600" class="white-text">Model (GGUF)</text>
+
+    <text x="85" y="52" text-anchor="middle" font-size="10" class="main-text">Quantized Model</text>
+    <text x="85" y="68" text-anchor="middle" font-size="9" class="mono-text">Q4_K_M format</text>
+    <text x="85" y="82" text-anchor="middle" font-size="9" class="mono-text">700MB - 4GB</text>
+  </g>
+
+  <!-- Info box -->
+  <g transform="translate(60, 230)">
+    <rect x="0" y="0" width="160" height="110" rx="8" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="1"/>
+    <text x="80" y="22" text-anchor="middle" font-size="10" font-weight="600" class="main-text">Offline Benefits</text>
+
+    <text x="15" y="45" font-size="9" class="secondary-text">✓ No internet needed</text>
+    <text x="15" y="62" font-size="9" class="secondary-text">✓ Data stays local</text>
+    <text x="15" y="79" font-size="9" class="secondary-text">✓ Zero API costs</text>
+    <text x="15" y="96" font-size="9" class="secondary-text">✓ ~2-30 tok/sec</text>
+  </g>
+
+  <!-- Model recommendations -->
+  <g transform="translate(690, 230)">
+    <rect x="0" y="0" width="160" height="110" rx="8" fill="#FEF3C7" stroke="#FCD34D" stroke-width="1"/>
+    <text x="80" y="22" text-anchor="middle" font-size="10" font-weight="600" class="main-text">Recommended</text>
+
+    <text x="15" y="45" font-size="9" class="secondary-text">2GB RAM:</text>
+    <text x="75" y="45" font-size="9" class="mono-text">TinyLlama</text>
+    <text x="15" y="62" font-size="9" class="secondary-text">4GB RAM:</text>
+    <text x="75" y="62" font-size="9" class="mono-text">Phi-2</text>
+    <text x="15" y="79" font-size="9" class="secondary-text">8GB RAM:</text>
+    <text x="75" y="79" font-size="9" class="mono-text">Llama-3-8B</text>
+    <text x="15" y="96" font-size="9" class="secondary-text">16GB RAM:</text>
+    <text x="75" y="96" font-size="9" class="mono-text">Mistral-7B</text>
+  </g>
+</svg>

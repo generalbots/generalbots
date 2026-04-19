@@ -1,0 +1,555 @@
+<section class="onboarding-wizard">
+    <div class="wizard-container">
+        <div class="wizard-sidebar">
+            <div class="wizard-logo">
+                <img src="/suite/assets/icons/gb-logo.svg" alt="General Bots" width="48" height="48">
+            </div>
+            <div class="wizard-steps">
+                <div class="wizard-step active" data-step="1">
+                    <div class="step-indicator">
+                        <span class="step-number">1</span>
+                        <svg class="step-check" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="step-info">
+                        <span class="step-title">Welcome</span>
+                        <span class="step-desc">Tell us about yourself</span>
+                    </div>
+                </div>
+                <div class="wizard-step" data-step="2">
+                    <div class="step-indicator">
+                        <span class="step-number">2</span>
+                        <svg class="step-check" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="step-info">
+                        <span class="step-title">Organization</span>
+                        <span class="step-desc">Create your workspace</span>
+                    </div>
+                </div>
+                <div class="wizard-step" data-step="3">
+                    <div class="step-indicator">
+                        <span class="step-number">3</span>
+                        <svg class="step-check" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="step-info">
+                        <span class="step-title">Choose Plan</span>
+                        <span class="step-desc">Select your subscription</span>
+                    </div>
+                </div>
+                <div class="wizard-step" data-step="4">
+                    <div class="step-indicator">
+                        <span class="step-number">4</span>
+                        <svg class="step-check" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="step-info">
+                        <span class="step-title">Payment</span>
+                        <span class="step-desc">Add payment method</span>
+                    </div>
+                </div>
+                <div class="wizard-step" data-step="5">
+                    <div class="step-indicator">
+                        <span class="step-number">5</span>
+                        <svg class="step-check" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="step-info">
+                        <span class="step-title">Get Started</span>
+                        <span class="step-desc">Create your first bot</span>
+                    </div>
+                </div>
+            </div>
+            <div class="wizard-help">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>Need help? <a href="/docs/getting-started">View guide</a></span>
+            </div>
+        </div>
+
+        <div class="wizard-content">
+            <div class="wizard-panel active" data-panel="1">
+                <div class="panel-header">
+                    <h1>Welcome to General Bots!</h1>
+                    <p>Let's get you set up in just a few minutes. First, tell us a bit about yourself.</p>
+                </div>
+                <form class="panel-form" id="welcomeForm">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="full_name" required placeholder="John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Your Role</label>
+                        <select id="role" name="role" required>
+                            <option value="">Select your role...</option>
+                            <option value="developer">Developer / Engineer</option>
+                            <option value="product">Product Manager</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="sales">Sales</option>
+                            <option value="support">Customer Support</option>
+                            <option value="executive">Executive / Founder</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="useCase">What do you want to build?</label>
+                        <select id="useCase" name="use_case" required>
+                            <option value="">Select primary use case...</option>
+                            <option value="customer_support">Customer Support Bot</option>
+                            <option value="sales_assistant">Sales Assistant</option>
+                            <option value="internal_kb">Internal Knowledge Base</option>
+                            <option value="lead_gen">Lead Generation</option>
+                            <option value="onboarding">Employee Onboarding</option>
+                            <option value="ecommerce">E-commerce Assistant</option>
+                            <option value="other">Something else</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>How did you hear about us?</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="source" value="search">
+                                <span>Search Engine</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="source" value="social">
+                                <span>Social Media</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="source" value="referral">
+                                <span>Friend / Colleague</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="source" value="other">
+                                <span>Other</span>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+                <div class="panel-actions">
+                    <div></div>
+                    <button class="btn-primary" onclick="nextStep(1)">
+                        Continue
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="wizard-panel" data-panel="2">
+                <div class="panel-header">
+                    <h1>Create Your Organization</h1>
+                    <p>Your organization is where you'll manage bots, team members, and knowledge bases.</p>
+                </div>
+                <form class="panel-form" id="orgForm">
+                    <div class="form-group">
+                        <label for="orgName">Organization Name</label>
+                        <input type="text" id="orgName" name="org_name" required placeholder="Acme Corporation">
+                        <span class="form-hint">This will be visible to your team members</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="orgSlug">Organization URL</label>
+                        <div class="input-with-prefix">
+                            <span class="input-prefix">app.generalbots.com/</span>
+                            <input type="text" id="orgSlug" name="org_slug" required placeholder="acme" pattern="[a-z0-9-]+">
+                        </div>
+                        <span class="form-hint">Only lowercase letters, numbers, and hyphens</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="teamSize">Team Size</label>
+                        <select id="teamSize" name="team_size" required>
+                            <option value="">How many people will use this?</option>
+                            <option value="1">Just me</option>
+                            <option value="2-5">2-5 people</option>
+                            <option value="6-20">6-20 people</option>
+                            <option value="21-50">21-50 people</option>
+                            <option value="51+">50+ people</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="industry">Industry</label>
+                        <select id="industry" name="industry">
+                            <option value="">Select your industry (optional)</option>
+                            <option value="technology">Technology</option>
+                            <option value="healthcare">Healthcare</option>
+                            <option value="finance">Finance / Banking</option>
+                            <option value="retail">Retail / E-commerce</option>
+                            <option value="education">Education</option>
+                            <option value="manufacturing">Manufacturing</option>
+                            <option value="consulting">Consulting / Services</option>
+                            <option value="government">Government</option>
+                            <option value="nonprofit">Non-profit</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </form>
+                <div class="panel-actions">
+                    <button class="btn-secondary" onclick="prevStep(2)">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back
+                    </button>
+                    <button class="btn-primary" onclick="nextStep(2)">
+                        Continue
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="wizard-panel" data-panel="3">
+                <div class="panel-header">
+                    <h1>Choose Your Plan</h1>
+                    <p>Select the plan that best fits your needs. You can upgrade or downgrade anytime.</p>
+                </div>
+                <div class="billing-toggle">
+                    <span class="toggle-label">Monthly</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="annualToggle" onchange="toggleBilling()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Annual <span class="save-badge">Save 20%</span></span>
+                </div>
+                <div class="plans-grid">
+                    <div class="plan-card" data-plan="free">
+                        <div class="plan-header">
+                            <h3>Free</h3>
+                            <p>For individuals and small projects</p>
+                        </div>
+                        <div class="plan-price">
+                            <span class="price-amount">$0</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                5 team members
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                2 bots
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                1 GB storage
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                1,000 messages/month
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Community support
+                            </li>
+                        </ul>
+                        <button class="btn-plan" onclick="selectPlan('free')">Select Free</button>
+                    </div>
+
+                    <div class="plan-card popular" data-plan="pro">
+                        <div class="popular-badge">Most Popular</div>
+                        <div class="plan-header">
+                            <h3>Pro</h3>
+                            <p>For growing teams</p>
+                        </div>
+                        <div class="plan-price">
+                            <span class="price-amount" data-monthly="49" data-annual="39">$49</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                50 team members
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                20 bots
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                50 GB storage
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                100,000 messages/month
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Email support
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Custom branding
+                            </li>
+                        </ul>
+                        <button class="btn-plan primary" onclick="selectPlan('pro')">Select Pro</button>
+                    </div>
+
+                    <div class="plan-card" data-plan="business">
+                        <div class="plan-header">
+                            <h3>Business</h3>
+                            <p>For larger organizations</p>
+                        </div>
+                        <div class="plan-price">
+                            <span class="price-amount" data-monthly="99" data-annual="79">$99</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                200 team members
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                100 bots
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                200 GB storage
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Unlimited messages
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Priority support
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                SSO / SAML
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Audit logs
+                            </li>
+                        </ul>
+                        <button class="btn-plan" onclick="selectPlan('business')">Select Business</button>
+                    </div>
+
+                    <div class="plan-card enterprise" data-plan="enterprise">
+                        <div class="plan-header">
+                            <h3>Enterprise</h3>
+                            <p>For large-scale deployments</p>
+                        </div>
+                        <div class="plan-price">
+                            <span class="price-amount">Custom</span>
+                            <span class="price-period">pricing</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Unlimited everything
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Dedicated support
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Custom integrations
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                SLA guarantee
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                On-premise option
+                            </li>
+                        </ul>
+                        <button class="btn-plan" onclick="contactSales()">Contact Sales</button>
+                    </div>
+                </div>
+                <div class="panel-actions">
+                    <button class="btn-secondary" onclick="prevStep(3)">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back
+                    </button>
+                    <button class="btn-primary" onclick="nextStep(3)" id="planContinueBtn" disabled>
+                        Continue
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="wizard-panel" data-panel="4">
+                <div class="panel-header">
+                    <h1>Add Payment Method</h1>
+                    <p>Your card will be charged after the 14-day free trial ends.</p>
+                </div>
+                <div class="selected-plan-summary">
+                    <div class="summary-row">
+                        <span>Selected Plan:</span>
+                        <strong id="selectedPlanName">Pro</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Price:</span>
+                        <strong id="selectedPlanPrice">$49/month</strong>
+                    </div>
+                    <div class="summary-row trial">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>14-day free trial - cancel anytime</span>
+                    </div>
+                </div>
+                <form class="panel-form payment-form" id="paymentForm">
+                    <div class="form-group">
+                        <label for="cardName">Name on Card</label>
+                        <input type="text" id="cardName" name="card_name" required placeholder="John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label for="cardNumber">Card Number</label>
+                        <div class="card-input-wrapper">
+                            <input type="text" id="cardNumber" name="card_number" required placeholder="1234 5678 9012 3456" maxlength="19">
+                            <div class="card-icons">
+                                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="1.5" fill="none">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cardExpiry">Expiry Date</label>
+                            <input type="text" id="cardExpiry" name="card_expiry" required placeholder="MM/YY" maxlength="5">
+                        </div>
+                        <div class="form-group">
+                            <label for="cardCvc">CVC</label>
+                            <input type="text" id="cardCvc" name="card_cvc" required placeholder="123" maxlength="4">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="billingCountry">Country</label>
+                        <select id="billingCountry" name="billing_country" required>
+                            <option value="">Select country...</option>
+                            <option value="US">United States</option>
+                            <option value="CA">Canada</option>
+                            <option value="GB">United Kingdom</option>
+                            <option value="DE">Germany</option>
+                            <option value="FR">France</option>
+                            <option value="BR">Brazil</option>
+                            <option value="AU">Australia</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="billingZip">ZIP / Postal Code</label>
+                        <input type="text" id="billingZip" name="billing_zip" required placeholder="12345">
+                    </div>
+                    <div class="secure-notice">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span>Your payment information is encrypted and secure</span>
+                    </div>
+                </form>
+                <div class="panel-actions">
+                    <button class="btn-secondary" onclick="prevStep(4)">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back
+                    </button>
+                    <button class="btn-primary" onclick="nextStep(4)">
+                        Start Free Trial
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="skip-payment">
+                    <span id="skipPaymentLink" onclick="skipPayment()" style="display: none;">Skip for now (Free plan only)</span>
+                </div>
+            </div>
+
+            <div class="wizard-panel" data-panel="5">
+                <div class="panel-header success-header">
+                    <div class="success-icon">
+                        <svg viewBox="0 0 24 24" width="64" height="64" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <h1>You're All Set!</h1>
+                    <p>Your organization <strong id="finalOrgName">Acme Corporation</strong> has been created.</p>
+                </div>
+                <div class="quick-actions">
+                    <h3>What would you like to do first?</h3>
+                    <div class="action-cards">
+                        <a href="/designer" class="action-card">
+                            <div class="action-icon">
+                                <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="1.5" fill="none">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.

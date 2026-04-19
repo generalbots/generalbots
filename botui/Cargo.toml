@@ -1,0 +1,72 @@
+[package]
+name = "botui"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots UI - Pure web interface"
+license = "AGPL-3.0"
+repository = "https://github.com/GeneralBots/BotServer"
+keywords = ["chatbot", "ui", "web-interface", "general-bots"]
+categories = ["web-programming", "gui"]
+
+[dependencies.botlib]
+workspace = true
+features = ["http-client"]
+
+[features]
+default = ["ui-server", "chat", "drive", "tasks", "admin"]
+ui-server = []
+embed-ui = ["rust-embed"]
+
+
+# App Features
+chat = []
+mail = []
+calendar = []
+drive = []
+tasks = []
+docs = []
+paper = []
+sheet = []
+slides = []
+meet = []
+research = []
+analytics = []
+monitoring = []
+admin = []
+settings = []
+sources = []
+attendant = []
+tools = []
+video = []
+learn = []
+social = []
+dashboards = []
+designer = []
+workspace = []
+project = []
+goals = []
+player = []
+canvas = []
+people = []
+billing = []
+products = []
+editor = []
+tickets = []
+
+[dependencies]
+anyhow = { workspace = true }
+axum = { workspace = true }
+futures-util = { workspace = true }
+log = { workspace = true }
+mime_guess.workspace = true
+native-tls = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+rust-embed = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tokio-tungstenite = { workspace = true, features = ["native-tls", "connect"] }
+tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
+
+[lints]
+workspace = true

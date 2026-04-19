@@ -1,0 +1,162 @@
+<svg width="900" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+
+    <marker id="arrowGray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#94A3B8"/>
+    </marker>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="500" fill="#FAFBFC"/>
+  <rect width="900" height="500" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="600" class="title-text">Bot Database Architecture</text>
+  <text x="450" y="55" text-anchor="middle" font-size="12" class="secondary-text">One Bot = One Database • Multiple Apps Share Data</text>
+
+  <!-- Organization Box -->
+  <rect x="30" y="75" width="840" height="410" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+  <text x="50" y="100" font-size="14" font-weight="600" class="main-text">ORGANIZATION</text>
+
+  <!-- Organization Default Database -->
+  <rect x="50" y="115" width="180" height="100" rx="8" fill="url(#orangeGrad)"/>
+  <text x="140" y="140" text-anchor="middle" font-size="12" font-weight="600" class="white-text">organization_default</text>
+  <text x="140" y="158" text-anchor="middle" font-size="10" class="white-text" opacity="0.9">System Database</text>
+  <text x="60" y="180" font-size="9" class="white-text" opacity="0.8">• users</text>
+  <text x="60" y="193" font-size="9" class="white-text" opacity="0.8">• bots</text>
+  <text x="60" y="206" font-size="9" class="white-text" opacity="0.8">• subscriptions</text>
+
+  <!-- Bot 1: Clinica -->
+  <rect x="260" y="115" width="270" height="355" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+
+  <!-- Bot 1 Header -->
+  <rect x="260" y="115" width="270" height="40" rx="8" fill="url(#primaryGrad)"/>
+  <rect x="260" y="140" width="270" height="15" fill="url(#primaryGrad)"/>
+  <text x="395" y="140" text-anchor="middle" font-size="13" font-weight="600" class="white-text">bot_clinica</text>
+
+  <!-- Bot 1 Database Tables -->
+  <text x="275" y="175" font-size="11" font-weight="600" class="main-text">Database Tables</text>
+  <rect x="275" y="185" width="110" height="24" rx="4" fill="#EEF2FF" stroke="#C7D2FE"/>
+  <text x="330" y="201" text-anchor="middle" font-size="10" class="mono-text">patients</text>
+  <rect x="275" y="213" width="110" height="24" rx="4" fill="#EEF2FF" stroke="#C7D2FE"/>
+  <text x="330" y="229" text-anchor="middle" font-size="10" class="mono-text">appointments</text>
+  <rect x="275" y="241" width="110" height="24" rx="4" fill="#EEF2FF" stroke="#C7D2FE"/>
+  <text x="330" y="257" text-anchor="middle" font-size="10" class="mono-text">doctors</text>
+
+  <!-- Bot 1 Shared Resources -->
+  <text x="400" y="175" font-size="11" font-weight="600" class="main-text">Shared Resources</text>
+  <rect x="400" y="185" width="115" height="24" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+  <text x="457" y="201" text-anchor="middle" font-size="10" class="mono-text">tools/</text>
+  <rect x="400" y="213" width="115" height="24" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+  <text x="457" y="229" text-anchor="middle" font-size="10" class="mono-text">schedulers/</text>
+  <rect x="400" y="241" width="115" height="24" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+  <text x="457" y="257" text-anchor="middle" font-size="10" class="mono-text">events/</text>
+
+  <!-- Bot 1 Apps -->
+  <text x="275" y="290" font-size="11" font-weight="600" class="main-text">Apps (share same data)</text>
+  <rect x="275" y="300" width="235" height="30" rx="4" fill="url(#cyanGrad)"/>
+  <text x="392" y="320" text-anchor="middle" font-size="10" class="white-text">/apps/reception</text>
+  <rect x="275" y="335" width="235" height="30" rx="4" fill="url(#cyanGrad)"/>
+  <text x="392" y="355" text-anchor="middle" font-size="10" class="white-text">/apps/scheduling</text>
+  <rect x="275" y="370" width="235" height="30" rx="4" fill="url(#cyanGrad)"/>
+  <text x="392" y="390" text-anchor="middle" font-size="10" class="white-text">/apps/reports</text>
+
+  <!-- tables.bas indicator -->
+  <rect x="275" y="410" width="235" height="50" rx="4" fill="#FEF3C7" stroke="#FCD34D"/>
+  <text x="392" y="432" text-anchor="middle" font-size="10" font-weight="600" class="main-text">tables.bas</text>
+  <text x="392" y="448" text-anchor="middle" font-size="9" class="secondary-text">TABLE definitions → auto-sync to DB</text>
+
+  <!-- Bot 2: Loja -->
+  <rect x="560" y="115" width="270" height="355" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+
+  <!-- Bot 2 Header -->
+  <rect x="560" y="115" width="270" height="40" rx="8" fill="url(#greenGrad)"/>
+  <rect x="560" y="140" width="270" height="15" fill="url(#greenGrad)"/>
+  <text x="695" y="140" text-anchor="middle" font-size="13" font-weight="600" class="white-text">bot_loja</text>
+
+  <!-- Bot 2 Database Tables -->
+  <text x="575" y="175" font-size="11" font-weight="600" class="main-text">Database Tables</text>
+  <rect x="575" y="185" width="110" height="24" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+  <text x="630" y="201" text-anchor="middle" font-size="10" class="mono-text">customers</text>
+  <rect x="575" y="213" width="110" height="24" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+  <text x="630" y="229" text-anchor="middle" font-size="10" class="mono-text">products</text>
+  <rect x="575" y="241" width="110" height="24" rx="4" fill="#ECFDF5" stroke="#A7F3D0"/>
+  <text x="630" y="257" text-anchor="middle" font-size="10" class="mono-text">sales</text>
+
+  <!-- Bot 2 Shared Resources -->
+  <text x="700" y="175" font-size="11" font-weight="600" class="main-text">Shared Resources</text>
+  <rect x="700" y="185" width="115" height="24" rx="4" fill="#FEF3C7" stroke="#FCD34D"/>
+  <text x="757" y="201" text-anchor="middle" font-size="10" class="mono-text">tools/</text>
+  <rect x="700" y="213" width="115" height="24" rx="4" fill="#FEF3C7" stroke="#FCD34D"/>
+  <text x="757" y="229" text-anchor="middle" font-size="10" class="mono-text">schedulers/</text>
+  <rect x="700" y="241" width="115" height="24" rx="4" fill="#FEF3C7" stroke="#FCD34D"/>
+  <text x="757" y="257" text-anchor="middle" font-size="10" class="mono-text">events/</text>
+
+  <!-- Bot 2 Apps -->
+  <text x="575" y="290" font-size="11" font-weight="600" class="main-text">Apps (share same data)</text>
+  <rect x="575" y="300" width="235" height="30" rx="4" fill="url(#greenGrad)"/>
+  <text x="692" y="320" text-anchor="middle" font-size="10" class="white-text">/apps/pos</text>
+  <rect x="575" y="335" width="235" height="30" rx="4" fill="url(#greenGrad)"/>
+  <text x="692" y="355" text-anchor="middle" font-size="10" class="white-text">/apps/inventory</text>
+  <rect x="575" y="370" width="235" height="30" rx="4" fill="url(#greenGrad)"/>
+  <text x="692" y="390" text-anchor="middle" font-size="10" class="white-text">/apps/service</text>
+
+  <!-- tables.bas indicator -->
+  <rect x="575" y="410" width="235" height="50" rx="4" fill="#FEF3C7" stroke="#FCD34D"/>
+  <text x="692" y="432" text-anchor="middle" font-size="10" font-weight="600" class="main-text">tables.bas</text>
+  <text x="692" y="448" text-anchor="middle" font-size="9" class="secondary-text">TABLE definitions → auto-sync to DB</text>
+
+  <!-- Arrows from org_default to bots -->
+  <line x1="230" y1="165" x2="255" y2="165" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- Legend -->
+  <rect x="50" y="235" width="180" height="115" rx="6" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <text x="140" y="255" text-anchor="middle" font-size="10" font-weight="600" class="main-text">Key Concept</text>
+  <text x="60" y="275" font-size="9" class="secondary-text">• Each bot has own database</text>
+  <text x="60" y="292" font-size="9" class="secondary-text">• Apps share same tables</text>
+  <text x="60" y="309" font-size="9" class="secondary-text">• Tools/schedulers shared</text>
+  <text x="60" y="326" font-size="9" class="secondary-text">• tables.bas defines schema</text>
+  <text x="60" y="343" font-size="9" class="secondary-text">• Data isolated between bots</text>
+</svg>

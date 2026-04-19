@@ -1,0 +1,159 @@
+<svg width="1000" height="700" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1"/>
+      <stop offset="100%" style="stop-color:#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="100%" style="stop-color:#0EA5E9"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981"/>
+      <stop offset="100%" style="stop-color:#34D399"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B"/>
+      <stop offset="100%" style="stop-color:#FBBF24"/>
+    </linearGradient>
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="2" cy="2" r="1" fill="#94A3B8"/>
+    </pattern>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="700" fill="#FAFBFC"/>
+  <rect width="1000" height="700" fill="url(#dots)" opacity="0.08"/>
+
+  <!-- Title -->
+  <text x="500" y="40" text-anchor="middle" font-size="24" font-weight="700" class="title-text">Tasks — The Machine Does the Work</text>
+  <text x="500" y="65" text-anchor="middle" font-size="14" class="secondary-text">Describe your goal, the system executes it</text>
+
+  <!-- Header Stats Bar -->
+  <rect x="50" y="90" width="900" height="60" rx="10" fill="url(#primaryGrad)" filter="url(#cardShadow)"/>
+  <text x="120" y="125" font-size="13" class="white-text">Running</text>
+  <text x="120" y="145" font-size="20" font-weight="700" class="white-text">3</text>
+  <text x="270" y="125" font-size="13" class="white-text">Pending</text>
+  <text x="270" y="145" font-size="20" font-weight="700" class="white-text">5</text>
+  <text x="420" y="125" font-size="13" class="white-text">Completed</text>
+  <text x="420" y="145" font-size="20" font-weight="700" class="white-text">12</text>
+  <rect x="550" y="105" width="130" height="35" rx="6" fill="#FFFFFF" opacity="0.2"/>
+  <text x="615" y="127" text-anchor="middle" font-size="13" font-weight="600" class="white-text">Need Approval: 2</text>
+
+  <!-- Intent Input Section -->
+  <rect x="50" y="170" width="900" height="130" rx="10" fill="#FFFFFF" stroke="#E2E8F0" filter="url(#cardShadow)"/>
+  <text x="75" y="200" font-size="14" font-weight="600" class="main-text">What would you like to accomplish?</text>
+
+  <!-- Input Field -->
+  <rect x="75" y="215" width="650" height="60" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <text x="90" y="240" font-size="13" class="main-text">Make a financial CRM for Deloitte with client management</text>
+  <text x="90" y="260" font-size="13" class="main-text">and automated reporting dashboards</text>
+
+  <!-- Controls -->
+  <rect x="745" y="215" width="180" height="28" rx="6" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <text x="760" y="234" font-size="12" class="main-text">Semi-Automatic</text>
+  <text x="910" y="234" font-size="12" class="secondary-text">▼</text>
+
+  <rect x="745" y="250" width="180" height="32" rx="6" fill="url(#cyanGrad)"/>
+  <text x="835" y="272" text-anchor="middle" font-size="13" font-weight="600" class="white-text">Compile &amp; Plan</text>
+
+  <!-- Execution Plan Card -->
+  <rect x="50" y="320" width="900" height="180" rx="10" fill="#FFFFFF" stroke="#E2E8F0" filter="url(#cardShadow)"/>
+  <text x="75" y="350" font-size="16" font-weight="700" class="main-text">Financial CRM for Deloitte</text>
+  <text x="75" y="372" font-size="12" class="secondary-text">Client management and automated reporting system</text>
+
+  <!-- Badges -->
+  <rect x="75" y="385" width="100" height="24" rx="12" fill="url(#greenGrad)"/>
+  <text x="125" y="402" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Confidence: 94%</text>
+
+  <rect x="185" y="385" width="80" height="24" rx="12" fill="url(#greenGrad)"/>
+  <text x="225" y="402" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Risk: Low</text>
+
+  <rect x="275" y="385" width="100" height="24" rx="12" fill="#F1F5F9" stroke="#E2E8F0"/>
+  <text x="325" y="402" text-anchor="middle" font-size="11" class="main-text">Est: 2.5 hours</text>
+
+  <rect x="385" y="385" width="90" height="24" rx="12" fill="#F1F5F9" stroke="#E2E8F0"/>
+  <text x="430" y="402" text-anchor="middle" font-size="11" class="main-text">Cost: $0.45</text>
+
+  <!-- Steps -->
+  <text x="75" y="435" font-size="13" font-weight="600" class="main-text">Execution Plan (6 steps)</text>
+
+  <!-- Step boxes -->
+  <rect x="75" y="445" width="130" height="45" rx="6" fill="#EEF2FF" stroke="#6366F1"/>
+  <text x="85" y="462" font-size="9" font-weight="600" fill="#6366F1">STEP 1 • CRITICAL</text>
+  <text x="85" y="478" font-size="11" class="main-text">Create database</text>
+
+  <rect x="215" y="445" width="130" height="45" rx="6" fill="#EEF2FF" stroke="#6366F1"/>
+  <text x="225" y="462" font-size="9" font-weight="600" fill="#6366F1">STEP 2 • HIGH</text>
+  <text x="225" y="478" font-size="11" class="main-text">Setup auth</text>
+
+  <rect x="355" y="445" width="130" height="45" rx="6" fill="#EEF2FF" stroke="#6366F1"/>
+  <text x="365" y="462" font-size="9" font-weight="600" fill="#6366F1">STEP 3 • HIGH</text>
+  <text x="365" y="478" font-size="11" class="main-text">Client module</text>
+
+  <rect x="495" y="445" width="130" height="45" rx="6" fill="#FEF3C7" stroke="#F59E0B"/>
+  <text x="505" y="462" font-size="9" font-weight="600" fill="#D97706">STEP 4 • MEDIUM</text>
+  <text x="505" y="478" font-size="11" class="main-text">Financial tracking</text>
+
+  <rect x="635" y="445" width="130" height="45" rx="6" fill="#FEF3C7" stroke="#F59E0B"/>
+  <text x="645" y="462" font-size="9" font-weight="600" fill="#D97706">STEP 5 • MEDIUM</text>
+  <text x="645" y="478" font-size="11" class="main-text">Reports dashboard</text>
+
+  <rect x="775" y="445" width="130" height="45" rx="6" fill="#DCFCE7" stroke="#10B981"/>
+  <text x="785" y="462" font-size="9" font-weight="600" fill="#059669">STEP 6 • LOW</text>
+  <text x="785" y="478" font-size="11" class="main-text">Deploy &amp; test</text>
+
+  <!-- Active Tasks Section -->
+  <text x="75" y="535" font-size="16" font-weight="700" class="main-text">Active Tasks</text>
+
+  <!-- Filter tabs -->
+  <rect x="200" y="518" width="60" height="26" rx="4" fill="url(#cyanGrad)"/>
+  <text x="230" y="536" text-anchor="middle" font-size="11" font-weight="500" class="white-text">All (8)</text>
+
+  <rect x="268" y="518" width="80" height="26" rx="4" fill="#F1F5F9" stroke="#E2E8F0"/>
+  <text x="308" y="536" text-anchor="middle" font-size="11" class="main-text">Running (3)</text>
+
+  <rect x="356" y="518" width="90" height="26" rx="4" fill="#F1F5F9" stroke="#E2E8F0"/>
+  <text x="401" y="536" text-anchor="middle" font-size="11" class="main-text">Approval (2)</text>
+
+  <!-- Task Item 1 - Running -->
+  <rect x="50" y="555" width="900" height="60" rx="8" fill="#FFFFFF" stroke="#E2E8F0" filter="url(#cardShadow)"/>
+  <rect x="70" y="570" width="70" height="22" rx="4" fill="url(#cyanGrad)"/>
+  <text x="105" y="586" text-anchor="middle" font-size="10" font-weight="500" class="white-text">RUNNING</text>
+  <text x="155" y="586" font-size="14" font-weight="500" class="main-text">E-commerce Website for TechCorp</text>
+
+  <!-- Progress bar -->
+  <rect x="70" y="598" width="400" height="6" rx="3" fill="#E2E8F0"/>
+  <rect x="70" y="598" width="284" height="6" rx="3" fill="url(#cyanGrad)"/>
+  <text x="480" y="605" font-size="11" class="secondary-text">Step 5/7 (71%)</text>
+
+  <!-- Task Item 2 - Needs Approval -->
+  <rect x="50" y="625" width="900" height="60" rx="8" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" filter="url(#cardShadow)"/>
+  <rect x="70" y="640" width="110" height="22" rx="4" fill="url(#orangeGrad)"/>
+  <text x="125" y="656" text-anchor="middle" font-size="10" font-weight="500" class="white-text">NEEDS APPROVAL</text>
+  <text x="195" y="656" font-size="14" font-weight="500" class="main-text">Automated Email Campaign - Product Launch</text>
+
+  <rect x="70" y="665" width="650" height="16" rx="3" fill="#FEF3C7"/>
+  <text x="80" y="677" font-size="10" fill="#92400E">Approval required: Send 50,000 emails to customer list</text>
+
+  <rect x="780" y="645" width="140" height="28" rx="6" fill="url(#greenGrad)"/>
+  <text x="850" y="664" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Review &amp; Approve</text>
+</svg>

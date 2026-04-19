@@ -1,0 +1,184 @@
+:root {
+    /* 3D Bevel Theme - Windows 95/Classic Mac style */
+    --background: 0 0% 75%; /* #c0c0c0 - Classic gray */
+    --foreground: 0 0% 0%; /* Black text */
+    --card: 0 0% 88%; /* #e0e0e0 - Lighter gray */
+    --card-foreground: 0 0% 0%; /* Black */
+    --popover: 0 0% 82%; /* #d0d0d0 */
+    --popover-foreground: 0 0% 0%; /* Black */
+    --primary: 240 100% 33%; /* #0000aa - Classic blue */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 0 0% 88%; /* #e0e0e0 */
+    --secondary-foreground: 0 0% 0%; /* Black */
+    --muted: 0 0% 75%; /* #c0c0c0 */
+    --muted-foreground: 0 0% 25%; /* #404040 */
+    --accent: 240 100% 50%; /* Blue accent */
+    --accent-foreground: 0 0% 100%; /* White */
+    --destructive: 0 100% 40%; /* Red */
+    --destructive-foreground: 0 0% 100%; /* White */
+    --border: 0 0% 25%; /* #404040 - Dark border */
+    --input: 0 0% 100%; /* White input bg */
+    --ring: 240 100% 50%; /* Blue focus ring */
+    --radius: 0rem; /* No border radius - sharp corners */
+    --chart-1: 240 100% 33%; /* Blue */
+    --chart-2: 120 100% 25%; /* Green */
+    --chart-3: 0 100% 40%; /* Red */
+    --chart-4: 300 100% 33%; /* Purple */
+    --chart-5: 60 100% 40%; /* Yellow */
+
+    /* 3D Bevel specific - raised/sunken effects */
+    --bevel-light: 0 0% 100%; /* White highlight */
+    --bevel-dark: 0 0% 25%; /* Dark shadow */
+
+    /* ============================================ */
+    /* SENTIENT BRIDGE VARIABLES                   */
+    /* For Sheet, Docs, Slides theme support       */
+    /* ============================================ */
+
+    /* Backgrounds */
+    --sentient-bg-primary: hsl(var(--background));
+    --sentient-bg-secondary: hsl(var(--card));
+    --sentient-bg-tertiary: hsl(var(--muted));
+    --sentient-bg-hover: hsla(var(--primary) / 0.08);
+    --sentient-bg-active: hsla(var(--primary) / 0.15);
+
+    /* Text */
+    --sentient-text-primary: hsl(var(--foreground));
+    --sentient-text-secondary: hsl(var(--muted-foreground));
+    --sentient-text-tertiary: hsla(var(--muted-foreground) / 0.7);
+    --sentient-text-muted: hsla(var(--muted-foreground) / 0.5);
+
+    /* Accent Colors */
+    --sentient-accent: hsl(var(--primary));
+    --sentient-accent-hover: hsl(var(--primary) / 0.85);
+    --sentient-accent-light: hsla(var(--primary) / 0.1);
+    --sentient-accent-dark: hsl(var(--primary) / 0.7);
+
+    /* Borders */
+    --sentient-border: hsl(var(--border));
+    --sentient-border-light: hsla(var(--border) / 0.5);
+    --sentient-border-accent: hsla(var(--primary) / 0.3);
+
+    /* Surfaces */
+    --sentient-surface: hsl(var(--card));
+    --sentient-surface-hover: hsla(var(--primary) / 0.08);
+    --sentient-surface-active: hsla(var(--primary) / 0.15);
+    --sentient-surface-elevated: hsl(var(--popover));
+
+    /* Inputs */
+    --sentient-input-bg: hsl(var(--input));
+    --sentient-input-border: hsl(var(--border));
+    --sentient-input-focus: hsl(var(--ring));
+
+    /* Status Colors */
+    --sentient-success: hsl(142 76% 36%);
+    --sentient-success-bg: hsla(142 76% 36% / 0.15);
+    --sentient-warning: hsl(38 92% 50%);
+    --sentient-warning-bg: hsla(38 92% 50% / 0.15);
+    --sentient-error: hsl(var(--destructive));
+    --sentient-error-bg: hsla(var(--destructive) / 0.15);
+
+    /* Typography */
+    --sentient-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+    /* Shadows */
+    --sentient-shadow-sm: 0 1px 2px 0 hsla(var(--foreground) / 0.05);
+    --sentient-shadow-md: 0 4px 6px -1px hsla(var(--foreground) / 0.1), 0 2px 4px -1px hsla(var(--foreground) / 0.06);
+    --sentient-shadow-lg: 0 10px 15px -3px hsla(var(--foreground) / 0.1), 0 4px 6px -2px hsla(var(--foreground) / 0.05);
+
+    /* Border Radius */
+    --sentient-radius: var(--radius);
+    --sentient-radius-sm: calc(var(--radius) * 0.5);
+    --sentient-radius-md: var(--radius);
+    --sentient-radius-lg: calc(var(--radius) * 1.5);
+    --sentient-radius-xl: calc(var(--radius) * 2);
+}
+
+/* 3D Bevel effect for buttons and raised elements */
+.button,
+button,
+.btn,
+.btn-icon,
+.btn-primary,
+.btn-secondary,
+input[type="button"],
+input[type="submit"] {
+    border-style: solid;
+    border-width: 2px;
+    border-color: hsl(var(--bevel-light)) hsl(var(--bevel-dark))
+        hsl(var(--bevel-dark)) hsl(var(--bevel-light));
+    box-shadow: none;
+}
+
+.button:active,
+button:active,
+.btn:active,
+.btn-icon:active,
+input[type="button"]:active,
+input[type="submit"]:active {
+    border-color: hsl(var(--bevel-dark)) hsl(var(--bevel-light))
+        hsl(var(--bevel-light)) hsl(var(--bevel-dark));
+}
+
+/* Sunken effect for inputs */
+input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not(
+        [type="radio"]
+    ),
+textarea,
+select {
+    border-style: solid;
+    border-width: 2px;
+    border-color: hsl(var(--bevel-dark)) hsl(var(--bevel-light))
+        hsl(var(--bevel-light)) hsl(var(--bevel-dark));
+    box-shadow: none;
+}
+
+/* Cards and panels - raised */
+.card,
+.modal-content,
+.popover,
+.dropdown-menu,
+.context-menu {
+    border-style: solid;
+    border-width: 2px;
+    border-color: hsl(var(--bevel-light)) hsl(var(--bevel-dark))
+        hsl(var(--bevel-dark)) hsl(var(--bevel-light));
+    box-shadow: none;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 16px;
+    background: hsl(var(--muted));
+}
+::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-style: solid;
+    border-width: 2px;
+    border-color: hsl(var(--bevel-light)) hsl(var(--bevel-dark))
+        hsl(var(--bevel-dark)) hsl(var(--bevel-light));
+}
+::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+}
+
+/* Font override for retro feel */
+body {
+    font-family: "IBM Plex Mono", "Courier New", monospace;
+}
+
+/* Links - classic blue underlined */
+a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+}
+a:visited {
+    color: hsl(300 100% 33%);
+}
+
+/* Horizontal rules */
+hr {
+    border: none;
+    border-top: 2px solid hsl(var(--bevel-dark));
+    margin: 8px 0;
+}

@@ -1,0 +1,1027 @@
+<link rel="stylesheet" href="tools/tools.css" />
+
+<div class="compliance-container" id="compliance-app">
+    <style>
+        .compliance-container {
+            padding: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .compliance-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compliance-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .compliance-back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .compliance-back-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .compliance-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+        }
+
+        .compliance-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .compliance-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .compliance-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .compliance-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .compliance-btn-primary {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .compliance-btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .compliance-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .compliance-stat-card {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .compliance-stat-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .compliance-stat-card.critical::before {
+            background: #dc2626;
+        }
+        .compliance-stat-card.high::before {
+            background: #ea580c;
+        }
+        .compliance-stat-card.medium::before {
+            background: #d97706;
+        }
+        .compliance-stat-card.low::before {
+            background: #65a30d;
+        }
+        .compliance-stat-card.info::before {
+            background: #0891b2;
+        }
+
+        .compliance-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .compliance-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .compliance-stat-card.critical .compliance-stat-value {
+            color: #dc2626;
+        }
+        .compliance-stat-card.high .compliance-stat-value {
+            color: #ea580c;
+        }
+        .compliance-stat-card.medium .compliance-stat-value {
+            color: #d97706;
+        }
+        .compliance-stat-card.low .compliance-stat-value {
+            color: #65a30d;
+        }
+        .compliance-stat-card.info .compliance-stat-value {
+            color: #0891b2;
+        }
+
+        .compliance-stat-desc {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .compliance-filters {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: var(--secondary-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .compliance-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compliance-filter-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .compliance-filter-select {
+            padding: 8px 12px;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .compliance-filter-input {
+            padding: 8px 12px;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            width: 200px;
+        }
+
+        .compliance-filter-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .compliance-filter-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .compliance-filter-spacer {
+            flex: 1;
+        }
+
+        .compliance-results {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .compliance-results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compliance-results-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .compliance-results-count {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .compliance-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .compliance-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg-hover);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compliance-table td {
+            padding: 14px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+            color: var(--text-primary);
+        }
+
+        .compliance-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .compliance-table tr:hover {
+            background: var(--bg-hover);
+        }
+
+        .compliance-severity {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .compliance-severity.critical {
+            background: rgba(220, 38, 38, 0.15);
+            color: #ef4444;
+        }
+
+        .compliance-severity.high {
+            background: rgba(234, 88, 12, 0.15);
+            color: #f97316;
+        }
+
+        .compliance-severity.medium {
+            background: rgba(217, 119, 6, 0.15);
+            color: #eab308;
+        }
+
+        .compliance-severity.low {
+            background: rgba(101, 163, 13, 0.15);
+            color: #84cc16;
+        }
+
+        .compliance-severity.info {
+            background: rgba(8, 145, 178, 0.15);
+            color: #22d3ee;
+        }
+
+        .compliance-severity-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .compliance-issue-type {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .compliance-issue-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .compliance-issue-icon.password {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .compliance-issue-icon.security {
+            background: rgba(249, 115, 22, 0.15);
+            color: #f97316;
+        }
+
+        .compliance-issue-icon.deprecated {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+        }
+
+        .compliance-issue-icon.code {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+        .compliance-issue-icon.config {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .compliance-issue-title {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .compliance-issue-category {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        .compliance-file-path {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--bg-hover);
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .compliance-file-line {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .compliance-description {
+            color: var(--text-secondary);
+            max-width: 350px;
+            font-size: 13px;
+        }
+
+        .compliance-code-snippet {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 11px;
+            background: var(--primary-bg);
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-top: 8px;
+            border: 1px solid var(--border-color);
+            color: #f87171;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .compliance-action-btn {
+            padding: 6px 12px;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .compliance-action-btn:hover {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .compliance-empty {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-secondary);
+        }
+
+        .compliance-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .compliance-empty-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 1200px) {
+            .compliance-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .compliance-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .compliance-header {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .compliance-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .compliance-filter-input {
+                width: 100%;
+            }
+
+            .compliance-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+
+    <!-- Header -->
+    <header class="compliance-header">
+        <div class="compliance-header-left">
+            <a
+                href="#home"
+                class="compliance-back-btn"
+                hx-get="/home.html"
+                hx-target="#main-content"
+                hx-push-url="true"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="15 18 9 12 15 6" />
+                </svg>
+            </a>
+            <div>
+                <h1 class="compliance-title" data-i18n="compliance-title">
+                    API Compliance Report
+                </h1>
+                <p class="compliance-subtitle" data-i18n="compliance-subtitle">
+                    Security scan for all bots - Check for passwords, fragile
+                    code, and misconfigurations
+                </p>
+            </div>
+        </div>
+        <div class="compliance-actions">
+            <button
+                class="compliance-btn"
+                hx-get="/api/compliance/export"
+                hx-swap="none"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span data-i18n="compliance-export-report">Export Report</span>
+            </button>
+            <button
+                class="compliance-btn compliance-btn-primary"
+                id="scan-btn"
+                hx-post="/api/compliance/scan"
+                hx-target="#compliance-results-body"
+                hx-indicator="#scan-progress"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <span data-i18n="compliance-run-scan">Run Compliance Scan</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Stats Grid -->
+    <div class="compliance-stats">
+        <div class="compliance-stat-card critical">
+            <div class="compliance-stat-label" data-i18n="compliance-critical">
+                Critical
+            </div>
+            <div class="compliance-stat-value" id="stat-critical">0</div>
+            <div
+                class="compliance-stat-desc"
+                data-i18n="compliance-critical-desc"
+            >
+                Requires immediate action
+            </div>
+        </div>
+        <div class="compliance-stat-card high">
+            <div class="compliance-stat-label" data-i18n="compliance-high">
+                High
+            </div>
+            <div class="compliance-stat-value" id="stat-high">0</div>
+            <div class="compliance-stat-desc" data-i18n="compliance-high-desc">
+                Security risk
+            </div>
+        </div>
+        <div class="compliance-stat-card medium">
+            <div class="compliance-stat-label" data-i18n="compliance-medium">
+                Medium
+            </div>
+            <div class="compliance-stat-value" id="stat-medium">0</div>
+            <div
+                class="compliance-stat-desc"
+                data-i18n="compliance-medium-desc"
+            >
+                Should be addressed
+            </div>
+        </div>
+        <div class="compliance-stat-card low">
+            <div class="compliance-stat-label" data-i18n="compliance-low">
+                Low
+            </div>
+            <div class="compliance-stat-value" id="stat-low">0</div>
+            <div class="compliance-stat-desc" data-i18n="compliance-low-desc">
+                Best practice
+            </div>
+        </div>
+        <div class="compliance-stat-card info">
+            <div class="compliance-stat-label" data-i18n="compliance-info">
+                Info
+            </div>
+            <div class="compliance-stat-value" id="stat-info">0</div>
+            <div class="compliance-stat-desc" data-i18n="compliance-info-desc">
+                Informational
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="compliance-filters">
+        <div class="compliance-filter-group">
+            <span
+                class="compliance-filter-label"
+                data-i18n="compliance-filter-severity"
+                >Severity:</span
+            >
+            <select
+                class="compliance-filter-select"
+                id="filter-severity"
+                onchange="filterResults()"
+            >
+                <option
+                    value="all"
+                    data-i18n="compliance-filter-all-severities"
+                >
+                    All Severities
+                </option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="info">Info</option>
+            </select>
+        </div>
+        <div class="compliance-filter-group">
+            <span
+                class="compliance-filter-label"
+                data-i18n="compliance-filter-type"
+                >Type:</span
+            >
+            <select
+                class="compliance-filter-select"
+                id="filter-type"
+                onchange="filterResults()"
+            >
+                <option value="all" data-i18n="compliance-filter-all-types">
+                    All Types
+                </option>
+                <option value="password" data-i18n="compliance-type-password">
+                    Password in Config
+                </option>
+                <option value="hardcoded" data-i18n="compliance-type-hardcoded">
+                    Hardcoded Secrets
+                </option>
+                <option
+                    value="deprecated"
+                    data-i18n="compliance-type-deprecated"
+                >
+                    Deprecated Keywords
+                </option>
+                <option value="fragile" data-i18n="compliance-type-fragile">
+                    Fragile Code
+                </option>
+                <option value="config" data-i18n="compliance-type-config">
+                    Configuration Issues
+                </option>
+            </select>
+        </div>
+        <div class="compliance-filter-spacer"></div>
+        <div class="compliance-filter-group">
+            <input
+                type="text"
+                class="compliance-filter-input"
+                placeholder="Search issues..."
+                id="filter-search"
+                oninput="filterResults()"
+            />
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="compliance-results">
+        <div class="compliance-results-header">
+            <span
+                class="compliance-results-title"
+                data-i18n="compliance-results"
+                >Compliance Issues</span
+            >
+            <span class="compliance-results-count" id="results-count"
+                >5 issues found</span
+            >
+        </div>
+
+        <table class="compliance-table">
+            <thead>
+                <tr>
+                    <th data-i18n="compliance-col-severity">Severity</th>
+                    <th data-i18n="compliance-col-issue">Issue Type</th>
+                    <th data-i18n="compliance-col-location">Location</th>
+                    <th data-i18n="compliance-col-details">Description</th>
+                    <th data-i18n="compliance-col-action">Action</th>
+                </tr>
+            </thead>
+            <tbody id="compliance-results-body">
+                <tr data-severity="critical" data-type="password">
+                    <td>
+                        <span class="compliance-severity critical">
+                            <span class="compliance-severity-dot"></span>
+                            Critical
+                        </span>
+                    </td>
+                    <td>
+                        <div class="compliance-issue-type">
+                            <div class="compliance-issue-icon password">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="11"
+                                        width="18"
+                                        height="11"
+                                        rx="2"
+                                        ry="2"
+                                    />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="compliance-issue-title">
+                                    Password in Config
+                                </div>
+                                <div class="compliance-issue-category">
+                                    Security
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="compliance-file-path">
+                            marketing.gbai/poster.bas
+                        </div>
+                        <div class="compliance-file-line">Line 12</div>
+                    </td>
+                    <td>
+                        <div class="compliance-description">
+                            Hardcoded password found in BASIC file. Move to
+                            Vault.
+                            <div class="compliance-code-snippet">
+                                POST TO INSTAGRAM username, password, image
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <button class="compliance-action-btn">Fix</button>
+                    </td>
+                </tr>
+                <tr data-severity="high" data-type="hardcoded">
+                    <td>
+                        <span class="compliance-severity high">
+                            <span class="compliance-severity-dot"></span>
+                            High
+                        </span>
+                    </td>
+                    <td>
+                        <div class="compliance-issue-type">
+                            <div class="compliance-issue-icon security">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                                    />
+                                    <line x1="12" y1="9" x2="12" y2="13" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="compliance-issue-title">
+                                    Hardcoded Secret
+                                </div>
+                                <div class="compliance-issue-category">
+                                    Security
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="compliance-file-path">
+                            api-client.gbai/msft-partner.bas
+                        </div>
+                        <div class="compliance-file-line">Line 7</div>
+                    </td>
+                    <td>
+                        <div class="compliance-description">
+                            Client secret found in source code. Use environment
+                            variables.
+                            <div class="compliance-code-snippet">
+                                client_secret = "abc123..."
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <button class="compliance-action-btn">Fix</button>
+                    </td>
+                </tr>
+                <tr data-severity="medium" data-type="deprecated">
+                    <td>
+                        <span class="compliance-severity medium">
+                            <span class="compliance-severity-dot"></span>
+                            Medium
+                        </span>
+                    </td>
+                    <td>
+                        <div class="compliance-issue-type">
+                            <div class="compliance-issue-icon deprecated">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="compliance-issue-title">
+                                    Deprecated Keyword
+                                </div>
+                                <div class="compliance-issue-category">
+                                    Code Quality
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="compliance-file-path">
+                            default.gbai/start.bas
+                        </div>
+                        <div class="compliance-file-line">Line 45</div>
+                    </td>
+                    <td>
+                        <div class="compliance-description">
+                            Using deprecated IF...input pattern. Use HEAR AS
+                            instead.
+                            <div class="compliance-code-snippet">
+                                IF input = "yes" THEN
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <button class="compliance-action-btn">Fix</button>
+                    </td>
+                </tr>
+                <tr data-severity="low" data-type="fragile">
+                    <td>
+                        <span class="compliance-severity low">
+                            <span class="compliance-severity-dot"></span>
+                            Low
+                        </span>
+                    </td>
+                    <td>
+                        <div class="compliance-issue-type">
+                            <div class="compliance-issue-icon code">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <polyline points="16 18 22 12 16 6" />
+                                    <polyline points="8 6 2 12 8 18" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="compliance-issue-title">
+                                    Underscore in Keyword
+                                </div>
+                                <div class="compliance-issue-category">
+                                    Naming Convention
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="compliance-file-path">
+                            crm.gbai/contacts.bas
+                        </div>
+                        <div class="compliance-file-line">Line 23</div>
+                    </td>
+                    <td>
+                        <div class="compliance-description">
+                            Keywords should use spaces not underscores.
+                            <div class="compliance-code-snippet">
+                                GET_BOT_MEMORY → GET BOT MEMORY
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <button class="compliance-action-btn">Fix</button>
+                    </td>
+                </tr>
+                <tr data-severity="info" data-type="config">
+                    <td>
+                        <span class="compliance-severity info">
+                            <span class="compliance-severity-dot"></span>
+                            Info
+                        </span>
+                    </td>
+                    <td>
+                        <div class="compliance-issue-type">
+                            <div class="compliance-issue-icon config">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path
+                                        d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+                                    />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="compliance-issue-title">
+                                    Missing Vault Config
+                                </div>
+                                <div class="compliance-issue-category">
+                                    Configuration
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="compliance-file-path">
+                            bank.gbai/config.csv
+                        </div>
+                        <div class="compliance-file-line">-</div>
+                    </td>
+                    <td>
+                        <div class="compliance-description">
+                            Bot is not configured to use Vault for secrets
+                            management. Consider enabling for better security.
+                        </div>
+                    </td>
+                    <td>
+                        <button class="compliance-action-btn">Configure</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function filterResults() {
+        const severity = document.getElementById("filter-severity").value;
+        const type = document.getElementById("filter-type").value;
+        const search = document
+            .getElementById("filter-search")
+            .value.toLowerCase();
+        const rows = document.querySelectorAll("#compliance-results-body tr");
+        let visible = 0;
+
+        rows.forEach((row) => {
+            const rowSeverity = row.dataset.severity;
+            const rowType = row.dataset.type;
+            const text = row.textContent.toLowerCase();
+
+            const matchSeverity =
+                severity === "all" || rowSeverity === severity;
+            const matchType = type === "all" || rowType === type;
+            const matchSearch = !search || text.includes(search);
+
+            if (matchSeverity && matchType && matchSearch) {
+                row.style.display = "";
+                visible++;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        document.getElementById("results-count").textContent =
+            `${visible} issues found`;
+    }
+
+    function updateStats() {
+        const rows = document.querySelectorAll("#compliance-results-body tr");
+        let stats = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+
+        rows.forEach((row) => {
+            const severity = row.dataset.severity;
+            if (stats.hasOwnProperty(severity)) {
+                stats[severity]++;
+            }
+        });
+
+        document.getElementById("stat-critical").textContent = stats.critical;
+        document.getElementById("stat-high").textContent = stats.high;
+        document.getElementById("stat-medium").textContent = stats.medium;
+        document.getElementById("stat-low").textContent = stats.low;
+        document.getElementById("stat-info").textContent = stats.info;
+    }
+
+    updateStats();
+</script>

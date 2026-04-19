@@ -1,0 +1,314 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" style="background: transparent;">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0.05"/>
+    </linearGradient>
+    <linearGradient id="coreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#d4f505;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#d4f505;stop-opacity:0.1"/>
+    </linearGradient>
+    <linearGradient id="bundleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.05"/>
+    </linearGradient>
+    
+    <!-- Arrow marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#888">
+      <polygon points="0 0, 10 3.5, 0 7"/>
+    </marker>
+    
+    <!-- Glow filter -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    .title { font: bold 24px sans-serif; fill: #e0e0e0; }
+    .subtitle { font: 14px sans-serif; fill: #888; }
+    .node-label { font: bold 11px monospace; fill: #e0e0e0; text-anchor: middle; }
+    .category-label { font: bold 12px sans-serif; fill: #888; text-anchor: middle; }
+    .dep-text { font: 10px sans-serif; fill: #666; }
+    .legend-text { font: 11px sans-serif; fill: #888; }
+    .node { stroke-width: 2; }
+    .node-core { fill: url(#coreGradient); stroke: #d4f505; }
+    .node-app { fill: url(#nodeGradient); stroke: #22c55e; }
+    .node-bundle { fill: url(#bundleGradient); stroke: #3b82f6; }
+    .edge { stroke: #555; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+    .edge-deps { stroke: #444; stroke-width: 1; stroke-dasharray: 4,2; }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="35" class="title" text-anchor="middle">General Bots Feature Dependency Tree</text>
+  <text x="450" y="55" class="subtitle" text-anchor="middle">Cargo.toml Feature Flags and Dependencies</text>
+
+  <!-- Legend -->
+  <g transform="translate(20, 80)">
+    <rect x="0" y="0" width="130" height="90" rx="8" fill="#1a1a2e" stroke="#333"/>
+    <text x="10" y="20" class="legend-text" font-weight="bold">Legend</text>
+    <rect x="10" y="30" width="16" height="16" rx="4" class="node-core"/>
+    <text x="32" y="42" class="legend-text">Core Technology</text>
+    <rect x="10" y="50" width="16" height="16" rx="4" class="node-app"/>
+    <text x="32" y="62" class="legend-text">Application</text>
+    <rect x="10" y="70" width="16" height="16" rx="4" class="node-bundle"/>
+    <text x="32" y="82" class="legend-text">Bundle (group)</text>
+  </g>
+
+  <!-- ================ CORE TECHNOLOGIES (Bottom Layer) ================ -->
+  <text x="450" y="650" class="category-label">CORE TECHNOLOGIES</text>
+  
+  <!-- cache -->
+  <g transform="translate(150, 590)">
+    <rect x="-40" y="-15" width="80" height="30" rx="6" class="node node-core"/>
+    <text y="4" class="node-label">cache</text>
+    <text y="25" class="dep-text" text-anchor="middle">redis</text>
+  </g>
+  
+  <!-- automation -->
+  <g transform="translate(280, 590)">
+    <rect x="-50" y="-15" width="100" height="30" rx="6" class="node node-core"/>
+    <text y="4" class="node-label">automation</text>
+    <text y="25" class="dep-text" text-anchor="middle">rhai, cron</text>
+  </g>
+  
+  <!-- llm -->
+  <g transform="translate(410, 590)">
+    <rect x="-30" y="-15" width="60" height="30" rx="6" class="node node-core"/>
+    <text y="4" class="node-label">llm</text>
+  </g>
+  
+  <!-- vectordb -->
+  <g transform="translate(520, 590)">
+    <rect x="-40" y="-15" width="80" height="30" rx="6" class="node node-core"/>
+    <text y="4" class="node-label">vectordb</text>
+    <text y="25" class="dep-text" text-anchor="middle">qdrant</text>
+  </g>
+  
+  <!-- monitoring -->
+  <g transform="translate(650, 590)">
+    <rect x="-50" y="-15" width="100" height="30" rx="6" class="node node-core"/>
+    <text y="4" class="node-label">monitoring</text>
+    <text y="25" class="dep-text" text-anchor="middle">sysinfo</text>
+  </g>
+  
+  <!-- directory -->
+  <g transform="translate(780, 590)">
+    <rect x="-45" y="-15" width="90" height="30" rx="6" class="node node-core"/>
+    <text y="4" class="node-label">directory</text>
+  </g>
+
+  <!-- ================ PRODUCTIVITY APPS (Layer 2) ================ -->
+  <text x="200" y="480" class="category-label">PRODUCTIVITY</text>
+  
+  <!-- tasks (depends on automation, cron) -->
+  <g transform="translate(100, 510)">
+    <rect x="-35" y="-15" width="70" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">tasks</text>
+    <text y="25" class="dep-text" text-anchor="middle">cron</text>
+  </g>
+  <path d="M 100 540 Q 100 565 150 575 L 150 575" class="edge"/>
+  <path d="M 100 540 Q 180 560 230 575" class="edge"/>
+  
+  <!-- calendar -->
+  <g transform="translate(200, 510)">
+    <rect x="-45" y="-15" width="90" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">calendar</text>
+  </g>
+  
+  <!-- project (depends on quick-xml) -->
+  <g transform="translate(300, 510)">
+    <rect x="-40" y="-15" width="80" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">project</text>
+    <text y="25" class="dep-text" text-anchor="middle">quick-xml</text>
+  </g>
+
+  <!-- goals -->
+  <g transform="translate(400, 510)">
+    <rect x="-35" y="-15" width="70" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">goals</text>
+  </g>
+
+  <!-- ================ COMMUNICATION APPS (Layer 2) ================ -->
+  <text x="700" y="480" class="category-label">COMMUNICATION</text>
+  
+  <!-- chat -->
+  <g transform="translate(550, 510)">
+    <rect x="-30" y="-15" width="60" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">chat</text>
+  </g>
+  
+  <!-- mail (has deps) -->
+  <g transform="translate(650, 510)">
+    <rect x="-30" y="-15" width="60" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">mail</text>
+    <text y="25" class="dep-text" text-anchor="middle">lettre,imap</text>
+  </g>
+  
+  <!-- meet (has deps) -->
+  <g transform="translate(750, 510)">
+    <rect x="-30" y="-15" width="60" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">meet</text>
+    <text y="25" class="dep-text" text-anchor="middle">livekit</text>
+  </g>
+  
+  <!-- people -->
+  <g transform="translate(850, 510)">
+    <rect x="-40" y="-15" width="80" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">people</text>
+  </g>
+
+  <!-- ================ DOCUMENT APPS (Layer 3) ================ -->
+  <text x="200" y="360" class="category-label">DOCUMENTS</text>
+  
+  <!-- drive (has deps) -->
+  <g transform="translate(100, 395)">
+    <rect x="-35" y="-15" width="70" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">drive</text>
+    <text y="25" class="dep-text" text-anchor="middle">aws-s3</text>
+  </g>
+  
+  <!-- docs (has deps) -->
+  <g transform="translate(200, 395)">
+    <rect x="-30" y="-15" width="60" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">docs</text>
+    <text y="25" class="dep-text" text-anchor="middle">docx-rs</text>
+  </g>
+  
+  <!-- sheet (has deps) -->
+  <g transform="translate(300, 395)">
+    <rect x="-35" y="-15" width="70" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">sheet</text>
+    <text y="25" class="dep-text" text-anchor="middle">calamine</text>
+  </g>
+  
+  <!-- slides -->
+  <g transform="translate(400, 395)">
+    <rect x="-40" y="-15" width="80" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">slides</text>
+    <text y="25" class="dep-text" text-anchor="middle">ooxmlsdk</text>
+  </g>
+  
+  <!-- paper (depends on docs, pdf-extract) -->
+  <g transform="translate(150, 320)">
+    <rect x="-35" y="-15" width="70" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">paper</text>
+    <text y="25" class="dep-text" text-anchor="middle">pdf-extract</text>
+  </g>
+  <path d="M 150 350 L 172 380" class="edge"/>
+
+  <!-- ================ RESEARCH / LEARNING (Layer 3) ================ -->
+  <text x="600" y="360" class="category-label">RESEARCH & LEARNING</text>
+  
+  <!-- research (depends on llm, vectordb) -->
+  <g transform="translate(550, 395)">
+    <rect x="-50" y="-15" width="100" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">research</text>
+  </g>
+  <path d="M 520 410 Q 470 530 440 575" class="edge"/>
+  <path d="M 580 410 L 510 575" class="edge"/>
+  
+  <!-- learn -->
+  <g transform="translate(680, 395)">
+    <rect x="-35" y="-15" width="70" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">learn</text>
+  </g>
+  
+  <!-- sources -->
+  <g transform="translate(780, 395)">
+    <rect x="-45" y="-15" width="90" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">sources</text>
+  </g>
+
+  <!-- ================ ADMIN / ANALYTICS (Layer 4) ================ -->
+  <text x="200" y="240" class="category-label">ADMIN & ANALYTICS</text>
+  
+  <!-- analytics -->
+  <g transform="translate(100, 275)">
+    <rect x="-50" y="-15" width="100" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">analytics</text>
+  </g>
+  
+  <!-- dashboards -->
+  <g transform="translate(220, 275)">
+    <rect x="-55" y="-15" width="110" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">dashboards</text>
+  </g>
+
+  <!-- admin -->
+  <g transform="translate(340, 275)">
+    <rect x="-35" y="-15" width="70" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">admin</text>
+  </g>
+  
+  <!-- settings -->
+  <g transform="translate(440, 275)">
+    <rect x="-45" y="-15" width="90" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">settings</text>
+  </g>
+
+  <!-- ================ DEVELOPMENT (Layer 4) ================ -->
+  <text x="650" y="240" class="category-label">DEVELOPMENT</text>
+  
+  <!-- designer -->
+  <g transform="translate(580, 275)">
+    <rect x="-45" y="-15" width="90" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">designer</text>
+  </g>
+  
+  <!-- editor -->
+  <g transform="translate(700, 275)">
+    <rect x="-40" y="-15" width="80" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">editor</text>
+  </g>
+
+  <!-- console (depends on monitoring) -->
+  <g transform="translate(820, 275)">
+    <rect x="-45" y="-15" width="90" height="30" rx="6" class="node node-app"/>
+    <text y="4" class="node-label">console</text>
+    <text y="25" class="dep-text" text-anchor="middle">crossterm</text>
+  </g>
+  <path d="M 780 290 Q 720 450 670 575" class="edge"/>
+
+  <!-- ================ BUNDLE FEATURES (Top Layer) ================ -->
+  <text x="450" y="120" class="category-label">BUNDLE FEATURES</text>
+  
+  <!-- communications bundle -->
+  <g transform="translate(200, 160)">
+    <rect x="-80" y="-20" width="160" height="40" rx="8" class="node node-bundle"/>
+    <text y="5" class="node-label">communications</text>
+  </g>
+  <path d="M 200 180 Q 200 350 550 495" class="edge-deps"/>
+  <path d="M 200 180 Q 350 350 650 495" class="edge-deps"/>
+  <path d="M 200 180 Q 500 350 750 495" class="edge-deps"/>
+  
+  <!-- productivity bundle -->
+  <g transform="translate(400, 160)">
+    <rect x="-65" y="-20" width="130" height="40" rx="8" class="node node-bundle"/>
+    <text y="5" class="node-label">productivity</text>
+  </g>
+  <path d="M 340 180 Q 200 350 100 495" class="edge-deps"/>
+  <path d="M 380 180 Q 260 350 200 495" class="edge-deps"/>
+  <path d="M 420 180 Q 350 350 300 495" class="edge-deps"/>
+  
+  <!-- documents bundle -->
+  <g transform="translate(580, 160)">
+    <rect x="-60" y="-20" width="120" height="40" rx="8" class="node node-bundle"/>
+    <text y="5" class="node-label">documents</text>
+  </g>
+  <path d="M 530 180 Q 200 300 100 380" class="edge-deps"/>
+  <path d="M 560 180 Q 320 300 200 380" class="edge-deps"/>
+  <path d="M 590 180 Q 400 300 300 380" class="edge-deps"/>
+  <path d="M 620 180 Q 480 300 400 380" class="edge-deps"/>
+  
+  <!-- full bundle -->
+  <g transform="translate(760, 160)">
+    <rect x="-45" y="-20" width="90" height="40" rx="8" class="node node-bundle"/>
+    <text y="5" class="node-label">full</text>
+  </g>
+</svg>

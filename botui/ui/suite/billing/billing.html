@@ -1,0 +1,481 @@
+<!-- Billing - Invoices, Payments & Quotes -->
+<!-- Dynamics nomenclature: Quote → Invoice → Payment -->
+
+<link rel="stylesheet" href="billing/billing.css" />
+
+<div class="billing-container">
+    <!-- Header -->
+    <header class="billing-header">
+        <div class="billing-header-left">
+            <h1 data-i18n="billing-title">Billing</h1>
+            <nav class="billing-tabs">
+                <button
+                    class="billing-tab active"
+                    data-view="invoices"
+                    data-i18n="billing-invoices"
+                >
+                    Invoices
+                </button>
+                <button
+                    class="billing-tab"
+                    data-view="payments"
+                    data-i18n="billing-payments"
+                >
+                    Payments
+                </button>
+                <button
+                    class="billing-tab"
+                    data-view="quotes"
+                    data-i18n="billing-quotes"
+                >
+                    Quotes
+                </button>
+            </nav>
+        </div>
+        <div class="billing-header-right">
+            <div class="billing-search">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                    type="text"
+                    placeholder="Search invoices, quotes..."
+                    data-i18n-placeholder="billing-search-placeholder"
+                    hx-get="/api/billing/search"
+                    hx-trigger="keyup changed delay:300ms"
+                    hx-target="#billing-search-results"
+                />
+            </div>
+            <button class="btn-primary" id="billing-new-invoice">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span data-i18n="billing-new-invoice">New Invoice</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Search Results -->
+    <div id="billing-search-results" class="billing-search-results"></div>
+
+    <!-- Summary Cards -->
+    <div class="billing-summary">
+        <div class="summary-card">
+            <div class="summary-icon pending">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="billing-pending"
+                    >Pending</span
+                >
+                <span
+                    class="summary-value"
+                    hx-get="/api/billing/stats/pending"
+                    hx-trigger="load"
+                    >$0</span
+                >
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon overdue">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="billing-overdue"
+                    >Overdue</span
+                >
+                <span
+                    class="summary-value overdue"
+                    hx-get="/api/billing/stats/overdue"
+                    hx-trigger="load"
+                    >$0</span
+                >
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon paid">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="billing-paid-month"
+                    >Paid This Month</span
+                >
+                <span
+                    class="summary-value paid"
+                    hx-get="/api/billing/stats/paid-month"
+                    hx-trigger="load"
+                    >$0</span
+                >
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon total">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="1" x2="12" y2="23" />
+                    <path
+                        d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                    />
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="billing-revenue-month"
+                    >Revenue This Month</span
+                >
+                <span
+                    class="summary-value"
+                    hx-get="/api/billing/stats/revenue-month"
+                    hx-trigger="load"
+                    >$0</span
+                >
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoices View (Default) -->
+    <div id="billing-invoices-view" class="billing-view active">
+        <div class="billing-list-header">
+            <div class="list-filters">
+                <select
+                    hx-get="/api/billing/invoices"
+                    hx-trigger="change"
+                    hx-target="#invoices-table-body"
+                    hx-include="this"
+                    name="status"
+                >
+                    <option value="all" data-i18n="billing-filter-all">
+                        All Invoices
+                    </option>
+                    <option value="draft" data-i18n="billing-filter-draft">
+                        Draft
+                    </option>
+                    <option value="sent" data-i18n="billing-filter-sent">
+                        Sent
+                    </option>
+                    <option value="paid" data-i18n="billing-filter-paid">
+                        Paid
+                    </option>
+                    <option value="overdue" data-i18n="billing-filter-overdue">
+                        Overdue
+                    </option>
+                    <option
+                        value="cancelled"
+                        data-i18n="billing-filter-cancelled"
+                    >
+                        Cancelled
+                    </option>
+                </select>
+                <select
+                    hx-get="/api/billing/invoices"
+                    hx-trigger="change"
+                    hx-target="#invoices-table-body"
+                    hx-include="this"
+                    name="period"
+                >
+                    <option value="all" data-i18n="billing-period-all">
+                        All Time
+                    </option>
+                    <option value="month" data-i18n="billing-period-month">
+                        This Month
+                    </option>
+                    <option value="quarter" data-i18n="billing-period-quarter">
+                        This Quarter
+                    </option>
+                    <option value="year" data-i18n="billing-period-year">
+                        This Year
+                    </option>
+                </select>
+            </div>
+            <div class="list-actions">
+                <button
+                    class="action-btn"
+                    hx-get="/api/billing/invoices/export"
+                    data-i18n="billing-export"
+                >
+                    Export
+                </button>
+            </div>
+        </div>
+        <table class="billing-table">
+            <thead>
+                <tr>
+                    <th data-i18n="billing-col-number">Invoice #</th>
+                    <th data-i18n="billing-col-account">Account</th>
+                    <th data-i18n="billing-col-date">Date</th>
+                    <th data-i18n="billing-col-due">Due Date</th>
+                    <th data-i18n="billing-col-amount">Amount</th>
+                    <th data-i18n="billing-col-status">Status</th>
+                    <th data-i18n="billing-col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody
+                id="invoices-table-body"
+                hx-get="/api/billing/invoices"
+                hx-trigger="load"
+            >
+                <!-- Invoices loaded via HTMX -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Payments View -->
+    <div id="billing-payments-view" class="billing-view">
+        <div class="billing-list-header">
+            <div class="list-filters">
+                <select
+                    hx-get="/api/billing/payments"
+                    hx-trigger="change"
+                    hx-target="#payments-table-body"
+                    hx-include="this"
+                    name="method"
+                >
+                    <option value="all" data-i18n="billing-method-all">
+                        All Methods
+                    </option>
+                    <option value="bank" data-i18n="billing-method-bank">
+                        Bank Transfer
+                    </option>
+                    <option value="card" data-i18n="billing-method-card">
+                        Credit Card
+                    </option>
+                    <option value="pix" data-i18n="billing-method-pix">
+                        PIX
+                    </option>
+                    <option value="boleto" data-i18n="billing-method-boleto">
+                        Boleto
+                    </option>
+                    <option value="cash" data-i18n="billing-method-cash">
+                        Cash
+                    </option>
+                </select>
+            </div>
+            <button
+                class="btn-primary"
+                hx-get="/suite/billing/partials/payment-form.html"
+                hx-target="#billing-modal-content"
+                hx-on::after-request="openBillingModal()"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span data-i18n="billing-record-payment">Record Payment</span>
+            </button>
+        </div>
+        <table class="billing-table">
+            <thead>
+                <tr>
+                    <th data-i18n="billing-col-payment-id">Payment ID</th>
+                    <th data-i18n="billing-col-invoice">Invoice</th>
+                    <th data-i18n="billing-col-account">Account</th>
+                    <th data-i18n="billing-col-date">Date</th>
+                    <th data-i18n="billing-col-amount">Amount</th>
+                    <th data-i18n="billing-col-method">Method</th>
+                    <th data-i18n="billing-col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody
+                id="payments-table-body"
+                hx-get="/api/billing/payments"
+                hx-trigger="load"
+            ></tbody>
+        </table>
+    </div>
+
+    <!-- Quotes View -->
+    <div id="billing-quotes-view" class="billing-view">
+        <div class="billing-list-header">
+            <div class="list-filters">
+                <select
+                    hx-get="/api/billing/quotes"
+                    hx-trigger="change"
+                    hx-target="#quotes-table-body"
+                    hx-include="this"
+                    name="status"
+                >
+                    <option value="all" data-i18n="billing-quote-all">
+                        All Quotes
+                    </option>
+                    <option value="draft" data-i18n="billing-quote-draft">
+                        Draft
+                    </option>
+                    <option value="sent" data-i18n="billing-quote-sent">
+                        Sent
+                    </option>
+                    <option value="accepted" data-i18n="billing-quote-accepted">
+                        Accepted
+                    </option>
+                    <option value="rejected" data-i18n="billing-quote-rejected">
+                        Rejected
+                    </option>
+                    <option value="expired" data-i18n="billing-quote-expired">
+                        Expired
+                    </option>
+                </select>
+            </div>
+            <button
+                class="btn-primary"
+                hx-get="/suite/billing/partials/quote-form.html"
+                hx-target="#billing-modal-content"
+                hx-on::after-request="openBillingModal()"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span data-i18n="billing-new-quote">New Quote</span>
+            </button>
+        </div>
+        <table class="billing-table">
+            <thead>
+                <tr>
+                    <th data-i18n="billing-col-quote-number">Quote #</th>
+                    <th data-i18n="billing-col-account">Account</th>
+                    <th data-i18n="billing-col-opportunity">Opportunity</th>
+                    <th data-i18n="billing-col-date">Date</th>
+                    <th data-i18n="billing-col-valid-until">Valid Until</th>
+                    <th data-i18n="billing-col-amount">Amount</th>
+                    <th data-i18n="billing-col-status">Status</th>
+                    <th data-i18n="billing-col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody
+                id="quotes-table-body"
+                hx-get="/api/billing/quotes"
+                hx-trigger="load"
+            ></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for forms -->
+<div id="billing-modal" class="billing-modal">
+    <div class="billing-modal-backdrop" onclick="closeBillingModal()"></div>
+    <div class="billing-modal-content" id="billing-modal-content">
+        <!-- Form content loaded via HTMX -->
+    </div>
+</div>
+
+<script>
+    (function () {
+        // Tab switching
+        document.querySelectorAll(".billing-tab").forEach((tab) => {
+            tab.addEventListener("click", function () {
+                document
+                    .querySelectorAll(".billing-tab")
+                    .forEach((t) => t.classList.remove("active"));
+                document
+                    .querySelectorAll(".billing-view")
+                    .forEach((v) => v.classList.remove("active"));
+                this.classList.add("active");
+                const view = this.dataset.view;
+                document
+                    .getElementById(`billing-${view}-view`)
+                    .classList.add("active");
+            });
+        });
+
+        // New Invoice button
+        document
+            .getElementById("billing-new-invoice")
+            .addEventListener("click", function () {
+                htmx.ajax(
+                    "GET",
+                    "/suite/billing/partials/invoice-form.html",
+                    "#billing-modal-content",
+                ).then(() => {
+                    openBillingModal();
+                });
+            });
+
+        // Modal functions
+        window.openBillingModal = function () {
+            document.getElementById("billing-modal").classList.add("open");
+        };
+
+        window.closeBillingModal = function () {
+            document.getElementById("billing-modal").classList.remove("open");
+        };
+
+        // Keyboard shortcut: Escape to close modal
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+                closeBillingModal();
+            }
+        });
+
+        // Initialize i18n if available
+        if (window.i18n && window.i18n.translatePage) {
+            window.i18n.translatePage();
+        }
+    })();
+</script>

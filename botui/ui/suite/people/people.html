@@ -1,0 +1,755 @@
+<link rel="stylesheet" href="people/people.css" />
+
+<div class="people-container">
+    <!-- Header -->
+    <header class="people-header">
+        <div class="header-left">
+            <h1 data-i18n="people-title">People</h1>
+            <p class="header-subtitle" data-i18n="people-subtitle">
+                Contacts, Groups & Directory
+            </p>
+        </div>
+        <div class="header-actions">
+            <div class="search-box">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input
+                    type="text"
+                    placeholder="Search contacts..."
+                    data-i18n-placeholder="people-search"
+                    id="people-search"
+                />
+            </div>
+            <button class="btn btn-primary" onclick="openAddContact()">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="8.5" cy="7" r="4" />
+                    <line x1="20" y1="8" x2="20" y2="14" />
+                    <line x1="23" y1="11" x2="17" y2="11" />
+                </svg>
+                <span data-i18n="people-add">Add Contact</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav" role="tablist">
+        <button
+            class="tab-btn active"
+            role="tab"
+            aria-selected="true"
+            onclick="showTab('contacts', this)"
+        >
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+            </svg>
+            <span data-i18n="people-tab-contacts">Contacts</span>
+        </button>
+        <button
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            onclick="showTab('groups', this)"
+        >
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span data-i18n="people-tab-groups">Groups</span>
+        </button>
+        <button
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            onclick="showTab('directory', this)"
+        >
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path
+                    d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+                />
+            </svg>
+            <span data-i18n="people-tab-directory">Directory</span>
+        </button>
+        <button
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            onclick="showTab('recent', this)"
+        >
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span data-i18n="people-tab-recent">Recent</span>
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="people-content">
+        <!-- Contacts Tab -->
+        <div id="contacts-tab" class="tab-content active">
+            <!-- Alphabet Filter -->
+            <div class="alphabet-filter">
+                <button
+                    class="alpha-btn active"
+                    onclick="filterByLetter('all', this)"
+                >
+                    All
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('A', this)">
+                    A
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('B', this)">
+                    B
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('C', this)">
+                    C
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('D', this)">
+                    D
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('E', this)">
+                    E
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('F', this)">
+                    F
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('G', this)">
+                    G
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('H', this)">
+                    H
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('I', this)">
+                    I
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('J', this)">
+                    J
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('K', this)">
+                    K
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('L', this)">
+                    L
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('M', this)">
+                    M
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('N', this)">
+                    N
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('O', this)">
+                    O
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('P', this)">
+                    P
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('Q', this)">
+                    Q
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('R', this)">
+                    R
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('S', this)">
+                    S
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('T', this)">
+                    T
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('U', this)">
+                    U
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('V', this)">
+                    V
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('W', this)">
+                    W
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('X', this)">
+                    X
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('Y', this)">
+                    Y
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('Z', this)">
+                    Z
+                </button>
+            </div>
+
+            <!-- Contacts List -->
+            <div class="contacts-list" id="contacts-list">
+                <!-- Contacts will be loaded here -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p data-i18n="people-loading">Loading contacts...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Groups Tab -->
+        <div id="groups-tab" class="tab-content">
+            <div class="groups-grid" id="groups-list">
+                <!-- Groups will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Directory Tab -->
+        <div id="directory-tab" class="tab-content">
+            <div class="directory-tree" id="directory-tree">
+                <!-- Organization directory will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Recent Tab -->
+        <div id="recent-tab" class="tab-content">
+            <div class="recent-list" id="recent-list">
+                <!-- Recent contacts will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Detail Panel (slides in from right) -->
+    <div class="contact-panel" id="contact-panel">
+        <div class="panel-header">
+            <button class="close-btn" onclick="closeContactPanel()">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+            <div class="panel-actions">
+                <button class="icon-btn" title="Edit" onclick="editContact()">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                        />
+                        <path
+                            d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                        />
+                    </svg>
+                </button>
+                <button
+                    class="icon-btn"
+                    title="Delete"
+                    onclick="deleteContact()"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path
+                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="panel-content" id="contact-detail">
+            <!-- Contact details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Contact Modal -->
+<dialog id="contact-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title" data-i18n="people-add-contact">Add Contact</h2>
+            <button class="close-btn" onclick="closeModal()">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <form id="contact-form" onsubmit="saveContact(event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label data-i18n="people-first-name">First Name</label>
+                    <input type="text" name="firstName" required />
+                </div>
+                <div class="form-group">
+                    <label data-i18n="people-last-name">Last Name</label>
+                    <input type="text" name="lastName" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-email">Email</label>
+                <input type="email" name="email" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-phone">Phone</label>
+                <input type="tel" name="phone" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-company">Company</label>
+                <input type="text" name="company" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-title">Title</label>
+                <input type="text" name="title" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-notes">Notes</label>
+                <textarea name="notes" rows="3"></textarea>
+            </div>
+            <div class="form-actions">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    onclick="closeModal()"
+                    data-i18n="cancel"
+                >
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" data-i18n="save">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<script>
+    (function () {
+        let currentContact = null;
+        let contacts = [];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadContacts();
+        });
+
+        async function loadContacts() {
+            try {
+                const response = await fetch("/api/contacts");
+                if (response.ok) {
+                    contacts = await response.json();
+                    renderContacts(contacts);
+                } else {
+                    renderEmptyState();
+                }
+            } catch (error) {
+                console.error("Failed to load contacts:", error);
+                renderEmptyState();
+            }
+        }
+
+        function renderContacts(contactsList) {
+            const container = document.getElementById("contacts-list");
+            if (!contactsList || contactsList.length === 0) {
+                renderEmptyState();
+                return;
+            }
+
+            const grouped = groupByLetter(contactsList);
+            let html = "";
+
+            for (const [letter, group] of Object.entries(grouped)) {
+                html += `<div class="contact-group" data-letter="${letter}">
+            <div class="group-header">${letter}</div>
+            <div class="group-contacts">`;
+
+                for (const contact of group) {
+                    html += renderContactCard(contact);
+                }
+
+                html += "</div></div>";
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderContactCard(contact) {
+            const initials = getInitials(contact.firstName, contact.lastName);
+            const name = `${contact.firstName} ${contact.lastName}`;
+
+            return `<div class="contact-card" onclick="showContact('${contact.id}')">
+        <div class="contact-avatar" style="background: ${getAvatarColor(name)}">${initials}</div>
+        <div class="contact-info">
+            <div class="contact-name">${name}</div>
+            <div class="contact-detail">${contact.email || contact.phone || ""}</div>
+        </div>
+        <div class="contact-actions">
+            <button class="icon-btn small" onclick="event.stopPropagation(); startChat('${contact.id}')" title="Chat">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+            </button>
+            <button class="icon-btn small" onclick="event.stopPropagation(); sendEmail('${contact.email}')" title="Email">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+            </button>
+        </div>
+    </div>`;
+        }
+
+        function renderEmptyState() {
+            document.getElementById("contacts-list").innerHTML = `
+        <div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <h3 data-i18n="people-empty-title">No contacts yet</h3>
+            <p data-i18n="people-empty-desc">Add your first contact to get started</p>
+            <button class="btn btn-primary" onclick="openAddContact()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span data-i18n="people-add">Add Contact</span>
+            </button>
+        </div>
+    `;
+        }
+
+        function groupByLetter(contactsList) {
+            const grouped = {};
+            for (const contact of contactsList) {
+                const letter = (contact.lastName || contact.firstName || "#")
+                    .charAt(0)
+                    .toUpperCase();
+                if (!grouped[letter]) grouped[letter] = [];
+                grouped[letter].push(contact);
+            }
+            return Object.fromEntries(Object.entries(grouped).sort());
+        }
+
+        function getInitials(firstName, lastName) {
+            return (
+                (
+                    (firstName?.charAt(0) || "") + (lastName?.charAt(0) || "")
+                ).toUpperCase() || "?"
+            );
+        }
+
+        function getAvatarColor(name) {
+            const colors = [
+                "#6366f1",
+                "#8b5cf6",
+                "#ec4899",
+                "#ef4444",
+                "#f97316",
+                "#eab308",
+                "#22c55e",
+                "#14b8a6",
+                "#06b6d4",
+                "#3b82f6",
+            ];
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return colors[Math.abs(hash) % colors.length];
+        }
+
+        function showTab(tabId, btn) {
+            document
+                .querySelectorAll(".tab-content")
+                .forEach((tab) => tab.classList.remove("active"));
+            document.querySelectorAll(".tab-btn").forEach((b) => {
+                b.classList.remove("active");
+                b.setAttribute("aria-selected", "false");
+            });
+
+            document.getElementById(tabId + "-tab").classList.add("active");
+            btn.classList.add("active");
+            btn.setAttribute("aria-selected", "true");
+        }
+
+        function filterByLetter(letter, btn) {
+            document
+                .querySelectorAll(".alpha-btn")
+                .forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+
+            document.querySelectorAll(".contact-group").forEach((group) => {
+                if (letter === "all" || group.dataset.letter === letter) {
+                    group.style.display = "";
+                } else {
+                    group.style.display = "none";
+                }
+            });
+        }
+
+        function showContact(id) {
+            currentContact = contacts.find((c) => c.id === id);
+            if (!currentContact) return;
+
+            const panel = document.getElementById("contact-panel");
+            const detail = document.getElementById("contact-detail");
+
+            detail.innerHTML = `
+        <div class="contact-header">
+            <div class="contact-avatar large" style="background: ${getAvatarColor(currentContact.firstName + " " + currentContact.lastName)}">
+                ${getInitials(currentContact.firstName, currentContact.lastName)}
+            </div>
+            <h2>${currentContact.firstName} ${currentContact.lastName}</h2>
+            ${currentContact.title ? `<p class="contact-title">${currentContact.title}</p>` : ""}
+            ${currentContact.company ? `<p class="contact-company">${currentContact.company}</p>` : ""}
+        </div>
+        <div class="contact-fields">
+            ${
+                currentContact.email
+                    ? `
+                <div class="field">
+                    <label>Email</label>
+                    <a href="mailto:${currentContact.email}">${currentContact.email}</a>
+                </div>
+            `
+                    : ""
+            }
+            ${
+                currentContact.phone
+                    ? `
+                <div class="field">
+                    <label>Phone</label>
+                    <a href="tel:${currentContact.phone}">${currentContact.phone}</a>
+                </div>
+            `
+                    : ""
+            }
+            ${
+                currentContact.notes
+                    ? `
+                <div class="field">
+                    <label>Notes</label>
+                    <p>${currentContact.notes}</p>
+                </div>
+            `
+                    : ""
+            }
+        </div>
+        <div class="contact-quick-actions">
+            <button class="action-btn" onclick="startChat('${currentContact.id}')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Chat
+            </button>
+            <button class="action-btn" onclick="sendEmail('${currentContact.email}')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Email
+            </button>
+            <button class="action-btn" onclick="scheduleMeeting('${currentContact.id}')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Meeting
+            </button>
+        </div>
+    `;
+
+            panel.classList.add("open");
+        }
+
+        function closeContactPanel() {
+            document.getElementById("contact-panel").classList.remove("open");
+            currentContact = null;
+        }
+
+        function openAddContact() {
+            currentContact = null;
+            document.getElementById("modal-title").textContent = "Add Contact";
+            document.getElementById("contact-form").reset();
+            document.getElementById("contact-modal").showModal();
+        }
+
+        function editContact() {
+            if (!currentContact) return;
+            document.getElementById("modal-title").textContent = "Edit Contact";
+            const form = document.getElementById("contact-form");
+            form.firstName.value = currentContact.firstName || "";
+            form.lastName.value = currentContact.lastName || "";
+            form.email.value = currentContact.email || "";
+            form.phone.value = currentContact.phone || "";
+            form.company.value = currentContact.company || "";
+            form.title.value = currentContact.title || "";
+            form.notes.value = currentContact.notes || "";
+            document.getElementById("contact-modal").showModal();
+        }
+
+        function closeModal() {
+            document.getElementById("contact-modal").close();
+        }
+
+        async function saveContact(event) {
+            event.preventDefault();
+            const form = event.target;
+            const data = {
+                firstName: form.firstName.value,
+                lastName: form.lastName.value,
+                email: form.email.value,
+                phone: form.phone.value,
+                company: form.company.value,
+                title: form.title.value,
+                notes: form.notes.value,
+            };
+
+            try {
+                const url = currentContact
+                    ? `/api/contacts/${currentContact.id}`
+                    : "/api/contacts";
+                const method = currentContact ? "PUT" : "POST";
+
+                const response = await fetch(url, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data),
+                });
+
+                if (response.ok) {
+                    closeModal();
+                    loadContacts();
+                    if (currentContact) closeContactPanel();
+                }
+            } catch (error) {
+                console.error("Failed to save contact:", error);
+            }
+        }
+
+        async function deleteContact() {
+            if (!currentContact || !confirm("Delete this contact?")) return;
+
+            try {
+                const response = await fetch(
+                    `/api/contacts/${currentContact.id}`,
+                    {
+                        method: "DELETE",
+                    },
+                );
+                if (response.ok) {
+                    closeContactPanel();
+                    loadContacts();
+                }
+            } catch (error) {
+                console.error("Failed to delete contact:", error);
+            }
+        }
+
+        function startChat(contactId) {
+            window.location.href = `/#chat?contact=${contactId}`;
+        }
+
+        function sendEmail(email) {
+            if (email) window.location.href = `mailto:${email}`;
+        }
+
+        function scheduleMeeting(contactId) {
+            window.location.href = `/#calendar?new=meeting&contact=${contactId}`;
+        }
+
+        // Search functionality
+        document
+            .getElementById("people-search")
+            ?.addEventListener("input", (e) => {
+                const query = e.target.value.toLowerCase();
+                const filtered = contacts.filter(
+                    (c) =>
+                        (c.firstName + " " + c.lastName)
+                            .toLowerCase()
+                            .includes(query) ||
+                        (c.email || "").toLowerCase().includes(query) ||
+                        (c.company || "").toLowerCase().includes(query),
+                );
+                renderContacts(filtered);
+            });
+
+        window.showTab = showTab;
+        window.filterByLetter = filterByLetter;
+        window.showContact = showContact;
+        window.closeContactPanel = closeContactPanel;
+        window.openAddContact = openAddContact;
+        window.editContact = editContact;
+        window.closeModal = closeModal;
+        window.saveContact = saveContact;
+        window.deleteContact = deleteContact;
+        window.startChat = startChat;
+        window.sendEmail = sendEmail;
+        window.scheduleMeeting = scheduleMeeting;
+    })();
+</script>

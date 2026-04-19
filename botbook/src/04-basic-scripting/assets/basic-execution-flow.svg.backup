@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 880 500" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="880" height="500" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  <!-- Define gradients and filters -->
+  
+
+  <!-- Background -->
+  <rect x="0" y="0" width="800" height="420" fill="#4B5563" rx="8" filter="url(#shadow)">
+
+  <!-- Background accent circles for depth -->
+  <circle cx="120" cy="90" r="45" fill="#4B5563" opacity="0.04">
+  <circle cx="400" cy="90" r="65" fill="#4B5563" opacity="0.04">
+  <circle cx="650" cy="90" r="40" fill="#4B5563" opacity="0.04">
+  <circle cx="650" cy="230" r="50" fill="#4B5563" opacity="0.04">
+  <circle cx="400" cy="330" r="55" fill="#4B5563" opacity="0.04">
+
+  <!-- Title with background -->
+  <rect x="250" y="15" width="300" height="35" fill="rgba(99, 102, 241, 0.05)" rx="8" filter="url(#shadow)">
+  <text x="400" y="38" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#4B5563">
+    BASIC LLM Tool Execution Flow
+  </text>
+
+  <!-- Stage 1: User Input -->
+  <rect x="50" y="70" width="140" height="55" fill="url(#userGrad)" stroke="#2563EB" stroke-width="2" rx="10" filter="url(#shadow)">
+  <text x="120" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#4B5563" filter="url(#textShadow)">USER</text>
+  <text x="120" y="112" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">"What's the policy?"</text>
+
+  <!-- Elegant flow arrow 1 -->
+  <path d="M 190 97 C 220 97, 230 97, 260 97" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrow)" opacity="0.7" stroke-linecap="round">
+
+  <!-- Stage 2: LLM Processing -->
+  <rect x="260" y="70" width="280" height="55" fill="url(#llmGrad)" stroke="#2563EB" stroke-width="2" rx="10" filter="url(#shadow)">
+  <text x="400" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#4B5563" filter="url(#textShadow)">LLM + CONTEXT</text>
+  <text x="400" y="112" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Understands intent + loaded KBs</text>
+
+  <!-- Elegant flow arrow 2 -->
+  <path d="M 540 97 C 560 97, 580 97, 600 97" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrow)" opacity="0.7" stroke-linecap="round">
+
+  <!-- Stage 3: Decision Diamond -->
+  <g filter="url(#glow)">
+    <path d="M 650 70 L 700 97 L 650 124 L 600 97 Z" fill="rgba(139, 92, 246, 0.15)" stroke="#2563EB" stroke-width="2.5">
+    <circle cx="650" cy="97" r="10" fill="#4B5563" opacity="0.3">
+    <text x="650" y="102" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">Tool?</text>
+  </g>
+
+  <!-- Direct Response Path - graceful curve -->
+  <path d="M 650 70 C 650 40, 500 40, 400 40 C 280 40, 140 40, 140 170" stroke="url(#directPathGrad)" stroke-width="2.5" fill="none" marker-end="url(#arrowGreen)" stroke-dasharray="8,4" opacity="0.6" stroke-linecap="round">
+
+  <!-- Label for direct path -->
+  <rect x="350" y="25" width="100" height="22" fill="rgba(16, 185, 129, 0.1)" rx="5" filter="url(#shadow)">
+  <text x="400" y="40" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">Direct Answer</text>
+
+  <!-- Tool Path - smooth descent -->
+  <path d="M 650 124 C 650 160, 650 170, 650 200" stroke="url(#toolPathGrad)" stroke-width="3" fill="none" marker-end="url(#arrowOrange)" opacity="0.8" stroke-linecap="round">
+
+  <!-- Label for tool path -->
+  <text x="670" y="165" text-anchor="start" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">Call Tool</text>
+
+  <!-- Stage 4: BASIC Tool -->
+  <rect x="560" y="200" width="180" height="75" fill="url(#toolGrad)" stroke="#2563EB" stroke-width="2" rx="10" filter="url(#shadow)">
+  <text x="650" y="225" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#4B5563" filter="url(#textShadow)">BASIC TOOL</text>
+  <text x="650" y="245" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">enrollment.bas</text>
+  <text x="650" y="260" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">PARAM name, course</text>
+
+  <!-- Tool Return Path - smooth curve -->
+  <path d="M 560 237 C 490 237, 430 220, 400 195" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrow)" opacity="0.6" stroke-linecap="round">
+
+  <!-- Stage 5: Response Generation -->
+  <rect x="310" y="170" width="180" height="55" fill="url(#responseGrad)" stroke="#2563EB" stroke-width="2" rx="10" filter="url(#shadow)">
+  <text x="400" y="195" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#4B5563" filter="url(#textShadow)">RESPONSE</text>
+  <text x="400" y="212" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Generate natural answer</text>
+
+  <!-- Final Arrow -->
+  <path d="M 310 197 C 280 197, 240 197, 210 197" stroke="#2563EB" stroke-width="2.5" fill="none" marker-end="url(#arrow)" opacity="0.7" stroke-linecap="round">
+
+  <!-- Stage 6: Bot Output -->
+  <rect x="50" y="170" width="140" height="55" fill="url(#userGrad)" stroke="#2563EB" stroke-width="2" rx="10" filter="url(#shadow)">
+  <text x="120" y="195" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#4B5563" filter="url(#textShadow)">BOT</text>
+  <text x="120" y="212" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">"30-day return..."</text>
+
+  <!-- Memory Store - elegant and subtle -->
+  <rect x="350" y="290" width="320" height="55" fill="url(#memoryGrad)" stroke="#2563EB" stroke-width="2" stroke-dasharray="6,3" rx="10" opacity="0.8" filter="url(#shadow)">
+  <text x="510" y="315" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">MEMORY STORE</text>
+  <text x="510" y="332" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">BOT_MEMORY • Session State • Context</text>
+
+  <!-- Memory connection - delicate -->
+  <path d="M 650 275 L 650 290" stroke="#2563EB" stroke-width="1.5" stroke-dasharray="4,4" fill="none" opacity="0.4">
+  <path d="M 400 225 L 400 290" stroke="#2563EB" stroke-width="1.5" stroke-dasharray="4,4" fill="none" opacity="0.4">
+
+  <!-- Performance metrics -->
+  <rect x="50" y="370" width="700" height="35" fill="rgba(99, 102, 241, 0.05)" stroke="#2563EB" stroke-width="2" stroke-dasharray="6,3" rx="8" filter="url(#shadow)">
+  <text x="400" y="392" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" font-style="italic">
+    LLM decides tool calls • Zero IF/THEN logic • Natural conversation flow • Context-aware responses
+  </text>
+
+  <!-- Legend -->
+  <g transform="translate(50, 260)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">Legend:</text>
+    <circle cx="10" cy="15" r="4" fill="#4B5563">
+    <text x="20" y="19" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Direct response</text>
+    <circle cx="10" cy="30" r="4" fill="#4B5563">
+    <text x="20" y="34" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Tool invocation</text>
+  </g>
+
+
+  </g>
+
+</svg>

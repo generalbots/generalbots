@@ -1,3 +1,0 @@
-let resultado = "Consulta de Inscrição - Protocolo informado: " + protocolo + ". A consulta foi registrada. Nossa equipe verificará o status da inscrição e retornará em breve. Para consultas urgentes: Telefone (21) 3333-4444, WhatsApp (21) 99999-8888, Horário Segunda a Sexta 8h às 17h, Email secretaria@salesianos.br";
-TALK resultado;
-return resultado;

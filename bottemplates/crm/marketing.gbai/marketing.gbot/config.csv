@@ -1,0 +1,14 @@
+name,value
+episodic-memory-history,2
+episodic-memory-threshold,4
+theme-color1,#E91E63
+theme-color2,#FCE4EC
+theme-logo,https://pragmatismo.com.br/icons/general-bots.svg
+theme-title,Marketing Hub - General Bots
+bot-name,Marketing Automation Assistant
+welcome-message,Welcome to Marketing Hub! Create campaigns, templates, and broadcast messages.
+instagram-account,
+whatsapp-business-id,
+default-channel,whatsapp
+rate-limit,10
+max-broadcast-size,1000

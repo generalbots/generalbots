@@ -1,0 +1,144 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6"/>
+    </marker>
+
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#10B981"/>
+    </marker>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="550" fill="#FAFBFC"/>
+  <rect width="900" height="550" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="600" class="title-text">How Knowledge Base Works</text>
+  <text x="450" y="55" text-anchor="middle" font-size="12" class="secondary-text">Semantic search through your documents</text>
+
+  <!-- Main Container -->
+  <rect x="30" y="75" width="840" height="450" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+
+  <!-- Step 1: User Question -->
+  <g transform="translate(350, 95)">
+    <rect x="0" y="0" width="200" height="60" rx="8" fill="#FFFFFF" stroke="#0EA5E9" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="25" rx="8" fill="url(#cyanGrad)"/>
+    <rect x="0" y="20" width="200" height="5" fill="url(#cyanGrad)"/>
+    <text x="100" y="17" text-anchor="middle" font-size="10" font-weight="600" class="white-text">User asks:</text>
+    <text x="100" y="45" text-anchor="middle" font-size="10" class="mono-text">"What is our refund policy?"</text>
+  </g>
+
+  <!-- Arrow down -->
+  <path d="M450 160 L450 190" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- Step 2: Semantic Search -->
+  <g transform="translate(300, 200)">
+    <rect x="0" y="0" width="300" height="70" rx="10" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="300" height="28" rx="10" fill="url(#primaryGrad)"/>
+    <rect x="0" y="22" width="300" height="6" fill="url(#primaryGrad)"/>
+    <text x="150" y="19" text-anchor="middle" font-size="12" font-weight="600" class="white-text">🔍 Semantic Search</text>
+    <text x="150" y="50" text-anchor="middle" font-size="10" class="secondary-text">Searches through all documents in the knowledge base</text>
+  </g>
+
+  <!-- Arrow down splitting into 3 -->
+  <path d="M450 275 L450 305" stroke="#8B5CF6" stroke-width="2" fill="none"/>
+  <path d="M200 305 L700 305" stroke="#8B5CF6" stroke-width="2" fill="none"/>
+  <path d="M200 305 L200 330" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+  <path d="M450 305 L450 330" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+  <path d="M700 305 L700 330" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+
+  <!-- Document Cards -->
+  <!-- policies.pdf -->
+  <g transform="translate(120, 340)">
+    <rect x="0" y="0" width="160" height="70" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <text x="80" y="25" text-anchor="middle" font-size="22">📄</text>
+    <text x="80" y="48" text-anchor="middle" font-size="11" font-weight="500" class="main-text">policies.pdf</text>
+    <text x="80" y="62" text-anchor="middle" font-size="9" class="secondary-text">Refund terms</text>
+  </g>
+
+  <!-- FAQ.docx -->
+  <g transform="translate(370, 340)">
+    <rect x="0" y="0" width="160" height="70" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <text x="80" y="25" text-anchor="middle" font-size="22">📄</text>
+    <text x="80" y="48" text-anchor="middle" font-size="11" font-weight="500" class="main-text">FAQ.docx</text>
+    <text x="80" y="62" text-anchor="middle" font-size="9" class="secondary-text">Common questions</text>
+  </g>
+
+  <!-- terms.md -->
+  <g transform="translate(620, 340)">
+    <rect x="0" y="0" width="160" height="70" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <text x="80" y="25" text-anchor="middle" font-size="22">📄</text>
+    <text x="80" y="48" text-anchor="middle" font-size="11" font-weight="500" class="main-text">terms.md</text>
+    <text x="80" y="62" text-anchor="middle" font-size="9" class="secondary-text">Legal terms</text>
+  </g>
+
+  <!-- Found match indicator -->
+  <path d="M200 415 L200 440" stroke="#10B981" stroke-width="2" fill="none" marker-end="url(#arrowGreen)"/>
+  <text x="200" y="432" text-anchor="middle" font-size="9" font-weight="600" style="fill:#10B981;">Found match!</text>
+
+  <!-- Result Box -->
+  <g transform="translate(80, 455)">
+    <rect x="0" y="0" width="740" height="55" rx="8" fill="#F0FDF4" stroke="#10B981" stroke-width="2" filter="url(#cardShadow)"/>
+    <text x="20" y="25" font-size="11" font-weight="600" class="main-text">✅ Match Found:</text>
+    <text x="20" y="43" font-size="10" class="mono-text">"Refunds are available within 30 days of purchase. Contact support@company.com to initiate..."</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(60, 110)">
+    <rect x="0" y="0" width="160" height="80" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="80" y="18" text-anchor="middle" font-size="10" font-weight="600" class="main-text">Process Flow</text>
+
+    <circle cx="20" cy="38" r="6" fill="url(#cyanGrad)"/>
+    <text x="35" y="42" font-size="9" class="secondary-text">User query</text>
+
+    <circle cx="20" cy="58" r="6" fill="url(#primaryGrad)"/>
+    <text x="35" y="62" font-size="9" class="secondary-text">Vector search</text>
+
+    <circle cx="100" cy="58" r="6" fill="url(#greenGrad)"/>
+    <text x="115" y="62" font-size="9" class="secondary-text">Result</text>
+  </g>
+</svg>

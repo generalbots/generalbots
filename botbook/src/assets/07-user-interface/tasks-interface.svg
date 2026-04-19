@@ -1,0 +1,151 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f5f5f5; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .header-bg { fill: #e8e8e8; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .icon-text { fill: #333; font-family: Arial, sans-serif; }
+    .divider { stroke: #ddd; stroke-width: 1; }
+    .button { fill: #4A90E2; }
+    .button-text { fill: #fff; font-family: Arial, sans-serif; }
+    .input-field { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .tab-active { fill: #4A90E2; }
+    .tab-inactive { fill: #e0e0e0; }
+    .priority-high { fill: #E74C3C; }
+    .priority-medium { fill: #F5A623; }
+    .priority-low { fill: #7ED321; }
+    .checkbox { fill: #fff; stroke: #999; stroke-width: 1.5; }
+    .checkbox-done { fill: #7ED321; stroke: #5cb318; stroke-width: 1.5; }
+    .task-done { fill: #999; text-decoration: line-through; }
+    .row-bg { fill: #fff; }
+    .row-hover { fill: #f0f7ff; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a1a; }
+      .frame { stroke: #555; }
+      .header-bg { fill: #2a2a2a; }
+      .main-text { fill: #ffffff; }
+      .secondary-text { fill: #aaa; }
+      .icon-text { fill: #ddd; }
+      .divider { stroke: #444; }
+      .input-field { fill: #2a2a2a; stroke: #444; }
+      .tab-inactive { fill: #333; }
+      .checkbox { fill: #2a2a2a; stroke: #666; }
+      .row-bg { fill: #222; }
+      .row-hover { fill: #2a3a4a; }
+      .button { fill: #00D4FF; }
+      .tab-active { fill: #00D4FF; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Tasks - To-Do Management Interface</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="50" width="840" height="470" rx="8" class="frame bg"/>
+
+  <!-- Header -->
+  <rect x="30" y="50" width="840" height="50" rx="8" class="header-bg"/>
+  <rect x="30" y="92" width="840" height="8" class="bg"/>
+
+  <!-- Title and Stats -->
+  <text x="55" y="82" font-size="18" font-weight="600" class="main-text">✓ Tasks</text>
+  <g transform="translate(600, 65)">
+    <text x="0" y="15" font-size="12" class="secondary-text">Total: </text>
+    <text x="40" y="15" font-size="12" font-weight="600" class="main-text">12</text>
+    <text x="70" y="15" font-size="12" class="secondary-text">Active: </text>
+    <text x="115" y="15" font-size="12" font-weight="600" class="main-text">5</text>
+    <text x="140" y="15" font-size="12" class="secondary-text">Done: </text>
+    <text x="180" y="15" font-size="12" font-weight="600" class="main-text">7</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="30" y1="100" x2="870" y2="100" class="divider"/>
+
+  <!-- Add Task Input -->
+  <g transform="translate(50, 115)">
+    <rect x="0" y="0" width="620" height="40" rx="6" class="input-field"/>
+    <text x="15" y="26" font-size="14" class="secondary-text">What needs to be done?</text>
+
+    <!-- Category Dropdown -->
+    <rect x="640" y="0" width="100" height="40" rx="6" class="input-field"/>
+    <text x="655" y="26" font-size="13" class="secondary-text">Category ▼</text>
+
+    <!-- Add Button -->
+    <rect x="755" y="0" width="60" height="40" rx="6" class="button"/>
+    <text x="785" y="26" text-anchor="middle" font-size="13" class="button-text">+ Add</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="50" y1="170" x2="850" y2="170" class="divider"/>
+
+  <!-- Filter Tabs -->
+  <g transform="translate(50, 185)">
+    <rect x="0" y="0" width="90" height="32" rx="4" class="tab-active"/>
+    <text x="45" y="21" text-anchor="middle" font-size="13" fill="#fff">📋 All (12)</text>
+
+    <rect x="100" y="0" width="100" height="32" rx="4" class="tab-inactive"/>
+    <text x="150" y="21" text-anchor="middle" font-size="13" class="main-text">⏳ Active (5)</text>
+
+    <rect x="210" y="0" width="120" height="32" rx="4" class="tab-inactive"/>
+    <text x="270" y="21" text-anchor="middle" font-size="13" class="main-text">✓ Completed (7)</text>
+
+    <rect x="340" y="0" width="100" height="32" rx="4" class="tab-inactive"/>
+    <text x="390" y="21" text-anchor="middle" font-size="13" class="main-text">⚡ Priority</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="50" y1="230" x2="850" y2="230" class="divider"/>
+
+  <!-- Task List -->
+  <g transform="translate(50, 245)">
+    <!-- Task 1 - High Priority -->
+    <rect x="0" y="0" width="800" height="45" rx="4" class="row-hover"/>
+    <rect x="15" y="12" width="20" height="20" rx="4" class="checkbox"/>
+    <text x="50" y="28" font-size="14" class="main-text">Review quarterly report</text>
+    <text x="550" y="28" font-size="13" class="secondary-text">📅 Today</text>
+    <circle cx="780" cy="22" r="8" class="priority-high"/>
+
+    <!-- Task 2 - Medium Priority -->
+    <rect x="0" y="50" width="800" height="45" rx="4" class="row-bg"/>
+    <rect x="15" y="62" width="20" height="20" rx="4" class="checkbox"/>
+    <text x="50" y="78" font-size="14" class="main-text">Call client about proposal</text>
+    <text x="550" y="78" font-size="13" class="secondary-text">📅 Today</text>
+    <circle cx="780" cy="72" r="8" class="priority-medium"/>
+
+    <!-- Task 3 - Low Priority -->
+    <rect x="0" y="100" width="800" height="45" rx="4" class="row-bg"/>
+    <rect x="15" y="112" width="20" height="20" rx="4" class="checkbox"/>
+    <text x="50" y="128" font-size="14" class="main-text">Update project documentation</text>
+    <text x="550" y="128" font-size="13" class="secondary-text">📅 Tomorrow</text>
+    <circle cx="780" cy="122" r="8" class="priority-low"/>
+
+    <!-- Task 4 - Completed -->
+    <rect x="0" y="150" width="800" height="45" rx="4" class="row-bg"/>
+    <rect x="15" y="162" width="20" height="20" rx="4" class="checkbox-done"/>
+    <text x="22" y="178" font-size="12" fill="#fff">✓</text>
+    <text x="50" y="178" font-size="14" class="task-done">Send meeting notes</text>
+    <text x="550" y="178" font-size="13" class="secondary-text">✓ Done</text>
+
+    <!-- Task 5 - Completed -->
+    <rect x="0" y="200" width="800" height="45" rx="4" class="row-bg"/>
+    <rect x="15" y="212" width="20" height="20" rx="4" class="checkbox-done"/>
+    <text x="22" y="228" font-size="12" fill="#fff">✓</text>
+    <text x="50" y="228" font-size="14" class="task-done">Complete expense report</text>
+    <text x="550" y="228" font-size="13" class="secondary-text">✓ Done</text>
+  </g>
+
+  <!-- Priority Legend -->
+  <g transform="translate(50, 505)">
+    <text x="0" y="0" font-size="12" font-weight="500" class="secondary-text">Priority:</text>
+    <circle cx="70" cy="-4" r="6" class="priority-high"/>
+    <text x="82" y="0" font-size="11" class="secondary-text">High</text>
+    <circle cx="130" cy="-4" r="6" class="priority-medium"/>
+    <text x="142" y="0" font-size="11" class="secondary-text">Medium</text>
+    <circle cx="210" cy="-4" r="6" class="priority-low"/>
+    <text x="222" y="0" font-size="11" class="secondary-text">Low</text>
+
+    <text x="350" y="0" font-size="11" class="secondary-text">Shortcuts: Enter = Add | Space = Toggle | Delete = Remove</text>
+  </g>
+</svg>

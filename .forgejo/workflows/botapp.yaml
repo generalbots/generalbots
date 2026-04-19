@@ -1,0 +1,16 @@
+name: Botapp CI
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'botapp/**'
+jobs:
+  build:
+    runs-on: gbo
+    steps:
+    - name: Build
+      run: |
+        cd /opt/gbo/work/botapp
+        git reset --hard HEAD && git clean -fd
+        git pull
+        cargo build

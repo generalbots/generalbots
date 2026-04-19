@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email - BotUI Suite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/themes/sentient/sentient.css">
+    <link rel="stylesheet" href="/suite/base-layout.css">
+    <link rel="stylesheet" href="/suite/mail/mail-sentient.css">
+</head>
+<body>
+    <div class="suite-app sentient-theme">
+        <!-- Top Header Bar -->
+        <header class="suite-topbar">
+            <div class="topbar-left">
+                <nav class="topbar-tabs">
+                    <button class="topbar-tab active">Inbox</button>
+                    <button class="topbar-tab">Sent</button>
+                </nav>
+                
+                <div class="topbar-app-launcher">
+                    <button class="app-icon" data-app="chat" title="Chat">💬</button>
+                    <button class="app-icon active" data-app="mail" title="Mail">📧</button>
+                    <button class="app-icon" data-app="drive" title="Drive">📁</button>
+                    <button class="app-icon" data-app="tasks" title="Tasks">✓</button>
+                    <button class="app-icon" data-app="calendar" title="Calendar">📅</button>
+                    <button class="app-icon" data-app="meet" title="Meet">📹</button>
+                    <button class="app-icon" data-app="paper" title="Paper">📝</button>
+                </div>
+            </div>
+            
+            <div class="topbar-right">
+                <button class="topbar-btn-primary" onclick="composeEmail()">
+                    <span>✉️</span> Compose
+                </button>
+                <button class="topbar-btn-icon ai-toggle" title="AI Assistant" onclick="toggleAIPanel()">🤖</button>
+                <button class="topbar-btn-icon" title="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="suite-main">
+            <!-- Left: Content Panel -->
+            <section class="suite-content-panel">
+                <!-- Stat Cards -->
+                <div class="stat-cards">
+                    <div class="stat-card highlight">
+                        <div class="stat-card-icon">📥</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-label">Inbox</div>
+                            <div class="stat-card-value">234</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon">⭐</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-label">Starred</div>
+                            <div class="stat-card-value">18</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon">📤</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-label">Sent</div>
+                            <div class="stat-card-value">156</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon">📋</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-label">Drafts</div>
+                            <div class="stat-card-value">5</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- App Header -->
+                <div class="app-header">
+                    <div class="app-title-section">
+                        <h1>Email</h1>
+                        <p>Manage your inbox and communications</p>
+                    </div>
+                    <div class="app-actions">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" placeholder="Search emails..." class="search-input">
+                        </div>
+                        <button class="app-btn-secondary">🔄</button>
+                        <button class="app-btn-secondary">⋯</button>
+                    </div>
+                </div>
+
+                <!-- Email List -->
+                <div class="email-list-container">
+                    <div class="email-list">
+                        <div class="email-item unread">
+                            <input type="checkbox" class="email-checkbox">
+                            <button class="email-star starred">⭐</button>
+                            <div class="email-sender">Maria Santos</div>
+                            <div class="email-content">
+                                <span class="email-subject">Relatório Q4 finalizado</span>
+                                <span class="email-preview"> - Olá, segue em anexo o relatório completo do quarto trimestre...</span>
+                            </div>
+                            <div class="email-labels">
+                                <span class="email-label urgent">Urgente</span>
+                            </div>
+                            <div class="email-date">10:45</div>
+                        </div>
+                        
+                        <div class="email-item unread">
+                            <input type="checkbox" class="email-checkbox">
+                            <button class="email-star">☆</button>
+                            <div class="email-sender">João Silva</div>
+                            <div class="email-content">
+                                <span class="email-subject">Re: Reunião amanhã</span>
+                                <span class="email-preview"> - Confirmado! Estarei presente às 14h na sala de reuniões...</span>
+                            </div>
+                            <div class="email-labels">
+                                <span class="email-label meeting">Reunião</span>
+                            </div>
+                            <div class="email-date">09:32</div>
+                        </div>
+                        
+                        <div class="email-item">
+                            <input type="checkbox" class="email-checkbox">
+                            <button class="email-star">☆</button>
+                            <div class="email-sender">General Bots</div>
+                            <div class="email-content">
+                                <span class="email-subject">Novo recurso disponível</span>
+                                <span class="email-preview"> - Temos o prazer de anunciar um novo recurso de automação...</span>
+                            </div>
+                            <div class="email-labels">
+                                <span class="email-label notification">Notificação</span>
+                            </div>
+                            <div class="email-date">Ontem</div>
+                        </div>
+                        
+                        <div class="email-item">
+                            <input type="checkbox" class="email-checkbox">
+                            <button class="email-star starred">⭐</button>
+                            <div class="email-sender">Ana Costa</div>
+                            <div class="email-content">
+                                <span class="email-subject">Proposta comercial - Cliente ABC</span>
+                                <span class="email-preview"> - Conforme conversamos, segue a proposta atualizada com os novos termos...</span>
+                            </div>
+                            <div class="email-labels">
+                                <span class="email-label work">Trabalho</span>
+                            </div>
+                            <div class="email-date">Ontem</div>
+                        </div>
+                        
+                        <div class="email-item">
+                            <input type="checkbox" class="email-checkbox">
+                            <button class="email-star">☆</button>
+                            <div class="email-sender">Pedro Oliveira</div>
+                            <div class="email-content">
+                                <span class="email-subject">Atualização do projeto</span>
+                                <span class="email-preview"> - O desenvolvimento está 80% concluído. Próxima etapa é a revisão...</span>
+                            </div>
+                            <div class="email-labels"></div>
+                            <div class="email-date">12 Dez</div>
+                        </div>
+                        
+                        <div class="email-item">
+                            <input type="checkbox" class="email-checkbox">
+                            <button class="email-star">☆</button>
+                            <div class="email-sender">Lucas Mendes</div>
+                            <div class="email-content">
+                                <span class="email-subject">Feedback do cliente</span>
+                                <span class="email-preview"> - Recebi feedback positivo sobre a última entrega. Eles querem...</span>
+                            </div>
+                            <div class="email-labels">
+                                <span class="email-label success">Sucesso</span>
+                            </div>
+                            <div class="email-date">11 Dez</div>
+                        </div>
+                    </div>
+                    
+                    <div class="email-list-footer">
+                        <span class="pagination-info">1-6 of 234 emails</span>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn">←</button>
+                            <button class="pagination-btn active">1</button>
+                            <button class="pagination-btn">2</button>
+                            <button class="pagination-btn">3</button>
+                            <button class="pagination-btn">→</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: AI Assistant Panel -->
+            <aside class="suite-ai-panel" id="ai-panel">
+                <div class="ai-panel-header">
+                    <div class="ai-panel-title">
+                        <span class="ai-avatar">🤖</span>
+                        <div>
+                            <h3>AI Assistant</h3>
+                            <p class="ai-status">Email Helper</p>
+                        </div>
+                    </div>
+                    <button class="ai-panel-close" onclick="toggleAIPanel()">✕</button>
+                </div>
+
+                <div class="ai-panel-messages" id="ai-messages">
+                    <div class="ai-message assistant">
+                        <div class="ai-message-bubble">Olá! Posso ajudar com seus emails. Peça para resumir, responder ou organizar.</div>
+                    </div>
+                </div>
+
+                <div class="ai-quick-actions">
+                    <span class="quick-actions-label">AÇÕES RÁPIDAS</span>
+                    <div class="quick-actions-grid">
+                        <button class="quick-action-btn" onclick="aiAction('summarize')">Resumir email</button>
+                        <button class="quick-action-btn" onclick="aiAction('reply')">Gerar resposta</button>
+                        <button class="quick-action-btn" onclick="aiAction('translate')">Traduzir</button>
+                        <button class="quick-action-btn" onclick="aiAction('organize')">Organizar inbox</button>
+                    </div>
+                </div>
+
+                <div class="ai-panel-input">
+                    <input type="text" class="ai-input" placeholder="Peça ajuda com emails..." id="ai-input">
+                    <button class="ai-send-btn" onclick="sendAIMessage()">➤</button>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="/suite/mail/mail-sentient.js"></script>
+</body>
+</html>

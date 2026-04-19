@@ -1,0 +1,99 @@
+name: BotUI CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_BUILD_JOBS: 6
+  CARGO_NET_RETRY: 10
+
+jobs:
+  build:
+    runs-on: gbo
+
+    steps:
+      - name: Disable SSL verification
+        run: git config --global http.sslVerify false
+
+      - name: Setup Workspace
+        run: |
+          # Clone the main gb repository
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/gb.git workspace
+          cd workspace
+          git submodule update --init --depth 1 botlib
+
+          # Clone botui separately
+          git clone --depth 1 --branch main https://alm.pragmatismo.com.br/GeneralBots/botui.git botui
+
+          # Remove all members except botui and botlib from workspace
+          sed -i '/"botapp",/d' Cargo.toml
+          sed -i '/"botdevice",/d' Cargo.toml
+          sed -i '/"bottest",/d' Cargo.toml
+          sed -i '/"botserver",/d' Cargo.toml
+          sed -i '/"botbook",/d' Cargo.toml
+          sed -i '/"botmodels",/d' Cargo.toml
+          sed -i '/"botplugin",/d' Cargo.toml
+          sed -i '/"bottemplates",/d' Cargo.toml
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cache/sccache
+            workspace/target
+          key: ${{ runner.os }}-cargo-v2-debug-ui-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('ui/**/*.html', 'ui/**/*.js', 'ui/**/*.css') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-v2-debug-ui-
+            ${{ runner.os }}-cargo-v2-debug-
+
+      - name: Clean old target
+        run: |
+          rm -rf workspace/target || true
+          cargo clean || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev libssl-dev liblzma-dev pkg-config
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install sccache
+        run: |
+          wget https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz
+          tar xzf sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz
+          mv sccache-v0.8.2-x86_64-unknown-linux-musl/sccache $HOME/.cargo/bin/sccache
+          chmod +x $HOME/.cargo/bin/sccache
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          $HOME/.cargo/bin/sccache --start-server || true
+
+      - name: Setup environment
+        run: sudo cp /opt/gbo/bin/system/.env . 2>/dev/null || true
+
+      - name: Build BotUI
+        working-directory: workspace
+        run: |
+          cargo build --release -p botui --features embed-ui -j 8 2>&1 | tee /tmp/build.log
+          ls -lh target/release/botui
+          sccache --show-stats || true
+
+      - name: Save build log
+        if: always()
+        run: |
+          sudo mkdir -p /opt/gbo/logs
+          sudo cp /tmp/build.log /opt/gbo/logs/botui-$(date +%Y%m%d-%H%M%S).log || true
+
+      - name: Deploy via SSH
+        working-directory: workspace
+        run: |
+          ssh -o StrictHostKeyChecking=no pragmatismo-system "systemctl stop ui.service || true"
+          scp -o StrictHostKeyChecking=no target/release/botui pragmatismo-system:/opt/gbo/bin/botui
+          ssh -o StrictHostKeyChecking=no pragmatismo-system "chmod +x /opt/gbo/bin/botui && systemctl start ui.service"

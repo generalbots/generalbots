@@ -1,0 +1,14 @@
+key,value
+bot-name,Office Assistant
+bot-description,Role-based office assistant with knowledge base routing
+llm-provider,openai
+llm-model,gpt-4o-mini
+llm-temperature,0.7
+max-tokens,2048
+system-prompt,You are a helpful office assistant that adapts to different user roles and provides relevant information from the appropriate knowledge bases.
+welcome-message,Welcome to the Office Assistant! I'm here to help with your work tasks.
+default-role,customer
+enable-voice,true
+enable-suggestions,true
+session-timeout,3600
+max-context-messages,20

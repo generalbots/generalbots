@@ -1,0 +1,365 @@
+<!-- Resources partial -->
+<link rel="stylesheet" href="monitoring/resources.css">
+<div class="resources-container">
+    <!-- Resource Overview Cards -->
+    <div class="resource-cards">
+        <!-- CPU Card -->
+        <div class="resource-card cpu-card"
+             hx-get="/api/ui/monitoring/resources/cpu"
+             hx-trigger="load, every 5s"
+             hx-swap="innerHTML">
+            <div class="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                    <rect x="9" y="9" width="6" height="6"></rect>
+                    <line x1="9" y1="1" x2="9" y2="4"></line>
+                    <line x1="15" y1="1" x2="15" y2="4"></line>
+                    <line x1="9" y1="20" x2="9" y2="23"></line>
+                    <line x1="15" y1="20" x2="15" y2="23"></line>
+                    <line x1="20" y1="9" x2="23" y2="9"></line>
+                    <line x1="20" y1="14" x2="23" y2="14"></line>
+                    <line x1="1" y1="9" x2="4" y2="9"></line>
+                    <line x1="1" y1="14" x2="4" y2="14"></line>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-label">CPU Usage</span>
+                <span class="card-value">--%</span>
+                <div class="progress-bar">
+                    <div class="progress-fill cpu" style="width: 0%"></div>
+                </div>
+                <span class="card-detail">-- cores @ -- GHz</span>
+            </div>
+        </div>
+
+        <!-- Memory Card -->
+        <div class="resource-card memory-card"
+             hx-get="/api/ui/monitoring/resources/memory"
+             hx-trigger="load, every 5s"
+             hx-swap="innerHTML">
+            <div class="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                    <line x1="6" y1="12" x2="6" y2="12"></line>
+                    <line x1="10" y1="12" x2="10" y2="12"></line>
+                    <line x1="14" y1="12" x2="14" y2="12"></line>
+                    <line x1="18" y1="12" x2="18" y2="12"></line>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-label">Memory Usage</span>
+                <span class="card-value">--%</span>
+                <div class="progress-bar">
+                    <div class="progress-fill memory" style="width: 0%"></div>
+                </div>
+                <span class="card-detail">-- GB / -- GB</span>
+            </div>
+        </div>
+
+        <!-- Disk Card -->
+        <div class="resource-card disk-card"
+             hx-get="/api/ui/monitoring/resources/disk"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+            <div class="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-label">Disk Usage</span>
+                <span class="card-value">--%</span>
+                <div class="progress-bar">
+                    <div class="progress-fill disk" style="width: 0%"></div>
+                </div>
+                <span class="card-detail">-- GB / -- GB</span>
+            </div>
+        </div>
+
+        <!-- Network Card -->
+        <div class="resource-card network-card"
+             hx-get="/api/ui/monitoring/resources/network"
+             hx-trigger="load, every 5s"
+             hx-swap="innerHTML">
+            <div class="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                    <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-label">Network I/O</span>
+                <span class="card-value">-- MB/s</span>
+                <div class="network-stats">
+                    <span class="net-stat">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                        -- MB/s
+                    </span>
+                    <span class="net-stat">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                        -- MB/s
+                    </span>
+                </div>
+                <span class="card-detail">-- connections active</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-section">
+        <!-- CPU Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                        <rect x="9" y="9" width="6" height="6"></rect>
+                    </svg>
+                    CPU Usage Over Time
+                </h3>
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color cpu"></span>User</span>
+                    <span class="legend-item"><span class="legend-color system"></span>System</span>
+                    <span class="legend-item"><span class="legend-color io"></span>I/O Wait</span>
+                </div>
+            </div>
+            <div class="chart-container" id="cpu-chart"
+                 hx-get="/api/ui/monitoring/charts/cpu"
+                 hx-trigger="load, every 10s"
+                 hx-swap="innerHTML">
+                <div class="chart-placeholder">
+                    <svg viewBox="0 0 400 150" class="sparkline-chart">
+                        <defs>
+                            <linearGradient id="cpu-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--primary);stop-opacity:0.3"/>
+                                <stop offset="100%" style="stop-color:var(--primary);stop-opacity:0"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M0,150 L0,100 Q50,80 100,90 T200,70 T300,85 T400,75 L400,150 Z" fill="url(#cpu-gradient)"/>
+                        <path d="M0,100 Q50,80 100,90 T200,70 T300,85 T400,75" fill="none" stroke="var(--primary)" stroke-width="2"/>
+                    </svg>
+                    <div class="chart-axis-y">
+                        <span>100%</span>
+                        <span>50%</span>
+                        <span>0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                        <line x1="6" y1="12" x2="6" y2="12"></line>
+                        <line x1="10" y1="12" x2="10" y2="12"></line>
+                    </svg>
+                    Memory Usage Over Time
+                </h3>
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color memory"></span>Used</span>
+                    <span class="legend-item"><span class="legend-color cached"></span>Cached</span>
+                    <span class="legend-item"><span class="legend-color buffers"></span>Buffers</span>
+                </div>
+            </div>
+            <div class="chart-container" id="memory-chart"
+                 hx-get="/api/ui/monitoring/charts/memory"
+                 hx-trigger="load, every 10s"
+                 hx-swap="innerHTML">
+                <div class="chart-placeholder">
+                    <svg viewBox="0 0 400 150" class="sparkline-chart">
+                        <defs>
+                            <linearGradient id="memory-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--success);stop-opacity:0.3"/>
+                                <stop offset="100%" style="stop-color:var(--success);stop-opacity:0"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M0,150 L0,60 Q50,55 100,58 T200,52 T300,55 T400,50 L400,150 Z" fill="url(#memory-gradient)"/>
+                        <path d="M0,60 Q50,55 100,58 T200,52 T300,55 T400,50" fill="none" stroke="var(--success)" stroke-width="2"/>
+                    </svg>
+                    <div class="chart-axis-y">
+                        <span>16 GB</span>
+                        <span>8 GB</span>
+                        <span>0 GB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Resources -->
+    <div class="detailed-section">
+        <!-- Disk Breakdown -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <h3>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                    Disk Partitions
+                </h3>
+                <button class="refresh-btn" onclick="refreshDiskInfo()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="detail-content" id="disk-partitions"
+                 hx-get="/api/ui/monitoring/resources/disk/partitions"
+                 hx-trigger="load, every 60s"
+                 hx-swap="innerHTML">
+                <div class="partition-row">
+                    <div class="partition-info">
+                        <span class="partition-name">/</span>
+                        <span class="partition-type">ext4</span>
+                    </div>
+                    <div class="partition-usage">
+                        <div class="usage-bar">
+                            <div class="usage-fill" style="width: 0%"></div>
+                        </div>
+                        <span class="usage-text">-- GB / -- GB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Process List -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <h3>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                    </svg>
+                    Top Processes
+                </h3>
+                <select id="process-sort" onchange="sortProcesses(this.value)">
+                    <option value="cpu">Sort by CPU</option>
+                    <option value="memory">Sort by Memory</option>
+                    <option value="name">Sort by Name</option>
+                </select>
+            </div>
+            <div class="detail-content" id="process-list"
+                 hx-get="/api/ui/monitoring/resources/processes"
+                 hx-trigger="load, every 5s"
+                 hx-swap="innerHTML">
+                <table class="process-table">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>Process</th>
+                            <th>CPU</th>
+                            <th>Memory</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="loading-row">Loading processes...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Network Interfaces -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <h3>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                        <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                        <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                    </svg>
+                    Network Interfaces
+                </h3>
+            </div>
+            <div class="detail-content" id="network-interfaces"
+                 hx-get="/api/ui/monitoring/resources/network/interfaces"
+                 hx-trigger="load, every 10s"
+                 hx-swap="innerHTML">
+                <div class="interface-row">
+                    <div class="interface-info">
+                        <span class="interface-name">eth0</span>
+                        <span class="interface-ip">--</span>
+                    </div>
+                    <div class="interface-stats">
+                        <span class="stat-in">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="18 15 12 9 6 15"></polyline>
+                            </svg>
+                            -- MB/s
+                        </span>
+                        <span class="stat-out">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                            -- MB/s
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <h3>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    System Information
+                </h3>
+            </div>
+            <div class="detail-content system-info"
+                 hx-get="/api/ui/monitoring/resources/system"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                <div class="info-row">
+                    <span class="info-label">Hostname</span>
+                    <span class="info-value">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">OS</span>
+                    <span class="info-value">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Kernel</span>
+                    <span class="info-value">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Uptime</span>
+                    <span class="info-value">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Load Average</span>
+                    <span class="info-value">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/suite/monitoring/resources.js"></script>

@@ -1,0 +1,79 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main Container -->
+  <rect x="50" y="30" width="800" height="540" fill="none" stroke="#4A5568" stroke-width="3" rx="10"/>
+
+  <!-- Title Bar -->
+  <rect x="50" y="30" width="800" height="50" fill="none" stroke="#4A5568" stroke-width="2" rx="10 10 0 0"/>
+  <text x="450" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#E2E8F0">BotServer (Single Binary)</text>
+
+  <!-- Top Layer Components -->
+  <g id="top-components">
+    <!-- Web Server -->
+    <rect x="100" y="120" width="200" height="80" fill="none" stroke="#4299E1" stroke-width="2" rx="8"/>
+    <text x="200" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#63B3ED">Web Server</text>
+    <text x="200" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#90CDF4">(Axum)</text>
+
+    <!-- BASIC Interpreter -->
+    <rect x="350" y="120" width="200" height="80" fill="none" stroke="#F56565" stroke-width="2" rx="8"/>
+    <text x="450" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FC8181">BASIC</text>
+    <text x="450" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#FEB2B2">Interpreter</text>
+    <text x="450" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#FBB6CE">(Rhai)</text>
+
+    <!-- LLM Integration -->
+    <rect x="600" y="120" width="200" height="80" fill="none" stroke="#B794F4" stroke-width="2" rx="8"/>
+    <text x="700" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#D6BCFA">LLM</text>
+    <text x="700" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#E9D8FD">Integration</text>
+  </g>
+
+  <!-- Connection Lines from Top to Middle -->
+  <g stroke="#718096" stroke-width="2" fill="none">
+    <line x1="200" y1="200" x2="200" y2="240" stroke-dasharray="5,5" opacity="0.6"/>
+    <line x1="450" y1="200" x2="450" y2="240" stroke-dasharray="5,5" opacity="0.6"/>
+    <line x1="700" y1="200" x2="700" y2="240" stroke-dasharray="5,5" opacity="0.6"/>
+  </g>
+
+  <!-- Session Manager -->
+  <rect x="100" y="240" width="700" height="60" fill="none" stroke="#48BB78" stroke-width="2" rx="8"/>
+  <text x="450" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#68D391">Session Manager (Tokio)</text>
+
+  <!-- Connection Lines from Middle to Data Layer -->
+  <g stroke="#718096" stroke-width="2" fill="none">
+    <line x1="250" y1="300" x2="250" y2="340" stroke-dasharray="5,5" opacity="0.6"/>
+    <line x1="450" y1="300" x2="450" y2="340" stroke-dasharray="5,5" opacity="0.6"/>
+    <line x1="650" y1="300" x2="650" y2="340" stroke-dasharray="5,5" opacity="0.6"/>
+  </g>
+
+  <!-- Data Layer Components -->
+  <g id="data-components">
+    <!-- PostgreSQL -->
+    <rect x="100" y="340" width="200" height="80" fill="none" stroke="#4A90E2" stroke-width="2" rx="8"/>
+    <text x="200" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#5BA0F2">PostgreSQL</text>
+    <text x="200" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#7BB4F6">Database</text>
+
+    <!-- Valkey Cache -->
+    <rect x="350" y="340" width="200" height="80" fill="none" stroke="#E53E3E" stroke-width="2" rx="8"/>
+    <text x="450" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FC6B6B">Valkey</text>
+    <text x="450" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#FD8E8E">Cache</text>
+
+    <!-- Qdrant Vectors -->
+    <rect x="600" y="340" width="200" height="80" fill="none" stroke="#38D4B2" stroke-width="2" rx="8"/>
+    <text x="700" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#4EECC8">Qdrant</text>
+    <text x="700" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#6FF4D2">Vectors</text>
+  </g>
+
+  <!-- Object Storage -->
+  <rect x="100" y="450" width="700" height="100" fill="none" stroke="#38A169" stroke-width="2" rx="8"/>
+  <text x="450" y="480" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#48BB78">Object Storage (SeaweedFS/S3)</text>
+
+  <!-- Storage Items -->
+  <g id="storage-items">
+    <rect x="150" y="500" width="150" height="35" fill="none" stroke="#68D391" stroke-width="1" rx="5"/>
+    <text x="225" y="522" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9AE6B4">Documents</text>
+
+    <rect x="375" y="500" width="150" height="35" fill="none" stroke="#68D391" stroke-width="1" rx="5"/>
+    <text x="450" y="522" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9AE6B4">Templates</text>
+
+    <rect x="600" y="500" width="150" height="35" fill="none" stroke="#68D391" stroke-width="1" rx="5"/>
+    <text x="675" y="522" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9AE6B4">Assets</text>
+  </g>
+</svg>

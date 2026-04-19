@@ -1,0 +1,1337 @@
+<div class="business-reports-container">
+    <div class="reports-tabs">
+        <button
+            class="report-tab active"
+            data-tab="crm"
+            onclick="switchReportTab('crm')"
+        >
+            <span class="tab-icon">👤</span>
+            <span data-i18n="crm-title">CRM</span>
+        </button>
+        <button
+            class="report-tab"
+            data-tab="billing"
+            onclick="switchReportTab('billing')"
+        >
+            <span class="tab-icon">💰</span>
+            <span data-i18n="billing-title">Billing</span>
+        </button>
+        <button
+            class="report-tab"
+            data-tab="support"
+            onclick="switchReportTab('support')"
+        >
+            <span class="tab-icon">🎫</span>
+            <span data-i18n="tickets-title">Support</span>
+        </button>
+    </div>
+
+    <div class="report-panels">
+        <div class="report-panel active" id="crm-reports">
+            <h3 class="report-section-title" data-i18n="analytics-crm-reports">
+                CRM Reports
+            </h3>
+
+            <div class="report-grid">
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/crm/pipeline"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-sales-pipeline">
+                            Sales Pipeline
+                        </h4>
+                        <span class="report-badge">Funnel</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="chart-placeholder">
+                            <div class="funnel-chart">
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 100%; --color: #4caf50"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-new"
+                                        >New</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 80%; --color: #8bc34a"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-contacted"
+                                        >Contacted</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 60%; --color: #cddc39"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-qualified"
+                                        >Qualified</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 40%; --color: #ffc107"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-proposal"
+                                        >Proposal</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 25%; --color: #ff9800"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-negotiation"
+                                        >Negotiation</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 15%; --color: #2196f3"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-won"
+                                        >Won</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/crm/conversion"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-lead-conversion">
+                            Lead Conversion Rate
+                        </h4>
+                        <span class="report-badge">KPI</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="kpi-display">
+                            <div class="kpi-main">
+                                <span class="kpi-value">--%</span>
+                                <span class="kpi-trend positive">↑ --%</span>
+                            </div>
+                            <div class="kpi-details">
+                                <div class="kpi-detail-item">
+                                    <span
+                                        class="detail-label"
+                                        data-i18n="crm-leads"
+                                        >Leads</span
+                                    >
+                                    <span class="detail-value">--</span>
+                                </div>
+                                <div class="kpi-detail-item">
+                                    <span
+                                        class="detail-label"
+                                        data-i18n="crm-opportunities"
+                                        >Opportunities</span
+                                    >
+                                    <span class="detail-value">--</span>
+                                </div>
+                                <div class="kpi-detail-item">
+                                    <span
+                                        class="detail-label"
+                                        data-i18n="crm-won"
+                                        >Won</span
+                                    >
+                                    <span class="detail-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/crm/won-lost"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-won-lost">
+                            Won/Lost Analysis
+                        </h4>
+                        <span class="report-badge">Chart</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="donut-chart-container">
+                            <div class="donut-chart">
+                                <svg viewBox="0 0 100 100" class="donut-svg">
+                                    <circle
+                                        cx="50"
+                                        cy="50"
+                                        r="40"
+                                        fill="none"
+                                        stroke="#4CAF50"
+                                        stroke-width="15"
+                                        stroke-dasharray="75 125"
+                                        stroke-dashoffset="25"
+                                        class="donut-segment won"
+                                    />
+                                    <circle
+                                        cx="50"
+                                        cy="50"
+                                        r="40"
+                                        fill="none"
+                                        stroke="#F44336"
+                                        stroke-width="15"
+                                        stroke-dasharray="50 200"
+                                        stroke-dashoffset="-50"
+                                        class="donut-segment lost"
+                                    />
+                                </svg>
+                                <div class="donut-center">
+                                    <span class="donut-total">--</span>
+                                    <span
+                                        class="donut-label"
+                                        data-i18n="label-all"
+                                        >Total</span
+                                    >
+                                </div>
+                            </div>
+                            <div class="donut-legend">
+                                <div class="legend-item">
+                                    <span
+                                        class="legend-color"
+                                        style="background: #4caf50"
+                                    ></span>
+                                    <span data-i18n="crm-won">Won</span>
+                                    <span class="legend-value">--</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span
+                                        class="legend-color"
+                                        style="background: #f44336"
+                                    ></span>
+                                    <span data-i18n="crm-lost">Lost</span>
+                                    <span class="legend-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/crm/forecast"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-sales-forecast">
+                            Sales Forecast
+                        </h4>
+                        <span class="report-badge">Projection</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="forecast-display">
+                            <div class="forecast-main">
+                                <span
+                                    class="forecast-label"
+                                    data-i18n="billing-this-month"
+                                    >This Month</span
+                                >
+                                <span class="forecast-value">$--</span>
+                            </div>
+                            <div class="forecast-bar">
+                                <div
+                                    class="forecast-progress"
+                                    style="width: 0%"
+                                ></div>
+                                <span class="forecast-target">Target: $--</span>
+                            </div>
+                            <div class="forecast-breakdown">
+                                <div class="breakdown-item">
+                                    <span data-i18n="status-complete"
+                                        >Closed</span
+                                    >
+                                    <span>$--</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span data-i18n="status-pending"
+                                        >Pipeline</span
+                                    >
+                                    <span>$--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-panel" id="billing-reports">
+            <h3
+                class="report-section-title"
+                data-i18n="analytics-billing-reports"
+            >
+                Billing Reports
+            </h3>
+
+            <div class="report-grid">
+                <div
+                    class="report-card wide"
+                    hx-get="/api/reports/billing/revenue"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-revenue-summary">
+                            Revenue Summary
+                        </h4>
+                        <span class="report-badge">Overview</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="revenue-grid">
+                            <div class="revenue-stat">
+                                <span
+                                    class="revenue-label"
+                                    data-i18n="billing-this-month"
+                                    >This Month</span
+                                >
+                                <span class="revenue-value">$--</span>
+                                <span class="revenue-change positive"
+                                    >↑ --%</span
+                                >
+                            </div>
+                            <div class="revenue-stat">
+                                <span
+                                    class="revenue-label"
+                                    data-i18n="billing-last-month"
+                                    >Last Month</span
+                                >
+                                <span class="revenue-value">$--</span>
+                            </div>
+                            <div class="revenue-stat">
+                                <span
+                                    class="revenue-label"
+                                    data-i18n="billing-outstanding"
+                                    >Outstanding</span
+                                >
+                                <span class="revenue-value warning">$--</span>
+                            </div>
+                            <div class="revenue-stat">
+                                <span
+                                    class="revenue-label"
+                                    data-i18n="billing-total-overdue"
+                                    >Overdue</span
+                                >
+                                <span class="revenue-value danger">$--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/billing/aging"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-aging-report">Aging Report</h4>
+                        <span class="report-badge">Receivables</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="aging-breakdown">
+                            <div class="aging-item">
+                                <span class="aging-label">Current</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar current"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                            <div class="aging-item">
+                                <span class="aging-label">1-30 days</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar days-30"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                            <div class="aging-item">
+                                <span class="aging-label">31-60 days</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar days-60"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                            <div class="aging-item">
+                                <span class="aging-label">61-90 days</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar days-90"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                            <div class="aging-item">
+                                <span class="aging-label">90+ days</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar days-over"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/billing/payments"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-payment-history">
+                            Payment History
+                        </h4>
+                        <span class="report-badge">Trend</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="mini-chart-placeholder">
+                            <div class="sparkline-container">
+                                <svg
+                                    class="sparkline"
+                                    viewBox="0 0 100 30"
+                                    preserveAspectRatio="none"
+                                >
+                                    <polyline
+                                        fill="none"
+                                        stroke="#4CAF50"
+                                        stroke-width="2"
+                                        points="0,25 20,20 40,15 60,18 80,10 100,12"
+                                    />
+                                </svg>
+                            </div>
+                            <div class="chart-summary">
+                                <span
+                                    class="summary-label"
+                                    data-i18n="billing-total-paid"
+                                    >Total Paid</span
+                                >
+                                <span class="summary-value">$--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/billing/monthly"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-monthly-revenue">
+                            Monthly Revenue
+                        </h4>
+                        <span class="report-badge">Chart</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="bar-chart-container">
+                            <div class="bar-chart">
+                                <div class="bar" style="--height: 60%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Jan</span>
+                                </div>
+                                <div class="bar" style="--height: 75%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Feb</span>
+                                </div>
+                                <div class="bar" style="--height: 45%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Mar</span>
+                                </div>
+                                <div class="bar" style="--height: 80%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Apr</span>
+                                </div>
+                                <div class="bar" style="--height: 90%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">May</span>
+                                </div>
+                                <div class="bar current" style="--height: 70%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Jun</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-panel" id="support-reports">
+            <h3
+                class="report-section-title"
+                data-i18n="analytics-support-reports"
+            >
+                Support Reports
+            </h3>
+
+            <div class="report-grid">
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/support/by-priority"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-cases-priority">
+                            Open Cases by Priority
+                        </h4>
+                        <span class="report-badge">Distribution</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="priority-breakdown">
+                            <div class="priority-item urgent">
+                                <span class="priority-icon">🔴</span>
+                                <span
+                                    class="priority-label"
+                                    data-i18n="tickets-priority-urgent"
+                                    >Urgent</span
+                                >
+                                <span class="priority-count">--</span>
+                            </div>
+                            <div class="priority-item high">
+                                <span class="priority-icon">🟠</span>
+                                <span
+                                    class="priority-label"
+                                    data-i18n="tickets-priority-high"
+                                    >High</span
+                                >
+                                <span class="priority-count">--</span>
+                            </div>
+                            <div class="priority-item medium">
+                                <span class="priority-icon">🟡</span>
+                                <span
+                                    class="priority-label"
+                                    data-i18n="tickets-priority-medium"
+                                    >Medium</span
+                                >
+                                <span class="priority-count">--</span>
+                            </div>
+                            <div class="priority-item low">
+                                <span class="priority-icon">🟢</span>
+                                <span
+                                    class="priority-label"
+                                    data-i18n="tickets-priority-low"
+                                    >Low</span
+                                >
+                                <span class="priority-count">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/support/resolution-time"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-resolution-time">
+                            Resolution Time (Avg)
+                        </h4>
+                        <span class="report-badge">KPI</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="time-kpi">
+                            <div class="time-main">
+                                <span class="time-value">--</span>
+                                <span class="time-unit">hours</span>
+                            </div>
+                            <div class="time-comparison">
+                                <span class="comparison-label"
+                                    >vs. last period</span
+                                >
+                                <span class="comparison-value positive"
+                                    >↓ --%</span
+                                >
+                            </div>
+                            <div class="time-breakdown">
+                                <div class="time-item">
+                                    <span data-i18n="tickets-response-time"
+                                        >First Response</span
+                                    >
+                                    <span>-- min</span>
+                                </div>
+                                <div class="time-item">
+                                    <span data-i18n="tickets-resolution-time"
+                                        >Full Resolution</span
+                                    >
+                                    <span>-- hrs</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/support/by-category"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-cases-category">
+                            Cases by Category
+                        </h4>
+                        <span class="report-badge">Breakdown</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="category-list">
+                            <div class="category-item">
+                                <span class="category-name"
+                                    >Technical Issue</span
+                                >
+                                <div class="category-bar-container">
+                                    <div
+                                        class="category-bar"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="category-count">--</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-name"
+                                    >Billing Question</span
+                                >
+                                <div class="category-bar-container">
+                                    <div
+                                        class="category-bar"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="category-count">--</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-name"
+                                    >Feature Request</span
+                                >
+                                <div class="category-bar-container">
+                                    <div
+                                        class="category-bar"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="category-count">--</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-name"
+                                    >General Inquiry</span
+                                >
+                                <div class="category-bar-container">
+                                    <div
+                                        class="category-bar"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="category-count">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/support/ai-rate"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-ai-resolution">
+                            AI Resolution Rate
+                        </h4>
+                        <span class="report-badge">AI</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="ai-kpi">
+                            <div class="ai-gauge">
+                                <svg viewBox="0 0 100 50" class="gauge-svg">
+                                    <path
+                                        d="M10,50 A40,40 0 0,1 90,50"
+                                        fill="none"
+                                        stroke="#333"
+                                        stroke-width="8"
+                                        stroke-linecap="round"
+                                    />
+                                    <path
+                                        d="M10,50 A40,40 0 0,1 90,50"
+                                        fill="none"
+                                        stroke="#4CAF50"
+                                        stroke-width="8"
+                                        stroke-linecap="round"
+                                        stroke-dasharray="0 126"
+                                        class="gauge-fill"
+                                    />
+                                </svg>
+                                <div class="gauge-value">--%</div>
+                            </div>
+                            <div class="ai-stats">
+                                <div class="ai-stat">
+                                    <span
+                                        class="stat-label"
+                                        data-i18n="tickets-ai-suggestion"
+                                        >AI Resolved</span
+                                    >
+                                    <span class="stat-value">--</span>
+                                </div>
+                                <div class="ai-stat">
+                                    <span class="stat-label"
+                                        >Human Resolved</span
+                                    >
+                                    <span class="stat-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .business-reports-container {
+        padding: 20px;
+        background: var(--background, #0a0a0f);
+    }
+
+    .reports-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border, #2a2a2a);
+        padding-bottom: 12px;
+    }
+
+    .report-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: transparent;
+        border: 1px solid var(--border, #2a2a2a);
+        border-radius: 8px;
+        color: var(--text-secondary, #888);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .report-tab:hover {
+        background: var(--hover, rgba(255, 255, 255, 0.05));
+        color: var(--text, #fff);
+    }
+
+    .report-tab.active {
+        background: var(--accent, #3b82f6);
+        border-color: var(--accent, #3b82f6);
+        color: #fff;
+    }
+
+    .tab-icon {
+        font-size: 16px;
+    }
+
+    .report-panel {
+        display: none;
+    }
+
+    .report-panel.active {
+        display: block;
+    }
+
+    .report-section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text, #fff);
+        margin-bottom: 20px;
+    }
+
+    .report-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .report-card {
+        background: var(--surface, var(--card, #1a1a24));
+        border: 1px solid var(--border, #2a2a2a);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .report-card.wide {
+        grid-column: span 2;
+    }
+
+    .report-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--border, #2a2a2a);
+    }
+
+    .report-card-header h4 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text, #fff);
+        margin: 0;
+    }
+
+    .report-badge {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: var(--accent-glow, rgba(59, 130, 246, 0.15));
+        color: var(--accent, #3b82f6);
+    }
+
+    .report-card-body {
+        padding: 20px;
+    }
+
+    .funnel-chart {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .funnel-stage {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 16px;
+        background: var(--color);
+        border-radius: 6px;
+        width: var(--width);
+        margin: 0 auto;
+        transition: width 0.3s;
+    }
+
+    .stage-label,
+    .stage-value {
+        color: #fff;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .kpi-display,
+    .time-kpi,
+    .ai-kpi {
+        text-align: center;
+    }
+
+    .kpi-main,
+    .time-main {
+        margin-bottom: 16px;
+    }
+
+    .kpi-value {
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--text, #fff);
+    }
+
+    .kpi-trend,
+    .comparison-value {
+        font-size: 14px;
+        margin-left: 8px;
+    }
+
+    .kpi-trend.positive,
+    .comparison-value.positive {
+        color: #4caf50;
+    }
+
+    .kpi-trend.negative,
+    .comparison-value.negative {
+        color: #f44336;
+    }
+
+    .kpi-details,
+    .time-breakdown,
+    .ai-stats {
+        display: flex;
+        justify-content: space-around;
+        padding-top: 16px;
+        border-top: 1px solid var(--border, #2a2a2a);
+    }
+
+    .kpi-detail-item,
+    .time-item,
+    .ai-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .detail-label,
+    .time-item span:first-child,
+    .stat-label {
+        font-size: 12px;
+        color: var(--text-secondary, #888);
+    }
+
+    .detail-value,
+    .time-item span:last-child,
+    .stat-value {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text, #fff);
+    }
+
+    .donut-chart-container {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .donut-chart {
+        position: relative;
+        width: 120px;
+        height: 120px;
+    }
+
+    .donut-svg {
+        transform: rotate(-90deg);
+    }
+
+    .donut-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+
+    .donut-total {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text, #fff);
+        display: block;
+    }
+
+    .donut-label {
+        font-size: 11px;
+        color: var(--text-secondary, #888);
+    }
+
+    .donut-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text, #fff);
+    }
+
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+
+    .legend-value {
+        margin-left: auto;
+        font-weight: 600;
+    }
+
+    .revenue-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+    }
+
+    .revenue-stat {
+        text-align: center;
+    }
+
+    .revenue-label {
+        font-size: 12px;
+        color: var(--text-secondary, #888);
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .revenue-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text, #fff);
+        display: block;
+    }
+
+    .revenue-value.warning {
+        color: #ff9800;
+    }
+
+    .revenue-value.danger {
+        color: #f44336;
+    }
+
+    .revenue-change {
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+
+    .revenue-change.positive {
+        color: #4caf50;
+    }
+
+    .aging-breakdown,
+    .category-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .aging-item,
+    .category-item {
+        display: grid;
+        grid-template-columns: 80px 1fr 60px;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .aging-label,
+    .category-name {
+        font-size: 13px;
+        color: var(--text-secondary, #888);
+    }
+
+    .aging-bar-container,
+    .category-bar-container {
+        height: 8px;
+        background: var(--hover, rgba(255, 255, 255, 0.05));
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .aging-bar,
+    .category-bar {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s;
+    }
+
+    .aging-bar.current {
+        background: #4caf50;
+    }
+    .aging-bar.days-30 {
+        background: #8bc34a;
+    }
+    .aging-bar.days-60 {
+        background: #ffc107;
+    }
+    .aging-bar.days-90 {
+        background: #ff9800;
+    }
+    .aging-bar.days-over {
+        background: #f44336;
+    }
+
+    .category-bar {
+        background: var(--accent, #3b82f6);
+    }
+
+    .aging-value,
+    .category-count {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text, #fff);
+        text-align: right;
+    }
+
+    .priority-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .priority-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--hover, rgba(255, 255, 255, 0.03));
+        border-radius: 8px;
+    }
+
+    .priority-icon {
+        font-size: 16px;
+    }
+
+    .priority-label {
+        flex: 1;
+        font-size: 14px;
+        color: var(--text, #fff);
+    }
+
+    .priority-count {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text, #fff);
+    }
+
+    .time-value {
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--text, #fff);
+    }
+
+    .time-unit {
+        font-size: 16px;
+        color: var(--text-secondary, #888);
+        margin-left: 4px;
+    }
+
+    .time-comparison {
+        margin-bottom: 16px;
+    }
+
+    .comparison-label {
+        font-size: 12px;
+        color: var(--text-secondary, #888);
+        margin-right: 8px;
+    }
+
+    .ai-gauge {
+        margin-bottom: 20px;
+    }
+
+    .gauge-svg {
+        width: 150px;
+        height: 75px;
+    }
+
+    .gauge-fill {
+        transition: stroke-dasharray 0.5s;
+    }
+
+    .gauge-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--text, #fff);
+        margin-top: -10px;
+    }
+
+    .bar-chart-container {
+        height: 150px;
+    }
+
+    .bar-chart {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-around;
+        height: 100%;
+        gap: 8px;
+    }
+
+    .bar {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 40px;
+        height: var(--height);
+        background: var(--accent-glow, rgba(59, 130, 246, 0.3));
+        border-radius: 4px 4px 0 0;
+        position: relative;
+        transition: height 0.3s;
+    }
+
+    .bar.current {
+        background: var(--accent, #3b82f6);
+    }
+
+    .bar-value {
+        position: absolute;
+        top: -20px;
+        font-size: 10px;
+        color: var(--text-secondary, #888);
+        white-space: nowrap;
+    }
+
+    .bar-label {
+        position: absolute;
+        bottom: -20px;
+        font-size: 11px;
+        color: var(--text-secondary, #888);
+    }
+
+    .sparkline-container {
+        height: 60px;
+        margin-bottom: 12px;
+    }
+
+    .sparkline {
+        width: 100%;
+        height: 100%;
+    }
+
+    .chart-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .summary-label {
+        font-size: 13px;
+        color: var(--text-secondary, #888);
+    }
+
+    .summary-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text, #fff);
+    }
+
+    .forecast-display {
+        text-align: center;
+    }
+
+    .forecast-main {
+        margin-bottom: 16px;
+    }
+
+    .forecast-label {
+        font-size: 12px;
+        color: var(--text-secondary, #888);
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .forecast-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--text, #fff);
+    }
+
+    .forecast-bar {
+        height: 8px;
+        background: var(--hover, rgba(255, 255, 255, 0.1));
+        border-radius: 4px;
+        margin-bottom: 8px;
+        position: relative;
+    }
+
+    .forecast-progress {
+        height: 100%;
+        background: var(--accent, #3b82f6);
+        border-radius: 4px;
+        transition: width 0.3s;
+    }
+
+    .forecast-target {
+        font-size: 11px;
+        color: var(--text-secondary, #888);
+    }
+
+    .forecast-breakdown {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border, #2a2a2a);
+    }
+
+    .breakdown-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .breakdown-item span:first-child {
+        font-size: 12px;
+        color: var(--text-secondary, #888);
+    }
+
+    .breakdown-item span:last-child {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text, #fff);
+    }
+
+    @media (max-width: 768px) {
+        .report-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .report-card.wide {
+            grid-column: span 1;
+        }
+
+        .revenue-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .reports-tabs {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+
+<script>
+    function switchReportTab(tab) {
+        document.querySelectorAll(".report-tab").forEach(function (btn) {
+            btn.classList.toggle(
+                "active",
+                btn.getAttribute("data-tab") === tab,
+            );
+        });
+        document.querySelectorAll(".report-panel").forEach(function (panel) {
+            panel.classList.toggle("active", panel.id === tab + "-reports");
+        });
+    }
+</script>

@@ -1,0 +1,20 @@
+name: BotUI CI
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'botui/**'
+      - 'botlib/**'
+jobs:
+  build:
+    runs-on: gbo
+    steps:
+    - name: Build
+      run: |
+        cd /opt/gbo/work/botui
+        git reset --hard HEAD && git clean -fd
+        git pull
+        cargo build
+    - name: Deploy
+      run: |
+        echo "BotUI deployed"

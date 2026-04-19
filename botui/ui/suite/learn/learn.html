@@ -1,0 +1,916 @@
+<link rel="stylesheet" href="learn/learn.css" />
+
+<div class="learn-container">
+    <!-- Sidebar -->
+    <aside class="learn-sidebar">
+        <div class="sidebar-header">
+            <h2 data-i18n="learn-title">📚 Learn</h2>
+            <button class="btn-icon-sm" onclick="toggleLearnSidebar()">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+        </div>
+
+        <!-- User Stats Card -->
+        <div class="user-stats-card">
+            <div class="stats-header">
+                <span class="stats-icon">🎓</span>
+                <span data-i18n="learn-my-progress">Meu Progresso</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-value" id="statCoursesCompleted">0</span>
+                    <span class="stat-label" data-i18n="learn-completed"
+                        >Concluídos</span
+                    >
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statCoursesInProgress">0</span>
+                    <span class="stat-label" data-i18n="learn-in-progress"
+                        >Em Andamento</span
+                    >
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statCertificates">0</span>
+                    <span class="stat-label" data-i18n="learn-certificates"
+                        >Certificados</span
+                    >
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statTimeSpent">0h</span>
+                    <span class="stat-label" data-i18n="learn-time-spent"
+                        >Tempo Total</span
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="sidebar-section">
+            <h3 data-i18n="learn-categories">Categorias</h3>
+            <div class="category-list" id="categoryList">
+                <button class="category-item active" data-category="all">
+                    <span class="category-icon">📚</span>
+                    <span data-i18n="learn-all-courses">Todos os Cursos</span>
+                    <span class="category-count" id="countAll">0</span>
+                </button>
+                <button class="category-item" data-category="mandatory">
+                    <span class="category-icon">⚠️</span>
+                    <span data-i18n="learn-mandatory">Obrigatórios</span>
+                    <span class="category-count" id="countMandatory">0</span>
+                </button>
+                <button class="category-item" data-category="compliance">
+                    <span class="category-icon">📋</span>
+                    <span data-i18n="learn-compliance">Compliance</span>
+                    <span class="category-count" id="countCompliance">0</span>
+                </button>
+                <button class="category-item" data-category="security">
+                    <span class="category-icon">🔒</span>
+                    <span data-i18n="learn-security">Segurança</span>
+                    <span class="category-count" id="countSecurity">0</span>
+                </button>
+                <button class="category-item" data-category="skills">
+                    <span class="category-icon">💡</span>
+                    <span data-i18n="learn-skills">Habilidades</span>
+                    <span class="category-count" id="countSkills">0</span>
+                </button>
+                <button class="category-item" data-category="onboarding">
+                    <span class="category-icon">🚀</span>
+                    <span data-i18n="learn-onboarding">Integração</span>
+                    <span class="category-count" id="countOnboarding">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Difficulty Filter -->
+        <div class="sidebar-section">
+            <h3 data-i18n="learn-difficulty">Dificuldade</h3>
+            <div class="difficulty-filter">
+                <label class="checkbox-label">
+                    <input type="checkbox" checked data-difficulty="beginner" />
+                    <span class="difficulty-badge beginner">Iniciante</span>
+                </label>
+                <label class="checkbox-label">
+                    <input
+                        type="checkbox"
+                        checked
+                        data-difficulty="intermediate"
+                    />
+                    <span class="difficulty-badge intermediate"
+                        >Intermediário</span
+                    >
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" checked data-difficulty="advanced" />
+                    <span class="difficulty-badge advanced">Avançado</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- My Certificates -->
+        <div class="sidebar-section">
+            <div class="section-header">
+                <h3 data-i18n="learn-my-certificates">Meus Certificados</h3>
+                <button class="btn-link" onclick="showAllCertificates()">
+                    <span data-i18n="learn-view-all">Ver todos</span>
+                </button>
+            </div>
+            <div class="certificates-preview" id="certificatesPreview">
+                <div class="empty-state-small">
+                    <span>🏆</span>
+                    <p data-i18n="learn-no-certificates">
+                        Nenhum certificado ainda
+                    </p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="learn-main">
+        <!-- Header -->
+        <div class="learn-header">
+            <div class="header-left">
+                <div class="tabs">
+                    <button
+                        class="tab active"
+                        data-tab="catalog"
+                        onclick="switchTab('catalog')"
+                    >
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path
+                                d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+                            ></path>
+                        </svg>
+                        <span data-i18n="learn-catalog">Catálogo</span>
+                    </button>
+                    <button
+                        class="tab"
+                        data-tab="my-courses"
+                        onclick="switchTab('my-courses')"
+                    >
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                            <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                        </svg>
+                        <span data-i18n="learn-my-courses">Meus Cursos</span>
+                        <span class="badge" id="myCoursesCount">0</span>
+                    </button>
+                    <button
+                        class="tab"
+                        data-tab="mandatory"
+                        onclick="switchTab('mandatory')"
+                    >
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                            ></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span data-i18n="learn-pending">Pendentes</span>
+                        <span class="badge warning" id="mandatoryCount">0</span>
+                    </button>
+                    <button
+                        class="tab"
+                        data-tab="certificates"
+                        onclick="switchTab('certificates')"
+                    >
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle cx="12" cy="8" r="7"></circle>
+                            <polyline
+                                points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"
+                            ></polyline>
+                        </svg>
+                        <span data-i18n="learn-certificates">Certificados</span>
+                    </button>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="search-box">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input
+                        type="text"
+                        id="searchCourses"
+                        placeholder="Buscar cursos..."
+                        data-i18n-placeholder="learn-search-placeholder"
+                    />
+                </div>
+                <select id="sortCourses" class="sort-select">
+                    <option value="recent" data-i18n="learn-sort-recent">
+                        Mais Recentes
+                    </option>
+                    <option value="popular" data-i18n="learn-sort-popular">
+                        Mais Populares
+                    </option>
+                    <option
+                        value="duration-asc"
+                        data-i18n="learn-sort-duration-asc"
+                    >
+                        Menor Duração
+                    </option>
+                    <option
+                        value="duration-desc"
+                        data-i18n="learn-sort-duration-desc"
+                    >
+                        Maior Duração
+                    </option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Mandatory Training Alert -->
+        <div class="mandatory-alert" id="mandatoryAlert" style="display: none">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <strong data-i18n="learn-mandatory-alert-title"
+                    >Treinamentos Obrigatórios Pendentes</strong
+                >
+                <p id="mandatoryAlertText">
+                    Você possui treinamentos obrigatórios com prazo próximo.
+                </p>
+            </div>
+            <button class="btn-primary-sm" onclick="switchTab('mandatory')">
+                <span data-i18n="learn-view-pending">Ver Pendentes</span>
+            </button>
+        </div>
+
+        <!-- Tab Content: Catalog -->
+        <div class="tab-content active" id="tab-catalog">
+            <!-- Recommended Section -->
+            <section class="courses-section">
+                <div class="section-header">
+                    <h3>
+                        <span class="section-icon">✨</span>
+                        <span data-i18n="learn-recommended"
+                            >Recomendados para Você</span
+                        >
+                    </h3>
+                </div>
+                <div class="courses-carousel" id="recommendedCourses">
+                    <!-- Courses loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- All Courses Grid -->
+            <section class="courses-section">
+                <div class="section-header">
+                    <h3>
+                        <span class="section-icon">📚</span>
+                        <span data-i18n="learn-all-courses"
+                            >Todos os Cursos</span
+                        >
+                    </h3>
+                    <span class="courses-count" id="coursesCountLabel"
+                        >0 cursos</span
+                    >
+                </div>
+                <div class="courses-grid" id="coursesGrid">
+                    <!-- Courses loaded dynamically -->
+                </div>
+                <div class="load-more" id="loadMore" style="display: none">
+                    <button class="btn-secondary" onclick="loadMoreCourses()">
+                        <span data-i18n="learn-load-more">Carregar Mais</span>
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Tab Content: My Courses -->
+        <div class="tab-content" id="tab-my-courses">
+            <!-- Continue Learning -->
+            <section class="courses-section">
+                <div class="section-header">
+                    <h3>
+                        <span class="section-icon">▶️</span>
+                        <span data-i18n="learn-continue"
+                            >Continuar Aprendendo</span
+                        >
+                    </h3>
+                </div>
+                <div class="courses-list" id="continueLearning">
+                    <!-- In progress courses -->
+                </div>
+            </section>
+
+            <!-- Completed Courses -->
+            <section class="courses-section">
+                <div class="section-header">
+                    <h3>
+                        <span class="section-icon">✅</span>
+                        <span data-i18n="learn-completed-courses"
+                            >Cursos Concluídos</span
+                        >
+                    </h3>
+                </div>
+                <div class="courses-list" id="completedCourses">
+                    <!-- Completed courses -->
+                </div>
+            </section>
+        </div>
+
+        <!-- Tab Content: Mandatory -->
+        <div class="tab-content" id="tab-mandatory">
+            <section class="courses-section">
+                <div class="section-header">
+                    <h3>
+                        <span class="section-icon">⚠️</span>
+                        <span data-i18n="learn-mandatory-training"
+                            >Treinamentos Obrigatórios</span
+                        >
+                    </h3>
+                </div>
+                <div class="mandatory-list" id="mandatoryList">
+                    <!-- Mandatory courses -->
+                </div>
+            </section>
+        </div>
+
+        <!-- Tab Content: Certificates -->
+        <div class="tab-content" id="tab-certificates">
+            <section class="courses-section">
+                <div class="section-header">
+                    <h3>
+                        <span class="section-icon">🏆</span>
+                        <span data-i18n="learn-my-certificates"
+                            >Meus Certificados</span
+                        >
+                    </h3>
+                </div>
+                <div class="certificates-grid" id="certificatesGrid">
+                    <!-- Certificates -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Course Detail Modal -->
+    <div class="modal hidden" id="courseModal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="modalCourseTitle">Título do Curso</h3>
+                <button class="btn-icon-sm" onclick="closeCourseModal()">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="course-detail">
+                    <div class="course-detail-header">
+                        <div class="course-thumbnail" id="modalThumbnail">
+                            <img src="" alt="Course thumbnail" />
+                        </div>
+                        <div class="course-info">
+                            <div class="course-meta">
+                                <span
+                                    class="difficulty-badge"
+                                    id="modalDifficulty"
+                                    >Iniciante</span
+                                >
+                                <span class="duration" id="modalDuration">
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline
+                                            points="12 6 12 12 16 14"
+                                        ></polyline>
+                                    </svg>
+                                    <span>30 min</span>
+                                </span>
+                                <span
+                                    class="lessons-count"
+                                    id="modalLessonsCount"
+                                >
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path
+                                            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                        ></path>
+                                        <polyline
+                                            points="14 2 14 8 20 8"
+                                        ></polyline>
+                                    </svg>
+                                    <span>5 aulas</span>
+                                </span>
+                            </div>
+                            <p class="course-description" id="modalDescription">
+                                Descrição do curso...
+                            </p>
+                            <div
+                                class="course-progress"
+                                id="modalProgress"
+                                style="display: none"
+                            >
+                                <div class="progress-bar">
+                                    <div
+                                        class="progress-fill"
+                                        id="modalProgressFill"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span
+                                    class="progress-text"
+                                    id="modalProgressText"
+                                    >0% completo</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lessons List -->
+                    <div class="lessons-section">
+                        <h4 data-i18n="learn-lessons">Aulas</h4>
+                        <div class="lessons-list" id="modalLessonsList">
+                            <!-- Lessons loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Quiz Section -->
+                    <div
+                        class="quiz-section"
+                        id="modalQuizSection"
+                        style="display: none"
+                    >
+                        <h4 data-i18n="learn-quiz">Avaliação</h4>
+                        <div class="quiz-info">
+                            <div class="quiz-meta">
+                                <span id="modalQuizQuestions">10 questões</span>
+                                <span id="modalQuizTime">15 min</span>
+                                <span id="modalQuizPassing"
+                                    >70% para aprovação</span
+                                >
+                            </div>
+                            <button
+                                class="btn-primary"
+                                id="startQuizBtn"
+                                onclick="startQuiz()"
+                            >
+                                <span data-i18n="learn-start-quiz"
+                                    >Iniciar Avaliação</span
+                                >
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeCourseModal()">
+                    <span data-i18n="learn-close">Fechar</span>
+                </button>
+                <button
+                    class="btn-primary"
+                    id="startCourseBtn"
+                    onclick="startCourse()"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span data-i18n="learn-start-course">Iniciar Curso</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div class="modal hidden" id="quizModal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <div class="quiz-header-info">
+                    <h3 id="quizTitle">Avaliação</h3>
+                    <div class="quiz-timer" id="quizTimer">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span id="quizTimeRemaining">15:00</span>
+                    </div>
+                </div>
+                <button class="btn-icon-sm" onclick="confirmExitQuiz()">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="quiz-progress">
+                    <div class="quiz-progress-bar">
+                        <div
+                            class="quiz-progress-fill"
+                            id="quizProgressFill"
+                            style="width: 0%"
+                        ></div>
+                    </div>
+                    <span class="quiz-progress-text" id="quizProgressText"
+                        >Questão 1 de 10</span
+                    >
+                </div>
+
+                <div class="quiz-question" id="quizQuestion">
+                    <!-- Question loaded dynamically -->
+                </div>
+
+                <div class="quiz-options" id="quizOptions">
+                    <!-- Options loaded dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button
+                    class="btn-secondary"
+                    id="prevQuestionBtn"
+                    onclick="prevQuestion()"
+                    disabled
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    <span data-i18n="learn-previous">Anterior</span>
+                </button>
+                <button
+                    class="btn-primary"
+                    id="nextQuestionBtn"
+                    onclick="nextQuestion()"
+                >
+                    <span data-i18n="learn-next">Próxima</span>
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+                <button
+                    class="btn-primary"
+                    id="submitQuizBtn"
+                    onclick="submitQuiz()"
+                    style="display: none"
+                >
+                    <span data-i18n="learn-submit">Enviar Respostas</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Result Modal -->
+    <div class="modal hidden" id="quizResultModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="learn-quiz-result">Resultado da Avaliação</h3>
+                <button class="btn-icon-sm" onclick="closeQuizResult()">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="quiz-result" id="quizResult">
+                    <div class="result-icon" id="resultIcon">🎉</div>
+                    <h2 class="result-title" id="resultTitle">Parabéns!</h2>
+                    <p class="result-message" id="resultMessage">
+                        Você passou na avaliação!
+                    </p>
+                    <div class="result-score">
+                        <div class="score-circle" id="scoreCircle">
+                            <span class="score-value" id="scoreValue">85%</span>
+                        </div>
+                        <div class="score-details">
+                            <div class="score-detail">
+                                <span
+                                    class="detail-label"
+                                    data-i18n="learn-correct-answers"
+                                    >Acertos</span
+                                >
+                                <span class="detail-value" id="correctAnswers"
+                                    >8/10</span
+                                >
+                            </div>
+                            <div class="score-detail">
+                                <span
+                                    class="detail-label"
+                                    data-i18n="learn-time-taken"
+                                    >Tempo</span
+                                >
+                                <span class="detail-value" id="timeTaken"
+                                    >12:30</span
+                                >
+                            </div>
+                            <div class="score-detail">
+                                <span
+                                    class="detail-label"
+                                    data-i18n="learn-attempt"
+                                    >Tentativa</span
+                                >
+                                <span class="detail-value" id="attemptNumber"
+                                    >1</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="result-certificate"
+                        id="resultCertificate"
+                        style="display: none"
+                    >
+                        <p data-i18n="learn-certificate-earned">
+                            🏆 Certificado conquistado!
+                        </p>
+                        <button
+                            class="btn-secondary"
+                            onclick="downloadCertificate()"
+                        >
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                                ></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span data-i18n="learn-download-certificate"
+                                >Baixar Certificado</span
+                            >
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="reviewAnswers()">
+                    <span data-i18n="learn-review-answers"
+                        >Revisar Respostas</span
+                    >
+                </button>
+                <button class="btn-primary" onclick="closeQuizResult()">
+                    <span data-i18n="learn-continue">Continuar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lesson Viewer Modal -->
+    <div class="modal hidden" id="lessonModal">
+        <div class="modal-content modal-fullscreen">
+            <div class="modal-header">
+                <div class="lesson-nav">
+                    <button
+                        class="btn-icon-sm"
+                        onclick="prevLesson()"
+                        id="prevLessonBtn"
+                    >
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <span id="lessonNavTitle">Aula 1 de 5</span>
+                    <button
+                        class="btn-icon-sm"
+                        onclick="nextLesson()"
+                        id="nextLessonBtn"
+                    >
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <h3 id="lessonTitle">Título da Aula</h3>
+                <button class="btn-icon-sm" onclick="closeLessonModal()">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body lesson-body">
+                <div class="lesson-content" id="lessonContent">
+                    <!-- Lesson content (video, text, slides) -->
+                </div>
+                <div class="lesson-sidebar">
+                    <h4 data-i18n="learn-course-content">Conteúdo do Curso</h4>
+                    <div class="lesson-list-sidebar" id="lessonListSidebar">
+                        <!-- Lesson list -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="lesson-progress">
+                    <div class="progress-bar">
+                        <div
+                            class="progress-fill"
+                            id="lessonProgressFill"
+                            style="width: 0%"
+                        ></div>
+                    </div>
+                </div>
+                <button
+                    class="btn-primary"
+                    id="completeLessonBtn"
+                    onclick="completeLesson()"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span data-i18n="learn-mark-complete"
+                        >Marcar como Concluída</span
+                    >
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificate Modal -->
+    <div class="modal hidden" id="certificateModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="learn-certificate">Certificado</h3>
+                <button class="btn-icon-sm" onclick="closeCertificateModal()">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="certificate-preview" id="certificatePreview">
+                    <div class="certificate">
+                        <div class="certificate-header">
+                            <span class="certificate-logo">🎓</span>
+                            <h2>General Bots</h2>
+                            <p>Certificado de Conclusão</p>
+                        </div>
+                        <div class="certificate-body">
+                            <p>Certificamos que</p>
+                            <h3 id="certUserName">Nome do Usuário</h3>
+                            <p>concluiu com sucesso o curso</p>
+                            <h4 id="certCourseName">Nome do Curso</h4>
+                            <p class="cert-score">
+                                com aproveitamento de
+                                <strong id="certScore">85%</strong>
+                            </p>
+                        </div>
+                        <div class="certificate-footer">
+                            <div class="cert-date">
+                                <span data-i18n="learn-issued-on"
+                                    >Emitido em</span
+                                >
+                                <strong id="certDate">01/01/2025</strong>
+                            </div>
+                            <div class="cert-code">
+                                <span data-i18n="learn-verification-code"
+                                    >Código de Verificação
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

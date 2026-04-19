@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>General Bots Desktop</title>
+
+        <!-- Link to the existing compiled CSS -->
+        <link rel="stylesheet" href="/suite/css/app.css" />
+        <link rel="stylesheet" href="/suite/css/base.css" />
+        <link rel="stylesheet" href="/suite/css/theme-sentient.css" />
+        <link rel="stylesheet" href="/suite/css/desktop.css" />
+
+        <!-- Local JS requirements per AGENTS.md / UI.md -->
+        <script src="/suite/js/vendor/htmx.min.js"></script>
+        <script src="/suite/js/security-bootstrap.js"></script>
+        <script src="/suite/js/vendor/marked.min.js"></script>
+        <script src="/suite/js/window-manager.js?v=2"></script>
+        <script src="/suite/js/theme-manager.js"></script>
+
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Fira Code", "Fira Sans", Arial, sans-serif;
+                background: var(--bg, #ffffff);
+                color: var(--text, #333333);
+                overflow: hidden;
+                height: 100vh;
+                width: 100vw;
+                margin: 0;
+                padding: 0;
+                display: flex;
+            }
+
+            /* Core Layout replicating BUILD V3 screenshot styling */
+            .build-container {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                position: absolute;
+                inset: 0;
+                z-index: 1000;
+                background: var(--bg, #ffffff);
+            }
+
+            /* Left Sidebar */
+            .sidebar {
+                width: 51px;
+                height: 100%;
+                background: var(--bg-secondary, #f8f8f8);
+                border-right: 1px solid #d1d5db;
+                display: flex;
+                flex-direction: column;
+                z-index: 100;
+            }
+
+            .sidebar-item {
+                width: 51px;
+                height: 50px;
+                border-bottom: 1px solid var(--border-color, #f0f1f2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }
+
+            .sidebar-item:hover {
+                background: var(--bg, #ffffff);
+            }
+
+            .sidebar-item.active {
+                background: var(--bg, #ffffff);
+                border-left: 3px solid var(--primary, #84d669);
+            }
+
+            .sidebar-icon {
+                width: 30px;
+                height: 30px;
+                stroke: var(--text-secondary, #3b3b3b);
+                opacity: 0.6;
+                transition:
+                    stroke 0.15s ease,
+                    opacity 0.15s ease;
+            }
+
+            .sidebar-item:hover .sidebar-icon {
+                opacity: 1;
+                stroke: var(--text, #3b3b3b);
+            }
+
+            /* Main Content wrapper */
+            .main-wrapper {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            /* Top Navigation Tabs - Removed (already in Vibe) */
+
+            /* Workspace (Where windows float) */
+            .workspace {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                background: var(--bg, #ffffff);
+                position: relative;
+            }
+
+            /* The Panel Grid (Desktop Icons) */
+            .panel-section {
+                flex: 1;
+                padding: 26px 33px;
+                overflow-y: auto;
+                z-index: 10;
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+            }
+
+            /* Interactive Desktop Icons triggering HTMX */
+            .desktop-icons-container {
+                display: flex;
+                flex-wrap: wrap;
+                flex-direction: row;
+                gap: 20px;
+                align-items: flex-start;
+                justify-content: flex-end;
+                width: auto;
+                pointer-events: auto;
+                position: absolute;
+                right: 33px;
+                top: 26px;
+            }
+
+            .desktop-icon {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 80px;
+                cursor: pointer;
+                position: relative;
+                gap: 8px;
+            }
+
+            .app-icon {
+                width: 64px;
+                height: 64px;
+                border-radius: 16px;
+                background: var(--surface-hover, #ffffff);
+                border: 1px solid var(--border, #e5e7eb);
+                box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.05);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.15s ease;
+            }
+
+            .desktop-icon:hover .app-icon {
+                transform: scale(1.05);
+                border-color: var(--accent, #84d669);
+                box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .app-icon svg {
+                width: 32px;
+                height: 32px;
+                stroke: var(--text, #374151);
+                transition: stroke 0.15s ease;
+            }
+
+            .desktop-icon:hover .app-icon svg {
+                stroke: var(--accent, #84d669);
+            }
+
+            .desktop-icon-label {
+                font-family: "Fira Code", monospace;
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-secondary, #374151);
+                background: transparent;
+                backdrop-filter: blur(4px);
+                padding: 2px 8px;
+                border-radius: 4px;
+                text-align: center;
+            }
+
+            .bg-grid {
+                display: none;
+            }
+
+            .bg-svg {
+                display: none !important;
+            }
+
+            /* Bottom Taskbar */
+            .toolbar {
+                height: 50px;
+                background: var(--surface);
+                border-top: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                padding: 0 8px;
+                z-index: 100;
+                position: relative;
+            }
+
+            #taskbar-apps {
+                display: flex;
+                flex: 1;
+                height: 100%;
+                align-items: center;
+                gap: 0px;
+            }
+
+            .toolbar-time {
+                font-family: "Fira Code", monospace;
+                font-size: 14px;
+                color: var(--text-secondary, #3b3b3b);
+                text-align: right;
+                line-height: 1.4;
+                padding: 0 10px;
+                margin-left: auto;
+            }
+
+            /* Taskbar Items generated by WindowManager */
+            .taskbar-item {
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                border-bottom: 2px solid transparent;
+            }
+
+
+
+
+    
+            /* Fullscreen Mode Styles */
+            body.fullscreen .sidebar {
+                display: none !important;
+            }
+
+            body.fullscreen .toolbar {
+                display: none !important;
+            }
+
+            body.fullscreen .panel-section {
+                display: none !important;
+            }
+
+            body.fullscreen .workspace {
+                height: 100vh !important;
+            }
+
+            body.fullscreen .main-wrapper {
+                height: 100vh !important;
+            }
+
+            body.fullscreen .window-titlebar {
+                display: none !important;
+            }
+
+            body.fullscreen .window {
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+            }
+        
+            /* Hide window title bar and controls in fullscreen */
+            body.fullscreen .window > div:first-child {
+                display: none !important;
+            }
+
+            body.fullscreen .window > div:nth-child(2) {
+                display: none !important;
+            }
+
+        </style>
+
+    </head>
+
+    <body>
+        <!-- Minibar removed - login moved to taskbar -->
+
+        <div class="build-container">
+            <!-- Left Sidebar -->
+            <aside class="sidebar">
+                <div
+                    class="sidebar-item active"
+                    title="Home"
+                    onclick="if(window.wm) window.wm.open('home', 'Home', '<div style=\'padding:20px;text-align:center;\'><h2>Welcome to General Bots Desktop</h2></div>');"
+                >
+                    <svg
+                        class="sidebar-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                        ></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </div>
+                <div
+                    class="sidebar-item"
+                    title="Search"
+                    onclick="alert('Search coming soon');"
+                >
+                    <svg
+                        class="sidebar-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </div>
+                <div
+                    class="sidebar-item"
+                    title="Terminal"
+                    onclick="fetch('/suite/terminal/terminal.html').then(r=>r.text()).then(html=>{if(window.wm)window.wm.open('terminal','Terminal',html);});"
+                >
+                    <svg
+                        class="sidebar-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="4 17 10 11 4 5"></polyline>
+                        <line x1="12" y1="19" x2="20" y2="19"></line>
+                    </svg>
+                </div>
+                <div
+                    class="sidebar-item"
+                    title="User"
+                    onclick="alert('User profile coming soon');"
+                >
+                    <svg
+                        class="sidebar-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+                        ></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+                <div
+                    class="sidebar-item"
+                    title="Apps"
+                    onclick="if(window.wm) window.wm.open('apps', 'Applications', '<div style=\'padding:20px;\'><h3>Installed Applications</h3><p>Click desktop icons to launch apps.</p></div>');"
+                >
+                    <svg
+                        class="sidebar-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </div>
+                <div
+                    class="sidebar-item"
+                    style="margin-top: auto"
+                    title="Settings"
+                    onclick="fetch('/suite/admin/organization-settings.html').then(r=>r.text()).then(html=>{if(window.wm)window.wm.open('settings','Settings',html);}).catch(e=>alert('Settings page not found'));"
+                >
+                    <svg
+                        class="sidebar-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                        ></path>
+                    </svg>
+                </div>
+            </aside>
+
+            <!-- Main Wrapper -->
+            <div class="main-wrapper">
+                <!-- Top Navigation Tabs - Removed (already in Vibe) -->
+
+                <!-- Workspace container where WindowManager operates -->
+                <div class="workspace" id="desktop-content">
+                    <!-- Background Pattern -->
+
+                    <div class="panel-section">
+                        <div class="desktop-icons-container">
+                            <div
+                                class="desktop-icon"
+                                data-app-id="vibe"
+                                data-app-title="Vibe"
+                                hx-get="/suite/partials/vibe.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path
+                                            d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                                        />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Vibe</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="crm"
+                                data-app-title="CRM"
+                                hx-get="/suite/crm/crm.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="9" cy="7" r="4"></circle>
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">CRM</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="campaigns"
+                                data-app-title="Campaigns"
+                                hx-get="/suite/campaigns/campaigns.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Campaigns</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="lists"
+                                data-app-title="Lists"
+                                hx-get="/suite/lists/lists.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <line x1="8" y1="6" x2="21" y2="6" />
+                                        <line x1="8" y1="12" x2="21" y2="12" />
+                                        <line x1="8" y1="18" x2="21" y2="18" />
+                                        <line x1="3" y1="6" x2="3.01" y2="6" />
+                                        <line x1="3" y1="12" x2="3.01" y2="12" />
+                                        <line x1="3" y1="18" x2="3.01" y2="18" />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Lists</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="templates"
+                                data-app-title="Templates"
+                                hx-get="/suite/templates/templates.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                        <line x1="3" y1="9" x2="21" y2="9" />
+                                        <line x1="9" y1="21" x2="9" y2="9" />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Templates</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="tasks"
+                                data-app-title="Tasks"
+                                hx-get="/suite/tasks/task-window.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 11l3 3L22 4" />
+                                        <path
+                                            d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                                        />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Tasks</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="chat"
+                                data-app-title="Chat"
+                                hx-get="/suite/partials/chat.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path
+                                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                                        />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Chat</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="terminal"
+                                data-app-title="Terminal"
+                                hx-get="/suite/terminal/terminal.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <polyline points="4 17 10 11 4 5" />
+                                        <line x1="12" y1="19" x2="20" y2="19" />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Terminal</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="drive"
+                                data-app-title="Explorer"
+                                hx-get="/suite/drive/drive.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path
+                                            d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                                        />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Explorer</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="editor"
+                                data-app-title="Editor"
+                                hx-get="/suite/editor.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <polyline points="16 18 22 12 16 6" />
+                                        <polyline points="8 6 2 12 8 18" />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Editor</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="designer"
+                                data-app-title="Designer"
+                                hx-get="/suite/designer.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                                        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                                        <path d="M2 2l7.586 7.586"></path>
+                                        <circle cx="11" cy="11" r="2"></circle>
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Designer</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="bas-editor"
+                                data-app-title="BASIC"
+                                hx-get="/suite/partials/vibe.html?mode=bas"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <polyline points="4 17 10 11 4 5"></polyline>
+                                        <line x1="12" y1="19" y2="20"></line>
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">BASIC</span>
+                            </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="browser"
+                                data-app-title="Browser"
+                                hx-get="/suite/browser/browser.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polygon
+                                            points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"
+                                        />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Browser</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Taskbar -->
+                <footer class="toolbar" id="taskbar">
+                    <div id="taskbar-apps">
+                        <!-- Taskbar items populated automatically by window-manager.js -->
+                    </div>
+                    <div
+                        class="toolbar-time"
+                        style="display: flex; align-items: center; gap: 15px"
+                    >
+                        <div id="themeSelectorContainer"></div>
+                        <button
+                            id="loginBtn"
+                            onclick="window.location.href='/suite/auth/login.html'"
+                            style="
+                                background: var(--primary, #84d669);
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 6px 12px;
+                                font-size: 12px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                font-family: &quot;Fira Code&quot;, monospace;
+                            "
+                        >
+                            Sign In
+                        </button>
+                        <div style="text-align: right">
+                            <div id="clock-time">00:00</div>
+                            <div id="clock-date">01/01/2026</div>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </div>
+
+        <!-- HTMX Intercepts and WindowManager Init as described in UI.md Phase 3 -->
+        <script>
+            // Check for fullscreen mode
+            (function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('fullscreen') === 'true') {
+                    document.body.classList.add('fullscreen');
+                    console.log('Fullscreen mode activated');
+                }
+            })();
+
+
+            document.addEventListener("DOMContentLoaded", async () => {
+                // Initialize WindowManager
+                if (typeof window.WindowManager !== "undefined") {
+                    window.wm = window.WindowManager;
+                } else {
+                    console.error(
+                        "WindowManager class not loaded from window-manager.js",
+                    );
+                }
+
+                // Initialize ThemeManager
+                if (typeof window.ThemeManager !== "undefined") {
+                    window.ThemeManager.init();
+                }
+
+                // Get bot name from URL path
+                const pathParts = window.location.pathname.split('/');
+                const botName = pathParts[1] || 'default';
+                
+                // Auto-open Chat window maximized for all bots
+                if (window.wm) {
+                    try {
+                        const response = await fetch(
+                            "/suite/partials/chat.html",
+                        );
+                        if (response.ok) {
+                            const htmlContent = await response.text();
+                            window.wm.open("chat", "Chat", htmlContent);
+                            // Maximize the chat window after opening
+                            setTimeout(() => {
+                                window.wm.toggleMaximize("chat");
+                            }, 100);
+                        }
+                    } catch (err) {
+                        console.error("Failed to auto-open chat:", err);
+                    }
+                }
+            });
+
+            // Listen to HTMX afterRequest event
+            document.body.addEventListener("htmx:afterRequest", function (evt) {
+                const target = evt.detail.elt;
+
+                // Check if the click came from a desktop icon
+                if (target.classList.contains("desktop-icon")) {
+                    const appId = target.getAttribute("data-app-id");
+                    const title = target.getAttribute("data-app-title");
+                    const htmlContent = evt.detail.xhr.response;
+
+                    // Tell WindowManager to open it
+                    if (window.wm) {
+                        window.wm.open(appId, title, htmlContent);
+                    }
+                }
+
+                // Ensure Theme dropdown is re-injected if wiped
+                if (window.ThemeManager) {
+                    const container = document.getElementById(
+                        "themeSelectorContainer",
+                    );
+                    if (container && !container.hasChildNodes()) {
+                        // Quick and dirty way to re-init
+                        window.ThemeManager.init();
+                    }
+                }
+            });
+
+            // Update login button based on auth state
+            function updateLoginButton() {
+                var token =
+                    localStorage.getItem("gb-access-token") ||
+                    sessionStorage.getItem("gb-access-token");
+                var loginBtn = document.getElementById("loginBtn");
+                if (token && loginBtn) {
+                    loginBtn.textContent = "Sign Out";
+                    loginBtn.onclick = function () {
+                        fetch("/api/auth/logout", { method: "POST" }).finally(
+                            function () {
+                                localStorage.removeItem("gb-access-token");
+                                sessionStorage.removeItem("gb-access-token");
+                                window.location.reload();
+                            },
+                        );
+                    };
+                }
+            }
+
+            // Check login state on load
+            setTimeout(updateLoginButton, 500);
+
+            // Simple Clock implementation matching the screenshot bottom right corner
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById("clock-time").textContent =
+                    now.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    });
+                document.getElementById("clock-date").textContent =
+                    now.toLocaleDateString();
+            }, 1000);
+        </script>
+    </body>
+</html>
