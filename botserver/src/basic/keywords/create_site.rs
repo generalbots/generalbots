@@ -1,5 +1,7 @@
 #[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
+#[cfg(feature = "drive")]
+use crate::drive::s3_repository::S3Repository;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
 use log::{debug, info};
@@ -86,7 +88,7 @@ struct SiteCreationParams {
 #[cfg(feature = "llm")]
 async fn create_site(
     config: crate::core::config::AppConfig,
-    s3: Option<std::sync::Arc<aws_sdk_s3::Client>>,
+    #[cfg(feature = "drive")] s3: Option<std::sync::Arc<S3Repository>>,
     bucket: String,
     bot_id: String,
     llm: Option<Arc<dyn LLMProvider>>,
@@ -125,7 +127,7 @@ async fn create_site(
 #[cfg(not(feature = "llm"))]
 async fn create_site(
     config: crate::core::config::AppConfig,
-    s3: Option<std::sync::Arc<aws_sdk_s3::Client>>,
+    s3: Option<std::sync::Arc<S3Repository>>,
     bucket: String,
     bot_id: String,
     _llm: Option<()>,
@@ -341,7 +343,7 @@ fn generate_placeholder_html(prompt: &str) -> String {
 }
 
 async fn store_to_drive(
-    s3: Option<&std::sync::Arc<aws_sdk_s3::Client>>,
+    s3: Option<&std::sync::Arc<S3Repository>>,
     bucket: &str,
     bot_id: &str,
     drive_path: &str,
@@ -359,7 +361,7 @@ async fn store_to_drive(
         .put_object()
         .bucket(bucket)
         .key(&key)
-        .body(html_content.as_bytes().to_vec().into())
+        .body(html_content.as_bytes().to_vec())
         .content_type("text/html")
         .send()
         .await
@@ -372,7 +374,7 @@ async fn store_to_drive(
         .put_object()
         .bucket(bucket)
         .key(&schema_key)
-        .body(schema.as_bytes().to_vec().into())
+        .body(schema.as_bytes().to_vec())
         .content_type("application/json")
         .send()
         .await

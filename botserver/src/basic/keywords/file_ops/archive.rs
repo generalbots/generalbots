@@ -89,7 +89,7 @@ pub async fn execute_compress(
         .put_object()
         .bucket(&bucket_name)
         .key(&key)
-        .body(archive_content.into())
+        .body(archive_content)
         .send()
         .await
         .map_err(|e| format!("S3 put failed: {e}"))?;
@@ -145,15 +145,18 @@ pub async fn execute_extract(
     let bucket_name = format!("{bot_name}.gbai");
     let archive_key = format!("{bot_name}.gbdrive/{archive}");
 
-    let response = client
+    let data = client
         .get_object()
         .bucket(&bucket_name)
         .key(&archive_key)
         .send()
         .await
-        .map_err(|e| format!("S3 get failed: {e}"))?;
-
-    let data = response.body.collect().await?.into_bytes();
+        .map_err(|e| format!("S3 get failed: {e}"))?
+        .body
+        .collect()
+        .await
+        .map_err(|e| format!("Body collect failed: {e}"))?
+        .into_bytes();
 
     let temp_dir = std::env::temp_dir();
     let archive_path = temp_dir.join(archive);
@@ -172,20 +175,20 @@ pub async fn execute_extract(
             let mut content = Vec::new();
             zip_file.read_to_end(&mut content)?;
 
-            let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
+let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
 
-            let dest_key = format!("{bot_name}.gbdrive/{dest_path}");
-            client
-                .put_object()
-                .bucket(&bucket_name)
-                .key(&dest_key)
-                .body(content.into())
-                .send()
-                .await
-                .map_err(|e| format!("S3 put failed: {e}"))?;
+        let dest_key = format!("{bot_name}.gbdrive/{dest_path}");
+        client
+            .put_object()
+            .bucket(&bucket_name)
+            .key(&dest_key)
+            .body(content)
+            .send()
+            .await
+            .map_err(|e| format!("S3 put failed: {e}"))?;
 
-            extracted_files.push(dest_path);
-        }
+        extracted_files.push(dest_path);
+    }
     } else if has_tar_gz_extension(archive) {
         let file = File::open(&archive_path)?;
         let decoder = GzDecoder::new(file);
@@ -201,20 +204,20 @@ pub async fn execute_extract(
             let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
 
             let dest_key = format!("{bot_name}.gbdrive/{dest_path}");
-            client
-                .put_object()
-                .bucket(&bucket_name)
-                .key(&dest_key)
-                .body(content.into())
-                .send()
-                .await
-                .map_err(|e| format!("S3 put failed: {e}"))?;
+        client
+            .put_object()
+            .bucket(&bucket_name)
+            .key(&dest_key)
+            .body(content)
+            .send()
+            .await
+            .map_err(|e| format!("S3 put failed: {e}"))?;
 
-            extracted_files.push(dest_path);
+        extracted_files.push(dest_path);
         }
-    }
+        }
 
-    fs::remove_file(&archive_path).ok();
+        fs::remove_file(&archive_path).ok();
 
     trace!("EXTRACT successful: {} files", extracted_files.len());
     Ok(extracted_files)

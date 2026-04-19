@@ -56,17 +56,21 @@ pub async fn execute_read(
     let bucket_name = format!("{bot_name}.gbai");
     let key = format!("{bot_name}.gbdrive/{path}");
 
-    let response = client
+    let data = client
         .get_object()
         .bucket(&bucket_name)
         .key(&key)
         .send()
         .await
-        .map_err(|e| format!("S3 get failed: {e}"))?;
+        .map_err(|e| format!("S3 get failed: {e}"))?
+        .body
+        .collect()
+        .await
+        .map_err(|e| format!("Body collect failed: {e}"))?
+        .into_bytes();
 
-    let data = response.body.collect().await?.into_bytes();
-    let content =
-        String::from_utf8(data.to_vec()).map_err(|_| "File content is not valid UTF-8")?;
+        let content =
+            String::from_utf8(data.to_vec()).map_err(|_| "File content is not valid UTF-8")?;
 
     trace!("READ successful: {} bytes", content.len());
     Ok(content)
@@ -98,7 +102,7 @@ pub async fn execute_write(
         .put_object()
         .bucket(&bucket_name)
         .key(&key)
-        .body(content.as_bytes().to_vec().into())
+        .body(content.as_bytes().to_vec())
         .send()
         .await
         .map_err(|e| format!("S3 put failed: {e}"))?;
@@ -161,25 +165,17 @@ pub async fn execute_list(
     let bucket_name = format!("{bot_name}.gbai");
     let prefix = format!("{bot_name}.gbdrive/{path}");
 
-    let response = client
-        .list_objects_v2()
-        .bucket(&bucket_name)
-        .prefix(&prefix)
-        .send()
-        .await
-        .map_err(|e| format!("S3 list failed: {e}"))?;
-
-    let files: Vec<String> = response
-        .contents()
-        .iter()
-        .filter_map(|obj| {
-            obj.key().map(|k| {
+let files: Vec<String> = client
+            .list_objects(&bucket_name, Some(&prefix))
+            .await
+            .map_err(|e| format!("S3 list failed: {e}"))?
+            .iter()
+            .map(|k| {
                 k.strip_prefix(&format!("{bot_name}.gbdrive/"))
                     .unwrap_or(k)
                     .to_string()
             })
-        })
-        .collect();
+            .collect();
 
     trace!("LIST successful: {} files", files.len());
     Ok(files)

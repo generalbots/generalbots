@@ -157,7 +157,7 @@ impl CachedLLMProvider {
                 }
             };
 
-            let config_manager = ConfigManager::new(db_pool.clone());
+            let config_manager = ConfigManager::new(db_pool.clone().into());
             let cache_enabled = config_manager
                 .get_config(&bot_uuid, "llm-cache", Some("true"))
                 .unwrap_or_else(|_| "true".to_string());
@@ -193,7 +193,7 @@ impl CachedLLMProvider {
                 }
             };
 
-            let config_manager = ConfigManager::new(db_pool.clone());
+            let config_manager = ConfigManager::new(db_pool.clone().into());
 
             let ttl = config_manager
                 .get_config(

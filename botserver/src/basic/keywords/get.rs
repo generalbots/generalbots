@@ -175,21 +175,19 @@ pub async fn get_from_bucket(
         let bucket = format!("{}.gbai", bot_name);
         bucket
     };
-    let bytes = match tokio::time::timeout(Duration::from_secs(30), async {
-        let result: Result<Vec<u8>, Box<dyn Error + Send + Sync>> = match client
+    let bytes: Vec<u8> = match tokio::time::timeout(Duration::from_secs(30), async {
+        client
             .get_object()
             .bucket(&bucket_name)
             .key(file_path)
             .send()
             .await
-        {
-            Ok(response) => {
-                let data = response.body.collect().await?.into_bytes();
-                Ok(data.to_vec())
-            }
-            Err(e) => Err(format!("S3 operation failed: {}", e).into()),
-        };
-        result
+            .map_err(|e| format!("S3 operation failed: {}", e))?
+            .body
+            .collect()
+            .await
+            .map(|c| c.into_bytes())
+            .map_err(|e| format!("Body collect failed: {}", e))
     })
     .await
     {

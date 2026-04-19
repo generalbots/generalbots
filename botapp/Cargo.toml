@@ -12,10 +12,16 @@ categories = ["gui", "network-programming"]
 # Core from botlib
 botlib = { workspace = true, features = ["http-client"] }
 
-# Tauri
-tauri = { workspace = true, features = ["tray-icon", "image"] }
-tauri-plugin-dialog = { workspace = true }
-tauri-plugin-opener = { workspace = true }
+
+# ─── TAURI (Desktop/Mobile) ───
+tauri = { version = "2",  features = ["tray-icon", "image"] }
+tauri = { features = ["unstable"] }
+tauri-build = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-http = "2"
+tauri-plugin-geolocation = "2"
 
 # Common
 anyhow = { workspace = true }

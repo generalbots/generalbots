@@ -154,7 +154,7 @@ impl TaskScheduler {
                                     s3.put_object()
                                         .bucket("backups")
                                         .key(format!("db/{}.sql", timestamp))
-                                        .body(aws_sdk_s3::primitives::ByteStream::from(body))
+                                        .body(Vec<u8>::from(body))
                                         .send()
                                         .await?;
                                 }
@@ -239,7 +239,7 @@ impl TaskScheduler {
                         }
 
                         if let Some(s3) = &state.drive {
-                            let s3_clone: aws_sdk_s3::Client = (*s3).clone();
+                            let s3_clone: S3Repository = (*s3).clone();
                             let s3_ok = s3_clone.list_buckets().send().await.is_ok();
                             health["storage"] = serde_json::json!(s3_ok);
                         }

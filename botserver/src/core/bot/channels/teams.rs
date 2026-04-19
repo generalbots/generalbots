@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::core::bot::channels::ChannelAdapter;
@@ -19,7 +20,7 @@ pub struct TeamsAdapter {
 
 impl TeamsAdapter {
     pub fn new(pool: DbPool, bot_id: Uuid) -> Self {
-        let config_manager = ConfigManager::new(pool);
+        let config_manager = ConfigManager::new(Arc::new(pool));
 
         let app_id = config_manager
             .get_config(&bot_id, "teams-app-id", None)

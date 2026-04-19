@@ -17,18 +17,18 @@ default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive",
 # Build with: cargo build --no-default-features --features "no-security,chat,llm"
 no-security = []
 
-browser = ["automation", "drive", "cache"]
-terminal = ["automation", "drive", "cache"]
-external_sync = ["automation", "drive", "cache"]
+browser = ["automation", "cache"]
+terminal = ["automation", "cache"]
+external_sync = ["automation", "cache"]
 
 # ===== CORE INFRASTRUCTURE (Can be used standalone) =====
 scripting = ["dep:rhai"]
 automation = ["scripting", "dep:cron"]
-drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
+drive = ["dep:pdf-extract", "dep:rust-s3"]
 cache = ["dep:redis"]
 directory = ["rbac"]
 rbac = []
-crawler = ["drive", "cache"]
+crawler = ["cache"]
 
 # ===== APPS (Each includes what it needs from core) =====
 # Communication
@@ -84,14 +84,14 @@ instagram = ["automation", "drive", "cache"]
 msteams = ["automation", "drive", "cache"]
 # Core Tech
 llm = ["automation", "cache"]
-vectordb = ["automation", "drive", "cache", "dep:qdrant-client"]
+vectordb = ["automation", "drive", "cache"]
 nvidia = ["automation", "drive", "cache"]
 compliance = ["automation", "drive", "cache", "dep:csv"]
 timeseries = ["automation", "drive", "cache"]
 weba = ["automation", "drive", "cache"]
 progress-bars = ["automation", "drive", "cache", "dep:indicatif"]
 grpc = ["automation", "drive", "cache"]
-jemalloc = ["automation", "drive", "cache", "dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
+jemalloc = ["automation", "drive", "cache", "dep:mimalloc"]
 console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
 
 # ===== BUNDLES (Optional - for convenience) =====
@@ -121,7 +121,7 @@ dirs = { workspace = true }
 dotenvy = { workspace = true }
 futures = { workspace = true }
 futures-util = { workspace = true }
-git2 = "0.19"
+git2 = "0.20"
 hex = { workspace = true }
 hmac = { workspace = true }
 log = { workspace = true }
@@ -160,7 +160,7 @@ lettre = { workspace = true, optional = true }
 mailparse = { workspace = true, optional = true }
 
 # Vector Database (vectordb feature)
-qdrant-client = { workspace = true, optional = true }
+
 
 # Document Processing
 docx-rs = { workspace = true, optional = true }
@@ -170,14 +170,13 @@ rust_xlsxwriter = { workspace = true, optional = true }
 umya-spreadsheet = { workspace = true, optional = true }
 
 # File Storage & Drive (drive feature)
-aws-config = { workspace = true, features = ["behavior-version-latest", "rt-tokio", "rustls"], optional = true }
-aws-sdk-s3 = { workspace = true, features = ["rt-tokio", "rustls"], optional = true }
-aws-smithy-async = { workspace = true, optional = true }
+# minio removed - use rust-s3 via S3Repository instead
 pdf-extract = { workspace = true, optional = true }
 quick-xml = { workspace = true, optional = true }
 flate2 = { workspace = true }
 zip = { workspace = true }
 tar = { workspace = true }
+rust-s3 = { workspace = true, optional = true }
 
 # Task Management (tasks feature)
 cron = { workspace = true, optional = true }
@@ -210,8 +209,7 @@ indicatif = { workspace = true, optional = true }
 smartstring = { workspace = true }
 
 # Memory allocator (jemalloc feature)
-tikv-jemallocator = { workspace = true, optional = true }
-tikv-jemalloc-ctl = { workspace = true, optional = true }
+mimalloc = { workspace = true, optional = true }
 scopeguard = { workspace = true }
 
 # Vault secrets management

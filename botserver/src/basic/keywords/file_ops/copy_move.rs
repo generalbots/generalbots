@@ -70,13 +70,11 @@ pub async fn execute_copy(
     let source_key = format!("{bot_name}.gbdrive/{source}");
     let dest_key = format!("{bot_name}.gbdrive/{destination}");
 
-    let copy_source = format!("{bucket_name}/{source_key}");
-
     client
         .copy_object()
         .bucket(&bucket_name)
-        .key(&dest_key)
-        .copy_source(&copy_source)
+        .source(&source_key)
+        .dest(&dest_key)
         .send()
         .await
         .map_err(|e| format!("S3 copy failed: {e}"))?;
@@ -218,14 +216,17 @@ pub async fn read_from_local(
     let bucket_name = format!("{bot_name}.gbai");
     let key = format!("{bot_name}.gbdrive/{path}");
 
-    let result = client
+    let bytes = client
         .get_object()
         .bucket(&bucket_name)
         .key(&key)
         .send()
-        .await?;
-    let bytes = result.body.collect().await?.into_bytes();
-    Ok(bytes.to_vec())
+        .await?
+        .body
+        .collect()
+        .await?
+        .into_bytes();
+    Ok(bytes)
 }
 
 pub async fn write_to_local(
@@ -248,7 +249,7 @@ pub async fn write_to_local(
         .put_object()
         .bucket(&bucket_name)
         .key(&key)
-        .body(content.to_vec().into())
+        .body(content.to_vec())
         .send()
         .await?;
     Ok(())

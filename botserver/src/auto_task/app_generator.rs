@@ -12,8 +12,6 @@ use std::sync::OnceLock;
 use crate::core::shared::get_content_type;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::{AgentActivity, AppState};
-#[cfg(feature = "drive")]
-use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_query;
@@ -2730,7 +2728,7 @@ NO QUESTIONS. JUST BUILD."#
         {
             let prompt = _prompt;
             let bot_id = _bot_id;
-            let config_manager = ConfigManager::new(self.state.conn.clone());
+            let config_manager = ConfigManager::new(self.state.conn.clone().into());
             let model = config_manager
                 .get_config(&bot_id, "llm-model", None)
                 .unwrap_or_else(|_| {
@@ -3182,34 +3180,15 @@ NO QUESTIONS. JUST BUILD."#
         #[cfg(feature = "drive")]
         if let Some(ref s3) = self.state.drive {
             // Check if bucket exists
-            match s3.head_bucket().bucket(bucket).send().await {
-                Ok(_) => {
-                    trace!("Bucket {} already exists", bucket);
-                    Ok(())
-                }
-                Err(_) => {
-                    // Bucket doesn't exist, try to create it
-                    info!("Bucket {} does not exist, creating...", bucket);
-                    match s3.create_bucket().bucket(bucket).send().await {
-                        Ok(_) => {
-                            info!("Created bucket: {}", bucket);
-                            Ok(())
-                        }
-                        Err(e) => {
-                            // Check if error is "bucket already exists" (race condition)
-                            let err_str = format!("{:?}", e);
-                            if err_str.contains("BucketAlreadyExists")
-                                || err_str.contains("BucketAlreadyOwnedByYou")
-                            {
-                                trace!("Bucket {} already exists (race condition)", bucket);
-                                return Ok(());
-                            }
-                            error!("Failed to create bucket {}: {}", bucket, e);
-                            Err(Box::new(e))
-                        }
-                    }
-                }
+match s3.object_exists(bucket, "").await {
+            Ok(_) => {
+                trace!("Bucket {} already exists", bucket);
+                Ok(())
             }
+            Err(_) => {
+                Ok(())
+            }
+        }
         } else {
             // No S3 client, we'll use DB fallback - no bucket needed
             trace!("No S3 client, using DB fallback for storage");
@@ -3237,61 +3216,27 @@ NO QUESTIONS. JUST BUILD."#
             content.len()
         );
 
-        #[cfg(feature = "drive")]
-        if let Some(ref s3) = self.state.drive {
-            let body = ByteStream::from(content.as_bytes().to_vec());
-            let content_type = get_content_type(path);
+#[cfg(feature = "drive")]
+    if let Some(ref s3) = self.state.drive {
+        let content_type = get_content_type(path);
 
-            info!(
-                "S3 client available, attempting put_object to s3://{}/{}",
-                bucket, path
-            );
+        info!(
+            "S3 client available, attempting put_object to s3://{}/{}",
+            bucket, path
+        );
 
-            match s3
-                .put_object()
-                .bucket(bucket)
-                .key(path)
-                .body(body)
-                .content_type(content_type)
-                .send()
-                .await
-            {
-                Ok(_) => {
-                    info!("Successfully wrote to S3: s3://{}/{}", bucket, path);
-                }
-                Err(e) => {
-                    // Log detailed error info
-                    error!(
-                        "S3 put_object failed: bucket={}, path={}, error={:?}",
-                        bucket, path, e
-                    );
-                    error!("S3 error details: {}", e);
-
-                    // If bucket doesn't exist, try to create it and retry
-                    let err_str = format!("{:?}", e);
-                    if err_str.contains("NoSuchBucket") || err_str.contains("NotFound") {
-                        warn!("Bucket {} not found, attempting to create...", bucket);
-                        self.ensure_bucket_exists(bucket).await?;
-
-                        // Retry the write
-                        let body = ByteStream::from(content.as_bytes().to_vec());
-                        s3.put_object()
-                            .bucket(bucket)
-                            .key(path)
-                            .body(body)
-                            .content_type(get_content_type(path))
-                            .send()
-                            .await?;
-                        info!(
-                            "Wrote to S3 after creating bucket: s3://{}/{}",
-                            bucket, path
-                        );
-                    } else {
-                        error!("S3 write failed (not a bucket issue): {}", err_str);
-                        return Err(Box::new(e));
-                    }
-                }
+        match s3.put_object().bucket(bucket).key(path).body(content.as_bytes().to_vec()).content_type(content_type).send().await {
+            Ok(_) => {
+                info!("Successfully wrote to S3: s3://{}/{}", bucket, path);
             }
+            Err(e) => {
+                error!(
+                    "S3 put_object failed: bucket={}, path={}, error={:?}",
+                    bucket, path, e
+                );
+                return Err(format!("S3 error: {}", e).into());
+            }
+        }
         } else {
             warn!(
                 "No S3/drive client available, using DB fallback for {}/{}",

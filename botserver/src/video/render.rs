@@ -378,46 +378,48 @@ impl VideoRenderWorker {
         let filename = format!("{safe_name}_{timestamp}.{format}");
         let gbdrive_path = format!("videos/{filename}");
 
-        let source_path = format!(
-            "{}/{}",
-            self.output_dir,
-            output_url.trim_start_matches("/video/exports/")
-        );
+let source_path = format!(
+    "{}/{}",
+    self.output_dir,
+    output_url.trim_start_matches("/video/exports/")
+);
 
-        if std::env::var("S3_ENDPOINT").is_ok() {
-            let bot = bot_name.unwrap_or("default");
-            let bucket = format!("{bot}.gbai");
-            let key = format!("{bot}.gbdrive/{gbdrive_path}");
+if let Ok(endpoint) = std::env::var("S3_ENDPOINT") {
+    let bot = bot_name.unwrap_or("default");
+    let bucket = format!("{bot}.gbai");
+    let key = format!("{bot}.gbdrive/{gbdrive_path}");
 
-            info!("Uploading video to S3: s3://{bucket}/{key}");
+    info!("Uploading video to S3: s3://{bucket}/{key}");
 
-            let file_data = std::fs::read(&source_path)?;
+    let file_data = std::fs::read(&source_path)?;
 
-            let s3_config = aws_config::defaults(aws_config::BehaviorVersion::latest()).load().await;
-            let s3_client = aws_sdk_s3::Client::new(&s3_config);
+    let access_key = std::env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "minioadmin".to_string());
+    let secret_key = std::env::var("S3_SECRET_KEY").unwrap_or_else(|_| "minioadmin".to_string());
 
-            s3_client
-                .put_object()
-                .bucket(&bucket)
-                .key(&key)
-                .content_type(format!("video/{format}"))
-                .body(file_data.into())
-                .send()
-                .await
-                .map_err(|e| format!("S3 upload failed: {e}"))?;
+    let s3_client = crate::drive::s3_repository::S3Repository::new(
+        &endpoint,
+        &access_key,
+        &secret_key,
+        &bucket,
+    ).map_err(|e| format!("Failed to create S3 client: {e}"))?;
 
-            info!("Video saved to .gbdrive: {gbdrive_path}");
-        } else {
-            let gbdrive_dir = std::env::var("GBDRIVE_DIR").unwrap_or_else(|_| "./.gbdrive".to_string());
-            let videos_dir = format!("{gbdrive_dir}/videos");
+    s3_client
+        .put_object(&bucket, &key, file_data, Some(&format!("video/{format}")))
+        .await
+        .map_err(|e| format!("S3 upload failed: {e}"))?;
 
-            std::fs::create_dir_all(&videos_dir)?;
+    info!("Video saved to .gbdrive: {gbdrive_path}");
+} else {
+    let gbdrive_dir = std::env::var("GBDRIVE_DIR").unwrap_or_else(|_| "./.gbdrive".to_string());
+    let videos_dir = format!("{gbdrive_dir}/videos");
 
-            let dest_path = format!("{videos_dir}/{filename}");
-            std::fs::copy(&source_path, &dest_path)?;
+    std::fs::create_dir_all(&videos_dir)?;
 
-            info!("Video saved to local .gbdrive: {gbdrive_path}");
-        }
+    let dest_path = format!("{videos_dir}/{filename}");
+    std::fs::copy(&source_path, &dest_path)?;
+
+    info!("Video saved to local .gbdrive: {gbdrive_path}");
+}
 
         diesel::update(video_exports::table.find(export_id))
             .set(video_exports::gbdrive_path.eq(Some(&gbdrive_path)))

@@ -13,10 +13,7 @@ use uuid::Uuid;
 use pdf_extract;
 
 #[cfg(feature = "vectordb")]
-use qdrant_client::{
-qdrant::{Distance, PointStruct, VectorParams},
-Qdrant,
-};
+use crate::vector_db::qdrant_native::{Distance, PointStruct, Qdrant, VectorParams};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileDocument {
@@ -111,15 +108,13 @@ pub async fn initialize(&mut self, qdrant_url: &str) -> Result<()> {
     };
 
     if !exists {
-        client
-            .create_collection(
-                qdrant_client::qdrant::CreateCollectionBuilder::new(&self.collection_name)
-                    .vectors_config(VectorParams {
-                        size: 1536,
-                        distance: Distance::Cosine.into(),
-                        ..Default::default()
-                    }),
-            )
+        crate::vector_db::qdrant_native::CreateCollectionBuilder::new(&self.collection_name)
+            .vectors_config(VectorParams {
+                size: 1536,
+                distance: Distance::Cosine,
+                ..Default::default()
+            })
+            .build(&client)
             .await?;
 
         log::info!("Initialized vector DB collection: {}", self.collection_name);
@@ -143,23 +138,22 @@ pub async fn index_file(&self, file: &FileDocument, embedding: Vec<f32>) -> Resu
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-    let payload: qdrant_client::Payload = serde_json::to_value(file)?
+    let payload: crate::vector_db::qdrant_native::Payload = serde_json::to_value(file)?
         .as_object()
         .cloned()
         .unwrap_or_default()
         .into_iter()
-        .map(|(k, v)| (k, qdrant_client::qdrant::Value::from(v.to_string())))
-        .collect::<std::collections::HashMap<_, _>>()
-        .into();
+        .map(|(k, v)| (k, serde_json::Value::String(v.to_string())))
+        .collect::<serde_json::Map<String, serde_json::Value>>();
 
     let point = PointStruct::new(file.id.clone(), embedding, payload);
 
-    client
-        .upsert_points(qdrant_client::qdrant::UpsertPointsBuilder::new(
-            &self.collection_name,
-            vec![point],
-        ))
-        .await?;
+    crate::vector_db::qdrant_native::UpsertPointsBuilder::new(
+        &self.collection_name,
+        vec![point],
+    )
+    .build(client)
+    .await?;
 
     log::debug!("Indexed file: {} - {}", file.id, file.file_name);
     Ok(())
@@ -186,14 +180,11 @@ pub async fn index_files_batch(&self, files: &[(FileDocument, Vec<f32>)]) -> Res
             .filter_map(|(file, embedding)| {
                 serde_json::to_value(file).ok().and_then(|v| {
                     v.as_object().map(|m| {
-                        let payload: qdrant_client::Payload = m
+                        let payload: crate::vector_db::qdrant_native::Payload = m
                             .clone()
                             .into_iter()
-                            .map(|(k, v)| {
-                                (k, qdrant_client::qdrant::Value::from(v.to_string()))
-                            })
-                            .collect::<std::collections::HashMap<_, _>>()
-                            .into();
+                            .map(|(k, v)| (k, serde_json::Value::String(v.to_string())))
+                            .collect::<serde_json::Map<String, serde_json::Value>>();
                         PointStruct::new(file.id.clone(), embedding.clone(), payload)
                     })
                 })
@@ -201,12 +192,12 @@ pub async fn index_files_batch(&self, files: &[(FileDocument, Vec<f32>)]) -> Res
             .collect();
 
         if !points.is_empty() {
-            client
-                .upsert_points(qdrant_client::qdrant::UpsertPointsBuilder::new(
-                    &self.collection_name,
-                    points,
-                ))
-                .await?;
+            crate::vector_db::qdrant_native::UpsertPointsBuilder::new(
+                &self.collection_name,
+                points,
+            )
+            .build(client)
+            .await?;
         }
     }
 
@@ -235,92 +226,93 @@ pub async fn search(
         if query.bucket.is_some() || query.file_type.is_some() || !query.tags.is_empty() {
             let mut conditions = Vec::new();
 
-            if let Some(bucket) = &query.bucket {
-                conditions.push(qdrant_client::qdrant::Condition::matches(
-                    "bucket",
-                    bucket.clone(),
-                ));
-            }
+        if let Some(bucket) = &query.bucket {
+            conditions.push(crate::vector_db::qdrant_native::Condition::matches(
+                "bucket",
+                serde_json::Value::String(bucket.clone()),
+            ));
+        }
 
-            if let Some(file_type) = &query.file_type {
-                conditions.push(qdrant_client::qdrant::Condition::matches(
-                    "file_type",
-                    file_type.clone(),
-                ));
-            }
+        if let Some(file_type) = &query.file_type {
+            conditions.push(crate::vector_db::qdrant_native::Condition::matches(
+                "file_type",
+                serde_json::Value::String(file_type.clone()),
+            ));
+        }
 
-            for tag in &query.tags {
-                conditions.push(qdrant_client::qdrant::Condition::matches(
-                    "tags",
-                    tag.clone(),
-                ));
-            }
+        for tag in &query.tags {
+            conditions.push(crate::vector_db::qdrant_native::Condition::matches(
+                "tags",
+                serde_json::Value::String(tag.clone()),
+            ));
+        }
 
             if conditions.is_empty() {
                 None
             } else {
-                Some(qdrant_client::qdrant::Filter::must(conditions))
+                Some(crate::vector_db::qdrant_native::Filter::must(conditions))
             }
         } else {
             None
         };
 
-    let mut search_builder = qdrant_client::qdrant::SearchPointsBuilder::new(
-        &self.collection_name,
-        query_embedding,
-        query.limit as u64,
-    )
-    .with_payload(true);
+        let mut search_builder = crate::vector_db::qdrant_native::SearchPointsBuilder::new(
+            &self.collection_name,
+            query_embedding,
+            query.limit as usize,
+        )
+        .with_payload(true);
 
-    if let Some(f) = filter {
-        search_builder = search_builder.filter(f);
-    }
+        if let Some(f) = filter {
+            search_builder = search_builder.filter(Some(f));
+        }
 
-    let search_result = client.search_points(search_builder).await?;
+        let search_result = search_builder.build(client).await?;
 
-    let mut results = Vec::new();
-    for point in search_result.result {
-        let payload = &point.payload;
-        if !payload.is_empty() {
-            let get_str = |key: &str| -> String {
-                payload
-                    .get(key)
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string())
-                    .unwrap_or_default()
-            };
+        let mut results = Vec::new();
+        for point in search_result.result {
+            let payload = point.get("payload").and_then(|p| p.as_object()).cloned().unwrap_or_default();
+            if !payload.is_empty() {
+                let get_str = |key: &str| -> String {
+                    payload
+                        .get(key)
+                        .and_then(|v: &serde_json::Value| v.as_str())
+                        .map(|s: &str| s.to_string())
+                        .unwrap_or_default()
+                };
 
-            let file = FileDocument {
-                id: get_str("id"),
-                file_path: get_str("file_path"),
-                file_name: get_str("file_name"),
-                file_type: get_str("file_type"),
-                file_size: payload
-                    .get("file_size")
-                    .and_then(|v| v.as_integer())
-                    .unwrap_or(0) as u64,
-                bucket: get_str("bucket"),
-                content_text: get_str("content_text"),
-                content_summary: payload
-                    .get("content_summary")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string()),
-                created_at: chrono::Utc::now(),
-                modified_at: chrono::Utc::now(),
-                indexed_at: chrono::Utc::now(),
-                mime_type: payload
-                    .get("mime_type")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string()),
-                tags: vec![],
-            };
+                let file = FileDocument {
+                    id: get_str("id"),
+                    file_path: get_str("file_path"),
+                    file_name: get_str("file_name"),
+                    file_type: get_str("file_type"),
+                    file_size: payload
+                        .get("file_size")
+                        .and_then(|v: &serde_json::Value| v.as_i64())
+                        .unwrap_or(0) as u64,
+                    bucket: get_str("bucket"),
+                    content_text: get_str("content_text"),
+                    content_summary: payload
+                        .get("content_summary")
+                        .and_then(|v: &serde_json::Value| v.as_str())
+                        .map(|s: &str| s.to_string()),
+                    created_at: chrono::Utc::now(),
+                    modified_at: chrono::Utc::now(),
+                    indexed_at: chrono::Utc::now(),
+                    mime_type: payload
+                        .get("mime_type")
+                        .and_then(|v: &serde_json::Value| v.as_str())
+                        .map(|s: &str| s.to_string()),
+                    tags: vec![],
+                };
 
             let snippet = Self::create_snippet(&file.content_text, &query.query_text, 200);
             let highlights = Self::extract_highlights(&file.content_text, &query.query_text, 3);
 
+            let score = point.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
             results.push(FileSearchResult {
                 file,
-                score: point.score,
+                score,
                 snippet,
                 highlights,
             });
@@ -441,13 +433,10 @@ pub async fn delete_file(&self, file_id: &str) -> Result<()> {
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-    client
-        .delete_points(
-            qdrant_client::qdrant::DeletePointsBuilder::new(&self.collection_name).points(
-                vec![qdrant_client::qdrant::PointId::from(file_id.to_string())],
-            ),
-        )
-        .await?;
+        let builder = crate::vector_db::qdrant_native::DeletePointsBuilder::new(&self.collection_name).points(
+            vec![crate::vector_db::qdrant_native::PointId::from(file_id.to_string())],
+        );
+        builder.build(client).await?;
 
     log::debug!("Deleted file from index: {}", file_id);
     Ok(())
@@ -463,20 +452,16 @@ pub async fn delete_file(&self, file_id: &str) -> Result<()> {
 }
 
 #[cfg(feature = "vectordb")]
-pub async fn get_count(&self) -> Result<u64> {
-    let client = self
-        .client
-        .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
+    pub async fn get_count(&self) -> Result<u64> {
+        let client = self
+            .client
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-    let info = client.collection_info(self.collection_name.clone()).await?;
+        let info = client.collection_info(&self.collection_name).await?;
 
-    Ok(info
-        .result
-        .ok_or_else(|| anyhow::anyhow!("No result from collection info"))?
-        .points_count
-        .unwrap_or(0))
-}
+        Ok(info.points_count.unwrap_or(0))
+    }
 
 #[cfg(not(feature = "vectordb"))]
 pub async fn get_count(&self) -> Result<u64> {
@@ -515,28 +500,19 @@ pub async fn update_file_metadata(&self, file_id: &str, tags: Vec<String>) -> Re
 }
 
 #[cfg(feature = "vectordb")]
-pub async fn clear(&self) -> Result<()> {
-    let client = self
-        .client
-        .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
+    pub async fn clear(&self) -> Result<()> {
+        let client = self
+            .client
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-    client.delete_collection(&self.collection_name).await?;
+        client.delete_collection(&self.collection_name).await?;
 
-    client
-        .create_collection(
-            qdrant_client::qdrant::CreateCollectionBuilder::new(&self.collection_name)
-                .vectors_config(VectorParams {
-                    size: 1536,
-                    distance: Distance::Cosine.into(),
-                    ..Default::default()
-                }),
-        )
-        .await?;
+        client.create_collection(&self.collection_name, 1536, "Cosine").await?;
 
-    log::info!("Cleared drive vector collection: {}", self.collection_name);
-    Ok(())
-}
+        log::info!("Cleared drive vector collection: {}", self.collection_name);
+        Ok(())
+    }
 
 #[cfg(not(feature = "vectordb"))]
 pub async fn clear(&self) -> Result<()> {

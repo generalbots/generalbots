@@ -135,37 +135,31 @@ pub async fn serve_vendor_file(
         key
     );
 
-    #[cfg(feature = "drive")]
+#[cfg(feature = "drive")]
     if let Some(ref drive) = state.drive {
         match drive.get_object().bucket(&bucket).key(&key).send().await {
-            Ok(response) => match response.body.collect().await {
-                Ok(body) => {
-                    let content = body.into_bytes();
-
-                    return Response::builder()
-                        .status(StatusCode::OK)
-                        .header(header::CONTENT_TYPE, content_type)
-                        .header(header::CACHE_CONTROL, "public, max-age=86400")
-                        .body(Body::from(content.to_vec()))
-                        .unwrap_or_else(|_| {
-                            (
-                                StatusCode::INTERNAL_SERVER_ERROR,
-                                "Failed to build response",
-                            )
-                                .into_response()
-                        });
-                }
-                Err(e) => {
-                    error!("Failed to read MinIO response body: {}", e);
-                }
-            },
+            Ok(response) => {
+                let content = response.body.collect().await.unwrap_or_default().into_bytes();
+                return Response::builder()
+                    .status(StatusCode::OK)
+                    .header(header::CONTENT_TYPE, content_type)
+                    .header(header::CACHE_CONTROL, "public, max-age=86400")
+                    .body(Body::from(content))
+                    .unwrap_or_else(|_| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            "Failed to build response",
+                        )
+                            .into_response()
+                    });
+            }
             Err(e) => {
-                warn!("MinIO get_object failed for {}/{}: {}", bucket, key, e);
+                error!("Failed to get object: {}", e);
             }
         }
-    }
+}
 
-    (StatusCode::NOT_FOUND, "Vendor file not found").into_response()
+(StatusCode::NOT_FOUND, "Vendor file not found").into_response()
 }
 
 fn rewrite_cdn_urls(html: &str) -> String {
@@ -311,45 +305,38 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
     if let Some(ref drive) = state.drive {
         match drive.get_object().bucket(&bucket).key(&key).send().await {
             Ok(response) => {
-                match response.body.collect().await {
-                    Ok(body) => {
-                        let content = body.into_bytes();
-                        let content_type = get_content_type(&sanitized_file_path);
+                let content = response.body.collect().await.map(|c| c.into_bytes()).unwrap_or_default();
+                let content_type = get_content_type(&sanitized_file_path);
 
-                        // For HTML files, rewrite CDN URLs to local paths
-                        let final_content = if content_type.starts_with("text/html") {
-                            let html = String::from_utf8_lossy(&content);
-                            let rewritten = rewrite_cdn_urls(&html);
-                            rewritten.into_bytes()
-                        } else {
-                            content.to_vec()
-                        };
+                // For HTML files, rewrite CDN URLs to local paths
+                let final_content = if content_type.starts_with("text/html") {
+                    let html = String::from_utf8_lossy(&content);
+                    let rewritten = rewrite_cdn_urls(&html);
+                    rewritten.into_bytes()
+                } else {
+                    content
+                };
 
-                        return Response::builder()
-                            .status(StatusCode::OK)
-                            .header(header::CONTENT_TYPE, content_type)
-                            .header(header::CACHE_CONTROL, "public, max-age=3600")
-                            .body(Body::from(final_content))
-                            .unwrap_or_else(|_| {
-                                (
-                                    StatusCode::INTERNAL_SERVER_ERROR,
-                                    "Failed to build response",
-                                )
-                                    .into_response()
-                            });
-                    }
-                    Err(e) => {
-                        error!("Failed to read MinIO response body: {}", e);
-                    }
-                }
+                return Response::builder()
+                    .status(StatusCode::OK)
+                    .header(header::CONTENT_TYPE, content_type)
+                    .header(header::CACHE_CONTROL, "public, max-age=3600")
+                    .body(Body::from(final_content))
+                    .unwrap_or_else(|_| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            "Failed to build response",
+                        )
+                            .into_response()
+                    });
             }
             Err(e) => {
-                warn!("MinIO get_object failed for {}/{}: {}", bucket, key, e);
+                error!("Failed to get object: {}", e);
             }
         }
     }
 
-    // Fallback to filesystem if MinIO fails
+// Fallback to filesystem if MinIO fails
     let site_path = state
         .config
         .as_ref()

@@ -30,11 +30,8 @@ impl std::fmt::Debug for Editor {
 impl Editor {
     pub async fn load(app_state: &Arc<AppState>, bucket: &str, path: &str) -> Result<Self> {
         let content = if let Some(drive) = &app_state.drive {
-            match drive.get_object().bucket(bucket).key(path).send().await {
-                Ok(response) => {
-                    let bytes = response.body.collect().await?.into_bytes();
-                    String::from_utf8_lossy(&bytes).to_string()
-                }
+            match drive.get_object(bucket, path).await {
+                Ok(bytes) => String::from_utf8_lossy(&bytes).to_string(),
                 Err(_) => String::new(),
             }
         } else {
@@ -53,13 +50,12 @@ impl Editor {
     }
     pub async fn save(&mut self, app_state: &Arc<AppState>) -> Result<()> {
         if let Some(drive) = &app_state.drive {
-            drive
-                .put_object()
-                .bucket(&self.bucket)
-                .key(&self.key)
-                .body(self.content.as_bytes().to_vec().into())
-                .send()
-                .await?;
+            drive.put_object(
+                &self.bucket,
+                &self.key,
+                self.content.as_bytes().to_vec(),
+                None,
+            ).await?;
             self.modified = false;
         }
         Ok(())

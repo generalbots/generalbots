@@ -6,13 +6,13 @@ pub mod main_module;
 // Re-export commonly used items from main_module
 pub use main_module::{BootstrapProgress, health_check, health_check_simple, receive_client_errors};
 
-// Use jemalloc as the global allocator when the feature is enabled
+// Use mimalloc as the global allocator when the feature is enabled (replaced tikv-jemalloc due to RUSTSEC-2024-0436)
 #[cfg(feature = "jemalloc")]
-use tikv_jemallocator::Jemalloc;
+use mimalloc::MiMalloc;
 
 #[cfg(feature = "jemalloc")]
 #[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+static GLOBAL: MiMalloc = MiMalloc;
 
 // Module declarations for feature-gated modules
 #[cfg(feature = "analytics")]
@@ -229,14 +229,13 @@ async fn main() -> std::io::Result<()> {
         trace!("Bootstrap not complete - skipping early SecretsManager init");
     }
 
-    let noise_filters = "vaultrs=off,rustify=off,rustify_derive=off,\
-         aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
-         aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_sdk_s3=off,aws_config=off,\
-         aws_credential_types=off,aws_http=off,aws_sig_auth=off,aws_types=off,\
-         mio=off,tokio=off,tokio_util=off,tower=off,tower_http=off,\
-         tokio_tungstenite=off,tungstenite=off,\
-         reqwest=off,hyper=off,hyper_util=off,h2=off,\
-         rustls=off,rustls_pemfile=off,tokio_rustls=off,\
+let noise_filters = "vaultrs=off,rustify=off,rustify_derive=off,\
+aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
+aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_credential_types=off,aws_http=off,aws_sig_auth=off,aws_types=off,\
+mio=off,tokio=off,tokio_util=off,tower=off,tower_http=off,\
+tokio_tungstenite=off,tungstenite=off,\
+reqwest=off,hyper=off,hyper_util=off,h2=off,\
+rustls=off,rustls_pemfile=off,tokio_rustls=off,\
          tracing=off,tracing_core=off,tracing_subscriber=off,\
          diesel=off,diesel_migrations=off,r2d2=warn,\
          serde=off,serde_json=off,\

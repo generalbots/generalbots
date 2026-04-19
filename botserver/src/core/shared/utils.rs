@@ -3,13 +3,7 @@ use anyhow::{Context, Result};
 #[cfg(feature = "drive")]
 use crate::core::config::DriveConfig;
 #[cfg(feature = "drive")]
-use aws_config::retry::RetryConfig;
-#[cfg(feature = "drive")]
-use aws_config::timeout::TimeoutConfig;
-#[cfg(feature = "drive")]
-use aws_config::BehaviorVersion;
-#[cfg(feature = "drive")]
-use aws_sdk_s3::{config::Builder as S3ConfigBuilder, Client as S3Client};
+use crate::drive::s3_repository::S3Repository;
 use diesel::Connection;
 use diesel::{
     r2d2::{ConnectionManager, Pool},
@@ -139,7 +133,7 @@ pub fn get_stack_path() -> String {
 #[cfg(feature = "drive")]
 pub async fn create_s3_operator(
     config: &DriveConfig,
-) -> Result<S3Client, Box<dyn std::error::Error>> {
+) -> Result<S3Repository, Box<dyn std::error::Error>> {
     let endpoint = {
         let base = if config.server.starts_with("http://") || config.server.starts_with("https://") {
             config.server.clone()
@@ -191,42 +185,14 @@ pub async fn create_s3_operator(
         (config.access_key.clone(), config.secret_key.clone())
     };
 
-    // Set CA cert for self-signed TLS (dev stack)
     let ca_cert = ca_cert_path();
     if std::path::Path::new(&ca_cert).exists() {
-        std::env::set_var("AWS_CA_BUNDLE", &ca_cert);
         std::env::set_var("SSL_CERT_FILE", &ca_cert);
-        debug!(
-            "Set AWS_CA_BUNDLE and SSL_CERT_FILE to {} for S3 client",
-            ca_cert
-        );
+        debug!("Set SSL_CERT_FILE to {} for S3 client", ca_cert);
     }
 
-    // Configure timeouts to prevent memory leaks on connection failures
-    let timeout_config = TimeoutConfig::builder()
-        .connect_timeout(Duration::from_secs(5))
-        .read_timeout(Duration::from_secs(30))
-        .operation_timeout(Duration::from_secs(30))
-        .operation_attempt_timeout(Duration::from_secs(15))
-        .build();
-
-    // Limit retries to prevent 100% CPU on connection failures
-    let retry_config = RetryConfig::standard().with_max_attempts(2);
-
-    let base_config = aws_config::defaults(BehaviorVersion::latest())
-        .endpoint_url(endpoint)
-        .region("auto")
-        .credentials_provider(aws_sdk_s3::config::Credentials::new(
-            access_key, secret_key, None, None, "static",
-        ))
-        .timeout_config(timeout_config)
-        .retry_config(retry_config)
-        .load()
-        .await;
-    let s3_config = S3ConfigBuilder::from(&base_config)
-        .force_path_style(true)
-        .build();
-    Ok(S3Client::from_conf(s3_config))
+    S3Repository::new(&endpoint, &access_key, &secret_key, &config.bucket)
+        .map_err(|e| format!("Failed to create S3 repository: {}", e).into())
 }
 
 pub fn json_value_to_dynamic(value: &Value) -> Dynamic {
