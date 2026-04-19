@@ -9,7 +9,6 @@ members = [
     "bottest",
     "botui",
 ]
-exclude = ["backup-to-s3"]
 
 [workspace.lints.rust]
 
@@ -236,6 +235,8 @@ image = "0.25"
 libc = "0.2"
 
 trayicon = "0.2"
+
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PROFILES
