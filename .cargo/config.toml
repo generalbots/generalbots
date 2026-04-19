@@ -1,5 +1,6 @@
 [build]
 rustc-wrapper = "sccache"
+jobs = 12
 
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
