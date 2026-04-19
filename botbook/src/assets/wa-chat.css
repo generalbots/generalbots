@@ -1,0 +1,209 @@
+/**
+ * WhatsApp-style Chat Conversation CSS
+ *
+ * Standard styling for conversation examples in General Bots documentation.
+ * Include this CSS in your mdBook or HTML output to style <div class="wa-chat"> elements.
+ *
+ * Usage:
+ * <div class="wa-chat">
+ *   <div class="wa-message bot">
+ *     <div class="wa-bubble">
+ *       <p>Bot message here</p>
+ *       <div class="wa-time">10:30</div>
+ *     </div>
+ *   </div>
+ *   <div class="wa-message user">
+ *     <div class="wa-bubble">
+ *       <p>User message here</p>
+ *       <div class="wa-time">10:31</div>
+ *     </div>
+ *   </div>
+ * </div>
+ */
+
+/* ============================================
+   Chat Container
+   ============================================ */
+.wa-chat {
+  background-color: #e5ddd5;
+  border-radius: 8px;
+  padding: 20px 15px;
+  margin: 20px 0;
+  max-width: 500px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .wa-chat {
+    background-color: #0b141a;
+  }
+}
+
+/* ============================================
+   Message Container
+   ============================================ */
+.wa-message {
+  margin-bottom: 10px;
+}
+
+.wa-message:last-child {
+  margin-bottom: 0;
+}
+
+/* User messages align right */
+.wa-message.user {
+  text-align: right;
+}
+
+/* ============================================
+   Message Bubbles
+   ============================================ */
+.wa-bubble {
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+  max-width: 85%;
+  display: inline-block;
+  text-align: left;
+}
+
+/* Bot bubble - white/light */
+.wa-message.bot .wa-bubble {
+  background-color: #fff;
+}
+
+/* User bubble - green (WhatsApp style) */
+.wa-message.user .wa-bubble {
+  background-color: #dcf8c6;
+}
+
+/* Dark mode bubbles */
+@media (prefers-color-scheme: dark) {
+  .wa-message.bot .wa-bubble {
+    background-color: #202c33;
+  }
+
+  .wa-message.user .wa-bubble {
+    background-color: #005c4b;
+  }
+}
+
+/* ============================================
+   Message Text
+   ============================================ */
+.wa-bubble p {
+  margin: 0 0 4px 0;
+  line-height: 1.4;
+  color: #303030;
+}
+
+.wa-bubble p:last-of-type {
+  margin-bottom: 0;
+}
+
+/* Bold text in messages */
+.wa-bubble strong {
+  font-weight: 600;
+}
+
+/* Dark mode text */
+@media (prefers-color-scheme: dark) {
+  .wa-bubble p {
+    color: #e9edef;
+  }
+}
+
+/* ============================================
+   Timestamp
+   ============================================ */
+.wa-time {
+  font-size: 11px;
+  color: #8696a0;
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* ============================================
+   Special Elements
+   ============================================ */
+
+/* Links in messages */
+.wa-bubble a {
+  color: #00a884;
+  text-decoration: none;
+}
+
+.wa-bubble a:hover {
+  text-decoration: underline;
+}
+
+/* Code in messages */
+.wa-bubble code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 13px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wa-bubble code {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Action buttons in messages */
+.wa-bubble .wa-action {
+  display: inline-block;
+  background-color: #e8f4fd;
+  color: #4a90e2;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin: 4px 4px 0 0;
+  cursor: pointer;
+}
+
+.wa-bubble .wa-action:hover {
+  background-color: #d0e8fc;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wa-bubble .wa-action {
+    background-color: #1a3a4a;
+    color: #00d4ff;
+  }
+
+  .wa-bubble .wa-action:hover {
+    background-color: #2a4a5a;
+  }
+}
+
+/* ============================================
+   Variants
+   ============================================ */
+
+/* Full-width variant */
+.wa-chat.wa-full-width {
+  max-width: 100%;
+}
+
+/* Compact variant (less padding) */
+.wa-chat.wa-compact {
+  padding: 12px 10px;
+}
+
+.wa-chat.wa-compact .wa-message {
+  margin-bottom: 6px;
+}
+
+.wa-chat.wa-compact .wa-bubble {
+  padding: 6px 10px;
+}
+
+/* No-time variant (hide timestamps) */
+.wa-chat.wa-no-time .wa-time {
+  display: none;
+}

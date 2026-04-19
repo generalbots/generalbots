@@ -1,0 +1,200 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f5f5f5; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .panel-bg { fill: #fafafa; }
+    .header-bg { fill: #e8e8e8; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .icon-text { fill: #333; font-family: Arial, sans-serif; }
+    .divider { stroke: #ddd; stroke-width: 1; }
+    .button { fill: #4A90E2; }
+    .button-text { fill: #fff; font-family: Arial, sans-serif; }
+    .button-secondary { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .input-field { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .card { fill: #fff; stroke: #ddd; stroke-width: 1; }
+    .severity-critical { fill: #E74C3C; }
+    .severity-high { fill: #F5A623; }
+    .severity-medium { fill: #F1C40F; }
+    .severity-low { fill: #7ED321; }
+    .severity-info { fill: #4A90E2; }
+    .severity-text { fill: #fff; font-family: Arial, sans-serif; }
+    .row-bg { fill: #fff; }
+    .row-hover { fill: #fef6f6; }
+    .fix-btn { fill: #E74C3C; }
+    .review-btn { fill: #F5A623; }
+    .table-header { fill: #f5f5f5; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a1a; }
+      .frame { stroke: #555; }
+      .panel-bg { fill: #222; }
+      .header-bg { fill: #2a2a2a; }
+      .main-text { fill: #ffffff; }
+      .secondary-text { fill: #aaa; }
+      .icon-text { fill: #ddd; }
+      .divider { stroke: #444; }
+      .input-field { fill: #2a2a2a; stroke: #444; }
+      .card { fill: #2a2a2a; stroke: #444; }
+      .row-bg { fill: #2a2a2a; }
+      .row-hover { fill: #3a2a2a; }
+      .table-header { fill: #333; }
+      .button { fill: #00D4FF; }
+      .button-secondary { fill: #333; stroke: #555; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Compliance - Security Scanner Interface</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="50" width="840" height="470" rx="8" class="frame bg"/>
+
+  <!-- Header -->
+  <rect x="30" y="50" width="840" height="50" rx="8" class="header-bg"/>
+  <rect x="30" y="92" width="840" height="8" class="bg"/>
+
+  <!-- Title and Controls -->
+  <text x="55" y="82" font-size="16" font-weight="600" class="main-text">🛡 Compliance Scanner</text>
+
+  <!-- Action Buttons -->
+  <g transform="translate(600, 60)">
+    <rect x="0" y="0" width="80" height="32" rx="4" class="button"/>
+    <text x="40" y="21" text-anchor="middle" font-size="13" class="button-text">Scan</text>
+
+    <rect x="90" y="0" width="80" height="32" rx="4" class="button-secondary"/>
+    <text x="130" y="21" text-anchor="middle" font-size="13" class="main-text">Export</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="30" y1="100" x2="870" y2="100" class="divider"/>
+
+  <!-- Severity Summary Cards -->
+  <g transform="translate(50, 115)">
+    <!-- Critical -->
+    <rect x="0" y="0" width="145" height="70" rx="8" class="card"/>
+    <rect x="10" y="15" width="50" height="40" rx="6" class="severity-critical"/>
+    <text x="35" y="42" text-anchor="middle" font-size="20" font-weight="bold" class="severity-text">2</text>
+    <text x="75" y="35" font-size="12" font-weight="500" class="main-text">Critical</text>
+    <text x="75" y="52" font-size="11" class="secondary-text">🔴 Immediate</text>
+
+    <!-- High -->
+    <rect x="160" y="0" width="145" height="70" rx="8" class="card"/>
+    <rect x="170" y="15" width="50" height="40" rx="6" class="severity-high"/>
+    <text x="195" y="42" text-anchor="middle" font-size="20" font-weight="bold" class="severity-text">5</text>
+    <text x="235" y="35" font-size="12" font-weight="500" class="main-text">High</text>
+    <text x="235" y="52" font-size="11" class="secondary-text">🟠 Priority</text>
+
+    <!-- Medium -->
+    <rect x="320" y="0" width="145" height="70" rx="8" class="card"/>
+    <rect x="330" y="15" width="50" height="40" rx="6" class="severity-medium"/>
+    <text x="355" y="42" text-anchor="middle" font-size="20" font-weight="bold" class="severity-text">3</text>
+    <text x="395" y="35" font-size="12" font-weight="500" class="main-text">Medium</text>
+    <text x="395" y="52" font-size="11" class="secondary-text">🟡 Review</text>
+
+    <!-- Low -->
+    <rect x="480" y="0" width="145" height="70" rx="8" class="card"/>
+    <rect x="490" y="15" width="50" height="40" rx="6" class="severity-low"/>
+    <text x="515" y="42" text-anchor="middle" font-size="20" font-weight="bold" class="severity-text">1</text>
+    <text x="555" y="35" font-size="12" font-weight="500" class="main-text">Low</text>
+    <text x="555" y="52" font-size="11" class="secondary-text">🟢 Minor</text>
+
+    <!-- Info -->
+    <rect x="640" y="0" width="145" height="70" rx="8" class="card"/>
+    <rect x="650" y="15" width="50" height="40" rx="6" class="severity-info"/>
+    <text x="675" y="42" text-anchor="middle" font-size="20" font-weight="bold" class="severity-text">0</text>
+    <text x="715" y="35" font-size="12" font-weight="500" class="main-text">Info</text>
+    <text x="715" y="52" font-size="11" class="secondary-text">ℹ Notes</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="50" y1="200" x2="850" y2="200" class="divider"/>
+
+  <!-- Issues Table -->
+  <g transform="translate(50, 210)">
+    <!-- Table Header -->
+    <rect x="0" y="0" width="800" height="35" rx="4" class="table-header"/>
+    <text x="20" y="23" font-size="12" font-weight="500" class="secondary-text">Severity</text>
+    <text x="120" y="23" font-size="12" font-weight="500" class="secondary-text">Issue</text>
+    <text x="450" y="23" font-size="12" font-weight="500" class="secondary-text">File</text>
+    <text x="650" y="23" font-size="12" font-weight="500" class="secondary-text">Action</text>
+
+    <!-- Row 1 - Critical -->
+    <rect x="0" y="40" width="800" height="45" rx="4" class="row-hover"/>
+    <rect x="15" y="52" width="70" height="22" rx="4" class="severity-critical"/>
+    <text x="50" y="68" text-anchor="middle" font-size="11" class="severity-text">Critical</text>
+    <text x="120" y="68" font-size="13" class="main-text">Hardcoded password detected</text>
+    <text x="450" y="68" font-size="12" font-family="monospace" class="secondary-text">start.bas:15</text>
+    <rect x="650" y="52" width="55" height="24" rx="4" class="fix-btn"/>
+    <text x="677" y="69" text-anchor="middle" font-size="11" class="severity-text">Fix</text>
+
+    <!-- Row 2 - Critical -->
+    <rect x="0" y="90" width="800" height="45" rx="4" class="row-hover"/>
+    <rect x="15" y="102" width="70" height="22" rx="4" class="severity-critical"/>
+    <text x="50" y="118" text-anchor="middle" font-size="11" class="severity-text">Critical</text>
+    <text x="120" y="118" font-size="13" class="main-text">API key exposed in code</text>
+    <text x="450" y="118" font-size="12" font-family="monospace" class="secondary-text">api.bas:42</text>
+    <rect x="650" y="102" width="55" height="24" rx="4" class="fix-btn"/>
+    <text x="677" y="119" text-anchor="middle" font-size="11" class="severity-text">Fix</text>
+
+    <!-- Row 3 - High -->
+    <rect x="0" y="140" width="800" height="45" rx="4" class="row-bg"/>
+    <rect x="15" y="152" width="70" height="22" rx="4" class="severity-high"/>
+    <text x="50" y="168" text-anchor="middle" font-size="11" class="severity-text">High</text>
+    <text x="120" y="168" font-size="13" class="main-text">SQL injection risk in query</text>
+    <text x="450" y="168" font-size="12" font-family="monospace" class="secondary-text">data.bas:28</text>
+    <rect x="650" y="152" width="65" height="24" rx="4" class="review-btn"/>
+    <text x="682" y="169" text-anchor="middle" font-size="11" class="severity-text">Review</text>
+
+    <!-- Row 4 - High -->
+    <rect x="0" y="190" width="800" height="45" rx="4" class="row-bg"/>
+    <rect x="15" y="202" width="70" height="22" rx="4" class="severity-high"/>
+    <text x="50" y="218" text-anchor="middle" font-size="11" class="severity-text">High</text>
+    <text x="120" y="218" font-size="13" class="main-text">Insecure HTTP endpoint</text>
+    <text x="450" y="218" font-size="12" font-family="monospace" class="secondary-text">config.csv:8</text>
+    <rect x="650" y="202" width="65" height="24" rx="4" class="review-btn"/>
+    <text x="682" y="219" text-anchor="middle" font-size="11" class="severity-text">Review</text>
+
+    <!-- Row 5 - Medium -->
+    <rect x="0" y="240" width="800" height="45" rx="4" class="row-bg"/>
+    <rect x="15" y="252" width="70" height="22" rx="4" class="severity-medium"/>
+    <text x="50" y="268" text-anchor="middle" font-size="11" class="severity-text">Medium</text>
+    <text x="120" y="268" font-size="13" class="main-text">Missing input validation</text>
+    <text x="450" y="268" font-size="12" font-family="monospace" class="secondary-text">form.bas:55</text>
+    <rect x="650" y="252" width="65" height="24" rx="4" class="button-secondary"/>
+    <text x="682" y="269" text-anchor="middle" font-size="11" class="main-text">Review</text>
+  </g>
+
+  <!-- Footer Stats -->
+  <g transform="translate(50, 480)">
+    <text x="0" y="0" font-size="12" class="secondary-text">Last scan: 2 minutes ago</text>
+    <text x="200" y="0" font-size="12" class="secondary-text">Files scanned: 24</text>
+    <text x="380" y="0" font-size="12" class="secondary-text">Total issues: 11</text>
+
+    <!-- Pagination -->
+    <text x="600" y="0" font-size="12" class="secondary-text">Showing 1-5 of 11</text>
+    <rect x="720" y="-15" width="25" height="22" rx="4" class="button-secondary"/>
+    <text x="732" y="2" text-anchor="middle" font-size="12" class="main-text">←</text>
+    <rect x="750" y="-15" width="25" height="22" rx="4" class="button-secondary"/>
+    <text x="762" y="2" text-anchor="middle" font-size="12" class="main-text">→</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(30, 535)">
+    <rect x="0" y="-10" width="14" height="14" rx="3" class="severity-critical"/>
+    <text x="20" y="0" font-size="11" class="secondary-text">Critical</text>
+
+    <rect x="70" y="-10" width="14" height="14" rx="3" class="severity-high"/>
+    <text x="90" y="0" font-size="11" class="secondary-text">High</text>
+
+    <rect x="130" y="-10" width="14" height="14" rx="3" class="severity-medium"/>
+    <text x="150" y="0" font-size="11" class="secondary-text">Medium</text>
+
+    <rect x="200" y="-10" width="14" height="14" rx="3" class="severity-low"/>
+    <text x="220" y="0" font-size="11" class="secondary-text">Low</text>
+
+    <text x="300" y="0" font-size="11" class="secondary-text">Fix = Auto-remediate | Review = Manual inspection needed</text>
+
+    <text x="650" y="0" font-size="11" class="secondary-text">LGPD • GDPR • CCPA</text>
+  </g>
+</svg>

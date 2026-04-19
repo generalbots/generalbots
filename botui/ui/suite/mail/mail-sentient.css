@@ -1,0 +1,217 @@
+/* =============================================================================
+   MAIL APP - SENTIENT THEME
+   ============================================================================= */
+
+/* Search Box */
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--sentient-bg-tertiary);
+    border: 1px solid var(--sentient-border);
+    border-radius: var(--sentient-radius-md);
+    min-width: 250px;
+}
+
+.search-icon {
+    font-size: 14px;
+    color: var(--sentient-text-muted);
+}
+
+.search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--sentient-text-primary);
+    font-family: var(--sentient-font-family);
+    font-size: 13px;
+}
+
+.search-input::placeholder {
+    color: var(--sentient-text-muted);
+}
+
+.search-input:focus {
+    outline: none;
+}
+
+/* Email List Container */
+.email-list-container {
+    flex: 1;
+    background: var(--sentient-bg-card);
+    border: 1px solid var(--sentient-border);
+    border-radius: var(--sentient-radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.email-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Email Item */
+.email-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--sentient-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.email-item:hover {
+    background: var(--sentient-bg-tertiary);
+}
+
+.email-item:last-child {
+    border-bottom: none;
+}
+
+.email-item.unread {
+    background: rgba(197, 248, 42, 0.03);
+}
+
+.email-item.unread .email-sender,
+.email-item.unread .email-subject {
+    font-weight: 600;
+}
+
+/* Email Checkbox */
+.email-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--sentient-accent);
+    cursor: pointer;
+}
+
+/* Email Star */
+.email-star {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--sentient-text-muted);
+    transition: all 0.2s ease;
+}
+
+.email-star:hover {
+    color: var(--sentient-warning);
+}
+
+.email-star.starred {
+    color: var(--sentient-warning);
+}
+
+/* Email Sender */
+.email-sender {
+    min-width: 140px;
+    font-size: 13px;
+    color: var(--sentient-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Email Content */
+.email-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.email-subject {
+    font-size: 13px;
+    color: var(--sentient-text-primary);
+    white-space: nowrap;
+}
+
+.email-preview {
+    font-size: 13px;
+    color: var(--sentient-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Email Labels */
+.email-labels {
+    display: flex;
+    gap: 6px;
+    min-width: 80px;
+}
+
+.email-label {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.email-label.urgent {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--sentient-error);
+}
+
+.email-label.meeting {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--sentient-info);
+}
+
+.email-label.notification {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--sentient-paused);
+}
+
+.email-label.work {
+    background: var(--sentient-accent-dim);
+    color: var(--sentient-accent);
+}
+
+.email-label.success {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--sentient-success);
+}
+
+/* Email Date */
+.email-date {
+    min-width: 60px;
+    font-size: 12px;
+    color: var(--sentient-text-muted);
+    text-align: right;
+}
+
+/* Email List Footer */
+.email-list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--sentient-bg-tertiary);
+    border-top: 1px solid var(--sentient-border);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .email-sender {
+        min-width: 100px;
+    }
+    
+    .email-preview {
+        display: none;
+    }
+    
+    .email-labels {
+        display: none;
+    }
+    
+    .search-box {
+        min-width: 150px;
+    }
+}

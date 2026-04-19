@@ -1,0 +1,8 @@
+# .github repository - Only documentation and configuration
+
+# Exclude from language statistics
+*.md linguist-documentation
+profile/README.md linguist-documentation
+
+# Mark as not vendored
+* !linguist-vendored

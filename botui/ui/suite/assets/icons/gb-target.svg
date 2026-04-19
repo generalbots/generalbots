@@ -1,0 +1,16 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- GB Target Icon - Inspired by General Bots aesthetic -->
+  <!-- Outer ring -->
+  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.3"/>
+  <!-- Middle ring -->
+  <circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.6"/>
+  <!-- Inner core - GB style rounded hexagon hint -->
+  <path d="M12 5.5L15.5 8V13L12 16.5L8.5 13V8L12 5.5Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.15" stroke-linejoin="round"/>
+  <!-- Center dot -->
+  <circle cx="12" cy="11" r="1.5" fill="currentColor"/>
+  <!-- Targeting lines -->
+  <line x1="12" y1="2" x2="12" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="12" y1="20" x2="12" y2="22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="2" y1="12" x2="4" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="20" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

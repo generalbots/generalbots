@@ -1,0 +1,157 @@
+<svg width="900" height="450" viewBox="0 0 900 450" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <!-- Define gradients and effects -->
+  <defs>
+    <!-- Gradient for embedding section -->
+    <linearGradient id="embeddingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:0.2" />
+    </linearGradient>
+
+    <!-- Gradient for LLM section -->
+    <linearGradient id="llmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06ffa5;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#00d2ff;stop-opacity:0.2" />
+    </linearGradient>
+
+    <!-- Gradient for performance section -->
+    <linearGradient id="perfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:0.2" />
+    </linearGradient>
+
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.15"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="900" height="450" fill="#fafafa"/>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#1e293b">
+    System Technical Specifications
+  </text>
+
+  <!-- Main container -->
+  <rect x="50" y="50" width="800" height="380" fill="none" stroke="#cbd5e1" stroke-width="2" rx="8"/>
+
+  <!-- Embedding Configuration Section -->
+  <g transform="translate(70, 80)">
+    <rect x="0" y="0" width="350" height="150" fill="url(#embeddingGrad)" stroke="#667eea" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+    <text x="175" y="25" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#1e293b">
+      Embedding Configuration
+    </text>
+
+    <text x="15" y="50" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">
+      Model: bge-small-en-v1.5-f32.gguf
+    </text>
+    <text x="15" y="70" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+      • Dimensions: 384
+    </text>
+    <text x="15" y="90" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+      • Format: GGUF (quantized)
+    </text>
+    <text x="15" y="110" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+      • Server: localhost:8082
+    </text>
+    <text x="15" y="130" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+      • Memory: ~200MB loaded
+    </text>
+  </g>
+
+  <!-- LLM Configuration Section -->
+  <g transform="translate(450, 80)">
+    <rect x="0" y="0" width="350" height="150" fill="url(#llmGrad)" stroke="#00d2ff" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+    <text x="175" y="25" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#1e293b">
+      LLM Configuration
+    </text>
+
+    <text x="15" y="50" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">
+      Model: DeepSeek-R1-Distill-Qwen-1.5B
+    </text>
+    <text x="15" y="70" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+      • Context Size: 4096 tokens
+    </text>
+    <text x="15" y="90" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+      • Max Predict: 1024 tokens
+    </text>
+    <text x="15" y="110" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+      • Parallel Requests: 6
+    </text>
+    <text x="15" y="130" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+      • Quantization: Q3_K_M
+    </text>
+  </g>
+
+  <!-- Performance Characteristics Section -->
+  <g transform="translate(70, 250)">
+    <rect x="0" y="0" width="730" height="150" fill="url(#perfGrad)" stroke="#f5576c" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+    <text x="365" y="25" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#1e293b">
+      Performance Characteristics
+    </text>
+
+    <!-- Left column - Vector Index -->
+    <g transform="translate(15, 45)">
+      <text x="0" y="0" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">
+        Vector Index: HNSW Algorithm
+      </text>
+      <text x="0" y="20" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • M=16, ef_construction=200
+      </text>
+      <text x="0" y="40" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Distance: Cosine Similarity
+      </text>
+      <text x="0" y="60" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Build: ~1000 docs/minute
+      </text>
+    </g>
+
+    <!-- Middle column - Chunking Strategy -->
+    <g transform="translate(250, 45)">
+      <text x="0" y="0" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">
+        Chunking Strategy
+      </text>
+      <text x="0" y="20" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Chunk Size: 512 tokens
+      </text>
+      <text x="0" y="40" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Overlap: 50 tokens
+      </text>
+      <text x="0" y="60" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Prompt Compact: Level 4
+      </text>
+    </g>
+
+    <!-- Right column - Runtime Metrics -->
+    <g transform="translate(490, 45)">
+      <text x="0" y="0" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">
+        Runtime Metrics
+      </text>
+      <text x="0" y="20" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Query Latency: &lt;50ms p99
+      </text>
+      <text x="0" y="40" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Memory: ~1GB/million chunks
+      </text>
+      <text x="0" y="60" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Cache TTL: 3600 seconds
+      </text>
+    </g>
+  </g>
+
+  <!-- Additional specs indicators -->
+  <g transform="translate(820, 100)">
+    <circle cx="0" cy="0" r="3" fill="#10b981"/>
+    <circle cx="0" cy="20" r="3" fill="#3b82f6"/>
+    <circle cx="0" cy="40" r="3" fill="#f59e0b"/>
+  </g>
+</svg>

@@ -1,0 +1,411 @@
+/* Task Window — Unified Tasks Dashboard Styles */
+
+.tw-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg);
+    font-family: 'Fira Code', monospace;
+}
+
+/* ============================================
+   TAB HEADER
+   ============================================ */
+
+.tw-tabs-header {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    min-height: 34px;
+    overflow-x: auto;
+}
+
+.tw-tab {
+    height: 34px;
+    min-width: 140px;
+    padding: 0 18px;
+    border: none;
+    border-right: 1px solid var(--border);
+    background: transparent;
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.tw-tab:hover {
+    background: var(--bg);
+}
+
+.tw-tab.active {
+    background: var(--accent);
+    color: var(--bg);
+}
+
+.tw-tab-prefix {
+    opacity: 0.7;
+}
+
+.tw-tab .tw-tab-close {
+    margin-left: 8px;
+    opacity: 0.5;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.tw-tab .tw-tab-close:hover {
+    opacity: 1;
+}
+
+/* ============================================
+   PIPELINE TABS
+   ============================================ */
+
+.tw-pipeline-tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.tw-pipeline-tab {
+    flex: 1;
+    height: 32px;
+    border: none;
+    border-right: 1px solid var(--border);
+    background: transparent;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tw-pipeline-tab:last-child {
+    border-right: none;
+}
+
+.tw-pipeline-tab:hover {
+    background: var(--bg);
+    color: var(--text);
+}
+
+.tw-pipeline-tab.active {
+    background: var(--accent);
+    color: var(--bg);
+}
+
+/* ============================================
+   FILTERS
+   ============================================ */
+
+.tw-filters {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.tw-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg);
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tw-filter-chip:hover {
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+.tw-filter-chip.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+}
+
+.tw-filter-icon {
+    font-size: 10px;
+}
+
+/* ============================================
+   INTENT BAR
+   ============================================ */
+
+.tw-intent-bar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.tw-intent-input {
+    flex: 1;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    background: var(--bg);
+}
+
+.tw-intent-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light, rgba(132, 214, 105, 0.15));
+}
+
+.tw-intent-input::placeholder {
+    color: var(--text-muted);
+}
+
+.tw-intent-run {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+}
+
+.tw-intent-run:hover {
+    background: var(--accent-hover, #72c458);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px var(--accent-light, rgba(132, 214, 105, 0.3));
+}
+
+.tw-intent-run:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ============================================
+   SPLIT VIEW (task list + detail)
+   ============================================ */
+
+.tw-split-view {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.tw-task-list {
+    width: 280px;
+    min-width: 200px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.tw-task-list-empty {
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.tw-task-detail {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.tw-task-detail-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: var(--text-muted);
+    gap: 8px;
+}
+
+.tw-task-detail-empty p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.tw-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* ============================================
+   TASK LIST ITEMS
+   ============================================ */
+
+.tw-task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.tw-task-item:hover {
+    background: var(--surface);
+}
+
+.tw-task-item.active {
+    background: var(--accent-light, rgba(132, 214, 105, 0.08));
+    border-left: 3px solid var(--accent);
+}
+
+.tw-task-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tw-task-status-dot.running {
+    background: var(--accent);
+}
+
+.tw-task-status-dot.pending {
+    background: var(--warning, #f59e0b);
+}
+
+.tw-task-status-dot.completed {
+    background: var(--success, #3b82f6);
+}
+
+.tw-task-status-dot.failed {
+    background: var(--error, #ef4444);
+}
+
+.tw-task-status-dot.paused {
+    background: var(--text-muted);
+}
+
+.tw-task-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.tw-task-item-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tw-task-item-type {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================
+   AGENT PROFILE VIEW
+   ============================================ */
+
+.tw-agent-profile {
+    padding: 20px;
+}
+
+.tw-agent-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.tw-agent-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bg);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.tw-agent-meta {
+    flex: 1;
+}
+
+.tw-agent-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 4px 0;
+}
+
+.tw-agent-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.tw-section {
+    margin-bottom: 20px;
+}
+
+.tw-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.tw-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.tw-stat-card {
+    padding: 12px;
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.tw-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.tw-stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-top: 2px;
+}

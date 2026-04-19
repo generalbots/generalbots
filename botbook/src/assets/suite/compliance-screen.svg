@@ -1,0 +1,279 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#f87171"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .green-text { fill: #22c55e; font-family: system-ui, -apple-system, sans-serif; }
+    .red-text { fill: #ef4444; font-family: system-ui, -apple-system, sans-serif; }
+    .orange-text { fill: #f97316; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card-bg { fill: #f8fafc; }
+    .status-pass { fill: #dcfce7; }
+    .status-fail { fill: #fee2e2; }
+    .status-warn { fill: #fef3c7; }
+    .progress-bg { fill: #e2e8f0; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .green-text { fill: #4ade80; }
+      .red-text { fill: #f87171; }
+      .orange-text { fill: #fb923c; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card-bg { fill: #1e293b; }
+      .status-pass { fill: #14532d; }
+      .status-fail { fill: #450a0a; }
+      .status-warn { fill: #451a03; }
+      .progress-bg { fill: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Compliance - Security Scanner</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Sidebar -->
+  <rect x="30" y="40" width="180" height="530" class="sidebar-bg"/>
+  <line x1="210" y1="40" x2="210" y2="570" class="border"/>
+
+  <!-- Scan Button -->
+  <g transform="translate(45, 55)">
+    <rect x="0" y="0" width="150" height="40" rx="8" fill="url(#accentGrad)"/>
+    <text x="75" y="26" text-anchor="middle" font-size="14" font-weight="500" class="white-text">🔍 Run Scan</text>
+  </g>
+
+  <!-- Navigation -->
+  <g transform="translate(45, 115)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">SCAN TYPES</text>
+
+    <g transform="translate(0, 20)">
+      <rect x="-10" y="-8" width="160" height="36" rx="6" fill="#eff6ff"/>
+      <text x="0" y="14" font-size="14">🛡️</text>
+      <text x="25" y="14" font-size="13" class="accent-text">All Checks</text>
+    </g>
+
+    <g transform="translate(0, 60)">
+      <text x="0" y="14" font-size="14">🔐</text>
+      <text x="25" y="14" font-size="13" class="secondary-text">Security</text>
+    </g>
+
+    <g transform="translate(0, 95)">
+      <text x="0" y="14" font-size="14">📋</text>
+      <text x="25" y="14" font-size="13" class="secondary-text">Privacy</text>
+    </g>
+
+    <g transform="translate(0, 130)">
+      <text x="0" y="14" font-size="14">⚡</text>
+      <text x="25" y="14" font-size="13" class="secondary-text">Performance</text>
+    </g>
+
+    <g transform="translate(0, 165)">
+      <text x="0" y="14" font-size="14">♿</text>
+      <text x="25" y="14" font-size="13" class="secondary-text">Accessibility</text>
+    </g>
+  </g>
+
+  <!-- Compliance Frameworks -->
+  <g transform="translate(45, 320)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">FRAMEWORKS</text>
+
+    <g transform="translate(0, 20)">
+      <rect x="0" y="0" width="14" height="14" rx="3" fill="#22c55e"/>
+      <text x="22" y="12" font-size="12" class="main-text">GDPR</text>
+    </g>
+
+    <g transform="translate(0, 40)">
+      <rect x="0" y="0" width="14" height="14" rx="3" fill="#22c55e"/>
+      <text x="22" y="12" font-size="12" class="main-text">SOC 2</text>
+    </g>
+
+    <g transform="translate(0, 60)">
+      <rect x="0" y="0" width="14" height="14" rx="3" fill="#f97316"/>
+      <text x="22" y="12" font-size="12" class="main-text">HIPAA</text>
+    </g>
+
+    <g transform="translate(0, 80)">
+      <rect x="0" y="0" width="14" height="14" rx="3" fill="#22c55e"/>
+      <text x="22" y="12" font-size="12" class="main-text">ISO 27001</text>
+    </g>
+  </g>
+
+  <!-- Main Content Header -->
+  <g transform="translate(230, 55)">
+    <text x="0" y="20" font-size="18" font-weight="600" class="main-text">Security Overview</text>
+    <text x="0" y="40" font-size="13" class="secondary-text">Last scan: 5 minutes ago • Next scheduled: 24 hours</text>
+
+    <!-- Export Button -->
+    <g transform="translate(500, 5)">
+      <rect x="0" y="0" width="100" height="32" rx="6" class="icon-btn"/>
+      <rect x="0" y="0" width="100" height="32" rx="6" class="border"/>
+      <text x="50" y="21" text-anchor="middle" font-size="12" class="secondary-text">📄 Export</text>
+    </g>
+  </g>
+
+  <!-- Score Cards Row -->
+  <g transform="translate(230, 100)">
+    <!-- Overall Score -->
+    <rect x="0" y="0" width="145" height="90" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="145" height="90" rx="10" class="border"/>
+    <text x="15" y="25" font-size="11" class="secondary-text">Overall Score</text>
+    <text x="15" y="60" font-size="32" font-weight="700" class="green-text">87</text>
+    <text x="60" y="60" font-size="14" class="muted-text">/100</text>
+    <text x="15" y="78" font-size="11" class="green-text">↑ 5 pts</text>
+
+    <!-- Passed -->
+    <rect x="160" y="0" width="145" height="90" rx="10" class="card-bg"/>
+    <rect x="160" y="0" width="145" height="90" rx="10" class="border"/>
+    <text x="175" y="25" font-size="11" class="secondary-text">Passed</text>
+    <text x="175" y="60" font-size="32" font-weight="700" class="main-text">42</text>
+    <rect x="245" y="20" width="45" height="20" rx="10" class="status-pass"/>
+    <text x="267" y="34" text-anchor="middle" font-size="10" class="green-text">89%</text>
+
+    <!-- Warnings -->
+    <rect x="320" y="0" width="145" height="90" rx="10" class="card-bg"/>
+    <rect x="320" y="0" width="145" height="90" rx="10" class="border"/>
+    <text x="335" y="25" font-size="11" class="secondary-text">Warnings</text>
+    <text x="335" y="60" font-size="32" font-weight="700" class="orange-text">4</text>
+    <rect x="405" y="20" width="45" height="20" rx="10" class="status-warn"/>
+    <text x="427" y="34" text-anchor="middle" font-size="10" class="orange-text">8%</text>
+
+    <!-- Critical -->
+    <rect x="480" y="0" width="145" height="90" rx="10" class="card-bg"/>
+    <rect x="480" y="0" width="145" height="90" rx="10" class="border"/>
+    <text x="495" y="25" font-size="11" class="secondary-text">Critical</text>
+    <text x="495" y="60" font-size="32" font-weight="700" class="red-text">1</text>
+    <rect x="565" y="20" width="45" height="20" rx="10" class="status-fail"/>
+    <text x="587" y="34" text-anchor="middle" font-size="10" class="red-text">2%</text>
+  </g>
+
+  <!-- Issues List -->
+  <g transform="translate(230, 210)">
+    <text x="0" y="0" font-size="14" font-weight="600" class="main-text">Issues Found</text>
+
+    <!-- Critical Issue -->
+    <g transform="translate(0, 20)">
+      <rect x="0" y="0" width="610" height="65" rx="8" class="status-fail"/>
+      <rect x="0" y="0" width="610" height="65" rx="8" class="border"/>
+      <rect x="15" y="15" width="35" height="35" rx="8" fill="url(#redGrad)"/>
+      <text x="32" y="38" text-anchor="middle" font-size="14" class="white-text">🚨</text>
+      <text x="65" y="28" font-size="13" font-weight="600" class="main-text">Insecure API Endpoint Detected</text>
+      <text x="65" y="48" font-size="12" class="secondary-text">/api/v1/users lacks authentication • Found 2 hours ago</text>
+      <rect x="500" y="18" width="55" height="24" rx="6" class="icon-btn"/>
+      <text x="527" y="35" text-anchor="middle" font-size="11" class="red-text">Critical</text>
+      <rect x="560" y="18" width="35" height="24" rx="6" fill="url(#accentGrad)"/>
+      <text x="577" y="35" text-anchor="middle" font-size="11" class="white-text">Fix</text>
+    </g>
+
+    <!-- Warning Issue 1 -->
+    <g transform="translate(0, 95)">
+      <rect x="0" y="0" width="610" height="65" rx="8" class="status-warn"/>
+      <rect x="0" y="0" width="610" height="65" rx="8" class="border"/>
+      <rect x="15" y="15" width="35" height="35" rx="8" fill="url(#orangeGrad)"/>
+      <text x="32" y="38" text-anchor="middle" font-size="14" class="white-text">⚠️</text>
+      <text x="65" y="28" font-size="13" font-weight="600" class="main-text">Outdated SSL Certificate</text>
+      <text x="65" y="48" font-size="12" class="secondary-text">Certificate expires in 15 days • Renewal recommended</text>
+      <rect x="500" y="18" width="55" height="24" rx="6" class="icon-btn"/>
+      <text x="527" y="35" text-anchor="middle" font-size="11" class="orange-text">Warning</text>
+      <rect x="560" y="18" width="35" height="24" rx="6" fill="url(#accentGrad)"/>
+      <text x="577" y="35" text-anchor="middle" font-size="11" class="white-text">Fix</text>
+    </g>
+
+    <!-- Warning Issue 2 -->
+    <g transform="translate(0, 170)">
+      <rect x="0" y="0" width="610" height="65" rx="8" class="status-warn"/>
+      <rect x="0" y="0" width="610" height="65" rx="8" class="border"/>
+      <rect x="15" y="15" width="35" height="35" rx="8" fill="url(#orangeGrad)"/>
+      <text x="32" y="38" text-anchor="middle" font-size="14" class="white-text">⚠️</text>
+      <text x="65" y="28" font-size="13" font-weight="600" class="main-text">Missing Content Security Policy</text>
+      <text x="65" y="48" font-size="12" class="secondary-text">CSP header not configured • XSS vulnerability risk</text>
+      <rect x="500" y="18" width="55" height="24" rx="6" class="icon-btn"/>
+      <text x="527" y="35" text-anchor="middle" font-size="11" class="orange-text">Warning</text>
+      <rect x="560" y="18" width="35" height="24" rx="6" fill="url(#accentGrad)"/>
+      <text x="577" y="35" text-anchor="middle" font-size="11" class="white-text">Fix</text>
+    </g>
+
+    <!-- Passed Item -->
+    <g transform="translate(0, 245)">
+      <rect x="0" y="0" width="610" height="55" rx="8" class="status-pass"/>
+      <rect x="0" y="0" width="610" height="55" rx="8" class="border"/>
+      <rect x="15" y="10" width="35" height="35" rx="8" fill="url(#greenGrad)"/>
+      <text x="32" y="33" text-anchor="middle" font-size="14" class="white-text">✓</text>
+      <text x="65" y="25" font-size="13" font-weight="500" class="main-text">Data Encryption at Rest</text>
+      <text x="65" y="43" font-size="12" class="secondary-text">AES-256 encryption enabled • All data stores compliant</text>
+      <rect x="520" y="15" width="55" height="24" rx="6" class="icon-btn"/>
+      <text x="547" y="32" text-anchor="middle" font-size="11" class="green-text">Passed</text>
+    </g>
+  </g>
+
+  <!-- Compliance Progress Section -->
+  <g transform="translate(230, 480)">
+    <text x="0" y="0" font-size="14" font-weight="600" class="main-text">Compliance Progress</text>
+
+    <!-- GDPR Progress -->
+    <g transform="translate(0, 20)">
+      <text x="0" y="12" font-size="12" class="main-text">GDPR</text>
+      <rect x="80" y="3" width="200" height="12" rx="6" class="progress-bg"/>
+      <rect x="80" y="3" width="190" height="12" rx="6" fill="#22c55e"/>
+      <text x="290" y="14" font-size="12" class="green-text">95%</text>
+    </g>
+
+    <!-- SOC 2 Progress -->
+    <g transform="translate(0, 45)">
+      <text x="0" y="12" font-size="12" class="main-text">SOC 2</text>
+      <rect x="80" y="3" width="200" height="12" rx="6" class="progress-bg"/>
+      <rect x="80" y="3" width="180" height="12" rx="6" fill="#22c55e"/>
+      <text x="290" y="14" font-size="12" class="green-text">90%</text>
+    </g>
+
+    <!-- HIPAA Progress -->
+    <g transform="translate(350, 20)">
+      <text x="0" y="12" font-size="12" class="main-text">HIPAA</text>
+      <rect x="80" y="3" width="200" height="12" rx="6" class="progress-bg"/>
+      <rect x="80" y="3" width="150" height="12" rx="6" fill="#f97316"/>
+      <text x="290" y="14" font-size="12" class="orange-text">75%</text>
+    </g>
+
+    <!-- ISO 27001 Progress -->
+    <g transform="translate(350, 45)">
+      <text x="0" y="12" font-size="12" class="main-text">ISO 27001</text>
+      <rect x="80" y="3" width="200" height="12" rx="6" class="progress-bg"/>
+      <rect x="80" y="3" width="176" height="12" rx="6" fill="#22c55e"/>
+      <text x="290" y="14" font-size="12" class="green-text">88%</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(230, 560)">
+    <text x="0" y="0" font-size="10" class="muted-text">R = Rescan | F = Filter by severity | E = Export report | Enter = View details</text>
+  </g>
+</svg>

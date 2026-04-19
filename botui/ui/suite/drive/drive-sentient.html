@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive - BotUI Suite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/themes/sentient/sentient.css">
+    <link rel="stylesheet" href="/suite/base-layout.css">
+    <link rel="stylesheet" href="/suite/drive/drive-sentient.css">
+</head>
+<body>
+    <div class="suite-app sentient-theme">
+        <!-- Top Header Bar -->
+        <header class="suite-topbar">
+            <div class="topbar-left">
+                <nav class="topbar-tabs">
+                    <button class="topbar-tab active">My Files</button>
+                    <button class="topbar-tab">Shared</button>
+                </nav>
+                
+                <div class="topbar-app-launcher">
+                    <button class="app-icon" data-app="chat" title="Chat">💬</button>
+                    <button class="app-icon" data-app="mail" title="Mail">📧</button>
+                    <button class="app-icon active" data-app="drive" title="Drive">📁</button>
+                    <button class="app-icon" data-app="tasks" title="Tasks">✓</button>
+                    <button class="app-icon" data-app="calendar" title="Calendar">📅</button>
+                    <button class="app-icon" data-app="meet" title="Meet">📹</button>
+                    <button class="app-icon" data-app="paper" title="Paper">📝</button>
+                </div>
+            </div>
+            
+            <div class="topbar-right">
+                <button class="topbar-btn-primary" onclick="uploadFile()">
+                    <span>⬆️</span> Upload
+                </button>
+                <button class="topbar-btn-icon ai-toggle active" title="AI Assistant" onclick="toggleAIPanel()">🤖</button>
+                <button class="topbar-btn-icon" title="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="suite-main">
+            <!-- Left: Content Panel -->
+            <section class="suite-content-panel">
+                <!-- Stat Cards -->
+                <div class="stat-cards">
+                    <div class="stat-card highlight">
+                        <div class="stat-card-icon">💾</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-label">Storage Used</div>
+                            <div class="stat-card-value">12.4 GB</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon">📄</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-label">Files</div>
+                            <div class="stat-card-value">1,847</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon">📂</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-label">Folders</div>
+                            <div class="stat-card-value">156</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon">🔗</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-label">Shared</div>
+                            <div class="stat-card-value">42</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- App Header -->
+                <div class="app-header">
+                    <div class="app-title-section">
+                        <h1>Drive</h1>
+                        <p>Manage your files and folders</p>
+                    </div>
+                    <div class="app-actions">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" placeholder="Search files..." class="search-input">
+                        </div>
+                        <button class="app-btn-secondary" onclick="toggleView('grid')">⊞</button>
+                        <button class="app-btn-secondary" onclick="toggleView('list')">☰</button>
+                    </div>
+                </div>
+
+                <!-- Breadcrumb -->
+                <div class="breadcrumb">
+                    <span class="breadcrumb-item">Home</span>
+                    <span class="breadcrumb-separator">›</span>
+                    <span class="breadcrumb-item">Projects</span>
+                    <span class="breadcrumb-separator">›</span>
+                    <span class="breadcrumb-item current">General Bots</span>
+                </div>
+
+                <!-- File Grid -->
+                <div class="file-grid" id="file-view">
+                    <!-- Folders -->
+                    <div class="file-item folder" onclick="openFolder(this)">
+                        <div class="file-icon">📁</div>
+                        <div class="file-name">Documents</div>
+                        <div class="file-meta">12 items</div>
+                    </div>
+                    <div class="file-item folder" onclick="openFolder(this)">
+                        <div class="file-icon">📁</div>
+                        <div class="file-name">Images</div>
+                        <div class="file-meta">45 items</div>
+                    </div>
+                    <div class="file-item folder" onclick="openFolder(this)">
+                        <div class="file-icon">📁</div>
+                        <div class="file-name">Source Code</div>
+                        <div class="file-meta">89 items</div>
+                    </div>
+                    <div class="file-item folder" onclick="openFolder(this)">
+                        <div class="file-icon">📁</div>
+                        <div class="file-name">Backups</div>
+                        <div class="file-meta">8 items</div>
+                    </div>
+                    
+                    <!-- Files -->
+                    <div class="file-item" onclick="selectFile(this)">
+                        <div class="file-icon">📄</div>
+                        <div class="file-name">project-report.pdf</div>
+                        <div class="file-meta">2.4 MB</div>
+                    </div>
+                    <div class="file-item" onclick="selectFile(this)">
+                        <div class="file-icon">🖼️</div>
+                        <div class="file-name">dashboard-mockup.png</div>
+                        <div class="file-meta">1.8 MB</div>
+                    </div>
+                    <div class="file-item" onclick="selectFile(this)">
+                        <div class="file-icon">📊</div>
+                        <div class="file-name">analytics-2025.xlsx</div>
+                        <div class="file-meta">890 KB</div>
+                    </div>
+                    <div class="file-item" onclick="selectFile(this)">
+                        <div class="file-icon">📝</div>
+                        <div class="file-name">meeting-notes.md</div>
+                        <div class="file-meta">45 KB</div>
+                    </div>
+                    <div class="file-item" onclick="selectFile(this)">
+                        <div class="file-icon">🎬</div>
+                        <div class="file-name">demo-video.mp4</div>
+                        <div class="file-meta">125 MB</div>
+                    </div>
+                    <div class="file-item" onclick="selectFile(this)">
+                        <div class="file-icon">📦</div>
+                        <div class="file-name">release-v2.0.zip</div>
+                        <div class="file-meta">45 MB</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: AI Assistant Panel -->
+            <aside class="suite-ai-panel" id="ai-panel">
+                <div class="ai-panel-header">
+                    <div class="ai-panel-title">
+                        <span class="ai-avatar">🤖</span>
+                        <div>
+                            <h3>AI Assistant</h3>
+                            <p class="ai-status">File Helper</p>
+                        </div>
+                    </div>
+                    <button class="ai-panel-close" onclick="toggleAIPanel()">✕</button>
+                </div>
+
+                <div class="ai-panel-messages" id="ai-messages">
+                    <div class="ai-message assistant">
+                        <div class="ai-message-bubble">Olá! Posso ajudar a organizar, buscar ou processar seus arquivos.</div>
+                    </div>
+                </div>
+
+                <div class="ai-quick-actions">
+                    <span class="quick-actions-label">AÇÕES RÁPIDAS</span>
+                    <div class="quick-actions-grid">
+                        <button class="quick-action-btn" onclick="aiAction('organize')">Organizar pasta</button>
+                        <button class="quick-action-btn" onclick="aiAction('find')">Buscar arquivo</button>
+                        <button class="quick-action-btn" onclick="aiAction('analyze')">Analisar conteúdo</button>
+                        <button class="quick-action-btn" onclick="aiAction('share')">Compartilhar</button>
+                    </div>
+                </div>
+
+                <div class="ai-panel-input">
+                    <input type="text" class="ai-input" placeholder="Peça ajuda com arquivos..." id="ai-input">
+                    <button class="ai-send-btn" onclick="sendAIMessage()">➤</button>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="/suite/drive/drive-sentient.js"></script>
+</body>
+</html>

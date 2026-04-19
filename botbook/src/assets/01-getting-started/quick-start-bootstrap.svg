@@ -1,0 +1,188 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Light theme defaults */
+    .neon-blue { stroke: #4A90E2; stroke-width: 2.6; }
+    .neon-orange { stroke: #F5A623; stroke-width: 2.6; }
+    .neon-purple { stroke: #BD10E0; stroke-width: 2.6; }
+    .neon-green { stroke: #7ED321; stroke-width: 2.6; }
+    .neon-cyan { stroke: #50E3C2; stroke-width: 2.6; }
+    .main-text { fill: #1a1a1a; }
+    .secondary-text { fill: #666; }
+    .arrow-color { stroke: #666; fill: #666; }
+
+    /* Dark theme with subtle neon effects */
+    @media (prefers-color-scheme: dark) {
+      .neon-blue {
+        stroke: #00D4FF;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00D4FF) drop-shadow(0 0 8px #00A0FF);
+      }
+      .neon-orange {
+        stroke: #FF9500;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF9500) drop-shadow(0 0 8px #FF7700);
+      }
+      .neon-purple {
+        stroke: #E040FB;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #E040FB) drop-shadow(0 0 8px #D500F9);
+      }
+      .neon-green {
+        stroke: #00FF88;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00FF88) drop-shadow(0 0 8px #00E676);
+      }
+      .neon-cyan {
+        stroke: #00E5EA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00E5EA) drop-shadow(0 0 8px #00BCD4);
+      }
+      .main-text { fill: #FFFFFF; }
+      .secondary-text { fill: #B0B0B0; }
+      .arrow-color { stroke: #B0B0B0; fill: #B0B0B0; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrow" markerWidth="13" markerHeight="13" refX="11.7" refY="3.9" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,7.8 L11.7,3.9 z" class="arrow-color"/>
+    </marker>
+    <marker id="arrow-small" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" class="arrow-color"/>
+    </marker>
+  </defs>
+
+  <!-- Title (well separated from content) -->
+  <text x="700" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="600" class="main-text">Bootstrap Flow</text>
+
+  <!-- MAIN FLOW DIAGRAM (Upper Section) -->
+
+  <!-- Phase 1: Start -->
+  <g id="phase-start">
+    <rect x="40" y="100" width="160" height="70" fill="none" class="neon-blue" rx="6.5"/>
+    <text x="120" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="500" class="main-text">./botserver</text>
+  </g>
+
+  <!-- Arrow from Start to OS Detection -->
+  <line x1="200" y1="135" x2="250" y2="135" class="arrow-color" stroke-width="2.6" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- Phase 2: OS Detection -->
+  <g id="phase-detection">
+    <rect x="250" y="100" width="180" height="70" fill="none" class="neon-orange" rx="6.5"/>
+    <text x="340" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="500" class="main-text">OS Detection</text>
+  </g>
+
+  <!-- Arrow from OS Detection to Component Installation -->
+  <line x1="430" y1="135" x2="490" y2="135" class="arrow-color" stroke-width="2.6" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- Phase 3: Component Installation -->
+  <g id="phase-components">
+    <!-- Label -->
+    <text x="620" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" font-weight="500" class="secondary-text">Component Installation</text>
+
+    <!-- Components in 2x2 grid with proper widths -->
+    <rect x="490" y="120" width="120" height="50" fill="none" class="neon-blue" rx="5"/>
+    <text x="550" y="151" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">PostgreSQL</text>
+
+    <rect x="630" y="120" width="120" height="50" fill="none" class="neon-purple" rx="5"/>
+    <text x="690" y="151" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">Valkey</text>
+
+    <rect x="490" y="190" width="120" height="50" fill="none" class="neon-green" rx="5"/>
+    <text x="550" y="221" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">SeaweedFS</text>
+
+    <rect x="630" y="190" width="120" height="50" fill="none" class="neon-cyan" rx="5"/>
+    <text x="690" y="221" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">Qdrant</text>
+
+    <!-- Merge lines -->
+    <g class="arrow-color" stroke-width="1.5" fill="none" opacity="0.5">
+      <line x1="550" y1="170" x2="550" y2="180"/>
+      <line x1="690" y1="170" x2="690" y2="180"/>
+      <line x1="550" y1="180" x2="690" y2="180"/>
+      <line x1="620" y1="180" x2="620" y2="260"/>
+    </g>
+  </g>
+
+  <!-- Arrow to Configuration -->
+  <line x1="620" y1="260" x2="620" y2="330" class="arrow-color" stroke-width="2.6" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- Phase 4: Configuration & Setup -->
+  <g id="phase-config">
+    <rect x="490" y="330" width="260" height="70" fill="none" class="neon-purple" rx="6.5"/>
+    <text x="620" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="500" class="main-text">Configuration &amp; Setup</text>
+  </g>
+
+  <!-- Arrow from Configuration to Bot Deployment section -->
+  <line x1="750" y1="365" x2="820" y2="365" class="arrow-color" stroke-width="2.6" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- Phase 5: Bot Deployment (vertical flow) -->
+  <g id="phase-deployment">
+    <!-- Label -->
+    <text x="1030" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" font-weight="500" class="secondary-text">Bot Deployment</text>
+
+    <!-- Scan templates with proper width -->
+    <rect x="880" y="120" width="300" height="60" fill="none" class="neon-orange" rx="6.5"/>
+    <text x="1030" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" class="main-text">Scan templates/ directory</text>
+
+    <!-- Dashed arrow -->
+    <line x1="1030" y1="180" x2="1030" y2="230" class="arrow-color" stroke-width="2.6" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.5"/>
+
+    <!-- Load packages with proper width -->
+    <rect x="880" y="230" width="300" height="60" fill="none" class="neon-orange" rx="6.5"/>
+    <text x="1030" y="268" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" class="main-text">Load .gbai packages</text>
+
+    <!-- Arrow -->
+    <line x1="1030" y1="290" x2="1030" y2="340" class="arrow-color" stroke-width="2.6" marker-end="url(#arrow)" opacity="0.7"/>
+
+    <!-- Start Web Server -->
+    <rect x="880" y="340" width="300" height="60" fill="none" class="neon-green" rx="6.5"/>
+    <text x="1030" y="378" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="500" class="main-text">Start Web Server</text>
+  </g>
+
+  <!-- PROGRESS INDICATOR (Bottom Section) -->
+  <g id="process-flow">
+    <!-- Large flow arrow at bottom -->
+    <defs>
+      <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.3" />
+        <stop offset="50%" style="stop-color:#BD10E0;stop-opacity:0.3" />
+        <stop offset="100%" style="stop-color:#7ED321;stop-opacity:0.3" />
+      </linearGradient>
+    </defs>
+
+    <!-- Flow visualization bar -->
+    <rect x="120" y="500" width="1060" height="80" fill="url(#flowGradient)" rx="10" opacity="0.2"/>
+
+    <!-- Stage indicators -->
+    <circle cx="120" cy="540" r="8" class="neon-blue" fill="none"/>
+    <circle cx="340" cy="540" r="8" class="neon-orange" fill="none"/>
+    <circle cx="620" cy="540" r="8" class="neon-purple" fill="none"/>
+    <circle cx="1030" cy="540" r="8" class="neon-green" fill="none"/>
+
+    <!-- Connecting lines -->
+    <line x1="128" y1="540" x2="332" y2="540" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="348" y1="540" x2="612" y2="540" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="628" y1="540" x2="1022" y2="540" class="arrow-color" stroke-width="2" opacity="0.4"/>
+
+    <!-- Stage labels -->
+    <text x="120" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="secondary-text">Start</text>
+    <text x="340" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="secondary-text">Detect</text>
+    <text x="620" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="secondary-text">Install &amp; Configure</text>
+    <text x="1030" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="secondary-text">Deploy</text>
+  </g>
+
+  <!-- Description text (well-spaced at bottom) -->
+  <text x="700" y="720" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" class="secondary-text">
+    Automatic bootstrap process: detect OS, install components, configure, and deploy
+  </text>
+  <text x="700" y="755" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" class="secondary-text">
+    Zero configuration required - everything runs from a single binary
+  </text>
+
+  <!-- Optional: Add subtle grid/connection lines in background -->
+  <g opacity="0.05" class="arrow-color">
+    <line x1="120" y1="170" x2="120" y2="500" stroke-width="1" stroke-dasharray="2,4"/>
+    <line x1="340" y1="170" x2="340" y2="500" stroke-width="1" stroke-dasharray="2,4"/>
+    <line x1="620" y1="240" x2="620" y2="500" stroke-width="1" stroke-dasharray="2,4"/>
+    <line x1="1030" y1="400" x2="1030" y2="500" stroke-width="1" stroke-dasharray="2,4"/>
+  </g>
+</svg>

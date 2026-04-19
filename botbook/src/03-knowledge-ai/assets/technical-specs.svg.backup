@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 980 530" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="980" height="530" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  <!-- Define gradients and effects -->
+  
+
+  <!-- Background -->
+  <rect x="0" y="0" width="900" height="450" fill="#4B5563" rx="8" filter="url(#shadow)">
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#4B5563">
+    System Technical Specifications
+  </text>
+
+  <!-- Main container -->
+  <rect x="50" y="50" width="800" height="380" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+
+  <!-- Embedding Configuration Section -->
+  <g transform="translate(70, 80)">
+    <rect x="0" y="0" width="350" height="150" fill="url(#embeddingGrad)" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)">
+    <text x="175" y="25" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#4B5563">
+      Embedding Configuration
+    </text>
+
+    <text x="15" y="50" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+      Model: bge-small-en-v1.5-f32.gguf
+    </text>
+    <text x="15" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      • Dimensions: 384
+    </text>
+    <text x="15" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      • Format: GGUF (quantized)
+    </text>
+    <text x="15" y="110" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      • Server: localhost:8082
+    </text>
+    <text x="15" y="130" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      • Memory: ~200MB loaded
+    </text>
+  </g>
+
+  <!-- LLM Configuration Section -->
+  <g transform="translate(450, 80)">
+    <rect x="0" y="0" width="350" height="150" fill="url(#llmGrad)" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)">
+    <text x="175" y="25" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#4B5563">
+      LLM Configuration
+    </text>
+
+    <text x="15" y="50" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+      Model: DeepSeek-R1-Distill-Qwen-1.5B
+    </text>
+    <text x="15" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      • Context Size: 4096 tokens
+    </text>
+    <text x="15" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      • Max Predict: 1024 tokens
+    </text>
+    <text x="15" y="110" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      • Parallel Requests: 6
+    </text>
+    <text x="15" y="130" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      • Quantization: Q3_K_M
+    </text>
+  </g>
+
+  <!-- Performance Characteristics Section -->
+  <g transform="translate(70, 250)">
+    <rect x="0" y="0" width="730" height="150" fill="url(#perfGrad)" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)">
+    <text x="365" y="25" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#4B5563">
+      Performance Characteristics
+    </text>
+
+    <!-- Left column - Vector Index -->
+    <g transform="translate(15, 45)">
+      <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+        Vector Index: HNSW Algorithm
+      </text>
+      <text x="0" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • M=16, ef_construction=200
+      </text>
+      <text x="0" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Distance: Cosine Similarity
+      </text>
+      <text x="0" y="60" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Build: ~1000 docs/minute
+      </text>
+    </g>
+
+    <!-- Middle column - Chunking Strategy -->
+    <g transform="translate(250, 45)">
+      <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+        Chunking Strategy
+      </text>
+      <text x="0" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Chunk Size: 512 tokens
+      </text>
+      <text x="0" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Overlap: 50 tokens
+      </text>
+      <text x="0" y="60" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Prompt Compact: Level 4
+      </text>
+    </g>
+
+    <!-- Right column - Runtime Metrics -->
+    <g transform="translate(490, 45)">
+      <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+        Runtime Metrics
+      </text>
+      <text x="0" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Query Latency: &lt;50ms p99
+      </text>
+      <text x="0" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Memory: ~1GB/million chunks
+      </text>
+      <text x="0" y="60" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Cache TTL: 3600 seconds
+      </text>
+    </g>
+  </g>
+
+  <!-- Additional specs indicators -->
+  <g transform="translate(820, 100)">
+    <circle cx="0" cy="0" r="3" fill="#4B5563">
+    <circle cx="0" cy="20" r="3" fill="#4B5563">
+    <circle cx="0" cy="40" r="3" fill="#4B5563">
+  </g>
+
+
+  </g>
+
+</svg>

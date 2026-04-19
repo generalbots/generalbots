@@ -1,0 +1,499 @@
+<section class="operations-dashboard">
+    <div class="dashboard-header">
+        <div class="header-title">
+            <h1>Operations Dashboard</h1>
+            <p>Real-time system metrics, distributed tracing, and performance monitoring</p>
+        </div>
+        <div class="header-actions">
+            <div class="time-range-selector">
+                <button class="range-btn active" data-range="1h">1H</button>
+                <button class="range-btn" data-range="6h">6H</button>
+                <button class="range-btn" data-range="24h">24H</button>
+                <button class="range-btn" data-range="7d">7D</button>
+                <button class="range-btn" data-range="30d">30D</button>
+            </div>
+            <button class="btn-secondary" onclick="toggleAutoRefresh()">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                <span id="autoRefreshLabel">Auto-refresh: ON</span>
+            </button>
+            <button class="btn-primary" onclick="showAlertConfig()">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                Configure Alerts
+            </button>
+        </div>
+    </div>
+
+    <div class="system-status-bar" hx-get="/api/ops/status" hx-trigger="load, every 10s" hx-swap="innerHTML">
+        <div class="status-indicator healthy">
+            <span class="status-dot"></span>
+            <span class="status-text">All Systems Operational</span>
+        </div>
+        <div class="status-metrics">
+            <div class="status-metric">
+                <span class="metric-label">Uptime</span>
+                <span class="metric-value">99.97%</span>
+            </div>
+            <div class="status-metric">
+                <span class="metric-label">Avg Response</span>
+                <span class="metric-value">45ms</span>
+            </div>
+            <div class="status-metric">
+                <span class="metric-label">Requests/min</span>
+                <span class="metric-value">2.4K</span>
+            </div>
+            <div class="status-metric">
+                <span class="metric-label">Error Rate</span>
+                <span class="metric-value healthy">0.02%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="metrics-grid" hx-get="/api/ops/metrics/summary" hx-trigger="load, every 30s" hx-swap="innerHTML">
+        <div class="metric-card cpu">
+            <div class="metric-header">
+                <div class="metric-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                        <rect x="9" y="9" width="6" height="6"></rect>
+                        <line x1="9" y1="1" x2="9" y2="4"></line>
+                        <line x1="15" y1="1" x2="15" y2="4"></line>
+                        <line x1="9" y1="20" x2="9" y2="23"></line>
+                        <line x1="15" y1="20" x2="15" y2="23"></line>
+                        <line x1="20" y1="9" x2="23" y2="9"></line>
+                        <line x1="20" y1="14" x2="23" y2="14"></line>
+                        <line x1="1" y1="9" x2="4" y2="9"></line>
+                        <line x1="1" y1="14" x2="4" y2="14"></line>
+                    </svg>
+                </div>
+                <span class="metric-title">CPU Usage</span>
+            </div>
+            <div class="metric-value-large">34%</div>
+            <div class="metric-sparkline">
+                <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="sparkline">
+                    <path d="M0,20 L10,18 L20,22 L30,15 L40,17 L50,12 L60,14 L70,10 L80,13 L90,11 L100,9" fill="none" stroke="var(--chart-1)" stroke-width="2"></path>
+                </svg>
+            </div>
+            <div class="metric-footer">
+                <span class="metric-range">Peak: 67%</span>
+                <span class="metric-trend positive">-5% from avg</span>
+            </div>
+        </div>
+        <div class="metric-card memory">
+            <div class="metric-header">
+                <div class="metric-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                        <line x1="6" y1="10" x2="6" y2="14"></line>
+                        <line x1="10" y1="10" x2="10" y2="14"></line>
+                        <line x1="14" y1="10" x2="14" y2="14"></line>
+                        <line x1="18" y1="10" x2="18" y2="14"></line>
+                    </svg>
+                </div>
+                <span class="metric-title">Memory Usage</span>
+            </div>
+            <div class="metric-value-large">62%</div>
+            <div class="metric-sparkline">
+                <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="sparkline">
+                    <path d="M0,15 L10,14 L20,16 L30,15 L40,18 L50,17 L60,19 L70,18 L80,20 L90,19 L100,18" fill="none" stroke="var(--chart-2)" stroke-width="2"></path>
+                </svg>
+            </div>
+            <div class="metric-footer">
+                <span class="metric-range">7.4 GB / 12 GB</span>
+                <span class="metric-trend warning">+8% from avg</span>
+            </div>
+        </div>
+        <div class="metric-card disk">
+            <div class="metric-header">
+                <div class="metric-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                </div>
+                <span class="metric-title">Disk I/O</span>
+            </div>
+            <div class="metric-value-large">2.1K</div>
+            <div class="metric-sparkline">
+                <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="sparkline">
+                    <path d="M0,25 L10,20 L20,22 L30,18 L40,15 L50,17 L60,12 L70,14 L80,10 L90,8 L100,12" fill="none" stroke="var(--chart-3)" stroke-width="2"></path>
+                </svg>
+            </div>
+            <div class="metric-footer">
+                <span class="metric-range">IOPS (read/write)</span>
+                <span class="metric-trend positive">Normal</span>
+            </div>
+        </div>
+        <div class="metric-card network">
+            <div class="metric-header">
+                <div class="metric-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                </div>
+                <span class="metric-title">Network</span>
+            </div>
+            <div class="metric-value-large">145 Mbps</div>
+            <div class="metric-sparkline">
+                <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="sparkline">
+                    <path d="M0,20 L10,15 L20,18 L30,12 L40,14 L50,10 L60,13 L70,8 L80,11 L90,7 L100,10" fill="none" stroke="var(--chart-4)" stroke-width="2"></path>
+                </svg>
+            </div>
+            <div class="metric-footer">
+                <span class="metric-range">In: 95 / Out: 50</span>
+                <span class="metric-trend positive">Stable</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card request-metrics">
+            <div class="card-header">
+                <h2>Request Metrics</h2>
+                <div class="metric-toggles">
+                    <label class="toggle-label">
+                        <input type="checkbox" checked onchange="toggleMetric('requests')">
+                        <span class="toggle-text">Requests</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" checked onchange="toggleMetric('latency')">
+                        <span class="toggle-text">Latency</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" onchange="toggleMetric('errors')">
+                        <span class="toggle-text">Errors</span>
+                    </label>
+                </div>
+            </div>
+            <div class="chart-container" id="requestChart" hx-get="/api/ops/metrics/requests" hx-trigger="load, every 30s" hx-swap="innerHTML">
+                <svg viewBox="0 0 600 200" class="line-chart">
+                    <defs>
+                        <linearGradient id="requestGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:var(--chart-1);stop-opacity:0.3" />
+                            <stop offset="100%" style="stop-color:var(--chart-1);stop-opacity:0" />
+                        </linearGradient>
+                    </defs>
+                    <g class="grid-lines">
+                        <line x1="50" y1="20" x2="580" y2="20" stroke="var(--surface-border)" stroke-dasharray="4"></line>
+                        <line x1="50" y1="65" x2="580" y2="65" stroke="var(--surface-border)" stroke-dasharray="4"></line>
+                        <line x1="50" y1="110" x2="580" y2="110" stroke="var(--surface-border)" stroke-dasharray="4"></line>
+                        <line x1="50" y1="155" x2="580" y2="155" stroke="var(--surface-border)" stroke-dasharray="4"></line>
+                    </g>
+                    <g class="y-axis">
+                        <text x="45" y="25" text-anchor="end" fill="var(--text-secondary)" font-size="10">3K</text>
+                        <text x="45" y="70" text-anchor="end" fill="var(--text-secondary)" font-size="10">2K</text>
+                        <text x="45" y="115" text-anchor="end" fill="var(--text-secondary)" font-size="10">1K</text>
+                        <text x="45" y="160" text-anchor="end" fill="var(--text-secondary)" font-size="10">0</text>
+                    </g>
+                    <path class="area-fill" fill="url(#requestGradient)" d="M50,155 L100,120 L150,100 L200,110 L250,85 L300,90 L350,70 L400,75 L450,60 L500,65 L550,55 L580,50 L580,155 L50,155 Z"></path>
+                    <path class="line-requests" fill="none" stroke="var(--chart-1)" stroke-width="2" d="M50,155 L100,120 L150,100 L200,110 L250,85 L300,90 L350,70 L400,75 L450,60 L500,65 L550,55 L580,50"></path>
+                    <path class="line-latency" fill="none" stroke="var(--chart-2)" stroke-width="2" stroke-dasharray="5,5" d="M50,140 L100,135 L150,130 L200,140 L250,125 L300,130 L350,120 L400,125 L450,115 L500,120 L550,110 L580,115"></path>
+                    <g class="x-axis">
+                        <text x="50" y="180" text-anchor="middle" fill="var(--text-secondary)" font-size="10">12:00</text>
+                        <text x="150" y="180" text-anchor="middle" fill="var(--text-secondary)" font-size="10">12:10</text>
+                        <text x="250" y="180" text-anchor="middle" fill="var(--text-secondary)" font-size="10">12:20</text>
+                        <text x="350" y="180" text-anchor="middle" fill="var(--text-secondary)" font-size="10">12:30</text>
+                        <text x="450" y="180" text-anchor="middle" fill="var(--text-secondary)" font-size="10">12:40</text>
+                        <text x="550" y="180" text-anchor="middle" fill="var(--text-secondary)" font-size="10">12:50</text>
+                    </g>
+                </svg>
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color" style="background: var(--chart-1)"></span>Requests/min</span>
+                    <span class="legend-item"><span class="legend-color" style="background: var(--chart-2)"></span>P95 Latency (ms)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card distributed-tracing">
+            <div class="card-header">
+                <h2>Distributed Tracing</h2>
+                <div class="trace-controls">
+                    <input type="text" class="trace-search" placeholder="Search trace ID..." id="traceSearch">
+                    <select class="trace-filter" id="traceFilter" onchange="filterTraces(this.value)">
+                        <option value="all">All Traces</option>
+                        <option value="slow">Slow (>500ms)</option>
+                        <option value="errors">Errors Only</option>
+                        <option value="api">API Requests</option>
+                        <option value="db">Database</option>
+                    </select>
+                </div>
+            </div>
+            <div class="trace-list" hx-get="/api/ops/traces" hx-trigger="load, every 60s" hx-swap="innerHTML">
+                <div class="trace-item" onclick="showTraceDetail('trace_001')">
+                    <div class="trace-status success"></div>
+                    <div class="trace-info">
+                        <span class="trace-name">POST /api/chat/message</span>
+                        <span class="trace-id">trace_a1b2c3d4e5f6</span>
+                    </div>
+                    <div class="trace-spans">
+                        <div class="span-bar" style="width: 100%">
+                            <div class="span-segment api" style="width: 15%" title="API Handler: 45ms"></div>
+                            <div class="span-segment llm" style="width: 65%" title="LLM Call: 195ms"></div>
+                            <div class="span-segment db" style="width: 15%" title="Database: 45ms"></div>
+                            <div class="span-segment other" style="width: 5%" title="Other: 15ms"></div>
+                        </div>
+                    </div>
+                    <span class="trace-duration">300ms</span>
+                    <span class="trace-time">2 min ago</span>
+                </div>
+                <div class="trace-item" onclick="showTraceDetail('trace_002')">
+                    <div class="trace-status warning"></div>
+                    <div class="trace-info">
+                        <span class="trace-name">GET /api/kb/search</span>
+                        <span class="trace-id">trace_b2c3d4e5f6g7</span>
+                    </div>
+                    <div class="trace-spans">
+                        <div class="span-bar" style="width: 100%">
+                            <div class="span-segment api" style="width: 5%" title="API Handler: 35ms"></div>
+                            <div class="span-segment vector" style="width: 80%" title="Vector Search: 560ms"></div>
+                            <div class="span-segment db" style="width: 10%" title="Database: 70ms"></div>
+                            <div class="span-segment other" style="width: 5%" title="Other: 35ms"></div>
+                        </div>
+                    </div>
+                    <span class="trace-duration warning">700ms</span>
+                    <span class="trace-time">5 min ago</span>
+                </div>
+                <div class="trace-item" onclick="showTraceDetail('trace_003')">
+                    <div class="trace-status error"></div>
+                    <div class="trace-info">
+                        <span class="trace-name">POST /api/billing/checkout</span>
+                        <span class="trace-id">trace_c3d4e5f6g7h8</span>
+                    </div>
+                    <div class="trace-spans">
+                        <div class="span-bar" style="width: 100%">
+                            <div class="span-segment api" style="width: 10%" title="API Handler: 25ms"></div>
+                            <div class="span-segment external" style="width: 70%" title="Stripe API: 175ms (Error)"></div>
+                            <div class="span-segment db" style="width: 15%" title="Database: 37ms"></div>
+                            <div class="span-segment other" style="width: 5%" title="Other: 13ms"></div>
+                        </div>
+                    </div>
+                    <span class="trace-duration error">250ms</span>
+                    <span class="trace-time">8 min ago</span>
+                </div>
+                <div class="trace-item" onclick="showTraceDetail('trace_004')">
+                    <div class="trace-status success"></div>
+                    <div class="trace-info">
+                        <span class="trace-name">GET /api/user/profile</span>
+                        <span class="trace-id">trace_d4e5f6g7h8i9</span>
+                    </div>
+                    <div class="trace-spans">
+                        <div class="span-bar" style="width: 100%">
+                            <div class="span-segment api" style="width: 20%" title="API Handler: 10ms"></div>
+                            <div class="span-segment cache" style="width: 30%" title="Cache: 15ms"></div>
+                            <div class="span-segment db" style="width: 40%" title="Database: 20ms"></div>
+                            <div class="span-segment other" style="width: 10%" title="Other: 5ms"></div>
+                        </div>
+                    </div>
+                    <span class="trace-duration">50ms</span>
+                    <span class="trace-time">12 min ago</span>
+                </div>
+            </div>
+            <div class="trace-legend">
+                <span class="legend-item"><span class="legend-color api"></span>API</span>
+                <span class="legend-item"><span class="legend-color llm"></span>LLM</span>
+                <span class="legend-item"><span class="legend-color db"></span>Database</span>
+                <span class="legend-item"><span class="legend-color vector"></span>Vector DB</span>
+                <span class="legend-item"><span class="legend-color cache"></span>Cache</span>
+                <span class="legend-item"><span class="legend-color external"></span>External</span>
+            </div>
+        </div>
+
+        <div class="card service-health">
+            <div class="card-header">
+                <h2>Service Health</h2>
+                <button class="btn-icon" onclick="refreshHealth()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="service-grid" hx-get="/api/ops/services/health" hx-trigger="load, every 15s" hx-swap="innerHTML">
+                <div class="service-item healthy">
+                    <div class="service-status healthy"></div>
+                    <div class="service-info">
+                        <span class="service-name">API Gateway</span>
+                        <span class="service-details">4 instances | Load: 34%</span>
+                    </div>
+                    <div class="service-metrics">
+                        <span class="metric">2.4K req/min</span>
+                        <span class="metric">45ms avg</span>
+                    </div>
+                </div>
+                <div class="service-item healthy">
+                    <div class="service-status healthy"></div>
+                    <div class="service-info">
+                        <span class="service-name">PostgreSQL</span>
+                        <span class="service-details">Primary + 2 Replicas</span>
+                    </div>
+                    <div class="service-metrics">
+                        <span class="metric">450 conn</span>
+                        <span class="metric">12ms avg</span>
+                    </div>
+                </div>
+                <div class="service-item healthy">
+                    <div class="service-status healthy"></div>
+                    <div class="service-info">
+                        <span class="service-name">Qdrant (Vector DB)</span>
+                        <span class="service-details">3 nodes cluster</span>
+                    </div>
+                    <div class="service-metrics">
+                        <span class="metric">2.4M vectors</span>
+                        <span class="metric">8ms search</span>
+                    </div>
+                </div>
+                <div class="service-item healthy">
+                    <div class="service-status healthy"></div>
+                    <div class="service-info">
+                        <span class="service-name">Redis Cache</span>
+                        <span class="service-details">Cluster mode | 3 shards</span>
+                    </div>
+                    <div class="service-metrics">
+                        <span class="metric">94% hit rate</span>
+                        <span class="metric">0.5ms avg</span>
+                    </div>
+                </div>
+                <div class="service-item warning">
+                    <div class="service-status warning"></div>
+                    <div class="service-info">
+                        <span class="service-name">LLM Service</span>
+                        <span class="service-details">OpenAI GPT-4 | High latency</span>
+                    </div>
+                    <div class="service-metrics">
+                        <span class="metric">125K tok/min</span>
+                        <span class="metric warning">1.2s avg</span>
+                    </div>
+                </div>
+                <div class="service-item healthy">
+                    <div class="service-status healthy"></div>
+                    <div class="service-info">
+                        <span class="service-name">Object Storage</span>
+                        <span class="service-details">S3 Compatible</span>
+                    </div>
+                    <div class="service-metrics">
+                        <span class="metric">34.5 GB used</span>
+                        <span class="metric">50ms avg</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card error-tracking">
+            <div class="card-header">
+                <h2>Error Tracking</h2>
+                <a href="/admin/errors" class="view-all-link">View All Errors</a>
+            </div>
+            <div class="error-summary">
+                <div class="error-stat">
+                    <span class="stat-number">23</span>
+                    <span class="stat-label">Total Errors (24h)</span>
+                </div>
+                <div class="error-stat">
+                    <span class="stat-number error">5</span>
+                    <span class="stat-label">Critical</span>
+                </div>
+                <div class="error-stat">
+                    <span class="stat-number warning">8</span>
+                    <span class="stat-label">Warnings</span>
+                </div>
+                <div class="error-stat">
+                    <span class="stat-number">10</span>
+                    <span class="stat-label">Info</span>
+                </div>
+            </div>
+            <div class="error-list" hx-get="/api/ops/errors/recent" hx-trigger="load, every 60s" hx-swap="innerHTML">
+                <div class="error-item critical">
+                    <div class="error-severity critical">Critical</div>
+                    <div class="error-info">
+                        <span class="error-message">Payment processing failed: Stripe API timeout</span>
+                        <span class="error-location">billing/checkout.rs:145</span>
+                    </div>
+                    <div class="error-meta">
+                        <span class="error-count">3 occurrences</span>
+                        <span class="error-time">15 min ago</span>
+                    </div>
+                </div>
+                <div class="error-item warning">
+                    <div class="error-severity warning">Warning</div>
+                    <div class="error-info">
+                        <span class="error-message">Rate limit approaching for OpenAI API</span>
+                        <span class="error-location">llm/openai.rs:89</span>
+                    </div>
+                    <div class="error-meta">
+                        <span class="error-count">12 occurrences</span>
+                        <span class="error-time">30 min ago</span>
+                    </div>
+                </div>
+                <div class="error-item warning">
+                    <div class="error-severity warning">Warning</div>
+                    <div class="error-info">
+                        <span class="error-message">Slow database query detected (>1s)</span>
+                        <span class="error-location">core/analytics.rs:234</span>
+                    </div>
+                    <div class="error-meta">
+                        <span class="error-count">5 occurrences</span>
+                        <span class="error-time">45 min ago</span>
+                    </div>
+                </div>
+                <div class="error-item info">
+                    <div class="error-severity info">Info</div>
+                    <div class="error-info">
+                        <span class="error-message">Cache miss rate above threshold</span>
+                        <span class="error-location">cache/redis.rs:67</span>
+                    </div>
+                    <div class="error-meta">
+                        <span class="error-count">8 occurrences</span>
+                        <span class="error-time">1 hour ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card endpoint-performance">
+            <div class="card-header">
+                <h2>Endpoint Performance</h2>
+                <select class="sort-selector" id="endpointSort" onchange="sortEndpoints(this.value)">
+                    <option value="requests">By Requests</option>
+                    <option value="latency">By Latency</option>
+                    <option value="errors">By Error Rate</option>
+                </select>
+            </div>
+            <div class="endpoint-list" hx-get="/api/ops/endpoints/performance" hx-trigger="load, every 60s" hx-swap="innerHTML">
+                <div class="endpoint-item">
+                    <div class="endpoint-info">
+                        <span class="endpoint-method post">POST</span>
+                        <span class="endpoint-path">/api/chat/message</span>
+                    </div>
+                    <div class="endpoint-metrics">
+                        <div class="endpoint-metric">
+                            <span class="metric-value">845</span>
+                            <span class="metric-label">req/min</span>
+                        </div>
+                        <div class="endpoint-metric">
+                            <span class="metric-value">320ms</span>
+                            <span class="metric-label">P95</span>
+                        </div>
+                        <div class="endpoint-metric">
+                            <span class="metric-value healthy">0.1%</span>
+                            <span class="metric-label">errors</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="endpoint-item">
+                    <div class="endpoint-info">
+                        <span class="endpoint-method get">GET</span>
+                        <span class="endpoint-path">/api/kb/search</span>
+                    </div>
+                    <div class="endpoint-metrics">
+                        <div class="endpoint-metric">
+                            <span class="metric-value">523</span>
+                            <span class="metric-label">req/min</span>
+                        </div>
+                        <div class="endpoint-metric">
+                            <span class="metric-value warning">580ms

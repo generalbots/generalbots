@@ -1,0 +1,17 @@
+<div class="suggestions-list">
+{% for suggestion in suggestions %}
+    <button class="suggestion-chip"
+            hx-post="/api/chat/message"
+            hx-vals='{"content": "{{ suggestion }}"}'
+            hx-target="#messages"
+            hx-swap="beforeend"
+            hx-on::after-request="document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight">
+        {{ suggestion }}
+    </button>
+{% endfor %}
+</div>
+{% if suggestions.is_empty() %}
+<div class="suggestions-empty">
+    <span class="suggestion-chip disabled">No suggestions available</span>
+</div>
+{% endif %}

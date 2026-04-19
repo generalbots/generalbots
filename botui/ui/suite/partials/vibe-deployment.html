@@ -1,0 +1,418 @@
+<!-- Deployment Choice Modal -->
+<div class="deployment-modal" id="deploymentModal" style="display:none;">
+    <div class="deployment-modal-backdrop" onclick="closeDeploymentModal()"></div>
+    <div class="deployment-modal-content">
+        <div class="deployment-modal-header">
+            <h2>Choose Deployment Target</h2>
+            <button class="close-btn" onclick="closeDeploymentModal()">&times;</button>
+        </div>
+
+        <div class="deployment-targets">
+            <!-- Internal GB Platform -->
+            <div class="deployment-target-card" onclick="selectDeploymentTarget('internal')">
+                <div class="target-icon">📱</div>
+                <div class="target-info">
+                    <h3>GB Platform</h3>
+                    <p>Deploy directly to the GB platform with shared resources</p>
+                    <ul class="target-features">
+                        <li>✓ Fast deployment</li>
+                        <li>✓ Shared authentication</li>
+                        <li>✓ Shared database</li>
+                        <li>✓ API integration</li>
+                        <li>✓ Instant scaling</li>
+                    </ul>
+                </div>
+                <div class="target-status">Recommended for quick prototypes</div>
+            </div>
+
+            <!-- External Forgejo -->
+            <div class="deployment-target-card" onclick="selectDeploymentTarget('external')">
+                <div class="target-icon">🌐</div>
+                <div class="target-info">
+                    <h3>Forgejo ALM</h3>
+                    <p>Deploy to an external Forgejo repository with full CI/CD</p>
+                    <ul class="target-features">
+                        <li>✓ Independent deployment</li>
+                        <li>✓ Custom domain</li>
+                        <li>✓ Version control</li>
+                        <li>✓ CI/CD pipelines</li>
+                        <li>✓ Separate infrastructure</li>
+                    </ul>
+                </div>
+                <div class="target-status">Best for production apps</div>
+            </div>
+        </div>
+
+        <!-- Forgejo Configuration (shown when external selected) -->
+        <div id="forgejoConfig" class="forgejo-config" style="display:none;">
+            <h3>Forgejo Configuration</h3>
+            <form id="forgejoConfigForm">
+                <div class="form-group">
+                    <label>Repository Name</label>
+                    <input type="text" id="repoName" placeholder="my-crm-app" required />
+                </div>
+                <div class="form-group">
+                    <label>Custom Domain (Optional)</label>
+                    <input type="text" id="customDomain" placeholder="crm.example.com" />
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="ciCdEnabled" checked />
+                        Enable CI/CD Pipeline
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Build Environment</label>
+                    <select id="buildEnv">
+                        <option value="production">Production</option>
+                        <option value="staging">Staging</option>
+                        <option value="development">Development</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <!-- Internal Configuration (shown when internal selected) -->
+        <div id="internalConfig" class="internal-config" style="display:none;">
+            <h3>Internal Deployment Configuration</h3>
+            <form id="internalConfigForm">
+                <div class="form-group">
+                    <label>App Route</label>
+                    <input type="text" id="appRoute" placeholder="/apps/my-crm" required />
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="sharedDb" checked />
+                        Use Shared Database
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="sharedAuth" checked />
+                        Use GB Authentication
+                    </label>
+                </div>
+            </form>
+        </div>
+
+        <div class="deployment-actions">
+            <button class="btn-cancel" onclick="closeDeploymentModal()">Cancel</button>
+            <button class="btn-deploy" onclick="confirmDeployment()">Deploy App</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.deployment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.deployment-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.deployment-modal-content {
+    position: relative;
+    background: var(--surface, #fff);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 800px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 32px;
+}
+
+.deployment-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.deployment-modal-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background 0.15s;
+}
+
+.close-btn:hover {
+    background: var(--surface-hover);
+}
+
+.deployment-targets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.deployment-target-card {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.deployment-target-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(132, 214, 105, 0.2);
+    transform: translateY(-2px);
+}
+
+.deployment-target-card.selected {
+    border-color: var(--accent);
+    background: rgba(132, 214, 105, 0.05);
+}
+
+.target-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.target-info h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.target-info p {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.target-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.target-features li {
+    padding: 4px 0;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.target-status {
+    margin-top: 12px;
+    padding: 6px 12px;
+    background: var(--surface-hover);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.forgejo-config,
+.internal-config {
+    padding: 24px;
+    background: var(--surface-hover);
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.form-group input[type="text"],
+.form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.15s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.deployment-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-cancel {
+    padding: 10px 24px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-cancel:hover {
+    background: var(--surface-hover);
+}
+
+.btn-deploy {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--bg, #fff);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-deploy:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(132, 214, 105, 0.3);
+}
+</style>
+
+<script>
+let selectedTarget = null;
+
+function openDeploymentModal() {
+    document.getElementById('deploymentModal').style.display = 'flex';
+    selectedTarget = null;
+    document.querySelectorAll('.deployment-target-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.getElementById('forgejoConfig').style.display = 'none';
+    document.getElementById('internalConfig').style.display = 'none';
+}
+
+function closeDeploymentModal() {
+    document.getElementById('deploymentModal').style.display = 'none';
+}
+
+function selectDeploymentTarget(target) {
+    selectedTarget = target;
+    document.querySelectorAll('.deployment-target-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    event.currentTarget.classList.add('selected');
+
+    if (target === 'external') {
+        document.getElementById('forgejoConfig').style.display = 'block';
+        document.getElementById('internalConfig').style.display = 'none';
+    } else {
+        document.getElementById('forgejoConfig').style.display = 'none';
+        document.getElementById('internalConfig').style.display = 'block';
+    }
+}
+
+async function confirmDeployment() {
+    if (!selectedTarget) {
+        alert('Please select a deployment target');
+        return;
+    }
+
+    const manifest = typeof getCurrentManifest === 'function' ? getCurrentManifest() : {}; // Get from Vibe canvas
+
+    let payload = {
+        app_name: document.getElementById('repoName')?.value || document.getElementById('appRoute')?.value?.replace('/apps/', ''),
+        target: {},
+        environment: document.getElementById('buildEnv')?.value || 'production',
+        manifest: manifest
+    };
+
+    if (selectedTarget === 'external') {
+        payload.target = {
+            External: {
+                repo_url: `https://forgejo.example.com/${payload.app_name}`,
+                custom_domain: document.getElementById('customDomain')?.value || null,
+                ci_cd_enabled: document.getElementById('ciCdEnabled')?.checked ?? true
+            }
+        };
+    } else {
+        payload.target = {
+            Internal: {
+                route: document.getElementById('appRoute')?.value || `/apps/${payload.app_name}`,
+                shared_resources: true
+            }
+        };
+    }
+
+    try {
+        const response = await fetch('/api/deployment/deploy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'Deployed' || result.status === 'Building') {
+            closeDeploymentModal();
+            showDeploymentSuccess(result);
+        } else {
+            alert('Deployment failed: ' + result.status);
+        }
+    } catch (e) {
+        alert('Deployment error: ' + e.message);
+    }
+}
+
+function showDeploymentSuccess(result) {
+    const modal = document.getElementById('deploymentModal');
+    modal.innerHTML = `
+        <div class="deployment-success" style="padding: 24px; text-align: center; background: var(--surface); border-radius: 12px;">
+            <div class="success-icon" style="font-size: 48px; color: green; margin-bottom: 16px;">✅</div>
+            <h2>Deployment Successful!</h2>
+            <p>Your app is now deployed at:</p>
+            <a href="${result.url}" target="_blank" class="deployment-url">${result.url}</a>
+            <br/><br/>
+            <button onclick="location.reload()" class="btn-cancel">Close</button>
+        </div>
+    `;
+    modal.style.display = 'flex';
+}
+</script>

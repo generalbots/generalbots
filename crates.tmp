@@ -1,0 +1,771 @@
+# BotServer Microservices Partition Plan
+
+## 🎯 Objective
+
+Partition the monolithic `botserver` into multiple microservices as separate Rust crates that share state, making the system easier to compile, maintain, and scale.
+
+## 📊 Current State Analysis
+
+### Current Structure
+- **Single monolithic crate**: `botserver` (242 dependencies in Cargo.toml)
+- **Feature flags**: 50+ features (chat, mail, tasks, drive, llm, etc.)
+- **Main entry point**: `botserver/src/main.rs` (436 lines)
+- **Shared state**: `AppState` in `core::shared::state`
+- **Modules**: 40+ top-level modules
+
+### Problems with Current Approach
+1. **Long compile times**: Full rebuilds take 30+ minutes
+2. **Memory intensive**: Requires significant RAM during compilation
+3. **Tight coupling**: All modules compiled together
+4. **Hard to scale**: Can't deploy individual services independently
+5. **Feature flag complexity**: Many features, hard to test all combinations
+
+## 🏗️ Proposed Architecture
+
+### Shared State Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    SHARED STATE LAYER                       │
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │  botstate (NEW) - Shared state types & interfaces      ││
+│  │  - AppState definition                                 ││
+│  │  - Database connection pool                            ││
+│  │  - Redis/Valkey client                                 ││
+│  │  - Configuration                                       ││
+│  │  - LLM provider interface                              ││
+│  │  - Secret manager interface                            ││
+│  └─────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Microservice Crates
+
+```
+Workspace Members:
+├── botlib/              # Existing - Core types, errors, utilities
+├── botstate/            # NEW - Shared state layer
+├── botserver-core/      # NEW - Core HTTP server, routing, middleware
+├── botserver-auth/      # NEW - Authentication & authorization
+├── botserver-chat/      # NEW - WebSocket chat, LLM integration
+├── botserver-mail/      # NEW - Email integration (IMAP/SMTP)
+├── botserver-tasks/     # NEW - Task scheduler, cron jobs
+├── botserver-drive/     # NEW - File storage (S3/MinIO)
+├── botserver-llm/       # NEW - LLM providers, embeddings
+├── botserver-vectordb/  # NEW - Qdrant vector database
+├── botserver-compliance/# NEW - Legal, audit, compliance
+├── botserver-video/     # NEW - Video processing, LiveKit
+├── botserver-contacts/  # NEW - CRM, contacts, calendar
+├── botserver-auto/      # NEW - Automation, Rhai scripting
+├── botserver-ui/        # NEW - Embedded UI, TUI (optional)
+└── botserver/           # EXISTING - Becomes meta-crate that re-exports all
+```
+
+## 📦 Detailed Crate Responsibilities
+
+### 1. **botstate** (NEW - Foundation)
+**Purpose**: Define shared state types that all services will use
+
+**Dependencies**:
+- `botlib` (workspace)
+- `tokio`, `redis`, `diesel`, `chrono`, `uuid`, `serde`
+
+**Exports**:
+```rust
+pub struct AppState {
+    pub db_pool: PgPool,
+    pub redis_client: Arc<redis::Client>,
+    pub config: Arc<Config>,
+    pub llm_provider: Arc<dyn LLMProvider>,
+    pub secret_manager: Arc<dyn SecretManager>,
+    // ... other shared resources
+}
+
+pub trait LLMProvider {
+    async fn generate(&self, prompt: &str) -> Result<String>;
+}
+
+pub trait SecretManager {
+    fn get_secret(&self, key: &str) -> Result<String>;
+}
+```
+
+**Location**: `/home/rodriguez/src/gb/botstate/`
+
+---
+
+### 2. **botserver-core** (NEW - HTTP Foundation)
+**Purpose**: Core HTTP server, routing, middleware, health checks
+
+**Dependencies**:
+- `botlib`, `botstate`
+- `axum`, `tower`, `tower-http`, `tokio`
+
+**Responsibilities**:
+- HTTP server setup (Axum)
+- Middleware (CORS, logging, rate limiting)
+- Health check endpoints
+- Graceful shutdown
+- Static file serving
+
+**Location**: `/home/rodriguez/src/gb/botserver-core/`
+
+---
+
+### 3. **botserver-auth** (NEW - Security)
+**Purpose**: Authentication, authorization, RBAC
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-core`
+- `jsonwebtoken`, `argon2`, `axum`
+
+**Responsibilities**:
+- User authentication (login/logout)
+- JWT token management
+- RBAC (role-based access control)
+- Session management
+- OAuth integration
+
+**Location**: `/home/rodriguez/src/gb/botserver-auth/`
+
+---
+
+### 4. **botserver-chat** (NEW - Real-time Communication)
+**Purpose**: WebSocket chat, message handling, LLM integration
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-core`
+- `tokio-tungstenite`, `axum`, `serde_json`
+
+**Responsibilities**:
+- WebSocket connections
+- Message routing
+- Chat history
+- Suggestion buttons
+- Tool execution framework
+
+**Location**: `/home/rodriguez/src/gb/botserver-chat/`
+
+---
+
+### 5. **botserver-mail** (NEW - Email)
+**Purpose**: Email integration (IMAP/SMTP)
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-core`
+- `lettre`, `imap`, `mailparse`
+
+**Responsibilities**:
+- IMAP email retrieval
+- SMTP email sending
+- Email parsing
+- Attachments
+- Email templates
+
+**Location**: `/home/rodriguez/src/gb/botserver-mail/`
+
+---
+
+### 6. **botserver-tasks** (NEW - Scheduling)
+**Purpose**: Task scheduler, cron jobs
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-core`
+- `cron`, `tokio`
+
+**Responsibilities**:
+- Cron job scheduler
+- Task queue management
+- Recurring tasks
+- Task execution tracking
+
+**Location**: `/home/rodriguez/src/gb/botserver-tasks/`
+
+---
+
+### 7. **botserver-drive** (NEW - Storage)
+**Purpose**: File storage (S3/MinIO)
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-core`
+- `aws-sdk-s3`, `aws-config`
+
+**Responsibilities**:
+- S3/MinIO client
+- File upload/download
+- File synchronization
+- PDF extraction
+- Document processing
+
+**Location**: `/home/rodriguez/src/gb/botserver-drive/`
+
+---
+
+### 8. **botserver-llm** (NEW - Language Models)
+**Purpose**: LLM providers, embeddings, caching
+
+**Dependencies**:
+- `botlib`, `botstate`
+- `reqwest`, `serde_json`
+
+**Responsibilities**:
+- LLM provider abstraction (Groq, OpenAI, etc.)
+- Embedding generation
+- Response caching
+- Local LLM management (llama.cpp)
+
+**Location**: `/home/rodriguez/src/gb/botserver-llm/`
+
+---
+
+### 9. **botserver-vectordb** (NEW - Vector Database)
+**Purpose**: Qdrant vector database operations
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-llm`
+- `qdrant-client`
+
+**Responsibilities**:
+- Vector embeddings storage
+- Similarity search
+- Knowledge base chunks
+- RAG (retrieval-augmented generation)
+
+**Location**: `/home/rodriguez/src/gb/botserver-vectordb/`
+
+---
+
+### 10. **botserver-auto** (NEW - Automation)
+**Purpose**: Automation, Rhai scripting engine
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-core`
+- `rhai`, `tokio`
+
+**Responsibilities**:
+- Rhai script engine
+- BASIC keyword execution
+- Workflow automation
+- Event handlers
+- Script compilation
+
+**Location**: `/home/rodriguez/src/gb/botserver-auto/`
+
+---
+
+### 11. **botserver-contacts** (NEW - CRM)
+**Purpose**: Contacts, CRM, calendar integration
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-core`
+- `icalendar`, `chrono`
+
+**Responsibilities**:
+- Contact management
+- CRM operations
+- Calendar integration
+- Google/Microsoft sync
+
+**Location**: `/home/rodriguez/src/gb/botserver-contacts/`
+
+---
+
+### 12. **botserver-compliance** (NEW - Legal)
+**Purpose**: Legal, audit, compliance
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-core`
+- `csv`
+
+**Responsibilities**:
+- Audit logging
+- Compliance reports
+- Legal document management
+- Data retention policies
+
+**Location**: `/home/rodriguez/src/gb/botserver-compliance/`
+
+---
+
+### 13. **botserver-video** (NEW - Video)
+**Purpose**: Video processing, LiveKit integration
+
+**Dependencies**:
+- `botlib`, `botstate`, `botserver-core`
+- `livekit`
+
+**Responsibilities**:
+- LiveKit integration
+- Video analytics
+- Meeting management
+- Media processing
+
+**Location**: `/home/rodriguez/src/gb/botserver-video/`
+
+---
+
+### 14. **botserver-ui** (OPTIONAL - TUI)
+**Purpose**: Console/TUI interface
+
+**Dependencies**:
+- `botlib`, `botstate`
+- `ratatui`, `crossterm`
+
+**Responsibilities**:
+- Terminal UI
+- Progress monitoring
+- Service status dashboard
+
+**Location**: `/home/rodriguez/src/gb/botserver-ui/`
+
+---
+
+### 15. **botserver** (EXISTING - Meta-crate)
+**Purpose**: Re-exports all services, maintains backward compatibility
+
+**Dependencies**:
+- All botserver-* crates
+- Feature flags to enable/disable services
+
+**Responsibilities**:
+- Re-export all services
+- Main binary entry point
+- Feature flag coordination
+
+**Location**: `/home/rodriguez/src/gb/botserver/` (existing, modified)
+
+---
+
+## 🔄 State Sharing Strategy
+
+### Approach: Shared AppState via botstate Crate
+
+```rust
+// botstate/src/lib.rs
+use redis::Client as RedisClient;
+use diesel::r2d2::Pool as DbPool;
+use std::sync::Arc;
+
+pub struct AppState {
+    pub db_pool: Arc<DbPool>,
+    pub redis_client: Arc<RedisClient>,
+    pub config: Arc<Config>,
+    pub llm_provider: Arc<dyn LLMProvider + Send + Sync>,
+    pub secret_manager: Arc<dyn SecretManager + Send + Sync>,
+}
+
+impl AppState {
+    pub fn new(
+        db_pool: DbPool,
+        redis_client: RedisClient,
+        config: Config,
+        llm_provider: Box<dyn LLMProvider + Send + Sync>,
+        secret_manager: Box<dyn SecretManager + Send + Sync>,
+    ) -> Self {
+        Self {
+            db_pool: Arc::new(db_pool),
+            redis_client: Arc::new(redis_client),
+            config: Arc::new(config),
+            llm_provider: Arc::from(llm_provider),
+            secret_manager: Arc::from(secret_manager),
+        }
+    }
+}
+```
+
+### Each Service Gets AppState as Parameter
+
+```rust
+// botserver-chat/src/lib.rs
+use botstate::AppState;
+use axum::Router;
+
+pub fn create_router(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/ws", websocket_handler)
+        .with_state(state)
+}
+```
+
+---
+
+## 📋 Migration Steps
+
+### Phase 1: Foundation (Week 1-2)
+1. ✅ Create `botstate` crate
+   - Extract `AppState` from `botserver`
+   - Define trait interfaces (LLMProvider, SecretManager)
+   - Export shared types
+
+2. ✅ Create `botserver-core` crate
+   - Extract HTTP server setup
+   - Extract middleware
+   - Extract health checks
+
+3. ✅ Update workspace `Cargo.toml`
+   - Add new members
+   - Configure dependencies
+
+### Phase 2: Extract Services (Week 3-6)
+4. ✅ Extract `botserver-auth`
+   - Move authentication code
+   - Update imports
+
+5. ✅ Extract `botserver-chat`
+   - Move WebSocket code
+   - Move message handling
+
+6. ✅ Extract `botserver-mail`
+   - Move email integration
+   - Move IMAP/SMTP code
+
+7. ✅ Extract `botserver-drive`
+   - Move S3/MinIO code
+   - Move file sync
+
+8. ✅ Extract `botserver-auto`
+   - Move Rhai engine
+   - Move BASIC keywords
+
+### Phase 3: Advanced Services (Week 7-10)
+9. ✅ Extract `botserver-llm`
+   - Move LLM providers
+   - Move caching
+
+10. ✅ Extract `botserver-vectordb`
+    - Move Qdrant client
+    - Move embeddings
+
+11. ✅ Extract `botserver-tasks`
+    - Move scheduler
+    - Move cron jobs
+
+12. ✅ Extract `botserver-contacts`
+    - Move CRM code
+    - Move calendar sync
+
+13. ✅ Extract `botserver-compliance`
+    - Move audit logging
+    - Move compliance reports
+
+14. ✅ Extract `botserver-video`
+    - Move LiveKit integration
+    - Move video analytics
+
+### Phase 4: Integration & Testing (Week 11-12)
+15. ✅ Update `botserver` as meta-crate
+    - Re-export all services
+    - Maintain backward compatibility
+    - Feature flags coordination
+
+16. ✅ Test all services independently
+    - Unit tests
+    - Integration tests
+    - End-to-end tests
+
+17. ✅ Documentation
+    - Update README
+    - Document APIs
+    - Update AGENTS.md
+
+---
+
+## 🎯 Benefits
+
+### Compile Time Improvements
+- **Before**: Full rebuild 30+ minutes
+- **After**: 
+  - botstate: ~30 seconds
+  - Individual service: 1-3 minutes
+  - Full workspace: Still 30+ minutes (but cached builds work better)
+
+### Memory Usage
+- **Before**: 16GB+ RAM required
+- **After**: 2-4GB per service
+
+### Development Workflow
+- Work on single service without rebuilding everything
+- Better separation of concerns
+- Easier to test individual components
+- Can deploy services independently
+
+### Scalability
+- Deploy only needed services
+- Scale services independently
+- Different services can use different versions of dependencies
+
+---
+
+## ⚠️ Challenges & Solutions
+
+### Challenge 1: Circular Dependencies
+**Problem**: Services reference each other
+
+**Solution**:
+- Use traits in `botstate` for cross-service communication
+- Dependency injection via `AppState`
+- Event-driven architecture for loose coupling
+
+### Challenge 2: Database Migrations
+**Problem**: Multiple crates need to coordinate migrations
+
+**Solution**:
+- Keep all migrations in `botserver` (meta-crate)
+- Use `diesel_migrations` with centralized migration directory
+- Each service documents its required migrations
+
+### Challenge 3: Shared Configuration
+**Problem**: All services need config values
+
+**Solution**:
+- `Config` struct in `botstate`
+- Loaded once, shared via `Arc<Config>`
+- Each service reads only what it needs
+
+### Challenge 4: Feature Flags
+**Problem**: Complex feature flag interactions
+
+**Solution**:
+- Each service has its own feature flags
+- `botserver` meta-crate coordinates via feature aliases
+- Default: all services enabled
+- Can build minimal subset for testing
+
+---
+
+## 📊 Dependency Graph
+
+```mermaid
+graph TD
+    botlib[botlib - Core types]
+    botstate[botstate - Shared state]
+    botcore[botserver-core - HTTP server]
+    
+   auth[botserver-auth]
+    chat[botserver-chat]
+    mail[botserver-mail]
+    tasks[botserver-tasks]
+    drive[botserver-drive]
+    llm[botserver-llm]
+    vectordb[botserver-vectordb]
+    auto[botserver-auto]
+    contacts[botserver-contacts]
+    compliance[botserver-compliance]
+    video[botserver-video]
+    ui[botserver-ui]
+    
+    botserver[botserver - Meta-crate]
+    
+    botlib --> botstate
+    botstate --> botcore
+    botcore --> auth
+    botcore --> chat
+    botcore --> mail
+    botcore --> tasks
+    botcore --> drive
+    botcore --> auto
+    botcore --> contacts
+    botcore --> compliance
+    botcore --> video
+    
+    llm --> botstate
+    vectordb --> botstate
+    vectordb --> llm
+    
+    auth --> botstate
+    chat --> botstate
+    chat --> llm
+    mail --> botstate
+    tasks --> botstate
+    drive --> botstate
+    auto --> botstate
+    contacts --> botstate
+    compliance --> botstate
+    video --> botstate
+    
+    botserver --> botcore
+    botserver --> auth
+    botserver --> chat
+    botserver --> mail
+    botserver --> tasks
+    botserver --> drive
+    botserver --> llm
+    botserver --> vectordb
+    botserver --> auto
+    botserver --> contacts
+    botserver --> compliance
+    botserver --> video
+    botserver --> ui
+```
+
+---
+
+## 📁 File Structure After Migration
+
+```
+gb/
+├── Cargo.toml (workspace)
+├── botlib/
+│   ├── Cargo.toml
+│   └── src/
+├── botstate/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       ├── state.rs
+│       ├── traits.rs
+│       └── config.rs
+├── botserver-core/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       ├── server.rs
+│       ├── middleware.rs
+│       └── health.rs
+├── botserver-auth/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       ├── jwt.rs
+│       ├── rbac.rs
+│       └── session.rs
+├── botserver-chat/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       ├── websocket.rs
+│       └── messages.rs
+├── botserver-mail/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       ├── imap.rs
+│       └── smtp.rs
+├── botserver-tasks/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       ├── scheduler.rs
+│       └── cron.rs
+├── botserver-drive/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       ├── s3.rs
+│       └── sync.rs
+├── botserver-llm/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       ├── provider.rs
+│       └── cache.rs
+├── botserver-vectordb/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       └── qdrant.rs
+├── botserver-auto/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       ├── rhai_engine.rs
+│       └── keywords.rs
+├── botserver-contacts/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       └── crm.rs
+├── botserver-compliance/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       └── audit.rs
+├── botserver-video/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       └── livekit.rs
+├── botserver-ui/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs
+│       └── tui.rs
+└── botserver/ (meta-crate)
+    ├── Cargo.toml
+    └── src/
+        ├── main.rs
+        └── lib.rs (re-exports)
+```
+
+---
+
+## 🚀 Getting Started
+
+### Step 1: Create botstate Crate
+```bash
+cd /home/rodriguez/src/gb
+mkdir -p botstate/src
+cat > botstate/Cargo.toml << 'EOF'
+[package]
+name = "botstate"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+botlib = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+redis = { workspace = true, features = ["tokio-comp"] }
+diesel = { workspace = true, features = ["postgres", "r2d2"] }
+chrono = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+serde = { workspace = true, features = ["derive"] }
+async-trait = { workspace = true }
+EOF
+```
+
+### Step 2: Update Workspace
+Edit `/home/rodriguez/src/gb/Cargo.toml`:
+```toml
+members = [
+  "botapp",
+  "botdevice",
+  "botlib",
+  "botserver",
+  "bottest",
+  "botui",
+  "botstate",         # NEW
+  "botserver-core",   # NEW
+  "botserver-auth",   # NEW
+  "botserver-chat",   # NEW
+  # ... etc
+]
+```
+
+---
+
+## ✅ Success Criteria
+
+1. ✅ **botstate** compiles independently
+2. ✅ **botserver-core** starts HTTP server without other services
+3. ✅ Each service can be built independently
+4. ✅ No circular dependencies between crates
+5. ✅ All tests pass
+6. ✅ Compile time reduced by 70% for individual services
+7. ✅ Memory usage during compilation reduced by 60%
+8. ✅ Backward compatibility maintained (existing code still works)
+
+---
+
+## 📝 Notes
+
+- This plan prioritizes **incremental migration** - each step is reversible
+- Start with `botstate` and `botserver-core` as foundation
+- Test after each service extraction
+- Keep the meta-crate `botserver` for backward compatibility
+- Use feature flags to enable/disable services during transition
+
+---
+
+**Created**: 2026-04-18
+**Status**: Planning Phase
+**Next Step**: Create `botstate` crate with shared state types

@@ -1,0 +1,91 @@
+:root {
+    /* Light Theme - Clean white background */
+    --background: 0 0% 100%; /* Pure white */
+    --foreground: 222 47% 11%; /* Dark blue-gray text */
+    --card: 0 0% 98%; /* Slightly off-white */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 60%; /* Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 32% 91%; /* Light gray */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 214 32% 91%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 32% 91%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 91%;
+    --input: 0 0% 100%;
+    --ring: 217 91% 60%;
+    --radius: 0.5rem;
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 47 96% 53%;
+    --chart-4: 280 83% 57%;
+    --chart-5: 27 87% 67%;
+
+    /* ============================================ */
+    /* SENTIENT BRIDGE VARIABLES                   */
+    /* For Sheet, Docs, Slides theme support       */
+    /* ============================================ */
+
+    /* Backgrounds */
+    --sentient-bg-primary: #ffffff;
+    --sentient-bg-secondary: #fafafa;
+    --sentient-bg-tertiary: #f5f5f5;
+    --sentient-bg-hover: rgba(59, 130, 246, 0.08);
+    --sentient-bg-active: rgba(59, 130, 246, 0.15);
+
+    /* Text */
+    --sentient-text-primary: #1e293b;
+    --sentient-text-secondary: #64748b;
+    --sentient-text-tertiary: #94a3b8;
+    --sentient-text-muted: #cbd5e1;
+
+    /* Accent Colors */
+    --sentient-accent: #3b82f6;
+    --sentient-accent-hover: #2563eb;
+    --sentient-accent-light: rgba(59, 130, 246, 0.1);
+    --sentient-accent-dark: #1d4ed8;
+
+    /* Borders */
+    --sentient-border: #e2e8f0;
+    --sentient-border-light: #f1f5f9;
+    --sentient-border-accent: rgba(59, 130, 246, 0.3);
+
+    /* Surfaces */
+    --sentient-surface: #fafafa;
+    --sentient-surface-hover: #f1f5f9;
+    --sentient-surface-active: #e2e8f0;
+    --sentient-surface-elevated: #ffffff;
+
+    /* Inputs */
+    --sentient-input-bg: #ffffff;
+    --sentient-input-border: #e2e8f0;
+    --sentient-input-focus: #3b82f6;
+
+    /* Status Colors */
+    --sentient-success: #22c55e;
+    --sentient-success-bg: rgba(34, 197, 94, 0.15);
+    --sentient-warning: #f59e0b;
+    --sentient-warning-bg: rgba(245, 158, 11, 0.15);
+    --sentient-error: #ef4444;
+    --sentient-error-bg: rgba(239, 68, 68, 0.15);
+
+    /* Typography */
+    --sentient-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+    /* Shadows */
+    --sentient-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --sentient-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --sentient-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* Border Radius */
+    --sentient-radius: 0.5rem;
+    --sentient-radius-sm: 0.25rem;
+    --sentient-radius-md: 0.5rem;
+    --sentient-radius-lg: 0.75rem;
+    --sentient-radius-xl: 1rem;
+}

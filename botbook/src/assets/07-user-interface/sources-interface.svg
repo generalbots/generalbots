@@ -1,0 +1,206 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f5f5f5; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .panel-bg { fill: #fafafa; }
+    .header-bg { fill: #e8e8e8; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .icon-text { fill: #333; font-family: Arial, sans-serif; }
+    .divider { stroke: #ddd; stroke-width: 1; }
+    .button { fill: #4A90E2; }
+    .button-text { fill: #fff; font-family: Arial, sans-serif; }
+    .input-field { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .tab-active { fill: #4A90E2; }
+    .tab-inactive { fill: #e0e0e0; }
+    .card { fill: #fff; stroke: #ddd; stroke-width: 1; }
+    .card-featured { fill: #fff; stroke: #4A90E2; stroke-width: 2; }
+    .sidebar-active { fill: #e8f4fd; }
+    .category-icon { fill: #666; }
+    .star-icon { fill: #F5A623; }
+    .tag { fill: #e8f4fd; stroke: #4A90E2; stroke-width: 1; }
+    .tag-text { fill: #4A90E2; font-family: Arial, sans-serif; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a1a; }
+      .frame { stroke: #555; }
+      .panel-bg { fill: #222; }
+      .header-bg { fill: #2a2a2a; }
+      .main-text { fill: #ffffff; }
+      .secondary-text { fill: #aaa; }
+      .icon-text { fill: #ddd; }
+      .divider { stroke: #444; }
+      .input-field { fill: #2a2a2a; stroke: #444; }
+      .tab-inactive { fill: #333; }
+      .card { fill: #2a2a2a; stroke: #444; }
+      .card-featured { fill: #2a2a2a; stroke: #00D4FF; }
+      .sidebar-active { fill: #2a3a4a; }
+      .button { fill: #00D4FF; }
+      .tab-active { fill: #00D4FF; }
+      .tag { fill: #1a2a3a; stroke: #00D4FF; }
+      .tag-text { fill: #00D4FF; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Sources - Prompts &amp; Templates Interface</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="50" width="840" height="470" rx="8" class="frame bg"/>
+
+  <!-- Header -->
+  <rect x="30" y="50" width="840" height="50" rx="8" class="header-bg"/>
+  <rect x="30" y="92" width="840" height="8" class="bg"/>
+
+  <!-- Title -->
+  <text x="55" y="82" font-size="16" font-weight="600" class="main-text">Sources</text>
+
+  <!-- Search Bar -->
+  <g transform="translate(580, 60)">
+    <rect x="0" y="0" width="200" height="32" rx="16" class="input-field"/>
+    <text x="20" y="21" font-size="13" class="secondary-text">🔍 Search...</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="30" y1="100" x2="870" y2="100" class="divider"/>
+
+  <!-- Tabs -->
+  <g transform="translate(50, 110)">
+    <rect x="0" y="0" width="90" height="32" rx="4" class="tab-active"/>
+    <text x="45" y="21" text-anchor="middle" font-size="12" fill="#fff">Prompts</text>
+
+    <rect x="100" y="0" width="95" height="32" rx="4" class="tab-inactive"/>
+    <text x="147" y="21" text-anchor="middle" font-size="12" class="main-text">Templates</text>
+
+    <rect x="205" y="0" width="105" height="32" rx="4" class="tab-inactive"/>
+    <text x="257" y="21" text-anchor="middle" font-size="12" class="main-text">MCP Servers</text>
+
+    <rect x="320" y="0" width="95" height="32" rx="4" class="tab-inactive"/>
+    <text x="367" y="21" text-anchor="middle" font-size="12" class="main-text">LLM Tools</text>
+
+    <rect x="425" y="0" width="80" height="32" rx="4" class="tab-inactive"/>
+    <text x="465" y="21" text-anchor="middle" font-size="12" class="main-text">Models</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="50" y1="155" x2="850" y2="155" class="divider"/>
+
+  <!-- Left Sidebar - Categories -->
+  <rect x="30" y="155" width="130" height="365" class="panel-bg"/>
+  <line x1="160" y1="155" x2="160" y2="520" class="divider"/>
+
+  <!-- Categories -->
+  <g transform="translate(40, 170)">
+    <text x="0" y="0" font-size="12" font-weight="500" class="secondary-text">Categories</text>
+    <line x1="0" y1="10" x2="110" y2="10" class="divider"/>
+
+    <!-- Category Items -->
+    <rect x="-5" y="20" width="115" height="28" rx="4" class="sidebar-active"/>
+    <text x="5" y="39" font-size="13" class="main-text">📝 Writing</text>
+
+    <text x="5" y="70" font-size="13" class="secondary-text">📊 Analysis</text>
+    <text x="5" y="98" font-size="13" class="secondary-text">💼 Business</text>
+    <text x="5" y="126" font-size="13" class="secondary-text">💻 Code</text>
+    <text x="5" y="154" font-size="13" class="secondary-text">🎨 Creative</text>
+    <text x="5" y="182" font-size="13" class="secondary-text">🤖 Automation</text>
+    <text x="5" y="210" font-size="13" class="secondary-text">📞 Support</text>
+  </g>
+
+  <!-- Main Content Area -->
+  <g transform="translate(175, 170)">
+    <!-- Featured Section -->
+    <text x="0" y="0" font-size="14" font-weight="500" class="main-text">⭐ Featured</text>
+
+    <!-- Card 1: Customer Service -->
+    <rect x="0" y="20" width="210" height="150" rx="8" class="card-featured"/>
+    <text x="15" y="50" font-size="15" font-weight="500" class="main-text">Customer</text>
+    <text x="15" y="70" font-size="15" font-weight="500" class="main-text">Service</text>
+    <line x1="15" y1="80" x2="195" y2="80" class="divider"/>
+    <text x="15" y="100" font-size="12" class="secondary-text">Handle support</text>
+    <text x="15" y="118" font-size="12" class="secondary-text">inquiries with AI</text>
+    <text x="15" y="136" font-size="12" class="secondary-text">assistance</text>
+    <!-- Use Button -->
+    <rect x="15" y="145" width="60" height="24" rx="4" class="button"/>
+    <text x="45" y="162" text-anchor="middle" font-size="11" class="button-text">Use</text>
+    <!-- Star -->
+    <text x="180" y="50" font-size="14" class="star-icon">★</text>
+
+    <!-- Card 2: Sales Assistant -->
+    <rect x="225" y="20" width="210" height="150" rx="8" class="card-featured"/>
+    <text x="240" y="50" font-size="15" font-weight="500" class="main-text">Sales</text>
+    <text x="240" y="70" font-size="15" font-weight="500" class="main-text">Assistant</text>
+    <line x1="240" y1="80" x2="420" y2="80" class="divider"/>
+    <text x="240" y="100" font-size="12" class="secondary-text">Qualify leads and</text>
+    <text x="240" y="118" font-size="12" class="secondary-text">schedule meetings</text>
+    <text x="240" y="136" font-size="12" class="secondary-text">automatically</text>
+    <!-- Use Button -->
+    <rect x="240" y="145" width="60" height="24" rx="4" class="button"/>
+    <text x="270" y="162" text-anchor="middle" font-size="11" class="button-text">Use</text>
+    <!-- Star -->
+    <text x="405" y="50" font-size="14" class="star-icon">★</text>
+
+    <!-- Card 3: Code Helper -->
+    <rect x="450" y="20" width="210" height="150" rx="8" class="card"/>
+    <text x="465" y="50" font-size="15" font-weight="500" class="main-text">Code</text>
+    <text x="465" y="70" font-size="15" font-weight="500" class="main-text">Helper</text>
+    <line x1="465" y1="80" x2="645" y2="80" class="divider"/>
+    <text x="465" y="100" font-size="12" class="secondary-text">Generate and</text>
+    <text x="465" y="118" font-size="12" class="secondary-text">explain code</text>
+    <text x="465" y="136" font-size="12" class="secondary-text">snippets</text>
+    <!-- Use Button -->
+    <rect x="465" y="145" width="60" height="24" rx="4" class="button"/>
+    <text x="495" y="162" text-anchor="middle" font-size="11" class="button-text">Use</text>
+
+    <!-- More Templates Section -->
+    <text x="0" y="200" font-size="14" font-weight="500" class="main-text">All Prompts</text>
+
+    <!-- Smaller Cards Row -->
+    <rect x="0" y="220" width="155" height="100" rx="6" class="card"/>
+    <text x="15" y="245" font-size="13" font-weight="500" class="main-text">Meeting Notes</text>
+    <text x="15" y="265" font-size="11" class="secondary-text">Summarize meetings</text>
+    <rect x="15" y="280" width="50" height="22" rx="3" class="tag"/>
+    <text x="40" y="295" text-anchor="middle" font-size="10" class="tag-text">Writing</text>
+    <rect x="105" y="280" width="40" height="22" rx="4" class="button"/>
+    <text x="125" y="295" text-anchor="middle" font-size="10" class="button-text">Use</text>
+
+    <rect x="165" y="220" width="155" height="100" rx="6" class="card"/>
+    <text x="180" y="245" font-size="13" font-weight="500" class="main-text">Data Analyst</text>
+    <text x="180" y="265" font-size="11" class="secondary-text">Analyze datasets</text>
+    <rect x="180" y="280" width="55" height="22" rx="3" class="tag"/>
+    <text x="207" y="295" text-anchor="middle" font-size="10" class="tag-text">Analysis</text>
+    <rect x="270" y="280" width="40" height="22" rx="4" class="button"/>
+    <text x="290" y="295" text-anchor="middle" font-size="10" class="button-text">Use</text>
+
+    <rect x="330" y="220" width="155" height="100" rx="6" class="card"/>
+    <text x="345" y="245" font-size="13" font-weight="500" class="main-text">Email Writer</text>
+    <text x="345" y="265" font-size="11" class="secondary-text">Draft pro emails</text>
+    <rect x="345" y="280" width="55" height="22" rx="3" class="tag"/>
+    <text x="372" y="295" text-anchor="middle" font-size="10" class="tag-text">Business</text>
+    <rect x="435" y="280" width="40" height="22" rx="4" class="button"/>
+    <text x="455" y="295" text-anchor="middle" font-size="10" class="button-text">Use</text>
+
+    <rect x="495" y="220" width="155" height="100" rx="6" class="card"/>
+    <text x="510" y="245" font-size="13" font-weight="500" class="main-text">Story Writer</text>
+    <text x="510" y="265" font-size="11" class="secondary-text">Creative stories</text>
+    <rect x="510" y="280" width="55" height="22" rx="3" class="tag"/>
+    <text x="537" y="295" text-anchor="middle" font-size="10" class="tag-text">Creative</text>
+    <rect x="600" y="280" width="40" height="22" rx="4" class="button"/>
+    <text x="620" y="295" text-anchor="middle" font-size="10" class="button-text">Use</text>
+  </g>
+
+  <!-- Pagination -->
+  <g transform="translate(400, 500)">
+    <text x="0" y="0" font-size="12" class="secondary-text">Page 1 of 5</text>
+    <rect x="80" y="-15" width="30" height="22" rx="4" class="input-field"/>
+    <text x="95" y="2" text-anchor="middle" font-size="12" class="main-text">←</text>
+    <rect x="115" y="-15" width="30" height="22" rx="4" class="input-field"/>
+    <text x="130" y="2" text-anchor="middle" font-size="12" class="main-text">→</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(30, 535)">
+    <text x="0" y="0" font-size="11" class="secondary-text">Tabs: Prompts, Templates, MCP Servers, LLM Tools, Models</text>
+    <text x="350" y="0" font-size="11" class="secondary-text">Categories filter content</text>
+    <text x="550" y="0" font-size="11" class="secondary-text">Click Use to apply prompt/template</text>
+  </g>
+</svg>

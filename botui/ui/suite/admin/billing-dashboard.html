@@ -1,0 +1,467 @@
+<section class="billing-dashboard-analytics">
+    <div class="dashboard-header">
+        <div class="header-title">
+            <h1>Billing Dashboard</h1>
+            <p>Comprehensive analytics and insights for your organization's billing and usage</p>
+        </div>
+        <div class="header-actions">
+            <select class="period-selector" id="billingPeriod" onchange="updateBillingPeriod(this.value)">
+                <option value="current">Current Period</option>
+                <option value="last30">Last 30 Days</option>
+                <option value="last90">Last 90 Days</option>
+                <option value="ytd">Year to Date</option>
+                <option value="custom">Custom Range</option>
+            </select>
+            <button class="btn-secondary" onclick="exportBillingReport()">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export Report
+            </button>
+        </div>
+    </div>
+
+    <div class="metrics-overview" hx-get="/api/billing/dashboard/metrics" hx-trigger="load" hx-swap="innerHTML">
+        <div class="metric-card spending">
+            <div class="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Current Spending</span>
+                <span class="metric-value" id="currentSpending">$247.50</span>
+                <span class="metric-change positive">
+                    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                    </svg>
+                    12% from last period
+                </span>
+            </div>
+        </div>
+        <div class="metric-card quota">
+            <div class="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Quota Utilization</span>
+                <span class="metric-value" id="quotaUtilization">67%</span>
+                <span class="metric-change neutral">Average across all quotas</span>
+            </div>
+        </div>
+        <div class="metric-card api-calls">
+            <div class="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">API Calls</span>
+                <span class="metric-value" id="apiCallsCount">1.2M</span>
+                <span class="metric-change positive">+23% from last period</span>
+            </div>
+        </div>
+        <div class="metric-card storage">
+            <div class="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                </svg>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Storage Used</span>
+                <span class="metric-value" id="storageUsed">34.5 GB</span>
+                <span class="metric-change warning">69% of 50 GB limit</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="chart-card spending-trends">
+            <div class="card-header">
+                <h2>Spending Trends</h2>
+                <div class="chart-controls">
+                    <button class="chart-btn active" data-view="daily">Daily</button>
+                    <button class="chart-btn" data-view="weekly">Weekly</button>
+                    <button class="chart-btn" data-view="monthly">Monthly</button>
+                </div>
+            </div>
+            <div class="chart-container" id="spendingChart" hx-get="/api/billing/dashboard/spending-chart" hx-trigger="load" hx-swap="innerHTML">
+                <div class="chart-placeholder">
+                    <svg viewBox="0 0 400 200" class="spending-svg">
+                        <defs>
+                            <linearGradient id="spendingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--primary);stop-opacity:0.3" />
+                                <stop offset="100%" style="stop-color:var(--primary);stop-opacity:0" />
+                            </linearGradient>
+                        </defs>
+                        <path class="chart-area" fill="url(#spendingGradient)" d="M0,150 L50,120 L100,130 L150,90 L200,100 L250,70 L300,80 L350,50 L400,60 L400,200 L0,200 Z"></path>
+                        <path class="chart-line" fill="none" stroke="var(--primary)" stroke-width="2" d="M0,150 L50,120 L100,130 L150,90 L200,100 L250,70 L300,80 L350,50 L400,60"></path>
+                        <g class="chart-points">
+                            <circle cx="0" cy="150" r="4" fill="var(--primary)"></circle>
+                            <circle cx="50" cy="120" r="4" fill="var(--primary)"></circle>
+                            <circle cx="100" cy="130" r="4" fill="var(--primary)"></circle>
+                            <circle cx="150" cy="90" r="4" fill="var(--primary)"></circle>
+                            <circle cx="200" cy="100" r="4" fill="var(--primary)"></circle>
+                            <circle cx="250" cy="70" r="4" fill="var(--primary)"></circle>
+                            <circle cx="300" cy="80" r="4" fill="var(--primary)"></circle>
+                            <circle cx="350" cy="50" r="4" fill="var(--primary)"></circle>
+                            <circle cx="400" cy="60" r="4" fill="var(--primary)"></circle>
+                        </g>
+                    </svg>
+                    <div class="chart-labels">
+                        <span>Jan 14</span>
+                        <span>Jan 15</span>
+                        <span>Jan 16</span>
+                        <span>Jan 17</span>
+                        <span>Jan 18</span>
+                        <span>Jan 19</span>
+                        <span>Jan 20</span>
+                        <span>Jan 21</span>
+                        <span>Jan 22</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card usage-breakdown">
+            <div class="card-header">
+                <h2>Cost Breakdown by Service</h2>
+                <button class="btn-icon" onclick="toggleBreakdownView()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        <line x1="11" y1="8" x2="11" y2="14"></line>
+                        <line x1="8" y1="11" x2="14" y2="11"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="breakdown-chart" hx-get="/api/billing/dashboard/cost-breakdown" hx-trigger="load" hx-swap="innerHTML">
+                <div class="donut-chart">
+                    <svg viewBox="0 0 100 100" class="donut-svg">
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface-border)" stroke-width="8"></circle>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--chart-1)" stroke-width="8" stroke-dasharray="100.53 150.79" stroke-dashoffset="0" transform="rotate(-90 50 50)"></circle>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--chart-2)" stroke-width="8" stroke-dasharray="62.83 188.49" stroke-dashoffset="-100.53" transform="rotate(-90 50 50)"></circle>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--chart-3)" stroke-width="8" stroke-dasharray="50.26 200.06" stroke-dashoffset="-163.36" transform="rotate(-90 50 50)"></circle>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--chart-4)" stroke-width="8" stroke-dasharray="37.70 213.62" stroke-dashoffset="-213.62" transform="rotate(-90 50 50)"></circle>
+                    </svg>
+                    <div class="donut-center">
+                        <span class="donut-value">$247.50</span>
+                        <span class="donut-label">Total</span>
+                    </div>
+                </div>
+                <div class="breakdown-legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: var(--chart-1)"></span>
+                        <span class="legend-label">API Calls</span>
+                        <span class="legend-value">$99.00 (40%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: var(--chart-2)"></span>
+                        <span class="legend-label">Storage</span>
+                        <span class="legend-value">$61.88 (25%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: var(--chart-3)"></span>
+                        <span class="legend-label">Messages</span>
+                        <span class="legend-value">$49.50 (20%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: var(--chart-4)"></span>
+                        <span class="legend-label">Other</span>
+                        <span class="legend-value">$37.12 (15%)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card quota-management">
+            <div class="card-header">
+                <h2>Quota Management</h2>
+                <button class="btn-secondary btn-sm" onclick="showQuotaSettings()">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    Settings
+                </button>
+            </div>
+            <div class="quota-list" hx-get="/api/billing/dashboard/quotas" hx-trigger="load" hx-swap="innerHTML">
+                <div class="quota-item">
+                    <div class="quota-header">
+                        <div class="quota-info">
+                            <span class="quota-name">API Calls</span>
+                            <span class="quota-usage">1,247,500 / 2,000,000</span>
+                        </div>
+                        <span class="quota-percent warning">62%</span>
+                    </div>
+                    <div class="quota-bar">
+                        <div class="quota-fill warning" style="width: 62%"></div>
+                        <div class="quota-threshold" style="left: 80%"></div>
+                        <div class="quota-threshold critical" style="left: 90%"></div>
+                    </div>
+                    <div class="quota-alerts">
+                        <span class="alert-indicator active">80% alert enabled</span>
+                    </div>
+                </div>
+                <div class="quota-item">
+                    <div class="quota-header">
+                        <div class="quota-info">
+                            <span class="quota-name">Storage</span>
+                            <span class="quota-usage">34.5 GB / 50 GB</span>
+                        </div>
+                        <span class="quota-percent warning">69%</span>
+                    </div>
+                    <div class="quota-bar">
+                        <div class="quota-fill warning" style="width: 69%"></div>
+                        <div class="quota-threshold" style="left: 80%"></div>
+                        <div class="quota-threshold critical" style="left: 90%"></div>
+                    </div>
+                    <div class="quota-alerts">
+                        <span class="alert-indicator active">80% alert enabled</span>
+                    </div>
+                </div>
+                <div class="quota-item">
+                    <div class="quota-header">
+                        <div class="quota-info">
+                            <span class="quota-name">Messages</span>
+                            <span class="quota-usage">45,000 / 100,000</span>
+                        </div>
+                        <span class="quota-percent normal">45%</span>
+                    </div>
+                    <div class="quota-bar">
+                        <div class="quota-fill" style="width: 45%"></div>
+                        <div class="quota-threshold" style="left: 80%"></div>
+                        <div class="quota-threshold critical" style="left: 90%"></div>
+                    </div>
+                    <div class="quota-alerts">
+                        <span class="alert-indicator">80% alert enabled</span>
+                    </div>
+                </div>
+                <div class="quota-item">
+                    <div class="quota-header">
+                        <div class="quota-info">
+                            <span class="quota-name">Team Members</span>
+                            <span class="quota-usage">12 / 50</span>
+                        </div>
+                        <span class="quota-percent normal">24%</span>
+                    </div>
+                    <div class="quota-bar">
+                        <div class="quota-fill" style="width: 24%"></div>
+                        <div class="quota-threshold" style="left: 80%"></div>
+                        <div class="quota-threshold critical" style="left: 90%"></div>
+                    </div>
+                    <div class="quota-alerts">
+                        <span class="alert-indicator">No alerts configured</span>
+                    </div>
+                </div>
+                <div class="quota-item">
+                    <div class="quota-header">
+                        <div class="quota-info">
+                            <span class="quota-name">Bots</span>
+                            <span class="quota-usage">8 / 20</span>
+                        </div>
+                        <span class="quota-percent normal">40%</span>
+                    </div>
+                    <div class="quota-bar">
+                        <div class="quota-fill" style="width: 40%"></div>
+                        <div class="quota-threshold" style="left: 80%"></div>
+                        <div class="quota-threshold critical" style="left: 90%"></div>
+                    </div>
+                    <div class="quota-alerts">
+                        <span class="alert-indicator">No alerts configured</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card usage-by-bot">
+            <div class="card-header">
+                <h2>Usage by Bot</h2>
+                <select class="metric-selector" id="botMetric" onchange="updateBotMetric(this.value)">
+                    <option value="api_calls">API Calls</option>
+                    <option value="messages">Messages</option>
+                    <option value="storage">Storage</option>
+                    <option value="cost">Cost</option>
+                </select>
+            </div>
+            <div class="bot-usage-list" hx-get="/api/billing/dashboard/bot-usage" hx-trigger="load" hx-swap="innerHTML">
+                <div class="bot-usage-item">
+                    <div class="bot-info">
+                        <div class="bot-avatar">CS</div>
+                        <div class="bot-details">
+                            <span class="bot-name">Customer Support Bot</span>
+                            <span class="bot-id">bot_cs_01</span>
+                        </div>
+                    </div>
+                    <div class="bot-metrics">
+                        <div class="bot-metric-bar">
+                            <div class="bot-metric-fill" style="width: 45%"></div>
+                        </div>
+                        <span class="bot-metric-value">562,500 calls</span>
+                    </div>
+                </div>
+                <div class="bot-usage-item">
+                    <div class="bot-info">
+                        <div class="bot-avatar">SA</div>
+                        <div class="bot-details">
+                            <span class="bot-name">Sales Assistant</span>
+                            <span class="bot-id">bot_sa_01</span>
+                        </div>
+                    </div>
+                    <div class="bot-metrics">
+                        <div class="bot-metric-bar">
+                            <div class="bot-metric-fill" style="width: 32%"></div>
+                        </div>
+                        <span class="bot-metric-value">400,000 calls</span>
+                    </div>
+                </div>
+                <div class="bot-usage-item">
+                    <div class="bot-info">
+                        <div class="bot-avatar">HR</div>
+                        <div class="bot-details">
+                            <span class="bot-name">HR Assistant</span>
+                            <span class="bot-id">bot_hr_01</span>
+                        </div>
+                    </div>
+                    <div class="bot-metrics">
+                        <div class="bot-metric-bar">
+                            <div class="bot-metric-fill" style="width: 18%"></div>
+                        </div>
+                        <span class="bot-metric-value">225,000 calls</span>
+                    </div>
+                </div>
+                <div class="bot-usage-item">
+                    <div class="bot-info">
+                        <div class="bot-avatar">IT</div>
+                        <div class="bot-details">
+                            <span class="bot-name">IT Helpdesk</span>
+                            <span class="bot-id">bot_it_01</span>
+                        </div>
+                    </div>
+                    <div class="bot-metrics">
+                        <div class="bot-metric-bar">
+                            <div class="bot-metric-fill" style="width: 5%"></div>
+                        </div>
+                        <span class="bot-metric-value">60,000 calls</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card recent-invoices">
+            <div class="card-header">
+                <h2>Recent Invoices</h2>
+                <a href="/admin/billing" class="view-all-link">View All</a>
+            </div>
+            <div class="invoices-list" hx-get="/api/billing/dashboard/recent-invoices" hx-trigger="load" hx-swap="innerHTML">
+                <div class="invoice-item">
+                    <div class="invoice-info">
+                        <span class="invoice-id">INV-2025-0122</span>
+                        <span class="invoice-date">Jan 21, 2025</span>
+                    </div>
+                    <div class="invoice-amount">$247.50</div>
+                    <span class="invoice-status paid">Paid</span>
+                    <button class="btn-icon" onclick="downloadInvoice('INV-2025-0122')">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="invoice-item">
+                    <div class="invoice-info">
+                        <span class="invoice-id">INV-2024-1221</span>
+                        <span class="invoice-date">Dec 21, 2024</span>
+                    </div>
+                    <div class="invoice-amount">$198.00</div>
+                    <span class="invoice-status paid">Paid</span>
+                    <button class="btn-icon" onclick="downloadInvoice('INV-2024-1221')">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="invoice-item">
+                    <div class="invoice-info">
+                        <span class="invoice-id">INV-2024-1121</span>
+                        <span class="invoice-date">Nov 21, 2024</span>
+                    </div>
+                    <div class="invoice-amount">$185.25</div>
+                    <span class="invoice-status paid">Paid</span>
+                    <button class="btn-icon" onclick="downloadInvoice('INV-2024-1121')">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card alerts-activity">
+            <div class="card-header">
+                <h2>Billing Alerts</h2>
+                <button class="btn-secondary btn-sm" onclick="configureAlerts()">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    Configure
+                </button>
+            </div>
+            <div class="alerts-list" hx-get="/api/billing/dashboard/alerts" hx-trigger="load" hx-swap="innerHTML">
+                <div class="alert-item warning">
+                    <div class="alert-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+                    <div class="alert-content">
+                        <span class="alert-title">Storage approaching 70%</span>
+                        <span class="alert-time">2 hours ago</span>
+                    </div>
+                    <button class="btn-icon dismiss" onclick="dismissAlert(this)">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="alert-item info">
+                    <div class="alert-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </div>
+                    <div class="alert-content">
+                        <span class="alert-title">Invoice generated for January</span>
+                        <span class="alert-time">1 day ago</span>
+                    </div>
+                    <button class="btn-icon dismiss" onclick="dismissAlert(this)">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="alert-item success">
+                    <div class="alert-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>

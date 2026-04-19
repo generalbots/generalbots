@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 880 680" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="880" height="680" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Package Structure</text>
+
+  <!-- Root Package -->
+  <rect x="300" y="60" width="200" height="50" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="85" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">my-bot.gbai/</text>
+  <text x="400" y="100" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">(Package Root)</text>
+
+  <!-- Connection Lines from Root -->
+  <g stroke="#6B7280" stroke-width="2" fill="none">
+    <line x1="400" y1="110" x2="400" y2="140">
+    <!-- Horizontal spread -->
+    <line x1="400" y1="140" x2="150" y2="140">
+    <line x1="400" y1="140" x2="650" y2="140">
+    <!-- Vertical lines to components -->
+    <line x1="150" y1="140" x2="150" y2="180">
+    <line x1="280" y1="140" x2="280" y2="180">
+    <line x1="400" y1="140" x2="400" y2="180">
+    <line x1="520" y1="140" x2="520" y2="180">
+    <line x1="650" y1="140" x2="650" y2="180">
+  </g>
+
+  <!-- Component Folders -->
+  <g id="folders">
+    <!-- .gbdialog -->
+    <rect x="70" y="180" width="160" height="80" fill="none" stroke="#EA580C" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="150" y="205" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">.gbdialog</text>
+    <text x="150" y="225" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Dialog Scripts</text>
+    <text x="150" y="245" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Conversation Logic</text>
+
+    <!-- .gbkb -->
+    <rect x="200" y="180" width="160" height="80" fill="none" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="280" y="205" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">.gbkb</text>
+    <text x="280" y="225" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Knowledge Base</text>
+    <text x="280" y="245" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Documents</text>
+
+    <!-- .gbot -->
+    <rect x="320" y="180" width="160" height="80" fill="none" stroke="#7C3AED" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="400" y="205" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">.gbot</text>
+    <text x="400" y="225" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Configuration</text>
+    <text x="400" y="245" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Bot Settings</text>
+
+    <!-- .gbtheme -->
+    <rect x="440" y="180" width="160" height="80" fill="none" stroke="#DC2626" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="520" y="205" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">.gbtheme</text>
+    <text x="520" y="225" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">(optional)</text>
+    <text x="520" y="245" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">UI Theme</text>
+
+    <!-- .gbdrive -->
+    <rect x="570" y="180" width="160" height="80" fill="none" stroke="#059669" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="650" y="205" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">.gbdrive</text>
+    <text x="650" y="225" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">(optional)</text>
+    <text x="650" y="245" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">File Storage</text>
+  </g>
+
+  <!-- Connection lines to file types -->
+  <g stroke="#6B7280" stroke-width="2" fill="none" opacity="0.6">
+    <line x1="150" y1="260" x2="150" y2="300">
+    <line x1="280" y1="260" x2="280" y2="300">
+    <line x1="400" y1="260" x2="400" y2="300">
+    <line x1="520" y1="260" x2="520" y2="300">
+    <line x1="650" y1="260" x2="650" y2="300">
+  </g>
+
+  <!-- File Types -->
+  <g id="file-types">
+    <!-- Scripts -->
+    <rect x="80" y="300" width="140" height="60" fill="none" stroke="#EA580C" stroke-width="2" rx="4" stroke-dasharray="3,3" opacity="0.7" filter="url(#shadow)"/>
+    <text x="150" y="325" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Scripts</text>
+    <text x="150" y="345" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">.bas files</text>
+
+    <!-- Documents -->
+    <rect x="210" y="300" width="140" height="60" fill="none" stroke="#2563EB" stroke-width="2" rx="4" stroke-dasharray="3,3" opacity="0.7" filter="url(#shadow)"/>
+    <text x="280" y="325" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Docs</text>
+    <text x="280" y="345" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">PDF/TXT</text>
+
+    <!-- Config -->
+    <rect x="330" y="300" width="140" height="60" fill="none" stroke="#7C3AED" stroke-width="2" rx="4" stroke-dasharray="3,3" opacity="0.7" filter="url(#shadow)"/>
+    <text x="400" y="325" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Config</text>
+    <text x="400" y="345" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">.csv</text>
+
+    <!-- Styles -->
+    <rect x="450" y="300" width="140" height="60" fill="none" stroke="#DC2626" stroke-width="2" rx="4" stroke-dasharray="3,3" opacity="0.7" filter="url(#shadow)"/>
+    <text x="520" y="325" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Styles</text>
+    <text x="520" y="345" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">CSS/HTML</text>
+
+    <!-- Storage -->
+    <rect x="580" y="300" width="140" height="60" fill="none" stroke="#059669" stroke-width="2" rx="4" stroke-dasharray="3,3" opacity="0.7" filter="url(#shadow)"/>
+    <text x="650" y="325" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Storage</text>
+    <text x="650" y="345" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">S3 Link</text>
+  </g>
+
+  <!-- Example Structure -->
+  <g id="example" transform="translate(100, 400)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Example Directory Structure:</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="0" y="30" filter="url(#textShadow)">botname.gbai/</text>
+      <text x="20" y="50" filter="url(#textShadow)">├── botname.gbdialog/</text>
+      <text x="40" y="70" filter="url(#textShadow)">│   ├── start.bas</text>
+      <text x="40" y="90" filter="url(#textShadow)">│   ├── auth.bas</text>
+      <text x="40" y="110" filter="url(#textShadow)">│   └── tools/</text>
+      <text x="20" y="130" filter="url(#textShadow)">├── botname.gbkb/</text>
+      <text x="40" y="150" filter="url(#textShadow)">│   ├── collection1/</text>
+      <text x="40" y="170" filter="url(#textShadow)">│   └── collection2/</text>
+      <text x="20" y="190" filter="url(#textShadow)">├── botname.gbot/</text>
+      <text x="40" y="210" filter="url(#textShadow)">│   └── config.csv</text>
+      <text x="20" y="230" filter="url(#textShadow)">└── botname.gbtheme/</text>
+      <text x="40" y="250" filter="url(#textShadow)">    └── default.css</text>
+    </g>
+  </g>
+
+  <!-- Notes -->
+  <g id="notes" transform="translate(450, 430)">
+    <rect x="0" y="0" width="300" height="120" fill="none" stroke="#2563EB" stroke-width="2" rx="5" stroke-dasharray="2,2" opacity="0.5" filter="url(#shadow)"/>
+    <text x="150" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Key Points</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="10" y="45" filter="url(#textShadow)">• Folder name = Bot name</text>
+      <text x="10" y="65" filter="url(#textShadow)">• Only .gbdialog is required</text>
+      <text x="10" y="85" filter="url(#textShadow)">• start.bas is the entry point</text>
+      <text x="10" y="105" filter="url(#textShadow)">• Deploy by copying folder</text>
+    </g>
+  </g>
+
+
+  </g>
+
+</svg>

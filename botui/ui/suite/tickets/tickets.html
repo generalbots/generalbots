@@ -1,0 +1,567 @@
+<!-- Tickets - AI-Assisted Support Cases -->
+<!-- Dynamics nomenclature: Case, Resolution, Activity -->
+
+<link rel="stylesheet" href="tickets/tickets.css" />
+
+<div class="tickets-container">
+    <!-- Header -->
+    <header class="tickets-header">
+        <div class="tickets-header-left">
+            <h1 data-i18n="tickets-title">Support</h1>
+            <nav class="tickets-tabs">
+                <button
+                    class="tickets-tab active"
+                    data-view="all"
+                    data-i18n="tickets-all"
+                >
+                    All Cases
+                </button>
+                <button
+                    class="tickets-tab"
+                    data-view="open"
+                    data-i18n="tickets-open"
+                >
+                    Open
+                </button>
+                <button
+                    class="tickets-tab"
+                    data-view="pending"
+                    data-i18n="tickets-pending"
+                >
+                    Pending
+                </button>
+                <button
+                    class="tickets-tab"
+                    data-view="resolved"
+                    data-i18n="tickets-resolved"
+                >
+                    Resolved
+                </button>
+            </nav>
+        </div>
+        <div class="tickets-header-right">
+            <div class="tickets-search">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                    type="text"
+                    placeholder="Search cases..."
+                    data-i18n-placeholder="tickets-search-placeholder"
+                    hx-get="/api/tickets/search"
+                    hx-trigger="keyup changed delay:300ms"
+                    hx-target="#tickets-search-results"
+                />
+            </div>
+            <button class="btn-primary" id="tickets-new-btn">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span data-i18n="tickets-new">New Case</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Search Results -->
+    <div id="tickets-search-results" class="tickets-search-results"></div>
+
+    <!-- Summary Cards -->
+    <div class="tickets-summary">
+        <div class="summary-card">
+            <div class="summary-icon open">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="tickets-open-cases"
+                    >Open Cases</span
+                >
+                <span
+                    class="summary-value open"
+                    hx-get="/api/tickets/stats/open"
+                    hx-trigger="load"
+                    >0</span
+                >
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon urgent">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="tickets-urgent"
+                    >Urgent</span
+                >
+                <span
+                    class="summary-value urgent"
+                    hx-get="/api/tickets/stats/urgent"
+                    hx-trigger="load"
+                    >0</span
+                >
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon resolved">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="tickets-resolved-today"
+                    >Resolved Today</span
+                >
+                <span
+                    class="summary-value resolved"
+                    hx-get="/api/tickets/stats/resolved-today"
+                    hx-trigger="load"
+                    >0</span
+                >
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon ai">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"
+                    />
+                    <circle cx="7.5" cy="14.5" r="1.5" />
+                    <circle cx="16.5" cy="14.5" r="1.5" />
+                </svg>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label" data-i18n="tickets-ai-resolved"
+                    >AI Resolved</span
+                >
+                <span
+                    class="summary-value ai"
+                    hx-get="/api/tickets/stats/ai-resolved"
+                    hx-trigger="load"
+                    >0%</span
+                >
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content: List + Detail -->
+    <div class="tickets-main">
+        <!-- Tickets List -->
+        <div class="tickets-list">
+            <div class="tickets-list-header">
+                <div class="list-filters">
+                    <select
+                        hx-get="/api/tickets"
+                        hx-trigger="change"
+                        hx-target="#tickets-list-body"
+                        hx-include="this"
+                        name="priority"
+                    >
+                        <option value="all" data-i18n="tickets-priority-all">
+                            All Priorities
+                        </option>
+                        <option
+                            value="urgent"
+                            data-i18n="tickets-priority-urgent"
+                        >
+                            Urgent
+                        </option>
+                        <option value="high" data-i18n="tickets-priority-high">
+                            High
+                        </option>
+                        <option
+                            value="medium"
+                            data-i18n="tickets-priority-medium"
+                        >
+                            Medium
+                        </option>
+                        <option value="low" data-i18n="tickets-priority-low">
+                            Low
+                        </option>
+                    </select>
+                    <select
+                        hx-get="/api/tickets"
+                        hx-trigger="change"
+                        hx-target="#tickets-list-body"
+                        hx-include="this"
+                        name="category"
+                    >
+                        <option value="all" data-i18n="tickets-category-all">
+                            All Categories
+                        </option>
+                        <option
+                            value="technical"
+                            data-i18n="tickets-category-technical"
+                        >
+                            Technical
+                        </option>
+                        <option
+                            value="billing"
+                            data-i18n="tickets-category-billing"
+                        >
+                            Billing
+                        </option>
+                        <option
+                            value="general"
+                            data-i18n="tickets-category-general"
+                        >
+                            General
+                        </option>
+                        <option
+                            value="feature"
+                            data-i18n="tickets-category-feature"
+                        >
+                            Feature Request
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <div
+                id="tickets-list-body"
+                class="tickets-list-body"
+                hx-get="/api/tickets"
+                hx-trigger="load"
+            >
+                <!-- Tickets loaded via HTMX -->
+            </div>
+        </div>
+
+        <!-- Ticket Detail -->
+        <div class="ticket-detail" id="ticket-detail">
+            <div class="ticket-detail-empty">
+                <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                >
+                    <path
+                        d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                    />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                <p data-i18n="tickets-select-case">
+                    Select a case to view details
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for new ticket -->
+<div id="tickets-modal" class="tickets-modal">
+    <div class="tickets-modal-backdrop" onclick="closeTicketsModal()"></div>
+    <div class="tickets-modal-content" id="tickets-modal-content">
+        <form
+            class="ticket-form"
+            hx-post="/api/tickets"
+            hx-target="#tickets-list-body"
+            hx-on::after-request="closeTicketsModal()"
+        >
+            <div class="ticket-form-header">
+                <h2 class="ticket-form-title" data-i18n="tickets-new-case">
+                    New Support Case
+                </h2>
+                <button
+                    type="button"
+                    class="form-close"
+                    onclick="closeTicketsModal()"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- AI Suggestion Banner -->
+            <div class="ai-suggestion-banner">
+                <div class="ai-icon">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"
+                        />
+                    </svg>
+                </div>
+                <div class="ai-suggestion-text">
+                    <strong data-i18n="tickets-ai-assist">AI Assistant</strong>
+                    <span data-i18n="tickets-ai-will-help"
+                        >will analyze your issue and suggest solutions</span
+                    >
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" data-i18n="tickets-subject"
+                    >Subject</label
+                >
+                <input
+                    type="text"
+                    name="subject"
+                    class="form-input"
+                    required
+                    placeholder="Brief description of the issue"
+                    data-i18n-placeholder="tickets-subject-placeholder"
+                />
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="tickets-account"
+                        >Account</label
+                    >
+                    <select
+                        name="account_id"
+                        class="form-select"
+                        hx-get="/api/crm/accounts/search"
+                        hx-trigger="load"
+                    >
+                        <option value="" data-i18n="tickets-select-account">
+                            Select account...
+                        </option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="tickets-contact"
+                        >Contact</label
+                    >
+                    <select name="contact_id" class="form-select">
+                        <option value="" data-i18n="tickets-select-contact">
+                            Select contact...
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="tickets-priority"
+                        >Priority</label
+                    >
+                    <select name="priority" class="form-select" required>
+                        <option value="low" data-i18n="tickets-priority-low">
+                            Low
+                        </option>
+                        <option
+                            value="medium"
+                            selected
+                            data-i18n="tickets-priority-medium"
+                        >
+                            Medium
+                        </option>
+                        <option value="high" data-i18n="tickets-priority-high">
+                            High
+                        </option>
+                        <option
+                            value="urgent"
+                            data-i18n="tickets-priority-urgent"
+                        >
+                            Urgent
+                        </option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="tickets-category"
+                        >Category</label
+                    >
+                    <select name="category" class="form-select" required>
+                        <option
+                            value="technical"
+                            data-i18n="tickets-category-technical"
+                        >
+                            Technical
+                        </option>
+                        <option
+                            value="billing"
+                            data-i18n="tickets-category-billing"
+                        >
+                            Billing
+                        </option>
+                        <option
+                            value="general"
+                            data-i18n="tickets-category-general"
+                        >
+                            General
+                        </option>
+                        <option
+                            value="feature"
+                            data-i18n="tickets-category-feature"
+                        >
+                            Feature Request
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" data-i18n="tickets-description"
+                    >Description</label
+                >
+                <textarea
+                    name="description"
+                    class="form-textarea"
+                    required
+                    rows="5"
+                    placeholder="Describe the issue in detail..."
+                    data-i18n-placeholder="tickets-description-placeholder"
+                    hx-post="/api/tickets/ai-suggest"
+                    hx-trigger="blur delay:500ms"
+                    hx-target="#ai-suggestions"
+                ></textarea>
+            </div>
+
+            <!-- AI Suggestions (populated when description is entered) -->
+            <div id="ai-suggestions" class="ai-suggestions"></div>
+
+            <div class="form-actions">
+                <button
+                    type="button"
+                    class="form-btn secondary"
+                    onclick="closeTicketsModal()"
+                    data-i18n="common-cancel"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    class="form-btn primary"
+                    data-i18n="tickets-create-case"
+                >
+                    Create Case
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        // Tab switching (filters list)
+        document.querySelectorAll(".tickets-tab").forEach((tab) => {
+            tab.addEventListener("click", function () {
+                document
+                    .querySelectorAll(".tickets-tab")
+                    .forEach((t) => t.classList.remove("active"));
+                this.classList.add("active");
+                const status = this.dataset.view;
+                htmx.ajax(
+                    "GET",
+                    `/api/tickets?status=${status}`,
+                    "#tickets-list-body",
+                );
+            });
+        });
+
+        // New ticket button
+        document
+            .getElementById("tickets-new-btn")
+            .addEventListener("click", function () {
+                openTicketsModal();
+            });
+
+        // Modal functions
+        window.openTicketsModal = function () {
+            document.getElementById("tickets-modal").classList.add("open");
+        };
+
+        window.closeTicketsModal = function () {
+            document.getElementById("tickets-modal").classList.remove("open");
+        };
+
+        // Select ticket to view detail
+        window.selectTicket = function (ticketId) {
+            // Update list selection
+            document.querySelectorAll(".ticket-item").forEach((item) => {
+                item.classList.remove("selected");
+            });
+            document
+                .querySelector(`.ticket-item[data-id="${ticketId}"]`)
+                ?.classList.add("selected");
+
+            // Load detail
+            htmx.ajax("GET", `/api/tickets/${ticketId}`, "#ticket-detail");
+        };
+
+        // Keyboard shortcut: Escape to close modal
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+                closeTicketsModal();
+            }
+        });
+
+        // Initialize i18n if available
+        if (window.i18n && window.i18n.translatePage) {
+            window.i18n.translatePage();
+        }
+    })();
+</script>

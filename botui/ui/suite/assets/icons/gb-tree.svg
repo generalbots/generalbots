@@ -1,0 +1,42 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- GB-inspired tree structure icon for file/directory trees -->
+  <defs>
+    <linearGradient id="treeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Main vertical trunk -->
+  <path d="M6 3V21" stroke="url(#treeGradient)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Branch 1 - top level -->
+  <path d="M6 6H10" stroke="url(#treeGradient)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Node 1 - GB bot-inspired circle -->
+  <circle cx="13" cy="6" r="3" fill="url(#treeGradient)" opacity="0.9"/>
+  <circle cx="12" cy="5.5" r="0.6" fill="#fff"/>
+  <circle cx="14" cy="5.5" r="0.6" fill="#fff"/>
+
+  <!-- Branch 2 - middle level -->
+  <path d="M6 12H10" stroke="url(#treeGradient)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Node 2 - folder-like rectangle with GB rounding -->
+  <rect x="10" y="10" width="8" height="4" rx="1.5" fill="url(#treeGradient)" opacity="0.7"/>
+  <line x1="12" y1="12" x2="16" y2="12" stroke="#fff" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+
+  <!-- Branch 3 - bottom level -->
+  <path d="M6 18H10" stroke="url(#treeGradient)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Node 3 - document icon -->
+  <path d="M10 16H16C16.5523 16 17 16.4477 17 17V19C17 19.5523 16.5523 20 16 20H10C10 20 10 16 10 16Z" fill="url(#treeGradient)" opacity="0.5"/>
+  <line x1="12" y1="18" x2="15" y2="18" stroke="#fff" stroke-width="0.75" stroke-linecap="round"/>
+
+  <!-- Sub-branch connector dots - GB style -->
+  <circle cx="6" cy="6" r="1" fill="url(#treeGradient)"/>
+  <circle cx="6" cy="12" r="1" fill="url(#treeGradient)"/>
+  <circle cx="6" cy="18" r="1" fill="url(#treeGradient)"/>
+
+  <!-- Root node at top -->
+  <circle cx="6" cy="3" r="1.5" fill="url(#treeGradient)"/>
+</svg>

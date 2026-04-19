@@ -1,0 +1,403 @@
+<!-- Alerts partial -->
+<link rel="stylesheet" href="monitoring/alerts.css">
+<div class="alerts-container">
+    <!-- Alerts Header -->
+    <div class="alerts-header">
+        <div class="header-info">
+            <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                Alert Configuration
+            </h2>
+            <span class="alert-summary"
+                  hx-get="/api/ui/monitoring/alerts/summary"
+                  hx-trigger="load, every 30s"
+                  hx-swap="innerHTML">
+                <span class="summary-item critical">0 Critical</span>
+                <span class="summary-item warning">0 Warning</span>
+                <span class="summary-item info">0 Info</span>
+            </span>
+        </div>
+        <div class="header-actions">
+            <button class="action-btn" onclick="openCreateAlertModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Create Alert Rule
+            </button>
+            <button class="action-btn secondary" onclick="acknowledgeAllAlerts()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                Acknowledge All
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="alerts-tabs">
+        <button class="tab-btn active" onclick="switchTab('active', this)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Active Alerts
+            <span class="tab-badge" id="active-count">0</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('rules', this)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Alert Rules
+            <span class="tab-badge" id="rules-count">0</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('history', this)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            History
+        </button>
+    </div>
+
+    <!-- Active Alerts Panel -->
+    <div class="tab-panel active" id="active-panel">
+        <div class="panel-toolbar">
+            <div class="filter-group">
+                <select id="severity-filter" onchange="filterAlerts()">
+                    <option value="all">All Severities</option>
+                    <option value="critical">Critical</option>
+                    <option value="warning">Warning</option>
+                    <option value="info">Info</option>
+                </select>
+                <select id="status-filter" onchange="filterAlerts()">
+                    <option value="all">All Status</option>
+                    <option value="firing">Firing</option>
+                    <option value="pending">Pending</option>
+                    <option value="acknowledged">Acknowledged</option>
+                </select>
+            </div>
+            <div class="search-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="alert-search" placeholder="Search alerts..." onkeyup="searchAlerts(this.value)">
+            </div>
+        </div>
+
+        <div class="alerts-list" id="alerts-list"
+             hx-get="/api/ui/monitoring/alerts/active"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+            <div class="alert-placeholder">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <p>No active alerts</p>
+                <span>All systems are operating normally</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Rules Panel -->
+    <div class="tab-panel" id="rules-panel">
+        <div class="panel-toolbar">
+            <div class="filter-group">
+                <select id="rule-status-filter" onchange="filterRules()">
+                    <option value="all">All Rules</option>
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                </select>
+                <select id="rule-category-filter" onchange="filterRules()">
+                    <option value="all">All Categories</option>
+                    <option value="system">System</option>
+                    <option value="application">Application</option>
+                    <option value="database">Database</option>
+                    <option value="network">Network</option>
+                    <option value="security">Security</option>
+                </select>
+            </div>
+            <button class="action-btn secondary small" onclick="openCreateAlertModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                New Rule
+            </button>
+        </div>
+
+        <div class="rules-grid" id="rules-grid"
+             hx-get="/api/ui/monitoring/alerts/rules"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="rule-card skeleton">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+            </div>
+            <div class="rule-card skeleton">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Panel -->
+    <div class="tab-panel" id="history-panel">
+        <div class="panel-toolbar">
+            <div class="filter-group">
+                <select id="history-time-filter" onchange="filterHistory()">
+                    <option value="24h">Last 24 hours</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                </select>
+                <select id="history-outcome-filter" onchange="filterHistory()">
+                    <option value="all">All Outcomes</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="acknowledged">Acknowledged</option>
+                    <option value="expired">Expired</option>
+                </select>
+            </div>
+            <button class="action-btn secondary small" onclick="exportHistory()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export
+            </button>
+        </div>
+
+        <div class="history-list" id="history-list"
+             hx-get="/api/ui/monitoring/alerts/history"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading history...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/suite/monitoring/alerts.js"></script>
+
+<!-- Create Alert Rule Modal -->
+<div class="modal-overlay" id="create-alert-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                Create Alert Rule
+            </h3>
+            <button class="close-btn" onclick="closeCreateAlertModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form id="create-alert-form"
+              hx-post="/api/ui/monitoring/alerts/rules"
+              hx-target="#rules-grid"
+              hx-swap="innerHTML"
+              hx-on::after-request="closeCreateAlertModal()">
+            <div class="modal-body">
+                <div class="form-section">
+                    <h4>Basic Information</h4>
+                    <div class="form-group">
+                        <label for="alert-name">Alert Name *</label>
+                        <input type="text" id="alert-name" name="name" required placeholder="e.g., High CPU Usage">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="alert-severity">Severity *</label>
+                            <select id="alert-severity" name="severity" required>
+                                <option value="">Select severity</option>
+                                <option value="critical">Critical</option>
+                                <option value="warning">Warning</option>
+                                <option value="info">Info</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="alert-category">Category *</label>
+                            <select id="alert-category" name="category" required>
+                                <option value="">Select category</option>
+                                <option value="system">System</option>
+                                <option value="application">Application</option>
+                                <option value="database">Database</option>
+                                <option value="network">Network</option>
+                                <option value="security">Security</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="alert-description">Description</label>
+                        <textarea id="alert-description" name="description" rows="2" placeholder="Brief description of this alert rule"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>Condition</h4>
+                    <div class="form-group">
+                        <label for="alert-metric">Metric *</label>
+                        <select id="alert-metric" name="metric" required>
+                            <option value="">Select metric</option>
+                            <optgroup label="System">
+                                <option value="cpu_usage">CPU Usage (%)</option>
+                                <option value="memory_usage">Memory Usage (%)</option>
+                                <option value="disk_usage">Disk Usage (%)</option>
+                                <option value="load_average">Load Average</option>
+                            </optgroup>
+                            <optgroup label="Application">
+                                <option value="request_rate">Request Rate (req/s)</option>
+                                <option value="error_rate">Error Rate (%)</option>
+                                <option value="response_time">Response Time (ms)</option>
+                                <option value="active_connections">Active Connections</option>
+                            </optgroup>
+                            <optgroup label="Database">
+                                <option value="db_connections">DB Connections</option>
+                                <option value="query_time">Query Time (ms)</option>
+                                <option value="replication_lag">Replication Lag (s)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="alert-operator">Operator *</label>
+                            <select id="alert-operator" name="operator" required>
+                                <option value="gt">Greater than (&gt;)</option>
+                                <option value="gte">Greater than or equal (&gt;=)</option>
+                                <option value="lt">Less than (&lt;)</option>
+                                <option value="lte">Less than or equal (&lt;=)</option>
+                                <option value="eq">Equal to (=)</option>
+                                <option value="neq">Not equal to (!=)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="alert-threshold">Threshold *</label>
+                            <input type="number" id="alert-threshold" name="threshold" required placeholder="e.g., 90" step="any">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="alert-duration">Duration *</label>
+                            <select id="alert-duration" name="duration" required>
+                                <option value="0">Instant</option>
+                                <option value="60">1 minute</option>
+                                <option value="300" selected>5 minutes</option>
+                                <option value="600">10 minutes</option>
+                                <option value="900">15 minutes</option>
+                                <option value="1800">30 minutes</option>
+                                <option value="3600">1 hour</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="alert-evaluation">Evaluation Interval</label>
+                            <select id="alert-evaluation" name="evaluation_interval">
+                                <option value="30">30 seconds</option>
+                                <option value="60" selected>1 minute</option>
+                                <option value="300">5 minutes</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>Notifications</h4>
+                    <div class="notification-channels">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="notify_email" value="true" checked>
+                            <span class="checkbox-custom"></span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                            Email
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="notify_slack" value="true">
+                            <span class="checkbox-custom"></span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"></path>
+                                <path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"></path>
+                                <path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"></path>
+                                <path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"></path>
+                                <path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"></path>
+                                <path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"></path>
+                                <path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"></path>
+                                <path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"></path>
+                            </svg>
+                            Slack
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="notify_webhook" value="true">
+                            <span class="checkbox-custom"></span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                            Webhook
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="notify_sms" value="true">
+                            <span class="checkbox-custom"></span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                            </svg>
+                            SMS
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group inline">
+                        <label class="toggle-label">
+                            <input type="checkbox" name="enabled" value="true" checked>
+                            <span class="toggle-switch"></span>
+                            <span>Enable this alert rule</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn secondary" onclick="closeCreateAlertModal()">Cancel</button>
+                <button type="submit" class="btn primary">Create Alert Rule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Alert Detail Modal -->
+<div class="modal-overlay" id="alert-detail-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="alert-detail-title">Alert Details</h3>
+            <button class="close-btn" onclick="closeAlertDetailModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" id="alert-detail-content">
+            <!-- Alert details loaded here -->
+        </div>
+        <div class="modal-footer" id="alert-detail-actions">
+            <!-- Actions loaded dynamically -->
+        </div>
+    </div>
+</div>

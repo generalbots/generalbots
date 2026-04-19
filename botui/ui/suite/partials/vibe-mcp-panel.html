@@ -1,0 +1,25 @@
+<link rel="stylesheet" href="/suite/vibe/mcp-panel.css" />
+
+<!-- MCP Side Panel for Vibe -->
+<div class="mcp-panel" id="vibeMcpPanel">
+    <div class="mcp-panel-header">
+        <h3>🔌 MCP Servers</h3>
+        <div class="mcp-panel-actions">
+            <button class="mcp-btn-icon" onclick="vibeMcp.refreshServers()" title="Refresh List">
+                🔄
+            </button>
+            <a href="/suite/sources/mcp/add" class="mcp-btn-icon" title="Add MCP Server">
+                ➕
+            </a>
+        </div>
+    </div>
+    
+    <div class="mcp-list-container">
+        <!-- Servers will be injected here -->
+        <div id="mcpServerList" class="mcp-server-list">
+            <div class="mcp-loading">Loading servers...</div>
+        </div>
+    </div>
+</div>
+
+<script src="/suite/js/vibe-mcp.js"></script>

@@ -1,0 +1,250 @@
+[package]
+name = "botserver"
+version = "6.3.1"
+edition = "2021"
+resolver = "2"
+
+[dependencies.botlib]
+workspace = true
+features = ["database", "i18n"]
+
+[features]
+# ===== DEFAULT =====
+default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory"]
+
+# ===== SECURITY MODES =====
+# no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
+# Build with: cargo build --no-default-features --features "no-security,chat,llm"
+no-security = []
+
+browser = ["automation", "drive", "cache"]
+terminal = ["automation", "drive", "cache"]
+external_sync = ["automation", "drive", "cache"]
+
+# ===== CORE INFRASTRUCTURE (Can be used standalone) =====
+scripting = ["dep:rhai"]
+automation = ["scripting", "dep:cron"]
+drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-async", "dep:pdf-extract"]
+cache = ["dep:redis"]
+directory = ["rbac"]
+rbac = []
+crawler = ["drive", "cache"]
+
+# ===== APPS (Each includes what it needs from core) =====
+# Communication
+chat = ["automation", "cache"]
+people = ["automation", "drive", "cache"]
+mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap"]
+meet = ["automation", "drive", "cache"]
+social = ["automation", "drive", "cache"]
+marketing = ["people", "automation", "drive", "cache"]
+
+# Productivity
+calendar = ["automation", "drive", "cache"]
+tasks = ["automation", "drive", "cache", "dep:cron"]
+project = ["automation", "drive", "cache", "quick-xml"]
+goals = ["automation", "drive", "cache"]
+workspaces = ["automation", "drive", "cache"]
+tickets = ["automation", "drive", "cache"]
+billing = ["automation", "drive", "cache"]
+
+# Documents
+docs = ["automation", "drive", "cache", "docx-rs", "ooxmlsdk"]
+sheet = ["automation", "drive", "cache", "calamine", "dep:rust_xlsxwriter", "dep:umya-spreadsheet"]
+slides = ["automation", "drive", "cache", "ooxmlsdk"]
+paper = ["automation", "drive", "cache"]
+
+# Media
+video = ["automation", "drive", "cache"]
+player = ["automation", "drive", "cache"]
+canvas = ["automation", "drive", "cache"]
+
+# Learning
+learn = ["automation", "drive", "cache", "crawler"]
+research = ["automation", "drive", "cache", "llm", "vectordb"]
+sources = ["automation", "drive", "cache"]
+
+# Analytics
+analytics = ["automation", "drive", "cache"]
+dashboards = ["automation", "drive", "cache"]
+monitoring = ["automation", "drive", "cache", "dep:sysinfo"]
+
+# Development
+designer = ["automation", "drive", "cache"]
+editor = ["automation", "drive", "cache"]
+
+# Admin
+attendant = ["automation", "drive", "cache"]
+security = ["automation", "drive", "cache"]
+settings = ["automation", "drive", "cache"]
+
+whatsapp = ["automation", "drive", "cache"]
+telegram = ["automation", "drive", "cache"]
+instagram = ["automation", "drive", "cache"]
+msteams = ["automation", "drive", "cache"]
+# Core Tech
+llm = ["automation", "cache"]
+vectordb = ["automation", "drive", "cache", "dep:qdrant-client"]
+nvidia = ["automation", "drive", "cache"]
+compliance = ["automation", "drive", "cache", "dep:csv"]
+timeseries = ["automation", "drive", "cache"]
+weba = ["automation", "drive", "cache"]
+progress-bars = ["automation", "drive", "cache", "dep:indicatif"]
+grpc = ["automation", "drive", "cache"]
+jemalloc = ["automation", "drive", "cache", "dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
+console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
+
+# ===== BUNDLES (Optional - for convenience) =====
+minimal = ["chat"]
+minimal-chat = ["chat", "automation", "cache"]  # No security at all
+lightweight = ["chat", "tasks", "people"]
+full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
+embed-ui = ["dep:rust-embed"]
+
+[dependencies]
+diesel_migrations = { workspace = true }
+bigdecimal = { workspace = true }
+
+# === CORE RUNTIME ===
+aes-gcm = { workspace = true }
+anyhow = { workspace = true }
+argon2 = { workspace = true }
+async-trait = { workspace = true }
+axum = { workspace = true }
+axum-server = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true, features = ["clock", "std"] }
+html2md = "0.2"
+color-eyre = { workspace = true }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+dirs = { workspace = true }
+dotenvy = { workspace = true }
+futures = { workspace = true }
+futures-util = { workspace = true }
+git2 = "0.19"
+hex = { workspace = true }
+hmac = { workspace = true }
+log = { workspace = true }
+num-format = { workspace = true }
+once_cell = { workspace = true }
+rand = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls", "multipart", "stream", "json"] }
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true }
+toml = { workspace = true }
+sha2 = { workspace = true }
+sha1 = { workspace = true }
+tokio = { workspace = true, features = ["full", "process"] }
+tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
+tracing = { workspace = true }
+url = { workspace = true }
+urlencoding = { workspace = true }
+uuid = { workspace = true, features = ["v4", "v5"] }
+
+# === TLS/SECURITY DEPENDENCIES ===
+rustls = { workspace = true, features = ["ring", "std", "tls12"] }
+tokio-rustls = { workspace = true }
+rcgen = { workspace = true, features = ["crypto", "ring", "pem"] }
+x509-parser = { workspace = true }
+ring = { workspace = true }
+ciborium = { workspace = true }
+time = { workspace = true, features = ["formatting"] }
+jsonwebtoken = { workspace = true }
+
+# === APP-SPECIFIC DEPENDENCIES ===
+
+# mail Integration (mail feature)
+imap = { workspace = true, optional = true }
+lettre = { workspace = true, optional = true }
+mailparse = { workspace = true, optional = true }
+
+# Vector Database (vectordb feature)
+qdrant-client = { workspace = true, optional = true }
+
+# Document Processing
+docx-rs = { workspace = true, optional = true }
+ooxmlsdk = { workspace = true, optional = true, features = ["parts"] }
+calamine = { workspace = true, optional = true }
+rust_xlsxwriter = { workspace = true, optional = true }
+umya-spreadsheet = { workspace = true, optional = true }
+
+# File Storage & Drive (drive feature)
+aws-config = { workspace = true, features = ["behavior-version-latest", "rt-tokio", "rustls"], optional = true }
+aws-sdk-s3 = { workspace = true, features = ["rt-tokio", "rustls"], optional = true }
+aws-smithy-async = { workspace = true, optional = true }
+pdf-extract = { workspace = true, optional = true }
+quick-xml = { workspace = true, optional = true }
+flate2 = { workspace = true }
+zip = { workspace = true }
+tar = { workspace = true }
+
+# Task Management (tasks feature)
+cron = { workspace = true, optional = true }
+
+# Automation & Scripting (automation feature)
+rhai = { workspace = true, optional = true }
+
+# Compliance & Reporting (compliance feature)
+csv = { workspace = true, optional = true }
+
+# Console/TUI (console feature)
+crossterm = { workspace = true, optional = true }
+ratatui = { workspace = true, optional = true }
+
+# QR Code Generation
+png = { workspace = true }
+qrcode = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Caching/Sessions (cache feature)
+redis = { workspace = true, features = ["tokio-comp"], optional = true }
+
+# System Monitoring (monitoring feature)
+sysinfo = { workspace = true, optional = true }
+
+# UI Enhancement (progress-bars feature)
+indicatif = { workspace = true, optional = true }
+smartstring = { workspace = true }
+
+# Memory allocator (jemalloc feature)
+tikv-jemallocator = { workspace = true, optional = true }
+tikv-jemalloc-ctl = { workspace = true, optional = true }
+scopeguard = { workspace = true }
+
+# Vault secrets management
+vaultrs = { workspace = true }
+
+# Calendar standards (RFC 5545)
+icalendar = { workspace = true }
+
+# Rate limiting
+governor = { workspace = true }
+
+# RSS feed parsing
+rss = { workspace = true }
+
+# HTML parsing/web scraping
+scraper = { workspace = true }
+walkdir = { workspace = true }
+
+# Embedded static files
+rust-embed = { workspace = true, optional = true }
+
+# Blocking HTTP for Vault config
+ureq = { version = "2", features = ["json"] }
+
+[dev-dependencies]
+mockito = { workspace = true }
+tempfile = { workspace = true }
+bigdecimal = { workspace = true }
+
+# Force libgit2-sys to use system libgit2
+[patch.crates-io]
+libgit2-sys = { git = "https://github.com/rust-lang/git2-rs", branch = "main" }
+
+[dependencies.git2]
+version = "0.19"
+features = ["vendored-libgit2"]

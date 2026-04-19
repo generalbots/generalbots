@@ -1,0 +1,1448 @@
+<!-- =============================================================================
+     CANVAS APP - Collaborative Whiteboard & Drawing
+     Respects Theme Manager - No hardcoded theme
+     ============================================================================= -->
+
+<div class="canvas-app">
+    <!-- Toolbar -->
+    <aside class="canvas-toolbar">
+        <div class="toolbar-section">
+            <button
+                class="tool-btn active"
+                data-tool="select"
+                onclick="selectTool('select')"
+                title="Select (V)"
+            >
+                <span>↖</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="pan"
+                onclick="selectTool('pan')"
+                title="Pan (H)"
+            >
+                <span>✋</span>
+            </button>
+        </div>
+
+        <div class="toolbar-section">
+            <button
+                class="tool-btn"
+                data-tool="pencil"
+                onclick="selectTool('pencil')"
+                title="Pencil (P)"
+            >
+                <span>✏️</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="brush"
+                onclick="selectTool('brush')"
+                title="Brush (B)"
+            >
+                <span>🖌️</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="eraser"
+                onclick="selectTool('eraser')"
+                title="Eraser (E)"
+            >
+                <span>🧹</span>
+            </button>
+        </div>
+
+        <div class="toolbar-section">
+            <button
+                class="tool-btn"
+                data-tool="rectangle"
+                onclick="selectTool('rectangle')"
+                title="Rectangle (R)"
+            >
+                <span>▢</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="ellipse"
+                onclick="selectTool('ellipse')"
+                title="Ellipse (O)"
+            >
+                <span>◯</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="line"
+                onclick="selectTool('line')"
+                title="Line (L)"
+            >
+                <span>╱</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="arrow"
+                onclick="selectTool('arrow')"
+                title="Arrow (A)"
+            >
+                <span>→</span>
+            </button>
+        </div>
+
+        <div class="toolbar-section">
+            <button
+                class="tool-btn"
+                data-tool="text"
+                onclick="selectTool('text')"
+                title="Text (T)"
+            >
+                <span>T</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="sticky"
+                onclick="selectTool('sticky')"
+                title="Sticky Note (S)"
+            >
+                <span>📝</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="image"
+                onclick="selectTool('image')"
+                title="Image (I)"
+            >
+                <span>🖼️</span>
+            </button>
+        </div>
+
+        <div class="toolbar-section">
+            <button
+                class="tool-btn"
+                data-tool="connector"
+                onclick="selectTool('connector')"
+                title="Connector (C)"
+            >
+                <span>⤳</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="frame"
+                onclick="selectTool('frame')"
+                title="Frame (F)"
+            >
+                <span>⬚</span>
+            </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-section colors">
+            <input
+                type="color"
+                id="stroke-color"
+                value="#000000"
+                title="Stroke Color"
+                onchange="setStrokeColor(this.value)"
+            />
+            <input
+                type="color"
+                id="fill-color"
+                value="#ffffff"
+                title="Fill Color"
+                onchange="setFillColor(this.value)"
+            />
+        </div>
+
+        <div class="toolbar-section">
+            <select
+                id="stroke-width"
+                onchange="setStrokeWidth(this.value)"
+                title="Stroke Width"
+            >
+                <option value="1">1px</option>
+                <option value="2" selected>2px</option>
+                <option value="4">4px</option>
+                <option value="6">6px</option>
+                <option value="8">8px</option>
+            </select>
+        </div>
+    </aside>
+
+    <!-- Main Canvas Area -->
+    <main class="canvas-main">
+        <!-- Top Bar -->
+        <header class="canvas-header">
+            <div class="header-left">
+                <input
+                    type="text"
+                    id="canvas-name"
+                    value="Untitled Canvas"
+                    class="canvas-name-input"
+                    onblur="renameCanvas(this.value)"
+                />
+                <span class="save-status" id="save-status">Saved</span>
+            </div>
+            <div class="header-center">
+                <div class="zoom-controls">
+                    <button
+                        class="zoom-btn"
+                        onclick="zoomOut()"
+                        title="Zoom Out"
+                    >
+                        −
+                    </button>
+                    <span id="zoom-level">100%</span>
+                    <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">
+                        +
+                    </button>
+                    <button
+                        class="zoom-btn"
+                        onclick="resetZoom()"
+                        title="Reset Zoom"
+                    >
+                        ⟲
+                    </button>
+                    <button
+                        class="zoom-btn"
+                        onclick="fitToScreen()"
+                        title="Fit to Screen"
+                    >
+                        ⤢
+                    </button>
+                </div>
+            </div>
+            <div class="header-right">
+                <button
+                    class="btn-icon"
+                    onclick="undo()"
+                    title="Undo (Ctrl+Z)"
+                    data-i18n-title="canvas-undo"
+                >
+                    <span>↶</span>
+                </button>
+                <button
+                    class="btn-icon"
+                    onclick="redo()"
+                    title="Redo (Ctrl+Y)"
+                    data-i18n-title="canvas-redo"
+                >
+                    <span>↷</span>
+                </button>
+                <div class="separator"></div>
+                <button
+                    class="btn-icon"
+                    onclick="clearCanvas()"
+                    title="Clear Canvas"
+                    data-i18n-title="canvas-clear"
+                >
+                    <span>🗑️</span>
+                </button>
+                <button
+                    class="btn-secondary"
+                    onclick="exportCanvas()"
+                    data-i18n="canvas-export"
+                >
+                    <span>📤</span> Export
+                </button>
+                <button
+                    class="btn-primary"
+                    onclick="shareCanvas()"
+                    data-i18n="canvas-collaborate"
+                >
+                    <span>👥</span> Share
+                </button>
+            </div>
+        </header>
+
+        <!-- Canvas Container -->
+        <div class="canvas-container" id="canvas-container">
+            <canvas id="main-canvas"></canvas>
+            <div id="selection-box" class="selection-box hidden"></div>
+            <div id="cursor-indicators" class="cursor-indicators"></div>
+        </div>
+
+        <!-- Mini Map -->
+        <div class="mini-map" id="mini-map">
+            <canvas id="mini-map-canvas"></canvas>
+            <div class="viewport-indicator" id="viewport-indicator"></div>
+        </div>
+    </main>
+
+    <!-- Properties Panel -->
+    <aside class="properties-panel collapsed" id="properties-panel">
+        <button class="panel-toggle" onclick="togglePropertiesPanel()">
+            <span>⚙️</span>
+        </button>
+        <div class="panel-content">
+            <h3>Properties</h3>
+
+            <div id="element-properties" class="properties-group hidden">
+                <div class="property-row">
+                    <label>Position</label>
+                    <div class="input-group">
+                        <input
+                            type="number"
+                            id="prop-x"
+                            placeholder="X"
+                            onchange="updateElementProperty('x', this.value)"
+                        />
+                        <input
+                            type="number"
+                            id="prop-y"
+                            placeholder="Y"
+                            onchange="updateElementProperty('y', this.value)"
+                        />
+                    </div>
+                </div>
+                <div class="property-row">
+                    <label>Size</label>
+                    <div class="input-group">
+                        <input
+                            type="number"
+                            id="prop-width"
+                            placeholder="W"
+                            onchange="updateElementProperty('width', this.value)"
+                        />
+                        <input
+                            type="number"
+                            id="prop-height"
+                            placeholder="H"
+                            onchange="updateElementProperty('height', this.value)"
+                        />
+                    </div>
+                </div>
+                <div class="property-row">
+                    <label>Rotation</label>
+                    <input
+                        type="number"
+                        id="prop-rotation"
+                        placeholder="0°"
+                        onchange="updateElementProperty('rotation', this.value)"
+                    />
+                </div>
+                <div class="property-row">
+                    <label>Opacity</label>
+                    <input
+                        type="range"
+                        id="prop-opacity"
+                        min="0"
+                        max="100"
+                        value="100"
+                        onchange="updateElementProperty('opacity', this.value)"
+                    />
+                </div>
+                <div class="property-row">
+                    <label>Stroke</label>
+                    <input
+                        type="color"
+                        id="prop-stroke"
+                        onchange="updateElementProperty('strokeColor', this.value)"
+                    />
+                </div>
+                <div class="property-row">
+                    <label>Fill</label>
+                    <input
+                        type="color"
+                        id="prop-fill"
+                        onchange="updateElementProperty('fillColor', this.value)"
+                    />
+                </div>
+            </div>
+
+            <div id="canvas-properties" class="properties-group">
+                <h4>Canvas</h4>
+                <div class="property-row">
+                    <label>Background</label>
+                    <input
+                        type="color"
+                        id="canvas-bg"
+                        value="#ffffff"
+                        onchange="setCanvasBackground(this.value)"
+                    />
+                </div>
+                <div class="property-row">
+                    <label>Grid</label>
+                    <select id="grid-type" onchange="setGridType(this.value)">
+                        <option value="none">None</option>
+                        <option value="dots" selected>Dots</option>
+                        <option value="lines">Lines</option>
+                        <option value="squares">Squares</option>
+                    </select>
+                </div>
+                <div class="property-row">
+                    <label>Snap to Grid</label>
+                    <input
+                        type="checkbox"
+                        id="snap-grid"
+                        onchange="toggleSnapToGrid(this.checked)"
+                    />
+                </div>
+            </div>
+
+            <div class="properties-group">
+                <h4>Layers</h4>
+                <div id="layers-list" class="layers-list">
+                    <div class="layer-item active">
+                        <span class="layer-visibility">👁️</span>
+                        <span class="layer-name">Layer 1</span>
+                        <span class="layer-lock">🔓</span>
+                    </div>
+                </div>
+                <button class="btn-sm" onclick="addLayer()">+ Add Layer</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Collaborators Panel -->
+    <div class="collaborators-panel" id="collaborators-panel">
+        <div class="collaborators-list" id="collaborators-list">
+            <!-- Collaborator avatars will be added here -->
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <button onclick="duplicateSelected()">Duplicate</button>
+        <button onclick="copySelected()">Copy</button>
+        <button onclick="pasteClipboard()">Paste</button>
+        <div class="menu-divider"></div>
+        <button onclick="bringToFront()">Bring to Front</button>
+        <button onclick="sendToBack()">Send to Back</button>
+        <div class="menu-divider"></div>
+        <button onclick="deleteSelected()">Delete</button>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 data-i18n="canvas-export">Export Canvas</h2>
+            <div class="export-options">
+                <div class="export-format">
+                    <label>Format</label>
+                    <select id="export-format">
+                        <option value="png">PNG Image</option>
+                        <option value="svg">SVG Vector</option>
+                        <option value="pdf">PDF Document</option>
+                        <option value="json">JSON Data</option>
+                    </select>
+                </div>
+                <div class="export-scale">
+                    <label>Scale</label>
+                    <select id="export-scale">
+                        <option value="1">1x</option>
+                        <option value="2" selected>2x</option>
+                        <option value="3">3x</option>
+                    </select>
+                </div>
+                <div class="export-bg">
+                    <label>
+                        <input type="checkbox" id="export-bg" checked />
+                        Include Background
+                    </label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeExportModal()">
+                    Cancel
+                </button>
+                <button class="btn-primary" onclick="doExport()">Export</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .canvas-app {
+        display: flex;
+        height: 100%;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        overflow: hidden;
+    }
+
+    .canvas-toolbar {
+        width: 56px;
+        background: var(--bg-secondary);
+        border-right: 1px solid var(--border-color);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        overflow-y: auto;
+    }
+
+    .toolbar-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .toolbar-section.colors {
+        flex-direction: row;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+
+    .toolbar-section.colors input[type="color"] {
+        width: 20px;
+        height: 20px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0;
+        cursor: pointer;
+    }
+
+    .tool-btn {
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 1.125rem;
+        cursor: pointer;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+
+    .tool-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .tool-btn.active {
+        background: var(--accent-color);
+        color: white;
+    }
+
+    .toolbar-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 0.5rem 0;
+    }
+
+    .toolbar-section select {
+        width: 100%;
+        padding: 0.25rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 0.75rem;
+    }
+
+    .canvas-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .canvas-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 1rem;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        gap: 1rem;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .canvas-name-input {
+        border: none;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        width: 200px;
+    }
+
+    .canvas-name-input:hover,
+    .canvas-name-input:focus {
+        background: var(--bg-primary);
+        outline: none;
+    }
+
+    .save-status {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .header-center {
+        display: flex;
+        align-items: center;
+    }
+
+    .zoom-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: var(--bg-primary);
+        padding: 0.25rem;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+
+    .zoom-btn {
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    .zoom-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    #zoom-level {
+        font-size: 0.875rem;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .separator {
+        width: 1px;
+        height: 24px;
+        background: var(--border-color);
+        margin: 0 0.5rem;
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-radius: 6px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-icon:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+        background: var(--bg-hover);
+    }
+
+    .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--accent-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        background: var(--accent-hover);
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        width: 100%;
+    }
+
+    .canvas-container {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: #f0f0f0;
+        cursor: crosshair;
+    }
+
+    #main-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .selection-box {
+        position: absolute;
+        border: 2px dashed var(--accent-color);
+        background: rgba(59, 130, 246, 0.1);
+        pointer-events: none;
+    }
+
+    .selection-box.hidden {
+        display: none;
+    }
+
+    .cursor-indicators {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    .cursor-indicator {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        pointer-events: none;
+    }
+
+    .cursor-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+
+    .cursor-name {
+        font-size: 0.75rem;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
+
+    .mini-map {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+        width: 200px;
+        height: 150px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+    }
+
+    #mini-map-canvas {
+        width: 100%;
+        height: 100%;
+    }
+
+    .viewport-indicator {
+        position: absolute;
+        border: 2px solid var(--accent-color);
+        background: rgba(59, 130, 246, 0.2);
+        pointer-events: none;
+    }
+
+    .properties-panel {
+        width: 280px;
+        background: var(--bg-secondary);
+        border-left: 1px solid var(--border-color);
+        transition: width 0.2s;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .properties-panel.collapsed {
+        width: 48px;
+    }
+
+    .properties-panel.collapsed .panel-content {
+        display: none;
+    }
+
+    .panel-toggle {
+        width: 100%;
+        padding: 0.75rem;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-size: 1.25rem;
+    }
+
+    .panel-content {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+    }
+
+    .panel-content h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 1rem 0;
+    }
+
+    .properties-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .properties-group.hidden {
+        display: none;
+    }
+
+    .properties-group h4 {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .property-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .property-row label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .property-row input[type="number"],
+    .property-row input[type="text"],
+    .property-row select {
+        width: 100px;
+        padding: 0.375rem 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+    }
+
+    .property-row input[type="color"] {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 2px;
+        cursor: pointer;
+    }
+
+    .property-row input[type="range"] {
+        width: 100px;
+    }
+
+    .property-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+    }
+
+    .input-group {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .input-group input {
+        width: 48px !important;
+    }
+
+    .layers-list {
+        margin-bottom: 0.5rem;
+    }
+
+    .layer-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+
+    .layer-item:hover {
+        background: var(--bg-hover);
+    }
+
+    .layer-item.active {
+        background: var(--accent-color);
+        color: white;
+    }
+
+    .layer-visibility,
+    .layer-lock {
+        cursor: pointer;
+    }
+
+    .layer-name {
+        flex: 1;
+    }
+
+    .collaborators-panel {
+        position: absolute;
+        top: 60px;
+        right: 1rem;
+        display: flex;
+        gap: -0.5rem;
+    }
+
+    .collaborators-list {
+        display: flex;
+    }
+
+    .collaborator-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 2px solid var(--bg-secondary);
+        margin-left: -8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .collaborator-avatar:first-child {
+        margin-left: 0;
+    }
+
+    .context-menu {
+        position: fixed;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: var(--shadow-lg);
+        padding: 0.5rem 0;
+        min-width: 160px;
+        z-index: 1000;
+    }
+
+    .context-menu.hidden {
+        display: none;
+    }
+
+    .context-menu button {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 1rem;
+        border: none;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .context-menu button:hover {
+        background: var(--bg-hover);
+    }
+
+    .menu-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 0.5rem 0;
+    }
+
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal.hidden {
+        display: none;
+    }
+
+    .modal-content {
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        padding: 1.5rem;
+        min-width: 400px;
+        max-width: 90%;
+    }
+
+    .modal-content h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0 0 1.5rem 0;
+    }
+
+    .export-options {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .export-format,
+    .export-scale,
+    .export-bg {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .export-format select,
+    .export-scale select {
+        width: 150px;
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+
+    .export-bg label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+
+    @media (max-width: 1024px) {
+        .properties-panel {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            z-index: 50;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .canvas-toolbar {
+            width: 48px;
+            padding: 0.25rem;
+        }
+
+        .tool-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+        }
+
+        .mini-map {
+            width: 120px;
+            height: 90px;
+        }
+
+        .properties-panel.collapsed {
+            width: 0;
+            border: none;
+        }
+
+        .canvas-header {
+            flex-wrap: wrap;
+        }
+
+        .header-center {
+            order: 3;
+            width: 100%;
+            justify-content: center;
+            margin-top: 0.5rem;
+        }
+    }
+</style>
+
+<script>
+    let currentTool = "select";
+    let isDrawing = false;
+    let startX, startY;
+    let elements = [];
+    let selectedElement = null;
+    let history = [];
+    let historyIndex = -1;
+    let zoom = 1;
+    let panX = 0,
+        panY = 0;
+    let strokeColor = "#000000";
+    let fillColor = "#ffffff";
+    let strokeWidth = 2;
+    let canvas, ctx;
+    let gridType = "dots";
+    let snapToGrid = false;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        canvas = document.getElementById("main-canvas");
+        ctx = canvas.getContext("2d");
+        resizeCanvas();
+        drawGrid();
+
+        window.addEventListener("resize", resizeCanvas);
+
+        canvas.addEventListener("mousedown", handleMouseDown);
+        canvas.addEventListener("mousemove", handleMouseMove);
+        canvas.addEventListener("mouseup", handleMouseUp);
+        canvas.addEventListener("wheel", handleWheel);
+        canvas.addEventListener("contextmenu", handleContextMenu);
+
+        document.addEventListener("keydown", handleKeyDown);
+    });
+
+    function resizeCanvas() {
+        const container = document.getElementById("canvas-container");
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        redraw();
+    }
+
+    function selectTool(tool) {
+        currentTool = tool;
+        document.querySelectorAll(".tool-btn").forEach((btn) => {
+            btn.classList.toggle("active", btn.dataset.tool === tool);
+        });
+
+        const container = document.getElementById("canvas-container");
+        switch (tool) {
+            case "select":
+                container.style.cursor = "default";
+                break;
+            case "pan":
+                container.style.cursor = "grab";
+                break;
+            case "text":
+                container.style.cursor = "text";
+                break;
+            default:
+                container.style.cursor = "crosshair";
+        }
+    }
+
+    function handleMouseDown(e) {
+        const rect = canvas.getBoundingClientRect();
+        startX = (e.clientX - rect.left - panX) / zoom;
+        startY = (e.clientY - rect.top - panY) / zoom;
+        isDrawing = true;
+
+        if (currentTool === "select") {
+            selectedElement = findElementAt(startX, startY);
+            if (selectedElement) {
+                showElementProperties(selectedElement);
+            } else {
+                hideElementProperties();
+            }
+        } else if (currentTool === "pan") {
+            document.getElementById("canvas-container").style.cursor =
+                "grabbing";
+        }
+    }
+
+    function handleMouseMove(e) {
+        if (!isDrawing) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const currentX = (e.clientX - rect.left - panX) / zoom;
+        const currentY = (e.clientY - rect.top - panY) / zoom;
+
+        if (currentTool === "pan") {
+            panX += e.movementX;
+            panY += e.movementY;
+            redraw();
+        }
+    }
+
+    function handleMouseUp(e) {
+        if (!isDrawing) return;
+        isDrawing = false;
+
+        const rect = canvas.getBoundingClientRect();
+        const endX = (e.clientX - rect.left - panX) / zoom;
+        const endY = (e.clientY - rect.top - panY) / zoom;
+
+        if (currentTool === "pan") {
+            document.getElementById("canvas-container").style.cursor = "grab";
+            return;
+        }
+
+        if (currentTool !== "select" && currentTool !== "pan") {
+            const element = {
+                id: Date.now(),
+                type: currentTool,
+                x: Math.min(startX, endX),
+                y: Math.min(startY, endY),
+                width: Math.abs(endX - startX),
+                height: Math.abs(endY - startY),
+                stroke: strokeColor,
+                fill: fillColor,
+                strokeWidth: strokeWidth,
+            };
+            elements.push(element);
+            saveHistory();
+            redraw();
+        }
+    }
+
+    function handleWheel(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        zoom *= delta;
+        zoom = Math.max(0.1, Math.min(5, zoom));
+        document.getElementById("zoom-level").textContent =
+            Math.round(zoom * 100) + "%";
+        redraw();
+    }
+
+    function handleContextMenu(e) {
+        e.preventDefault();
+    }
+
+    function handleKeyDown(e) {
+        if (e.key === "Delete" && selectedElement) {
+            elements = elements.filter((el) => el !== selectedElement);
+            selectedElement = null;
+            hideElementProperties();
+            saveHistory();
+            redraw();
+        }
+        if (e.ctrlKey && e.key === "z") {
+            undo();
+        }
+        if (e.ctrlKey && e.key === "y") {
+            redo();
+        }
+    }
+
+    function drawGrid() {
+        if (!ctx) return;
+        ctx.save();
+        ctx.strokeStyle = "var(--border-color, #e0e0e0)";
+        ctx.lineWidth = 0.5;
+        const gridSize = 20;
+
+        for (let x = 0; x < canvas.width; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    function redraw() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGrid();
+
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoom, zoom);
+
+        elements.forEach((el) => drawElement(el));
+
+        if (selectedElement) {
+            drawSelection(selectedElement);
+        }
+        ctx.restore();
+    }
+
+    function drawElement(el) {
+        ctx.strokeStyle = el.stroke;
+        ctx.fillStyle = el.fill;
+        ctx.lineWidth = el.strokeWidth;
+
+        switch (el.type) {
+            case "rectangle":
+                ctx.strokeRect(el.x, el.y, el.width, el.height);
+                if (el.fill !== "transparent") {
+                    ctx.fillRect(el.x, el.y, el.width, el.height);
+                }
+                break;
+            case "ellipse":
+                ctx.beginPath();
+                ctx.ellipse(
+                    el.x + el.width / 2,
+                    el.y + el.height / 2,
+                    el.width / 2,
+                    el.height / 2,
+                    0,
+                    0,
+                    Math.PI * 2,
+                );
+                ctx.stroke();
+                if (el.fill !== "transparent") ctx.fill();
+                break;
+            case "line":
+                ctx.beginPath();
+                ctx.moveTo(el.x, el.y);
+                ctx.lineTo(el.x + el.width, el.y + el.height);
+                ctx.stroke();
+                break;
+        }
+    }
+
+    function drawSelection(el) {
+        ctx.strokeStyle = "#007bff";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(el.x - 5, el.y - 5, el.width + 10, el.height + 10);
+        ctx.setLineDash([]);
+    }
+
+    function findElementAt(x, y) {
+        for (let i = elements.length - 1; i >= 0; i--) {
+            const el = elements[i];
+            if (
+                x >= el.x &&
+                x <= el.x + el.width &&
+                y >= el.y &&
+                y <= el.y + el.height
+            ) {
+                return el;
+            }
+        }
+        return null;
+    }
+
+    function showElementProperties(el) {
+        const panel = document.getElementById("properties-panel");
+        if (panel) panel.style.display = "block";
+    }
+
+    function hideElementProperties() {
+        const panel = document.getElementById("properties-panel");
+        if (panel) panel.style.display = "none";
+    }
+
+    function saveHistory() {
+        history = history.slice(0, historyIndex + 1);
+        history.push(JSON.stringify(elements));
+        historyIndex = history.length - 1;
+    }
+
+    function undo() {
+        if (historyIndex > 0) {
+            historyIndex--;
+            elements = JSON.parse(history[historyIndex]);
+            redraw();
+        }
+    }
+
+    function redo() {
+        if (historyIndex < history.length - 1) {
+            historyIndex++;
+            elements = JSON.parse(history[historyIndex]);
+            redraw();
+        }
+    }
+
+    function setStrokeColor(color) {
+        strokeColor = color;
+        if (selectedElement) {
+            selectedElement.stroke = color;
+            redraw();
+        }
+    }
+
+    function setFillColor(color) {
+        fillColor = color;
+        if (selectedElement) {
+            selectedElement.fill = color;
+            redraw();
+        }
+    }
+
+    function setStrokeWidth(width) {
+        strokeWidth = parseInt(width);
+        if (selectedElement) {
+            selectedElement.strokeWidth = strokeWidth;
+            redraw();
+        }
+    }
+
+    function zoomIn() {
+        zoom = Math.min(5, zoom * 1.2);
+        document.getElementById("zoom-level").textContent =
+            Math.round(zoom * 100) + "%";
+        redraw();
+    }
+
+    function zoomOut() {
+        zoom = Math.max(0.1, zoom / 1.2);
+        document.getElementById("zoom-level").textContent =
+            Math.round(zoom * 100) + "%";
+        redraw();
+    }
+
+    function resetZoom() {
+        zoom = 1;
+        panX = 0;
+        panY = 0;
+        document.getElementById("zoom-level").textContent = "100%";
+        redraw();
+    }
+
+    function clearCanvas() {
+        if (confirm("Clear all elements?")) {
+            elements = [];
+            selectedElement = null;
+            saveHistory();
+            redraw();
+        }
+    }
+
+    function exportCanvas() {
+        const link = document.createElement("a");
+        link.download = "canvas.png";
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+
+    function saveCanvas() {
+        console.log("Canvas saved");
+    }
+
+    function toggleCollaborate() {
+        console.log("Collaboration toggled");
+    }
+</script>

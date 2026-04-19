@@ -1,495 +1,702 @@
-# General Bots - Enterprise-Grade LLM Orchestrator
+# General Bots Workspace
 
-**Version:** 6.2.0  
-**Purpose:** Main API server for General Bots (Axum + Diesel + Rhai BASIC)
+## ⚠️ CRITICAL SECURITY WARNING
+
+**NEVER CREATE FILES WITH SECRETS IN THE REPOSITORY ROOT**
+
+Secret files MUST be placed in `/tmp/` only:
+- ✅ `/tmp/vault-token-gb` - Vault root token
+- ✅ `/tmp/vault-unseal-key-gb` - Vault unseal key
+- ❌ `vault-unseal-keys` - FORBIDDEN (tracked by git)
+- ❌ `start-and-unseal.sh` - FORBIDDEN (contains secrets)
+
+**Files added to .gitignore:** `vault-unseal-keys`, `start-and-unseal.sh`, `vault-token-*`
+
+**Why `/tmp/`?**
+- Cleared on reboot (ephemeral)
+- Not tracked by git
+- Standard Unix security practice
+- Prevents accidental commits
 
 ---
 
-![General Bot Logo](https://github.com/GeneralBots/botserver/blob/main/logo.png?raw=true)
+
+**Version:** 6.3.0  
+**Type:** Rust Workspace (Monorepo with Independent Subproject Repos)
+
+---
 
 ## Overview
 
-General Bots is a **self-hosted AI automation platform** and strongly-typed LLM conversational platform focused on convention over configuration and code-less approaches. It serves as the core API server handling LLM orchestration, business logic, database operations, and multi-channel communication.
+General Bots is a comprehensive automation platform built with Rust, providing a unified workspace for building AI-powered bots, web interfaces, desktop applications, and integration tools. The workspace follows a modular architecture with independent subprojects that can be developed and deployed separately while sharing common libraries and standards.
 
-For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](../botbook)** for detailed guides, API references, and tutorials.
+For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](./botbook)** for detailed guides, API references, and tutorials.
 
 ---
 
-## 🚀 Quick Start
+## 📁 Workspace Structure
 
-### Prerequisites
+| Crate | Purpose | Port | Tech Stack |
+|-------|---------|------|------------|
+| **botserver** | Main API server, business logic | 9000 | Axum, Diesel, Rhai BASIC |
+| **botui** | Web UI server (dev) + proxy | 3000 | Axum, HTML/HTMX/CSS |
+| **botapp** | Desktop app wrapper | - | Tauri 2 |
+| **botlib** | Shared library | - | Core types, errors |
+| **botbook** | Documentation | - | mdBook |
+| **bottest** | Integration tests | - | tokio-test |
+| **botdevice** | IoT/Device support | - | Rust |
+| **botmodels** | Data models visualization | - | - |
+| **botplugin** | Browser extension | - | JS |
 
-- **Rust** (1.75+) - [Install from rustup.rs](https://rustup.rs/)
-- **Git** - [Download from git-scm.com](https://git-scm.com/downloads)
-- **Mold** - `sudo apt-get install mold`
+### Key Paths
+- **Binary:** `target/debug/botserver`
+- **Run from:** `botserver/` directory
+- **Env file:** `botserver/.env`
+- **Stack:** `botserver-stack/`
+- **UI Files:** `botui/ui/suite/`
+- **Local Bot Data:** `/opt/gbo/data/` (place `.gbai` packages here)
 
-### Installation
+### Local Bot Data Directory
+
+Place local bot packages in `/opt/gbo/data/` for automatic loading and monitoring:
+
+**Directory Structure:**
+```
+/opt/gbo/data/
+└── mybot.gbai/
+    ├── mybot.gbdialog/
+    │   ├── start.bas
+    │   └── main.bas
+    └── mybot.gbot/
+        └── config.csv
+```
+
+**Features:**
+- **Auto-loading:** Bots automatically mounted on server startup
+- **Auto-compilation:** `.bas` files compiled to `.ast` on change
+- **Auto-creation:** New bots automatically added to database
+- **Hot-reload:** Changes trigger immediate recompilation
+- **Monitored by:** LocalFileMonitor and ConfigWatcher services
+
+**Usage:**
+1. Create bot directory structure in `/opt/gbo/data/`
+2. Add `.bas` files to `<bot_name>.gbai/<bot_name>.gbdialog/`
+3. Server automatically detects and loads the bot
+4. Optional: Add `config.csv` for bot configuration
+
+---
+
+## 🏗️ BotServer Component Architecture
+
+### 🔧 Infrastructure Components (Auto-Managed)
+
+BotServer automatically installs, configures, and manages all infrastructure components on first run. **DO NOT manually start these services** - BotServer handles everything.
+
+**Automatic Service Lifecycle:**
+1. **Start**: When botserver starts, it automatically launches all infrastructure components (PostgreSQL, Vault, MinIO, Valkey, Qdrant, etc.)
+2. **Credentials**: BotServer retrieves all service credentials (passwords, tokens, API keys) from Vault
+3. **Connection**: BotServer uses these credentials to establish secure connections to each service
+4. **Query**: All database queries, cache operations, and storage requests are authenticated using Vault-managed credentials
+
+**Credential Flow:**
+```
+botserver starts
+    ↓
+Launch PostgreSQL, MinIO, Valkey, Qdrant
+    ↓
+Connect to Vault
+    ↓
+Retrieve service credentials (from database)
+    ↓
+Authenticate with each service using retrieved credentials
+    ↓
+Ready to handle requests
+```
+
+| Component | Purpose | Port | Binary Location | Credentials From |
+|-----------|---------|------|-----------------|------------------|
+| **Vault** | Secrets management | 8200 | `botserver-stack/bin/vault/vault` | Auto-unsealed |
+| **PostgreSQL** | Primary database | 5432 | `botserver-stack/bin/tables/bin/postgres` | Vault → database |
+| **MinIO** | Object storage (S3-compatible) | 9000/9001 | `botserver-stack/bin/drive/minio` | Vault → database |
+| **Zitadel** | Identity/Authentication | 8300 | `botserver-stack/bin/directory/zitadel` | Vault → database |
+| **Qdrant** | Vector database (embeddings) | 6333 | `botserver-stack/bin/vector_db/qdrant` | Vault → database |
+| **Valkey** | Cache/Queue (Redis-compatible) | 6379 | `botserver-stack/bin/cache/valkey-server` | Vault → database |
+| **Llama.cpp** | Local LLM server | 8081 | `botserver-stack/bin/llm/build/bin/llama-server` | Vault → database |
+
+### 📦 Component Installation System
+
+Components are defined in `botserver/3rdparty.toml` and managed by the `PackageManager` (`botserver/src/core/package_manager/`):
+
+```toml
+[components.cache]
+name = "Valkey Cache (Redis-compatible)"
+url = "https://github.com/valkey-io/valkey/archive/refs/tags/8.0.2.tar.gz"
+filename = "valkey-8.0.2.tar.gz"
+
+[components.llm]
+name = "Llama.cpp Server"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-x64.zip"
+filename = "llama-b7345-bin-ubuntu-x64.zip"
+```
+
+**Installation Flow:**
+1. **Download:** Components downloaded to `botserver-installers/` (cached)
+2. **Extract/Build:** Binaries placed in `botserver-stack/bin/<component>/`
+3. **Configure:** Config files generated in `botserver-stack/conf/<component>/`
+4. **Start:** Components started with proper TLS certificates
+5. **Monitor:** Components monitored and auto-restarted if needed
+
+**Bootstrap Process:**
+- First run: Full bootstrap (downloads, installs, configures all components)
+- Subsequent runs: Only starts existing components (uses cached binaries)
+- Config stored in: `botserver-stack/conf/system/bootstrap.json`
+
+### 🚀 PROPER STARTUP PROCEDURES
+
+**❌ FORBIDDEN:**
+- NEVER manually start infrastructure components (Vault, PostgreSQL, MinIO, etc.)
+- NEVER run `cargo run` or `cargo build` for botserver directly without ./restart.sh
+- NEVER modify botserver-stack/ files manually (use botserver API)
+
+**✅ REQUIRED:**
+
+**Option 1: Development (Recommended)**
+```bash
+./restart.sh
+```
+This script:
+1. Kills existing processes cleanly
+2. Builds botserver and botui sequentially (no race conditions)
+3. Starts botserver in background with logging to `botserver.log`
+4. Starts botui in background with logging to `botui.log`
+5. Shows process IDs and access URLs
+
+**Option 2: Production/Release**
+```bash
+# Build release binary first
+cargo build --release -p botserver
+
+# Start with release binary
+RUST_LOG=info ./target/release/botserver --noconsole 2>&1 | tee botserver.log &
+```
+
+**Option 3: Using Exec (Systemd/Supervisord)**
+```bash
+# In systemd service or similar
+ExecStart=/home/rodriguez/src/gb/target/release/botserver --noconsole
+```
+
+### 🔒 Component Communication
+
+All components communicate through internal networks with mTLS:
+- **Vault**: mTLS for secrets access
+- **PostgreSQL**: TLS encrypted connections
+- **MinIO**: TLS with client certificates
+- **Zitadel**: mTLS for user authentication
+
+Certificates auto-generated in: `botserver-stack/conf/system/certificates/`
+
+### 📊 Component Status
+
+Check component status anytime:
+```bash
+# Check if all components are running
+ps aux | grep -E "vault|postgres|minio|zitadel|qdrant|valkey" | grep -v grep
+
+# View component logs
+tail -f botserver-stack/logs/vault/vault.log
+tail -f botserver-stack/logs/tables/postgres.log
+tail -f botserver-stack/logs/drive/minio.log
+
+# Test component connectivity
+cd botserver-stack/bin/vault && ./vault status
+cd botserver-stack/bin/cache && ./valkey-cli ping
+```
+
+---
+
+## 🏗️ Component Dependency Graph
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Client Layer                            │
+├─────────────────────────────────────────────────────────────────┤
+│  botui (Web UI)    │  botapp (Desktop)   │  botplugin (Ext)   │
+│  HTMX + Axum       │  Tauri 2 Wrapper    │  Browser Extension  │
+└─────────┬───────────────────┬──────────────────┬─────────────────┘
+          │                   │                  │
+          └───────────────────┼──────────────────┘
+                              │
+                    ┌─────────▼─────────┐
+                    │   botlib          │
+                    │  (Shared Types)   │
+                    └─────────┬─────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          │                   │                   │
+    ┌─────▼─────┐      ┌─────▼─────┐      ┌─────▼─────┐
+    │ botserver │      │ bottest   │      │ botdevice  │
+    │ API Core  │      │ Tests     │      │ IoT/Device │
+    └───────────┘      └───────────┘      └───────────┘
+```
+
+### Dependency Rules
+
+| Crate | Depends On | Why |
+|-------|-----------|-----|
+| **botserver** | botlib | Shared types, error handling, models |
+| **botui** | botlib | Common data structures, API client |
+| **botapp** | botlib | Shared types, desktop-specific utilities |
+| **bottest** | botserver, botlib | Integration testing with real components |
+| **botdevice** | botlib | Device types, communication protocols |
+| **botplugin** | - | Standalone browser extension (JS) |
+
+**Key Principle:** `botlib` contains ONLY shared types and utilities. No business logic. All business logic lives in botserver or specialized crates.
+
+## 📦 Module Responsibility Matrix
+
+### botserver/src/ Module Structure
+
+| Module | Responsibility | Key Types | Dependencies |
+|--------|---------------|-----------|--------------|
+| **core/bot/** | WebSocket handling, bot orchestration | BotOrchestrator, UserMessage | basic, shared |
+| **core/session/** | Session management, conversation history | SessionManager, UserSession | shared, database |
+| **basic/** | Rhai BASIC scripting engine | ScriptService, Engine | rhai, keywords |
+| **basic/keywords/** | BASIC keyword implementations (TALK, HEAR, etc.) | Keyword functions | basic, state |
+| **llm/** | Multi-vendor LLM API integration | LLMClient, ModelConfig | reqwest, shared |
+| **drive/** | S3 file storage and monitoring | DriveMonitor, compile_tool | s3, basic |
+| **security/** | Security guards (command, SQL, error) | SafeCommand, ErrorSanitizer | state |
+| **shared/** | Database models, schema definitions | Bot, Session, Message | diesel |
+| **tasks/** | AutoTask execution system | TaskRunner, TaskScheduler | core/basic |
+| **auto_task/** | LLM-powered app generation | AppGenerator, template engine | llm, tasks |
+| **learn/** | Knowledge base management | KBManager, vector storage | database, drive |
+| **attendance/** | LLM-assisted customer service | AttendantManager, queue | core/bot |
+
+### Data Flow Patterns
+
+```
+1. User Request Flow:
+   Client → WebSocket → botserver/src/core/bot/mod.rs
+                          ↓
+                    BotOrchestrator::stream_response()
+                          ↓
+              ┌───────────┴───────────┐
+              │                       │
+         LLM API Call            Script Execution
+         (llm/mod.rs)            (basic/mod.rs)
+              │                       │
+              └───────────┬───────────┘
+                          ↓
+                    Response → WebSocket → Client
+
+2. File Sync Flow:
+   S3 Drive → drive_monitor/src/drive_monitor/mod.rs
+                          ↓
+                    Download .bas files
+                          ↓
+              compile_file() → Generate .ast
+                          ↓
+              Store in ./work/{bot_name}.gbai/
+
+3. Script Execution Flow:
+   .bas file → ScriptService::compile()
+                    ↓
+              preprocess_basic_script()
+                    ↓
+              engine.compile() → AST
+                    ↓
+              ScriptService::run() → Execute
+                    ↓
+              TALK commands → WebSocket messages
+```
+
+### Common Architectural Patterns
+
+| Pattern | Where Used | Purpose |
+|---------|-----------|---------|
+| **State via Arc<AppState>** | All handlers | Shared async state (DB, cache, config) |
+| **Extension(state) extractor** | Axum handlers | Inject Arc<AppState> into route handlers |
+| **tokio::spawn_blocking** | CPU-intensive tasks | Offload blocking work from async runtime |
+| **WebSocket with split()** | Real-time comms | Separate sender/receiver for WS streams |
+| **ErrorSanitizer for responses** | All HTTP errors | Prevent leaking sensitive info in errors |
+| **SafeCommand for execution** | Command running | Whitelist-based command validation |
+| **Rhai for scripting** | BASIC interpreter | Embeddable scripting language |
+| **Diesel ORM** | Database access | Type-safe SQL queries |
+| **Redis for cache** | Session data | Fast key-value storage |
+| **S3 for storage** | File system | Scalable object storage |
+
+---
+
+## Quick Start
+
+### 🚀 Simple Startup (ALWAYS USE restart.sh)
 
 ```bash
-git clone https://github.com/GeneralBots/botserver
-cd botserver
-cargo install sccache
-sudo apt-get install mold  # or build from source
-cargo run
+./restart.sh
 ```
 
-On first run, botserver automatically:
-- Installs required components (PostgreSQL, S3 storage, Redis cache, LLM)
-- Sets up database with migrations
-- Downloads AI models
-- Starts HTTP server at `http://localhost:9000`
+**⚠️ CRITICAL: ALWAYS use restart.sh - NEVER start servers individually!**
 
-### Command-Line Options
+The script handles BOTH servers properly:
+1. Stop existing processes cleanly
+2. Build botserver and botui sequentially (no race conditions)
+3. Start botserver in background → **automatically starts all infrastructure services (PostgreSQL, Vault, MinIO, Valkey, Qdrant)**
+4. BotServer retrieves credentials from Vault and authenticates with all services
+5. Start botui in background → proxy to botserver
+6. Show process IDs and monitoring commands
+
+**Infrastructure services are fully automated - no manual configuration required!**
+
+**Monitor startup:**
+```bash
+tail -f botserver.log botui.log
+```
+
+**Access:**
+- Web UI: http://localhost:3000
+- API: http://localhost:9000
+
+### 📊 Monitor & Debug
 
 ```bash
-cargo run                    # Default: console UI + web server
-cargo run -- --noconsole     # Background service mode
-cargo run -- --desktop       # Desktop application (Tauri)
-cargo run -- --tenant <name> # Specify tenant
-cargo run -- --container     # LXC container mode
+tail -f botserver.log botui.log
+```
+
+**Quick status check:**
+```bash
+ps aux | grep -E "botserver|botui" | grep -v grep
+```
+
+**Quick error scan:**
+```bash
+grep -E " E |W |CLIENT:" botserver.log | tail -20
+```
+
+### 🔧 Manual Startup (If needed)
+
+**⚠️ WARNING: Only use if restart.sh fails. Always prefer restart.sh!**
+
+```bash
+cd botserver && cargo run -- --noconsole > ../botserver.log 2>&1 &
+cd botui && BOTSERVER_URL="http://localhost:9000" cargo run > ../botui.log 2>&1 &
+```
+
+### 🛑 Stop Servers
+
+```bash
+pkill -f botserver; pkill -f botui
+```
+
+### ⚠️ Common Issues
+
+**Vault init error?** Delete stale state:
+```bash
+rm -rf botserver-stack/data/vault botserver-stack/conf/vault/init.json && ./restart.sh
+```
+
+**Port in use?** Find and kill:
+```bash
+lsof -ti:9000 | xargs kill -9
+lsof -ti:3000 | xargs kill -9
+```
+
+**⚠️ IMPORTANT: Stack Services Management**
+All infrastructure services (PostgreSQL, Vault, Redis, Qdrant, MinIO, etc.) are **automatically started by botserver** and managed through `botserver-stack/` directory, NOT global system installations. The system uses:
+
+- **Local binaries:** `botserver-stack/bin/` (PostgreSQL, Vault, Redis, etc.)
+- **Configurations:** `botserver-stack/conf/`
+- **Data storage:** `botserver-stack/data/`
+- **Service logs:** `botserver-stack/logs/` (check here for troubleshooting)
+- **Credentials:** Stored in Vault, retrieved by botserver at startup
+
+**Do NOT install or reference global PostgreSQL, Redis, or other services.** When botserver starts, it automatically:
+1. Launches all required stack services
+2. Connects to Vault
+3. Retrieves credentials from the `bot_configuration` database table
+4. Authenticates with each service using retrieved credentials
+5. Begins handling requests with authenticated connections
+
+If you encounter service errors, check the individual service logs in `./botserver-stack/logs/[service]/` directories.
+
+### UI File Deployment - Production Options
+
+**Option 1: Embedded UI (Recommended for Production)**
+
+The `embed-ui` feature compiles UI files directly into the botui binary, eliminating the need for separate file deployment:
+
+```bash
+# Build with embedded UI files
+cargo build --release -p botui --features embed-ui
+
+# The binary now contains all UI files - no additional deployment needed!
+# The botui binary is self-contained and production-ready
+```
+
+**Benefits of embed-ui:**
+- ✅ Single binary deployment (no separate UI files)
+- ✅ Faster startup (no filesystem access)
+- ✅ Smaller attack surface
+- ✅ Simpler deployment process
+
+**Option 2: Filesystem Deployment (Development Only)**
+
+For development, UI files are served from the filesystem:
+
+```bash
+# UI files must exist at botui/ui/suite/
+# This is automatically available in development builds
+```
+
+**Option 3: Manual File Deployment (Legacy)**
+
+If you need to deploy UI files separately (not recommended):
+
+```bash
+# Deploy UI files to production location
+./botserver/deploy/deploy-ui.sh /opt/gbo
+
+# Verify deployment
+ls -la /opt/gbo/bin/ui/suite/index.html
+```
+
+See `botserver/deploy/README.md` for deployment scripts.
+
+### Start Both Servers (Automated)
+```bash
+# Use restart script (RECOMMENDED)
+./restart.sh
+```
+
+### Start Both Servers (Manual)
+```bash
+# Terminal 1: botserver
+cd botserver && cargo run -- --noconsole
+
+# Terminal 2: botui  
+cd botui && BOTSERVER_URL="http://localhost:9000" cargo run
+```
+
+### Build Commands
+```bash
+# Check single crate
+cargo check -p botserver
+
+# Build workspace
+cargo build
+
+# Run tests
+cargo test -p bottest
 ```
 
 ---
 
-## ✨ Key Features
+## 🤖 AI Agent Guidelines
 
-### Multi-Vendor LLM API
-Unified interface for OpenAI, Groq, Claude, Anthropic, and local models.
-
-### MCP + LLM Tools Generation
-Instant tool creation from code and functions - no complex configurations.
-
-### Semantic Caching
-Intelligent response caching achieving **70% cost reduction** on LLM calls.
-
-### Web Automation Engine
-Browser automation combined with AI intelligence for complex workflows.
-
-### Enterprise Data Connectors
-Native integrations with CRM, ERP, databases, and external services.
-
-### Git-like Version Control
-Full history with rollback capabilities for all configurations and data.
+> **For LLM instructions, coding rules, security directives, testing workflows, and error handling patterns, see [AGENTS.md](./AGENTS.md).**
 
 ---
 
-## 🎯 4 Essential Keywords
+## 📖 Glossary
 
-```basic
-USE KB "kb-name"        ' Load knowledge base into vector database
-CLEAR KB "kb-name"      ' Remove KB from session
-USE TOOL "tool-name"    ' Make tool available to LLM
-CLEAR TOOLS             ' Remove all tools from session
-```
-
-### Example Bot
-
-```basic
-' customer-support.bas
-USE KB "support-docs"
-USE TOOL "create-ticket"
-USE TOOL "check-order"
-
-SET CONTEXT "support" AS "You are a helpful customer support agent."
-
-TALK "Welcome! How can I help you today?"
-```
+| Term | Definition | Usage |
+|------|-----------|-------|
+| **Bot** | AI agent with configuration, scripts, and knowledge bases | Primary entity in system |
+| **Session** | Single conversation instance between user and bot | Stored in `sessions` table |
+| **Dialog** | Collection of BASIC scripts (.bas files) for bot logic | Stored in `{bot_name}.gbdialog/` |
+| **Tool** | Reusable function callable by LLM | Defined in .bas files, compiled to .ast |
+| **Knowledge Base (KB)** | Vector database of documents for semantic search | Managed in `learn/` module |
+| **Scheduler** | Time-triggered task execution | Cron-like scheduling in BASIC scripts |
+| **Drive** | S3-compatible storage for files | Abstracted in `drive/` module |
+| **Rhai** | Embedded scripting language for BASIC dialect | Rhai engine in `basic/` module |
+| **WebSocket Adapter** | Component that sends messages to connected clients | `web_adapter` in state |
+| **AutoTask** | LLM-generated task automation system | In `auto_task/` and `tasks/` modules |
+| **Orchestrator** | Coordinates LLM, tools, KBs, and user input | `BotOrchestrator` in `core/bot/` |
 
 ---
 
-## 📁 Project Structure
+
+
+## 🖥️ UI Architecture (botui + botserver)
+
+### Two Servers During Development
+
+| Server | Port | Purpose |
+|--------|------|---------|
+| **botui** | 3000 | Serves UI files + proxies API to botserver |
+| **botserver** | 9000 | Backend API + embedded UI fallback |
+
+### How It Works
 
 ```
-src/
-├── core/           # Bootstrap, config, routes
-├── basic/          # Rhai BASIC interpreter
-│   └── keywords/   # BASIC keyword implementations
-├── security/       # Security modules
-│   ├── command_guard.rs     # Safe command execution
-│   ├── error_sanitizer.rs  # Error message sanitization
-│   └── sql_guard.rs        # SQL injection prevention
-├── shared/         # Shared types, models
-├── tasks/          # AutoTask system (2651 lines - NEEDS REFACTORING)
-├── auto_task/      # App generator (2981 lines - NEEDS REFACTORING)
-├── drive/          # File operations (1522 lines - NEEDS REFACTORING)
-├── learn/          # Learning system (2306 lines - NEEDS REFACTORING)
-└── attendance/     # LLM assistance (2053 lines - NEEDS REFACTORING)
-
-migrations/         # Database migrations
-botserver-stack/    # Stack deployment files
+Browser → localhost:3000 → botui (serves HTML/CSS/JS)
+                        → /api/* proxied to botserver:9000
+                        → /suite/* served from botui/ui/suite/
 ```
+
+### Adding New Suite Apps
+
+1. Create folder: `botui/ui/suite/<appname>/`
+2. Add to `SUITE_DIRS` in `botui/src/ui_server/mod.rs`
+3. Rebuild botui: `cargo build -p botui`
+4. Add menu entry in `botui/ui/suite/index.html`
+
+### Hot Reload
+
+- **UI files (HTML/CSS/JS)**: Edit & refresh browser (no restart)
+- **botui Rust code**: Rebuild + restart botui
+- **botserver Rust code**: Rebuild + restart botserver
+
+### Production (Single Binary)
+
+When `botui/ui/suite/` folder not found, botserver uses **embedded UI** compiled into binary via `rust-embed`.
 
 ---
 
-## ✅ ZERO TOLERANCE POLICY
+## 🎨 Frontend Standards
 
-**EVERY SINGLE WARNING MUST BE FIXED. NO EXCEPTIONS.**
+### HTMX-First Approach
+- Use HTMX to minimize JavaScript
+- Server returns HTML fragments, not JSON
+- Use `hx-get`, `hx-post`, `hx-target`, `hx-swap`
+- WebSocket via htmx-ws extension
 
-### Absolute Prohibitions
+### Local Assets Only - NO CDN
+```html
+<!-- ✅ CORRECT -->
+<script src="js/vendor/htmx.min.js"></script>
 
-```
-❌ NEVER use #![allow()] or #[allow()] in source code
-❌ NEVER use .unwrap() - use ? or proper error handling
-❌ NEVER use .expect() - use ? or proper error handling  
-❌ NEVER use panic!() or unreachable!()
-❌ NEVER use todo!() or unimplemented!()
-❌ NEVER leave unused imports or dead code
-❌ NEVER add comments - code must be self-documenting
-❌ NEVER use CDN links - all assets must be local
-❌ NEVER build SQL queries with format! - use parameterized queries
-❌ NEVER pass user input to Command::new() without validation
-❌ NEVER log passwords, tokens, API keys, or PII
+<!-- ❌ WRONG -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 ```
 
----
-
-## 🔐 Security Requirements
-
-### Error Handling - CRITICAL DEBT
-
-**Current Status**: 955 instances of `unwrap()`/`expect()` found in codebase
-**Target**: 0 instances in production code (tests excluded)
-
-```rust
-// ❌ WRONG - Found 955 times in codebase
-let value = something.unwrap();
-let value = something.expect("msg");
-
-// ✅ CORRECT - Required replacements
-let value = something?;
-let value = something.ok_or_else(|| Error::NotFound)?;
-let value = something.unwrap_or_default();
-let value = something.unwrap_or_else(|e| { 
-    log::error!("Operation failed: {e}"); 
-    default_value 
-});
+### Vendor Libraries Location
 ```
-
-### Performance Issues - CRITICAL DEBT
-
-**Current Status**: 12,973 excessive `clone()`/`to_string()` calls
-**Target**: Minimize allocations, use references where possible
-
-```rust
-// ❌ WRONG - Excessive allocations
-let name = user.name.clone();
-let msg = format!("Hello {}", name.to_string());
-
-// ✅ CORRECT - Minimize allocations  
-let name = &user.name;
-let msg = format!("Hello {name}");
-
-// ✅ CORRECT - Use Cow for conditional ownership
-use std::borrow::Cow;
-fn process_name(name: Cow<str>) -> String {
-    match name {
-        Cow::Borrowed(s) => s.to_uppercase(),
-        Cow::Owned(s) => s.to_uppercase(),
-    }
-}
-```
-
-### SQL Injection Prevention
-
-```rust
-// ❌ WRONG
-let query = format!("SELECT * FROM {}", table_name);
-
-// ✅ CORRECT - whitelist validation
-const ALLOWED_TABLES: &[&str] = &["users", "sessions"];
-if !ALLOWED_TABLES.contains(&table_name) {
-    return Err(Error::InvalidTable);
-}
-```
-
-### Command Injection Prevention
-
-```rust
-// ❌ WRONG
-Command::new("tool").arg(user_input).output()?;
-
-// ✅ CORRECT - Use SafeCommand
-use crate::security::command_guard::SafeCommand;
-SafeCommand::new("allowed_command")?
-    .arg("safe_arg")?
-    .execute()
-```
-
-### Error Responses - Use ErrorSanitizer
-
-```rust
-// ❌ WRONG
-Json(json!({ "error": e.to_string() }))
-format!("Database error: {}", e)
-
-// ✅ CORRECT
-use crate::security::error_sanitizer::log_and_sanitize;
-let sanitized = log_and_sanitize(&e, "context", None);
-(StatusCode::INTERNAL_SERVER_ERROR, sanitized)
+ui/suite/js/vendor/
+├── htmx.min.js
+├── htmx-ws.js
+├── marked.min.js
+└── gsap.min.js
 ```
 
 ---
 
-## ✅ Mandatory Code Patterns
+## 📋 Project-Specific Guidelines
 
-### Format Strings - Inline Variables
+Each crate has its own README.md with specific guidelines:
 
-```rust
-// ❌ WRONG
-format!("Hello {}", name)
+| Crate | README.md Location | Focus |
+|-------|-------------------|-------|
+| botserver | `botserver/README.md` | API, security, Rhai BASIC |
+| botui | `botui/README.md` | UI, HTMX, CSS design system |
+| botapp | `botapp/README.md` | Tauri, desktop features |
+| botlib | `botlib/README.md` | Shared types, errors |
+| botbook | `botbook/README.md` | Documentation, mdBook |
+| bottest | `bottest/README.md` | Test infrastructure |
 
-// ✅ CORRECT
-format!("Hello {name}")
-```
-
-### Self Usage in Impl Blocks
-
-```rust
-// ❌ WRONG
-impl MyStruct {
-    fn new() -> MyStruct { MyStruct { } }
-}
-
-// ✅ CORRECT
-impl MyStruct {
-    fn new() -> Self { Self { } }
-}
-```
-
-### Derive Eq with PartialEq
-
-```rust
-// ❌ WRONG
-#[derive(PartialEq)]
-struct MyStruct { }
-
-// ✅ CORRECT
-#[derive(PartialEq, Eq)]
-struct MyStruct { }
-```
-
-### Option Handling
-
-```rust
-// ✅ CORRECT
-opt.unwrap_or(default)
-opt.unwrap_or_else(|| compute_default())
-opt.map_or(default, |x| transform(x))
-```
-
-### Chrono DateTime
-
-```rust
-// ❌ WRONG
-date.with_hour(9).unwrap().with_minute(0).unwrap()
-
-// ✅ CORRECT
-date.with_hour(9).and_then(|d| d.with_minute(0)).unwrap_or(date)
-```
-
----
-
-## 📏 File Size Limits - MANDATORY
-
-### Maximum 450 Lines Per File
-
-When a file grows beyond this limit:
-
-1. **Identify logical groups** - Find related functions
-2. **Create subdirectory module** - e.g., `handlers/`
-3. **Split by responsibility:**
-   - `types.rs` - Structs, enums, type definitions
-   - `handlers.rs` - HTTP handlers and routes
-   - `operations.rs` - Core business logic
-   - `utils.rs` - Helper functions
-   - `mod.rs` - Re-exports and configuration
-4. **Keep files focused** - Single responsibility
-5. **Update mod.rs** - Re-export all public items
-
-**NEVER let a single file exceed 450 lines - split proactively at 350 lines**
-
-### Files Requiring Immediate Refactoring
-
-| File | Lines | Target Split |
-|------|-------|--------------|
-| `auto_task/app_generator.rs` | 2981 | → 7 files |
-| `tasks/mod.rs` | 2651 | → 6 files |  
-| `learn/mod.rs` | 2306 | → 5 files |
-| `attendance/llm_assist.rs` | 2053 | → 5 files |
-| `drive/mod.rs` | 1522 | → 4 files |
-
-
-
----
-
-## 🗄️ Database Standards
-
-- **TABLES AND INDEXES ONLY** (no stored procedures, nothing, no views, no triggers, no functions)
-- **JSON columns:** use TEXT with `_json` suffix
-- **ORM:** Use diesel - no sqlx
-- **Migrations:** Located in `botserver/migrations/`
-
----
-
-## 🎨 Frontend Rules
-
-- **Use HTMX** - minimize JavaScript
-- **NO external CDN** - all assets local
-- **Server-side rendering** with Askama templates
-
----
-
-## 📦 Key Dependencies
-
-| Library | Version | Purpose |
-|---------|---------|---------|
-| axum | 0.7.5 | Web framework |
-| diesel | 2.1 | PostgreSQL ORM |
-| tokio | 1.41 | Async runtime |
-| rhai | git | BASIC scripting |
-| reqwest | 0.12 | HTTP client |
-| serde | 1.0 | Serialization |
-| askama | 0.12 | HTML Templates |
-
----
-
-## 🚀 CI/CD Workflow
-
-When configuring CI/CD pipelines (e.g., Forgejo Actions):
-
-- **Minimal Checkout**: Clone only the root `gb` and the `botlib` submodule. Do NOT recursively clone everything.
-- **BotServer Context**: Replace the empty `botserver` directory with the current set of files being tested.
-
-**Example Step:**
-```yaml
-- name: Setup Workspace
-  run: |
-    # 1. Clone only the root workspace configuration
-    git clone --depth 1 <your-git-repo-url> workspace
-    
-    # 2. Setup only the necessary dependencies (botlib)
-    cd workspace
-    git submodule update --init --depth 1 botlib
-    cd ..
-
-    # 3. Inject current BotServer code
-    rm -rf workspace/botserver
-    mv botserver workspace/botserver
-```
+### Special Prompts
+| File | Purpose |
+|------|---------|
+| `botserver/src/tasks/README.md` | AutoTask LLM executor |
+| `botserver/src/auto_task/APP_GENERATOR_PROMPT.md` | App generation |
 
 ---
 
 ## 📚 Documentation
 
-### Documentation Structure
-
-```
-docs/
-├── api/                        # API documentation
-│   ├── README.md               # API overview
-│   ├── rest-endpoints.md       # HTTP endpoints
-│   └── websocket.md            # Real-time communication
-├── guides/                     # How-to guides
-│   ├── getting-started.md      # Quick start
-│   ├── deployment.md           # Production setup
-│   └── templates.md            # Using templates
-└── reference/                  # Technical reference
-    ├── basic-language.md       # BASIC keywords
-    ├── configuration.md        # Config options
-    └── architecture.md         # System design
-```
-
-### Additional Resources
+For complete documentation, guides, and API references:
 
 - **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** - Full online documentation
-- **[BotBook](../botbook)** - Local comprehensive guide with tutorials and examples
-- **[API Reference](docs/api/README.md)** - REST and WebSocket endpoints
-- **[BASIC Language](docs/reference/basic-language.md)** - Dialog scripting reference
+- **[BotBook](./botbook)** - Local comprehensive guide with tutorials and examples
+- **[General Bots Repository](https://github.com/GeneralBots/BotServer)** - Main project repository
 
 ---
 
-## 🔗 Related Projects
+## 🔧 Immediate Technical Debt
 
-| Project | Description |
-|---------|-------------|
-| [botui](https://github.com/GeneralBots/botui) | Pure web UI (HTMX-based) |
-| [botapp](https://github.com/GeneralBots/botapp) | Tauri desktop wrapper |
-| [botlib](https://github.com/GeneralBots/botlib) | Shared Rust library |
-| [botbook](https://github.com/GeneralBots/botbook) | Documentation |
-| [bottemplates](https://github.com/GeneralBots/bottemplates) | Templates and examples |
+### Critical Issues to Address
 
----
+1. **Error Handling Debt**: 955 instances of `unwrap()`/`expect()` in production code
+2. **Performance Debt**: 12,973 excessive `clone()`/`to_string()` calls
+3. **File Size Debt**: 7 files exceed 450 lines (largest: 3220 lines)
+4. **Test Coverage**: Missing integration tests for critical paths
+5. **Documentation**: Missing inline documentation for complex algorithms
 
-## 🛡️ Security
+### Weekly Maintenance Tasks
 
-- **AGPL-3.0 License** - True open source with contribution requirements
-- **Self-hosted** - Your data stays on your infrastructure
-- **Enterprise-grade** - 5+ years of stability
-- **No vendor lock-in** - Open protocols and standards
+```bash
+# Check for duplicate dependencies
+cargo tree --duplicates
 
-Report security issues to: **security@pragmatismo.com.br**
+# Remove unused dependencies  
+cargo machete
 
----
+# Check binary size
+cargo build --release && ls -lh target/release/botserver
 
-## 🤝 Contributing
+# Performance profiling
+cargo bench
 
-We welcome contributions! Please read our contributing guidelines before submitting PRs.
-
-### Contributors
-
-<a href="https://github.com/generalbots/botserver/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=generalbots/botserver" />
-</a>
+# Security audit
+cargo audit
+```
 
 ---
 
-## 🔑 Remember
+## Git Structure
 
-- **ZERO WARNINGS** - Fix every clippy warning
-- **ZERO COMMENTS** - No comments, no doc comments
-- **NO ALLOW IN CODE** - Configure exceptions in Cargo.toml only
-- **NO DEAD CODE** - Delete unused code
-- **NO UNWRAP/EXPECT** - Use ? or combinators (955 instances to fix)
-- **MINIMIZE CLONES** - Avoid excessive allocations (12,973 instances to optimize)
-- **PARAMETERIZED SQL** - Never format! for queries
-- **VALIDATE COMMANDS** - Never pass raw user input
-- **INLINE FORMAT ARGS** - `format!("{name}")` not `format!("{}", name)`
-- **USE SELF** - In impl blocks, use Self not type name
-- **FILE SIZE LIMIT** - Max 450 lines per file, refactor at 350 lines
-- **Version 6.2.0** - Do not change without approval
-- **GIT WORKFLOW** - ALWAYS push to ALL repositories (github, pragmatismo)
+**Note:** Each subproject has its own git repository. This root repository only tracks workspace-level files:
 
----
+- `Cargo.toml` - Workspace configuration
+- `README.md` - This file
+- `.gitignore` - Ignore patterns
+- `ADDITIONAL-SUGGESTIONS.md` - Enhancement ideas
+- `TODO-*.md` - Task tracking files
 
-## 🚨 Immediate Action Required
+Subprojects (botapp, botserver, botui, etc.) are **independent repositories referenced as git submodules**.
 
-1. **Replace 955 unwrap()/expect() calls** with proper error handling
-2. **Optimize 12,973 clone()/to_string() calls** for performance  
-3. **Refactor 5 large files** following refactoring plan
-4. **Add missing error handling** in critical paths
-5. **Implement proper logging** instead of panicking
+### ⚠️ CRITICAL: Submodule Push Workflow
 
----
+When making changes to any submodule (botserver, botui, botlib, etc.):
 
-## 📄 License
+1. **Commit and push changes within the submodule directory:**
+   ```bash
+   cd botserver
+   git add .
+   git commit -m "Your changes"
+   git push pragmatismo main
+   git push github main
+   ```
 
-General Bot Copyright (c) pragmatismo.com.br. All rights reserved.  
-Licensed under the **AGPL-3.0**.
+2. **Update the global gb repository submodule reference:**
+   ```bash
+   cd ..  # Back to gb root
+   git add botserver
+   git commit -m "Update botserver submodule to latest commit"
+   git push pragmatismo main
+   git push github main
+   ```
 
-According to our dual licensing model, this program can be used either under the terms of the GNU Affero General Public License, version 3, or under a proprietary license.
+**Failure to push the global gb repository will cause submodule changes to not trigger CI/CD pipelines.**
 
----
-
-## 🔗 Links
-
-- **Website:** [pragmatismo.com.br](https://pragmatismo.com.br)
-- **Documentation:** [docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)
-- **GitHub:** [github.com/GeneralBots/botserver](https://github.com/GeneralBots/botserver)
-- **Stack Overflow:** Tag questions with `generalbots`
-- **Video Tutorial:** [7 AI General Bots LLM Templates](https://www.youtube.com/watch?v=KJgvUPXi3Fw)
+Both repositories must be pushed for changes to take effect in production.
 
 ---
 
-**General Bots Code Name:** [Guaribas](https://en.wikipedia.org/wiki/Guaribas)
+## Development Workflow
 
-> "No one should have to do work that can be done by a machine." - Roberto Mangabeira Unger
+1. Read this README.md (workspace structure)
+2. Read **[AGENTS.md](./AGENTS.md)** (coding rules & workflows)
+3. **BEFORE creating any .md file, search botbook/ for existing documentation**
+4. Read `<project>/README.md` (project-specific rules)
+5. Use diagnostics tool to check warnings
+6. Fix all warnings with full file rewrites
+7. Verify with diagnostics after each file
+8. Never suppress warnings with `#[allow()]`
+
+---
+
+
+
+## License
+
+See individual project repositories for license information.

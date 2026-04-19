@@ -1,0 +1,721 @@
+<link rel="stylesheet" href="admin/admin.css" />
+
+<div class="admin-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+        <div class="admin-header">
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                <path d="M2 17l10 5 10-5"></path>
+                <path d="M2 12l10 5 10-5"></path>
+            </svg>
+            <span data-i18n="admin-panel-title">Admin Panel</span>
+        </div>
+
+        <nav class="admin-nav">
+            <a
+                href="#dashboard"
+                class="nav-item active"
+                hx-get="/api/admin/dashboard"
+                hx-target="#admin-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="3" y="3" width="7" height="9"></rect>
+                    <rect x="14" y="3" width="7" height="5"></rect>
+                    <rect x="14" y="12" width="7" height="9"></rect>
+                    <rect x="3" y="16" width="7" height="5"></rect>
+                </svg>
+                <span data-i18n="admin-dashboard">Dashboard</span>
+            </a>
+            <a
+                href="#users"
+                class="nav-item"
+                hx-get="/api/admin/users"
+                hx-target="#admin-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span data-i18n="admin-users">Users</span>
+            </a>
+            <a
+                href="#groups"
+                class="nav-item"
+                hx-get="/api/admin/groups"
+                hx-target="#admin-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <circle cx="19" cy="11" r="2"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-2-3.46"></path>
+                </svg>
+                <span data-i18n="admin-groups">Groups</span>
+            </a>
+            <a
+                href="#bots"
+                class="nav-item"
+                hx-get="/api/admin/bots"
+                hx-target="#admin-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <path d="M12 7v4"></path>
+                    <line x1="8" y1="16" x2="8" y2="16"></line>
+                    <line x1="16" y1="16" x2="16" y2="16"></line>
+                </svg>
+                <span data-i18n="admin-bots">Bots</span>
+            </a>
+            <a
+                href="#dns"
+                class="nav-item"
+                hx-get="/api/admin/dns"
+                hx-target="#admin-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path
+                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                    ></path>
+                </svg>
+                <span data-i18n="admin-dns">DNS</span>
+            </a>
+            <a
+                href="#audit"
+                class="nav-item"
+                hx-get="/api/admin/audit"
+                hx-target="#admin-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    ></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span>Audit Log</span>
+            </a>
+            <a
+                href="#billing"
+                class="nav-item"
+                hx-get="/api/admin/billing"
+                hx-target="#admin-content"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                onclick="setActiveNav(this)"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect
+                        x="1"
+                        y="4"
+                        width="22"
+                        height="16"
+                        rx="2"
+                        ry="2"
+                    ></rect>
+                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+                <span>Billing</span>
+            </a>
+        </nav>
+
+        <div class="admin-footer">
+            <a href="/suite" class="back-link">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Suite
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="admin-main">
+        <div
+            id="admin-content"
+            hx-get="/api/admin/dashboard"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <!-- Dashboard content loaded here -->
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading dashboard...</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Dashboard Template (inline for initial load fallback) -->
+<template id="dashboard-template">
+    <div class="dashboard-view">
+        <div class="page-header">
+            <h1>Dashboard</h1>
+            <p class="subtitle">System overview and quick statistics</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div
+                class="stat-card"
+                hx-get="/api/admin/stats/users"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="stat-icon users">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                        ></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">--</span>
+                    <span class="stat-label">Total Users</span>
+                </div>
+            </div>
+            <div
+                class="stat-card"
+                hx-get="/api/admin/stats/groups"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="stat-icon groups">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                        ></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <circle cx="19" cy="11" r="2"></circle>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">--</span>
+                    <span class="stat-label">Active Groups</span>
+                </div>
+            </div>
+            <div
+                class="stat-card"
+                hx-get="/api/admin/stats/bots"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="stat-icon bots">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                        <circle cx="12" cy="5" r="2"></circle>
+                        <path d="M12 7v4"></path>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">--</span>
+                    <span class="stat-label">Running Bots</span>
+                </div>
+            </div>
+            <div
+                class="stat-card"
+                hx-get="/api/admin/stats/storage"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="stat-icon storage">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">--</span>
+                    <span class="stat-label">Storage Used</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section">
+            <h2 data-i18n="admin-quick-actions">Quick Actions</h2>
+            <div class="quick-actions-grid">
+                <button
+                    class="action-card"
+                    onclick="document.getElementById('create-user-modal').showModal()"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                        ></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    <span data-i18n="admin-create-user">Create User</span>
+                </button>
+                <button
+                    class="action-card"
+                    onclick="document.getElementById('create-group-modal').showModal()"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                        ></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <line x1="19" y1="8" x2="19" y2="14"></line>
+                        <line x1="22" y1="11" x2="16" y2="11"></line>
+                    </svg>
+                    <span data-i18n="admin-create-group">Create Group</span>
+                </button>
+                <button
+                    class="action-card"
+                    onclick="document.getElementById('register-dns-modal').showModal()"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    <span data-i18n="admin-register-dns">Register DNS</span>
+                </button>
+                <button
+                    class="action-card"
+                    hx-get="/api/admin/audit?limit=100"
+                    hx-target="#admin-content"
+                    hx-swap="innerHTML"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                        ></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <span>View Audit Log</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="section">
+            <h2 data-i18n="admin-recent-activity">Recent Activity</h2>
+            <div
+                class="activity-list"
+                hx-get="/api/admin/activity/recent"
+                hx-trigger="load, every 60s"
+                hx-swap="innerHTML"
+            >
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Health -->
+        <div class="section">
+            <h2 data-i18n="admin-system-health">System Health</h2>
+            <div
+                class="health-grid"
+                hx-get="/api/admin/health"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Create User Modal -->
+<dialog id="create-user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="admin-create-user">Create User</h2>
+            <button
+                type="button"
+                class="close-btn"
+                onclick="document.getElementById('create-user-modal').close()"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form
+            hx-post="/users/create"
+            hx-target="#admin-content"
+            hx-swap="innerHTML"
+            hx-on::after-request="if(event.detail.successful) document.getElementById('create-user-modal').close()"
+        >
+            <div class="form-group">
+                <label data-i18n="label-username">Username</label>
+                <input
+                    type="text"
+                    name="username"
+                    required
+                    placeholder="username"
+                />
+            </div>
+            <div class="form-group">
+                <label data-i18n="label-email">Email</label>
+                <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="user@example.com"
+                />
+            </div>
+            <div class="form-group">
+                <label data-i18n="label-display-name">Display Name</label>
+                <input type="text" name="display_name" placeholder="John Doe" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="label-password">Password</label>
+                <input
+                    type="password"
+                    name="password"
+                    required
+                    placeholder="••••••••"
+                    autocomplete="new-password"
+                />
+            </div>
+            <div class="form-group">
+                <label data-i18n="label-role">Role</label>
+                <select name="role">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="moderator">Moderator</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="document.getElementById('create-user-modal').close()"
+                    data-i18n="action-cancel"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    class="btn-primary"
+                    data-i18n="admin-create-user"
+                >
+                    Create User
+                </button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Create Group Modal -->
+<dialog id="create-group-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="admin-create-group">Create Group</h2>
+            <button
+                type="button"
+                class="close-btn"
+                onclick="document.getElementById('create-group-modal').close()"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form
+            hx-post="/groups/create"
+            hx-target="#admin-content"
+            hx-swap="innerHTML"
+            hx-on::after-request="if(event.detail.successful) document.getElementById('create-group-modal').close()"
+        >
+            <div class="form-group">
+                <label data-i18n="label-group-name">Group Name</label>
+                <input
+                    type="text"
+                    name="name"
+                    required
+                    placeholder="Engineering Team"
+                />
+            </div>
+            <div class="form-group">
+                <label data-i18n="label-description">Description</label>
+                <textarea
+                    name="description"
+                    placeholder="Group description..."
+                    rows="3"
+                ></textarea>
+            </div>
+            <div class="form-group">
+                <label>Visibility</label>
+                <select name="visibility">
+                    <option value="private">Private</option>
+                    <option value="public">Public</option>
+                    <option value="hidden">Hidden</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="allow_join_requests" checked />
+                    <span>Allow join requests</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="document.getElementById('create-group-modal').close()"
+                    data-i18n="action-cancel"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    class="btn-primary"
+                    data-i18n="admin-create-group"
+                >
+                    Create Group
+                </button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Register DNS Modal -->
+<dialog id="register-dns-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Register DNS Hostname</h2>
+            <button
+                type="button"
+                class="close-btn"
+                onclick="document.getElementById('register-dns-modal').close()"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form
+            hx-post="/api/dns/register"
+            hx-target="#dns-result"
+            hx-swap="innerHTML"
+        >
+            <div class="form-group">
+                <label data-i18n="label-hostname">Hostname</label>
+                <input
+                    type="text"
+                    name="hostname"
+                    required
+                    placeholder="mybot.example.com"
+                />
+            </div>
+            <div class="form-group">
+                <label data-i18n="label-record-type">Record Type</label>
+                <select name="record_type">
+                    <option value="A">A (IPv4)</option>
+                    <option value="AAAA">AAAA (IPv6)</option>
+                    <option value="CNAME">CNAME</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label data-i18n="label-target">Target</label>
+                <input
+                    type="text"
+                    name="target"
+                    placeholder="192.168.1.1 or target.domain.com"
+                />
+            </div>
+            <div id="dns-result"></div>
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="document.getElementById('register-dns-modal').close()"
+                    data-i18n="action-cancel"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    class="btn-primary"
+                    data-i18n="action-register"
+                >
+                    Register
+                </button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<link rel="stylesheet" href="admin/admin.css" />

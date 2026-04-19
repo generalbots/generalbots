@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 980 480" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="980" height="480" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  <!-- Define gradients and effects -->
+  
+
+  <!-- Background -->
+  <rect x="0" y="0" width="900" height="400" fill="#4B5563" rx="8" filter="url(#shadow)">
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#4B5563">
+    Storage Components per 1TB of Documents
+  </text>
+
+  <!-- Chart area -->
+  <rect x="100" y="60" width="700" height="260" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+
+  <!-- Grid lines -->
+  <line x1="100" y1="125" x2="800" y2="125" stroke="#2563EB" stroke-width="2" stroke-dasharray="2,2" opacity="0.5">
+  <line x1="100" y1="190" x2="800" y2="190" stroke="#2563EB" stroke-width="2" stroke-dasharray="2,2" opacity="0.5">
+  <line x1="100" y1="255" x2="800" y2="255" stroke="#2563EB" stroke-width="2" stroke-dasharray="2,2" opacity="0.5">
+
+  <!-- Axes -->
+  <line x1="100" y1="320" x2="800" y2="320" stroke="#2563EB" stroke-width="2">
+  <line x1="100" y1="60" x2="100" y2="320" stroke="#2563EB" stroke-width="2">
+
+  <!-- Y-axis labels -->
+  <text x="90" y="325" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">0 GB</text>
+  <text x="90" y="260" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">250 GB</text>
+  <text x="90" y="195" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">500 GB</text>
+  <text x="90" y="130" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">750 GB</text>
+  <text x="90" y="65" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1000 GB</text>
+
+  <!-- Y-axis title -->
+  <text x="30" y="190" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" transform="rotate(-90 30 190)">
+    Storage Size (GB)
+  </text>
+
+  <!-- Bars -->
+  <!-- Original -->
+  <rect x="150" y="60" width="80" height="260" fill="url(#barGrad1)" stroke="#2563EB" stroke-width="2" rx="4" filter="url(#shadow)">
+  <text x="190" y="80" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white" filter="url(#textShadow)">1000</text>
+  <text x="190" y="340" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">Original</text>
+  <text x="190" y="355" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1000 GB</text>
+
+  <!-- Text Extracted -->
+  <rect x="260" y="112" width="80" height="208" fill="url(#barGrad2)" stroke="#2563EB" stroke-width="2" rx="4" filter="url(#shadow)">
+  <text x="300" y="132" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white" filter="url(#textShadow)">800</text>
+  <text x="300" y="340" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">Extracted</text>
+  <text x="300" y="355" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">800 GB</text>
+
+  <!-- Embeddings -->
+  <rect x="370" y="8" width="80" height="312" fill="url(#barGrad3)" stroke="#2563EB" stroke-width="2" rx="4" filter="url(#shadow)">
+  <text x="410" y="28" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white" filter="url(#textShadow)">1200</text>
+  <text x="410" y="340" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">Embeddings</text>
+  <text x="410" y="355" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1200 GB</text>
+
+  <!-- Index -->
+  <rect x="480" y="164" width="80" height="156" fill="url(#barGrad4)" stroke="#2563EB" stroke-width="2" rx="4" filter="url(#shadow)">
+  <text x="520" y="184" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white" filter="url(#textShadow)">600</text>
+  <text x="520" y="340" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">Index</text>
+  <text x="520" y="355" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">600 GB</text>
+
+  <!-- Metadata -->
+  <rect x="590" y="216" width="80" height="104" fill="url(#barGrad5)" stroke="#2563EB" stroke-width="2" rx="4" filter="url(#shadow)">
+  <text x="630" y="236" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white" filter="url(#textShadow)">400</text>
+  <text x="630" y="340" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">Metadata</text>
+  <text x="630" y="355" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">400 GB</text>
+
+  <!-- Cache -->
+  <rect x="700" y="190" width="80" height="130" fill="url(#barGrad6)" stroke="#2563EB" stroke-width="2" rx="4" filter="url(#shadow)">
+  <text x="740" y="210" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white" filter="url(#textShadow)">500</text>
+  <text x="740" y="340" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563" filter="url(#textShadow)">Cache</text>
+  <text x="740" y="355" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">500 GB</text>
+
+  <!-- Total line -->
+  <line x1="150" y1="45" x2="780" y2="45" stroke="#2563EB" stroke-width="3" stroke-dasharray="8,4">
+  <rect x="790" y="35" width="90" height="25" fill="#1F2937" stroke="#2563EB" stroke-width="2" rx="4" filter="url(#shadow)">
+  <text x="835" y="52" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563" filter="url(#textShadow)">3.5 TB Total</text>
+
+  <!-- Legend -->
+  <g transform="translate(120, 375)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Components contribute to 3.5× storage multiplication factor</text>
+  </g>
+
+
+  </g>
+
+</svg>

@@ -1,0 +1,216 @@
+<svg width="900" height="580" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#EC4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F472B6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#EF4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F87171;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="580" fill="#FAFBFC"/>
+  <rect width="900" height="580" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="600" class="title-text">GB AutoTask Architecture</text>
+  <text x="450" y="55" text-anchor="middle" font-size="12" class="secondary-text">Intent Classification and Autonomous Execution</text>
+
+  <!-- User Input -->
+  <g transform="translate(350, 75)">
+    <rect width="200" height="50" rx="25" fill="url(#primaryGrad)" filter="url(#cardShadow)"/>
+    <text x="100" y="30" text-anchor="middle" font-size="14" font-weight="600" class="white-text">USER</text>
+  </g>
+
+  <!-- Arrow down from User to Intent Classifier -->
+  <line x1="450" y1="125" x2="450" y2="155" stroke="#8B5CF6" stroke-width="2"/>
+  <polygon points="450,165 443,152 457,152" fill="#8B5CF6"/>
+
+  <!-- Intent Classifier -->
+  <g transform="translate(250, 165)">
+    <rect width="400" height="60" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="400" height="35" rx="10" fill="url(#cyanGrad)"/>
+    <rect y="25" width="400" height="10" fill="url(#cyanGrad)"/>
+    <text x="200" y="25" text-anchor="middle" font-size="13" font-weight="600" class="white-text">INTENT CLASSIFIER</text>
+    <text x="200" y="50" text-anchor="middle" font-size="10" class="secondary-text">LLM classifies user request into intent type</text>
+  </g>
+
+  <!-- Main vertical line from Intent Classifier -->
+  <line x1="450" y1="225" x2="450" y2="260" stroke="#8B5CF6" stroke-width="2"/>
+
+  <!-- Horizontal distribution line -->
+  <line x1="100" y1="260" x2="800" y2="260" stroke="#8B5CF6" stroke-width="2"/>
+
+  <!-- Vertical drops with arrow triangles to intent types -->
+  <!-- Arrow to APP CREATE -->
+  <line x1="100" y1="260" x2="100" y2="285" stroke="#8B5CF6" stroke-width="2"/>
+  <polygon points="100,295 93,282 107,282" fill="#8B5CF6"/>
+
+  <!-- Arrow to TODO -->
+  <line x1="240" y1="260" x2="240" y2="285" stroke="#8B5CF6" stroke-width="2"/>
+  <polygon points="240,295 233,282 247,282" fill="#8B5CF6"/>
+
+  <!-- Arrow to MONITOR -->
+  <line x1="380" y1="260" x2="380" y2="285" stroke="#8B5CF6" stroke-width="2"/>
+  <polygon points="380,295 373,282 387,282" fill="#8B5CF6"/>
+
+  <!-- Arrow to ACTION -->
+  <line x1="520" y1="260" x2="520" y2="285" stroke="#8B5CF6" stroke-width="2"/>
+  <polygon points="520,295 513,282 527,282" fill="#8B5CF6"/>
+
+  <!-- Arrow to SCHEDULE -->
+  <line x1="660" y1="260" x2="660" y2="285" stroke="#8B5CF6" stroke-width="2"/>
+  <polygon points="660,295 653,282 667,282" fill="#8B5CF6"/>
+
+  <!-- Arrow to GOAL -->
+  <line x1="800" y1="260" x2="800" y2="285" stroke="#8B5CF6" stroke-width="2"/>
+  <polygon points="800,295 793,282 807,282" fill="#8B5CF6"/>
+
+  <!-- Intent Type 1: APP CREATE -->
+  <g transform="translate(40, 295)">
+    <rect width="120" height="80" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="120" height="28" rx="8" fill="url(#primaryGrad)"/>
+    <rect y="20" width="120" height="8" fill="url(#primaryGrad)"/>
+    <text x="60" y="20" text-anchor="middle" font-size="10" font-weight="600" class="white-text">APP CREATE</text>
+    <text x="60" y="48" text-anchor="middle" font-size="8" class="secondary-text">"create clinic app"</text>
+    <text x="60" y="65" text-anchor="middle" font-size="8" class="mono-text">HTMX + tools</text>
+  </g>
+
+  <!-- Intent Type 2: TODO -->
+  <g transform="translate(180, 295)">
+    <rect width="120" height="80" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="120" height="28" rx="8" fill="url(#greenGrad)"/>
+    <rect y="20" width="120" height="8" fill="url(#greenGrad)"/>
+    <text x="60" y="20" text-anchor="middle" font-size="10" font-weight="600" class="white-text">TODO</text>
+    <text x="60" y="48" text-anchor="middle" font-size="8" class="secondary-text">"call John tomorrow"</text>
+    <text x="60" y="65" text-anchor="middle" font-size="8" class="mono-text">SAVE TO tasks</text>
+  </g>
+
+  <!-- Intent Type 3: MONITOR -->
+  <g transform="translate(320, 295)">
+    <rect width="120" height="80" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="120" height="28" rx="8" fill="url(#cyanGrad)"/>
+    <rect y="20" width="120" height="8" fill="url(#cyanGrad)"/>
+    <text x="60" y="20" text-anchor="middle" font-size="10" font-weight="600" class="white-text">MONITOR</text>
+    <text x="60" y="48" text-anchor="middle" font-size="8" class="secondary-text">"alert if IBM changes"</text>
+    <text x="60" y="65" text-anchor="middle" font-size="8" class="mono-text">ON CHANGE</text>
+  </g>
+
+  <!-- Intent Type 4: ACTION -->
+  <g transform="translate(460, 295)">
+    <rect width="120" height="80" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="120" height="28" rx="8" fill="url(#orangeGrad)"/>
+    <rect y="20" width="120" height="8" fill="url(#orangeGrad)"/>
+    <text x="60" y="20" text-anchor="middle" font-size="10" font-weight="600" class="white-text">ACTION</text>
+    <text x="60" y="48" text-anchor="middle" font-size="8" class="secondary-text">"email customers"</text>
+    <text x="60" y="65" text-anchor="middle" font-size="8" class="mono-text">Execute .bas</text>
+  </g>
+
+  <!-- Intent Type 5: SCHEDULE -->
+  <g transform="translate(600, 295)">
+    <rect width="120" height="80" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="120" height="28" rx="8" fill="url(#pinkGrad)"/>
+    <rect y="20" width="120" height="8" fill="url(#pinkGrad)"/>
+    <text x="60" y="20" text-anchor="middle" font-size="10" font-weight="600" class="white-text">SCHEDULE</text>
+    <text x="60" y="48" text-anchor="middle" font-size="8" class="secondary-text">"daily 9am summary"</text>
+    <text x="60" y="65" text-anchor="middle" font-size="8" class="mono-text">SET SCHEDULE</text>
+  </g>
+
+  <!-- Intent Type 6: GOAL -->
+  <g transform="translate(740, 295)">
+    <rect width="120" height="80" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="120" height="28" rx="8" fill="url(#redGrad)"/>
+    <rect y="20" width="120" height="8" fill="url(#redGrad)"/>
+    <text x="60" y="20" text-anchor="middle" font-size="10" font-weight="600" class="white-text">GOAL</text>
+    <text x="60" y="48" text-anchor="middle" font-size="8" class="secondary-text">"increase sales 20%"</text>
+    <text x="60" y="65" text-anchor="middle" font-size="8" class="mono-text">LLM loop</text>
+  </g>
+
+  <!-- File Structure Section -->
+  <g transform="translate(40, 400)">
+    <rect width="820" height="165" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <text x="410" y="25" text-anchor="middle" font-size="13" font-weight="600" class="main-text">Generated File Structure</text>
+
+    <!-- .gbdrive column -->
+    <g transform="translate(20, 40)">
+      <rect width="250" height="110" rx="6" fill="#EEF2FF" stroke="#C7D2FE"/>
+      <text x="125" y="22" text-anchor="middle" font-size="11" font-weight="600" class="main-text">.gbdrive/apps/</text>
+      <text x="15" y="45" font-size="9" class="mono-text">index.html</text>
+      <text x="165" y="45" font-size="8" class="secondary-text">Main HTMX page</text>
+      <text x="15" y="62" font-size="9" class="mono-text">*.html</text>
+      <text x="165" y="62" font-size="8" class="secondary-text">Additional pages</text>
+      <text x="15" y="79" font-size="9" class="mono-text">assets/</text>
+      <text x="165" y="79" font-size="8" class="secondary-text">CSS, images</text>
+      <text x="15" y="96" font-size="9" class="mono-text">tables.bas</text>
+      <text x="165" y="96" font-size="8" class="secondary-text">Data schema</text>
+    </g>
+
+    <!-- .gbdialog/tools column -->
+    <g transform="translate(290, 40)">
+      <rect width="250" height="110" rx="6" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="125" y="22" text-anchor="middle" font-size="11" font-weight="600" class="main-text">.gbdialog/tools/</text>
+      <text x="15" y="45" font-size="9" class="mono-text">{tool-name}.bas</text>
+      <text x="15" y="62" font-size="8" class="secondary-text">Voice/chat commands</text>
+      <text x="15" y="82" font-size="9" class="mono-text">DESCRIPTION "trigger"</text>
+      <text x="15" y="99" font-size="8" class="secondary-text">Activated by phrase</text>
+    </g>
+
+    <!-- .gbdialog/schedulers + events column -->
+    <g transform="translate(560, 40)">
+      <rect width="240" height="110" rx="6" fill="#FEF3C7" stroke="#FCD34D"/>
+      <text x="120" y="22" text-anchor="middle" font-size="11" font-weight="600" class="main-text">.gbdialog/schedulers/</text>
+      <text x="15" y="45" font-size="9" class="mono-text">{name}.bas</text>
+      <text x="140" y="45" font-size="8" class="secondary-text">SET SCHEDULE</text>
+      <line x1="15" y1="58" x2="225" y2="58" stroke="#FCD34D" stroke-width="1"/>
+      <text x="120" y="75" text-anchor="middle" font-size="11" font-weight="600" class="main-text">.gbdialog/events/</text>
+      <text x="15" y="95" font-size="9" class="mono-text">{name}.bas</text>
+      <text x="140" y="95" font-size="8" class="secondary-text">ON CHANGE, ON EMAIL</text>
+    </g>
+  </g>
+</svg>

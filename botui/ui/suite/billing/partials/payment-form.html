@@ -1,0 +1,98 @@
+<!-- Payment Form - Billing Partial -->
+<form class="invoice-form" hx-post="/api/billing/payments" hx-target="#payments-table-body" hx-swap="innerHTML" hx-on::after-request="closeBillingModal()">
+    <div class="invoice-form-header">
+        <h2 class="invoice-form-title" data-i18n="billing-record-payment">Record Payment</h2>
+        <button type="button" class="form-close" onclick="closeBillingModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Invoice Selection -->
+    <div class="form-section">
+        <div class="form-section-title" data-i18n="billing-invoice-details">Invoice Details</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-invoice">Invoice *</label>
+                <select name="invoice_id" class="form-select" required hx-get="/api/billing/invoices/unpaid" hx-trigger="load" hx-on::after-request="updateInvoiceInfo()">
+                    <option value="" data-i18n="billing-select-invoice">Select invoice...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-invoice-amount">Invoice Amount</label>
+                <input type="text" id="invoice-amount-display" class="form-input" readonly placeholder="$0.00">
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Details -->
+    <div class="form-section">
+        <div class="form-section-title" data-i18n="billing-payment-details">Payment Details</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-payment-date">Payment Date *</label>
+                <input type="date" name="payment_date" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-amount">Amount *</label>
+                <input type="number" name="amount" class="form-input" required placeholder="0.00" min="0" step="0.01">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-payment-method">Payment Method *</label>
+                <select name="method" class="form-select" required>
+                    <option value="" data-i18n="billing-select-method">Select method...</option>
+                    <option value="bank" data-i18n="billing-method-bank">Bank Transfer</option>
+                    <option value="card" data-i18n="billing-method-card">Credit Card</option>
+                    <option value="pix" data-i18n="billing-method-pix">PIX</option>
+                    <option value="boleto" data-i18n="billing-method-boleto">Boleto</option>
+                    <option value="cash" data-i18n="billing-method-cash">Cash</option>
+                    <option value="check" data-i18n="billing-method-check">Check</option>
+                    <option value="other" data-i18n="billing-method-other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-reference">Reference Number</label>
+                <input type="text" name="reference" class="form-input" placeholder="Transaction ID, Check #, etc.">
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="form-group">
+        <label class="form-label" data-i18n="billing-notes">Notes</label>
+        <textarea name="notes" class="form-textarea" rows="2" placeholder="Additional payment notes..."></textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="form-btn secondary" onclick="closeBillingModal()" data-i18n="common-cancel">Cancel</button>
+        <button type="submit" class="form-btn primary" data-i18n="billing-record">Record Payment</button>
+    </div>
+</form>
+
+<script>
+(function() {
+    // Set default date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('input[name="payment_date"]').value = today;
+
+    // Update invoice info when selection changes
+    window.updateInvoiceInfo = function() {
+        const select = document.querySelector('select[name="invoice_id"]');
+        const amountDisplay = document.getElementById('invoice-amount-display');
+        const amountInput = document.querySelector('input[name="amount"]');
+
+        if (select.selectedOptions[0] && select.selectedOptions[0].dataset.amount) {
+            const amount = select.selectedOptions[0].dataset.amount;
+            amountDisplay.value = '$' + parseFloat(amount).toFixed(2);
+            amountInput.value = amount;
+        }
+    };
+
+    // Add change listener
+    document.querySelector('select[name="invoice_id"]').addEventListener('change', updateInvoiceInfo);
+})();
+</script>

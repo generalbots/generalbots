@@ -1,0 +1,195 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f5f5f5; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .panel-bg { fill: #fafafa; }
+    .header-bg { fill: #e8e8e8; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .icon-text { fill: #333; font-family: Arial, sans-serif; }
+    .divider { stroke: #ddd; stroke-width: 1; }
+    .button { fill: #4A90E2; }
+    .button-text { fill: #fff; font-family: Arial, sans-serif; }
+    .input-field { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .card { fill: #fff; stroke: #ddd; stroke-width: 1; }
+    .metric-value { fill: #1a1a1a; font-family: Arial, sans-serif; font-weight: bold; }
+    .metric-label { fill: #666; font-family: Arial, sans-serif; }
+    .metric-change-up { fill: #7ED321; font-family: Arial, sans-serif; }
+    .metric-change-down { fill: #E74C3C; font-family: Arial, sans-serif; }
+    .chart-line { stroke: #4A90E2; stroke-width: 2; fill: none; }
+    .chart-area { fill: #4A90E2; opacity: 0.1; }
+    .chart-grid { stroke: #eee; stroke-width: 1; }
+    .bar { fill: #4A90E2; }
+    .bar-alt { fill: #BD10E0; }
+    .dropdown { fill: #fff; stroke: #ccc; stroke-width: 1; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a1a; }
+      .frame { stroke: #555; }
+      .panel-bg { fill: #222; }
+      .header-bg { fill: #2a2a2a; }
+      .main-text { fill: #ffffff; }
+      .secondary-text { fill: #aaa; }
+      .icon-text { fill: #ddd; }
+      .divider { stroke: #444; }
+      .input-field { fill: #2a2a2a; stroke: #444; }
+      .card { fill: #2a2a2a; stroke: #444; }
+      .metric-value { fill: #ffffff; }
+      .metric-label { fill: #aaa; }
+      .chart-grid { stroke: #333; }
+      .dropdown { fill: #2a2a2a; stroke: #444; }
+      .button { fill: #00D4FF; }
+      .chart-line { stroke: #00D4FF; }
+      .bar { fill: #00D4FF; }
+      .bar-alt { fill: #E040FB; }
+      .chart-area { fill: #00D4FF; opacity: 0.1; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Analytics - Dashboard Interface</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="50" width="840" height="470" rx="8" class="frame bg"/>
+
+  <!-- Header -->
+  <rect x="30" y="50" width="840" height="50" rx="8" class="header-bg"/>
+  <rect x="30" y="92" width="840" height="8" class="bg"/>
+
+  <!-- Title and Controls -->
+  <text x="55" y="82" font-size="16" font-weight="600" class="main-text">📊 Analytics Dashboard</text>
+
+  <!-- Time Range Dropdown -->
+  <g transform="translate(550, 62)">
+    <rect x="0" y="0" width="120" height="30" rx="4" class="dropdown"/>
+    <text x="15" y="20" font-size="13" class="main-text">Last 24h ▼</text>
+  </g>
+
+  <!-- Refresh Button -->
+  <g transform="translate(680, 62)">
+    <rect x="0" y="0" width="80" height="30" rx="4" class="button"/>
+    <text x="40" y="20" text-anchor="middle" font-size="13" class="button-text">⟳ Refresh</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="30" y1="100" x2="870" y2="100" class="divider"/>
+
+  <!-- Metric Cards Row -->
+  <g transform="translate(50, 115)">
+    <!-- Card 1: Messages -->
+    <rect x="0" y="0" width="185" height="90" rx="8" class="card"/>
+    <text x="92" y="35" text-anchor="middle" font-size="28" class="metric-value">1,234</text>
+    <text x="92" y="55" text-anchor="middle" font-size="13" class="metric-label">Messages</text>
+    <text x="92" y="75" text-anchor="middle" font-size="12" class="metric-change-up">↑ +12%</text>
+
+    <!-- Card 2: Success Rate -->
+    <rect x="200" y="0" width="185" height="90" rx="8" class="card"/>
+    <text x="292" y="35" text-anchor="middle" font-size="28" class="metric-value">89%</text>
+    <text x="292" y="55" text-anchor="middle" font-size="13" class="metric-label">Success Rate</text>
+    <text x="292" y="75" text-anchor="middle" font-size="12" class="metric-change-up">↑ +3%</text>
+
+    <!-- Card 3: Avg Response Time -->
+    <rect x="400" y="0" width="185" height="90" rx="8" class="card"/>
+    <text x="492" y="35" text-anchor="middle" font-size="28" class="metric-value">2.3s</text>
+    <text x="492" y="55" text-anchor="middle" font-size="13" class="metric-label">Avg Response</text>
+    <text x="492" y="75" text-anchor="middle" font-size="12" class="metric-change-down">↓ -0.2s</text>
+
+    <!-- Card 4: Users Today -->
+    <rect x="600" y="0" width="185" height="90" rx="8" class="card"/>
+    <text x="692" y="35" text-anchor="middle" font-size="28" class="metric-value">45</text>
+    <text x="692" y="55" text-anchor="middle" font-size="13" class="metric-label">Users Today</text>
+    <text x="692" y="75" text-anchor="middle" font-size="12" class="metric-change-up">↑ +8</text>
+  </g>
+
+  <!-- Charts Row -->
+  <g transform="translate(50, 220)">
+    <!-- Line Chart: Messages Over Time -->
+    <rect x="0" y="0" width="480" height="200" rx="8" class="card"/>
+    <text x="20" y="25" font-size="14" font-weight="500" class="main-text">Messages Over Time</text>
+
+    <!-- Chart Grid -->
+    <g transform="translate(30, 45)">
+      <line x1="0" y1="0" x2="430" y2="0" class="chart-grid"/>
+      <line x1="0" y1="40" x2="430" y2="40" class="chart-grid"/>
+      <line x1="0" y1="80" x2="430" y2="80" class="chart-grid"/>
+      <line x1="0" y1="120" x2="430" y2="120" class="chart-grid"/>
+
+      <!-- Chart Area -->
+      <path d="M0,100 Q50,80 100,60 T200,40 T300,50 T400,20 L400,120 L0,120 Z" class="chart-area"/>
+
+      <!-- Chart Line -->
+      <path d="M0,100 Q50,80 100,60 T200,40 T300,50 T400,20" class="chart-line"/>
+
+      <!-- Data Points -->
+      <circle cx="0" cy="100" r="4" class="bar"/>
+      <circle cx="100" cy="60" r="4" class="bar"/>
+      <circle cx="200" cy="40" r="4" class="bar"/>
+      <circle cx="300" cy="50" r="4" class="bar"/>
+      <circle cx="400" cy="20" r="4" class="bar"/>
+
+      <!-- X-axis Labels -->
+      <text x="0" y="140" text-anchor="middle" font-size="10" class="secondary-text">Mon</text>
+      <text x="100" y="140" text-anchor="middle" font-size="10" class="secondary-text">Tue</text>
+      <text x="200" y="140" text-anchor="middle" font-size="10" class="secondary-text">Wed</text>
+      <text x="300" y="140" text-anchor="middle" font-size="10" class="secondary-text">Thu</text>
+      <text x="400" y="140" text-anchor="middle" font-size="10" class="secondary-text">Fri</text>
+    </g>
+
+    <!-- Bar Chart: Top Questions -->
+    <rect x="500" y="0" width="285" height="200" rx="8" class="card"/>
+    <text x="520" y="25" font-size="14" font-weight="500" class="main-text">Top Questions</text>
+
+    <g transform="translate(520, 45)">
+      <!-- Bar 1 -->
+      <text x="0" y="12" font-size="11" class="secondary-text">1. How do I reset...</text>
+      <rect x="0" y="18" width="200" height="16" rx="3" class="bar"/>
+
+      <!-- Bar 2 -->
+      <text x="0" y="52" font-size="11" class="secondary-text">2. What is the status...</text>
+      <rect x="0" y="58" width="160" height="16" rx="3" class="bar"/>
+
+      <!-- Bar 3 -->
+      <text x="0" y="92" font-size="11" class="secondary-text">3. Where can I find...</text>
+      <rect x="0" y="98" width="130" height="16" rx="3" class="bar"/>
+
+      <!-- Bar 4 -->
+      <text x="0" y="132" font-size="11" class="secondary-text">4. Help with login</text>
+      <rect x="0" y="138" width="100" height="16" rx="3" class="bar"/>
+    </g>
+  </g>
+
+  <!-- Quick Stats Row -->
+  <g transform="translate(50, 435)">
+    <rect x="0" y="0" width="785" height="45" rx="6" class="card"/>
+
+    <text x="20" y="28" font-size="12" class="secondary-text">📈 Peak Hour:</text>
+    <text x="100" y="28" font-size="12" font-weight="500" class="main-text">2:00 PM</text>
+
+    <line x1="160" y1="10" x2="160" y2="35" class="divider"/>
+
+    <text x="180" y="28" font-size="12" class="secondary-text">🔝 Top Intent:</text>
+    <text x="260" y="28" font-size="12" font-weight="500" class="main-text">Support Query</text>
+
+    <line x1="370" y1="10" x2="370" y2="35" class="divider"/>
+
+    <text x="390" y="28" font-size="12" class="secondary-text">⚡ Avg Session:</text>
+    <text x="480" y="28" font-size="12" font-weight="500" class="main-text">4.2 min</text>
+
+    <line x1="540" y1="10" x2="540" y2="35" class="divider"/>
+
+    <text x="560" y="28" font-size="12" class="secondary-text">🎯 Resolution:</text>
+    <text x="640" y="28" font-size="12" font-weight="500" class="main-text">94%</text>
+
+    <!-- Export Button -->
+    <rect x="700" y="8" width="70" height="28" rx="4" class="button"/>
+    <text x="735" y="27" text-anchor="middle" font-size="11" class="button-text">Export</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(30, 535)">
+    <text x="0" y="0" font-size="11" class="secondary-text">Metrics: Real-time KPIs</text>
+    <text x="150" y="0" font-size="11" class="secondary-text">Charts: Trends & Distribution</text>
+    <text x="350" y="0" font-size="11" class="secondary-text">Time Range: Last 24h, 7d, 30d, Custom</text>
+    <text x="600" y="0" font-size="11" class="secondary-text">Shortcuts: R = Refresh | E = Export</text>
+  </g>
+</svg>

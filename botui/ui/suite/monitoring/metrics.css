@@ -1,0 +1,323 @@
+/* Metrics page styles */
+
+.metrics-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.metrics-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.last-sync {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Key Metrics */
+.key-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.metric-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.metric-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.metric-icon.requests {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+.metric-icon.latency {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+.metric-icon.errors {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+.metric-icon.users {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+.metric-icon.conversations {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+.metric-icon.uptime {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.metric-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.metric-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.metric-title {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
+}
+
+.metric-change {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.metric-change.positive {
+    color: var(--success);
+}
+
+.metric-change.negative {
+    color: var(--error);
+}
+
+.metric-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.metric-trend.up {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.metric-trend.down {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+.metric-trend.neutral {
+    background: var(--bg);
+    color: var(--text-secondary);
+}
+
+/* Charts Grid */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1rem;
+}
+
+.chart-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.chart-header h3 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.chart-controls select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.chart-legend {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-dot.p50 {
+    background: var(--success);
+}
+.legend-dot.p95 {
+    background: var(--warning);
+}
+.legend-dot.p99 {
+    background: var(--error);
+}
+.legend-dot.error-4xx {
+    background: var(--warning);
+}
+.legend-dot.error-5xx {
+    background: var(--error);
+}
+.legend-dot.incoming {
+    background: var(--primary);
+}
+.legend-dot.outgoing {
+    background: var(--success);
+}
+
+.chart-body {
+    padding: 1rem;
+    min-height: 220px;
+}
+
+.chart-svg {
+    width: 100%;
+    height: 180px;
+}
+
+/* Metrics Table */
+.metrics-table-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.metrics-table-container {
+    overflow-x: auto;
+}
+
+.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.metrics-table th,
+.metrics-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.metrics-table th {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--bg);
+}
+
+.metrics-table td {
+    font-size: 0.8125rem;
+    color: var(--text);
+}
+
+.metrics-table tr:last-child td {
+    border-bottom: none;
+}
+
+.metrics-table tr:hover td {
+    background: var(--surface-hover);
+}
+
+.metrics-table .metric-name {
+    font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+    font-weight: 500;
+}
+
+.metrics-table .metric-type {
+    display: inline-block;
+    padding: 0.125rem 0.375rem;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.loading-cell {
+    text-align: center !important;
+    color: var(--text-secondary) !important;
+    padding: 2rem !important;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .key-metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .metric-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .metric-trend {
+        margin-top: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .key-metrics {
+        grid-template-columns: 1fr;
+    }
+}

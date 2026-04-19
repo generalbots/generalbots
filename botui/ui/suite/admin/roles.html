@@ -1,0 +1,655 @@
+<div class="roles-view">
+    <div class="page-header">
+        <div class="header-left">
+            <h1>Role Management</h1>
+            <p class="subtitle">Configure roles and assign permissions to control access across the suite</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-secondary" onclick="document.getElementById('import-roles-modal').showModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Import
+            </button>
+            <button class="btn-primary" onclick="document.getElementById('create-role-modal').showModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <line x1="12" y1="8" x2="12" y2="14"></line>
+                    <line x1="9" y1="11" x2="15" y2="11"></line>
+                </svg>
+                Create Role
+            </button>
+        </div>
+    </div>
+
+    <div class="roles-layout">
+        <div class="roles-sidebar">
+            <div class="sidebar-header">
+                <h3>Roles</h3>
+                <div class="role-filters">
+                    <select id="role-type-filter" onchange="filterRoles(this.value)">
+                        <option value="all">All Roles</option>
+                        <option value="system">System Roles</option>
+                        <option value="custom">Custom Roles</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text"
+                       placeholder="Search roles..."
+                       name="q"
+                       hx-get="/api/rbac/roles/search"
+                       hx-trigger="keyup changed delay:300ms"
+                       hx-target="#roles-list"
+                       hx-swap="innerHTML">
+            </div>
+
+            <div class="roles-list" id="roles-list"
+                 hx-get="/api/rbac/roles"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="roles-content">
+            <div class="role-detail-placeholder" id="role-placeholder">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <h3>Select a Role</h3>
+                <p>Choose a role from the list to view and manage its permissions</p>
+            </div>
+
+            <div class="role-detail-content" id="role-detail" style="display: none;">
+                <div class="role-header">
+                    <div class="role-header-info">
+                        <div class="role-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </div>
+                        <div class="role-title-section">
+                            <h2 id="role-display-name">Role Name</h2>
+                            <span class="role-name-badge" id="role-name">role_name</span>
+                            <span class="role-type-badge system" id="role-type-badge">System</span>
+                        </div>
+                    </div>
+                    <div class="role-header-actions">
+                        <button class="btn-secondary" id="btn-duplicate-role" onclick="duplicateRole()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Duplicate
+                        </button>
+                        <button class="btn-danger" id="btn-delete-role" onclick="confirmDeleteRole()" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+
+                <div class="role-description" id="role-description">
+                    <p>Role description goes here</p>
+                </div>
+
+                <div class="role-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-users">0</div>
+                        <div class="stat-label">Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-groups">0</div>
+                        <div class="stat-label">Groups</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-permissions">0</div>
+                        <div class="stat-label">Permissions</div>
+                    </div>
+                </div>
+
+                <div class="role-tabs">
+                    <button class="tab-btn active" onclick="showTab('permissions', this)">Permissions</button>
+                    <button class="tab-btn" onclick="showTab('users', this)">Assigned Users</button>
+                    <button class="tab-btn" onclick="showTab('groups', this)">Assigned Groups</button>
+                    <button class="tab-btn" onclick="showTab('audit', this)">Audit Log</button>
+                </div>
+
+                <div class="tab-content" id="tab-permissions">
+                    <div class="permissions-assignment">
+                        <div class="assignment-header">
+                            <h4>Permission Assignment</h4>
+                            <p class="help-text">Use the dual-list to assign permissions to this role</p>
+                        </div>
+
+                        <div class="dual-list-container">
+                            <div class="list-box available-box">
+                                <div class="list-box-header">
+                                    <span>Available Permissions</span>
+                                    <span class="count" id="available-count">0</span>
+                                </div>
+                                <div class="list-box-search">
+                                    <input type="text" placeholder="Filter available..." onkeyup="filterAvailable(this.value)">
+                                </div>
+                                <div class="category-filter">
+                                    <select onchange="filterByCategory(this.value, 'available')">
+                                        <option value="">All Categories</option>
+                                        <option value="admin">Administration</option>
+                                        <option value="compliance">Compliance</option>
+                                        <option value="security">Security</option>
+                                        <option value="mail">Mail</option>
+                                        <option value="calendar">Calendar</option>
+                                        <option value="drive">Drive</option>
+                                        <option value="docs">Documents</option>
+                                        <option value="sheet">Spreadsheets</option>
+                                        <option value="slides">Presentations</option>
+                                        <option value="meet">Meetings</option>
+                                        <option value="chat">Chat</option>
+                                        <option value="tasks">Tasks</option>
+                                        <option value="ai">AI & Bots</option>
+                                        <option value="analytics">Analytics</option>
+                                        <option value="integrations">Integrations</option>
+                                        <option value="automation">Automation</option>
+                                    </select>
+                                </div>
+                                <div class="list-box-content" id="available-permissions">
+                                    <div class="loading-state"><div class="spinner"></div></div>
+                                </div>
+                            </div>
+
+                            <div class="transfer-buttons">
+                                <button class="transfer-btn" onclick="assignSelected()" title="Assign selected permissions">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                                <button class="transfer-btn" onclick="assignAll()" title="Assign all permissions">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="13 17 18 12 13 7"></polyline>
+                                        <polyline points="6 17 11 12 6 7"></polyline>
+                                    </svg>
+                                </button>
+                                <button class="transfer-btn" onclick="removeSelected()" title="Remove selected permissions">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                </button>
+                                <button class="transfer-btn" onclick="removeAll()" title="Remove all permissions">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="18 17 13 12 18 7"></polyline>
+                                        <polyline points="11 17 6 12 11 7"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="list-box assigned-box">
+                                <div class="list-box-header">
+                                    <span>Assigned Permissions</span>
+                                    <span class="count" id="assigned-count">0</span>
+                                </div>
+                                <div class="list-box-search">
+                                    <input type="text" placeholder="Filter assigned..." onkeyup="filterAssigned(this.value)">
+                                </div>
+                                <div class="category-filter">
+                                    <select onchange="filterByCategory(this.value, 'assigned')">
+                                        <option value="">All Categories</option>
+                                        <option value="admin">Administration</option>
+                                        <option value="compliance">Compliance</option>
+                                        <option value="security">Security</option>
+                                        <option value="mail">Mail</option>
+                                        <option value="calendar">Calendar</option>
+                                        <option value="drive">Drive</option>
+                                        <option value="docs">Documents</option>
+                                        <option value="sheet">Spreadsheets</option>
+                                        <option value="slides">Presentations</option>
+                                        <option value="meet">Meetings</option>
+                                        <option value="chat">Chat</option>
+                                        <option value="tasks">Tasks</option>
+                                        <option value="ai">AI & Bots</option>
+                                        <option value="analytics">Analytics</option>
+                                        <option value="integrations">Integrations</option>
+                                        <option value="automation">Automation</option>
+                                    </select>
+                                </div>
+                                <div class="list-box-content" id="assigned-permissions">
+                                    <div class="empty-state">No permissions assigned</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="assignment-footer">
+                            <button class="btn-secondary" onclick="resetPermissions()">Reset to Default</button>
+                            <button class="btn-primary" onclick="savePermissions()" id="btn-save-permissions">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tab-users" style="display: none;">
+                    <div class="users-assignment">
+                        <div class="assignment-header">
+                            <h4>Users with this Role</h4>
+                            <button class="btn-secondary btn-sm" onclick="document.getElementById('add-user-modal').showModal()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add User
+                            </button>
+                        </div>
+                        <div class="assigned-users-list" id="assigned-users">
+                            <div class="loading-state"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tab-groups" style="display: none;">
+                    <div class="groups-assignment">
+                        <div class="assignment-header">
+                            <h4>Groups with this Role</h4>
+                            <button class="btn-secondary btn-sm" onclick="document.getElementById('add-group-modal').showModal()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Group
+                            </button>
+                        </div>
+                        <div class="assigned-groups-list" id="assigned-groups">
+                            <div class="loading-state"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tab-audit" style="display: none;">
+                    <div class="audit-log">
+                        <div class="assignment-header">
+                            <h4>Role Change History</h4>
+                            <button class="btn-secondary btn-sm" onclick="exportAuditLog()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Export
+                            </button>
+                        </div>
+                        <div class="audit-log-list" id="audit-log">
+                            <div class="loading-state"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<dialog id="create-role-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Create New Role</h2>
+            <button class="close-btn" onclick="this.closest('dialog').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/rbac/roles" hx-target="#roles-list" hx-swap="innerHTML" hx-on::after-request="this.closest('dialog').close(); this.reset();">
+            <div class="form-group">
+                <label>Role Name <span class="required">*</span></label>
+                <input type="text" name="name" placeholder="e.g., content_editor" required
+                       pattern="[a-z_]+" title="Lowercase letters and underscores only">
+                <p class="help-text">Lowercase, no spaces (use underscores)</p>
+            </div>
+            <div class="form-group">
+                <label>Display Name <span class="required">*</span></label>
+                <input type="text" name="display_name" placeholder="e.g., Content Editor" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" rows="3" placeholder="Describe what this role is for..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Copy Permissions From</label>
+                <select name="copy_from">
+                    <option value="">Start with no permissions</option>
+                    <option value="standard_user">Standard User</option>
+                    <option value="power_user">Power User</option>
+                    <option value="viewer">Viewer</option>
+                    <option value="guest_user">Guest User</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Create Role</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<dialog id="delete-role-modal" class="modal modal-small">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Delete Role</h2>
+            <button class="close-btn" onclick="this.closest('dialog').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="warning-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <p class="warning-text">Are you sure you want to delete the role <strong id="delete-role-name">Role Name</strong>?</p>
+            <p class="warning-subtext">This will remove the role from all users and groups. This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
+            <button class="btn-danger" id="confirm-delete-btn" onclick="deleteRole()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Delete Role
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<dialog id="add-user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Assign Role to Users</h2>
+            <button class="close-btn" onclick="this.closest('dialog').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Search Users</label>
+                <input type="text" id="user-search" placeholder="Type to search users..."
+                       hx-get="/api/rbac/users/search"
+                       hx-trigger="keyup changed delay:300ms"
+                       hx-target="#user-search-results"
+                       hx-swap="innerHTML">
+            </div>
+            <div class="search-results" id="user-search-results">
+                <p class="empty-text">Type to search for users</p>
+            </div>
+            <div class="selected-items" id="selected-users">
+            </div>
+            <div class="form-group">
+                <label>Expiration (Optional)</label>
+                <input type="datetime-local" id="role-expires-at" name="expires_at">
+                <p class="help-text">Leave empty for permanent assignment</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
+            <button class="btn-primary" onclick="assignUsersToRole()">Assign Role</button>
+        </div>
+    </div>
+</dialog>
+
+<dialog id="add-group-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Assign Role to Groups</h2>
+            <button class="close-btn" onclick="this.closest('dialog').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Search Groups</label>
+                <input type="text" id="group-search" placeholder="Type to search groups..."
+                       hx-get="/api/rbac/groups/search"
+                       hx-trigger="keyup changed delay:300ms"
+                       hx-target="#group-search-results"
+                       hx-swap="innerHTML">
+            </div>
+            <div class="search-results" id="group-search-results">
+                <p class="empty-text">Type to search for groups</p>
+            </div>
+            <div class="selected-items" id="selected-groups">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
+            <button class="btn-primary" onclick="assignGroupsToRole()">Assign Role</button>
+        </div>
+    </div>
+</dialog>
+
+<style>
+.roles-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary, #f5f5f5);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.header-left h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: #1a1a1a;
+}
+
+.header-left .subtitle {
+    color: #666;
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.roles-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.roles-sidebar {
+    width: 320px;
+    background: white;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.sidebar-header h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.role-filters select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.search-box {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-box svg {
+    color: #999;
+    flex-shrink: 0;
+}
+
+.search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 0.875rem;
+}
+
+.roles-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.role-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.role-item:hover {
+    background: #f5f5f5;
+}
+
+.role-item.selected {
+    background: #e3f2fd;
+    border-left: 3px solid #1976d2;
+}
+
+.role-item-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    background: #e8f4fd;
+    color: #1976d2;
+}
+
+.role-item.system .role-item-icon {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.role-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.role-item-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.role-item-meta {
+    font-size: 0.75rem;
+    color: #666;
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.125rem;
+}
+
+.roles-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+}
+
+.role-detail-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+    text-align: center;
+}
+
+.role-detail-placeholder svg {
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.role-detail-placeholder h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    color: #666;
+}
+
+.role-detail-content {
+    max-width: 1200px;
+}
+
+.role-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.role-header-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.role-icon {
+    width: 56px;
+    height: 56px;
+    border-radius:

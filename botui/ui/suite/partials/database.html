@@ -1,0 +1,50 @@
+<link rel="stylesheet" href="/suite/css/database.css" />
+
+<div class="botcoder-database-container">
+    <div class="botcoder-db-sidebar">
+        <div class="botcoder-db-header">
+            <h3>🗄️ Database Schema</h3>
+            <button class="botcoder-btn-icon" onclick="botCoderDatabase.refreshSchema()" title="Refresh Schema">↻</button>
+        </div>
+        
+        <div class="botcoder-table-list" id="botcoderTableList">
+            <div class="botcoder-loading">Loading tables...</div>
+        </div>
+        
+        <div class="botcoder-query-builder">
+            <h4>Query Builder</h4>
+            <select id="dbQueryTable" onchange="botCoderDatabase.selectQueryTable()"></select>
+            <textarea id="dbSqlEditor" placeholder="SELECT * FROM table..."></textarea>
+            <button class="botcoder-btn botcoder-btn-primary" onclick="botCoderDatabase.executeQuery()">Run Query</button>
+        </div>
+    </div>
+    
+    <div class="botcoder-db-main">
+        <div class="botcoder-er-canvas-container">
+            <div class="botcoder-er-toolbar">
+                <span>ER Diagram</span>
+                <div class="botcoder-er-controls">
+                    <button class="botcoder-btn-icon" onclick="botCoderDatabase.zoomIn()">➕</button>
+                    <button class="botcoder-btn-icon" onclick="botCoderDatabase.zoomOut()">➖</button>
+                </div>
+            </div>
+            <div id="botcoderErCanvas" class="botcoder-er-canvas">
+                <!-- Tables rendered here -->
+            </div>
+            <svg id="botcoderErEdges" class="botcoder-er-edges"></svg>
+        </div>
+        
+        <div class="botcoder-data-grid-container">
+            <div class="botcoder-grid-toolbar">
+                <span id="botcoderGridTitle">Results</span>
+                <button class="botcoder-btn" onclick="botCoderDatabase.exportCsv()">Export CSV</button>
+            </div>
+            <div id="botcoderDataGrid" class="botcoder-data-grid">
+                <!-- Grid data here -->
+                <div class="botcoder-empty">Run a query or select a table to view data</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/suite/js/database.js"></script>

@@ -1,0 +1,185 @@
+PARAM action AS STRING LIKE "survey" DESCRIPTION "Action to perform: survey, pulse, results, feedback"
+PARAM survey_type AS STRING LIKE "engagement" DESCRIPTION "Survey type: engagement, pulse, onboarding, exit" OPTIONAL
+PARAM anonymous AS BOOLEAN LIKE TRUE DESCRIPTION "Anonymous responses" OPTIONAL
+
+DESCRIPTION "Employee engagement surveys and sentiment analysis"
+
+SELECT CASE UCASE(action)
+
+CASE "SURVEY"
+    survey_id = GUID()
+    survey_name = ASK "What is the name of this survey?"
+    target_audience = ASK "Who should receive this survey? (all, department, team, or comma-separated emails)"
+
+    questions = NEW ARRAY
+    adding_questions = TRUE
+
+    WHILE adding_questions
+        question_text = ASK "Enter survey question (or 'done' to finish):"
+        IF UCASE(question_text) = "DONE" THEN
+            adding_questions = FALSE
+        ELSE
+            question_type = ASK "Question type? (scale, choice, text, nps)"
+
+            WITH question
+                id = GUID()
+                text = question_text
+                type = question_type
+            END WITH
+
+            IF question_type = "scale" THEN
+                question.min_label = "Strongly Disagree"
+                question.max_label = "Strongly Agree"
+                question.scale = 5
+            END IF
+
+            IF question_type = "choice" THEN
+                options_text = ASK "Enter options (comma-separated):"
+                question.options = SPLIT(options_text, ",")
+            END IF
+
+            IF question_type = "nps" THEN
+                question.min_label = "Not Likely"
+                question.max_label = "Very Likely"
+                question.scale = 10
+            END IF
+
+            PUSH questions, question
+        END IF
+    END WHILE
+
+    WITH survey
+        id = survey_id
+        name = survey_name
+        type = survey_type
+        questions = questions
+        target = target_audience
+        anonymous = anonymous
+        status = "draft"
+        created_at = NOW()
+    END WITH
+
+    SAVE survey TO "surveys"
+
+    launch_now = ASK "Launch survey now? (yes/no)"
+    IF UCASE(launch_now) = "YES" THEN
+        survey.status = "active"
+        survey.launched_at = NOW()
+        SAVE survey TO "surveys"
+        TALK "Survey launched! Notifications sent to " + target_audience
+    ELSE
+        TALK "Survey saved as draft. Launch when ready from the dashboard."
+    END IF
+
+CASE "PULSE"
+    pulse_id = GUID()
+    pulse_question = ASK "What quick question do you want to ask?"
+    pulse_frequency = ASK "How often? (daily, weekly, biweekly)"
+
+    WITH pulse
+        id = pulse_id
+        question = pulse_question
+        frequency = pulse_frequency
+        anonymous = TRUE
+        status = "active"
+        created_at = NOW()
+        responses = NEW ARRAY
+    END WITH
+
+    SAVE pulse TO "pulses"
+    TALK "Pulse check created. First pulse will be sent based on " + pulse_frequency + " schedule."
+
+CASE "RESULTS"
+    surveys = FIND "surveys" WHERE status = "completed" OR status = "active"
+
+    IF LEN(surveys) = 0 THEN
+        TALK "No surveys with results found."
+    ELSE
+        survey_list = ""
+        FOR i = 0 TO LEN(surveys) - 1
+            survey_list = survey_list + (i + 1) + ". " + surveys[i].name + " (" + surveys[i].status + ")\n"
+        END FOR
+
+        selection = ASK "Select survey to view results:\n" + survey_list
+        selected_survey = surveys[INT(selection) - 1]
+
+        responses = FIND "responses" WHERE survey_id = selected_survey.id
+
+        total_responses = LEN(responses)
+
+        IF total_responses = 0 THEN
+            TALK "No responses yet for this survey."
+        ELSE
+            TALK "📊 Results for: " + selected_survey.name
+            TALK "Total responses: " + total_responses
+
+            FOR q = 0 TO LEN(selected_survey.questions) - 1
+                question = selected_survey.questions[q]
+                TALK "\n📋 " + question.text
+
+                IF question.type = "scale" OR question.type = "nps" THEN
+                    sum = 0
+                    FOR r = 0 TO LEN(responses) - 1
+                        answer = responses[r].answers[q]
+                        sum = sum + answer
+                    END FOR
+                    avg = sum / total_responses
+                    TALK "Average: " + FORMAT(avg, "0.0") + " / " + question.scale
+                END IF
+
+                IF question.type = "choice" THEN
+                    FOR opt = 0 TO LEN(question.options) - 1
+                        count = 0
+                        FOR r = 0 TO LEN(responses) - 1
+                            IF responses[r].answers[q] = question.options[opt] THEN
+                                count = count + 1
+                            END IF
+                        END FOR
+                        pct = (count / total_responses) * 100
+                        TALK question.options[opt] + ": " + FORMAT(pct, "0") + "%"
+                    END FOR
+                END IF
+            END FOR
+
+            sentiment = ANALYZE SENTIMENT FROM responses
+            TALK "\n🎯 Overall Sentiment: " + sentiment.label + " (" + FORMAT(sentiment.score * 100, "0") + "% positive)"
+        END IF
+    END IF
+
+CASE "FEEDBACK"
+    feedback_type = ASK "Feedback type? (anonymous, identified, suggestion)"
+    feedback_text = ASK "Enter your feedback:"
+
+    WITH feedback
+        id = GUID()
+        type = feedback_type
+        content = feedback_text
+        anonymous = (feedback_type = "anonymous")
+        sentiment = ANALYZE SENTIMENT FROM feedback_text
+        created_at = NOW()
+    END WITH
+
+    SAVE feedback TO "feedback"
+
+    TALK "Thank you for your feedback!"
+
+    IF feedback.sentiment.score < 0.3 THEN
+        TALK "We noticed this might be a concern. Would you like to speak with HR?"
+        escalate = ASK "Request HR follow-up? (yes/no)"
+        IF UCASE(escalate) = "YES" THEN
+            feedback.escalated = TRUE
+            feedback.escalated_at = NOW()
+            SAVE feedback TO "feedback"
+            TALK "HR has been notified and will follow up."
+        END IF
+    END IF
+
+CASE ELSE
+    TALK "Employee Engagement System"
+    TALK "Available actions:"
+    TALK "• survey - Create and launch engagement surveys"
+    TALK "• pulse - Quick pulse checks"
+    TALK "• results - View survey results and analytics"
+    TALK "• feedback - Submit anonymous feedback"
+
+END SELECT

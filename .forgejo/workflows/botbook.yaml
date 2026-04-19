@@ -1,0 +1,16 @@
+name: Botbook CI
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'botbook/**'
+jobs:
+  build:
+    runs-on: gbo
+    steps:
+    - name: Build
+      run: |
+        cd /opt/gbo/work/botbook
+        git reset --hard HEAD && git clean -fd
+        git pull
+        cargo build

@@ -1,0 +1,150 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <!-- Define gradients and filters -->
+  <defs>
+    <!-- Gradient for input layer -->
+    <linearGradient id="inputGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:0.3" />
+    </linearGradient>
+
+    <!-- Gradient for processing layers -->
+    <linearGradient id="processGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06ffa5;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#00d2ff;stop-opacity:0.3" />
+    </linearGradient>
+
+    <!-- Gradient for embedding layer -->
+    <linearGradient id="embedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:0.3" />
+    </linearGradient>
+
+    <!-- Gradient for index layer -->
+    <linearGradient id="indexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fa709a;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#fee140;stop-opacity:0.3" />
+    </linearGradient>
+
+    <!-- Gradient for retrieval layer -->
+    <linearGradient id="retrievalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#30cfd0;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#330867;stop-opacity:0.3" />
+    </linearGradient>
+
+    <!-- Arrow marker -->
+    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#4a5568" opacity="0.8"/>
+    </marker>
+
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="800" height="600" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="26" font-weight="600" fill="#1a202c">
+    Knowledge Base Architecture Pipeline
+  </text>
+
+  <!-- Document Ingestion Layer -->
+  <rect x="100" y="60" width="600" height="60" fill="url(#inputGrad)" stroke="#667eea" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="85" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#2d3748">
+    Document Ingestion Layer
+  </text>
+  <text x="400" y="105" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#4a5568">
+    PDF • Word • Excel • Text • HTML • Markdown
+  </text>
+
+  <!-- Arrow -->
+  <path d="M 400 120 L 400 140" stroke="#4a5568" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0.6"/>
+
+  <!-- Preprocessing Pipeline -->
+  <rect x="100" y="140" width="600" height="60" fill="url(#processGrad)" stroke="#00d2ff" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="165" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#2d3748">
+    Preprocessing Pipeline
+  </text>
+  <text x="400" y="185" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#4a5568">
+    Extraction • Cleaning • Normalization • Validation
+  </text>
+
+  <!-- Arrow -->
+  <path d="M 400 200 L 400 220" stroke="#4a5568" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0.6"/>
+
+  <!-- Chunking Engine -->
+  <rect x="100" y="220" width="600" height="60" fill="url(#processGrad)" stroke="#06ffa5" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="245" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#2d3748">
+    Intelligent Chunking Engine
+  </text>
+  <text x="400" y="265" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#4a5568">
+    Semantic Segmentation • Overlap Management • Metadata Preservation
+  </text>
+
+  <!-- Arrow -->
+  <path d="M 400 280 L 400 300" stroke="#4a5568" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0.6"/>
+
+  <!-- Embedding Generation -->
+  <rect x="100" y="300" width="600" height="60" fill="url(#embedGrad)" stroke="#f5576c" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="325" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#2d3748">
+    Embedding Generation
+  </text>
+  <text x="400" y="345" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#4a5568">
+    BGE Models • Transformer Architecture • Dimensionality: 384/768
+  </text>
+
+  <!-- Arrow -->
+  <path d="M 400 360 L 400 380" stroke="#4a5568" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0.6"/>
+
+  <!-- Vector Index Layer -->
+  <rect x="100" y="380" width="600" height="60" fill="url(#indexGrad)" stroke="#fa709a" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="405" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#2d3748">
+    Vector Index Layer
+  </text>
+  <text x="400" y="425" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#4a5568">
+    HNSW Algorithm • Quantization • Distributed Sharding
+  </text>
+
+  <!-- Arrow -->
+  <path d="M 400 440 L 400 460" stroke="#4a5568" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0.6"/>
+
+  <!-- Retrieval Engine -->
+  <rect x="100" y="460" width="600" height="60" fill="url(#retrievalGrad)" stroke="#30cfd0" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="400" y="485" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#2d3748">
+    Semantic Retrieval Engine
+  </text>
+  <text x="400" y="505" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#4a5568">
+    Cosine Similarity • Hybrid Search • Re-ranking • Context Injection
+  </text>
+
+  <!-- Side labels -->
+  <g transform="translate(50, 290)">
+    <text x="0" y="0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#374151" transform="rotate(-90)">
+      Data Flow Direction
+    </text>
+  </g>
+
+  <!-- Stage indicators on the right -->
+  <text x="730" y="95" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#374151">Raw Docs</text>
+  <text x="730" y="175" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#374151">Clean Text</text>
+  <text x="730" y="255" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#374151">Chunks</text>
+  <text x="730" y="335" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#374151">Vectors</text>
+  <text x="730" y="415" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#374151">Index</text>
+  <text x="730" y="495" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#374151">Results</text>
+
+  <!-- Performance metrics -->
+  <rect x="100" y="540" width="600" height="40" fill="#f7fafc" stroke="#cbd5e0" stroke-width="1" stroke-dasharray="5,5" rx="4"/>
+  <text x="400" y="565" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#4a5568" font-style="italic">
+    Pipeline processes ~1000 documents/minute • Query latency &lt;50ms (p99) • 95% semantic accuracy
+  </text>
+</svg>

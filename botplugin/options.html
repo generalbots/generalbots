@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>General Bots - Options</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            :root {
+                --primary: #3b82f6;
+                --primary-hover: #2563eb;
+                --secondary: #64748b;
+                --success: #22c55e;
+                --warning: #f59e0b;
+                --error: #ef4444;
+                --bg-dark: #1e293b;
+                --bg-darker: #0f172a;
+                --bg-card: #334155;
+                --text-primary: #f1f5f9;
+                --text-secondary: #94a3b8;
+                --border: #475569;
+                --radius: 8px;
+                --radius-lg: 12px;
+                --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                --transition: all 0.2s ease;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                background: var(--bg-darker);
+                color: var(--text-primary);
+                min-height: 100vh;
+                padding: 40px 20px;
+            }
+
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+
+            .header {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                margin-bottom: 40px;
+                padding-bottom: 24px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .header img {
+                width: 64px;
+                height: 64px;
+                border-radius: var(--radius-lg);
+            }
+
+            .header-text h1 {
+                font-size: 28px;
+                font-weight: 700;
+            }
+
+            .header-text p {
+                color: var(--text-secondary);
+                margin-top: 4px;
+            }
+
+            .tabs {
+                display: flex;
+                gap: 4px;
+                margin-bottom: 24px;
+                background: var(--bg-dark);
+                padding: 4px;
+                border-radius: var(--radius);
+            }
+
+            .tab {
+                flex: 1;
+                padding: 12px 20px;
+                border: none;
+                background: transparent;
+                color: var(--text-secondary);
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                border-radius: var(--radius);
+                transition: var(--transition);
+            }
+
+            .tab:hover {
+                color: var(--text-primary);
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+            .tab.active {
+                background: var(--primary);
+                color: white;
+            }
+
+            .tab-content {
+                display: none;
+            }
+
+            .tab-content.active {
+                display: block;
+            }
+
+            .card {
+                background: var(--bg-dark);
+                border-radius: var(--radius-lg);
+                padding: 24px;
+                margin-bottom: 20px;
+                border: 1px solid var(--border);
+            }
+
+            .card-title {
+                font-size: 16px;
+                font-weight: 600;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .card-title .icon {
+                font-size: 20px;
+            }
+
+            .form-group {
+                margin-bottom: 20px;
+            }
+
+            .form-group:last-child {
+                margin-bottom: 0;
+            }
+
+            .form-label {
+                display: block;
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--text-secondary);
+                margin-bottom: 8px;
+            }
+
+            .form-input {
+                width: 100%;
+                padding: 12px 14px;
+                background: var(--bg-darker);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                color: var(--text-primary);
+                font-size: 14px;
+                transition: var(--transition);
+            }
+
+            .form-input:focus {
+                outline: none;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            }
+
+            .form-input::placeholder {
+                color: var(--secondary);
+            }
+
+            .form-hint {
+                font-size: 12px;
+                color: var(--text-secondary);
+                margin-top: 6px;
+            }
+
+            .form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
+
+            .setting-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 16px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            .setting-row:last-child {
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+
+            .setting-row:first-child {
+                padding-top: 0;
+            }
+
+            .setting-info {
+                flex: 1;
+            }
+
+            .setting-label {
+                font-size: 14px;
+                font-weight: 500;
+            }
+
+            .setting-hint {
+                font-size: 12px;
+                color: var(--text-secondary);
+                margin-top: 4px;
+            }
+
+            /* Toggle Switch */
+            .switch {
+                position: relative;
+                width: 48px;
+                height: 26px;
+                flex-shrink: 0;
+            }
+
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: var(--secondary);
+                transition: var(--transition);
+                border-radius: 26px;
+            }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 20px;
+                width: 20px;
+                left: 3px;
+                bottom: 3px;
+                background: white;
+                transition: var(--transition);
+                border-radius: 50%;
+            }
+
+            input:checked + .slider {
+                background: var(--primary);
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(22px);
+            }
+
+            /* Buttons */
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 12px 24px;
+                border: none;
+                border-radius: var(--radius);
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: var(--transition);
+            }
+
+            .btn-primary {
+                background: var(--primary);
+                color: white;
+            }
+
+            .btn-primary:hover {
+                background: var(--primary-hover);
+            }
+
+            .btn-secondary {
+                background: var(--bg-card);
+                color: var(--text-primary);
+                border: 1px solid var(--border);
+            }
+
+            .btn-secondary:hover {
+                background: var(--bg-darker);
+            }
+
+            .btn-danger {
+                background: var(--error);
+                color: white;
+            }
+
+            .btn-danger:hover {
+                background: #dc2626;
+            }
+
+            .btn-group {
+                display: flex;
+                gap: 12px;
+                margin-top: 24px;
+            }
+
+            /* Select */
+            .form-select {
+                width: 100%;
+                padding: 12px 14px;
+                background: var(--bg-darker);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                color: var(--text-primary);
+                font-size: 14px;
+                cursor: pointer;
+                appearance: none;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 14px center;
+            }
+
+            .form-select:focus {
+                outline: none;
+                border-color: var(--primary);
+            }
+
+            /* Textarea */
+            .form-textarea {
+                width: 100%;
+                min-height: 120px;
+                padding: 12px 14px;
+                background: var(--bg-darker);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                color: var(--text-primary);
+                font-size: 14px;
+                font-family: monospace;
+                resize: vertical;
+            }
+
+            .form-textarea:focus {
+                outline: none;
+                border-color: var(--primary);
+            }
+
+            /* Badge */
+            .badge {
+                display: inline-block;
+                padding: 4px 10px;
+                font-size: 11px;
+                font-weight: 600;
+                border-radius: 20px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .badge-success {
+                background: rgba(34, 197, 94, 0.1);
+                color: var(--success);
+            }
+
+            .badge-warning {
+                background: rgba(245, 158, 11, 0.1);
+                color: var(--warning);
+            }
+
+            .badge-error {
+                background: rgba(239, 68, 68, 0.1);
+                color: var(--error);
+            }
+
+            /* Alert */
+            .alert {
+                padding: 14px 18px;
+                border-radius: var(--radius);
+                margin-bottom: 20px;
+                font-size: 13px;
+            }
+
+            .alert-info {
+                background: rgba(59, 130, 246, 0.1);
+                border: 1px solid rgba(59, 130, 246, 0.3);
+                color: var(--primary);
+            }
+
+            .alert-warning {
+                background: rgba(245, 158, 11, 0.1);
+                border: 1px solid rgba(245, 158, 11, 0.3);
+                color: var(--warning);
+            }
+
+            /* Logs */
+            .log-viewer {
+                background: var(--bg-darker);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 16px;
+                max-height: 300px;
+                overflow-y: auto;
+                font-family: monospace;
+                font-size: 12px;
+            }
+
+            .log-entry {
+                padding: 4px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            .log-entry:last-child {
+                border-bottom: none;
+            }
+
+            .log-time {
+                color: var(--secondary);
+                margin-right: 10px;
+            }
+
+            .log-level {
+                font-weight: 600;
+                margin-right: 10px;
+            }
+
+            .log-level.info {
+                color: var(--primary);
+            }
+
+            .log-level.success {
+                color: var(--success);
+            }
+
+            .log-level.warning {
+                color: var(--warning);
+            }
+
+            .log-level.error {
+                color: var(--error);
+            }
+
+            /* Notification */
+            .notification {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 16px 24px;
+                background: var(--bg-dark);
+                border-radius: var(--radius);
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+                border-left: 4px solid var(--primary);
+            }
+
+            .notification.success {
+                border-left-color: var(--success);
+            }
+
+            .notification.error {
+                border-left-color: var(--error);
+            }
+
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            /* Responsive */
+            @media (max-width: 600px) {
+                .form-row {
+                    grid-template-columns: 1fr;
+                }
+
+                .tabs {
+                    flex-wrap: wrap;
+                }
+
+                .tab {
+                    flex: 1 1 calc(50% - 2px);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <img src="icons/icon128.png" alt="General Bots" />
+                <div class="header-text">
+                    <h1>General Bots Options</h1>
+                    <p>Configure advanced settings for the extension</p>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" data-tab="connection">
+                    🔗 Connection
+                </button>
+                <button class="tab" data-tab="ai">🤖 AI Settings</button>
+                <button class="tab" data-tab="privacy">🔒 Privacy</button>
+                <button class="tab" data-tab="advanced">⚙️ Advanced</button>
+            </div>
+
+            <!-- Connection Tab -->
+            <div class="tab-content active" id="connection">
+                <div class="card">
+                    <h3 class="card-title">
+                        <span class="icon">🌐</span> Server Configuration
+                    </h3>
+
+                    <div class="form-group">
+                        <label class="form-label">General Bots API URL</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="server-url"
+                            placeholder="https://api.generalbots.com"
+                        />
+                        <p class="form-hint">
+                            The main API endpoint for General Bots services
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Pragmatismo API URL</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="gb-server-url"
+                            placeholder="https://api.pragmatismo.com.br"
+                        />
+                        <p class="form-hint">
+                            Secondary API endpoint for authentication
+                        </p>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Instance ID</label>
+                            <input
+                                type="text"
+                                class="form-input"
+                                id="instance-id"
+                                placeholder="Your instance ID"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">API Timeout (ms)</label>
+                            <input
+                                type="number"
+                                class="form-input"
+                                id="api-timeout"
+                                value="10000"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">
+                        <span class="icon">🔐</span> Authentication
+                    </h3>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Connection Status</div>
+                            <div class="setting-hint" id="auth-status">
+                                Checking...
+                            </div>
+                        </div>
+                        <span class="badge badge-warning" id="auth-badge"
+                            >Unknown</span
+                        >
+                    </div>
+
+                    <div class="form-group" style="margin-top: 16px">
+                        <label class="form-label">WhatsApp Number</label>
+                        <input
+                            type="tel"
+                            class="form-input"
+                            id="whatsapp-number"
+                            placeholder="+55 11 99999-9999"
+                        />
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="btn-authenticate">
+                            🔗 Authenticate
+                        </button>
+                        <button class="btn btn-danger" id="btn-logout">
+                            🚪 Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Settings Tab -->
+            <div class="tab-content" id="ai">
+                <div class="card">
+                    <h3 class="card-title">
+                        <span class="icon">✨</span> Grammar Correction
+                    </h3>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Enable Grammar Correction
+                            </div>
+                            <div class="setting-hint">
+                                Automatically correct spelling and grammar in
+                                messages
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="grammar-correction"
+                                checked
+                            />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Show Preview</div>
+                            <div class="setting-hint">
+                                Show correction preview before sending
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="show-preview" checked />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 16px">
+                        <label class="form-label">Correction Language</label>
+                        <select class="form-select" id="correction-language">
+                            <option value="auto">Auto-detect</option>
+                            <option value="en">English</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">
+                        <span class="icon">🤖</span> Auto-Reply Mode
+                    </h3>
+
+                    <div class="alert alert-warning">
+                        ⚠️ Auto-reply mode requires authentication and should be
+                        used responsibly.
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Enable Auto-Reply</div>
+                            <div class="setting-hint">
+                                Automatically reply to messages using AI
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="auto-mode" />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Require Manual Approval
+                            </div>
+                            <div class="setting-hint">
+                                Review auto-replies before sending
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="auto-approval"
+                                checked
+                            />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 16px">
+                        <label class="form-label">Response Style</label>
+                        <select class="form-select" id="response-style">
+                            <option value="professional">Professional</option>
+                            <option value="casual">Casual</option>
+                            <option value="friendly">Friendly</option>
+                            <option value="formal">Formal</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Custom Instructions</label>
+                        <textarea
+                            class="form-textarea"
+                            id="custom-instructions"
+                            placeholder="Add any custom instructions for the AI when generating auto-replies..."
+                        ></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Privacy Tab -->
+            <div class="tab-content" id="privacy">
+                <div class="card">
+                    <h3 class="card-title">
+                        <span class="icon">👁️</span> Privacy Settings
+                    </h3>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Hide Contact List</div>
+                            <div class="setting-hint">
+                                Hide the contact list for privacy
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="hide-contacts" />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Hide Processing Indicators
+                            </div>
+                            <div class="setting-hint">
+                                Don't show AI processing status to others
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="hide-indicators" />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Local Processing Only</div>
+                            <div class="setting-hint">
+                                Process messages locally when possible (limited
+                                features)
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="local-only" />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">
+                        <span class="icon">📊</span> Data Management
+                    </h3>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Store Original Messages
+                            </div>
+                            <div class="setting-hint">
+                                Keep original messages for reference
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="store-originals"
+                                checked
+                            />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Collect Analytics</div>
+                            <div class="setting-hint">
+                                Help improve General Bots with anonymous usage
+                                data
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="analytics" />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" id="btn-export">
+                            📤 Export Data
+                        </button>
+                        <button class="btn btn-danger" id="btn-clear">
+                            🗑️ Clear All Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Tab -->
+            <div class="tab-content" id="advanced">
+                <div class="card">
+                    <h3 class="card-title">
+                        <span class="icon">🔧</span> Developer Options
+                    </h3>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Debug Mode</div>
+                            <div class="setting-hint">
+                                Enable verbose logging for debugging
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="debug-mode" />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Show Control Panel</div>
+                            <div class="setting-hint">
+                                Display floating control panel on WhatsApp
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="show-panel"
+                                checked
+                            />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 16px">
+                        <label class="form-label">Keyboard Shortcut</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="shortcut"
+                            placeholder="Ctrl+Shift+G"
+                            readonly
+                        />
+                        <p class="form-hint">
+                            Click and press keys to set shortcut
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">
+                        <span class="icon">📋</span> Activity Log
+                    </h3>
+
+                    <div class="log-viewer" id="log-viewer">
+                        <div class="log-entry">
+                            <span class="log-time">--:--:--</span>
+                            <span class="log-level info">INFO</span>
+                            <span class="log-message"
+                                >Waiting for activity...</span
+                            >
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" id="btn-copy-logs">
+                            📋 Copy Logs
+                        </button>
+                        <button class="btn btn-secondary" id="btn-clear-logs">
+                            🗑️ Clear Logs
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">
+                        <span class="icon">🔄</span> Reset
+                    </h3>
+
+                    <p style="color: var(--text-secondary); margin-bottom: 16px">
+                        Reset all settings to their default values. This action
+                        cannot be undone.
+                    </p>
+
+                    <button class="btn btn-danger" id="btn-reset">
+                        🔄 Reset All Settings
+                    </button>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="btn-group" style="justify-content: flex-end">
+                <button class="btn btn-secondary" id="btn-cancel">
+                    Cancel
+                </button>
+                <button class="btn btn-primary" id="btn-save">
+                    💾 Save All Settings
+                </button>
+            </div>
+        </div>
+
+        <script>
+            // Tab switching
+            document.querySelectorAll(".tab").forEach((tab) => {
+                tab.addEventListener("click", function () {
+                    document
+                        .querySelectorAll(".tab")
+                        .forEach((t) => t.classList.remove("active"));
+                    document
+                        .querySelectorAll(".tab-content")
+                        .forEach((c) => c.classList.remove("active"));
+
+                    this.classList.add("active");
+                    document
+                        .getElementById(this.dataset.tab)
+                        .classList.add("active");
+                });
+            });
+
+            // Load settings
+            async function loadSettings() {
+                const defaults = {
+                    serverUrl: "https://api.generalbots.com",
+                    gbServerUrl: "https://api.pragmatismo.com.br",
+                    instanceId: "",
+                    apiTimeout: 10000,
+                    whatsappNumber: "",
+                    grammarCorrection: true,
+                    showPreview: true,
+                    correctionLanguage: "auto",
+                    autoMode: false,
+                    autoApproval: true,
+                    responseStyle: "professional",
+                    customInstructions: "",
+                    hideContacts: false,
+                    hideIndicators: false,
+                    localOnly: false,
+                    storeOriginals: true,
+                    analytics: false,
+                    debugMode: false,
+                    showPanel: true,
+                    shortcut: "Ctrl+Shift+G",
+                };
+
+                chrome.storage.sync.get(defaults, (items) => {
+                    document.getElementById("server-url").value =
+                        items.serverUrl;
+                    document.getElementById("gb-server-url").value =
+                        items.gbServerUrl;
+                    document.getElementById("instance-id").value =
+                        items.instanceId;
+                    document.getElementById("api-timeout").value =
+                        items.apiTimeout;
+                    document.getElementById("whatsapp-number").value =
+                        items.whatsappNumber;
+                    document.getElementById("grammar-correction").checked =
+                        items.grammarCorrection;
+                    document.getElementById("show-preview").checked =
+                        items.showPreview;
+                    document.getElementById("correction-language").value =
+                        items.correctionLanguage;
+                    document.getElementById("auto-mode").checked =
+                        items.autoMode;
+                    document.getElementById("auto-approval").checked =
+                        items.autoApproval;
+                    document.getElementById("response-style").value =
+                        items.responseStyle;
+                    document.getElementById("custom-instructions").value =
+                        items.customInstructions;
+                    document.getElementById("hide-contacts").checked =
+                        items.hideContacts;
+                    document.getElementById("hide-indicators").checked =
+                        items.hideIndicators;
+                    document.getElementById("local-only").checked =
+                        items.localOnly;
+                    document.getElementById("store-originals").checked =
+                        items.storeOriginals;
+                    document.getElementById("analytics").checked =
+                        items.analytics;
+                    document.getElementById("debug-mode").checked =
+                        items.debugMode;
+                    document.getElementById("show-panel").checked =
+                        items.showPanel;
+                    document.getElementById("shortcut").value = items.shortcut;
+                });
+
+                // Check auth status
+                chrome.runtime.sendMessage(
+                    { action: "getAuthStatus" },
+                    (response) => {
+                        const statusEl =
+                            document.getElementById("auth-status");
+                        const badgeEl = document.getElementById("auth-badge");
+
+                        if (response && response.authenticated) {
+                            statusEl.textContent = `Connected as ${response.whatsappNumber || "User"}`;
+                            badgeEl.textContent = "Connected";
+                            badgeEl.className = "badge badge-success";
+                        } else {
+                            statusEl.textContent = "Not connected";
+                            badgeEl.textContent = "Disconnected";
+                            badgeEl.className = "badge badge-error";
+                        }
+                    },
+                );
+            }
+
+            // Save settings
+            document
+                .getElementById("btn-save")
+                .addEventListener("click", () => {
+                    const settings = {
+                        serverUrl: document.getElementById("server-url").value,
+                        gbServerUrl:
+                            document.getElementById("gb-server-url").value,
+                        instanceId: document.getElementById("instance-id").value,
+                        apiTimeout: parseInt(
+                            document.getElementById("api-timeout").value,
+                        ),
+                        whatsappNumber:
+                            document.getElementById("whatsapp-number").value,
+                        grammarCorrection:
+                            document.getElementById("grammar-correction")
+                                .checked,
+                        showPreview:
+                            document.getElementById("show-preview").checked,
+                        correctionLanguage: document.getElementById(
+                            "correction-language",
+                        ).value,
+                        autoMode: document.getElementById("auto-mode").checked,
+                        autoApproval:
+                            document.getElementById("auto-approval").checked,
+                        responseStyle:
+                            document.getElementById("response-style").value,
+                        customInstructions: document.getElementById(
+                            "custom-instructions",
+                        ).value,
+                        hideContacts:
+                            document.getElementById("hide-contacts").checked,
+                        hideIndicators:
+                            document.getElementById("hide-indicators").checked,
+                        localOnly:
+                            document.getElementById("local-only").checked,
+                        storeOriginals:
+                            document.getElementById("store-originals").checked,
+                        analytics:
+                            document.getElementById("analytics").checked,
+                        debugMode:
+                            document.getElementById("debug-mode").checked,
+                        showPanel:
+                            document.getElementById("show-panel").checked,
+                        shortcut: document.getElementById("shortcut").value,
+                    };
+
+                    chrome.storage.sync.set(settings, () => {
+                        showNotification("Settings saved successfully!");
+                    });
+                });
+
+            // Reset settings
+            document
+                .getElementById("btn-reset")
+                .addEventListener("click", () => {
+                    if (
+                        confirm(
+                            "Are you sure you want to reset all settings to defaults?",
+                        )
+                    ) {
+                        chrome.storage.sync.clear(() => {
+                            loadSettings();
+                            showNotification("Settings reset to defaults");
+                        });
+                    }
+                });
+
+            // Clear data
+            document
+                .getElementById("btn-clear")
+                .addEventListener("click", () => {
+                    if (
+                        confirm(
+                            "Are you sure you want to clear all stored data?",
+                        )
+                    ) {
+                        chrome.storage.local.clear(() => {
+                            showNotification("All data cleared");
+                        });
+                    }
+                });
+
+            // Show notification
+            function showNotification(message, type = "success") {
+                const existing = document.querySelector(".notification");
+                if (existing) existing.remove();
+
+                const notification = document.createElement("div");
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => notification.remove(), 3000);
+            }
+
+            // Cancel button
+            document
+                .getElementById("btn-cancel")
+                .addEventListener("click", () => {
+                    window.close();
+                });
+
+            // Initialize
+            loadSettings();
+        </script>
+    </body>
+</html>

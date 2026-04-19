@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Switcher - General Bots</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        .org-switcher-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .org-switcher-trigger {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            background: var(--surface-color, #1e1e2e);
+            border: 1px solid var(--border-color, #313244);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 200px;
+        }
+
+        .org-switcher-trigger:hover {
+            background: var(--surface-hover, #313244);
+            border-color: var(--primary-color, #89b4fa);
+        }
+
+        .org-switcher-trigger.active {
+            border-color: var(--primary-color, #89b4fa);
+            box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
+        }
+
+        .org-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--primary-color, #89b4fa), var(--secondary-color, #cba6f7));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-on-primary, #1e1e2e);
+            flex-shrink: 0;
+        }
+
+        .org-avatar.personal {
+            background: linear-gradient(135deg, #a6e3a1, #94e2d5);
+        }
+
+        .org-info {
+            flex: 1;
+            text-align: left;
+            overflow: hidden;
+        }
+
+        .org-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-primary, #cdd6f4);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .org-plan {
+            font-size: 11px;
+            color: var(--text-secondary, #a6adc8);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .org-switcher-chevron {
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary, #a6adc8);
+            transition: transform 0.2s ease;
+        }
+
+        .org-switcher-trigger.active .org-switcher-chevron {
+            transform: rotate(180deg);
+        }
+
+        .org-switcher-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            min-width: 280px;
+            background: var(--surface-color, #1e1e2e);
+            border: 1px solid var(--border-color, #313244);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+        }
+
+        .org-switcher-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .org-dropdown-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color, #313244);
+        }
+
+        .org-dropdown-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary, #a6adc8);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .org-search {
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--border-color, #313244);
+        }
+
+        .org-search-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--input-bg, #11111b);
+            border: 1px solid var(--border-color, #313244);
+            border-radius: 6px;
+            color: var(--text-primary, #cdd6f4);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .org-search-input::placeholder {
+            color: var(--text-tertiary, #6c7086);
+        }
+
+        .org-search-input:focus {
+            border-color: var(--primary-color, #89b4fa);
+        }
+
+        .org-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .org-list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .org-list-item:hover {
+            background: var(--surface-hover, #313244);
+        }
+
+        .org-list-item.selected {
+            background: rgba(137, 180, 250, 0.15);
+        }
+
+        .org-list-item.selected .org-name {
+            color: var(--primary-color, #89b4fa);
+        }
+
+        .org-item-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--primary-color, #89b4fa), var(--secondary-color, #cba6f7));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-on-primary, #1e1e2e);
+            flex-shrink: 0;
+        }
+
+        .org-item-avatar.personal {
+            background: linear-gradient(135deg, #a6e3a1, #94e2d5);
+        }
+
+        .org-item-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .org-item-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-primary, #cdd6f4);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .org-item-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary, #a6adc8);
+        }
+
+        .org-item-role {
+            padding: 2px 6px;
+            background: var(--surface-hover, #313244);
+            border-radius: 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .org-item-role.owner {
+            background: rgba(249, 226, 175, 0.2);
+            color: #f9e2af;
+        }
+
+        .org-item-role.admin {
+            background: rgba(137, 180, 250, 0.2);
+            color: #89b4fa;
+        }
+
+        .org-item-check {
+            width: 20px;
+            height: 20px;
+            color: var(--primary-color, #89b4fa);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .org-list-item.selected .org-item-check {
+            opacity: 1;
+        }
+
+        .org-dropdown-footer {
+            padding: 8px;
+            border-top: 1px solid var(--border-color, #313244);
+        }
+
+        .org-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: var(--text-primary, #cdd6f4);
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            text-decoration: none;
+        }
+
+        .org-action-btn:hover {
+            background: var(--surface-hover, #313244);
+        }
+
+        .org-action-btn svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-secondary, #a6adc8);
+        }
+
+        .org-action-btn.create {
+            color: var(--primary-color, #89b4fa);
+        }
+
+        .org-action-btn.create svg {
+            color: var(--primary-color, #89b4fa);
+        }
+
+        .org-divider {
+            height: 1px;
+            background: var(--border-color, #313244);
+            margin: 4px 0;
+        }
+
+        .org-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .org-loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color, #313244);
+            border-top-color: var(--primary-color, #89b4fa);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .org-empty {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-secondary, #a6adc8);
+        }
+
+        .org-empty-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            background: #f38ba8;
+            border-radius: 9px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #1e1e2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .org-switcher-trigger {
+                min-width: auto;
+                padding: 8px;
+            }
+
+            .org-info {
+                display: none;
+            }
+
+            .org-switcher-dropdown {
+                position: fixed;
+                left: 16px;
+                right: 16px;
+                top: auto;
+                bottom: 16px;
+                border-radius: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="org-switcher" class="org-switcher-container">
+        <button class="org-switcher-trigger" id="org-trigger" aria-haspopup="true" aria-expanded="false">
+            <div class="org-avatar" id="current-org-avatar">A</div>
+            <div class="org-info">
+                <div class="org-name" id="current-org-name">Acme Corporation</div>
+                <div class="org-plan" id="current-org-plan">Pro Plan</div>
+            </div>
+            <svg class="org-switcher-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6,9 12,15 18,9"></polyline>
+            </svg>
+        </button>
+
+        <div class="org-switcher-dropdown" id="org-dropdown">
+            <div class="org-dropdown-header">
+                <div class="org-dropdown-title">Switch Organization</div>
+            </div>
+
+            <div class="org-search">
+                <input type="text" class="org-search-input" id="org-search" placeholder="Search organizations...">
+            </div>
+
+            <div class="org-list" id="org-list">
+                <div class="org-loading" id="org-loading">
+                    <div class="org-loading-spinner"></div>
+                </div>
+            </div>
+
+            <div class="org-dropdown-footer">
+                <a href="organization-settings.html" class="org-action-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    Organization Settings
+                </a>
+                <div class="org-divider"></div>
+                <button class="org-action-btn create" id="create-org-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Create New Organization
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="create-org-modal" class="modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Organization</h2>
+                <button class="modal-close" id="close-modal">&times;</button>
+            </div>
+            <form id="create-org-form">
+                <div class="form-group">
+                    <label for="new-org-name">Organization Name</label>
+                    <input type="text" id="new-org-name" required placeholder="Enter organization name">
+                </div>
+                <div class="form-group">
+                    <label for="new-org-slug">URL Slug</label>
+                    <input type="text" id="new-org-slug" required placeholder="organization-slug">
+                    <small>This will be used in URLs: app.generalbots.ai/<span id="slug-preview">organization-slug</span></small>
+                </div>
+                <div class="form-group">
+                    <label for="new-org-plan">Plan</label>
+                    <select id="new-org-plan">
+                        <option value="free">Free</option>
+                        <option value="starter">Starter</option>
+                        <option value="pro" selected>Pro</option>
+                        <option value="enterprise">Enterprise</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="cancel-create">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Organization</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const OrganizationSwitcher = {
+            currentOrg: null,
+            organizations: [],
+            isOpen: false,
+
+            init() {
+                this.bindEvents();
+                this.loadOrganizations();
+            },
+
+            bindEvents() {
+                const trigger = document.getElementById('org-trigger');
+                const dropdown = document.getElementById('org-dropdown');
+                const searchInput = document.getElementById('org-search');
+                const createBtn = document.getElementById('create-org-btn');
+                const modal = document.getElementById('create-org-modal');
+                const closeModal = document.getElementById('close-modal');
+                const cancelCreate = document.getElementById('cancel-create');
+                const createForm = document.getElementById('create-org-form');
+                const newOrgName = document.getElementById('new-org-name');
+                const newOrgSlug = document.getElementById('new-org-slug');
+                const slugPreview = document.getElementById('slug-preview');
+
+                trigger.addEventListener('click', () => this.toggleDropdown());
+
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('#org-switcher') && this.isOpen) {
+                        this.closeDropdown();
+                    }
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.isOpen) {
+                        this.closeDropdown();
+                    }
+                });
+
+                searchInput.addEventListener('input', (e) => this.filterOrganizations(e.target.value));
+
+                createBtn.addEventListener('click', () => this.openCreateModal());
+                closeModal.addEventListener('click', () => this.closeCreateModal());
+                cancelCreate.addEventListener('click', () => this.closeCreateModal());
+
+                modal.querySelector('.modal-overlay').addEventListener('click', () => this.closeCreateModal());
+
+                newOrgName.addEventListener('input', (e) => {
+                    const slug = this.generateSlug(e.target.value);
+                    newOrgSlug.value = slug;
+                    slugPreview.textContent = slug || 'organization-slug';
+                });
+
+                newOrgSlug.addEventListener('input', (e) => {
+                    slugPreview.textContent = e.target.value || 'organization-slug';
+                });
+
+                createForm.addEventListener('submit', (e) => this.handleCreateOrg(e));
+            },
+
+            async loadOrganizations() {
+                const loading = document.getElementById('org-loading');
+                const list = document.getElementById('org-list');
+
+                try {
+                    const response = await fetch('/api/organizations');
+                    if (response.ok) {
+                        this.organizations = await response.json();
+                    } else {
+                        this.organizations = this.getMockOrganizations();
+                    }
+                } catch {
+                    this.organizations = this.getMockOrganizations();
+                }
+
+                loading.style.display = 'none';
+                this.renderOrganizations(this.organizations);
+
+                const storedOrgId = localStorage.getItem('currentOrganizationId');
+                const currentOrg = this.organizations.find(o => o.id === storedOrgId) || this.organizations[0];
+                if (currentOrg) {
+                    this.selectOrganization(currentOrg, false);
+                }
+            },
+
+            getMockOrganizations() {
+                return [
+                    {
+                        id: 'personal',
+                        name: 'Personal',
+                        slug: 'personal',
+                        plan: 'Free',
+                        role: 'owner',
+                        avatar: null,
+                        isPersonal: true,
+                        memberCount: 1
+                    },
+                    {
+                        id: 'org-1',
+                        name: 'Acme Corporation',
+                        slug: 'acme',
+                        plan: 'Pro',
+                        role: 'owner',
+                        avatar: 'A',
+                        isPersonal: false,
+                        memberCount: 15
+                    },
+                    {
+                        id: 'org-2',
+                        name: 'Tech Startup Inc',
+                        slug: 'techstartup',
+                        plan: 'Starter',
+                        role: 'admin',
+                        avatar: 'T',
+                        isPersonal: false,
+                        memberCount: 8
+                    },
+                    {
+                        id: 'org-3',
+                        name: 'Enterprise Solutions',
+                        slug: 'enterprise-solutions',
+                        plan: 'Enterprise',
+                        role: 'member',
+                        avatar: 'E',
+                        isPersonal: false,
+                        memberCount: 250
+                    }
+                ];
+            },
+
+            renderOrganizations(orgs) {
+                const list = document.getElementById('org-list');
+
+                if (orgs.length === 0) {
+                    list.innerHTML = `
+                        <div class="org-empty">
+                            <div class="org-empty-icon">🏢</div>
+                            <p>No organizations found</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                list.innerHTML = orgs.map(org => `
+                    <div class="org-list-item ${this.currentOrg?.id === org.id ? 'selected' : ''}"
+                         data-org-id="${org.id}"
+                         onclick="OrganizationSwitcher.selectOrganization(${JSON.stringify(org).replace(/"/g, '&quot;')})">
+                        <div class="org-item-avatar ${org.isPersonal ? 'personal' : ''}">
+                            ${org.isPersonal ? '👤' : (org.avatar || org.name.charAt(0).toUpperCase())}
+                        </div>
+                        <div class="org-item-info">
+                            <div class="org-item-name">${this.escapeHtml(org.name)}</div>
+                            <div class="org-item-meta">
+                                <span class="org-item-role ${org.role}">${org.role}</span>
+                                <span>${org.memberCount} member${org.memberCount !== 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+                        <svg class="org-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20,6 9,17 4,12"></polyline>
+                        </svg>
+                    </div>
+                `).join('');
+            },
+
+            filterOrganizations(query) {
+                const filtered = this.organizations.filter(org =>
+                    org.name.toLowerCase().includes(query.toLowerCase()) ||
+                    org.slug.toLowerCase().includes(query.toLowerCase())
+                );
+                this.renderOrganizations(filtered);
+            },
+
+            selectOrganization(org, closeAfter = true) {
+                this.currentOrg = org;
+                localStorage.setItem('currentOrganizationId', org.id);
+
+                document.getElementById('current-org-avatar').textContent =
+                    org.isPersonal ? '👤' : (org.avatar || org.name.charAt(0).toUpperCase());
+                document.getElementById('current-org-avatar').className =
+                    'org-avatar' + (org.isPersonal ? ' personal' : '');
+                document.getElementById('current-org-name').textContent = org.name;
+                document.getElementById('current-org-plan').textContent = org.plan + ' Plan';
+
+                document.querySelectorAll('.org-list-item').forEach(item => {
+                    item.classList.toggle('selected', item.dataset.orgId === org.id);
+                });
+
+                if (closeAfter) {
+                    this.closeDropdown();
+                }
+
+                window.dispatchEvent(new CustomEvent('organizationChanged', {
+                    detail: { organization: org }
+                }));
+            },
+
+            toggleDropdown() {
+                if (this.isOpen) {
+                    this.closeDropdown();
+                } else {
+                    this.openDropdown();
+                }
+            },
+
+            openDropdown() {
+                const trigger = document.getElementById('org-trigger');
+                const dropdown = document.getElementById('org-dropdown');
+
+                trigger.classList.add('active');
+                trigger.setAttribute('aria-expanded', 'true');
+                dropdown.classList.add('show');
+                this.isOpen = true;
+
+                document.getElementById('org-search').value = '';
+                this.renderOrganizations(this.organizations);
+                document.getElementById('org-search').focus();
+            },
+
+            closeDropdown() {
+                const trigger = document.getElementById('org-trigger');
+                const dropdown = document.getElementById('org-dropdown');
+
+                trigger.classList.remove('active');
+                trigger.setAttribute('aria-expanded', 'false');
+                dropdown.classList.remove('show');
+                this.isOpen = false;
+            },
+
+            openCreateModal() {
+                this.closeDropdown();
+                document.getElementById('create-org-modal').style.display = 'flex';
+                document.getElementById('new-org-name').focus();
+            },
+
+            closeCreateModal() {
+                document.getElementById('create-org-modal').style.display = 'none';
+                document.getElementById('create-org-form').reset();
+                document.getElementById('slug-preview').textContent = 'organization-slug';
+            },
+
+            generateSlug(name) {
+                return name
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-')
+                    .trim();
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            async handleCreateOrg(e) {
+                e.preventDefault();
+
+                const name = document.getElementById('new-org-name').value;
+                const slug = document.getElementById('new-org-slug').value;
+                const plan = document.getElementById('new-org-plan').value;
+
+                const newOrg = {
+                    id: 'org-' + Date.now(),
+                    name,
+                    slug,
+                    plan: plan.charAt(0).toUpperCase() + plan.slice(1),
+                    role: 'owner',
+                    avatar: name.charAt(0).toUpperCase(),
+                    isPersonal: false,
+                    memberCount: 1
+                };
+
+                try {
+                    const response = await fetch('/api/organizations', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, slug, plan })
+                    });
+
+                    if (response.ok) {
+                        const created = await response.json();
+                        this.organizations.push(created);
+                        this.selectOrganization(created);
+                    } else {
+                        this.organizations.push(newOrg);
+                        this.selectOrganization(newOrg);
+                    }
+                } catch {
+                    this.organizations.push(newOrg);
+                    this.selectOrganization(newOrg);
+                }
+
+                this.closeCreateModal();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => OrganizationSwitcher.init());
+
+        window.OrganizationSwitcher = OrganizationSwitcher;
+    </script>
+
+    <style>
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            position: relative;
+            background: var(--surface-color, #1e1e2e);
+            border: 1px solid var(--border-color, #313244);
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary, #cdd6f4);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary, #a6adc8);
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--surface-hover, #313244);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary, #cdd6f4);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;

@@ -1,0 +1,33 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- GB-inspired signal/broadcast icon -->
+  <defs>
+    <linearGradient id="signalGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer wave arc -->
+  <path d="M4.5 4.5C1.5 7.5 1.5 12.5 4.5 15.5" stroke="url(#signalGradient)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.4"/>
+  <path d="M19.5 4.5C22.5 7.5 22.5 12.5 19.5 15.5" stroke="url(#signalGradient)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.4"/>
+
+  <!-- Middle wave arc -->
+  <path d="M7 7C5 9 5 11 7 13" stroke="url(#signalGradient)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M17 7C19 9 19 11 17 13" stroke="url(#signalGradient)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+
+  <!-- Inner wave arc -->
+  <path d="M9.5 8.5C8.5 9.5 8.5 10.5 9.5 11.5" stroke="url(#signalGradient)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+  <path d="M14.5 8.5C15.5 9.5 15.5 10.5 14.5 11.5" stroke="url(#signalGradient)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+
+  <!-- Center broadcast point - GB bot head style -->
+  <circle cx="12" cy="10" r="2.5" fill="url(#signalGradient)"/>
+  <circle cx="11" cy="9.5" r="0.5" fill="#fff" opacity="0.8"/>
+  <circle cx="13" cy="9.5" r="0.5" fill="#fff" opacity="0.8"/>
+
+  <!-- Antenna tower base -->
+  <path d="M12 12.5V18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <path d="M9 18H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <path d="M10 21H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <path d="M9 18L10 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <path d="M15 18L14 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+</svg>

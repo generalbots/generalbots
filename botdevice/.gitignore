@@ -1,0 +1,74 @@
+# Rust/Cargo build artifacts
+target/
+Cargo.lock
+
+# Generated files (keep structure but ignore binaries)
+*.so
+*.a
+*.o
+*.dylib
+*.dll
+*.exe
+*.bin
+*.elf
+
+# Android build artifacts
+*.apk
+*.aab
+*.dex
+*.class
+*.jar
+gen/android/app/build/
+gen/android/.gradle/
+gen/android/build/
+gen/android/local.properties
+*.keystore
+*.jks
+
+# HarmonyOS build artifacts
+*.hap
+*.hsp
+*.har
+gen/harmonyos/build/
+gen/harmonyos/.preview/
+gen/harmonyos/oh_modules/
+gen/harmonyos/entry/build/
+gen/harmonyos/local.properties
+*.p12
+*.cer
+
+# Tauri build artifacts
+src-tauri/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Debug files
+*.pdb
+*.dSYM/
+
+# ROM build artifacts
+rom/out/
+rom/*.img
+rom/*.zip
+*.img
+*.zip
+
+# Magisk module builds
+rom/scripts/*.zip
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

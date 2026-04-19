@@ -1,0 +1,27 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- GB-inspired chart icon with characteristic curves -->
+  <defs>
+    <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base platform - GB style rounded -->
+  <path d="M3 20h18" stroke="url(#chartGradient)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Bar 1 - shortest -->
+  <rect x="4" y="14" width="3" height="6" rx="1" fill="url(#chartGradient)" opacity="0.6"/>
+
+  <!-- Bar 2 - medium -->
+  <rect x="9" y="10" width="3" height="10" rx="1" fill="url(#chartGradient)" opacity="0.8"/>
+
+  <!-- Bar 3 - tallest with GB curve accent -->
+  <rect x="14" y="5" width="3" height="15" rx="1" fill="url(#chartGradient)"/>
+
+  <!-- Trend line - GB characteristic curve -->
+  <path d="M5.5 13 C8 11, 10 9, 15.5 4" stroke="#10b981" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+  <!-- Accent dot at peak -->
+  <circle cx="15.5" cy="4" r="2" fill="#10b981"/>
+</svg>

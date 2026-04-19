@@ -1,0 +1,412 @@
+<link rel="stylesheet" href="monitoring/services.css" />
+
+<div class="services-container">
+    <!-- Services Header -->
+    <div class="services-header">
+        <div
+            class="header-stats"
+            hx-get="/api/services/summary"
+            hx-trigger="load, every 10s"
+            hx-swap="innerHTML"
+        >
+            <div class="stat-item running">
+                <span class="stat-number">--</span>
+                <span class="stat-label">Running</span>
+            </div>
+            <div class="stat-item warning">
+                <span class="stat-number">--</span>
+                <span class="stat-label">Warning</span>
+            </div>
+            <div class="stat-item stopped">
+                <span class="stat-number">--</span>
+                <span class="stat-label">Stopped</span>
+            </div>
+            <div class="stat-item total">
+                <span class="stat-number">--</span>
+                <span class="stat-label">Total</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="search-box">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input
+                    type="text"
+                    id="service-search"
+                    placeholder="Search services..."
+                    onkeyup="filterServices(this.value)"
+                />
+            </div>
+            <select id="status-filter" onchange="filterByStatus(this.value)">
+                <option value="all">All Status</option>
+                <option value="running">Running</option>
+                <option value="warning">Warning</option>
+                <option value="stopped">Stopped</option>
+            </select>
+            <button
+                class="action-btn"
+                onclick="restartAllServices()"
+                title="Restart All"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                Restart All
+            </button>
+        </div>
+    </div>
+
+    <!-- Services Grid -->
+    <div
+        class="services-grid"
+        id="services-grid"
+        hx-get="/api/services/status"
+        hx-trigger="load, every 10s"
+        hx-swap="innerHTML"
+    >
+        <!-- Loading placeholder -->
+        <div class="service-card skeleton">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+        </div>
+        <div class="service-card skeleton">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+        </div>
+        <div class="service-card skeleton">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+        </div>
+        <div class="service-card skeleton">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+        </div>
+    </div>
+
+    <!-- Service Detail Panel (slides in from right) -->
+    <div class="service-detail-panel" id="service-detail-panel">
+        <div class="panel-header">
+            <h3 id="detail-service-name">Service Details</h3>
+            <button class="close-btn" onclick="closeServiceDetail()">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="panel-content" id="service-detail-content">
+            <!-- Loaded via HTMX -->
+        </div>
+    </div>
+</div>
+
+<!-- Service Card Template (for reference - rendered by server) -->
+<template id="service-card-template">
+    <div class="service-card" data-status="running" data-service="service-name">
+        <div class="card-header">
+            <div class="service-icon">
+                <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect
+                        x="2"
+                        y="2"
+                        width="20"
+                        height="8"
+                        rx="2"
+                        ry="2"
+                    ></rect>
+                    <rect
+                        x="2"
+                        y="14"
+                        width="20"
+                        height="8"
+                        rx="2"
+                        ry="2"
+                    ></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                </svg>
+            </div>
+            <div class="status-badge running">
+                <span class="status-dot"></span>
+                <span class="status-text">Running</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <h4 class="service-name">Service Name</h4>
+            <p class="service-description">Service description goes here</p>
+            <div class="service-meta">
+                <span class="meta-item">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Uptime: 24d 5h
+                </span>
+                <span class="meta-item">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                        <rect x="9" y="9" width="6" height="6"></rect>
+                    </svg>
+                    CPU: 12%
+                </span>
+                <span class="meta-item">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                    </svg>
+                    Mem: 256MB
+                </span>
+            </div>
+        </div>
+        <div class="card-actions">
+            <button
+                class="card-btn"
+                onclick="viewServiceDetails('service-id')"
+                title="Details"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+            </button>
+            <button
+                class="card-btn"
+                onclick="restartService('service-id')"
+                title="Restart"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+            </button>
+            <button
+                class="card-btn"
+                onclick="stopService('service-id')"
+                title="Stop"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+            </button>
+            <button
+                class="card-btn"
+                onclick="viewServiceLogs('service-id')"
+                title="Logs"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    ></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+            </button>
+        </div>
+    </div>
+</template>
+
+<!-- CSS moved to services.css -->
+
+<script>
+    function filterServices(query) {
+        const cards = document.querySelectorAll(".service-card:not(.skeleton)");
+        const lowerQuery = query.toLowerCase();
+
+        cards.forEach((card) => {
+            const name = card.dataset.service?.toLowerCase() || "";
+            const text = card.textContent.toLowerCase();
+            const matches =
+                name.includes(lowerQuery) || text.includes(lowerQuery);
+            card.classList.toggle("hidden", !matches);
+        });
+    }
+
+    function filterByStatus(status) {
+        const cards = document.querySelectorAll(".service-card:not(.skeleton)");
+
+        cards.forEach((card) => {
+            if (status === "all") {
+                card.classList.remove("hidden");
+            } else {
+                const cardStatus = card.dataset.status;
+                card.classList.toggle("hidden", cardStatus !== status);
+            }
+        });
+    }
+
+    function viewServiceDetails(serviceId) {
+        const panel = document.getElementById("service-detail-panel");
+        const content = document.getElementById("service-detail-content");
+
+        // Load service details via HTMX
+        htmx.ajax("GET", `/api/services/${serviceId}/details`, {
+            target: content,
+            swap: "innerHTML",
+        });
+
+        document.getElementById("detail-service-name").textContent = serviceId;
+        panel.classList.add("open");
+    }
+
+    function closeServiceDetail() {
+        document
+            .getElementById("service-detail-panel")
+            .classList.remove("open");
+    }
+
+    function restartService(serviceId) {
+        if (confirm(`Are you sure you want to restart ${serviceId}?`)) {
+            htmx.ajax("POST", `/api/services/${serviceId}/restart`, {
+                swap: "none",
+            }).then(() => {
+                htmx.trigger("#services-grid", "refresh");
+            });
+        }
+    }
+
+    function stopService(serviceId) {
+        if (confirm(`Are you sure you want to stop ${serviceId}?`)) {
+            htmx.ajax("POST", `/api/services/${serviceId}/stop`, {
+                swap: "none",
+            }).then(() => {
+                htmx.trigger("#services-grid", "refresh");
+            });
+        }
+    }
+
+    function startService(serviceId) {
+        htmx.ajax("POST", `/api/services/${serviceId}/start`, {
+            swap: "none",
+        }).then(() => {
+            htmx.trigger("#services-grid", "refresh");
+        });
+    }
+
+    function viewServiceLogs(serviceId) {
+        // Navigate to logs with service filter
+        const logsLink = document.querySelector('.nav-item[href="#logs"]');
+        if (logsLink) {
+            logsLink.click();
+            setTimeout(() => {
+                const serviceFilter = document.getElementById("service-filter");
+                if (serviceFilter) {
+                    serviceFilter.value = serviceId;
+                    serviceFilter.dispatchEvent(new Event("change"));
+                }
+            }, 300);
+        }
+    }
+
+    function restartAllServices() {
+        if (
+            confirm(
+                "Are you sure you want to restart all services? This may cause temporary downtime.",
+            )
+        ) {
+            htmx.ajax("POST", "/api/services/restart-all", {
+                swap: "none",
+            }).then(() => {
+                htmx.trigger("#services-grid", "refresh");
+            });
+        }
+    }
+
+    // Close panel on escape key
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+            closeServiceDetail();
+        }
+    });
+
+    // Close panel when clicking outside
+    document.addEventListener("click", function (e) {
+        const panel = document.getElementById("service-detail-panel");
+        if (
+            panel.classList.contains("open") &&
+            !panel.contains(e.target) &&
+            !e.target.closest(".card-btn")
+        ) {
+            closeServiceDetail();
+        }
+    });
+</script>

@@ -1,0 +1,249 @@
+<!-- Minibar Component — Top-left navigation -->
+<style>
+    .minibar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 28px;
+        background: #f8f8f8;
+        border-bottom: 1px solid #f0f1f2;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        z-index: 9999;
+        font-family: "Fira Code", monospace;
+    }
+
+    .minibar-brand {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #3b3b3b;
+    }
+
+    .minibar-brand-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+    .minibar-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+    }
+
+    .minibar-btn {
+        width: 24px;
+        height: 24px;
+        border: none;
+        border-radius: 4px;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+        font-size: 13px;
+        padding: 0;
+    }
+
+    .minibar-btn:hover {
+        background: #e0e0e0;
+        color: #3b3b3b;
+    }
+</style>
+
+<div class="minibar" id="minibar">
+    <div class="minibar-brand">
+        <svg
+            class="minibar-brand-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#84d669"
+            stroke-width="2"
+        >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 12l3 3 5-5" />
+        </svg>
+        <span>General Bots</span>
+    </div>
+    <div class="minibar-actions" style="position: relative">
+        <button class="minibar-btn" title="Settings" type="button">⚙</button>
+        <div class="user-menu-container" style="position: relative">
+            <button
+                class="minibar-btn"
+                id="userAvatar"
+                title="Account"
+                type="button"
+                style="
+                    border-radius: 50%;
+                    width: 22px;
+                    height: 22px;
+                    background: #ddd;
+                    color: #555;
+                    font-size: 11px;
+                    font-weight: bold;
+                    overflow: hidden;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-left: 4px;
+                "
+            >
+                <span>U</span>
+            </button>
+            <div
+                id="userDropdown"
+                style="
+                    display: none;
+                    position: absolute;
+                    right: 0;
+                    top: 100%;
+                    margin-top: 4px;
+                    background: white;
+                    border: 1px solid #f0f1f2;
+                    border-radius: 6px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                    width: 220px;
+                    padding: 12px;
+                    z-index: 10000;
+                    flex-direction: column;
+                    gap: 8px;
+                "
+            >
+                <div
+                    style="
+                        display: flex;
+                        flex-direction: column;
+                        border-bottom: 1px solid #f0f1f2;
+                        padding-bottom: 8px;
+                    "
+                >
+                    <span
+                        id="userName"
+                        style="
+                            font-weight: 600;
+                            color: #3b3b3b;
+                            font-size: 13px;
+                        "
+                        >User</span
+                    >
+                    <span id="userEmail" style="color: #888; font-size: 11px"
+                        >user@example.com</span
+                    >
+                </div>
+                <a
+                    id="authAction"
+                    href="/auth/login.html"
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        text-decoration: none;
+                        padding: 6px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        transition: background 0.15s;
+                        cursor: pointer;
+                        color: var(--primary, #84d669);
+                    "
+                >
+                    <svg
+                        id="authIcon"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"
+                        ></path>
+                        <polyline points="10 17 15 12 21 12"></polyline>
+                        <line x1="15" y1="12" x2="3" y2="12"></line>
+                    </svg>
+                    <span id="authText">Sign in</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var avatar = document.getElementById("userAvatar");
+        var dropdown = document.getElementById("userDropdown");
+
+        avatar.addEventListener("click", function (e) {
+            e.stopPropagation();
+            dropdown.style.display =
+                dropdown.style.display === "none" ? "flex" : "none";
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!e.target.closest(".user-menu-container")) {
+                dropdown.style.display = "none";
+            }
+        });
+
+        // Trigger manual load or UI sync since minibar loads asynchronously via HTMX
+        setTimeout(function () {
+            var token =
+                localStorage.getItem("gb-access-token") ||
+                sessionStorage.getItem("gb-access-token");
+            if (token) {
+                fetch("/api/auth/me", {
+                    headers: { Authorization: "Bearer " + token },
+                })
+                    .then((res) => res.json())
+                    .then((user) => {
+                        document.getElementById("userName").textContent =
+                            user.display_name ||
+                            user.first_name ||
+                            user.username ||
+                            "User";
+                        document.getElementById("userEmail").textContent =
+                            user.email || "";
+
+                        var btn = document.getElementById("authAction");
+                        btn.href = "#";
+                        btn.style.color = "var(--error, #ef4444)";
+                        document.getElementById("authText").textContent =
+                            "Sign out";
+                        document.getElementById("authIcon").innerHTML =
+                            '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>';
+
+                        btn.onclick = function (e) {
+                            e.preventDefault();
+                            fetch("/api/auth/logout", {
+                                method: "POST",
+                            }).finally(function () {
+                                localStorage.removeItem("gb-access-token");
+                                sessionStorage.removeItem("gb-access-token");
+                                window.location.href = "/auth/login.html";
+                            });
+                        };
+
+                        var initial = (
+                            user.display_name ||
+                            user.username ||
+                            "U"
+                        )
+                            .charAt(0)
+                            .toUpperCase();
+                        document.getElementById("userAvatar").innerHTML =
+                            "<span>" + initial + "</span>";
+                    })
+                    .catch(console.error);
+            }
+        }, 500);
+    })();
+</script>

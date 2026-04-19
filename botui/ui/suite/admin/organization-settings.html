@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Settings - General Bots</title>
+    <link rel="stylesheet" href="/ui/suite/css/common.css">
+    <link rel="stylesheet" href="/ui/suite/admin/admin.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        .org-settings-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color, #e0e0e0);
+        }
+
+        .settings-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary, #1a1a1a);
+            margin: 0;
+        }
+
+        .settings-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color, #e0e0e0);
+        }
+
+        .settings-tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: var(--text-secondary, #666);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .settings-tab:hover {
+            color: var(--primary-color, #0066cc);
+        }
+
+        .settings-tab.active {
+            color: var(--primary-color, #0066cc);
+            border-bottom-color: var(--primary-color, #0066cc);
+            font-weight: 500;
+        }
+
+        .settings-panel {
+            display: none;
+        }
+
+        .settings-panel.active {
+            display: block;
+        }
+
+        .settings-section {
+            background: var(--card-bg, #fff);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-section h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0 0 1rem 0;
+            color: var(--text-primary, #1a1a1a);
+        }
+
+        .settings-section h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            margin: 1.5rem 0 0.75rem 0;
+            color: var(--text-secondary, #666);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary, #1a1a1a);
+        }
+
+        .form-group .hint {
+            font-size: 0.85rem;
+            color: var(--text-secondary, #666);
+            margin-top: 0.25rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color, #e0e0e0);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color, #0066cc);
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+
+        .form-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .form-input-group .form-input {
+            flex: 1;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .toggle-switch-info {
+            flex: 1;
+        }
+
+        .toggle-switch-info h4 {
+            margin: 0 0 0.25rem 0;
+            font-weight: 500;
+            color: var(--text-primary, #1a1a1a);
+        }
+
+        .toggle-switch-info p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--text-secondary, #666);
+        }
+
+        .switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+            margin-left: 1rem;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color, #0066cc);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary-color, #0066cc);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover, #0052a3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary, #f5f5f5);
+            color: var(--text-primary, #1a1a1a);
+            border: 1px solid var(--border-color, #e0e0e0);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color, #e0e0e0);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .logo-upload {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .logo-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            background: var(--bg-secondary, #f5f5f5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 2px dashed var(--border-color, #e0e0e0);
+        }
+
+        .logo-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-preview-placeholder {
+            color: var(--text-secondary, #666);
+            font-size: 2rem;
+        }
+
+        .logo-upload-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .color-picker-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .color-picker {
+            width: 50px;
+            height: 38px;
+            padding: 0;
+            border: 1px solid var(--border-color, #e0e0e0);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .color-value {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary, #666);
+        }
+
+        .member-list {
+            margin-top: 1rem;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color, #e0e0e0);
+        }
+
+        .member-item:last-child {
+            border-bottom: none;
+        }
+
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-color, #0066cc);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
+
+        .member-info {
+            flex: 1;
+        }
+
+        .member-name {
+            font-weight: 500;
+            color: var(--text-primary, #1a1a1a);
+        }
+
+        .member-email {
+            font-size: 0.85rem;
+            color: var(--text-secondary, #666);
+        }
+
+        .member-role {
+            padding: 0.25rem 0.75rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: var(--text-secondary, #666);
+        }
+
+        .member-actions {
+            margin-left: 1rem;
+        }
+
+        .invite-form {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .invite-form .form-input {
+            flex: 1;
+        }
+
+        .invite-form .form-select {
+            width: 150px;
+        }
+
+        .pending-invites {
+            margin-top: 1.5rem;
+        }
+
+        .pending-invite {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+        }
+
+        .pending-invite-email {
+            flex: 1;
+            font-size: 0.95rem;
+        }
+
+        .pending-invite-status {
+            padding: 0.25rem 0.75rem;
+            background: #fff3cd;
+            color: #856404;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-right: 1rem;
+        }
+
+        .danger-zone {
+            border: 1px solid #dc3545;
+            background: #fff5f5;
+        }
+
+        .danger-zone h2 {
+            color: #dc3545;
+        }
+
+        .danger-action {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: white;
+            border: 1px solid #dc3545;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .danger-action:last-child {
+            margin-bottom: 0;
+        }
+
+        .danger-action-info h4 {
+            margin: 0 0 0.25rem 0;
+            color: #dc3545;
+        }
+
+        .danger-action-info p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--text-secondary, #666);
+        }
+
+        .quota-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .quota-item {
+            padding: 1rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 6px;
+        }
+
+        .quota-item-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary, #666);
+            margin-bottom: 0.5rem;
+        }
+
+        .quota-item-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary, #1a1a1a);
+        }
+
+        .quota-item-limit {
+            font-size: 0.85rem;
+            color: var(--text-secondary, #666);
+        }
+
+        .quota-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .quota-bar-fill {
+            height: 100%;
+            background: var(--primary-color, #0066cc);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .quota-bar-fill.warning {
+            background: #ffc107;
+        }
+
+        .quota-bar-fill.danger {
+            background: #dc3545;
+        }
+
+        .api-key-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .api-key-info {
+            flex: 1;
+        }
+
+        .api-key-name {
+            font-weight: 500;
+            color: var(--text-primary, #1a1a1a);
+        }
+
+        .api-key-value {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary, #666);
+            margin-top: 0.25rem;
+        }
+
+        .api-key-created {
+            font-size: 0.8rem;
+            color: var(--text-secondary, #666);
+            margin-top: 0.25rem;
+        }
+
+        .api-key-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary, #666);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background: var(--border-color, #e0e0e0);
+            color: var(--text-primary, #1a1a1a);
+        }
+
+        .btn-icon.danger:hover {
+            background: #ffebee;
+            color: #dc3545;
+        }
+
+        .webhook-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .webhook-info {
+            flex: 1;
+        }
+
+        .webhook-url {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: var(--text-primary, #1a1a1a);
+            word-break: break-all;
+        }
+
+        .webhook-events {
+            font-size: 0.8rem;
+            color: var(--text-secondary, #666);
+            margin-top: 0.25rem;
+        }
+
+        .audit-log-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .audit-log-table th,
+        .audit-log-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color, #e0e0e0);
+        }
+
+        .audit-log-table th {
+            font-weight: 500;
+            color: var(--text-secondary, #666);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .audit-log-table td {
+            font-size: 0.95rem;
+        }
+
+        .audit-action {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .notification-settings {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary, #666);
+        }
+    </style>
+</head>
+<body>
+    <div class="org-settings-container">
+        <div class="settings-header">
+            <h1>Organization Settings</h1>
+            <div class="org-switcher" id="org-switcher">
+                <select class="form-input form-select" id="current-org" onchange="switchOrganization(this.value)">
+                    <option value="org-1">My Organization</option>
+                    <option value="org-2">Second Organization</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="settings-tabs">
+            <button class="settings-tab active" data-tab="general">General</button>
+            <button class="settings-tab" data-tab="branding">Branding</button>
+            <button class="settings-tab" data-tab="members">Members</button>
+            <button class="settings-tab" data-tab="security">Security</button>
+            <button class="settings-tab" data-tab="billing">Billing & Usage</button>
+            <button class="settings-tab" data-tab="integrations">Integrations</button>
+            <button class="settings-tab" data-tab="advanced">Advanced</button>
+        </div>
+
+        <div id="general-panel" class="settings-panel active">
+            <div class="settings-section">
+                <h2>Organization Details</h2>
+                <form id="org-details-form" hx-post="/api/organizations/current" hx-swap="none">
+                    <div class="form-group">
+                        <label for="org-name">Organization Name</label>
+                        <input type="text" id="org-name" name="name" class="form-input" value="My Organization" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="org-slug">Organization Slug</label>
+                        <div class="form-input-group">
+                            <span class="form-input" style="flex: 0; white-space: nowrap; background: var(--bg-secondary);">https://app.generalbots.com/</span>
+                            <input type="text" id="org-slug" name="slug" class="form-input" value="my-organization" pattern="[a-z0-9-]+" required>
+                        </div>
+                        <p class="hint">Only lowercase letters, numbers, and hyphens allowed.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="org-description">Description</label>
+                        <textarea id="org-description" name="description" class="form-input form-textarea" placeholder="Describe your organization..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="org-industry">Industry</label>
+                            <select id="org-industry" name="industry" class="form-input form-select">
+                                <option value="">Select industry...</option>
+                                <option value="technology">Technology</option>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="finance">Finance</option>
+                                <option value="education">Education</option>
+                                <option value="retail">Retail</option>
+                                <option value="manufacturing">Manufacturing</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="org-size">Organization Size</label>
+                            <select id="org-size" name="size" class="form-input form-select">
+                                <option value="1-10">1-10 employees</option>
+                                <option value="11-50">11-50 employees</option>
+                                <option value="51-200">51-200 employees</option>
+                                <option value="201-1000">201-1000 employees</option>
+                                <option value="1000+">1000+ employees</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="org-website">Website</label>
+                            <input type="url" id="org-website" name="website" class="form-input" placeholder="https://example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="org-timezone">Timezone</label>
+                            <select id="org-timezone" name="timezone" class="form-input form-select">
+                                <option value="UTC">UTC</option>
+                                <option value="America/New_York">Eastern Time (US)</option>
+                                <option value="America/Chicago">Central Time (US)</option>
+                                <option value="America/Denver">Mountain Time (US)</option>
+                                <option value="America/Los_Angeles">Pacific Time (US)</option>
+                                <option value="Europe/London">London</option>
+                                <option value="Europe/Paris">Paris</option>
+                                <option value="Asia/Tokyo">Tokyo</option>
+                                <option value="Asia/Shanghai">Shanghai</option>
+                                <option value="America/Sao_Paulo">São Paulo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="reset" class="btn btn-secondary">Reset</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="settings-section">
+                <h2>Contact Information</h2>
+                <form id="contact-form" hx-post="/api/organizations/current/contact" hx-swap="none">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contact-email">Contact Email</label>
+                            <input type="email" id="contact-email" name="contact_email" class="form-input" placeholder="contact@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="contact-phone">Contact Phone</label>
+                            <input type="tel" id="contact-phone" name="contact_phone" class="form-input" placeholder="+1 (555) 123-4567">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="billing-email">Billing Email</label>
+                        <input type="email" id="billing-email" name="billing_email" class="form-input" placeholder="billing@example.com">
+                        <p class="hint">Invoices and billing notifications will be sent to this address.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <textarea id="address" name="address" class="form-input form-textarea" rows="3" placeholder="Street address, City, State, ZIP, Country"></textarea>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">Save Contact Info</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="branding-panel" class="settings-panel">
+            <div class="settings-section">
+                <h2>Brand Identity</h2>
+                <form id="branding-form" hx-post="/api/organizations/current/branding" hx-swap="none" hx-encoding="multipart/form-data">
+                    <div class="form-group">
+                        <label>Organization Logo</label>
+                        <div class="logo-upload">
+                            <div class="logo-preview" id="logo-preview">
+                                <span class="logo-preview-placeholder">🏢</span>
+                            </div>
+                            <div class="logo-upload-actions">
+                                <input type="file" id="logo-input" name="logo" accept="image/*" style="display: none;" onchange="previewLogo(this)">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-input').click()">Upload Logo</button>
+                                <button type="button" class="btn btn-secondary" onclick="removeLogo()">Remove</button>
+                                <p class="hint">Recommended: 256x256px, PNG or SVG</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Favicon</label>
+                        <div class="logo-upload">
+                            <div class="logo-preview" id="favicon-preview" style="width: 48px; height: 48px;">
+                                <span class="logo-preview-placeholder" style="font-size: 1.5rem;">🤖</span>
+                            </div>
+                            <div class="logo-upload-actions">
+                                <input type="file" id="favicon-input" name="favicon" accept="image/*" style="display: none;" onchange="previewFavicon(this)">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('favicon-input').click()">Upload Favicon</button>
+                                <p class="hint">32x32px or 64x64px, ICO or PNG</p>
+                            </div>
+                        </div>
+                    </div>
+                    <h3>Brand Colors</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="primary-color">Primary Color</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="primary-color" name="primary_color" class="color-picker" value="#0066cc" onchange="updateColorValue(this, 'primary-color-value')">
+                                <span class="color-value" id="primary-color-value">#0066cc</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="secondary-color">Secondary Color</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="secondary-color" name="secondary_color" class="color-picker" value="#6c757d" onchange="updateColorValue(this, 'secondary-color-value')">
+                                <span class="color-value" id="secondary-color-value">#6c757d</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="accent-color">Accent Color</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="accent-color" name="accent_color" class="color-picker" value="#28a745" onchange="updateColorValue(this, 'accent-color-value')">
+                                <span class="color-value" id="accent-color-value">#28a745</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="background-color">Background Color</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="background-color" name="background_color" class="color-picker" value="#ffffff" onchange="updateColorValue(this, 'background-color-value')">
+                                <span class="color-value" id="background-color-value">#ffffff</span>
+                            </div>
+                        </div>
+                    </div>
+                    <h3>Custom Domain</h3>
+                    <div class="form-group">
+                        <label for="custom-domain">Custom Domain</label>
+                        <input type="text" id="custom-domain" name="custom_domain" class="form-input" placeholder="chat.yourdomain.com">
+                        <p class="hint">Point your

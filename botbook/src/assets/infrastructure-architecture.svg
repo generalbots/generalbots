@@ -1,0 +1,248 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Light theme defaults */
+    .neon-blue { stroke: #4A90E2; stroke-width: 2.6; fill: none; }
+    .neon-orange { stroke: #F5A623; stroke-width: 2.6; fill: none; }
+    .neon-purple { stroke: #BD10E0; stroke-width: 2.6; fill: none; }
+    .neon-green { stroke: #7ED321; stroke-width: 2.6; fill: none; }
+    .neon-cyan { stroke: #50E3C2; stroke-width: 2.6; fill: none; }
+    .neon-gray { stroke: #888888; stroke-width: 2.6; fill: none; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .arrow-color { stroke: #666; fill: #666; }
+
+    /* Dark theme with subtle neon effects */
+    @media (prefers-color-scheme: dark) {
+      .neon-blue {
+        stroke: #00D4FF;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00D4FF) drop-shadow(0 0 8px #00A0FF);
+      }
+      .neon-orange {
+        stroke: #FF9500;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF9500) drop-shadow(0 0 8px #FF7700);
+      }
+      .neon-purple {
+        stroke: #E040FB;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #E040FB) drop-shadow(0 0 8px #D500F9);
+      }
+      .neon-green {
+        stroke: #00FF88;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00FF88) drop-shadow(0 0 8px #00E676);
+      }
+      .neon-cyan {
+        stroke: #00E5EA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00E5EA) drop-shadow(0 0 8px #00BCD4);
+      }
+      .neon-gray {
+        stroke: #AAAAAA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 2px #888888);
+      }
+      .main-text { fill: #FFFFFF; }
+      .secondary-text { fill: #B0B0B0; }
+      .arrow-color { stroke: #B0B0B0; fill: #B0B0B0; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrow" markerWidth="13" markerHeight="13" refX="11.7" refY="3.9" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,7.8 L11.7,3.9 z" class="arrow-color"/>
+    </marker>
+    <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.3" />
+      <stop offset="33%" style="stop-color:#BD10E0;stop-opacity:0.3" />
+      <stop offset="66%" style="stop-color:#7ED321;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#50E3C2;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="45" text-anchor="middle" font-size="32" font-weight="600" class="main-text">Infrastructure Architecture</text>
+  <text x="700" y="75" text-anchor="middle" font-size="18" class="secondary-text">Load Balancing, Multi-Tenant Isolation, and Auto-Scaling</text>
+
+  <!-- MAIN ARCHITECTURE DIAGRAM -->
+  <g id="main-architecture">
+    <!-- Internet/Clients -->
+    <text x="700" y="115" text-anchor="middle" font-size="18" font-weight="500" class="secondary-text">Clients</text>
+
+    <!-- Client Icons Row -->
+    <rect x="350" y="130" width="100" height="50" class="neon-blue" rx="6.5"/>
+    <text x="400" y="160" text-anchor="middle" font-size="16" class="main-text">Web</text>
+
+    <rect x="500" y="130" width="100" height="50" class="neon-blue" rx="6.5"/>
+    <text x="550" y="160" text-anchor="middle" font-size="16" class="main-text">Mobile</text>
+
+    <rect x="650" y="130" width="100" height="50" class="neon-blue" rx="6.5"/>
+    <text x="700" y="160" text-anchor="middle" font-size="16" class="main-text">WhatsApp</text>
+
+    <rect x="800" y="130" width="100" height="50" class="neon-blue" rx="6.5"/>
+    <text x="850" y="160" text-anchor="middle" font-size="16" class="main-text">Teams</text>
+
+    <rect x="950" y="130" width="100" height="50" class="neon-blue" rx="6.5"/>
+    <text x="1000" y="160" text-anchor="middle" font-size="16" class="main-text">API</text>
+
+    <!-- Load Balancer -->
+    <rect x="300" y="220" width="800" height="60" class="neon-orange" rx="6.5"/>
+    <text x="700" y="255" text-anchor="middle" font-size="22" font-weight="500" class="main-text">Load Balancer (Caddy)</text>
+    <text x="700" y="273" text-anchor="middle" font-size="14" class="secondary-text">TLS Termination | Rate Limiting | Health Checks</text>
+
+    <!-- Connection lines from clients to LB -->
+    <g stroke="#666" stroke-width="2" opacity="0.5">
+      <line x1="400" y1="180" x2="500" y2="220"/>
+      <line x1="550" y1="180" x2="600" y2="220"/>
+      <line x1="700" y1="180" x2="700" y2="220"/>
+      <line x1="850" y1="180" x2="800" y2="220"/>
+      <line x1="1000" y1="180" x2="900" y2="220"/>
+    </g>
+
+    <!-- BotServer Instances -->
+    <text x="700" y="315" text-anchor="middle" font-size="18" font-weight="500" class="secondary-text">BotServer Instances (Auto-Scaled)</text>
+
+    <rect x="150" y="335" width="200" height="80" class="neon-green" rx="6.5"/>
+    <text x="250" y="370" text-anchor="middle" font-size="18" font-weight="500" class="main-text">BotServer 1</text>
+    <text x="250" y="395" text-anchor="middle" font-size="14" class="secondary-text">LXC Container</text>
+
+    <rect x="400" y="335" width="200" height="80" class="neon-green" rx="6.5"/>
+    <text x="500" y="370" text-anchor="middle" font-size="18" font-weight="500" class="main-text">BotServer 2</text>
+    <text x="500" y="395" text-anchor="middle" font-size="14" class="secondary-text">LXC Container</text>
+
+    <rect x="650" y="335" width="200" height="80" class="neon-green" rx="6.5"/>
+    <text x="750" y="370" text-anchor="middle" font-size="18" font-weight="500" class="main-text">BotServer 3</text>
+    <text x="750" y="395" text-anchor="middle" font-size="14" class="secondary-text">LXC Container</text>
+
+    <rect x="900" y="335" width="200" height="80" class="neon-gray" rx="6.5" stroke-dasharray="5,5"/>
+    <text x="1000" y="370" text-anchor="middle" font-size="18" font-weight="500" class="main-text">BotServer N</text>
+    <text x="1000" y="395" text-anchor="middle" font-size="14" class="secondary-text">Auto-Scale</text>
+
+    <!-- Connection lines from LB to BotServers -->
+    <g stroke="#666" stroke-width="2.6" opacity="0.7">
+      <line x1="400" y1="280" x2="250" y2="335" marker-end="url(#arrow)"/>
+      <line x1="550" y1="280" x2="500" y2="335" marker-end="url(#arrow)"/>
+      <line x1="700" y1="280" x2="750" y2="335" marker-end="url(#arrow)"/>
+      <line x1="850" y1="280" x2="1000" y2="335" marker-end="url(#arrow)" stroke-dasharray="5,5"/>
+    </g>
+
+    <!-- Data Layer Label -->
+    <text x="700" y="460" text-anchor="middle" font-size="18" font-weight="500" class="secondary-text">Shared Data Layer</text>
+
+    <!-- Data Layer Components -->
+    <rect x="50" y="480" width="160" height="70" class="neon-purple" rx="6.5"/>
+    <text x="130" y="515" text-anchor="middle" font-size="18" font-weight="500" class="main-text">PostgreSQL</text>
+    <text x="130" y="535" text-anchor="middle" font-size="12" class="secondary-text">Relational Data</text>
+
+    <rect x="230" y="480" width="140" height="70" class="neon-purple" rx="6.5"/>
+    <text x="300" y="515" text-anchor="middle" font-size="18" font-weight="500" class="main-text">Valkey</text>
+    <text x="300" y="535" text-anchor="middle" font-size="12" class="secondary-text">Cache + Sessions</text>
+
+    <rect x="390" y="480" width="140" height="70" class="neon-purple" rx="6.5"/>
+    <text x="460" y="515" text-anchor="middle" font-size="18" font-weight="500" class="main-text">Qdrant</text>
+    <text x="460" y="535" text-anchor="middle" font-size="12" class="secondary-text">Vector Search</text>
+
+    <rect x="550" y="480" width="160" height="70" class="neon-purple" rx="6.5"/>
+    <text x="630" y="515" text-anchor="middle" font-size="18" font-weight="500" class="main-text">SeaweedFS</text>
+    <text x="630" y="535" text-anchor="middle" font-size="12" class="secondary-text">Object Storage</text>
+
+    <rect x="730" y="480" width="140" height="70" class="neon-cyan" rx="6.5"/>
+    <text x="800" y="515" text-anchor="middle" font-size="18" font-weight="500" class="main-text">Zitadel</text>
+    <text x="800" y="535" text-anchor="middle" font-size="12" class="secondary-text">IAM / Auth</text>
+
+    <rect x="890" y="480" width="140" height="70" class="neon-cyan" rx="6.5"/>
+    <text x="960" y="515" text-anchor="middle" font-size="18" font-weight="500" class="main-text">LiveKit</text>
+    <text x="960" y="535" text-anchor="middle" font-size="12" class="secondary-text">Real-time Meet</text>
+
+    <rect x="1050" y="480" width="140" height="70" class="neon-cyan" rx="6.5"/>
+    <text x="1120" y="515" text-anchor="middle" font-size="18" font-weight="500" class="main-text">Stalwart</text>
+    <text x="1120" y="535" text-anchor="middle" font-size="12" class="secondary-text">Email Server</text>
+
+    <!-- Connection lines from BotServers to Data Layer -->
+    <g stroke="#666" stroke-width="2" opacity="0.4">
+      <line x1="250" y1="415" x2="130" y2="480"/>
+      <line x1="250" y1="415" x2="300" y2="480"/>
+      <line x1="500" y1="415" x2="460" y2="480"/>
+      <line x1="500" y1="415" x2="630" y2="480"/>
+      <line x1="750" y1="415" x2="800" y2="480"/>
+      <line x1="750" y1="415" x2="960" y2="480"/>
+      <line x1="1000" y1="415" x2="1120" y2="480"/>
+    </g>
+  </g>
+
+  <!-- PROGRESS INDICATOR (Lower Section) -->
+  <g id="progress-legend">
+    <rect x="50" y="600" width="1300" height="80" fill="url(#flowGradient)" rx="10" opacity="0.2"/>
+
+    <!-- Stage markers -->
+    <circle cx="200" cy="640" r="12" class="neon-blue"/>
+    <circle cx="500" cy="640" r="12" class="neon-orange"/>
+    <circle cx="800" cy="640" r="12" class="neon-green"/>
+    <circle cx="1100" cy="640" r="12" class="neon-purple"/>
+
+    <!-- Connecting lines -->
+    <line x1="212" y1="640" x2="488" y2="640" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="512" y1="640" x2="788" y2="640" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="812" y1="640" x2="1088" y2="640" class="arrow-color" stroke-width="2" opacity="0.4"/>
+
+    <!-- Stage labels -->
+    <text x="200" y="610" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Request</text>
+    <text x="200" y="672" text-anchor="middle" font-size="14" class="secondary-text">Multi-Channel</text>
+
+    <text x="500" y="610" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Route</text>
+    <text x="500" y="672" text-anchor="middle" font-size="14" class="secondary-text">Load Balance</text>
+
+    <text x="800" y="610" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Process</text>
+    <text x="800" y="672" text-anchor="middle" font-size="14" class="secondary-text">BotServer</text>
+
+    <text x="1100" y="610" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Store</text>
+    <text x="1100" y="672" text-anchor="middle" font-size="14" class="secondary-text">Data Layer</text>
+  </g>
+
+  <!-- Legend -->
+  <g id="legend" transform="translate(50, 720)">
+    <text x="0" y="0" font-size="18" font-weight="500" class="main-text">Component Types:</text>
+
+    <rect x="0" y="20" width="24" height="24" class="neon-blue" rx="4"/>
+    <text x="35" y="38" font-size="16" class="secondary-text">Client / Interface</text>
+
+    <rect x="220" y="20" width="24" height="24" class="neon-orange" rx="4"/>
+    <text x="255" y="38" font-size="16" class="secondary-text">Load Balancer</text>
+
+    <rect x="440" y="20" width="24" height="24" class="neon-green" rx="4"/>
+    <text x="475" y="38" font-size="16" class="secondary-text">Compute Instance</text>
+
+    <rect x="680" y="20" width="24" height="24" class="neon-purple" rx="4"/>
+    <text x="715" y="38" font-size="16" class="secondary-text">Data Storage</text>
+
+    <rect x="900" y="20" width="24" height="24" class="neon-cyan" rx="4"/>
+    <text x="935" y="38" font-size="16" class="secondary-text">Services</text>
+  </g>
+
+  <!-- Features row -->
+  <g id="features" transform="translate(50, 790)">
+    <rect x="0" y="0" width="200" height="45" class="neon-blue" rx="6.5" opacity="0.5"/>
+    <text x="100" y="28" text-anchor="middle" font-size="14" class="main-text">Auto-Scaling</text>
+
+    <rect x="220" y="0" width="200" height="45" class="neon-orange" rx="6.5" opacity="0.5"/>
+    <text x="320" y="28" text-anchor="middle" font-size="14" class="main-text">TLS Everywhere</text>
+
+    <rect x="440" y="0" width="200" height="45" class="neon-purple" rx="6.5" opacity="0.5"/>
+    <text x="540" y="28" text-anchor="middle" font-size="14" class="main-text">Multi-Tenant</text>
+
+    <rect x="660" y="0" width="200" height="45" class="neon-green" rx="6.5" opacity="0.5"/>
+    <text x="760" y="28" text-anchor="middle" font-size="14" class="main-text">Health Checks</text>
+
+    <rect x="880" y="0" width="200" height="45" class="neon-cyan" rx="6.5" opacity="0.5"/>
+    <text x="980" y="28" text-anchor="middle" font-size="14" class="main-text">Zero Downtime</text>
+
+    <rect x="1100" y="0" width="200" height="45" class="neon-gray" rx="6.5" opacity="0.5"/>
+    <text x="1200" y="28" text-anchor="middle" font-size="14" class="main-text">LXC Containers</text>
+  </g>
+
+  <!-- Description -->
+  <text x="700" y="870" text-anchor="middle" font-size="18" class="secondary-text">
+    Production-ready infrastructure with automatic scaling, load balancing, and multi-tenant isolation
+  </text>
+</svg>

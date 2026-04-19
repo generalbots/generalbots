@@ -1,0 +1,63 @@
+<div class="navigation-menu" id="navigation-menu">
+    <nav class="nav-menu-content">
+        <a href="/auth/login"
+           class="nav-menu-item nav-sign-in"
+           hx-get="/auth/login"
+           hx-swap="none"
+           hx-on::after-request="window.location.href='/login'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+            </svg>
+            <span>Sign in</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+    .navigation-menu {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+        min-width: 200px;
+        z-index: 1000;
+        overflow: hidden;
+        animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .nav-menu-content {
+        padding: 8px;
+    }
+
+    .nav-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: white;
+        font-size: 15px;
+        transition: all 0.15s ease;
+        cursor: pointer;
+    }
+
+    .nav-sign-in {
+        background: var(--primary);
+    }
+
+    .nav-sign-in:hover {
+        background: var(--primary-dark);
+    }
+
+    .nav-sign-in svg {
+        flex-shrink: 0;
+    }
+</style>

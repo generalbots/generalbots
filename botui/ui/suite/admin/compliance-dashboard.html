@@ -1,0 +1,455 @@
+<section class="compliance-dashboard">
+    <div class="dashboard-header">
+        <div class="header-title">
+            <h1>Compliance Dashboard</h1>
+            <p>SOC 2 Type II compliance status, controls monitoring, and audit evidence</p>
+        </div>
+        <div class="header-actions">
+            <select class="framework-selector" id="complianceFramework" onchange="updateFramework(this.value)">
+                <option value="soc2">SOC 2 Type II</option>
+                <option value="gdpr">GDPR</option>
+                <option value="hipaa">HIPAA</option>
+                <option value="iso27001">ISO 27001</option>
+            </select>
+            <button class="btn-secondary" onclick="generateComplianceReport()">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Generate Report
+            </button>
+            <button class="btn-primary" onclick="startAuditPrep()">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M9 11l3 3L22 4"></path>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                Audit Prep
+            </button>
+        </div>
+    </div>
+
+    <div class="compliance-overview" hx-get="/api/compliance/dashboard/overview" hx-trigger="load" hx-swap="innerHTML">
+        <div class="overview-card overall-score">
+            <div class="score-ring">
+                <svg viewBox="0 0 100 100" class="score-svg">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="var(--surface-border)" stroke-width="8"></circle>
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="var(--success)" stroke-width="8" stroke-dasharray="254.47" stroke-dashoffset="25.45" transform="rotate(-90 50 50)" stroke-linecap="round"></circle>
+                </svg>
+                <div class="score-value">
+                    <span class="score-number">91%</span>
+                    <span class="score-label">Compliant</span>
+                </div>
+            </div>
+            <div class="score-details">
+                <span class="score-title">Overall Compliance Score</span>
+                <span class="score-change positive">+3% from last assessment</span>
+            </div>
+        </div>
+        <div class="overview-card controls-status">
+            <div class="status-icon healthy">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <polyline points="9 12 12 15 16 10"></polyline>
+                </svg>
+            </div>
+            <div class="status-content">
+                <span class="status-value">156 / 171</span>
+                <span class="status-label">Controls Passing</span>
+                <span class="status-detail">15 controls need attention</span>
+            </div>
+        </div>
+        <div class="overview-card evidence-status">
+            <div class="status-icon warning">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="12" y1="9" x2="12.01" y2="9"></line>
+                </svg>
+            </div>
+            <div class="status-content">
+                <span class="status-value">12</span>
+                <span class="status-label">Evidence Items Due</span>
+                <span class="status-detail warning">5 due within 7 days</span>
+            </div>
+        </div>
+        <div class="overview-card audit-status">
+            <div class="status-icon info">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+            </div>
+            <div class="status-content">
+                <span class="status-value">45 Days</span>
+                <span class="status-label">Until Next Audit</span>
+                <span class="status-detail">Scheduled: March 7, 2025</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card tsc-controls">
+            <div class="card-header">
+                <h2>Trust Service Criteria</h2>
+                <div class="tsc-legend">
+                    <span class="legend-item passing"><span class="dot"></span> Passing</span>
+                    <span class="legend-item failing"><span class="dot"></span> Failing</span>
+                    <span class="legend-item pending"><span class="dot"></span> Pending</span>
+                </div>
+            </div>
+            <div class="tsc-grid" hx-get="/api/compliance/dashboard/tsc" hx-trigger="load" hx-swap="innerHTML">
+                <div class="tsc-category" onclick="showTscDetails('security')">
+                    <div class="tsc-header">
+                        <div class="tsc-icon security">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </div>
+                        <span class="tsc-name">Security</span>
+                    </div>
+                    <div class="tsc-progress">
+                        <div class="tsc-bar">
+                            <div class="tsc-fill passing" style="width: 94%"></div>
+                        </div>
+                        <span class="tsc-percent">94%</span>
+                    </div>
+                    <div class="tsc-counts">
+                        <span class="passing">47 passing</span>
+                        <span class="failing">3 failing</span>
+                    </div>
+                </div>
+                <div class="tsc-category" onclick="showTscDetails('availability')">
+                    <div class="tsc-header">
+                        <div class="tsc-icon availability">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </div>
+                        <span class="tsc-name">Availability</span>
+                    </div>
+                    <div class="tsc-progress">
+                        <div class="tsc-bar">
+                            <div class="tsc-fill passing" style="width: 100%"></div>
+                        </div>
+                        <span class="tsc-percent">100%</span>
+                    </div>
+                    <div class="tsc-counts">
+                        <span class="passing">28 passing</span>
+                        <span class="failing">0 failing</span>
+                    </div>
+                </div>
+                <div class="tsc-category" onclick="showTscDetails('processing')">
+                    <div class="tsc-header">
+                        <div class="tsc-icon processing">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                        </div>
+                        <span class="tsc-name">Processing Integrity</span>
+                    </div>
+                    <div class="tsc-progress">
+                        <div class="tsc-bar">
+                            <div class="tsc-fill passing" style="width: 88%"></div>
+                        </div>
+                        <span class="tsc-percent">88%</span>
+                    </div>
+                    <div class="tsc-counts">
+                        <span class="passing">22 passing</span>
+                        <span class="failing">3 failing</span>
+                    </div>
+                </div>
+                <div class="tsc-category" onclick="showTscDetails('confidentiality')">
+                    <div class="tsc-header">
+                        <div class="tsc-icon confidentiality">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <span class="tsc-name">Confidentiality</span>
+                    </div>
+                    <div class="tsc-progress">
+                        <div class="tsc-bar">
+                            <div class="tsc-fill passing" style="width: 91%"></div>
+                        </div>
+                        <span class="tsc-percent">91%</span>
+                    </div>
+                    <div class="tsc-counts">
+                        <span class="passing">32 passing</span>
+                        <span class="failing">3 failing</span>
+                    </div>
+                </div>
+                <div class="tsc-category" onclick="showTscDetails('privacy')">
+                    <div class="tsc-header">
+                        <div class="tsc-icon privacy">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </div>
+                        <span class="tsc-name">Privacy</span>
+                    </div>
+                    <div class="tsc-progress">
+                        <div class="tsc-bar">
+                            <div class="tsc-fill passing" style="width: 82%"></div>
+                        </div>
+                        <span class="tsc-percent">82%</span>
+                    </div>
+                    <div class="tsc-counts">
+                        <span class="passing">27 passing</span>
+                        <span class="failing">6 failing</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card failing-controls">
+            <div class="card-header">
+                <h2>Controls Requiring Attention</h2>
+                <select class="severity-filter" id="controlSeverity" onchange="filterControls(this.value)">
+                    <option value="all">All Severities</option>
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+            <div class="controls-list" hx-get="/api/compliance/dashboard/failing-controls" hx-trigger="load" hx-swap="innerHTML">
+                <div class="control-item critical">
+                    <div class="control-severity critical">Critical</div>
+                    <div class="control-info">
+                        <span class="control-id">CC6.1.3</span>
+                        <span class="control-name">Multi-factor authentication for privileged accounts</span>
+                        <span class="control-category">Security</span>
+                    </div>
+                    <div class="control-details">
+                        <span class="control-issue">2 admin accounts missing MFA</span>
+                        <span class="control-deadline warning">Due: Jan 25, 2025</span>
+                    </div>
+                    <button class="btn-secondary btn-sm" onclick="showControlRemediation('CC6.1.3')">Remediate</button>
+                </div>
+                <div class="control-item high">
+                    <div class="control-severity high">High</div>
+                    <div class="control-info">
+                        <span class="control-id">CC7.2.1</span>
+                        <span class="control-name">Security incident response plan testing</span>
+                        <span class="control-category">Security</span>
+                    </div>
+                    <div class="control-details">
+                        <span class="control-issue">Annual test overdue by 15 days</span>
+                        <span class="control-deadline error">Overdue</span>
+                    </div>
+                    <button class="btn-secondary btn-sm" onclick="showControlRemediation('CC7.2.1')">Remediate</button>
+                </div>
+                <div class="control-item high">
+                    <div class="control-severity high">High</div>
+                    <div class="control-info">
+                        <span class="control-id">PI1.3.2</span>
+                        <span class="control-name">Data processing agreement documentation</span>
+                        <span class="control-category">Processing Integrity</span>
+                    </div>
+                    <div class="control-details">
+                        <span class="control-issue">3 vendors missing DPAs</span>
+                        <span class="control-deadline warning">Due: Feb 1, 2025</span>
+                    </div>
+                    <button class="btn-secondary btn-sm" onclick="showControlRemediation('PI1.3.2')">Remediate</button>
+                </div>
+                <div class="control-item medium">
+                    <div class="control-severity medium">Medium</div>
+                    <div class="control-info">
+                        <span class="control-id">C1.2.4</span>
+                        <span class="control-name">Data classification policy review</span>
+                        <span class="control-category">Confidentiality</span>
+                    </div>
+                    <div class="control-details">
+                        <span class="control-issue">Policy review pending approval</span>
+                        <span class="control-deadline">Due: Feb 15, 2025</span>
+                    </div>
+                    <button class="btn-secondary btn-sm" onclick="showControlRemediation('C1.2.4')">Remediate</button>
+                </div>
+                <div class="control-item medium">
+                    <div class="control-severity medium">Medium</div>
+                    <div class="control-info">
+                        <span class="control-id">P3.1.1</span>
+                        <span class="control-name">Privacy notice updates</span>
+                        <span class="control-category">Privacy</span>
+                    </div>
+                    <div class="control-details">
+                        <span class="control-issue">Privacy policy needs update for new data collection</span>
+                        <span class="control-deadline">Due: Feb 28, 2025</span>
+                    </div>
+                    <button class="btn-secondary btn-sm" onclick="showControlRemediation('P3.1.1')">Remediate</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card evidence-collection">
+            <div class="card-header">
+                <h2>Evidence Collection</h2>
+                <button class="btn-secondary btn-sm" onclick="showEvidenceUpload()">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Upload Evidence
+                </button>
+            </div>
+            <div class="evidence-summary">
+                <div class="evidence-stat">
+                    <span class="stat-number">342</span>
+                    <span class="stat-label">Total Items</span>
+                </div>
+                <div class="evidence-stat">
+                    <span class="stat-number success">318</span>
+                    <span class="stat-label">Current</span>
+                </div>
+                <div class="evidence-stat">
+                    <span class="stat-number warning">12</span>
+                    <span class="stat-label">Due Soon</span>
+                </div>
+                <div class="evidence-stat">
+                    <span class="stat-number error">12</span>
+                    <span class="stat-label">Overdue</span>
+                </div>
+            </div>
+            <div class="evidence-list" hx-get="/api/compliance/dashboard/evidence" hx-trigger="load" hx-swap="innerHTML">
+                <div class="evidence-item overdue">
+                    <div class="evidence-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    <div class="evidence-info">
+                        <span class="evidence-name">Penetration Test Report Q4 2024</span>
+                        <span class="evidence-control">CC4.1.1 - Vulnerability Assessment</span>
+                    </div>
+                    <span class="evidence-status overdue">Overdue</span>
+                    <button class="btn-icon" onclick="uploadEvidence('pen-test-q4')">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="evidence-item due-soon">
+                    <div class="evidence-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    <div class="evidence-info">
+                        <span class="evidence-name">Access Review Report - January 2025</span>
+                        <span class="evidence-control">CC6.2.1 - Access Control</span>
+                    </div>
+                    <span class="evidence-status due-soon">Due in 3 days</span>
+                    <button class="btn-icon" onclick="uploadEvidence('access-review-jan')">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="evidence-item due-soon">
+                    <div class="evidence-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    <div class="evidence-info">
+                        <span class="evidence-name">Backup Restoration Test Results</span>
+                        <span class="evidence-control">A1.2.3 - Backup & Recovery</span>
+                    </div>
+                    <span class="evidence-status due-soon">Due in 5 days</span>
+                    <button class="btn-icon" onclick="uploadEvidence('backup-test')">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="evidence-item current">
+                    <div class="evidence-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    <div class="evidence-info">
+                        <span class="evidence-name">Security Awareness Training Records</span>
+                        <span class="evidence-control">CC1.4.1 - Security Training</span>
+                    </div>
+                    <span class="evidence-status current">Current</span>
+                    <button class="btn-icon" onclick="viewEvidence('security-training')">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <a href="/admin/compliance/evidence" class="view-all-link">View All Evidence</a>
+        </div>
+
+        <div class="card audit-log">
+            <div class="card-header">
+                <h2>Audit Log</h2>
+                <div class="log-filters">
+                    <select class="log-filter" id="logCategory" onchange="filterLogs()">
+                        <option value="all">All Categories</option>
+                        <option value="access">Access Events</option>
+                        <option value="changes">Configuration Changes</option>
+                        <option value="security">Security Events</option>
+                        <option value="compliance">Compliance Events</option>
+                    </select>
+                    <button class="btn-icon" onclick="exportAuditLog()">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="log-list" hx-get="/api/compliance/dashboard/audit-log" hx-trigger="load" hx-swap="innerHTML">
+                <div class="log-item security">
+                    <div class="log-icon security">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <div class="log-content">
+                        <span class="log-action">Failed login attempt</span>
+                        <span class="log-details">User: admin@company.com | IP: 192.168.1.105 | Reason: Invalid password</span>
+                    </div>
+                    <span class="log-time">2 minutes ago</span>
+                </div>
+                <div class="log-item access">
+                    <div class="log-icon access">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                    </div>
+                    <div class="log-content">
+                        <span class="log-action">User logged in</span>
+                        <span class="log-details">User: sarah.johnson@company.com | IP: 10.0.0.45</span>
+                    </div>
+                    <span class="log-time">15 minutes ago</span>
+                </div>
+                <div class="log-item changes">
+                    <div class="log-icon changes

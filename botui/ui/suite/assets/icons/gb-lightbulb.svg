@@ -1,0 +1,20 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- General Bots inspired lightbulb icon -->
+  <defs>
+    <linearGradient id="gbLightbulbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F5A623;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F8D71C;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Bulb body with GB circular motif -->
+  <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7z" fill="url(#gbLightbulbGradient)"/>
+  <!-- Inner glow representing bot intelligence -->
+  <circle cx="12" cy="9" r="3" fill="#fff" fill-opacity="0.6"/>
+  <!-- Bot eye dot -->
+  <circle cx="12" cy="9" r="1.2" fill="#4A90E2"/>
+  <!-- Base segments -->
+  <rect x="9" y="18" width="6" height="1.5" rx="0.5" fill="#666"/>
+  <rect x="9" y="20" width="6" height="1.5" rx="0.5" fill="#888"/>
+  <!-- Light rays -->
+  <path d="M12 0v1.5M18.5 3.5l-1.06 1.06M21 9h-1.5M18.5 14.5l-1.06-1.06M5.5 3.5l1.06 1.06M3 9h1.5M5.5 14.5l1.06-1.06" stroke="#F5A623" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
+</svg>

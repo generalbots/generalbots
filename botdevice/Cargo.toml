@@ -1,0 +1,39 @@
+[package]
+name = "botdevice"
+version = "6.3.0"
+edition = "2021"
+description = "BotDevice - Android, HarmonyOS & IoT powered by General Bots"
+license = "AGPL-3.0"
+repository = "https://github.com/GeneralBots/BotServer"
+keywords = ["bot", "mobile", "android", "iot", "tauri"]
+categories = ["gui", "embedded"]
+
+[lib]
+name = "botdevice_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+# Tauri with mobile features
+tauri = { workspace = true }
+tauri-plugin-dialog = { workspace = true }
+tauri-plugin-opener = { workspace = true }
+tauri-plugin-notification = { workspace = true }
+tauri-plugin-http = { workspace = true }
+tauri-plugin-geolocation = { workspace = true }
+
+# Common
+log = { workspace = true }
+android_logger = { workspace = true }
+env_logger = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+
+[build-dependencies]
+tauri-build = { workspace = true, features = ["codegen"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[lints]
+workspace = true

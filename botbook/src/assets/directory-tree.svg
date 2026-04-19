@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <defs>
+    <!-- GB-inspired gradient for folders -->
+    <linearGradient id="folderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2"/>
+      <stop offset="100%" style="stop-color:#3672B8"/>
+    </linearGradient>
+
+    <!-- GB-inspired gradient for files -->
+    <linearGradient id="fileGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+
+    <!-- Connection line gradient -->
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:0.4"/>
+    </linearGradient>
+
+    <!-- Folder symbol -->
+    <symbol id="folder" viewBox="0 0 24 20">
+      <path d="M2 4C2 2.9 2.9 2 4 2H9.17C9.7 2 10.21 2.21 10.59 2.59L12 4H20C21.1 4 22 4.9 22 6V16C22 17.1 21.1 18 20 18H4C2.9 18 2 17.1 2 16V4Z" fill="url(#folderGrad)"/>
+      <circle cx="8" cy="11" r="1" fill="#fff" opacity="0.7"/>
+      <circle cx="12" cy="11" r="1" fill="#fff" opacity="0.7"/>
+    </symbol>
+
+    <!-- File symbol -->
+    <symbol id="file" viewBox="0 0 20 24">
+      <path d="M12 1H4C2.9 1 2 1.9 2 3V21C2 22.1 2.9 23 4 23H16C17.1 23 18 22.1 18 21V7L12 1Z" fill="url(#fileGrad)" opacity="0.85"/>
+      <path d="M12 1V7H18" fill="#8b9dc3"/>
+      <line x1="5" y1="12" x2="13" y2="12" stroke="#fff" stroke-width="1" opacity="0.6"/>
+      <line x1="5" y1="15" x2="11" y2="15" stroke="#fff" stroke-width="1" opacity="0.4"/>
+      <line x1="5" y1="18" x2="9" y2="18" stroke="#fff" stroke-width="1" opacity="0.3"/>
+    </symbol>
+
+    <!-- Bot config symbol (.gbot) -->
+    <symbol id="config" viewBox="0 0 20 24">
+      <path d="M12 1H4C2.9 1 2 1.9 2 3V21C2 22.1 2.9 23 4 23H16C17.1 23 18 22.1 18 21V7L12 1Z" fill="#f59e0b" opacity="0.85"/>
+      <path d="M12 1V7H18" fill="#fbbf24"/>
+      <circle cx="10" cy="14" r="4" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.8"/>
+      <circle cx="10" cy="14" r="1.5" fill="#fff" opacity="0.8"/>
+    </symbol>
+
+    <!-- Knowledge base symbol (.gbkb) -->
+    <symbol id="knowledge" viewBox="0 0 20 24">
+      <path d="M12 1H4C2.9 1 2 1.9 2 3V21C2 22.1 2.9 23 4 23H16C17.1 23 18 22.1 18 21V7L12 1Z" fill="#10b981" opacity="0.85"/>
+      <path d="M12 1V7H18" fill="#34d399"/>
+      <circle cx="10" cy="13" r="3" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.8"/>
+      <path d="M10 10V13L12 15" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+    </symbol>
+
+    <!-- Dialog/script symbol (.bas) -->
+    <symbol id="script" viewBox="0 0 20 24">
+      <path d="M12 1H4C2.9 1 2 1.9 2 3V21C2 22.1 2.9 23 4 23H16C17.1 23 18 22.1 18 21V7L12 1Z" fill="#8b5cf6" opacity="0.85"/>
+      <path d="M12 1V7H18" fill="#a78bfa"/>
+      <text x="5" y="16" font-family="monospace" font-size="8" fill="#fff" opacity="0.9">BAS</text>
+    </symbol>
+  </defs>
+
+  <style>
+    .tree-label { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; fill: #374151; }
+    .tree-label-folder { font-weight: 600; fill: #1f2937; }
+    .connection { stroke: url(#lineGrad); stroke-width: 2; stroke-linecap: round; }
+    .node-dot { fill: #3b82f6; }
+  </style>
+
+  <!-- Example tree structure - customize as needed -->
+
+  <!-- Root folder -->
+  <g transform="translate(20, 20)">
+    <use href="#folder" width="24" height="20"/>
+    <text x="30" y="14" class="tree-label tree-label-folder">mybot.gbai</text>
+  </g>
+
+  <!-- Vertical connector from root -->
+  <path d="M32 40 L32 240" class="connection" opacity="0.5"/>
+
+  <!-- Level 1: .gbdialog folder -->
+  <g transform="translate(50, 60)">
+    <circle cx="-18" cy="10" r="4" class="node-dot" opacity="0.6"/>
+    <path d="M-14 10 L0 10" class="connection"/>
+    <use href="#folder" width="24" height="20"/>
+    <text x="30" y="14" class="tree-label tree-label-folder">mybot.gbdialog</text>
+  </g>
+
+  <!-- Vertical connector for .gbdialog children -->
+  <path d="M62 80 L62 140" class="connection" opacity="0.4"/>
+
+  <!-- Level 2: start.bas -->
+  <g transform="translate(80, 100)">
+    <circle cx="-18" cy="12" r="3" class="node-dot" opacity="0.5"/>
+    <path d="M-15 12 L0 12" class="connection" opacity="0.6"/>
+    <use href="#script" width="16" height="20"/>
+    <text x="22" y="14" class="tree-label">start.bas</text>
+  </g>
+
+  <!-- Level 2: auth.bas -->
+  <g transform="translate(80, 130)">
+    <circle cx="-18" cy="12" r="3" class="node-dot" opacity="0.5"/>
+    <path d="M-15 12 L0 12" class="connection" opacity="0.6"/>
+    <use href="#script" width="16" height="20"/>
+    <text x="22" y="14" class="tree-label">auth.bas</text>
+  </g>
+
+  <!-- Level 1: .gbkb folder -->
+  <g transform="translate(50, 160)">
+    <circle cx="-18" cy="10" r="4" class="node-dot" opacity="0.6"/>
+    <path d="M-14 10 L0 10" class="connection"/>
+    <use href="#folder" width="24" height="20"/>
+    <text x="30" y="14" class="tree-label tree-label-folder">mybot.gbkb</text>
+  </g>
+
+  <!-- Vertical connector for .gbkb children -->
+  <path d="M62 180 L62 210" class="connection" opacity="0.4"/>
+
+  <!-- Level 2: knowledge file -->
+  <g transform="translate(80, 195)">
+    <circle cx="-18" cy="12" r="3" class="node-dot" opacity="0.5"/>
+    <path d="M-15 12 L0 12" class="connection" opacity="0.6"/>
+    <use href="#knowledge" width="16" height="20"/>
+    <text x="22" y="14" class="tree-label">faq.docx</text>
+  </g>
+
+  <!-- Level 1: .gbot folder -->
+  <g transform="translate(50, 230)">
+    <circle cx="-18" cy="10" r="4" class="node-dot" opacity="0.6"/>
+    <path d="M-14 10 L0 10" class="connection"/>
+    <use href="#folder" width="24" height="20"/>
+    <text x="30" y="14" class="tree-label tree-label-folder">mybot.gbot</text>
+  </g>
+
+  <!-- Vertical connector for .gbot children -->
+  <path d="M62 250 L62 275" class="connection" opacity="0.4"/>
+
+  <!-- Level 2: config.csv -->
+  <g transform="translate(80, 260)">
+    <circle cx="-18" cy="12" r="3" class="node-dot" opacity="0.5"/>
+    <path d="M-15 12 L0 12" class="connection" opacity="0.6"/>
+    <use href="#config" width="16" height="20"/>
+    <text x="22" y="14" class="tree-label">config.csv</text>
+  </g>
+</svg>

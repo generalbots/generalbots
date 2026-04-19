@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="userGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sessionGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="kbGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="docGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#43e97b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#38f9d7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="assocGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fa709a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fee140;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#888"/>
+    </marker>
+    <marker id="arrowheadBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4facfe"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="600" fill="url(#bgGradient)"/>
+
+  <!-- Title -->
+  <text x="450" y="40" fill="#ffffff" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle">Knowledge Base Access Flow</text>
+  <text x="450" y="65" fill="#888888" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">User permissions and document retrieval through associations</text>
+
+  <!-- Users Entity -->
+  <g transform="translate(60, 120)">
+    <rect x="0" y="0" width="160" height="140" rx="10" fill="url(#userGradient)" filter="url(#glow)"/>
+    <text x="80" y="30" fill="#ffffff" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">👤 users</text>
+    <line x1="10" y1="45" x2="150" y2="45" stroke="#ffffff" stroke-opacity="0.3"/>
+    <text x="20" y="70" fill="#ffffff" font-family="Arial, sans-serif" font-size="12">🔑 id (UUID)</text>
+    <text x="20" y="90" fill="#ffffff" font-family="Arial, sans-serif" font-size="12">username</text>
+    <text x="20" y="110" fill="#ffffff" font-family="Arial, sans-serif" font-size="12">email</text>
+    <text x="20" y="130" fill="#ffffff" font-family="Arial, sans-serif" font-size="12">organization_id</text>
+  </g>
+
+  <!-- Session Entity -->
+  <g transform="translate(60, 320)">
+    <rect x="0" y="0" width="160" height="140" rx="10" fill="url(#sessionGradient)" filter="url(#glow)"/>
+    <text x="80" y="30" fill="#ffffff" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">💬 sessions</text>
+    <line x1="10" y1="45" x2="150" y2="45" stroke="#ffffff" stroke-opacity="0.3"/>
+    <text x="20" y="70" fill="#ffffff" font-family="Arial, sans-serif" font-size="12">🔑 id (UUID)</text>
+    <text x="20" y="90" fill="#ffffff" font-family="Arial, sans-serif" font-size="12">🔗 user_id</text>
+    <text x="20" y="110" fill="#ffffff" font-family="Arial, sans-serif" font-size="12">🔗 bot_id</text>
+    <text x="20" y="130" fill="#ffffff" font-family="Arial, sans-serif" font-size="12">context (JSONB)</text>
+  </g>
+
+  <!-- User KB Associations (Junction Table) -->
+  <g transform="translate(320, 200)">
+    <rect x="0" y="0" width="200" height="160" rx="10" fill="url(#assocGradient)" filter="url(#glow)"/>
+    <text x="100" y="30" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">🔗 user_kb_associations</text>
+    <line x1="10" y1="45" x2="190" y2="45" stroke="#1a1a2e" stroke-opacity="0.3"/>
+    <text x="20" y="70" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">🔑 id (UUID)</text>
+    <text x="20" y="90" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">🔗 user_id</text>
+    <text x="20" y="110" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">🔗 collection_id</text>
+    <text x="20" y="130" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">permission_level</text>
+    <text x="20" y="150" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">granted_at</text>
+  </g>
+
+  <!-- KB Collections Entity -->
+  <g transform="translate(620, 120)">
+    <rect x="0" y="0" width="180" height="160" rx="10" fill="url(#kbGradient)" filter="url(#glow)"/>
+    <text x="90" y="30" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">📚 kb_collections</text>
+    <line x1="10" y1="45" x2="170" y2="45" stroke="#1a1a2e" stroke-opacity="0.3"/>
+    <text x="20" y="70" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">🔑 id (UUID)</text>
+    <text x="20" y="90" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">🔗 bot_id</text>
+    <text x="20" y="110" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">name</text>
+    <text x="20" y="130" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">description</text>
+    <text x="20" y="150" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">visibility</text>
+  </g>
+
+  <!-- KB Documents Entity -->
+  <g transform="translate(620, 340)">
+    <rect x="0" y="0" width="180" height="160" rx="10" fill="url(#docGradient)" filter="url(#glow)"/>
+    <text x="90" y="30" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">📄 kb_documents</text>
+    <line x1="10" y1="45" x2="170" y2="45" stroke="#1a1a2e" stroke-opacity="0.3"/>
+    <text x="20" y="70" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">🔑 id (UUID)</text>
+    <text x="20" y="90" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">🔗 collection_id</text>
+    <text x="20" y="110" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">title</text>
+    <text x="20" y="130" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">content</text>
+    <text x="20" y="150" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12">embeddings</text>
+  </g>
+
+  <!-- Connection Lines -->
+  <!-- User to Association -->
+  <path d="M220,190 L320,260" stroke="#888" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="250" y="210" fill="#cccccc" font-family="Arial, sans-serif" font-size="11" transform="rotate(-25, 250, 210)">1:N</text>
+
+  <!-- Session to User -->
+  <path d="M140,320 L140,260" stroke="#888" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="150" y="295" fill="#cccccc" font-family="Arial, sans-serif" font-size="11">N:1</text>
+
+  <!-- Association to Collection -->
+  <path d="M520,260 L620,200" stroke="#888" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="555" y="215" fill="#cccccc" font-family="Arial, sans-serif" font-size="11" transform="rotate(25, 555, 215)">N:1</text>
+
+  <!-- Collection to Documents -->
+  <path d="M710,280 L710,340" stroke="#888" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="720" y="315" fill="#cccccc" font-family="Arial, sans-serif" font-size="11">1:N</text>
+
+  <!-- Access Flow Indicators -->
+  <g transform="translate(50, 510)">
+    <rect x="0" y="0" width="800" height="80" rx="8" fill="#ffffff" fill-opacity="0.05" stroke="#4facfe" stroke-opacity="0.3"/>
+    <text x="400" y="25" fill="#4facfe" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">Access Flow Steps</text>
+
+    <!-- Step 1 -->
+    <circle cx="80" cy="55" r="15" fill="url(#userGradient)"/>
+    <text x="80" y="60" fill="#ffffff" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">1</text>
+    <text x="135" y="60" fill="#cccccc" font-family="Arial, sans-serif" font-size="11" text-anchor="start">User authenticates</text>
+
+    <!-- Step 2 -->
+    <circle cx="280" cy="55" r="15" fill="url(#assocGradient)"/>
+    <text x="280" y="60" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">2</text>
+    <text x="335" y="60" fill="#cccccc" font-family="Arial, sans-serif" font-size="11" text-anchor="start">Check permissions</text>
+
+    <!-- Step 3 -->
+    <circle cx="480" cy="55" r="15" fill="url(#kbGradient)"/>
+    <text x="480" y="60" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">3</text>
+    <text x="535" y="60" fill="#cccccc" font-family="Arial, sans-serif" font-size="11" text-anchor="start">Access collection</text>
+
+    <!-- Step 4 -->
+    <circle cx="680" cy="55" r="15" fill="url(#docGradient)"/>
+    <text x="680" y="60" fill="#1a1a2e" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">4</text>
+    <text x="735" y="60" fill="#cccccc" font-family="Arial, sans-serif" font-size="11" text-anchor="start">Retrieve docs</text>
+  </g>
+
+  <!-- Permission Levels Legend -->
+  <g transform="translate(280, 420)">
+    <rect x="0" y="0" width="280" height="70" rx="6" fill="#ffffff" fill-opacity="0.05" stroke="#fa709a" stroke-opacity="0.3"/>
+    <text x="140" y="20" fill="#fa709a" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">Permission Levels</text>
+    <text x="20" y="42" fill="#43e97b" font-family="Arial, sans-serif" font-size="11">● READ</text>
+    <text x="90" y="42" fill="#4facfe" font-family="Arial, sans-serif" font-size="11">● WRITE</text>
+    <text x="160" y="42" fill="#f5576c" font-family="Arial, sans-serif" font-size="11">● ADMIN</text>
+    <text x="230" y="42" fill="#fee140" font-family="Arial, sans-serif" font-size="11">● OWNER</text>
+    <text x="140" y="60" fill="#888888" font-family="Arial, sans-serif" font-size="10" text-anchor="middle">Stored in user_kb_associations.permission_level</text>
+  </g>
+</svg>

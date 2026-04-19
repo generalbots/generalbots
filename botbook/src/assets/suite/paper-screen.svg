@@ -1,0 +1,209 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .toolbar-bg { fill: #f8fafc; }
+    .ai-suggestion { fill: #eff6ff; stroke: #3b82f6; stroke-width: 1; }
+    .cursor { stroke: #3b82f6; stroke-width: 2; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .toolbar-bg { fill: #1e293b; }
+      .ai-suggestion { fill: #1e3a5f; stroke: #3b82f6; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Paper - AI Writing Assistant</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Sidebar -->
+  <rect x="30" y="40" width="180" height="530" class="sidebar-bg"/>
+  <line x1="210" y1="40" x2="210" y2="570" class="border"/>
+
+  <!-- New Document Button -->
+  <g transform="translate(45, 55)">
+    <rect x="0" y="0" width="150" height="40" rx="8" fill="url(#accentGrad)"/>
+    <text x="75" y="26" text-anchor="middle" font-size="14" font-weight="500" class="white-text">+ New Document</text>
+  </g>
+
+  <!-- Documents List -->
+  <g transform="translate(45, 115)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">RECENT DOCUMENTS</text>
+
+    <g transform="translate(0, 20)">
+      <rect x="-10" y="-8" width="160" height="40" rx="6" fill="#eff6ff"/>
+      <text x="0" y="8" font-size="13">📄</text>
+      <text x="22" y="8" font-size="13" class="accent-text">Project Proposal</text>
+      <text x="22" y="24" font-size="10" class="muted-text">Edited 2 min ago</text>
+    </g>
+
+    <g transform="translate(0, 70)">
+      <text x="0" y="8" font-size="13">📄</text>
+      <text x="22" y="8" font-size="13" class="main-text">Meeting Notes</text>
+      <text x="22" y="24" font-size="10" class="muted-text">Edited yesterday</text>
+    </g>
+
+    <g transform="translate(0, 115)">
+      <text x="0" y="8" font-size="13">📄</text>
+      <text x="22" y="8" font-size="13" class="main-text">Q4 Report Draft</text>
+      <text x="22" y="24" font-size="10" class="muted-text">Edited Mar 14</text>
+    </g>
+
+    <g transform="translate(0, 160)">
+      <text x="0" y="8" font-size="13">📄</text>
+      <text x="22" y="8" font-size="13" class="main-text">Blog Post Ideas</text>
+      <text x="22" y="24" font-size="10" class="muted-text">Edited Mar 12</text>
+    </g>
+  </g>
+
+  <!-- Templates Section -->
+  <g transform="translate(45, 340)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">TEMPLATES</text>
+
+    <g transform="translate(0, 20)">
+      <text x="0" y="12" font-size="13">📝</text>
+      <text x="22" y="12" font-size="13" class="secondary-text">Blank Document</text>
+    </g>
+
+    <g transform="translate(0, 45)">
+      <text x="0" y="12" font-size="13">📋</text>
+      <text x="22" y="12" font-size="13" class="secondary-text">Meeting Notes</text>
+    </g>
+
+    <g transform="translate(0, 70)">
+      <text x="0" y="12" font-size="13">📊</text>
+      <text x="22" y="12" font-size="13" class="secondary-text">Report</text>
+    </g>
+
+    <g transform="translate(0, 95)">
+      <text x="0" y="12" font-size="13">📧</text>
+      <text x="22" y="12" font-size="13" class="secondary-text">Email Draft</text>
+    </g>
+  </g>
+
+  <!-- Main Editor Area -->
+  <rect x="220" y="50" width="640" height="510" class="bg"/>
+
+  <!-- Toolbar -->
+  <rect x="230" y="55" width="620" height="45" rx="8" class="toolbar-bg"/>
+  <rect x="230" y="55" width="620" height="45" rx="8" class="border"/>
+
+  <g transform="translate(245, 65)">
+    <!-- Format buttons -->
+    <rect x="0" y="0" width="28" height="26" rx="4" class="icon-btn"/>
+    <text x="14" y="18" text-anchor="middle" font-size="14" font-weight="700" class="main-text">B</text>
+
+    <rect x="35" y="0" width="28" height="26" rx="4" class="icon-btn"/>
+    <text x="49" y="18" text-anchor="middle" font-size="14" font-style="italic" class="main-text">I</text>
+
+    <rect x="70" y="0" width="28" height="26" rx="4" class="icon-btn"/>
+    <text x="84" y="18" text-anchor="middle" font-size="14" text-decoration="underline" class="main-text">U</text>
+
+    <line x1="110" y1="3" x2="110" y2="23" class="border"/>
+
+    <!-- Heading selector -->
+    <rect x="120" y="0" width="70" height="26" rx="4" class="icon-btn"/>
+    <text x="155" y="18" text-anchor="middle" font-size="12" class="secondary-text">Heading ▾</text>
+
+    <line x1="200" y1="3" x2="200" y2="23" class="border"/>
+
+    <!-- List buttons -->
+    <rect x="210" y="0" width="28" height="26" rx="4" class="icon-btn"/>
+    <text x="224" y="18" text-anchor="middle" font-size="14" class="main-text">≡</text>
+
+    <rect x="245" y="0" width="28" height="26" rx="4" class="icon-btn"/>
+    <text x="259" y="18" text-anchor="middle" font-size="14" class="main-text">☰</text>
+
+    <line x1="285" y1="3" x2="285" y2="23" class="border"/>
+
+    <!-- Link and Image -->
+    <rect x="295" y="0" width="28" height="26" rx="4" class="icon-btn"/>
+    <text x="309" y="18" text-anchor="middle" font-size="12" class="main-text">🔗</text>
+
+    <rect x="330" y="0" width="28" height="26" rx="4" class="icon-btn"/>
+    <text x="344" y="18" text-anchor="middle" font-size="12" class="main-text">🖼</text>
+
+    <line x1="370" y1="3" x2="370" y2="23" class="border"/>
+
+    <!-- AI Assist Button -->
+    <rect x="380" y="0" width="100" height="26" rx="13" fill="url(#accentGrad)"/>
+    <text x="430" y="18" text-anchor="middle" font-size="12" font-weight="500" class="white-text">✨ AI Assist</text>
+
+    <!-- More options -->
+    <rect x="560" y="0" width="28" height="26" rx="4" class="icon-btn"/>
+    <text x="574" y="18" text-anchor="middle" font-size="14" class="secondary-text">⋮</text>
+  </g>
+
+  <!-- Document Title -->
+  <g transform="translate(250, 120)">
+    <text x="0" y="0" font-size="28" font-weight="700" class="main-text">Project Proposal</text>
+    <text x="0" y="25" font-size="13" class="muted-text">Last edited 2 minutes ago • Auto-saved</text>
+  </g>
+
+  <!-- Document Content -->
+  <g transform="translate(250, 180)">
+    <text x="0" y="0" font-size="18" font-weight="600" class="main-text">Executive Summary</text>
+
+    <text x="0" y="35" font-size="14" class="main-text">This proposal outlines a comprehensive strategy for improving</text>
+    <text x="0" y="55" font-size="14" class="main-text">our customer engagement platform. The project aims to increase</text>
+    <text x="0" y="75" font-size="14" class="main-text">user retention by 25% and reduce support tickets by 40%.</text>
+
+    <text x="0" y="115" font-size="18" font-weight="600" class="main-text">Key Objectives</text>
+
+    <text x="0" y="150" font-size="14" class="main-text">• Redesign the onboarding experience for new users</text>
+    <text x="0" y="175" font-size="14" class="main-text">• Implement AI-powered customer support chatbot</text>
+    <text x="0" y="200" font-size="14" class="main-text">• Create personalized dashboard for each user segment</text>
+    <text x="0" y="225" font-size="14" class="main-text">• Integrate analytics tracking for better insights|</text>
+
+    <!-- Cursor -->
+    <line x1="445" y1="213" x2="445" y2="230" class="cursor"/>
+  </g>
+
+  <!-- AI Suggestion Panel -->
+  <g transform="translate(250, 420)">
+    <rect x="0" y="0" width="580" height="90" rx="8" class="ai-suggestion"/>
+    <text x="15" y="22" font-size="12" font-weight="600" class="accent-text">✨ AI Suggestion</text>
+    <text x="15" y="45" font-size="13" class="main-text">Consider adding a timeline section to outline project milestones</text>
+    <text x="15" y="63" font-size="13" class="main-text">and deliverables. This helps stakeholders understand the scope.</text>
+
+    <g transform="translate(15, 70)">
+      <rect x="0" y="0" width="70" height="24" rx="12" fill="url(#accentGrad)"/>
+      <text x="35" y="16" text-anchor="middle" font-size="11" class="white-text">Insert</text>
+
+      <rect x="80" y="0" width="70" height="24" rx="12" class="icon-btn"/>
+      <text x="115" y="16" text-anchor="middle" font-size="11" class="secondary-text">Dismiss</text>
+
+      <rect x="160" y="0" width="90" height="24" rx="12" class="icon-btn"/>
+      <text x="205" y="16" text-anchor="middle" font-size="11" class="secondary-text">Regenerate</text>
+    </g>
+  </g>
+
+  <!-- Word Count Footer -->
+  <g transform="translate(250, 530)">
+    <text x="0" y="0" font-size="11" class="muted-text">324 words • 1,847 characters • Reading time: 2 min</text>
+    <text x="380" y="0" font-size="10" class="muted-text">Ctrl+S Save | Ctrl+B Bold | Ctrl+I Italic | Ctrl+K Link</text>
+  </g>
+</svg>

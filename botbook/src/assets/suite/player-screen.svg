@@ -1,0 +1,203 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="overlayGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.7)"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #0f172a; }
+    .sidebar-bg { fill: #1e293b; }
+    .main-text { fill: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #60a5fa; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #334155; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #334155; }
+    .control-btn { fill: rgba(255,255,255,0.1); }
+    .progress-bg { fill: #334155; }
+    .progress-fill { fill: #3b82f6; }
+    .thumbnail { fill: #1e293b; stroke: #334155; stroke-width: 1; }
+    .thumbnail-active { fill: #1e293b; stroke: #3b82f6; stroke-width: 2; }
+    .viewer-bg { fill: #0f172a; }
+
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #f8fafc; }
+      .sidebar-bg { fill: #ffffff; }
+      .main-text { fill: #1e293b; }
+      .secondary-text { fill: #64748b; }
+      .muted-text { fill: #94a3b8; }
+      .accent-text { fill: #3b82f6; }
+      .border { stroke: #e2e8f0; }
+      .icon-btn { fill: #f1f5f9; }
+      .control-btn { fill: rgba(0,0,0,0.1); }
+      .progress-bg { fill: #e2e8f0; }
+      .thumbnail { fill: #f1f5f9; stroke: #e2e8f0; }
+      .thumbnail-active { fill: #f1f5f9; stroke: #3b82f6; }
+      .viewer-bg { fill: #1e293b; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Player - Media Viewer</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Main Viewer Area -->
+  <rect x="40" y="50" width="640" height="400" rx="8" class="viewer-bg"/>
+
+  <!-- Slide Content Area -->
+  <rect x="60" y="70" width="600" height="340" rx="4" fill="#1e293b"/>
+
+  <!-- Slide Content (Presentation) -->
+  <g transform="translate(80, 90)">
+    <text x="0" y="0" font-size="28" font-weight="700" class="white-text">Q4 2024 Business Review</text>
+    <text x="0" y="40" font-size="16" class="secondary-text">Strategic Initiatives and Key Metrics</text>
+
+    <!-- Bullet points -->
+    <text x="0" y="100" font-size="18" class="main-text">• Revenue grew 23% year-over-year</text>
+    <text x="0" y="135" font-size="18" class="main-text">• Customer satisfaction score: 94%</text>
+    <text x="0" y="170" font-size="18" class="main-text">• New product launches: 3</text>
+    <text x="0" y="205" font-size="18" class="main-text">• Market expansion into APAC region</text>
+
+    <!-- Simple chart representation -->
+    <rect x="350" y="80" width="180" height="150" rx="8" fill="#334155"/>
+    <text x="440" y="105" text-anchor="middle" font-size="12" class="secondary-text">Revenue Trend</text>
+
+    <!-- Bar chart -->
+    <rect x="375" y="170" width="25" height="40" rx="2" fill="#3b82f6"/>
+    <rect x="410" y="150" width="25" height="60" rx="2" fill="#3b82f6"/>
+    <rect x="445" y="130" width="25" height="80" rx="2" fill="#3b82f6"/>
+    <rect x="480" y="115" width="25" height="95" rx="2" fill="#22c55e"/>
+
+    <text x="387" y="225" text-anchor="middle" font-size="9" class="muted-text">Q1</text>
+    <text x="422" y="225" text-anchor="middle" font-size="9" class="muted-text">Q2</text>
+    <text x="457" y="225" text-anchor="middle" font-size="9" class="muted-text">Q3</text>
+    <text x="492" y="225" text-anchor="middle" font-size="9" class="muted-text">Q4</text>
+  </g>
+
+  <!-- Slide Number -->
+  <rect x="580" y="375" width="60" height="25" rx="12" fill="rgba(0,0,0,0.5)"/>
+  <text x="610" y="392" text-anchor="middle" font-size="12" class="white-text">5 / 12</text>
+
+  <!-- Video Controls Bar -->
+  <rect x="40" y="460" width="640" height="60" rx="8" class="sidebar-bg"/>
+  <rect x="40" y="460" width="640" height="60" rx="8" class="border"/>
+
+  <!-- Play/Pause Controls -->
+  <g transform="translate(60, 475)">
+    <!-- Previous -->
+    <circle cx="0" cy="15" r="15" class="control-btn"/>
+    <text x="0" y="20" text-anchor="middle" font-size="14" class="main-text">⏮</text>
+
+    <!-- Play/Pause -->
+    <circle cx="50" cy="15" r="20" fill="url(#accentGrad)"/>
+    <text x="50" y="22" text-anchor="middle" font-size="18" class="white-text">▶</text>
+
+    <!-- Next -->
+    <circle cx="100" cy="15" r="15" class="control-btn"/>
+    <text x="100" y="20" text-anchor="middle" font-size="14" class="main-text">⏭</text>
+  </g>
+
+  <!-- Progress Bar -->
+  <g transform="translate(180, 480)">
+    <text x="0" y="12" font-size="11" class="muted-text">2:34</text>
+    <rect x="40" y="5" width="360" height="6" rx="3" class="progress-bg"/>
+    <rect x="40" y="5" width="150" height="6" rx="3" class="progress-fill"/>
+    <circle cx="190" cy="8" r="8" fill="#3b82f6"/>
+    <text x="410" y="12" font-size="11" class="muted-text">5:48</text>
+  </g>
+
+  <!-- Right Controls -->
+  <g transform="translate(590, 475)">
+    <!-- Volume -->
+    <circle cx="0" cy="15" r="15" class="control-btn"/>
+    <text x="0" y="20" text-anchor="middle" font-size="12" class="main-text">🔊</text>
+
+    <!-- Fullscreen -->
+    <circle cx="45" cy="15" r="15" class="control-btn"/>
+    <text x="45" y="20" text-anchor="middle" font-size="12" class="main-text">⛶</text>
+
+    <!-- Settings -->
+    <circle cx="90" cy="15" r="15" class="control-btn"/>
+    <text x="90" y="20" text-anchor="middle" font-size="12" class="main-text">⚙</text>
+  </g>
+
+  <!-- Right Sidebar - Playlist -->
+  <rect x="695" y="50" width="165" height="470" class="sidebar-bg"/>
+  <rect x="695" y="50" width="165" height="470" rx="8" class="border"/>
+
+  <text x="710" y="75" font-size="14" font-weight="600" class="main-text">Playlist</text>
+  <text x="710" y="95" font-size="11" class="secondary-text">12 slides • 5:48 total</text>
+
+  <!-- Thumbnail List -->
+  <g transform="translate(705, 115)">
+    <!-- Thumbnail 1 -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="145" height="55" rx="6" class="thumbnail"/>
+      <rect x="5" y="5" width="45" height="45" rx="4" fill="#334155"/>
+      <text x="27" y="33" text-anchor="middle" font-size="16" class="muted-text">1</text>
+      <text x="58" y="20" font-size="11" class="main-text">Title Slide</text>
+      <text x="58" y="35" font-size="10" class="muted-text">0:00</text>
+    </g>
+
+    <!-- Thumbnail 2 -->
+    <g transform="translate(0, 65)">
+      <rect x="0" y="0" width="145" height="55" rx="6" class="thumbnail"/>
+      <rect x="5" y="5" width="45" height="45" rx="4" fill="#334155"/>
+      <text x="27" y="33" text-anchor="middle" font-size="16" class="muted-text">2</text>
+      <text x="58" y="20" font-size="11" class="main-text">Agenda</text>
+      <text x="58" y="35" font-size="10" class="muted-text">0:30</text>
+    </g>
+
+    <!-- Thumbnail 3 -->
+    <g transform="translate(0, 130)">
+      <rect x="0" y="0" width="145" height="55" rx="6" class="thumbnail"/>
+      <rect x="5" y="5" width="45" height="45" rx="4" fill="#334155"/>
+      <text x="27" y="33" text-anchor="middle" font-size="16" class="muted-text">3</text>
+      <text x="58" y="20" font-size="11" class="main-text">Overview</text>
+      <text x="58" y="35" font-size="10" class="muted-text">1:15</text>
+    </g>
+
+    <!-- Thumbnail 4 -->
+    <g transform="translate(0, 195)">
+      <rect x="0" y="0" width="145" height="55" rx="6" class="thumbnail"/>
+      <rect x="5" y="5" width="45" height="45" rx="4" fill="#334155"/>
+      <text x="27" y="33" text-anchor="middle" font-size="16" class="muted-text">4</text>
+      <text x="58" y="20" font-size="11" class="main-text">Metrics</text>
+      <text x="58" y="35" font-size="10" class="muted-text">1:58</text>
+    </g>
+
+    <!-- Thumbnail 5 - Active -->
+    <g transform="translate(0, 260)">
+      <rect x="0" y="0" width="145" height="55" rx="6" class="thumbnail-active"/>
+      <rect x="5" y="5" width="45" height="45" rx="4" fill="#3b82f6"/>
+      <text x="27" y="33" text-anchor="middle" font-size="16" class="white-text">5</text>
+      <text x="58" y="20" font-size="11" class="accent-text">Q4 Review</text>
+      <text x="58" y="35" font-size="10" class="accent-text">▶ Playing</text>
+    </g>
+
+    <!-- Thumbnail 6 -->
+    <g transform="translate(0, 325)">
+      <rect x="0" y="0" width="145" height="55" rx="6" class="thumbnail"/>
+      <rect x="5" y="5" width="45" height="45" rx="4" fill="#334155"/>
+      <text x="27" y="33" text-anchor="middle" font-size="16" class="muted-text">6</text>
+      <text x="58" y="20" font-size="11" class="main-text">Roadmap</text>
+      <text x="58" y="35" font-size="10" class="muted-text">3:20</text>
+    </g>
+
+    <!-- More indicator -->
+    <text x="72" y="400" text-anchor="middle" font-size="11" class="muted-text">+ 6 more slides</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(50, 555)">
+    <text x="0" y="0" font-size="10" class="muted-text">Space = Play/Pause | ← → = Navigate | F = Fullscreen | M = Mute</text>
+  </g>
+</svg>

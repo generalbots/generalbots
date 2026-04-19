@@ -1,0 +1,127 @@
+<svg width="900" height="400" viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <!-- Define gradients and effects -->
+  <defs>
+    <!-- Gradient for bars -->
+    <linearGradient id="barGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:0.9" />
+    </linearGradient>
+
+    <linearGradient id="barGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:0.9" />
+    </linearGradient>
+
+    <linearGradient id="barGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#6d28d9;stop-opacity:0.9" />
+    </linearGradient>
+
+    <linearGradient id="barGrad4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:0.9" />
+    </linearGradient>
+
+    <linearGradient id="barGrad5" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0.9" />
+    </linearGradient>
+
+    <linearGradient id="barGrad6" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#0891b2;stop-opacity:0.9" />
+    </linearGradient>
+
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="900" height="400" fill="#fafafa"/>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#1e293b">
+    Storage Components per 1TB of Documents
+  </text>
+
+  <!-- Chart area -->
+  <rect x="100" y="60" width="700" height="260" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Grid lines -->
+  <line x1="100" y1="125" x2="800" y2="125" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>
+  <line x1="100" y1="190" x2="800" y2="190" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>
+  <line x1="100" y1="255" x2="800" y2="255" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>
+
+  <!-- Axes -->
+  <line x1="100" y1="320" x2="800" y2="320" stroke="#475569" stroke-width="2"/>
+  <line x1="100" y1="60" x2="100" y2="320" stroke="#475569" stroke-width="2"/>
+
+  <!-- Y-axis labels -->
+  <text x="90" y="325" text-anchor="end" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">0 GB</text>
+  <text x="90" y="260" text-anchor="end" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">250 GB</text>
+  <text x="90" y="195" text-anchor="end" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">500 GB</text>
+  <text x="90" y="130" text-anchor="end" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">750 GB</text>
+  <text x="90" y="65" text-anchor="end" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">1000 GB</text>
+
+  <!-- Y-axis title -->
+  <text x="30" y="190" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#475569" transform="rotate(-90 30 190)">
+    Storage Size (GB)
+  </text>
+
+  <!-- Bars -->
+  <!-- Original -->
+  <rect x="150" y="60" width="80" height="260" fill="url(#barGrad1)" stroke="#3b82f6" stroke-width="2" rx="4" filter="url(#shadow)"/>
+  <text x="190" y="80" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="white">1000</text>
+  <text x="190" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">Original</text>
+  <text x="190" y="355" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">1000 GB</text>
+
+  <!-- Text Extracted -->
+  <rect x="260" y="112" width="80" height="208" fill="url(#barGrad2)" stroke="#10b981" stroke-width="2" rx="4" filter="url(#shadow)"/>
+  <text x="300" y="132" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="white">800</text>
+  <text x="300" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">Extracted</text>
+  <text x="300" y="355" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">800 GB</text>
+
+  <!-- Embeddings -->
+  <rect x="370" y="8" width="80" height="312" fill="url(#barGrad3)" stroke="#8b5cf6" stroke-width="2" rx="4" filter="url(#shadow)"/>
+  <text x="410" y="28" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="white">1200</text>
+  <text x="410" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">Embeddings</text>
+  <text x="410" y="355" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">1200 GB</text>
+
+  <!-- Index -->
+  <rect x="480" y="164" width="80" height="156" fill="url(#barGrad4)" stroke="#f59e0b" stroke-width="2" rx="4" filter="url(#shadow)"/>
+  <text x="520" y="184" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="white">600</text>
+  <text x="520" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">Index</text>
+  <text x="520" y="355" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">600 GB</text>
+
+  <!-- Metadata -->
+  <rect x="590" y="216" width="80" height="104" fill="url(#barGrad5)" stroke="#ef4444" stroke-width="2" rx="4" filter="url(#shadow)"/>
+  <text x="630" y="236" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="white">400</text>
+  <text x="630" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">Metadata</text>
+  <text x="630" y="355" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">400 GB</text>
+
+  <!-- Cache -->
+  <rect x="700" y="190" width="80" height="130" fill="url(#barGrad6)" stroke="#06b6d4" stroke-width="2" rx="4" filter="url(#shadow)"/>
+  <text x="740" y="210" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="white">500</text>
+  <text x="740" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#1e293b">Cache</text>
+  <text x="740" y="355" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">500 GB</text>
+
+  <!-- Total line -->
+  <line x1="150" y1="45" x2="780" y2="45" stroke="#dc2626" stroke-width="3" stroke-dasharray="8,4"/>
+  <rect x="790" y="35" width="90" height="25" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="4"/>
+  <text x="835" y="52" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="#dc2626">3.5 TB Total</text>
+
+  <!-- Legend -->
+  <g transform="translate(120, 375)">
+    <text x="0" y="0" font-family="system-ui, sans-serif" font-size="16" fill="#475569">Components contribute to 3.5× storage multiplication factor</text>
+  </g>
+</svg>

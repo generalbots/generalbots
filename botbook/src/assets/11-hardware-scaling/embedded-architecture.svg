@@ -1,0 +1,164 @@
+<svg width="900" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6"/>
+    </marker>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="400" fill="#FAFBFC"/>
+  <rect width="900" height="400" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="600" class="title-text">Embedded GB Architecture</text>
+  <text x="450" y="55" text-anchor="middle" font-size="12" class="secondary-text">Single-board computer deployment with local LLM</text>
+
+  <!-- Main Container -->
+  <rect x="30" y="75" width="840" height="290" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+
+  <!-- Display Section -->
+  <g transform="translate(60, 100)">
+    <rect x="0" y="0" width="160" height="110" rx="8" fill="#FFFFFF" stroke="#C7D2FE" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="160" height="30" rx="8" fill="url(#cyanGrad)"/>
+    <rect x="0" y="22" width="160" height="8" fill="url(#cyanGrad)"/>
+    <text x="80" y="20" text-anchor="middle" font-size="11" font-weight="600" class="white-text">Display</text>
+
+    <text x="80" y="55" text-anchor="middle" font-size="10" class="main-text">LCD / OLED</text>
+    <text x="80" y="72" text-anchor="middle" font-size="10" class="main-text">TFT / HDMI</text>
+    <text x="80" y="95" text-anchor="middle" font-size="9" class="mono-text">SPI / I2C</text>
+  </g>
+
+  <!-- BotServer Section -->
+  <g transform="translate(280, 100)">
+    <rect x="0" y="0" width="160" height="110" rx="8" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="160" height="30" rx="8" fill="url(#primaryGrad)"/>
+    <rect x="0" y="22" width="160" height="8" fill="url(#primaryGrad)"/>
+    <text x="80" y="20" text-anchor="middle" font-size="11" font-weight="600" class="white-text">botserver</text>
+
+    <text x="80" y="55" text-anchor="middle" font-size="10" class="main-text">(Rust)</text>
+    <text x="80" y="72" text-anchor="middle" font-size="10" font-weight="500" class="main-text">Port 9000</text>
+    <text x="80" y="95" text-anchor="middle" font-size="9" class="mono-text">ARM64 Binary</text>
+  </g>
+
+  <!-- llama.cpp Section -->
+  <g transform="translate(500, 100)">
+    <rect x="0" y="0" width="160" height="110" rx="8" fill="#FFFFFF" stroke="#A7F3D0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="160" height="30" rx="8" fill="url(#greenGrad)"/>
+    <rect x="0" y="22" width="160" height="8" fill="url(#greenGrad)"/>
+    <text x="80" y="20" text-anchor="middle" font-size="11" font-weight="600" class="white-text">llama.cpp</text>
+
+    <text x="80" y="55" text-anchor="middle" font-size="10" class="main-text">(Local)</text>
+    <text x="80" y="72" text-anchor="middle" font-size="10" font-weight="500" class="main-text">Port 8080</text>
+    <text x="80" y="95" text-anchor="middle" font-size="9" class="mono-text">GGUF Models</text>
+  </g>
+
+  <!-- Arrows between top row -->
+  <g stroke="#8B5CF6" stroke-width="2" fill="none">
+    <path d="M225 155 L275 155" marker-end="url(#arrowPurple)"/>
+    <path d="M445 155 L495 155" marker-end="url(#arrowPurple)"/>
+  </g>
+
+  <!-- Input Section -->
+  <g transform="translate(60, 240)">
+    <rect x="0" y="0" width="160" height="100" rx="8" fill="#FFFFFF" stroke="#FCD34D" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="160" height="30" rx="8" fill="url(#orangeGrad)"/>
+    <rect x="0" y="22" width="160" height="8" fill="url(#orangeGrad)"/>
+    <text x="80" y="20" text-anchor="middle" font-size="11" font-weight="600" class="white-text">Input</text>
+
+    <text x="80" y="52" text-anchor="middle" font-size="10" class="main-text">Keyboard</text>
+    <text x="80" y="68" text-anchor="middle" font-size="10" class="main-text">Buttons</text>
+    <text x="80" y="84" text-anchor="middle" font-size="10" class="main-text">Touch</text>
+  </g>
+
+  <!-- SQLite Section -->
+  <g transform="translate(280, 240)">
+    <rect x="0" y="0" width="160" height="100" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="160" height="30" rx="8" fill="#64748B"/>
+    <rect x="0" y="22" width="160" height="8" fill="#64748B"/>
+    <text x="80" y="20" text-anchor="middle" font-size="11" font-weight="600" class="white-text">SQLite</text>
+
+    <text x="80" y="52" text-anchor="middle" font-size="10" class="main-text">(Data)</text>
+    <text x="80" y="72" text-anchor="middle" font-size="9" class="mono-text">Sessions</text>
+    <text x="80" y="88" text-anchor="middle" font-size="9" class="mono-text">Conversations</text>
+  </g>
+
+  <!-- Model Section -->
+  <g transform="translate(500, 240)">
+    <rect x="0" y="0" width="160" height="100" rx="8" fill="#FFFFFF" stroke="#A7F3D0" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="160" height="30" rx="8" fill="url(#greenGrad)"/>
+    <rect x="0" y="22" width="160" height="8" fill="url(#greenGrad)"/>
+    <text x="80" y="20" text-anchor="middle" font-size="11" font-weight="600" class="white-text">TinyLlama</text>
+
+    <text x="80" y="52" text-anchor="middle" font-size="10" class="main-text">GGUF Model</text>
+    <text x="80" y="72" text-anchor="middle" font-size="9" class="mono-text">Q4_K_M</text>
+    <text x="80" y="88" text-anchor="middle" font-size="9" class="mono-text">~700MB</text>
+  </g>
+
+  <!-- Vertical Arrows -->
+  <g stroke="#8B5CF6" stroke-width="2" fill="none">
+    <path d="M140 215 L140 235" marker-end="url(#arrowPurple)"/>
+    <path d="M360 215 L360 235" marker-end="url(#arrowPurple)"/>
+    <path d="M580 215 L580 235" marker-end="url(#arrowPurple)"/>
+  </g>
+
+  <!-- Hardware specs badge -->
+  <g transform="translate(700, 120)">
+    <rect x="0" y="0" width="150" height="200" rx="8" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="1"/>
+    <text x="75" y="25" text-anchor="middle" font-size="11" font-weight="600" class="main-text">Requirements</text>
+
+    <text x="15" y="55" font-size="9" class="secondary-text">CPU</text>
+    <text x="15" y="70" font-size="10" class="mono-text">ARM64 / x86</text>
+
+    <text x="15" y="95" font-size="9" class="secondary-text">RAM</text>
+    <text x="15" y="110" font-size="10" class="mono-text">2GB+ min</text>
+
+    <text x="15" y="135" font-size="9" class="secondary-text">Storage</text>
+    <text x="15" y="150" font-size="10" class="mono-text">16GB+ SD</text>
+
+    <text x="15" y="175" font-size="9" class="secondary-text">Power</text>
+    <text x="15" y="190" font-size="10" class="mono-text">5V 2-3A</text>
+  </g>
+</svg>

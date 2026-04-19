@@ -1,0 +1,254 @@
+<svg width="1000" height="700" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f8fafc; }
+    .title-text { fill: #1e293b; font-family: Arial, sans-serif; }
+    .main-text { fill: #334155; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: Arial, sans-serif; }
+    .white-text { fill: #ffffff; font-family: Arial, sans-serif; }
+    .accent-text { fill: #0ea5e9; font-family: Arial, sans-serif; }
+    .code-text { fill: #e2e8f0; font-family: 'Courier New', monospace; }
+
+    .intent-box { fill: #7c3aed; }
+    .plan-box { fill: #0ea5e9; }
+    .execute-box { fill: #10b981; }
+    .deploy-box { fill: #f59e0b; }
+    .monitor-box { fill: #ec4899; }
+
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .card-dark { fill: #1e293b; stroke: #334155; stroke-width: 1; }
+    .highlight-card { fill: #f0fdf4; stroke: #10b981; stroke-width: 2; }
+
+    .arrow { fill: none; stroke: #94a3b8; stroke-width: 2; }
+    .arrow-head { fill: #94a3b8; }
+
+    .gbai-box { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; }
+    .gbdrive-box { fill: #dcfce7; stroke: #22c55e; stroke-width: 2; }
+    .htmx-box { fill: #fef3c7; stroke: #f59e0b; stroke-width: 2; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .title-text { fill: #f1f5f9; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .card { fill: #1e293b; stroke: #334155; }
+      .highlight-card { fill: #064e3b; stroke: #10b981; }
+      .gbai-box { fill: #1e3a5f; stroke: #3b82f6; }
+      .gbdrive-box { fill: #14532d; stroke: #22c55e; }
+      .htmx-box { fill: #451a03; stroke: #f59e0b; }
+      .arrow { stroke: #64748b; }
+      .arrow-head { fill: #64748b; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-head"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="700" class="bg"/>
+
+  <!-- Title -->
+  <text x="500" y="35" text-anchor="middle" font-size="22" font-weight="600" class="title-text">Autonomous Task AI - The Machine Does the Work</text>
+  <text x="500" y="58" text-anchor="middle" font-size="13" class="secondary-text">Intent → Plan → Execute → Deploy → Monitor</text>
+
+  <!-- Main Flow - 5 Steps -->
+
+  <!-- Step 1: Intent -->
+  <g transform="translate(50, 90)">
+    <rect x="0" y="0" width="160" height="100" rx="12" class="intent-box" filter="url(#shadow)"/>
+    <text x="80" y="30" text-anchor="middle" font-size="24" class="white-text">💭</text>
+    <text x="80" y="55" text-anchor="middle" font-size="14" font-weight="600" class="white-text">1. INTENT</text>
+    <text x="80" y="75" text-anchor="middle" font-size="11" class="white-text" opacity="0.9">Describe what</text>
+    <text x="80" y="88" text-anchor="middle" font-size="11" class="white-text" opacity="0.9">you want</text>
+  </g>
+
+  <!-- Arrow 1→2 -->
+  <path d="M 215 140 L 245 140" class="arrow" marker-end="url(#arrowhead)"/>
+
+  <!-- Step 2: Plan -->
+  <g transform="translate(250, 90)">
+    <rect x="0" y="0" width="160" height="100" rx="12" class="plan-box" filter="url(#shadow)"/>
+    <text x="80" y="30" text-anchor="middle" font-size="24" class="white-text">📋</text>
+    <text x="80" y="55" text-anchor="middle" font-size="14" font-weight="600" class="white-text">2. PLAN</text>
+    <text x="80" y="75" text-anchor="middle" font-size="11" class="white-text" opacity="0.9">LLM generates</text>
+    <text x="80" y="88" text-anchor="middle" font-size="11" class="white-text" opacity="0.9">execution steps</text>
+  </g>
+
+  <!-- Arrow 2→3 -->
+  <path d="M 415 140 L 445 140" class="arrow" marker-end="url(#arrowhead)"/>
+
+  <!-- Step 3: Execute -->
+  <g transform="translate(450, 90)">
+    <rect x="0" y="0" width="160" height="100" rx="12" class="execute-box" filter="url(#shadow)"/>
+    <text x="80" y="30" text-anchor="middle" font-size="24" class="white-text">⚙️</text>
+    <text x="80" y="55" text-anchor="middle" font-size="14" font-weight="600" class="white-text">3. EXECUTE</text>
+    <text x="80" y="75" text-anchor="middle" font-size="11" class="white-text" opacity="0.9">BASIC runs</text>
+    <text x="80" y="88" text-anchor="middle" font-size="11" class="white-text" opacity="0.9">autonomously</text>
+  </g>
+
+  <!-- Arrow 3→4 -->
+  <path d="M 615 140 L 645 140" class="arrow" marker-end="url(#arrowhead)"/>
+
+  <!-- Step 4: Deploy -->
+  <g transform="translate(650, 90)">
+    <rect x="0" y="0" width="160" height="100" rx="12" class="deploy-box" filter="url(#shadow)"/>
+    <text x="80" y="30" text-anchor="middle" font-size="24" class="white-text">🚀</text>
+    <text x="80" y="55" text-anchor="middle" font-size="14" font-weight="600" class="white-text">4. DEPLOY</text>
+    <text x="80" y="75" text-anchor="middle" font-size="11" class="white-text" opacity="0.9">CREATE SITE</text>
+    <text x="80" y="88" text-anchor="middle" font-size="11" class="white-text" opacity="0.9">generates app</text>
+  </g>
+
+  <!-- Arrow 4→5 -->
+  <path d="M 815 140 L 845 140" class="arrow" marker-end="url(#arrowhead)"/>
+
+  <!-- Step 5: Monitor -->
+  <g transform="translate(850, 90)">
+    <rect x="0" y="0" width="100" height="100" rx="12" class="monitor-box" filter="url(#shadow)"/>
+    <text x="50" y="30" text-anchor="middle" font-size="24" class="white-text">📊</text>
+    <text x="50" y="55" text-anchor="middle" font-size="12" font-weight="600" class="white-text">5. MONITOR</text>
+    <text x="50" y="75" text-anchor="middle" font-size="10" class="white-text" opacity="0.9">Live</text>
+    <text x="50" y="88" text-anchor="middle" font-size="10" class="white-text" opacity="0.9">updates</text>
+  </g>
+
+  <!-- Detailed Flow Section -->
+
+  <!-- User Input Card -->
+  <g transform="translate(50, 220)">
+    <rect x="0" y="0" width="280" height="140" rx="8" class="card" filter="url(#shadow)"/>
+    <text x="15" y="25" font-size="13" font-weight="600" class="main-text">User Intent</text>
+    <rect x="15" y="40" width="250" height="85" rx="4" class="card-dark"/>
+    <text x="25" y="60" font-size="11" class="code-text">"Create a CRM for tracking</text>
+    <text x="25" y="78" font-size="11" class="code-text">real estate leads with</text>
+    <text x="25" y="96" font-size="11" class="code-text">email automation and</text>
+    <text x="25" y="114" font-size="11" class="code-text">contact management"</text>
+  </g>
+
+  <!-- Arrow down -->
+  <path d="M 190 365 L 190 390" class="arrow" marker-end="url(#arrowhead)"/>
+
+  <!-- Intent Compiler Card -->
+  <g transform="translate(50, 395)">
+    <rect x="0" y="0" width="280" height="130" rx="8" class="gbai-box" filter="url(#shadow)"/>
+    <text x="15" y="25" font-size="13" font-weight="600" class="main-text">🧠 Intent Compiler (LLM)</text>
+    <text x="15" y="50" font-size="11" class="secondary-text">├── Action: CREATE</text>
+    <text x="15" y="68" font-size="11" class="secondary-text">├── Target: CRM Application</text>
+    <text x="15" y="86" font-size="11" class="secondary-text">├── Domain: Real Estate</text>
+    <text x="15" y="104" font-size="11" class="secondary-text">├── Features: Lead tracking, Email</text>
+    <text x="15" y="122" font-size="11" class="secondary-text">└── Output: HTMX Web App</text>
+  </g>
+
+  <!-- Arrow to Plan -->
+  <path d="M 335 460 L 380 460" class="arrow" marker-end="url(#arrowhead)"/>
+
+  <!-- Execution Plan Card -->
+  <g transform="translate(385, 220)">
+    <rect x="0" y="0" width="260" height="200" rx="8" class="card" filter="url(#shadow)"/>
+    <text x="15" y="25" font-size="13" font-weight="600" class="main-text">📋 Execution Plan</text>
+
+    <g transform="translate(15, 40)">
+      <rect x="0" y="0" width="230" height="28" rx="4" fill="#fee2e2"/>
+      <text x="10" y="18" font-size="10" font-weight="600" fill="#dc2626">STEP 1 • CRITICAL</text>
+      <text x="130" y="18" font-size="10" class="secondary-text">Database schema</text>
+    </g>
+
+    <g transform="translate(15, 73)">
+      <rect x="0" y="0" width="230" height="28" rx="4" fill="#fef3c7"/>
+      <text x="10" y="18" font-size="10" font-weight="600" fill="#d97706">STEP 2 • HIGH</text>
+      <text x="110" y="18" font-size="10" class="secondary-text">Authentication</text>
+    </g>
+
+    <g transform="translate(15, 106)">
+      <rect x="0" y="0" width="230" height="28" rx="4" fill="#fef3c7"/>
+      <text x="10" y="18" font-size="10" font-weight="600" fill="#d97706">STEP 3 • HIGH</text>
+      <text x="110" y="18" font-size="10" class="secondary-text">CREATE SITE UI</text>
+    </g>
+
+    <g transform="translate(15, 139)">
+      <rect x="0" y="0" width="230" height="28" rx="4" fill="#dbeafe"/>
+      <text x="10" y="18" font-size="10" font-weight="600" fill="#2563eb">STEP 4 • MEDIUM</text>
+      <text x="120" y="18" font-size="10" class="secondary-text">Email templates</text>
+    </g>
+
+    <g transform="translate(15, 172)">
+      <rect x="0" y="0" width="230" height="28" rx="4" fill="#dcfce7"/>
+      <text x="10" y="18" font-size="10" font-weight="600" fill="#16a34a">STEP 5 • LOW</text>
+      <text x="105" y="18" font-size="10" class="secondary-text">Deploy & test</text>
+    </g>
+  </g>
+
+  <!-- Generated BASIC Card -->
+  <g transform="translate(385, 430)">
+    <rect x="0" y="0" width="260" height="120" rx="8" class="card-dark" filter="url(#shadow)"/>
+    <text x="15" y="22" font-size="12" font-weight="600" class="code-text">Generated BASIC</text>
+    <text x="15" y="45" font-size="10" class="code-text" fill="#86efac">CREATE SITE</text>
+    <text x="95" y="45" font-size="10" class="code-text">"crm", "templates/app",</text>
+    <text x="15" y="62" font-size="10" class="code-text" fill="#fde68a">"Build real estate CRM..."</text>
+    <text x="15" y="85" font-size="10" class="code-text" fill="#86efac">NEW_TABLE</text>
+    <text x="85" y="85" font-size="10" class="code-text">"leads"</text>
+    <text x="15" y="102" font-size="10" class="code-text" fill="#86efac">SET SCHEDULE</text>
+    <text x="105" y="102" font-size="10" class="code-text">"0 9 * * *"</text>
+  </g>
+
+  <!-- Arrow to Output -->
+  <path d="M 650 350 L 695 350" class="arrow" marker-end="url(#arrowhead)"/>
+
+  <!-- .gbdrive Output Card -->
+  <g transform="translate(700, 220)">
+    <rect x="0" y="0" width="250" height="200" rx="8" class="gbdrive-box" filter="url(#shadow)"/>
+    <text x="15" y="25" font-size="13" font-weight="600" class="main-text">📁 .gbdrive Output</text>
+    <text x="15" y="50" font-size="11" class="secondary-text">project.gbdrive/</text>
+    <text x="25" y="70" font-size="10" class="secondary-text">├── apps/crm/</text>
+    <text x="35" y="88" font-size="10" class="accent-text">│   ├── index.html</text>
+    <text x="35" y="106" font-size="10" class="secondary-text">│   └── _assets/</text>
+    <text x="25" y="124" font-size="10" class="secondary-text">├── data/</text>
+    <text x="35" y="142" font-size="10" class="secondary-text">│   └── leads.json</text>
+    <text x="25" y="160" font-size="10" class="secondary-text">├── tasks/</text>
+    <text x="35" y="178" font-size="10" class="secondary-text">│   └── task-001/</text>
+    <text x="25" y="196" font-size="10" class="secondary-text">└── output/</text>
+  </g>
+
+  <!-- HTMX App Card -->
+  <g transform="translate(700, 430)">
+    <rect x="0" y="0" width="250" height="120" rx="8" class="htmx-box" filter="url(#shadow)"/>
+    <text x="15" y="22" font-size="12" font-weight="600" class="main-text">⚡ Generated HTMX App</text>
+    <text x="15" y="45" font-size="10" class="secondary-text">• Bound to botserver API</text>
+    <text x="15" y="63" font-size="10" class="secondary-text">• No separate backend needed</text>
+    <text x="15" y="81" font-size="10" class="secondary-text">• Real-time with WebSocket</text>
+    <text x="15" y="99" font-size="10" class="secondary-text">• Live at /crm endpoint</text>
+  </g>
+
+  <!-- Bottom Summary -->
+  <g transform="translate(50, 570)">
+    <rect x="0" y="0" width="900" height="110" rx="8" class="highlight-card" filter="url(#shadow)"/>
+    <text x="20" y="30" font-size="14" font-weight="600" class="main-text">✨ Result: Complete Application Created Autonomously</text>
+
+    <g transform="translate(20, 50)">
+      <rect x="0" y="0" width="200" height="45" rx="4" class="card"/>
+      <text x="15" y="18" font-size="11" font-weight="500" class="main-text">🗄️ Database</text>
+      <text x="15" y="35" font-size="10" class="secondary-text">Tables auto-created</text>
+    </g>
+
+    <g transform="translate(235, 50)">
+      <rect x="0" y="0" width="200" height="45" rx="4" class="card"/>
+      <text x="15" y="18" font-size="11" font-weight="500" class="main-text">🌐 Web App</text>
+      <text x="15" y="35" font-size="10" class="secondary-text">HTMX UI at /crm</text>
+    </g>
+
+    <g transform="translate(450, 50)">
+      <rect x="0" y="0" width="200" height="45" rx="4" class="card"/>
+      <text x="15" y="18" font-size="11" font-weight="500" class="main-text">📧 Automation</text>
+      <text x="15" y="35" font-size="10" class="secondary-text">Email workflows active</text>
+    </g>
+
+    <g transform="translate(665, 50)">
+      <rect x="0" y="0" width="220" height="45" rx="4" class="card"/>
+      <text x="15" y="18" font-size="11" font-weight="500" class="main-text">📊 Monitoring</text>
+      <text x="15" y="35" font-size="10" class="secondary-text">Real-time task tracking</text>
+    </g>
+  </g>
+</svg>

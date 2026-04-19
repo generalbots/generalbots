@@ -1,0 +1,329 @@
+<svg width="1200" height="700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="gbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="successGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="grayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#64748B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#94A3B8;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="headerBg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1E1B4B;stop-opacity:0.05" />
+      <stop offset="50%" style="stop-color:#312E81;stop-opacity:0.08" />
+      <stop offset="100%" style="stop-color:#1E1B4B;stop-opacity:0.05" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <!-- Pattern -->
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .accent-text { fill: #6366F1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="1200" height="700" fill="#FAFBFC"/>
+  <rect width="1200" height="700" fill="url(#dots)"/>
+  <rect x="0" y="0" width="1200" height="100" fill="url(#headerBg)"/>
+
+  <!-- Title -->
+  <text x="600" y="45" text-anchor="middle" font-size="26" font-weight="700" class="title-text">Platform Comparison Summary</text>
+  <text x="600" y="75" text-anchor="middle" font-size="14" class="secondary-text">General Bots vs Enterprise Cloud Platforms</text>
+
+  <!-- General Bots Card (Highlighted) -->
+  <g transform="translate(50, 120)">
+    <rect x="0" y="0" width="280" height="460" rx="12" fill="#FFFFFF" stroke="#C7D2FE" stroke-width="2" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="280" height="60" rx="12" fill="url(#gbGradient)"/>
+    <rect x="0" y="48" width="280" height="12" fill="url(#gbGradient)"/>
+    <text x="140" y="40" text-anchor="middle" font-size="18" font-weight="700" class="white-text">General Bots</text>
+
+    <!-- Features -->
+    <g transform="translate(20, 80)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Self-Hosted</text>
+    </g>
+    <g transform="translate(20, 115)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Open Source (AGPL)</text>
+    </g>
+    <g transform="translate(20, 150)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">No Per-User Fees</text>
+    </g>
+    <g transform="translate(20, 185)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Native AI (Any LLM)</text>
+    </g>
+    <g transform="translate(20, 220)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Full Productivity Suite</text>
+    </g>
+    <g transform="translate(20, 255)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Multi-Channel Chat</text>
+    </g>
+    <g transform="translate(20, 290)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Unlimited Automation</text>
+    </g>
+    <g transform="translate(20, 325)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">BASIC Scripting</text>
+    </g>
+    <g transform="translate(20, 360)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Data Sovereignty</text>
+    </g>
+
+    <!-- Price -->
+    <rect x="20" y="395" width="240" height="45" rx="8" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1"/>
+    <text x="140" y="418" text-anchor="middle" font-size="14" font-weight="700" fill="#10B981">$3K-12K/year</text>
+    <text x="140" y="433" text-anchor="middle" font-size="10" class="secondary-text">100 users • Infrastructure only</text>
+  </g>
+
+  <!-- Enterprise Cloud Card -->
+  <g transform="translate(360, 120)">
+    <rect x="0" y="0" width="280" height="460" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="280" height="60" rx="12" fill="url(#grayGradient)"/>
+    <rect x="0" y="48" width="280" height="12" fill="url(#grayGradient)"/>
+    <text x="140" y="40" text-anchor="middle" font-size="18" font-weight="700" class="white-text">Enterprise Cloud</text>
+
+    <!-- Features -->
+    <g transform="translate(20, 80)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Cloud Only</text>
+    </g>
+    <g transform="translate(20, 115)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Proprietary</text>
+    </g>
+    <g transform="translate(20, 150)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">$12-57/user/month</text>
+    </g>
+    <g transform="translate(20, 185)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">$</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">AI Extra ($30/user)</text>
+    </g>
+    <g transform="translate(20, 220)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Full Productivity Suite</text>
+    </g>
+    <g transform="translate(20, 255)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">$</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Limited Channels</text>
+    </g>
+    <g transform="translate(20, 290)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">$</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Per-Flow Fees</text>
+    </g>
+    <g transform="translate(20, 325)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">~</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Limited Scripting</text>
+    </g>
+    <g transform="translate(20, 360)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Vendor Controlled</text>
+    </g>
+
+    <!-- Price -->
+    <rect x="20" y="395" width="240" height="45" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1"/>
+    <text x="140" y="418" text-anchor="middle" font-size="14" font-weight="700" fill="#DC2626">$50K-90K/year</text>
+    <text x="140" y="433" text-anchor="middle" font-size="10" class="secondary-text">100 users • Base + AI + Automation</text>
+  </g>
+
+  <!-- Automation Platforms Card -->
+  <g transform="translate(670, 120)">
+    <rect x="0" y="0" width="230" height="460" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="230" height="60" rx="12" fill="url(#grayGradient)"/>
+    <rect x="0" y="48" width="230" height="12" fill="url(#grayGradient)"/>
+    <text x="115" y="40" text-anchor="middle" font-size="16" font-weight="700" class="white-text">Automation Tools</text>
+
+    <g transform="translate(15, 80)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">~</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Some Self-Host</text>
+    </g>
+    <g transform="translate(15, 115)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">~</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Fair-code/Proprietary</text>
+    </g>
+    <g transform="translate(15, 150)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">$</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Per-Task Pricing</text>
+    </g>
+    <g transform="translate(15, 185)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">$</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">AI via Connectors</text>
+    </g>
+    <g transform="translate(15, 220)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">No Productivity Suite</text>
+    </g>
+    <g transform="translate(15, 255)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">No Native Chat</text>
+    </g>
+    <g transform="translate(15, 290)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Visual Workflows</text>
+    </g>
+    <g transform="translate(15, 325)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">~</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">JS/Visual Only</text>
+    </g>
+    <g transform="translate(15, 360)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">~</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Partial Control</text>
+    </g>
+
+    <rect x="15" y="395" width="200" height="45" rx="8" fill="#FEF3C7" stroke="#FCD34D" stroke-width="1"/>
+    <text x="115" y="418" text-anchor="middle" font-size="14" font-weight="700" fill="#D97706">$15K-30K/year</text>
+    <text x="115" y="433" text-anchor="middle" font-size="10" class="secondary-text">+ external tools needed</text>
+  </g>
+
+  <!-- AI Assistants Card -->
+  <g transform="translate(920, 120)">
+    <rect x="0" y="0" width="230" height="460" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="230" height="60" rx="12" fill="url(#grayGradient)"/>
+    <rect x="0" y="48" width="230" height="12" fill="url(#grayGradient)"/>
+    <text x="115" y="40" text-anchor="middle" font-size="16" font-weight="700" class="white-text">AI Assistants</text>
+
+    <g transform="translate(15, 80)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Cloud Only</text>
+    </g>
+    <g transform="translate(15, 115)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Proprietary</text>
+    </g>
+    <g transform="translate(15, 150)">
+      <circle cx="10" cy="12" r="8" fill="#FBBF24"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">$</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Subscription Based</text>
+    </g>
+    <g transform="translate(15, 185)">
+      <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Strong AI Built-in</text>
+    </g>
+    <g transform="translate(15, 220)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">No Productivity Suite</text>
+    </g>
+    <g transform="translate(15, 255)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">Web Interface Only</text>
+    </g>
+    <g transform="translate(15, 290)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">No Automation</text>
+    </g>
+    <g transform="translate(15, 325)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">No Scripting</text>
+    </g>
+    <g transform="translate(15, 360)">
+      <circle cx="10" cy="12" r="8" fill="#F87171"/>
+      <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✗</text>
+      <text x="28" y="16" font-size="12" font-weight="500" class="main-text">No Data Control</text>
+    </g>
+
+    <rect x="15" y="395" width="200" height="45" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="115" y="418" text-anchor="middle" font-size="14" font-weight="700" class="secondary-text">$2K-5K/year</text>
+    <text x="115" y="433" text-anchor="middle" font-size="10" class="secondary-text">Chat only • Limited scope</text>
+  </g>
+
+  <!-- Bottom Summary -->
+  <g transform="translate(50, 605)">
+    <rect x="0" y="0" width="1100" height="70" rx="10" fill="#FFFFFF" stroke="#C7D2FE" stroke-width="2" filter="url(#shadow)"/>
+
+    <g transform="translate(30, 15)">
+      <rect x="0" y="0" width="200" height="40" rx="6" fill="#EEF2FF"/>
+      <text x="100" y="18" text-anchor="middle" font-size="18" font-weight="700" class="accent-text">75-95%</text>
+      <text x="100" y="33" text-anchor="middle" font-size="10" class="secondary-text">Cost Reduction</text>
+    </g>
+
+    <g transform="translate(260, 15)">
+      <rect x="0" y="0" width="200" height="40" rx="6" fill="#ECFDF5"/>
+      <text x="100" y="18" text-anchor="middle" font-size="18" font-weight="700" fill="#10B981">100%</text>
+      <text x="100" y="33" text-anchor="middle" font-size="10" class="secondary-text">Data Sovereignty</text>
+    </g>
+
+    <g transform="translate(490, 15)">
+      <rect x="0" y="0" width="200" height="40" rx="6" fill="#F5F3FF"/>
+      <text x="100" y="18" text-anchor="middle" font-size="18" font-weight="700" class="accent-text">90+</text>
+      <text x="100" y="33" text-anchor="middle" font-size="10" class="secondary-text">BASIC Keywords</text>
+    </g>
+
+    <g transform="translate(720, 15)">
+      <rect x="0" y="0" width="200" height="40" rx="6" fill="#FEF3C7"/>
+      <text x="100" y="18" text-anchor="middle" font-size="18" font-weight="700" fill="#D97706">∞</text>
+      <text x="100" y="33" text-anchor="middle" font-size="10" class="secondary-text">Unlimited Users</text>
+    </g>
+
+    <g transform="translate(950, 15)">
+      <rect x="0" y="0" width="120" height="40" rx="6" fill="url(#gbGradient)"/>
+      <text x="60" y="27" text-anchor="middle" font-size="12" font-weight="600" class="white-text">Open Source</text>
+    </g>
+  </g>
+</svg>

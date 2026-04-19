@@ -1,0 +1,2676 @@
+<link rel="stylesheet" href="tools/tools.css" />
+
+<div class="security-container" id="security-app">
+    <style>
+        .security-container {
+            padding: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .security-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .security-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .security-back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .security-back-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .security-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+        }
+
+        .security-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Tab Navigation */
+        .security-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: var(--secondary-bg);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .security-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .security-tab:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .security-tab.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .security-tab svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .security-tab-content {
+            display: none;
+        }
+
+        .security-tab-content.active {
+            display: block;
+        }
+
+        /* Compliance Panel Styles */
+        .compliance-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .security-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .security-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .security-btn-primary {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .security-btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .security-btn-success {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        .security-btn-success:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
+        .security-btn-danger {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+        }
+
+        .security-btn-danger:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .security-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .security-stat-card {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .security-stat-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .security-stat-card.critical::before {
+            background: #dc2626;
+        }
+        .security-stat-card.high::before {
+            background: #ea580c;
+        }
+        .security-stat-card.medium::before {
+            background: #d97706;
+        }
+        .security-stat-card.low::before {
+            background: #65a30d;
+        }
+        .security-stat-card.info::before {
+            background: #0891b2;
+        }
+
+        .security-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .security-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .security-stat-card.critical .security-stat-value {
+            color: #dc2626;
+        }
+        .security-stat-card.high .security-stat-value {
+            color: #ea580c;
+        }
+        .security-stat-card.medium .security-stat-value {
+            color: #d97706;
+        }
+        .security-stat-card.low .security-stat-value {
+            color: #65a30d;
+        }
+        .security-stat-card.info .security-stat-value {
+            color: #0891b2;
+        }
+
+        .security-stat-desc {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .security-filters {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: var(--secondary-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .security-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .security-filter-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .security-filter-select {
+            padding: 8px 12px;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .security-filter-input {
+            padding: 8px 12px;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            width: 200px;
+        }
+
+        .security-filter-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .security-filter-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .security-filter-spacer {
+            flex: 1;
+        }
+
+        .security-results {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .security-results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .security-results-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .security-results-count {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .security-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .security-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--primary-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .security-table td {
+            padding: 16px;
+            font-size: 14px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        .security-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .security-table tr:hover {
+            background: var(--bg-hover);
+        }
+
+        .security-severity {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .security-severity.critical {
+            background: rgba(220, 38, 38, 0.1);
+            color: #dc2626;
+        }
+
+        .security-severity.high {
+            background: rgba(234, 88, 12, 0.1);
+            color: #ea580c;
+        }
+
+        .security-severity.medium {
+            background: rgba(217, 119, 6, 0.1);
+            color: #d97706;
+        }
+
+        .security-severity.low {
+            background: rgba(101, 163, 13, 0.1);
+            color: #65a30d;
+        }
+
+        .security-severity.info {
+            background: rgba(8, 145, 178, 0.1);
+            color: #0891b2;
+        }
+
+        .security-severity-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .security-issue-type {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .security-issue-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .security-issue-icon.password {
+            background: rgba(220, 38, 38, 0.1);
+            color: #dc2626;
+        }
+
+        .security-issue-icon.security {
+            background: rgba(234, 88, 12, 0.1);
+            color: #ea580c;
+        }
+
+        .security-issue-icon.deprecated {
+            background: rgba(217, 119, 6, 0.1);
+            color: #d97706;
+        }
+
+        .security-issue-icon.code {
+            background: rgba(101, 163, 13, 0.1);
+            color: #65a30d;
+        }
+
+        .security-issue-icon.config {
+            background: rgba(8, 145, 178, 0.1);
+            color: #0891b2;
+        }
+
+        .security-issue-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .security-issue-category {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .security-file-path {
+            font-family: "SF Mono", "Monaco", monospace;
+            font-size: 13px;
+            color: var(--accent-color);
+            word-break: break-all;
+        }
+
+        .security-file-line {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .security-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .security-code-snippet {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--primary-bg);
+            border-radius: 6px;
+            font-family: "SF Mono", "Monaco", monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .security-action-btn {
+            padding: 6px 14px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .security-action-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Protection Panel Styles */
+        .protection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 20px;
+        }
+
+        .protection-card {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .protection-card:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .protection-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--primary-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .protection-card-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .protection-card-icon {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 24px;
+        }
+
+        .protection-card-icon.lynis {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        .protection-card-icon.rkhunter {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: white;
+        }
+
+        .protection-card-icon.chkrootkit {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .protection-card-icon.suricata {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: white;
+        }
+
+        .protection-card-icon.lmd {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .protection-card-icon.clamav {
+            background: linear-gradient(135deg, #ec4899, #be185d);
+            color: white;
+        }
+
+        .protection-card-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+        }
+
+        .protection-card-info p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .protection-card-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .protection-card-status.running {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+
+        .protection-card-status.stopped {
+            background: rgba(107, 114, 128, 0.1);
+            color: #6b7280;
+        }
+
+        .protection-card-status.not-installed {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .protection-card-status.updating {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .protection-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .protection-status-dot.running {
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .protection-card-body {
+            padding: 16px 20px;
+        }
+
+        .protection-card-meta {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .protection-meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .protection-meta-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .protection-meta-value {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .protection-meta-value.success {
+            color: #10b981;
+        }
+
+        .protection-meta-value.warning {
+            color: #f59e0b;
+        }
+
+        .protection-meta-value.error {
+            color: #ef4444;
+        }
+
+        .protection-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .protection-card-actions .security-btn {
+            flex: 1;
+            min-width: 100px;
+            justify-content: center;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+
+        .protection-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--primary-bg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .protection-footer-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .protection-icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .protection-icon-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent-color);
+        }
+
+        .protection-icon-btn.danger:hover {
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .protection-auto-update {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .protection-toggle {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            background: var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .protection-toggle.active {
+            background: #10b981;
+        }
+
+        .protection-toggle::after {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .protection-toggle.active::after {
+            left: 18px;
+        }
+
+        /* Report Modal */
+        .report-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .report-modal.active {
+            display: flex;
+        }
+
+        .report-modal-content {
+            background: var(--secondary-bg);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .report-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .report-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .report-modal-close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .report-modal-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .report-modal-body {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .report-content {
+            font-family: "SF Mono", "Monaco", monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            background: var(--primary-bg);
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .security-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .protection-grid {
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .security-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .security-header {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .security-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .security-filter-input {
+                width: 100%;
+            }
+
+            .security-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .security-tabs {
+                flex-wrap: wrap;
+            }
+
+            .protection-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <!-- Header -->
+    <header class="security-header">
+        <div class="security-header-left">
+            <a
+                href="#home"
+                class="security-back-btn"
+                hx-get="/home.html"
+                hx-target="#main-content"
+                hx-push-url="true"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="15 18 9 12 15 6" />
+                </svg>
+            </a>
+            <div>
+                <h1 class="security-title" data-i18n="security-title">
+                    Security
+                </h1>
+                <p class="security-subtitle" data-i18n="security-subtitle">
+                    Security tools, compliance scanning, and server protection
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="security-tabs">
+        <button
+            class="security-tab active"
+            onclick="switchSecurityTab('compliance')"
+            data-tab="compliance"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path
+                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                ></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span data-i18n="security-tab-compliance"
+                >API Compliance Report</span
+            >
+        </button>
+        <button
+            class="security-tab"
+            onclick="switchSecurityTab('protection')"
+            data-tab="protection"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span data-i18n="security-tab-protection">Protection</span>
+        </button>
+    </div>
+
+    <!-- API Compliance Report Tab -->
+    <div class="security-tab-content active" id="tab-compliance">
+        <div
+            class="compliance-actions"
+            style="
+                margin-bottom: 24px;
+                display: flex;
+                justify-content: flex-end;
+            "
+        >
+            <button
+                class="security-btn"
+                hx-get="/api/compliance/export"
+                hx-swap="none"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span data-i18n="security-export-report">Export Report</span>
+            </button>
+            <button
+                class="security-btn security-btn-primary"
+                id="scan-btn"
+                hx-post="/api/compliance/scan"
+                hx-target="#compliance-results-body"
+                hx-indicator="#scan-progress"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <span data-i18n="security-run-scan">Run Compliance Scan</span>
+            </button>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="security-stats">
+            <div class="security-stat-card critical">
+                <div class="security-stat-label" data-i18n="security-critical">
+                    Critical
+                </div>
+                <div class="security-stat-value" id="stat-critical">0</div>
+                <div
+                    class="security-stat-desc"
+                    data-i18n="security-critical-desc"
+                >
+                    Requires immediate action
+                </div>
+            </div>
+            <div class="security-stat-card high">
+                <div class="security-stat-label" data-i18n="security-high">
+                    High
+                </div>
+                <div class="security-stat-value" id="stat-high">0</div>
+                <div class="security-stat-desc" data-i18n="security-high-desc">
+                    Security risk
+                </div>
+            </div>
+            <div class="security-stat-card medium">
+                <div class="security-stat-label" data-i18n="security-medium">
+                    Medium
+                </div>
+                <div class="security-stat-value" id="stat-medium">0</div>
+                <div
+                    class="security-stat-desc"
+                    data-i18n="security-medium-desc"
+                >
+                    Should be addressed
+                </div>
+            </div>
+            <div class="security-stat-card low">
+                <div class="security-stat-label" data-i18n="security-low">
+                    Low
+                </div>
+                <div class="security-stat-value" id="stat-low">0</div>
+                <div class="security-stat-desc" data-i18n="security-low-desc">
+                    Best practice
+                </div>
+            </div>
+            <div class="security-stat-card info">
+                <div class="security-stat-label" data-i18n="security-info">
+                    Info
+                </div>
+                <div class="security-stat-value" id="stat-info">0</div>
+                <div class="security-stat-desc" data-i18n="security-info-desc">
+                    Informational
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="security-filters">
+            <div class="security-filter-group">
+                <span
+                    class="security-filter-label"
+                    data-i18n="security-filter-severity"
+                    >Severity:</span
+                >
+                <select
+                    class="security-filter-select"
+                    id="filter-severity"
+                    onchange="filterComplianceResults()"
+                >
+                    <option
+                        value="all"
+                        data-i18n="security-filter-all-severities"
+                    >
+                        All Severities
+                    </option>
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                    <option value="info">Info</option>
+                </select>
+            </div>
+            <div class="security-filter-group">
+                <span
+                    class="security-filter-label"
+                    data-i18n="security-filter-type"
+                    >Type:</span
+                >
+                <select
+                    class="security-filter-select"
+                    id="filter-type"
+                    onchange="filterComplianceResults()"
+                >
+                    <option value="all" data-i18n="security-filter-all-types">
+                        All Types
+                    </option>
+                    <option value="password" data-i18n="security-type-password">
+                        Password in Config
+                    </option>
+                    <option
+                        value="hardcoded"
+                        data-i18n="security-type-hardcoded"
+                    >
+                        Hardcoded Secrets
+                    </option>
+                    <option
+                        value="deprecated"
+                        data-i18n="security-type-deprecated"
+                    >
+                        Deprecated Keywords
+                    </option>
+                    <option value="fragile" data-i18n="security-type-fragile">
+                        Fragile Code
+                    </option>
+                    <option value="config" data-i18n="security-type-config">
+                        Configuration Issues
+                    </option>
+                </select>
+            </div>
+            <div class="security-filter-spacer"></div>
+            <div class="security-filter-group">
+                <input
+                    type="text"
+                    class="security-filter-input"
+                    placeholder="Search issues..."
+                    id="filter-search"
+                    oninput="filterComplianceResults()"
+                />
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="security-results">
+            <div class="security-results-header">
+                <span
+                    class="security-results-title"
+                    data-i18n="security-results"
+                    >Compliance Issues</span
+                >
+                <span class="security-results-count" id="results-count"
+                    >5 issues found</span
+                >
+            </div>
+
+            <table class="security-table">
+                <thead>
+                    <tr>
+                        <th data-i18n="security-col-severity">Severity</th>
+                        <th data-i18n="security-col-issue">Issue Type</th>
+                        <th data-i18n="security-col-location">Location</th>
+                        <th data-i18n="security-col-details">Description</th>
+                        <th data-i18n="security-col-action">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="compliance-results-body">
+                    <tr data-severity="critical" data-type="password">
+                        <td>
+                            <span class="security-severity critical">
+                                <span class="security-severity-dot"></span>
+                                Critical
+                            </span>
+                        </td>
+                        <td>
+                            <div class="security-issue-type">
+                                <div class="security-issue-icon password">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <rect
+                                            x="3"
+                                            y="11"
+                                            width="18"
+                                            height="11"
+                                            rx="2"
+                                            ry="2"
+                                        />
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="security-issue-title">
+                                        Password in Config
+                                    </div>
+                                    <div class="security-issue-category">
+                                        Security
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="security-file-path">
+                                marketing.gbai/poster.bas
+                            </div>
+                            <div class="security-file-line">Line 12</div>
+                        </td>
+                        <td>
+                            <div class="security-description">
+                                Hardcoded password found in BASIC file. Move to
+                                Vault.
+                                <div class="security-code-snippet">
+                                    POST TO INSTAGRAM username, password, image
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="security-action-btn">Fix</button>
+                        </td>
+                    </tr>
+                    <tr data-severity="high" data-type="hardcoded">
+                        <td>
+                            <span class="security-severity high">
+                                <span class="security-severity-dot"></span>
+                                High
+                            </span>
+                        </td>
+                        <td>
+                            <div class="security-issue-type">
+                                <div class="security-issue-icon security">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path
+                                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                                        />
+                                        <line x1="12" y1="9" x2="12" y2="13" />
+                                        <line
+                                            x1="12"
+                                            y1="17"
+                                            x2="12.01"
+                                            y2="17"
+                                        />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="security-issue-title">
+                                        Hardcoded Secret
+                                    </div>
+                                    <div class="security-issue-category">
+                                        Security
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="security-file-path">
+                                api-client.gbai/msft-partner.bas
+                            </div>
+                            <div class="security-file-line">Line 7</div>
+                        </td>
+                        <td>
+                            <div class="security-description">
+                                Client secret found in source code. Use
+                                environment variables.
+                                <div class="security-code-snippet">
+                                    client_secret = "abc123..."
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="security-action-btn">Fix</button>
+                        </td>
+                    </tr>
+                    <tr data-severity="medium" data-type="deprecated">
+                        <td>
+                            <span class="security-severity medium">
+                                <span class="security-severity-dot"></span>
+                                Medium
+                            </span>
+                        </td>
+                        <td>
+                            <div class="security-issue-type">
+                                <div class="security-issue-icon deprecated">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="8" x2="12" y2="12" />
+                                        <line
+                                            x1="12"
+                                            y1="16"
+                                            x2="12.01"
+                                            y2="16"
+                                        />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="security-issue-title">
+                                        Deprecated Keyword
+                                    </div>
+                                    <div class="security-issue-category">
+                                        Code Quality
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="security-file-path">
+                                default.gbai/start.bas
+                            </div>
+                            <div class="security-file-line">Line 45</div>
+                        </td>
+                        <td>
+                            <div class="security-description">
+                                Using deprecated IF...input pattern. Use HEAR AS
+                                instead.
+                                <div class="security-code-snippet">
+                                    IF input = "yes" THEN
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="security-action-btn">Fix</button>
+                        </td>
+                    </tr>
+                    <tr data-severity="low" data-type="fragile">
+                        <td>
+                            <span class="security-severity low">
+                                <span class="security-severity-dot"></span>
+                                Low
+                            </span>
+                        </td>
+                        <td>
+                            <div class="security-issue-type">
+                                <div class="security-issue-icon code">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <polyline points="16 18 22 12 16 6" />
+                                        <polyline points="8 6 2 12 8 18" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="security-issue-title">
+                                        Underscore in Keyword
+                                    </div>
+                                    <div class="security-issue-category">
+                                        Naming Convention
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="security-file-path">
+                                crm.gbai/contacts.bas
+                            </div>
+                            <div class="security-file-line">Line 23</div>
+                        </td>
+                        <td>
+                            <div class="security-description">
+                                Keywords should use spaces not underscores.
+                                <div class="security-code-snippet">
+                                    GET_BOT_MEMORY → GET BOT MEMORY
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="security-action-btn">Fix</button>
+                        </td>
+                    </tr>
+                    <tr data-severity="info" data-type="config">
+                        <td>
+                            <span class="security-severity info">
+                                <span class="security-severity-dot"></span>
+                                Info
+                            </span>
+                        </td>
+                        <td>
+                            <div class="security-issue-type">
+                                <div class="security-issue-icon config">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <circle cx="12" cy="12" r="3" />
+                                        <path
+                                            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+                                        />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="security-issue-title">
+                                        Missing Vault Config
+                                    </div>
+                                    <div class="security-issue-category">
+                                        Configuration
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="security-file-path">
+                                bank.gbai/config.csv
+                            </div>
+                            <div class="security-file-line">-</div>
+                        </td>
+                        <td>
+                            <div class="security-description">
+                                Bot is not configured to use Vault for secrets
+                                management. Consider enabling for better
+                                security.
+                            </div>
+                        </td>
+                        <td>
+                            <button class="security-action-btn">
+                                Configure
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Protection Tab -->
+    <div class="security-tab-content" id="tab-protection">
+        <div class="protection-grid">
+            <!-- Lynis -->
+            <div class="protection-card" data-tool="lynis">
+                <div class="protection-card-header">
+                    <div class="protection-card-title">
+                        <div class="protection-card-icon lynis">🛡️</div>
+                        <div class="protection-card-info">
+                            <h3>Lynis</h3>
+                            <p>Security auditing & compliance tool</p>
+                        </div>
+                    </div>
+                    <div
+                        class="protection-card-status running"
+                        id="lynis-status"
+                    >
+                        <span class="protection-status-dot running"></span>
+                        <span>Installed</span>
+                    </div>
+                </div>
+                <div class="protection-card-body">
+                    <div class="protection-card-meta">
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Version</span>
+                            <span
+                                class="protection-meta-value"
+                                id="lynis-version"
+                                >3.0.9</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Last Scan</span>
+                            <span
+                                class="protection-meta-value"
+                                id="lynis-last-scan"
+                                >2 hours ago</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label"
+                                >Hardening Index</span
+                            >
+                            <span
+                                class="protection-meta-value success"
+                                id="lynis-score"
+                                >78/100</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Warnings</span>
+                            <span
+                                class="protection-meta-value warning"
+                                id="lynis-warnings"
+                                >12</span
+                            >
+                        </div>
+                    </div>
+                    <div class="protection-card-actions">
+                        <button
+                            class="security-btn security-btn-primary"
+                            onclick="runProtectionTool('lynis')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Run Now
+                        </button>
+                        <button
+                            class="security-btn"
+                            onclick="viewReport('lynis')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                ></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            View Report
+                        </button>
+                    </div>
+                </div>
+                <div class="protection-card-footer">
+                    <div class="protection-auto-update">
+                        <span>Auto-remediation</span>
+                        <div
+                            class="protection-toggle active"
+                            onclick="toggleAutoAction('lynis', this)"
+                        ></div>
+                    </div>
+                    <div class="protection-footer-actions">
+                        <button
+                            class="protection-icon-btn"
+                            onclick="updateProtectionTool('lynis')"
+                            title="Update Definitions"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path
+                                    d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"
+                                ></path>
+                            </svg>
+                        </button>
+                        <button
+                            class="protection-icon-btn"
+                            onclick="configureProtectionTool('lynis')"
+                            title="Configure"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RKHunter -->
+            <div class="protection-card" data-tool="rkhunter">
+                <div class="protection-card-header">
+                    <div class="protection-card-title">
+                        <div class="protection-card-icon rkhunter">🔍</div>
+                        <div class="protection-card-info">
+                            <h3>RKHunter</h3>
+                            <p>Rootkit detection scanner</p>
+                        </div>
+                    </div>
+                    <div
+                        class="protection-card-status running"
+                        id="rkhunter-status"
+                    >
+                        <span class="protection-status-dot running"></span>
+                        <span>Installed</span>
+                    </div>
+                </div>
+                <div class="protection-card-body">
+                    <div class="protection-card-meta">
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Version</span>
+                            <span
+                                class="protection-meta-value"
+                                id="rkhunter-version"
+                                >1.4.6</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Last Scan</span>
+                            <span
+                                class="protection-meta-value"
+                                id="rkhunter-last-scan"
+                                >6 hours ago</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Status</span>
+                            <span
+                                class="protection-meta-value success"
+                                id="rkhunter-result"
+                                >Clean</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Warnings</span>
+                            <span
+                                class="protection-meta-value"
+                                id="rkhunter-warnings"
+                                >0</span
+                            >
+                        </div>
+                    </div>
+                    <div class="protection-card-actions">
+                        <button
+                            class="security-btn security-btn-primary"
+                            onclick="runProtectionTool('rkhunter')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Run Now
+                        </button>
+                        <button
+                            class="security-btn"
+                            onclick="viewReport('rkhunter')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                ></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            View Report
+                        </button>
+                    </div>
+                </div>
+                <div class="protection-card-footer">
+                    <div class="protection-auto-update">
+                        <span>Auto-update DB</span>
+                        <div
+                            class="protection-toggle active"
+                            onclick="toggleAutoAction('rkhunter', this)"
+                        ></div>
+                    </div>
+                    <div class="protection-footer-actions">
+                        <button
+                            class="protection-icon-btn"
+                            onclick="updateProtectionTool('rkhunter')"
+                            title="Update Database"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path
+                                    d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"
+                                ></path>
+                            </svg>
+                        </button>
+                        <button
+                            class="protection-icon-btn"
+                            onclick="configureProtectionTool('rkhunter')"
+                            title="Configure"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chkrootkit -->
+            <div class="protection-card" data-tool="chkrootkit">
+                <div class="protection-card-header">
+                    <div class="protection-card-title">
+                        <div class="protection-card-icon chkrootkit">🔎</div>
+                        <div class="protection-card-info">
+                            <h3>Chkrootkit</h3>
+                            <p>Check for rootkits locally</p>
+                        </div>
+                    </div>
+                    <div
+                        class="protection-card-status not-installed"
+                        id="chkrootkit-status"
+                    >
+                        <span class="protection-status-dot"></span>
+                        <span>Not Installed</span>
+                    </div>
+                </div>
+                <div class="protection-card-body">
+                    <div class="protection-card-meta">
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Version</span>
+                            <span
+                                class="protection-meta-value"
+                                id="chkrootkit-version"
+                                >--</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Last Scan</span>
+                            <span
+                                class="protection-meta-value"
+                                id="chkrootkit-last-scan"
+                                >Never</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Status</span>
+                            <span
+                                class="protection-meta-value"
+                                id="chkrootkit-result"
+                                >--</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Infected</span>
+                            <span
+                                class="protection-meta-value"
+                                id="chkrootkit-infected"
+                                >--</span
+                            >
+                        </div>
+                    </div>
+                    <div class="protection-card-actions">
+                        <button
+                            class="security-btn security-btn-success"
+                            onclick="installProtectionTool('chkrootkit')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                                ></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Install
+                        </button>
+                    </div>
+                </div>
+                <div class="protection-card-footer">
+                    <div class="protection-auto-update">
+                        <span>Auto-update</span>
+                        <div
+                            class="protection-toggle"
+                            onclick="toggleAutoAction('chkrootkit', this)"
+                        ></div>
+                    </div>
+                    <div class="protection-footer-actions">
+                        <button
+                            class="protection-icon-btn"
+                            disabled
+                            title="Update"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path
+                                    d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"
+                                ></path>
+                            </svg>
+                        </button>
+                        <button
+                            class="protection-icon-btn"
+                            disabled
+                            title="Configure"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suricata -->
+            <div class="protection-card" data-tool="suricata">
+                <div class="protection-card-header">
+                    <div class="protection-card-title">
+                        <div class="protection-card-icon suricata">🦈</div>
+                        <div class="protection-card-info">
+                            <h3>Suricata</h3>
+                            <p>IDS/IPS network security monitoring</p>
+                        </div>
+                    </div>
+                    <div
+                        class="protection-card-status stopped"
+                        id="suricata-status"
+                    >
+                        <span class="protection-status-dot"></span>
+                        <span>Stopped</span>
+                    </div>
+                </div>
+                <div class="protection-card-body">
+                    <div class="protection-card-meta">
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Version</span>
+                            <span
+                                class="protection-meta-value"
+                                id="suricata-version"
+                                >7.0.3</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Rules</span>
+                            <span
+                                class="protection-meta-value"
+                                id="suricata-rules"
+                                >45,230</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label"
+                                >Alerts Today</span
+                            >
+                            <span
+                                class="protection-meta-value warning"
+                                id="suricata-alerts"
+                                >23</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Blocked</span>
+                            <span
+                                class="protection-meta-value success"
+                                id="suricata-blocked"
+                                >8</span
+                            >
+                        </div>
+                    </div>
+                    <div class="protection-card-actions">
+                        <button
+                            class="security-btn security-btn-success"
+                            onclick="startProtectionService('suricata')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Start
+                        </button>
+                        <button
+                            class="security-btn"
+                            onclick="viewReport('suricata')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                ></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            View Alerts
+                        </button>
+                    </div>
+                </div>
+                <div class="protection-card-footer">
+                    <div class="protection-auto-update">
+                        <span>Auto-start</span>
+                        <div
+                            class="protection-toggle"
+                            onclick="toggleAutoAction('suricata', this)"
+                        ></div>
+                    </div>
+                    <div class="protection-footer-actions">
+                        <button
+                            class="protection-icon-btn"
+                            onclick="updateProtectionTool('suricata')"
+                            title="Update Rules"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path
+                                    d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"
+                                ></path>
+                            </svg>
+                        </button>
+                        <button
+                            class="protection-icon-btn"
+                            onclick="configureProtectionTool('suricata')"
+                            title="Configure"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LMD (Linux Malware Detect) -->
+            <div class="protection-card" data-tool="lmd">
+                <div class="protection-card-header">
+                    <div class="protection-card-title">
+                        <div class="protection-card-icon lmd">🦠</div>
+                        <div class="protection-card-info">
+                            <h3>LMD</h3>
+                            <p>Linux Malware Detect scanner</p>
+                        </div>
+                    </div>
+                    <div class="protection-card-status running" id="lmd-status">
+                        <span class="protection-status-dot running"></span>
+                        <span>Installed</span>
+                    </div>
+                </div>
+                <div class="protection-card-body">
+                    <div class="protection-card-meta">
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Version</span>
+                            <span class="protection-meta-value" id="lmd-version"
+                                >1.6.5</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Last Scan</span>
+                            <span
+                                class="protection-meta-value"
+                                id="lmd-last-scan"
+                                >Yesterday</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label"
+                                >Signatures</span
+                            >
+                            <span
+                                class="protection-meta-value"
+                                id="lmd-signatures"
+                                >18,432</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label"
+                                >Threats Found</span
+                            >
+                            <span
+                                class="protection-meta-value success"
+                                id="lmd-threats"
+                                >0</span
+                            >
+                        </div>
+                    </div>
+                    <div class="protection-card-actions">
+                        <button
+                            class="security-btn security-btn-primary"
+                            onclick="runProtectionTool('lmd')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Run Scan
+                        </button>
+                        <button
+                            class="security-btn"
+                            onclick="viewReport('lmd')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                ></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            View Report
+                        </button>
+                    </div>
+                </div>
+                <div class="protection-card-footer">
+                    <div class="protection-auto-update">
+                        <span>Auto-update sigs</span>
+                        <div
+                            class="protection-toggle active"
+                            onclick="toggleAutoAction('lmd', this)"
+                        ></div>
+                    </div>
+                    <div class="protection-footer-actions">
+                        <button
+                            class="protection-icon-btn"
+                            onclick="updateProtectionTool('lmd')"
+                            title="Update Signatures"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path
+                                    d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"
+                                ></path>
+                            </svg>
+                        </button>
+                        <button
+                            class="protection-icon-btn"
+                            onclick="configureProtectionTool('lmd')"
+                            title="Configure"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ClamAV -->
+            <div class="protection-card" data-tool="clamav">
+                <div class="protection-card-header">
+                    <div class="protection-card-title">
+                        <div class="protection-card-icon clamav">🐚</div>
+                        <div class="protection-card-info">
+                            <h3>ClamAV</h3>
+                            <p>Open source antivirus engine</p>
+                        </div>
+                    </div>
+                    <div
+                        class="protection-card-status running"
+                        id="clamav-status"
+                    >
+                        <span class="protection-status-dot running"></span>
+                        <span>Running</span>
+                    </div>
+                </div>
+                <div class="protection-card-body">
+                    <div class="protection-card-meta">
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label">Version</span>
+                            <span
+                                class="protection-meta-value"
+                                id="clamav-version"
+                                >1.2.1</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label"
+                                >DB Updated</span
+                            >
+                            <span
+                                class="protection-meta-value"
+                                id="clamav-db-update"
+                                >3 hours ago</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label"
+                                >Signatures</span
+                            >
+                            <span
+                                class="protection-meta-value"
+                                id="clamav-signatures"
+                                >8.7M</span
+                            >
+                        </div>
+                        <div class="protection-meta-item">
+                            <span class="protection-meta-label"
+                                >Quarantined</span
+                            >
+                            <span
+                                class="protection-meta-value"
+                                id="clamav-quarantine"
+                                >2</span
+                            >
+                        </div>
+                    </div>
+                    <div class="protection-card-actions">
+                        <button
+                            class="security-btn security-btn-danger"
+                            onclick="stopProtectionService('clamav')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <rect x="6" y="4" width="4" height="16"></rect>
+                                <rect x="14" y="4" width="4" height="16"></rect>
+                            </svg>
+                            Stop
+                        </button>
+                        <button
+                            class="security-btn security-btn-primary"
+                            onclick="runProtectionTool('clamav')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line
+                                    x1="21"
+                                    y1="21"
+                                    x2="16.65"
+                                    y2="16.65"
+                                ></line>
+                            </svg>
+                            Full Scan
+                        </button>
+                        <button
+                            class="security-btn"
+                            onclick="viewReport('clamav')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                ></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            Reports
+                        </button>
+                    </div>
+                </div>
+                <div class="protection-card-footer">
+                    <div class="protection-auto-update">
+                        <span>Auto-update DB</span>
+                        <div
+                            class="protection-toggle active"
+                            onclick="toggleAutoAction('clamav', this)"
+                        ></div>
+                    </div>
+                    <div class="protection-footer-actions">
+                        <button
+                            class="protection-icon-btn"
+                            onclick="updateProtectionTool('clamav')"
+                            title="Update Database"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path
+                                    d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"
+                                ></path>
+                            </svg>
+                        </button>
+                        <button
+                            class="protection-icon-btn"
+                            onclick="configureProtectionTool('clamav')"
+                            title="Configure"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                ></path>
+                            </svg>
+                        </button>
+                        <button
+                            class="protection-icon-btn"
+                            onclick="viewQuarantine('clamav')"
+                            title="View Quarantine"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M3 3l18 18"></path>
+                                <path d="M10.5 10.5a3 3 0 0 0 4.2 4.2"></path>
+                                <path d="M13.5 13.5a3 3 0 0 0-4.2-4.2"></path>
+                                <path
+                                    d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.02 0 3.88.67 5.38 1.8"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="report-modal" id="report-modal">
+        <div class="report-modal-content">
+            <div class="report-modal-header">
+                <h3 class="report-modal-title" id="report-modal-title">
+                    Security Report
+                </h3>
+                <button class="report-modal-close" onclick="closeReportModal()">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="report-modal-body">
+                <pre class="report-content" id="report-content">
+Loading report...</pre
+                >
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tab switching
+    function switchSecurityTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll(".security-tab").forEach((tab) => {
+            tab.classList.remove("active");
+        });
+        document
+            .querySelector(`.security-tab[data-tab="${tabName}"]`)
+            .classList.add("active");
+
+        // Update tab content
+        document
+            .querySelectorAll(".security-tab-content")
+            .forEach((content) => {
+                content.classList.remove("active");
+            });
+        document.getElementById(`tab-${tabName}`).classList.add("active");
+    }
+
+    // Compliance filtering
+    function filterComplianceResults() {
+        const severity = document.getElementById("filter-severity").value;
+        const type = document.getElementById("filter-type").value;
+        const search = document
+            .getElementById("filter-search")
+            .value.toLowerCase();
+        const rows = document.querySelectorAll("#compliance-results-body tr");
+        let visible = 0;
+
+        rows.forEach((row) => {
+            const rowSeverity = row.dataset.severity;
+            const rowType = row.dataset.type;
+            const text = row.textContent.toLowerCase();
+
+            const matchSeverity =
+                severity === "all" || rowSeverity === severity;
+            const matchType = type === "all" || rowType === type;
+            const matchSearch = !search || text.includes(search);
+
+            if (matchSeverity && matchType && matchSearch) {
+                row.style.display = "";
+                visible++;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        document.getElementById("results-count").textContent =
+            `${visible} issues found`;
+    }
+
+    function updateComplianceStats() {
+        const rows = document.querySelectorAll("#compliance-results-body tr");
+        let stats = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+
+        rows.forEach((row) => {
+            const severity = row.dataset.severity;
+            if (stats.hasOwnProperty(severity)) {
+                stats[severity]++;
+            }
+        });
+
+        document.getElementById("stat-critical").textContent = stats.critical;
+        document.getElementById("stat-high").textContent = stats.high;
+        document.getElementById("stat-medium").textContent = stats.medium;
+        document.getElementById("stat-low").textContent = stats.low;
+        document.getElementById("stat-info").textContent = stats.info;
+    }
+
+    // Protection tool functions
+    function runProtectionTool(tool) {
+        const statusEl = document.getElementById(`${tool}-status`);
+        statusEl.className = "protection-card-status updating";
+        statusEl.innerHTML =
+            '<span class="protection-status-dot"></span><span>Scanning...</span>';
+
+        htmx.ajax("POST", `/api/security/protection/${tool}/run`, {
+            swap: "none",
+        })
+            .then(() => {
+                // Refresh status after scan
+                refreshProtectionStatus(tool);
+            })
+            .catch((err) => {
+                console.error(`Error running ${tool}:`, err);
+                statusEl.className = "protection-card-status running";
+                statusEl.innerHTML =
+                    '<span class="protection-status-dot running"></span><span>Installed</span>';
+            });
+    }
+
+    function installProtectionTool(tool) {
+        const statusEl = document.getElementById(`${tool}-status`);
+        statusEl.className = "protection-card-status updating";
+        statusEl.innerHTML =
+            '<span class="protection-status-dot"></span><span>Installing...</span>';
+
+        htmx.ajax("POST", `/api/security/protection/${tool}/install`, {
+            swap: "none",
+        })
+            .then(() => {
+                statusEl.className = "protection-card-status running";
+                statusEl.innerHTML =
+                    '<span class="protection-status-dot running"></span><span>Installed</span>';
+                refreshProtectionStatus(tool);
+            })
+            .catch((err) => {
+                console.error(`Error installing ${tool}:`, err);
+                statusEl.className = "protection-card-status not-installed";
+                statusEl.innerHTML =
+                    '<span class="protection-status-dot"></span><span>Install Failed</span>';
+            });
+    }
+
+    function startProtectionService(tool) {
+        const statusEl = document.getElementById(`${tool}-status`);
+        statusEl.className = "protection-card-status updating";
+        statusEl.innerHTML =
+            '<span class="protection-status-dot"></span><span>Starting...</span>';
+
+        htmx.ajax("POST", `/api/security/protection/${tool}/start`, {
+            swap: "none",
+        })
+            .then(() => {
+                statusEl.className = "protection-card-status running";
+                statusEl.innerHTML =
+                    '<span class="protection-status-dot running"></span><span>Running</span>';
+                updateServiceButtons(tool, "running");
+            })
+            .catch((err) => {
+                console.error(`Error starting ${tool}:`, err);
+                statusEl.className = "protection-card-status stopped";
+                statusEl.innerHTML =
+                    '<span class="protection-status-dot"></span><span>Start Failed</span>';
+            });
+    }
+
+    function stopProtectionService(tool) {
+        const statusEl = document.getElementById(`${tool}-status`);
+        statusEl.className = "protection-card-status updating";
+        statusEl.innerHTML =
+            '<span class="protection-status-dot"></span><span>Stopping...</span>';
+
+        htmx.ajax("POST", `/api/security/protection/${tool}/stop`, {
+            swap: "none",
+        })
+            .then(() => {
+                statusEl.className = "protection-card-status stopped";
+                statusEl.innerHTML =
+                    '<span class="protection-status-dot"></span><span>Stopped</span>';
+                updateServiceButtons(tool, "stopped");
+            })
+            .catch((err) => {
+                console.error(`Error stopping ${tool}:`, err);
+                statusEl.className = "protection-card-status running";
+                statusEl.innerHTML =
+                    '<span class="protection-status-dot running"></span><span>Running</span>';
+            });
+    }
+
+    function updateServiceButtons(tool, status) {
+        const card = document.querySelector(
+            `.protection-card[data-tool="${tool}"]`,
+        );
+        const actionsDiv = card.querySelector(".protection-card-actions");
+
+        if (status === "running") {
+            const startBtn = actionsDiv.querySelector(".security-btn-success");
+            if (startBtn && startBtn.textContent.includes("Start")) {
+                startBtn.className = "security-btn security-btn-danger";
+                startBtn.onclick = () => stopProtectionService(tool);
+                startBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                    Stop
+                `;
+            }
+        } else {
+            const stopBtn = actionsDiv.querySelector(".security-btn-danger");
+            if (stopBtn && stopBtn.textContent.includes("Stop")) {
+                stopBtn.className = "security-btn security-btn-success";
+                stopBtn.onclick = () => startProtectionService(tool);
+                stopBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Start
+                `;
+            }
+        }
+    }
+
+    function updateProtectionTool(tool) {
+        const btn = event.currentTarget;
+        btn.classList.add("updating");
+        btn.disabled = true;
+
+        htmx.ajax("POST", `/api/security/protection/${tool}/update`, {
+            swap: "none",
+        })
+            .then(() => {
+                btn.classList.remove("updating");
+                btn.disabled = false;
+                refreshProtectionStatus(tool);
+            })
+            .catch((err) => {
+                console.error(`Error updating ${tool}:`, err);
+                btn.classList.remove("updating");
+                btn.disabled = false;
+            });
+    }
+
+    function configureProtectionTool(tool) {
+        window.location.href = `#security-config-${tool}`;
+        // Could open a configuration modal or navigate to settings
+        console.log(`Configure ${tool}`);
+    }
+
+    function toggleAutoAction(tool, element) {
+        element.classList.toggle("active");
+        const enabled = element.classList.contains("active");
+
+        htmx.ajax("POST", `/api/security/protection/${tool}/auto`, {
+            values: { enabled: enabled },
+            swap: "none",
+        });
+    }
+
+    function viewReport(tool) {
+        const modal = document.getElementById("report-modal");
+        const title = document.getElementById("report-modal-title");
+        const content = document.getElementById("report-content");
+
+        title.textContent = `${tool.charAt(0).toUpperCase() + tool.slice(1)} Report`;
+        content.textContent = "Loading report...";
+        modal.classList.add("active");
+
+        htmx.ajax("GET", `/api/security/protection/${tool}/report`, {
+            target: "#report-content",
+            swap: "innerHTML",
+        });
+    }
+
+    function viewQuarantine(tool) {
+        const modal = document.getElementById("report-modal");
+        const title = document.getElementById("report-modal-title");
+        const content = document.getElementById("report-content");
+
+        title.textContent = `${tool.charAt(0).toUpperCase() + tool.slice(1)} Quarantine`;
+        content.textContent = "Loading quarantine list...";
+        modal.classList.add("active");
+
+        htmx.ajax("GET", `/api/security/protection/${tool}/quarantine`, {
+            target: "#report-content",
+            swap: "innerHTML",
+        });
+    }
+
+    function closeReportModal() {
+        document.getElementById("report-modal").classList.remove("active");
+    }
+
+    function refreshProtectionStatus(tool) {
+        htmx.ajax("GET", `/api/security/protection/${tool}/status`, {
+            swap: "none",
+        }).then((response) => {
+            // Update UI based on response
+            console.log(`Refreshed status for ${tool}`);
+        });
+    }
+
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", function () {
+        updateComplianceStats();
+
+        // Close modal on escape
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+                closeReportModal();
+            }
+        });
+
+        // Close modal on backdrop click
+        document
+            .getElementById("report-modal")
+            .addEventListener("click", function (e) {
+                if (e.target === this) {
+                    closeReportModal();
+                }
+            });
+    });
+</script>
+</div>

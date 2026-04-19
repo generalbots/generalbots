@@ -1,0 +1,32 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- GB-inspired palette icon for theming -->
+  <defs>
+    <linearGradient id="paletteGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Palette shape - GB rounded organic form -->
+  <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C12.76 22 13.5 21.76 14.1 21.32C14.85 20.78 15.3 19.9 15.3 18.95C15.3 18.44 15.12 17.95 14.82 17.54C14.52 17.12 14.38 16.6 14.55 16.1C14.74 15.53 15.3 15.15 15.9 15.15H18C20.21 15.15 22 13.36 22 11.15C22 6.13 17.52 2 12 2Z"
+        fill="url(#paletteGradient)"
+        stroke="currentColor"
+        stroke-width="1"
+        opacity="0.85"/>
+
+  <!-- Color dots - GB circular branding style -->
+  <!-- Blue dot -->
+  <circle cx="6.5" cy="11" r="2" fill="#3b82f6"/>
+
+  <!-- Green dot -->
+  <circle cx="9" cy="6.5" r="2" fill="#10b981"/>
+
+  <!-- Yellow/Gold dot -->
+  <circle cx="14" cy="6" r="2" fill="#fbbf24"/>
+
+  <!-- Pink/Coral dot -->
+  <circle cx="17" cy="10" r="2" fill="#f472b6"/>
+
+  <!-- Highlight reflection - GB polish -->
+  <path d="M7 4C9 3 11 2.5 13 3" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+</svg>

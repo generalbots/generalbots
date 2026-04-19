@@ -1,0 +1,222 @@
+<!-- Quote Form - Billing Partial -->
+<form class="invoice-form" hx-post="/api/billing/quotes" hx-target="#quotes-table-body" hx-swap="innerHTML" hx-on::after-request="closeBillingModal()">
+    <div class="invoice-form-header">
+        <h2 class="invoice-form-title" data-i18n="billing-new-quote">New Quote</h2>
+        <button type="button" class="form-close" onclick="closeBillingModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Customer Section -->
+    <div class="form-section">
+        <div class="form-section-title" data-i18n="billing-customer">Customer</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-account">Account *</label>
+                <select name="account_id" class="form-select" required hx-get="/api/crm/accounts/search" hx-trigger="load">
+                    <option value="" data-i18n="billing-select-account">Select account...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-opportunity">Opportunity</label>
+                <select name="opportunity_id" class="form-select" hx-get="/api/crm/opportunities/search" hx-trigger="load">
+                    <option value="" data-i18n="billing-select-opportunity">Select opportunity...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quote Details -->
+    <div class="form-section">
+        <div class="form-section-title" data-i18n="billing-quote-details">Quote Details</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-quote-date">Quote Date *</label>
+                <input type="date" name="quote_date" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-valid-until">Valid Until *</label>
+                <input type="date" name="valid_until" class="form-input" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-quote-name">Quote Name</label>
+                <input type="text" name="name" class="form-input" placeholder="e.g., Q1 Software License Proposal">
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-currency">Currency</label>
+                <select name="currency" class="form-select">
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="BRL">BRL - Brazilian Real</option>
+                    <option value="GBP">GBP - British Pound</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="form-section">
+        <div class="form-section-title" data-i18n="billing-line-items">Line Items</div>
+        <div class="line-items">
+            <div class="line-items-header">
+                <span data-i18n="billing-item-description">Description</span>
+                <span data-i18n="billing-item-qty">Qty</span>
+                <span data-i18n="billing-item-price">Price</span>
+                <span data-i18n="billing-item-total">Total</span>
+                <span></span>
+            </div>
+            <div id="quote-line-items">
+                <div class="line-item" data-index="0">
+                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required>
+                    <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)">
+                    <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)">
+                    <span class="line-item-total">$0.00</span>
+                    <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="add-line-item" onclick="addQuoteLineItem()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span data-i18n="billing-add-item">Add Line Item</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Discount -->
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="billing-discount-type">Discount Type</label>
+            <select name="discount_type" class="form-select" onchange="updateQuoteTotals()">
+                <option value="none" data-i18n="billing-discount-none">No Discount</option>
+                <option value="percent" data-i18n="billing-discount-percent">Percentage (%)</option>
+                <option value="fixed" data-i18n="billing-discount-fixed">Fixed Amount</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="billing-discount-value">Discount Value</label>
+            <input type="number" name="discount_value" class="form-input" placeholder="0" min="0" step="0.01" onchange="updateQuoteTotals()">
+        </div>
+    </div>
+
+    <!-- Totals -->
+    <div class="invoice-totals">
+        <div class="invoice-total-row">
+            <span class="label" data-i18n="billing-subtotal">Subtotal</span>
+            <span class="value" id="quote-subtotal">$0.00</span>
+        </div>
+        <div class="invoice-total-row">
+            <span class="label" data-i18n="billing-discount">Discount</span>
+            <span class="value" id="quote-discount">-$0.00</span>
+        </div>
+        <div class="invoice-total-row grand-total">
+            <span class="label" data-i18n="billing-total">Total</span>
+            <span class="value" id="quote-total">$0.00</span>
+        </div>
+    </div>
+
+    <!-- Terms & Notes -->
+    <div class="form-group">
+        <label class="form-label" data-i18n="billing-terms">Terms & Conditions</label>
+        <textarea name="terms" class="form-textarea" rows="2" placeholder="Payment terms, delivery conditions, etc."></textarea>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" data-i18n="billing-notes">Notes</label>
+        <textarea name="notes" class="form-textarea" rows="2" placeholder="Additional notes for the customer..."></textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="form-btn secondary" onclick="closeBillingModal()" data-i18n="common-cancel">Cancel</button>
+        <button type="submit" name="action" value="draft" class="form-btn secondary" data-i18n="billing-save-draft">Save as Draft</button>
+        <button type="submit" name="action" value="send" class="form-btn primary" data-i18n="billing-create-send">Create & Send</button>
+    </div>
+</form>
+
+<script>
+(function() {
+    let quoteLineItemIndex = 1;
+
+    window.addQuoteLineItem = function() {
+        const container = document.getElementById('quote-line-items');
+        const newItem = document.createElement('div');
+        newItem.className = 'line-item';
+        newItem.dataset.index = quoteLineItemIndex;
+        newItem.innerHTML = `
+            <input type="text" name="items[${quoteLineItemIndex}][description]" class="form-input" placeholder="Product or service description" required>
+            <input type="number" name="items[${quoteLineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)">
+            <input type="number" name="items[${quoteLineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)">
+            <span class="line-item-total">$0.00</span>
+            <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        `;
+        container.appendChild(newItem);
+        quoteLineItemIndex++;
+    };
+
+    window.removeQuoteLineItem = function(btn) {
+        const items = document.querySelectorAll('#quote-line-items .line-item');
+        if (items.length > 1) {
+            btn.closest('.line-item').remove();
+            updateQuoteTotals();
+        }
+    };
+
+    window.updateQuoteLineTotal = function(input) {
+        const lineItem = input.closest('.line-item');
+        const qty = parseFloat(lineItem.querySelector('input[name*="quantity"]').value) || 0;
+        const price = parseFloat(lineItem.querySelector('input[name*="unit_price"]').value) || 0;
+        const total = qty * price;
+        lineItem.querySelector('.line-item-total').textContent = '$' + total.toFixed(2);
+        updateQuoteTotals();
+    };
+
+    window.updateQuoteTotals = function() {
+        let subtotal = 0;
+        document.querySelectorAll('#quote-line-items .line-item').forEach(item => {
+            const qty = parseFloat(item.querySelector('input[name*="quantity"]').value) || 0;
+            const price = parseFloat(item.querySelector('input[name*="unit_price"]').value) || 0;
+            subtotal += qty * price;
+        });
+
+        const discountType = document.querySelector('select[name="discount_type"]').value;
+        const discountValue = parseFloat(document.querySelector('input[name="discount_value"]').value) || 0;
+
+        let discount = 0;
+        if (discountType === 'percent') {
+            discount = subtotal * (discountValue / 100);
+        } else if (discountType === 'fixed') {
+            discount = discountValue;
+        }
+
+        const total = subtotal - discount;
+
+        document.getElementById('quote-subtotal').textContent = '$' + subtotal.toFixed(2);
+        document.getElementById('quote-discount').textContent = '-$' + discount.toFixed(2);
+        document.getElementById('quote-total').textContent = '$' + total.toFixed(2);
+    };
+
+    // Set default dates
+    const today = new Date().toISOString().split('T')[0];
+    const validUntil = new Date();
+    validUntil.setDate(validUntil.getDate() + 30);
+
+    document.querySelector('input[name="quote_date"]').value = today;
+    document.querySelector('input[name="valid_until"]').value = validUntil.toISOString().split('T')[0];
+})();
+</script>

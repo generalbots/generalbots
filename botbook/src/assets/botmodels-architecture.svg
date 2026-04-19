@@ -1,0 +1,182 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Light theme defaults */
+    .neon-blue { stroke: #4A90E2; stroke-width: 2.6; fill: none; }
+    .neon-orange { stroke: #F5A623; stroke-width: 2.6; fill: none; }
+    .neon-purple { stroke: #BD10E0; stroke-width: 2.6; fill: none; }
+    .neon-green { stroke: #7ED321; stroke-width: 2.6; fill: none; }
+    .neon-cyan { stroke: #50E3C2; stroke-width: 2.6; fill: none; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .arrow-color { stroke: #666; fill: #666; }
+
+    /* Dark theme with subtle neon effects */
+    @media (prefers-color-scheme: dark) {
+      .neon-blue {
+        stroke: #00D4FF;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00D4FF) drop-shadow(0 0 8px #00A0FF);
+      }
+      .neon-orange {
+        stroke: #FF9500;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF9500) drop-shadow(0 0 8px #FF7700);
+      }
+      .neon-purple {
+        stroke: #E040FB;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #E040FB) drop-shadow(0 0 8px #D500F9);
+      }
+      .neon-green {
+        stroke: #00FF88;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00FF88) drop-shadow(0 0 8px #00E676);
+      }
+      .neon-cyan {
+        stroke: #00E5EA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00E5EA) drop-shadow(0 0 8px #00BCD4);
+      }
+      .main-text { fill: #FFFFFF; }
+      .secondary-text { fill: #B0B0B0; }
+      .arrow-color { stroke: #B0B0B0; fill: #B0B0B0; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrow" markerWidth="13" markerHeight="13" refX="11.7" refY="3.9" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,7.8 L11.7,3.9 z" class="arrow-color"/>
+    </marker>
+    <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.3" />
+      <stop offset="50%" style="stop-color:#BD10E0;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#7ED321;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="45" text-anchor="middle" font-size="32" font-weight="600" class="main-text">BotServer ↔ BotModels Integration</text>
+  <text x="700" y="75" text-anchor="middle" font-size="18" class="secondary-text">Rust backend calling Python AI services over HTTPS</text>
+
+  <!-- MAIN ARCHITECTURE DIAGRAM -->
+  <g id="main-architecture">
+    <!-- BotServer Box (Left) -->
+    <rect x="80" y="120" width="400" height="380" class="neon-blue" rx="10"/>
+    <text x="280" y="155" text-anchor="middle" font-size="26" font-weight="600" class="main-text">botserver (Rust)</text>
+
+    <!-- BotServer Components -->
+    <rect x="110" y="180" width="160" height="55" class="neon-orange" rx="6.5"/>
+    <text x="190" y="215" text-anchor="middle" font-size="18" font-weight="500" class="main-text">BASIC Interpreter</text>
+
+    <rect x="290" y="180" width="160" height="55" class="neon-purple" rx="6.5"/>
+    <text x="370" y="215" text-anchor="middle" font-size="18" font-weight="500" class="main-text">LLM Integration</text>
+
+    <!-- BASIC Keywords -->
+    <rect x="110" y="260" width="340" height="120" class="neon-green" rx="6.5"/>
+    <text x="280" y="290" text-anchor="middle" font-size="18" font-weight="500" class="main-text">BASIC Keywords</text>
+    <text x="140" y="320" font-size="16" class="secondary-text">• IMAGE prompt</text>
+    <text x="140" y="345" font-size="16" class="secondary-text">• VIDEO prompt</text>
+    <text x="300" y="320" font-size="16" class="secondary-text">• AUDIO text</text>
+    <text x="300" y="345" font-size="16" class="secondary-text">• SEE image</text>
+    <text x="140" y="370" font-size="16" class="secondary-text">• HEAR AS AUDIO</text>
+
+    <!-- Config -->
+    <rect x="110" y="400" width="340" height="70" class="neon-cyan" rx="6.5"/>
+    <text x="280" y="430" text-anchor="middle" font-size="16" font-weight="500" class="main-text">config.csv</text>
+    <text x="280" y="455" text-anchor="middle" font-size="14" class="secondary-text">botmodels-url, botmodels-enabled</text>
+
+    <!-- BotModels Box (Right) -->
+    <rect x="920" y="120" width="400" height="380" class="neon-purple" rx="10"/>
+    <text x="1120" y="155" text-anchor="middle" font-size="26" font-weight="600" class="main-text">botmodels (Python)</text>
+
+    <!-- BotModels Services -->
+    <rect x="950" y="180" width="160" height="55" class="neon-orange" rx="6.5"/>
+    <text x="1030" y="208" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Image Service</text>
+    <text x="1030" y="228" text-anchor="middle" font-size="12" class="secondary-text">Stable Diffusion</text>
+
+    <rect x="1130" y="180" width="160" height="55" class="neon-green" rx="6.5"/>
+    <text x="1210" y="208" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Video Service</text>
+    <text x="1210" y="228" text-anchor="middle" font-size="12" class="secondary-text">Zeroscope</text>
+
+    <rect x="950" y="260" width="160" height="55" class="neon-cyan" rx="6.5"/>
+    <text x="1030" y="288" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Speech Service</text>
+    <text x="1030" y="308" text-anchor="middle" font-size="12" class="secondary-text">TTS / Whisper</text>
+
+    <rect x="1130" y="260" width="160" height="55" class="neon-blue" rx="6.5"/>
+    <text x="1210" y="288" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Vision Service</text>
+    <text x="1210" y="308" text-anchor="middle" font-size="12" class="secondary-text">BLIP2 / QRCode</text>
+
+    <!-- API Endpoints -->
+    <rect x="950" y="340" width="340" height="130" class="neon-orange" rx="6.5"/>
+    <text x="1120" y="370" text-anchor="middle" font-size="16" font-weight="500" class="main-text">FastAPI Endpoints</text>
+    <text x="980" y="400" font-size="14" class="secondary-text">/api/v1/image/generate</text>
+    <text x="980" y="422" font-size="14" class="secondary-text">/api/v1/video/generate</text>
+    <text x="980" y="444" font-size="14" class="secondary-text">/api/v1/speech/to-text</text>
+    <text x="980" y="466" font-size="14" class="secondary-text">/api/v1/vision/describe</text>
+
+    <!-- Connection Arrow -->
+    <line x1="480" y1="310" x2="920" y2="310" class="arrow-color" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="600" y="280" width="120" height="60" fill="white" class="neon-cyan" rx="6.5"/>
+    <text x="660" y="305" text-anchor="middle" font-size="16" font-weight="600" class="main-text">HTTPS</text>
+    <text x="660" y="325" text-anchor="middle" font-size="12" class="secondary-text">JSON / Binary</text>
+
+    <!-- Outputs -->
+    <rect x="920" y="530" width="400" height="80" class="neon-green" rx="6.5"/>
+    <text x="1120" y="565" text-anchor="middle" font-size="18" font-weight="500" class="main-text">outputs/ (Generated Files)</text>
+    <text x="1120" y="590" text-anchor="middle" font-size="14" class="secondary-text">Images, Videos, Audio files served via /outputs</text>
+
+    <!-- Arrow from API to outputs -->
+    <line x1="1120" y1="470" x2="1120" y2="530" class="arrow-color" stroke-width="2.6" stroke-dasharray="3.9,3.9" marker-end="url(#arrow)" opacity="0.6"/>
+  </g>
+
+  <!-- PROGRESS INDICATOR -->
+  <g id="progress-legend">
+    <rect x="80" y="650" width="1240" height="80" fill="url(#flowGradient)" rx="10" opacity="0.2"/>
+
+    <!-- Stage markers -->
+    <circle cx="200" cy="690" r="12" class="neon-blue"/>
+    <circle cx="460" cy="690" r="12" class="neon-orange"/>
+    <circle cx="720" cy="690" r="12" class="neon-purple"/>
+    <circle cx="980" cy="690" r="12" class="neon-green"/>
+    <circle cx="1200" cy="690" r="12" class="neon-cyan"/>
+
+    <!-- Connecting lines -->
+    <line x1="212" y1="690" x2="448" y2="690" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="472" y1="690" x2="708" y2="690" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="732" y1="690" x2="968" y2="690" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="992" y1="690" x2="1188" y2="690" class="arrow-color" stroke-width="2" opacity="0.4"/>
+
+    <!-- Stage labels -->
+    <text x="200" y="720" text-anchor="middle" font-size="14" class="secondary-text">BASIC Keyword</text>
+    <text x="460" y="720" text-anchor="middle" font-size="14" class="secondary-text">HTTP Request</text>
+    <text x="720" y="720" text-anchor="middle" font-size="14" class="secondary-text">AI Processing</text>
+    <text x="980" y="720" text-anchor="middle" font-size="14" class="secondary-text">Generate</text>
+    <text x="1200" y="720" text-anchor="middle" font-size="14" class="secondary-text">Return URL</text>
+  </g>
+
+  <!-- Legend -->
+  <g id="legend" transform="translate(80, 770)">
+    <rect x="0" y="0" width="24" height="24" class="neon-blue" rx="4"/>
+    <text x="35" y="18" font-size="14" class="secondary-text">Rust Backend</text>
+
+    <rect x="180" y="0" width="24" height="24" class="neon-purple" rx="4"/>
+    <text x="215" y="18" font-size="14" class="secondary-text">Python AI</text>
+
+    <rect x="340" y="0" width="24" height="24" class="neon-orange" rx="4"/>
+    <text x="375" y="18" font-size="14" class="secondary-text">Processing</text>
+
+    <rect x="500" y="0" width="24" height="24" class="neon-green" rx="4"/>
+    <text x="535" y="18" font-size="14" class="secondary-text">Output</text>
+
+    <rect x="660" y="0" width="24" height="24" class="neon-cyan" rx="4"/>
+    <text x="695" y="18" font-size="14" class="secondary-text">Config/API</text>
+  </g>
+
+  <!-- Description -->
+  <text x="700" y="830" text-anchor="middle" font-size="18" class="secondary-text">
+    BotModels runs as a separate Python service for GPU-accelerated AI inference
+  </text>
+  <text x="700" y="855" text-anchor="middle" font-size="18" class="secondary-text">
+    Enable with: botmodels-enabled=true and botmodels-url=http://localhost:8001
+  </text>
+</svg>

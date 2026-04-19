@@ -1,0 +1,258 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f5f5f5; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .panel-bg { fill: #fafafa; }
+    .header-bg { fill: #e8e8e8; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .icon-text { fill: #333; font-family: Arial, sans-serif; }
+    .divider { stroke: #ddd; stroke-width: 1; }
+    .button { fill: #4A90E2; }
+    .button-text { fill: #fff; font-family: Arial, sans-serif; }
+    .input-field { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .canvas-bg { fill: #fff; }
+    .canvas-grid { stroke: #f0f0f0; stroke-width: 1; }
+    .node-talk { fill: #4A90E2; stroke: #3a7bc8; stroke-width: 2; }
+    .node-hear { fill: #7ED321; stroke: #6bc01a; stroke-width: 2; }
+    .node-if { fill: #F5A623; stroke: #d9911f; stroke-width: 2; }
+    .node-text { fill: #fff; font-family: Arial, sans-serif; }
+    .connector { stroke: #666; stroke-width: 2; fill: none; }
+    .connector-arrow { fill: #666; }
+    .toolbox-item { fill: #fff; stroke: #ddd; stroke-width: 1; }
+    .toolbox-item:hover { fill: #f0f7ff; }
+    .properties-panel { fill: #fafafa; }
+    .section-header { fill: #e8e8e8; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a1a; }
+      .frame { stroke: #555; }
+      .panel-bg { fill: #222; }
+      .header-bg { fill: #2a2a2a; }
+      .main-text { fill: #ffffff; }
+      .secondary-text { fill: #aaa; }
+      .icon-text { fill: #ddd; }
+      .divider { stroke: #444; }
+      .input-field { fill: #2a2a2a; stroke: #444; }
+      .canvas-bg { fill: #252525; }
+      .canvas-grid { stroke: #333; }
+      .toolbox-item { fill: #2a2a2a; stroke: #444; }
+      .properties-panel { fill: #222; }
+      .section-header { fill: #333; }
+      .connector { stroke: #888; }
+      .connector-arrow { fill: #888; }
+      .button { fill: #00D4FF; }
+      .node-talk { fill: #00D4FF; stroke: #00a8cc; }
+      .node-hear { fill: #00FF88; stroke: #00cc6d; }
+      .node-if { fill: #FF9500; stroke: #cc7700; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="connector-arrow"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Designer - Visual Builder Interface</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="50" width="840" height="470" rx="8" class="frame bg"/>
+
+  <!-- Left Panel - Toolbox -->
+  <rect x="30" y="50" width="120" height="470" rx="8" class="panel-bg"/>
+  <line x1="150" y1="50" x2="150" y2="520" class="divider"/>
+
+  <!-- Toolbox Header -->
+  <rect x="30" y="50" width="120" height="30" rx="8" class="section-header"/>
+  <rect x="30" y="72" width="120" height="8" class="panel-bg"/>
+  <text x="90" y="70" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Toolbox</text>
+
+  <!-- Toolbox Items -->
+  <g transform="translate(40, 90)">
+    <!-- TALK -->
+    <rect x="0" y="0" width="100" height="35" rx="4" class="toolbox-item"/>
+    <text x="15" y="23" font-size="14" class="icon-text">💬</text>
+    <text x="35" y="23" font-size="12" class="main-text">TALK</text>
+
+    <!-- HEAR -->
+    <rect x="0" y="45" width="100" height="35" rx="4" class="toolbox-item"/>
+    <text x="15" y="68" font-size="14" class="icon-text">👂</text>
+    <text x="35" y="68" font-size="12" class="main-text">HEAR</text>
+
+    <!-- SET -->
+    <rect x="0" y="90" width="100" height="35" rx="4" class="toolbox-item"/>
+    <text x="15" y="113" font-size="14" class="icon-text">📝</text>
+    <text x="35" y="113" font-size="12" class="main-text">SET</text>
+
+    <!-- Separator -->
+    <line x1="0" y1="140" x2="100" y2="140" class="divider"/>
+
+    <!-- IF -->
+    <rect x="0" y="155" width="100" height="35" rx="4" class="toolbox-item"/>
+    <text x="15" y="178" font-size="14" class="icon-text">🔀</text>
+    <text x="35" y="178" font-size="12" class="main-text">IF</text>
+
+    <!-- FOR -->
+    <rect x="0" y="200" width="100" height="35" rx="4" class="toolbox-item"/>
+    <text x="15" y="223" font-size="14" class="icon-text">🔄</text>
+    <text x="35" y="223" font-size="12" class="main-text">FOR</text>
+
+    <!-- SWITCH -->
+    <rect x="0" y="245" width="100" height="35" rx="4" class="toolbox-item"/>
+    <text x="15" y="268" font-size="14" class="icon-text">🔃</text>
+    <text x="35" y="268" font-size="12" class="main-text">SWITCH</text>
+
+    <!-- Separator -->
+    <line x1="0" y1="295" x2="100" y2="295" class="divider"/>
+
+    <!-- CALL -->
+    <rect x="0" y="310" width="100" height="35" rx="4" class="toolbox-item"/>
+    <text x="15" y="333" font-size="14" class="icon-text">📞</text>
+    <text x="35" y="333" font-size="12" class="main-text">CALL</text>
+
+    <!-- SEND -->
+    <rect x="0" y="355" width="100" height="35" rx="4" class="toolbox-item"/>
+    <text x="15" y="378" font-size="14" class="icon-text">📧</text>
+    <text x="35" y="378" font-size="12" class="main-text">SEND</text>
+
+    <!-- SAVE -->
+    <rect x="0" y="400" width="100" height="35" rx="4" class="toolbox-item"/>
+    <text x="15" y="423" font-size="14" class="icon-text">💾</text>
+    <text x="35" y="423" font-size="12" class="main-text">SAVE</text>
+  </g>
+
+  <!-- Center Panel - Canvas -->
+  <rect x="150" y="50" width="560" height="470" class="canvas-bg"/>
+
+  <!-- Canvas Grid (subtle) -->
+  <g transform="translate(150, 50)">
+    <line x1="0" y1="100" x2="560" y2="100" class="canvas-grid"/>
+    <line x1="0" y1="200" x2="560" y2="200" class="canvas-grid"/>
+    <line x1="0" y1="300" x2="560" y2="300" class="canvas-grid"/>
+    <line x1="0" y1="400" x2="560" y2="400" class="canvas-grid"/>
+    <line x1="100" y1="0" x2="100" y2="470" class="canvas-grid"/>
+    <line x1="200" y1="0" x2="200" y2="470" class="canvas-grid"/>
+    <line x1="300" y1="0" x2="300" y2="470" class="canvas-grid"/>
+    <line x1="400" y1="0" x2="400" y2="470" class="canvas-grid"/>
+    <line x1="500" y1="0" x2="500" y2="470" class="canvas-grid"/>
+  </g>
+
+  <!-- Flow Diagram on Canvas -->
+  <g transform="translate(200, 80)">
+    <!-- Node 1: TALK "Hello!" -->
+    <rect x="0" y="0" width="120" height="60" rx="8" class="node-talk"/>
+    <text x="20" y="25" font-size="14" class="node-text">💬 TALK</text>
+    <text x="20" y="45" font-size="12" class="node-text">"Hello!"</text>
+
+    <!-- Connector 1 to 2 -->
+    <line x1="60" y1="60" x2="60" y2="100" class="connector" marker-end="url(#arrowhead)"/>
+
+    <!-- Node 2: HEAR name -->
+    <rect x="0" y="110" width="120" height="60" rx="8" class="node-hear"/>
+    <text x="20" y="135" font-size="14" class="node-text">👂 HEAR</text>
+    <text x="20" y="155" font-size="12" class="node-text">name</text>
+
+    <!-- Connector 2 to 3 -->
+    <line x1="120" y1="140" x2="180" y2="140" class="connector" marker-end="url(#arrowhead)"/>
+
+    <!-- Node 3: IF condition -->
+    <rect x="190" y="110" width="140" height="60" rx="8" class="node-if"/>
+    <text x="210" y="135" font-size="14" class="node-text">🔀 IF</text>
+    <text x="210" y="155" font-size="12" class="node-text">name = "Jo"</text>
+
+    <!-- Branch Labels -->
+    <text x="220" y="195" font-size="11" class="secondary-text">Yes</text>
+    <text x="310" y="195" font-size="11" class="secondary-text">No</text>
+
+    <!-- Connector to Yes branch -->
+    <path d="M220 170 L220 200 L220 230" class="connector" marker-end="url(#arrowhead)"/>
+
+    <!-- Connector to No branch -->
+    <path d="M310 170 L310 200 L310 230" class="connector" marker-end="url(#arrowhead)"/>
+
+    <!-- Node 4a: TALK "Hi Jo!" -->
+    <rect x="160" y="240" width="120" height="60" rx="8" class="node-talk"/>
+    <text x="180" y="265" font-size="14" class="node-text">💬 TALK</text>
+    <text x="180" y="285" font-size="12" class="node-text">"Hi Jo!"</text>
+
+    <!-- Node 4b: TALK "Hello!" -->
+    <rect x="290" y="240" width="120" height="60" rx="8" class="node-talk"/>
+    <text x="310" y="265" font-size="14" class="node-text">💬 TALK</text>
+    <text x="310" y="285" font-size="12" class="node-text">"Hello!"</text>
+  </g>
+
+  <!-- Right Panel - Properties -->
+  <rect x="710" y="50" width="160" height="470" rx="8" class="properties-panel"/>
+  <line x1="710" y1="50" x2="710" y2="520" class="divider"/>
+
+  <!-- Properties Header -->
+  <rect x="710" y="50" width="160" height="30" rx="8" class="section-header"/>
+  <rect x="710" y="72" width="160" height="8" class="properties-panel"/>
+  <text x="790" y="70" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Properties</text>
+
+  <!-- Properties Content -->
+  <g transform="translate(720, 95)">
+    <text x="0" y="0" font-size="12" class="secondary-text">Node:</text>
+    <text x="0" y="20" font-size="14" font-weight="500" class="main-text">TALK</text>
+
+    <line x1="0" y1="35" x2="140" y2="35" class="divider"/>
+
+    <text x="0" y="55" font-size="12" class="secondary-text">Message:</text>
+    <rect x="0" y="65" width="140" height="60" rx="4" class="input-field"/>
+    <text x="10" y="85" font-size="12" class="main-text">"Hello!"</text>
+
+    <line x1="0" y1="140" x2="140" y2="140" class="divider"/>
+
+    <text x="0" y="160" font-size="12" class="secondary-text">Voice:</text>
+    <rect x="0" y="170" width="140" height="30" rx="4" class="input-field"/>
+    <text x="10" y="190" font-size="12" class="secondary-text">Default ▼</text>
+
+    <text x="0" y="220" font-size="12" class="secondary-text">Delay:</text>
+    <rect x="0" y="230" width="140" height="30" rx="4" class="input-field"/>
+    <text x="10" y="250" font-size="12" class="main-text">0ms</text>
+
+    <line x1="0" y1="275" x2="140" y2="275" class="divider"/>
+
+    <!-- Action Buttons -->
+    <rect x="0" y="290" width="65" height="30" rx="4" class="button"/>
+    <text x="32" y="310" text-anchor="middle" font-size="11" class="button-text">Apply</text>
+
+    <rect x="75" y="290" width="65" height="30" rx="4" class="input-field"/>
+    <text x="107" y="310" text-anchor="middle" font-size="11" class="main-text">Delete</text>
+  </g>
+
+  <!-- Canvas Controls (bottom) -->
+  <g transform="translate(160, 490)">
+    <rect x="0" y="0" width="30" height="25" rx="4" class="input-field"/>
+    <text x="15" y="17" text-anchor="middle" font-size="14" class="icon-text">+</text>
+
+    <rect x="35" y="0" width="30" height="25" rx="4" class="input-field"/>
+    <text x="50" y="17" text-anchor="middle" font-size="14" class="icon-text">−</text>
+
+    <rect x="70" y="0" width="30" height="25" rx="4" class="input-field"/>
+    <text x="85" y="17" text-anchor="middle" font-size="12" class="icon-text">⌖</text>
+
+    <text x="120" y="17" font-size="11" class="secondary-text">100%</text>
+
+    <rect x="480" y="0" width="60" height="25" rx="4" class="button"/>
+    <text x="510" y="17" text-anchor="middle" font-size="11" class="button-text">▶ Run</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(30, 535)">
+    <rect x="0" y="-10" width="20" height="14" rx="3" class="node-talk"/>
+    <text x="28" y="0" font-size="11" class="secondary-text">Talk</text>
+
+    <rect x="60" y="-10" width="20" height="14" rx="3" class="node-hear"/>
+    <text x="88" y="0" font-size="11" class="secondary-text">Hear</text>
+
+    <rect x="120" y="-10" width="20" height="14" rx="3" class="node-if"/>
+    <text x="148" y="0" font-size="11" class="secondary-text">Condition</text>
+
+    <text x="250" y="0" font-size="11" class="secondary-text">Drag nodes from Toolbox → Canvas | Connect by dragging</text>
+
+    <text x="600" y="0" font-size="11" class="secondary-text">Shortcuts: Delete | Ctrl+D = Duplicate | Ctrl+Z = Undo</text>
+  </g>
+</svg>

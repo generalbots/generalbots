@@ -1,0 +1,29 @@
+name: BotServer CI
+on:
+  push:
+    branches: [main]
+    paths:
+    - 'botserver/**'
+    - 'botlib/**'
+    - 'Cargo.lock'
+    - '.forgejo/workflows/botserver.yaml'
+jobs:
+  build:
+    runs-on: gbo
+    steps:
+    - name: Build
+      run: |
+        cd /opt/gbo/work/botserver
+        git reset --hard HEAD && git clean -fd
+        git pull
+        git submodule update --init --recursive botlib botserver
+        cargo build -p botserver
+    - name: Deploy
+      run: |
+        sudo incus exec system -- systemctl stop botserver || true
+        sudo incus exec system -- pkill -x botserver || true
+        sleep 1
+        sudo incus file push /opt/gbo/work/botserver/target/debug/botserver system:/opt/gbo/bin/botserver --mode=0755
+        sudo incus exec system -- systemctl start botserver
+        sleep 2
+        sudo incus exec system -- pgrep -x botserver && echo "✅ BotServer Deployed" || echo "❌ Failed"

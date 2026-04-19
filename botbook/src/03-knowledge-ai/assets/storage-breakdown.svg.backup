@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 980 580" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="980" height="580" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  <!-- Define gradients and effects -->
+  
+
+  <!-- Background -->
+  <rect x="0" y="0" width="900" height="500" fill="#4B5563" rx="8" filter="url(#shadow)">
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#4B5563">
+    LLM Context Compression Strategies
+  </text>
+
+  <!-- Context Window Visualization -->
+  <g transform="translate(50, 60)">
+    <!-- Original context -->
+    <rect x="0" y="0" width="800" height="60" fill="url(#origContextGrad)" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)">
+    <text x="10" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563">
+      Original Context: 10,000 tokens
+    </text>
+    <rect x="10" y="30" width="780" height="20" fill="#1F2937" rx="3" filter="url(#shadow)">
+
+    <!-- Document chunks visualization -->
+    <rect x="10" y="30" width="100" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="112" y="30" width="120" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="234" y="30" width="90" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="326" y="30" width="110" height="20" fill="#1F2937" rx="2" filter="url(#shadow)">
+    <rect x="438" y="30" width="95" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="535" y="30" width="105" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="642" y="30" width="80" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="724" y="30" width="66" height="20" fill="#1F2937" rx="2" filter="url(#shadow)">
+  </g>
+
+  <!-- Arrow down -->
+  <path d="M 450 130 L 450 160" stroke="#2563EB" stroke-width="3" fill="none" marker-end="url(#arrowhead3)" opacity="0.7">
+  <text x="470" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+    Compression Level 4
+  </text>
+
+  <!-- Compressed context -->
+  <g transform="translate(200, 170)">
+    <rect x="0" y="0" width="500" height="60" fill="url(#compContextGrad)" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)">
+    <text x="10" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563">
+      Compressed Context: 4,096 tokens (fits LLM window)
+    </text>
+    <rect x="10" y="30" width="480" height="20" fill="#4B5563" rx="3" filter="url(#shadow)">
+
+    <!-- Compressed chunks -->
+    <rect x="10" y="30" width="80" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="92" y="30" width="70" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="164" y="30" width="75" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="241" y="30" width="85" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="328" y="30" width="90" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+    <rect x="420" y="30" width="70" height="20" fill="#4B5563" rx="2" filter="url(#shadow)">
+  </g>
+
+  <!-- Compression Techniques -->
+  <g transform="translate(50, 260)">
+    <text x="400" y="0" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#4B5563">
+      Compression Techniques (Level 4)
+    </text>
+
+    <!-- Technique 1: Semantic Deduplication -->
+    <g transform="translate(0, 30)">
+      <rect x="0" y="0" width="190" height="140" fill="url(#tech1Grad)" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)">
+      <text x="95" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563">
+        Semantic Deduplication
+      </text>
+      <text x="10" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Remove redundant info
+      </text>
+      <text x="10" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Merge similar chunks
+      </text>
+      <text x="10" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Keep unique facts
+      </text>
+      <rect x="10" y="85" width="170" height="25" fill="rgba(139, 92, 246, 0.1)" rx="4" filter="url(#shadow)">
+      <text x="95" y="102" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+        Reduction: 30-40%
+      </text>
+
+      <!-- Visual representation -->
+      <g transform="translate(95, 120)">
+        <circle cx="0" cy="0" r="8" fill="#4B5563" opacity="0.3">
+        <circle cx="-15" cy="0" r="8" fill="#4B5563" opacity="0.3">
+        <circle cx="15" cy="0" r="8" fill="#4B5563" opacity="0.3">
+      </g>
+    </g>
+
+    <!-- Technique 2: Relevance Scoring -->
+    <g transform="translate(205, 30)">
+      <rect x="0" y="0" width="190" height="140" fill="url(#tech2Grad)" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)">
+      <text x="95" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563">
+        Relevance Scoring
+      </text>
+      <text x="10" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Score by query match
+      </text>
+      <text x="10" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Keep top-k relevant
+      </text>
+      <text x="10" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Drop low scores
+      </text>
+      <rect x="10" y="85" width="170" height="25" fill="rgba(59, 130, 246, 0.1)" rx="4" filter="url(#shadow)">
+      <text x="95" y="102" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+        Reduction: 40-50%
+      </text>
+
+      <!-- Visual bars -->
+      <rect x="50" y="118" width="90" height="4" fill="#4B5563" rx="2" filter="url(#shadow)">
+      <rect x="50" y="124" width="70" height="4" fill="#4B5563" rx="2" filter="url(#shadow)">
+      <rect x="50" y="130" width="40" height="4" fill="#4B5563" rx="2" filter="url(#shadow)">
+    </g>
+
+    <!-- Technique 3: Hierarchical Summary -->
+    <g transform="translate(410, 30)">
+      <rect x="0" y="0" width="190" height="140" fill="url(#tech3Grad)" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)">
+      <text x="95" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563">
+        Hierarchical Summary
+      </text>
+      <text x="10" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Extract key points
+      </text>
+      <text x="10" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Create abstracts
+      </text>
+      <text x="10" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Preserve details
+      </text>
+      <rect x="10" y="85" width="170" height="25" fill="rgba(6, 182, 212, 0.1)" rx="4" filter="url(#shadow)">
+      <text x="95" y="102" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+        Reduction: 50-60%
+      </text>
+
+      <!-- Tree structure -->
+      <g transform="translate(95, 120)">
+        <circle cx="0" cy="-8" r="4" fill="#4B5563">
+        <circle cx="-15" cy="8" r="3" fill="#4B5563">
+        <circle cx="0" cy="8" r="3" fill="#4B5563">
+        <circle cx="15" cy="8" r="3" fill="#4B5563">
+        <line x1="0" y1="-4" x2="-15" y2="5" stroke="#2563EB" stroke-width="2">
+        <line x1="0" y1="-4" x2="0" y2="5" stroke="#2563EB" stroke-width="2">
+        <line x1="0" y1="-4" x2="15" y2="5" stroke="#2563EB" stroke-width="2">
+      </g>
+    </g>
+
+    <!-- Technique 4: Token Optimization -->
+    <g transform="translate(615, 30)">
+      <rect x="0" y="0" width="185" height="140" fill="url(#tech4Grad)" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)">
+      <text x="92" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4B5563">
+        Token Optimization
+      </text>
+      <text x="10" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Remove stopwords
+      </text>
+      <text x="10" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Compress phrases
+      </text>
+      <text x="10" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        • Use abbreviations
+      </text>
+      <rect x="10" y="85" width="165" height="25" fill="rgba(245, 158, 11, 0.1)" rx="4" filter="url(#shadow)">
+      <text x="92" y="102" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#4B5563">
+        Reduction: 20-30%
+      </text>
+
+      <!-- Text compression visual -->
+      <text x="92" y="122" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        ABCDEF → ABC
+      </text>
+      <text x="92" y="133" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+        GHIJKL → GHI
+      </text>
+    </g>
+  </g>
+
+  <!-- Performance note -->
+  <rect x="50" y="440" width="800" height="40" fill="rgba(99, 102, 241, 0.05)" stroke="#2563EB" stroke-width="2" stroke-dasharray="6,3" rx="6" filter="url(#shadow)">
+  <text x="450" y="465" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-style="italic" fill="#4B5563">
+    Compression Level 4 achieves 60-75% reduction while maintaining 95%+ information retention
+  </text>
+
+
+  </g>
+
+</svg>

@@ -1,0 +1,269 @@
+<!-- Logs partial -->
+<link rel="stylesheet" href="monitoring/logs.css" />
+<div class="logs-container">
+    <!-- Logs Header -->
+    <div class="logs-header">
+        <div class="header-filters">
+            <div class="filter-group">
+                <label for="log-level-filter">Level</label>
+                <select id="log-level-filter" onchange="applyLogFilters()">
+                    <option value="all">All Levels</option>
+                    <option value="debug">Debug</option>
+                    <option value="info">Info</option>
+                    <option value="warn">Warning</option>
+                    <option value="error">Error</option>
+                    <option value="fatal">Fatal</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="service-filter">Service</label>
+                <select
+                    id="service-filter"
+                    onchange="applyLogFilters()"
+                    hx-get="/api/ui/monitoring/logs/services"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <option value="all">All Services</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="search-filter">Search</label>
+                <div class="search-input">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input
+                        type="text"
+                        id="search-filter"
+                        placeholder="Search logs..."
+                        onkeyup="debounceLogSearch(this.value)"
+                    />
+                </div>
+            </div>
+            <div class="filter-group">
+                <label for="time-filter">Time Range</label>
+                <select id="time-filter" onchange="applyLogFilters()">
+                    <option value="live">Live</option>
+                    <option value="15m">Last 15 minutes</option>
+                    <option value="1h">Last 1 hour</option>
+                    <option value="6h">Last 6 hours</option>
+                    <option value="24h">Last 24 hours</option>
+                </select>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button
+                class="action-btn"
+                id="stream-toggle"
+                onclick="toggleStream()"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+                <span>Pause</span>
+            </button>
+            <button class="action-btn secondary" onclick="clearLogs()">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path
+                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                    ></path>
+                </svg>
+                Clear
+            </button>
+            <button class="action-btn secondary" onclick="downloadLogs()">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download
+            </button>
+        </div>
+    </div>
+
+    <!-- Log Stats -->
+    <div class="log-stats">
+        <div class="stat-item" data-level="debug">
+            <span class="stat-dot debug"></span>
+            <span class="stat-label">Debug</span>
+            <span class="stat-count" id="debug-count">0</span>
+        </div>
+        <div class="stat-item" data-level="info">
+            <span class="stat-dot info"></span>
+            <span class="stat-label">Info</span>
+            <span class="stat-count" id="info-count">0</span>
+        </div>
+        <div class="stat-item" data-level="warn">
+            <span class="stat-dot warn"></span>
+            <span class="stat-label">Warning</span>
+            <span class="stat-count" id="warn-count">0</span>
+        </div>
+        <div class="stat-item" data-level="error">
+            <span class="stat-dot error"></span>
+            <span class="stat-label">Error</span>
+            <span class="stat-count" id="error-count">0</span>
+        </div>
+        <div class="stat-item" data-level="fatal">
+            <span class="stat-dot fatal"></span>
+            <span class="stat-label">Fatal</span>
+            <span class="stat-count" id="fatal-count">0</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat-item total">
+            <span class="stat-label">Total</span>
+            <span class="stat-count" id="total-count">0</span>
+        </div>
+        <div class="connection-status" id="connection-status">
+            <span class="status-dot"></span>
+            <span class="status-text">Connecting...</span>
+        </div>
+    </div>
+
+    <!-- Log Stream Container -->
+    <!-- Note: ws-connect="/ws/logs" removed until backend WebSocket endpoint is implemented -->
+    <div class="log-stream-container">
+        <div class="log-stream" id="log-stream">
+            <div class="log-placeholder">
+                <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                >
+                    <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    ></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <p>Waiting for logs...</p>
+                <span class="placeholder-hint"
+                    >Logs will appear here in real-time</span
+                >
+            </div>
+        </div>
+        <div class="scroll-controls">
+            <button
+                class="scroll-btn"
+                id="scroll-top-btn"
+                onclick="scrollToTop()"
+                title="Scroll to top"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+            </button>
+            <button
+                class="scroll-btn active"
+                id="scroll-bottom-btn"
+                onclick="scrollToBottom()"
+                title="Scroll to bottom (auto-scroll)"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Log Detail Panel (slides up) -->
+    <div class="log-detail-panel" id="log-detail-panel">
+        <div class="panel-header">
+            <h4>Log Details</h4>
+            <button class="close-btn" onclick="closeLogDetail()">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="panel-content" id="log-detail-content">
+            <!-- Log detail loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Log Entry Template -->
+<template id="log-entry-template">
+    <div class="log-entry" data-level="info" data-service="service">
+        <span class="log-timestamp">2024-01-15 12:34:56.789</span>
+        <span class="log-level">INFO</span>
+        <span class="log-service">service-name</span>
+        <span class="log-message">Log message content goes here</span>
+        <button
+            class="log-expand"
+            onclick="expandLog(this)"
+            title="View details"
+        >
+            <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </button>
+    </div>
+</template>
+
+<script src="/static/suite/monitoring/logs.js"></script>

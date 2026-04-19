@@ -1,0 +1,155 @@
+<svg width="900" height="700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" style="max-width: 100%; height: auto;">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#666"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#1F2937">BotServer Architecture - Virtual Crates System</text>
+
+  <!-- Main Container -->
+  <rect x="40" y="50" width="820" height="620" fill="none" stroke="#E5E7EB" stroke-width="2" rx="12" stroke-opacity="0.5"/>
+
+  <!-- Binary Output -->
+  <rect x="350" y="70" width="200" height="40" fill="#EBF8FF" stroke="#2563EB" stroke-width="2" rx="8"/>
+  <text x="450" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">BotServer Binary</text>
+
+  <!-- Compilation Arrow -->
+  <line x1="450" y1="110" x2="450" y2="140" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" stroke-dasharray="5,3" opacity="0.6"/>
+  <text x="470" y="130" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">compiles to</text>
+
+  <!-- Core Layer -->
+  <g id="core-layer">
+    <rect x="60" y="140" width="780" height="120" fill="#EBF8FF" fill-opacity="0.3" stroke="#2563EB" stroke-width="2" rx="8"/>
+    <text x="450" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">Core Engine (src/core/)</text>
+
+    <!-- Core Components -->
+    <rect x="80" y="185" width="140" height="55" fill="white" stroke="#2563EB" stroke-width="1" rx="4"/>
+    <text x="150" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">Bootstrap</text>
+    <text x="150" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">System Init</text>
+    <text x="150" y="232" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">Service Start</text>
+
+    <rect x="240" y="185" width="140" height="55" fill="white" stroke="#2563EB" stroke-width="1" rx="4"/>
+    <text x="310" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">Package Manager</text>
+    <text x="310" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">Component Registry</text>
+    <text x="310" y="232" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">Module Loader</text>
+
+    <rect x="400" y="185" width="140" height="55" fill="white" stroke="#2563EB" stroke-width="1" rx="4"/>
+    <text x="470" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">Session Manager</text>
+    <text x="470" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">Context Handling</text>
+    <text x="470" y="232" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">State Management</text>
+
+    <rect x="560" y="185" width="140" height="55" fill="white" stroke="#2563EB" stroke-width="1" rx="4"/>
+    <text x="630" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">Shared State</text>
+    <text x="630" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">AppState</text>
+    <text x="630" y="232" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">Configuration</text>
+
+    <rect x="720" y="185" width="100" height="55" fill="white" stroke="#2563EB" stroke-width="1" rx="4"/>
+    <text x="770" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">Utils</text>
+    <text x="770" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">Helpers</text>
+    <text x="770" y="232" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">Common</text>
+  </g>
+
+  <!-- Bidirectional Arrow -->
+  <line x1="450" y1="260" x2="450" y2="290" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" opacity="0.6"/>
+  <line x1="460" y1="290" x2="460" y2="260" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" opacity="0.6"/>
+
+  <!-- Virtual Crates Layer (gbapps) -->
+  <g id="gbapp-layer">
+    <rect x="60" y="290" width="780" height="180" fill="#D1FAE5" fill-opacity="0.3" stroke="#10B981" stroke-width="2" rx="8"/>
+    <text x="450" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">Virtual Crates (gbapp modules in src/)</text>
+
+    <!-- BASIC gbapp -->
+    <rect x="80" y="335" width="170" height="115" fill="white" stroke="#10B981" stroke-width="1" rx="4"/>
+    <text x="165" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">basic.gbapp</text>
+    <text x="165" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">src/basic/</text>
+    <line x1="90" y1="378" x2="240" y2="378" stroke="#E5E7EB" stroke-width="1"/>
+    <text x="165" y="393" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• BASIC Interpreter</text>
+    <text x="165" y="408" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Keywords Registry</text>
+    <text x="165" y="423" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Script Execution</text>
+    <text x="165" y="438" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Rhai Engine</text>
+
+    <!-- Channels gbapp -->
+    <rect x="270" y="335" width="170" height="115" fill="white" stroke="#10B981" stroke-width="1" rx="4"/>
+    <text x="355" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">channels.gbapp</text>
+    <text x="355" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">src/channels/</text>
+    <line x1="280" y1="378" x2="430" y2="378" stroke="#E5E7EB" stroke-width="1"/>
+    <text x="355" y="393" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• WhatsApp</text>
+    <text x="355" y="408" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Teams</text>
+    <text x="355" y="423" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Email</text>
+    <text x="355" y="438" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Web UI</text>
+
+    <!-- Storage gbapp -->
+    <rect x="460" y="335" width="170" height="115" fill="white" stroke="#10B981" stroke-width="1" rx="4"/>
+    <text x="545" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">storage.gbapp</text>
+    <text x="545" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">src/storage/</text>
+    <line x1="470" y1="378" x2="620" y2="378" stroke="#E5E7EB" stroke-width="1"/>
+    <text x="545" y="393" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Knowledge Base</text>
+    <text x="545" y="408" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Drive Integration</text>
+    <text x="545" y="423" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Vector DB</text>
+    <text x="545" y="438" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">• Cache</text>
+
+    <!-- Custom gbapp (Your Contribution) -->
+    <rect x="650" y="335" width="170" height="115" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2" rx="4" stroke-dasharray="5,3"/>
+    <text x="735" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">your_feature.gbapp</text>
+    <text x="735" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">src/your_feature/</text>
+    <line x1="660" y1="378" x2="810" y2="378" stroke="#E5E7EB" stroke-width="1"/>
+    <text x="735" y="393" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-style="italic" fill="#6B7280">• Your Keywords</text>
+    <text x="735" y="408" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-style="italic" fill="#6B7280">• Your Services</text>
+    <text x="735" y="423" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-style="italic" fill="#6B7280">• Your Models</text>
+    <text x="735" y="438" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#F59E0B">+ Add yours!</text>
+  </g>
+
+  <!-- Arrow from gbapp to AI -->
+  <line x1="450" y1="470" x2="450" y2="500" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" opacity="0.6"/>
+
+  <!-- AI/LLM Layer -->
+  <g id="ai-layer">
+    <rect x="60" y="500" width="380" height="80" fill="#EDE9FE" fill-opacity="0.3" stroke="#8B5CF6" stroke-width="2" rx="8"/>
+    <text x="250" y="525" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">AI &amp; LLM Integration</text>
+
+    <rect x="80" y="535" width="100" height="35" fill="white" stroke="#8B5CF6" stroke-width="1" rx="4"/>
+    <text x="130" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937">LLM Service</text>
+
+    <rect x="195" y="535" width="100" height="35" fill="white" stroke="#8B5CF6" stroke-width="1" rx="4"/>
+    <text x="245" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937">Embeddings</text>
+
+    <rect x="310" y="535" width="110" height="35" fill="white" stroke="#8B5CF6" stroke-width="1" rx="4"/>
+    <text x="365" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937">Semantic Search</text>
+  </g>
+
+  <!-- Storage Layer -->
+  <g id="storage-layer">
+    <rect x="460" y="500" width="380" height="80" fill="#FEE2E2" fill-opacity="0.3" stroke="#EF4444" stroke-width="2" rx="8"/>
+    <text x="650" y="525" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">Persistence Layer</text>
+
+    <rect x="480" y="535" width="85" height="35" fill="white" stroke="#EF4444" stroke-width="1" rx="4"/>
+    <text x="522" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937">Database</text>
+
+    <rect x="580" y="535" width="85" height="35" fill="white" stroke="#EF4444" stroke-width="1" rx="4"/>
+    <text x="622" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937">Vector DB</text>
+
+    <rect x="680" y="535" width="70" height="35" fill="white" stroke="#EF4444" stroke-width="1" rx="4"/>
+    <text x="715" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937">Drive</text>
+
+    <rect x="765" y="535" width="60" height="35" fill="white" stroke="#EF4444" stroke-width="1" rx="4"/>
+    <text x="795" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937">Cache</text>
+  </g>
+
+  <!-- Legend -->
+  <g id="legend" transform="translate(60, 600)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1F2937">Key Concepts:</text>
+
+    <rect x="120" y="-12" width="15" height="15" fill="#D1FAE5" stroke="#10B981" stroke-width="1" rx="2"/>
+    <text x="140" y="0" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Virtual Crates = Modules in src/</text>
+
+    <rect x="320" y="-12" width="15" height="15" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1" rx="2" stroke-dasharray="3,2"/>
+    <text x="340" y="0" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Your Contribution Space</text>
+
+    <text x="500" y="0" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">All compile to single optimized binary</text>
+  </g>
+
+  <!-- Philosophy Note -->
+  <text x="450" y="650" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-style="italic" fill="#6B7280">gbapp virtual crates: The bridge between old Node.js packages and new Rust modules</text>
+</svg>

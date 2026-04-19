@@ -1,0 +1,235 @@
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <!-- Define gradients and effects -->
+  <defs>
+    <!-- Gradient for original context -->
+    <linearGradient id="origContextGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.2" />
+      <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#eab308;stop-opacity:0.2" />
+    </linearGradient>
+
+    <!-- Gradient for compressed context -->
+    <linearGradient id="compContextGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:0.3" />
+    </linearGradient>
+
+    <!-- Gradients for technique boxes -->
+    <linearGradient id="tech1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:0.2" />
+    </linearGradient>
+
+    <linearGradient id="tech2Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:0.2" />
+    </linearGradient>
+
+    <linearGradient id="tech3Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#0891b2;stop-opacity:0.2" />
+    </linearGradient>
+
+    <linearGradient id="tech4Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:0.2" />
+    </linearGradient>
+
+    <!-- Arrow marker -->
+    <marker id="arrowhead3" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="#4a5568"/>
+    </marker>
+
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.15"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="900" height="500" fill="#fafafa"/>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#1e293b">
+    LLM Context Compression Strategies
+  </text>
+
+  <!-- Context Window Visualization -->
+  <g transform="translate(50, 60)">
+    <!-- Original context -->
+    <rect x="0" y="0" width="800" height="60" fill="url(#origContextGrad)" stroke="#dc2626" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="10" y="20" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+      Original Context: 10,000 tokens
+    </text>
+    <rect x="10" y="30" width="780" height="20" fill="#fee2e2" rx="3"/>
+
+    <!-- Document chunks visualization -->
+    <rect x="10" y="30" width="100" height="20" fill="#fca5a5" rx="2"/>
+    <rect x="112" y="30" width="120" height="20" fill="#f87171" rx="2"/>
+    <rect x="234" y="30" width="90" height="20" fill="#fca5a5" rx="2"/>
+    <rect x="326" y="30" width="110" height="20" fill="#ef4444" rx="2"/>
+    <rect x="438" y="30" width="95" height="20" fill="#fca5a5" rx="2"/>
+    <rect x="535" y="30" width="105" height="20" fill="#f87171" rx="2"/>
+    <rect x="642" y="30" width="80" height="20" fill="#fca5a5" rx="2"/>
+    <rect x="724" y="30" width="66" height="20" fill="#ef4444" rx="2"/>
+  </g>
+
+  <!-- Arrow down -->
+  <path d="M 450 130 L 450 160" stroke="#4a5568" stroke-width="3" fill="none" marker-end="url(#arrowhead3)" opacity="0.7"/>
+  <text x="470" y="150" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#475569">
+    Compression Level 4
+  </text>
+
+  <!-- Compressed context -->
+  <g transform="translate(200, 170)">
+    <rect x="0" y="0" width="500" height="60" fill="url(#compContextGrad)" stroke="#10b981" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="10" y="20" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">
+      Compressed Context: 4,096 tokens (fits LLM window)
+    </text>
+    <rect x="10" y="30" width="480" height="20" fill="#dcfce7" rx="3"/>
+
+    <!-- Compressed chunks -->
+    <rect x="10" y="30" width="80" height="20" fill="#86efac" rx="2"/>
+    <rect x="92" y="30" width="70" height="20" fill="#4ade80" rx="2"/>
+    <rect x="164" y="30" width="75" height="20" fill="#86efac" rx="2"/>
+    <rect x="241" y="30" width="85" height="20" fill="#22c55e" rx="2"/>
+    <rect x="328" y="30" width="90" height="20" fill="#4ade80" rx="2"/>
+    <rect x="420" y="30" width="70" height="20" fill="#86efac" rx="2"/>
+  </g>
+
+  <!-- Compression Techniques -->
+  <g transform="translate(50, 260)">
+    <text x="400" y="0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="19" font-weight="600" fill="#1e293b">
+      Compression Techniques (Level 4)
+    </text>
+
+    <!-- Technique 1: Semantic Deduplication -->
+    <g transform="translate(0, 30)">
+      <rect x="0" y="0" width="190" height="140" fill="url(#tech1Grad)" stroke="#8b5cf6" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+      <text x="95" y="20" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="#1e293b">
+        Semantic Deduplication
+      </text>
+      <text x="10" y="40" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Remove redundant info
+      </text>
+      <text x="10" y="55" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Merge similar chunks
+      </text>
+      <text x="10" y="70" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Keep unique facts
+      </text>
+      <rect x="10" y="85" width="170" height="25" fill="rgba(139, 92, 246, 0.1)" rx="4"/>
+      <text x="95" y="102" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#7c3aed">
+        Reduction: 30-40%
+      </text>
+
+      <!-- Visual representation -->
+      <g transform="translate(95, 120)">
+        <circle cx="0" cy="0" r="8" fill="#8b5cf6" opacity="0.3"/>
+        <circle cx="-15" cy="0" r="8" fill="#8b5cf6" opacity="0.3"/>
+        <circle cx="15" cy="0" r="8" fill="#8b5cf6" opacity="0.3"/>
+      </g>
+    </g>
+
+    <!-- Technique 2: Relevance Scoring -->
+    <g transform="translate(205, 30)">
+      <rect x="0" y="0" width="190" height="140" fill="url(#tech2Grad)" stroke="#3b82f6" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+      <text x="95" y="20" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="#1e293b">
+        Relevance Scoring
+      </text>
+      <text x="10" y="40" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Score by query match
+      </text>
+      <text x="10" y="55" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Keep top-k relevant
+      </text>
+      <text x="10" y="70" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Drop low scores
+      </text>
+      <rect x="10" y="85" width="170" height="25" fill="rgba(59, 130, 246, 0.1)" rx="4"/>
+      <text x="95" y="102" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#2563eb">
+        Reduction: 40-50%
+      </text>
+
+      <!-- Visual bars -->
+      <rect x="50" y="118" width="90" height="4" fill="#3b82f6" rx="2"/>
+      <rect x="50" y="124" width="70" height="4" fill="#60a5fa" rx="2"/>
+      <rect x="50" y="130" width="40" height="4" fill="#93c5fd" rx="2"/>
+    </g>
+
+    <!-- Technique 3: Hierarchical Summary -->
+    <g transform="translate(410, 30)">
+      <rect x="0" y="0" width="190" height="140" fill="url(#tech3Grad)" stroke="#06b6d4" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+      <text x="95" y="20" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="#1e293b">
+        Hierarchical Summary
+      </text>
+      <text x="10" y="40" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Extract key points
+      </text>
+      <text x="10" y="55" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Create abstracts
+      </text>
+      <text x="10" y="70" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Preserve details
+      </text>
+      <rect x="10" y="85" width="170" height="25" fill="rgba(6, 182, 212, 0.1)" rx="4"/>
+      <text x="95" y="102" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#0891b2">
+        Reduction: 50-60%
+      </text>
+
+      <!-- Tree structure -->
+      <g transform="translate(95, 120)">
+        <circle cx="0" cy="-8" r="4" fill="#06b6d4"/>
+        <circle cx="-15" cy="8" r="3" fill="#67e8f9"/>
+        <circle cx="0" cy="8" r="3" fill="#67e8f9"/>
+        <circle cx="15" cy="8" r="3" fill="#67e8f9"/>
+        <line x1="0" y1="-4" x2="-15" y2="5" stroke="#06b6d4" stroke-width="1"/>
+        <line x1="0" y1="-4" x2="0" y2="5" stroke="#06b6d4" stroke-width="1"/>
+        <line x1="0" y1="-4" x2="15" y2="5" stroke="#06b6d4" stroke-width="1"/>
+      </g>
+    </g>
+
+    <!-- Technique 4: Token Optimization -->
+    <g transform="translate(615, 30)">
+      <rect x="0" y="0" width="185" height="140" fill="url(#tech4Grad)" stroke="#f59e0b" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+      <text x="92" y="20" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="#1e293b">
+        Token Optimization
+      </text>
+      <text x="10" y="40" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Remove stopwords
+      </text>
+      <text x="10" y="55" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Compress phrases
+      </text>
+      <text x="10" y="70" font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+        • Use abbreviations
+      </text>
+      <rect x="10" y="85" width="165" height="25" fill="rgba(245, 158, 11, 0.1)" rx="4"/>
+      <text x="92" y="102" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#d97706">
+        Reduction: 20-30%
+      </text>
+
+      <!-- Text compression visual -->
+      <text x="92" y="122" text-anchor="middle" font-family="monospace" font-size="16" fill="#92400e">
+        ABCDEF → ABC
+      </text>
+      <text x="92" y="133" text-anchor="middle" font-family="monospace" font-size="16" fill="#92400e">
+        GHIJKL → GHI
+      </text>
+    </g>
+  </g>
+
+  <!-- Performance note -->
+  <rect x="50" y="440" width="800" height="40" fill="rgba(99, 102, 241, 0.05)" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="6,3" rx="6"/>
+  <text x="450" y="465" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-style="italic" fill="#4f46e5">
+    Compression Level 4 achieves 60-75% reduction while maintaining 95%+ information retention
+  </text>
+</svg>

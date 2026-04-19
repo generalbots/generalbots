@@ -1,0 +1,494 @@
+/* Agents & Workspaces Sidebar + Vibe Canvas Styles */
+
+/* ============================================
+   VIBE CONTAINER
+   ============================================ */
+
+.vibe-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg, #fff);
+    font-family: 'Fira Code', monospace;
+}
+
+/* ============================================
+   PIPELINE TABS
+   ============================================ */
+
+.vibe-pipeline {
+    display: flex;
+    background: var(--surface, #f8f8f8);
+    border-bottom: 1px solid var(--border, #f0f1f2);
+}
+
+.vibe-pipeline-tab {
+    flex: 1;
+    height: 34px;
+    border: none;
+    border-right: 1px solid var(--border, #f0f1f2);
+    background: transparent;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vibe-pipeline-tab:last-child {
+    border-right: none;
+}
+
+.vibe-pipeline-tab:hover {
+    background: var(--bg, #fff);
+    color: var(--text, #3b3b3b);
+}
+
+.vibe-pipeline-tab.active {
+    background: var(--accent, #84d669);
+    color: var(--bg, #fff);
+}
+
+/* ============================================
+   VIBE BODY (Canvas + Sidebar)
+   ============================================ */
+
+.vibe-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* ============================================
+   CANVAS AREA
+   ============================================ */
+
+.vibe-canvas {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.vibe-canvas-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    text-align: center;
+}
+
+.vibe-canvas-icon {
+    font-size: 48px;
+}
+
+.vibe-canvas-empty h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text, #3b3b3b);
+}
+
+.vibe-canvas-empty p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-muted, #888);
+    max-width: 400px;
+}
+
+.vibe-canvas-prompt {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.vibe-prompt-input {
+    flex: 1;
+    padding: 10px 16px;
+    border: 2px solid var(--border, #e0e0e0);
+    border-radius: 8px;
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    color: var(--text, #3b3b3b);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.vibe-prompt-input:focus {
+    border-color: var(--accent, #84d669);
+    box-shadow: 0 0 0 3px var(--accent-light, rgba(132, 214, 105, 0.15));
+}
+
+.vibe-prompt-input::placeholder {
+    color: var(--text-muted, #bbb);
+}
+
+.vibe-prompt-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent, #84d669);
+    color: var(--bg, #fff);
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vibe-prompt-btn:hover {
+    background: var(--accent-hover, #72c458);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--accent-light, rgba(132, 214, 105, 0.3));
+}
+
+.vibe-prompt-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Steps */
+.vibe-steps {
+    padding: 16px;
+}
+
+/* Preview */
+.vibe-preview {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border, #f0f1f2);
+}
+
+.vibe-preview-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--surface, #f8f8f8);
+    border-bottom: 1px solid var(--border, #f0f1f2);
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text, #3b3b3b);
+}
+
+.vibe-preview-url {
+    flex: 1;
+    padding: 3px 10px;
+    background: var(--bg, #fff);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--text-muted, #666);
+}
+
+.vibe-preview-content {
+    flex: 1;
+}
+
+.vibe-preview-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* ============================================
+   AGENTS & WORKSPACES SIDEBAR
+   ============================================ */
+
+.agents-sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface, #f8f8f8);
+    border-left: 1px solid var(--border, #f0f1f2);
+    overflow-y: auto;
+    transition: width 0.25s, min-width 0.25s;
+}
+
+.agents-sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Section */
+.as-section {
+    border-bottom: 1px solid var(--border, #f0f1f2);
+}
+
+.as-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 8px 14px;
+}
+
+.as-section-header h3 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.as-collapse-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    font-size: 10px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.15s;
+}
+
+.as-collapse-btn:hover {
+    background: var(--surface-active, #e0e0e0);
+    color: var(--text, #3b3b3b);
+}
+
+/* ============================================
+   AGENT CARDS
+   ============================================ */
+
+.as-agent-list {
+    padding: 0 8px;
+}
+
+.as-agent-card {
+    background: var(--bg, #fff);
+    border: 1px solid var(--border, #f0f1f2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    cursor: grab;
+    transition: all 0.15s;
+}
+
+.as-agent-card:hover {
+    border-color: var(--accent, #84d669);
+    box-shadow: 0 2px 8px var(--accent-light, rgba(132, 214, 105, 0.1));
+}
+
+.as-agent-card.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.as-agent-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.as-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.as-status-dot.green {
+    background: var(--accent, #84d669);
+}
+
+.as-status-dot.yellow {
+    background: var(--warning, #f59e0b);
+}
+
+.as-status-dot.red {
+    background: var(--error, #ef4444);
+}
+
+.as-status-dot.gray {
+    background: var(--text-muted, #ccc);
+}
+
+.as-agent-name {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text, #3b3b3b);
+}
+
+.as-drag-handle {
+    color: var(--text-muted, #ccc);
+    font-size: 14px;
+    cursor: grab;
+}
+
+.as-agent-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.as-agent-icons {
+    font-size: 12px;
+    letter-spacing: 2px;
+}
+
+.as-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.badge-evolved {
+    background: var(--accent, #84d669);
+    color: var(--bg, #fff);
+}
+
+.badge-bred {
+    background: var(--warning, #f59e0b);
+    color: var(--bg, #fff);
+}
+
+.badge-wild {
+    background: var(--error, #ef4444);
+    color: var(--bg, #fff);
+}
+
+/* Quota Bar */
+.as-agent-bar {
+    height: 3px;
+    background: var(--surface, #f0f1f2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.as-bar-fill {
+    height: 100%;
+    background: var(--accent, #84d669);
+    border-radius: 2px;
+    transition: width 0.3s;
+}
+
+.as-bar-fill.bred {
+    background: var(--warning, #f59e0b);
+}
+
+.as-bar-fill.wild {
+    background: var(--error, #ef4444);
+}
+
+/* Create Agent Button */
+.as-create-btn {
+    width: calc(100% - 16px);
+    margin: 8px 8px;
+    padding: 8px;
+    border: 2px dashed var(--border, #e0e0e0);
+    border-radius: 8px;
+    background: transparent;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.as-create-btn:hover {
+    border-color: var(--accent, #84d669);
+    color: var(--accent, #84d669);
+    background: var(--accent-light, rgba(132, 214, 105, 0.05));
+}
+
+/* ============================================
+   WORKSPACES
+   ============================================ */
+
+.as-workspace-list {
+    padding: 0 8px 8px 8px;
+}
+
+.as-workspace-item {
+    margin-bottom: 4px;
+}
+
+.as-workspace-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text, #3b3b3b);
+    cursor: pointer;
+    transition: background 0.15s;
+    text-align: left;
+}
+
+.as-workspace-toggle:hover {
+    background: var(--bg, #fff);
+}
+
+.as-workspace-arrow {
+    font-size: 8px;
+    color: var(--text-muted, #888);
+    width: 8px;
+    transition: transform 0.15s;
+}
+
+.as-workspace-count {
+    margin-left: auto;
+    font-size: 10px;
+    background: var(--surface-active, #e0e0e0);
+    color: var(--text-muted, #666);
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+.as-workspace-body {
+    padding: 4px 0 4px 20px;
+}
+
+.as-workspace-agent {
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--text-muted, #666);
+    border-left: 2px solid var(--border, #f0f1f2);
+}
+
+.as-workspace-dropzone {
+    margin-top: 4px;
+    padding: 10px;
+    border: 2px dashed var(--border, #e0e0e0);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted, #ccc);
+    transition: all 0.2s;
+}
+
+.as-workspace-dropzone.drag-over {
+    border-color: var(--accent, #84d669);
+    background: var(--accent-light, rgba(132, 214, 105, 0.05));
+    color: var(--accent, #84d669);
+}
