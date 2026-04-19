@@ -1,4 +1,4 @@
-use aws_sdk_s3::primitives::ByteStream;
+use crate::drive::s3_repository::S3Repository;
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 
@@ -48,12 +48,12 @@ pub async fn save_document_to_drive(
     };
 
     s3_client
-        .put_object()
-        .bucket(&state.bucket_name)
-        .key(&doc_path)
-        .body(ByteStream::from(content.as_bytes().to_vec()))
-        .content_type("text/markdown")
-        .send()
+        .put_object(
+            &state.bucket_name,
+            &doc_path,
+            content.as_bytes().to_vec(),
+            Some("text/markdown"),
+        )
         .await
         .map_err(|e| format!("Failed to save document: {}", e))?;
 
@@ -67,14 +67,14 @@ pub async fn save_document_to_drive(
         });
 
         s3_client
-            .put_object()
-            .bucket(&state.bucket_name)
-            .key(&meta_path)
-            .body(ByteStream::from(metadata.to_string().into_bytes()))
-            .content_type("application/json")
-            .send()
-            .await
-            .map_err(|e| format!("Failed to save metadata: {}", e))?;
+        .put_object(
+            &state.bucket_name,
+            &meta_path,
+            metadata.to_string().into_bytes(),
+            Some("application/json"),
+        )
+        .await
+        .map_err(|e| format!("Failed to save metadata: {}", e))?;
     }
 
     Ok(doc_path)
@@ -91,20 +91,11 @@ pub async fn load_document_from_drive(
 
     let current_path = format!("{}/current/{}.md", base_path, doc_id);
 
-    if let Ok(result) = s3_client
-        .get_object()
-        .bucket(&state.bucket_name)
-        .key(&current_path)
-        .send()
+    if let Ok(bytes) = s3_client
+        .get_object(&state.bucket_name, &current_path)
         .await
     {
-        let bytes = result
-            .body
-            .collect()
-            .await
-            .map_err(|e| e.to_string())?
-            .into_bytes();
-        let content = String::from_utf8(bytes.to_vec()).map_err(|e| e.to_string())?;
+        let content = String::from_utf8(bytes).map_err(|e| e.to_string())?;
 
         let title = content
             .lines()

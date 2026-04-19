@@ -1,4 +1,4 @@
-use aws_sdk_s3::primitives::ByteStream;
+use crate::drive::s3_repository::S3Repository;
 use crate::core::shared::state::AppState;
 use crate::core::urls::ApiUrls;
 use axum::{
@@ -71,12 +71,12 @@ pub async fn handle_export_md(
 
             if let Some(s3_client) = state.drive.as_ref() {
                 let _ = s3_client
-                    .put_object()
-                    .bucket(&state.bucket_name)
-                    .key(&export_path)
-                    .body(ByteStream::from(doc.content.into_bytes()))
-                    .content_type("text/markdown")
-                    .send()
+                    .put_object(
+                        &state.bucket_name,
+                        &export_path,
+                        doc.content.into_bytes(),
+                        Some("text/markdown"),
+                    )
                     .await;
             }
 
@@ -117,12 +117,12 @@ pub async fn handle_export_html(
 
             if let Some(s3_client) = state.drive.as_ref() {
                 let _ = s3_client
-                    .put_object()
-                    .bucket(&state.bucket_name)
-                    .key(&export_path)
-                    .body(ByteStream::from(html_content.into_bytes()))
-                    .content_type("text/html")
-                    .send()
+                    .put_object(
+                        &state.bucket_name,
+                        &export_path,
+                        html_content.into_bytes(),
+                        Some("text/html"),
+                    )
                     .await;
             }
 
@@ -159,12 +159,12 @@ pub async fn handle_export_txt(
 
             if let Some(s3_client) = state.drive.as_ref() {
                 let _ = s3_client
-                    .put_object()
-                    .bucket(&state.bucket_name)
-                    .key(&export_path)
-                    .body(ByteStream::from(plain_text.into_bytes()))
-                    .content_type("text/plain")
-                    .send()
+                    .put_object(
+                        &state.bucket_name,
+                        &export_path,
+                        plain_text.into_bytes(),
+                        Some("text/plain"),
+                    )
                     .await;
             }
 

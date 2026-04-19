@@ -520,7 +520,7 @@ impl BotOrchestrator {
                         sm.get_session_context_data(&session.id, &session.user_id)?
                     };
 
-                    let config_manager = ConfigManager::new(state_clone.conn.clone());
+                    let config_manager = ConfigManager::new(state_clone.conn.clone().into());
 
                     let history_limit = config_manager
                         .get_bot_config_value(&session.bot_id, "history-limit")
@@ -875,7 +875,7 @@ impl BotOrchestrator {
         #[cfg(feature = "nvidia")]
         {
             let initial_tokens = crate::core::shared::utils::estimate_token_count(&context_data);
-            let config_manager = ConfigManager::new(self.state.conn.clone());
+            let config_manager = ConfigManager::new(self.state.conn.clone().into());
             let max_context_size = config_manager
                 .get_config(&session.bot_id, "llm-server-ctx-size", None)
                 .unwrap_or_default()

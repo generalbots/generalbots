@@ -1,6 +1,6 @@
 use anyhow::Result;
 #[cfg(feature = "drive")]
-use aws_sdk_s3::Client as S3Client;
+use crate::drive::s3_repository::S3Repository;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 pub struct UserProvisioningService {
     db_pool: DbPool,
     #[cfg(feature = "drive")]
-    s3_client: Option<Arc<S3Client>>,
+    s3_client: Option<Arc<S3Repository>>,
     #[cfg(not(feature = "drive"))]
     s3_client: Option<Arc<()>>,
     base_url: String,
@@ -56,7 +56,7 @@ pub enum UserRole {
 
 impl UserProvisioningService {
     #[cfg(feature = "drive")]
-    pub fn new(db_pool: DbPool, s3_client: Option<Arc<S3Client>>, base_url: String) -> Self {
+    pub fn new(db_pool: DbPool, s3_client: Option<Arc<S3Repository>>, base_url: String) -> Self {
         Self {
             db_pool,
             s3_client,
@@ -168,24 +168,47 @@ impl UserProvisioningService {
                     .await?;
             }
 
-            s3_client
-                .put_object()
-                .bucket(&bucket_name)
-                .key(&home_path)
-                .body(aws_sdk_s3::primitives::ByteStream::from(vec![]))
-                .send()
-                .await?;
+    s3_client
+        .put_object()
+        .bucket(&bucket_name)
+        .key(&home_path)
+        .body(vec![])
+        .content_type("application/octet-stream")
+        .send()
+        .await?;
 
-            for folder in &["documents", "projects", "shared"] {
-                let folder_key = format!("{}{}/", home_path, folder);
-                s3_client
-                    .put_object()
-                    .bucket(&bucket_name)
-                    .key(&folder_key)
-                    .body(aws_sdk_s3::primitives::ByteStream::from(vec![]))
-                    .send()
-                    .await?;
-            }
+    for folder in &["documents", "projects", "shared"] {
+        let folder_key = format!("{}{}/", home_path, folder);
+        s3_client
+            .put_object()
+            .bucket(&bucket_name)
+            .key(&folder_key)
+            .body(vec![])
+            .content_type("application/octet-stream")
+            .send()
+            .await?;
+    }
+
+    s3_client
+        .put_object()
+        .bucket(&bucket_name)
+        .key(&home_path)
+        .body(vec![])
+        .content_type("application/octet-stream")
+        .send()
+        .await?;
+
+    for folder in &["documents", "projects", "shared"] {
+        let folder_key = format!("{}{}/", home_path, folder);
+        s3_client
+            .put_object()
+            .bucket(&bucket_name)
+            .key(&folder_key)
+            .body(vec![])
+            .content_type("application/octet-stream")
+            .send()
+            .await?;
+    }
 
             log::info!(
                 "Created S3 home for {} in {}",
@@ -304,35 +327,29 @@ impl UserProvisioningService {
         if let Some(s3_client) = &self.s3_client {
             let buckets_result = s3_client.list_buckets().send().await?;
 
-            if let Some(buckets) = buckets_result.buckets {
-                for bucket in buckets {
-                    if let Some(name) = bucket.name {
-                        if name.ends_with(".gbdrive") {
-                            let prefix = format!("home/{}/", username);
+        for bucket in buckets_result.buckets {
+            let name = bucket.name.clone();
+            if name.ends_with(".gbdrive") {
+                let prefix = format!("home/{}/", username);
 
-                            let objects = s3_client
-                                .list_objects_v2()
-                                .bucket(&name)
-                                .prefix(&prefix)
-                                .send()
-                                .await?;
+                let objects = s3_client
+                    .list_objects_v2()
+                    .bucket(&name)
+                    .prefix(&prefix)
+                    .send()
+                    .await?;
 
-                            if let Some(contents) = objects.contents {
-                                for object in contents {
-                                    if let Some(key) = object.key {
-                                        s3_client
-                                            .delete_object()
-                                            .bucket(&name)
-                                            .key(&key)
-                                            .send()
-                                            .await?;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+        for object in objects.contents {
+            let key = object.key.clone();
+            s3_client
+                .delete_object()
+                .bucket(&name)
+                .key(&key)
+                .send()
+                .await?;
+        }
             }
+        }
         }
 
         #[cfg(not(feature = "drive"))]

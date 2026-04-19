@@ -115,7 +115,7 @@ pub async fn merge_documents(
         .put_object()
         .bucket(&req.bucket)
         .key(&req.output_path)
-        .body(merged_content.into_bytes().into())
+        .body(merged_content.into_bytes())
         .send()
         .await
         .map_err(|e| {
@@ -294,7 +294,7 @@ pub async fn convert_document(
         .put_object()
         .bucket(&req.bucket)
         .key(&req.output_path)
-        .body(converted_content.into_bytes().into())
+        .body(converted_content.into_bytes())
         .send()
         .await
         .map_err(|e| {
@@ -381,7 +381,7 @@ pub async fn fill_document(
         .put_object()
         .bucket(&req.bucket)
         .key(&req.output_path)
-        .body(template.into_bytes().into())
+        .body(template.into_bytes())
         .send()
         .await
         .map_err(|e| {
@@ -530,7 +530,7 @@ pub async fn import_document(
         .put_object()
         .bucket(&req.bucket)
         .key(&req.output_path)
-        .body(processed_content.into_bytes().into())
+        .body(processed_content.into_bytes())
         .send()
         .await
         .map_err(|e| {

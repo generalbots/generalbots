@@ -2,11 +2,14 @@ pub mod api;
 pub mod provisioning;
 
 use anyhow::Result;
-use aws_sdk_s3::Client as S3Client;
+
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
+#[cfg(feature = "drive")]
+use crate::drive::s3_repository::S3Repository;
 
 pub use provisioning::{BotAccess, UserAccount, UserProvisioningService, UserRole};
 
@@ -48,7 +51,7 @@ impl DirectoryService {
     pub fn new(
         config: DirectoryConfig,
         db_pool: Pool<ConnectionManager<PgConnection>>,
-        s3_client: Arc<S3Client>,
+        s3_client: Arc<S3Repository>,
     ) -> Result<Self> {
         let provisioning = Arc::new(UserProvisioningService::new(
             db_pool,

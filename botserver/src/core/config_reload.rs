@@ -8,7 +8,7 @@ use crate::core::config::ConfigManager;
 pub async fn reload_config(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Value>, StatusCode> {
-    let config_manager = ConfigManager::new(state.conn.clone());
+    let config_manager = ConfigManager::new(state.conn.clone().into());
     
     // Get default bot
     let conn_arc = state.conn.clone();

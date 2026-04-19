@@ -33,7 +33,7 @@ async fn process_episodic_memory(
         session_manager.get_user_sessions(Uuid::nil())?
     };
     for session in sessions {
-        let config_manager = ConfigManager::new(state.conn.clone());
+        let config_manager = ConfigManager::new(state.conn.clone().into());
 
         // Default to 0 (disabled) to respect user's request for false by default
         let threshold = config_manager
@@ -145,7 +145,7 @@ async fn process_episodic_memory(
 
         let llm_provider = state.llm_provider.clone();
         let mut filtered = String::new();
-        let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
+        let config_manager = crate::core::config::ConfigManager::new(state.conn.clone().into());
         
         // Use session.bot_id instead of Uuid::nil() to avoid using default bot settings
         let model = config_manager

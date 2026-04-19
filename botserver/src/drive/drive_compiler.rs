@@ -132,13 +132,13 @@ impl DriveCompiler {
 
         if !work_bas_path.exists() {
             // Buscar do S3 - isso deveria ser feito pelo DriveMonitor
-            // Por enquanto, apenas logamos
-            warn!("File {} not found in work dir, skipping", work_bas_path.display());
-            return Ok(());
-        }
+                // Por enquanto, apenas logamos
+                warn!("File {} not found in work dir, skipping", work_bas_path.display());
+                return Ok(());
+            }
 
-        // Ler conteúdo
-        let content = std::fs::read_to_string(&work_bas_path)?;
+            // Ler conteúdo
+            let _content = std::fs::read_to_string(&work_bas_path)?;
 
         // Compilar com BasicCompiler (já está no work dir, então compila in-place)
         let mut compiler = BasicCompiler::new(self.state.clone(), bot_id);

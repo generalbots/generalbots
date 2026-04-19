@@ -95,7 +95,7 @@ pub async fn send_campaign_email(
     let open_token = Uuid::new_v4();
     let tracking_id = Uuid::new_v4();
 
-    let config = ConfigManager::new(state.conn.clone());
+    let config = ConfigManager::new(state.conn.clone().into());
     let base_url = config
         .get_config(&bot_id, "server-url", Some(""))
         .unwrap_or_else(|_| "".to_string());

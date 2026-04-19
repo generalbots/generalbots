@@ -10,7 +10,8 @@
 
 
 
-
+#[cfg(feature = "drive")]
+use crate::drive::s3_repository::S3Repository;
 use crate::core::shared::message_types::MessageType;
 use crate::core::shared::models::{BotResponse, UserMessage};
 use anyhow::Result;
@@ -118,20 +119,20 @@ pub trait MultimediaHandler: Send + Sync {
 #[cfg(feature = "drive")]
 #[derive(Debug)]
 pub struct DefaultMultimediaHandler {
-    storage_client: Option<aws_sdk_s3::Client>,
+    storage_client: Option<S3Repository>,
     search_api_key: Option<String>,
 }
 
 #[cfg(feature = "drive")]
 impl DefaultMultimediaHandler {
-    pub fn new(storage_client: Option<aws_sdk_s3::Client>, search_api_key: Option<String>) -> Self {
+    pub fn new(storage_client: Option<S3Repository>, search_api_key: Option<String>) -> Self {
         Self {
             storage_client,
             search_api_key,
         }
     }
 
-    pub fn storage_client(&self) -> &Option<aws_sdk_s3::Client> {
+    pub fn storage_client(&self) -> &Option<S3Repository> {
         &self.storage_client
     }
 
@@ -346,7 +347,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 .put_object()
                 .bucket("botserver-media")
                 .key(&key)
-                .body(request.data.into())
+                .body(request.data)
                 .content_type(&request.content_type)
                 .send()
                 .await?;

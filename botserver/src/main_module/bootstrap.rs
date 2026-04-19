@@ -435,7 +435,7 @@ pub async fn create_app_state(
     #[cfg(feature = "directory")]
     bootstrap_directory_admin(&zitadel_config).await;
 
-    let config_manager = ConfigManager::new(pool.clone());
+    let config_manager = ConfigManager::new(pool.clone().into());
 
     let mut bot_conn = pool
         .get()
@@ -926,16 +926,16 @@ pub async fn start_background_services(
             info!("LOAD_ONLY filter active: {:?}", load_only);
         }
 
-        // Step 1: Discover bots from S3 buckets (*.gbai) and auto-create missing
-        if let Some(s3_client) = &state_for_scan.drive {
-            match s3_client.list_buckets().send().await {
-                Ok(result) => {
-                    for bucket in result.buckets().iter().filter_map(|b| b.name()) {
-                        let name = bucket.to_string();
-                        if !name.ends_with(".gbai") {
-                            continue;
-                        }
-                        let bot_name = name.strip_suffix(".gbai").unwrap_or(&name).to_string();
+// Step 1: Discover bots from S3 buckets (*.gbai) and auto-create missing
+    if let Some(s3_client) = &state_for_scan.drive {
+        match s3_client.list_all_buckets().await {
+            Ok(buckets) => {
+                for bucket in buckets {
+                    let name = bucket;
+                    if !name.ends_with(".gbai") {
+                        continue;
+                    }
+                    let bot_name = name.strip_suffix(".gbai").unwrap_or(&name).to_string();
 
                         // Filter by LOAD_ONLY if specified
                         if !load_only.is_empty() && !load_only.contains(&bot_name) {

@@ -4,8 +4,18 @@ use crate::core::shared::state::AppState;
 fn is_sensitive_config_key(key: &str) -> bool {
     let key_lower = key.to_lowercase();
     let sensitive_patterns = [
-        "password", "secret", "token", "key", "credential", "auth",
-        "api_key", "apikey", "pass", "pwd", "cert", "private",
+        "password",
+        "secret",
+        "token",
+        "key",
+        "credential",
+        "auth",
+        "api_key",
+        "apikey",
+        "pass",
+        "pwd",
+        "cert",
+        "private",
     ];
     sensitive_patterns.iter().any(|p| key_lower.contains(p))
 }
@@ -196,8 +206,10 @@ fn fill_pending_info(
     .bind::<Text, _>(config_key)
     .execute(&mut conn)?;
 
-    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
-    config_manager.set_config(&bot_id, config_key, value)?;
+    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone().into());
+    config_manager
+        .set_config(&bot_id, config_key, value)
+        .map_err(|e| format!("Failed to set config: {}", e))?;
 
     Ok(())
 }

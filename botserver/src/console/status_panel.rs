@@ -244,7 +244,7 @@ impl StatusPanel {
                     if selected == bot_name {
                         lines.push("".to_string());
                         lines.push(" ┌─ Bot Configuration ─────────┐".to_string());
-                        let config_manager = ConfigManager::new(self.app_state.conn.clone());
+                        let config_manager = ConfigManager::new(self.app_state.conn.clone().into());
                         let llm_model = config_manager
                             .get_config(bot_id, "llm-model", None)
                             .unwrap_or_else(|_| "N/A".to_string());

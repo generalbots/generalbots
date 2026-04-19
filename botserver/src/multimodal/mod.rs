@@ -244,7 +244,7 @@ impl BotModelsClient {
     }
 
     pub fn from_state(state: &AppState, bot_id: &Uuid) -> Self {
-        let config_manager = ConfigManager::new(state.conn.clone());
+        let config_manager = ConfigManager::new(state.conn.clone().into());
         let config = BotModelsConfig::from_database(&config_manager, bot_id);
         let image_config = ImageGeneratorConfig::from_database(&config_manager, bot_id);
         let video_config = VideoGeneratorConfig::from_database(&config_manager, bot_id);
@@ -630,7 +630,7 @@ pub async fn ensure_botmodels_running(
         })
         .await?;
 
-        let config_manager = ConfigManager::new(app_state.conn.clone());
+        let config_manager = ConfigManager::new(app_state.conn.clone().into());
         BotModelsConfig::from_database(&config_manager, &default_bot_id)
     };
 

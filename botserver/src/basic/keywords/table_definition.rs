@@ -424,7 +424,7 @@ pub fn load_connection_config(
     bot_id: Uuid,
     connection_name: &str,
 ) -> Result<ExternalConnection, Box<dyn Error + Send + Sync>> {
-    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
+    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone().into());
 
     let prefix = format!("conn-{}-", connection_name);
 

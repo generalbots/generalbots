@@ -3,6 +3,7 @@ use log::{debug, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::core::config::ConfigManager;
@@ -34,7 +35,7 @@ impl QdrantConfig {
         let (url, api_key) = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
             sm.get_vectordb_config_sync()
         } else {
-            let config_manager = ConfigManager::new(pool);
+            let config_manager = ConfigManager::new(Arc::new(pool.clone()));
             let url = config_manager
                 .get_config(bot_id, "vectordb-url", Some(""))
                 .unwrap_or_else(|_| "".to_string());
