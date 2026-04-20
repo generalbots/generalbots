@@ -43,8 +43,8 @@ impl QdrantClient {
     pub fn new(url: &str) -> Self {
         let client = Client::builder()
             .build()
-            .expect("Failed to create HTTP client");
-        
+            .unwrap_or_else(|_| Client::new());
+
         Self {
             client,
             url: url.trim_end_matches('/').to_string(),
