@@ -116,7 +116,7 @@ impl DriveCompiler {
         }
 
         let bot_name = parts[0].trim_end_matches(".gbai");
-        let tool_name = parts.last().unwrap().trim_end_matches(".bas");
+        let tool_name = parts.last().ok_or("Invalid file path")?.trim_end_matches(".bas");
 
         // Work dir: /opt/gbo/work/{bot}.gbai/{bot}.gbdialog/
         let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));

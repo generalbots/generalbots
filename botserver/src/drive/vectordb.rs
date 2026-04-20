@@ -586,7 +586,7 @@ Ok(content)
         "text/xml" | "application/xml" | "text/html" => {
             let content = fs::read_to_string(file_path).await?;
 
-            let tag_regex = regex::Regex::new(r"<[^>]+>").expect("valid regex");
+            let tag_regex = regex::Regex::new(r"<[^>]+>").map_err(|e| anyhow::anyhow!("Invalid regex: {}", e))?;
             let text = tag_regex.replace_all(&content, " ").to_string();
             Ok(text.trim().to_string())
         }
@@ -594,8 +594,8 @@ Ok(content)
         "text/rtf" | "application/rtf" => {
             let content = fs::read_to_string(file_path).await?;
 
-            let control_regex = regex::Regex::new(r"\\[a-z]+[\-0-9]*[ ]?").expect("valid regex");
-            let group_regex = regex::Regex::new(r"[\{\}]").expect("valid regex");
+            let control_regex = regex::Regex::new(r"\\[a-z]+[\-0-9]*[ ]?").map_err(|e| anyhow::anyhow!("Invalid regex: {}", e))?;
+            let group_regex = regex::Regex::new(r"[\{\}]").map_err(|e| anyhow::anyhow!("Invalid regex: {}", e))?;
 
             let mut text = control_regex.replace_all(&content, " ").to_string();
             text = group_regex.replace_all(&text, "").to_string();
@@ -652,7 +652,7 @@ async fn extract_docx_text(file_path: &Path) -> Result<String> {
             let mut xml_content = String::new();
             std::io::Read::read_to_string(&mut document, &mut xml_content)?;
 
-            let text_regex = regex::Regex::new(r"<w:t[^>]*>([^<]*)</w:t>").expect("valid regex");
+            let text_regex = regex::Regex::new(r"<w:t[^>]*>([^<]*)</w:t>").map_err(|e| anyhow::anyhow!("Invalid regex: {}", e))?;
 
             content = text_regex
                 .captures_iter(&xml_content)
