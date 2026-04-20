@@ -76,13 +76,18 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
 
     let stack_path = get_stack_path();
 
-    let base_url = "".to_string();
     let config_path = PathBuf::from(&stack_path).join("conf/system/directory_config.json");
+    
+    // Default base_url for local Zitadel instance
+    let base_url = "http://localhost:8300".to_string();
 
     // Check if config already exists in Vault first
     if let Ok(secrets_manager) = crate::core::secrets::SecretsManager::get() {
         if secrets_manager.is_enabled() {
             if let Ok(secrets) = secrets_manager.get_secret(crate::core::secrets::SecretPaths::DIRECTORY).await {
+                // Use URL from Vault if available
+                let base_url = secrets.get("url").cloned().unwrap_or_else(|| base_url.clone());
+                
                 if let (Some(client_id), Some(client_secret)) = (secrets.get("client_id"), secrets.get("client_secret")) {
                     // Validate that credentials are real, not placeholders
                     let is_valid = !client_id.is_empty()

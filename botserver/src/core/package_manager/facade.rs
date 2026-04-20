@@ -773,11 +773,11 @@ Store credentials in Vault:
             "directory" => {
                 format!(
                     r"Zitadel Identity Provider:
-  URL: http://{}:9000
-  Console: http://{}:9000/ui/console
+URL: http://{}:8300
+Console: http://{}:8300/ui/console
 
 Store credentials in Vault:
-  botserver vault put gbo/directory url=http://{}:9000 client_id=<client-id> client_secret=<client-secret>",
+botserver vault put gbo/directory url=http://{}:8300 client_id=<client-id> client_secret=<client-secret>",
                     ip, ip, ip
                 )
             }
