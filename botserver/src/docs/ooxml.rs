@@ -101,20 +101,6 @@ fn escape_xml(text: &str) -> String {
         .replace('\'', "&apos;")
 }
 
-pub fn save_docx_preserving(original_bytes: &[u8]) -> Result<Vec<u8>, String> {
-    use ooxmlsdk::parts::wordprocessing_document::WordprocessingDocument;
-
-    let reader = Cursor::new(original_bytes);
-    let docx = WordprocessingDocument::new(reader)
-        .map_err(|e| format!("Failed to parse DOCX: {e}"))?;
-
-    let mut output = Cursor::new(Vec::new());
-    docx.save(&mut output)
-        .map_err(|e| format!("Failed to save DOCX: {e}"))?;
-
-    Ok(output.into_inner())
-}
-
 pub fn update_docx_text(
     original_bytes: &[u8],
     new_paragraphs: &[String],
@@ -235,7 +221,11 @@ fn replace_first_text_run(para_xml: &str, new_text: &str) -> String {
                     found_first = true;
                     search_pos = abs_content_start + escaped.len() + 6;
                 } else {
-                    result = format!("{}{}", &result[..abs_content_start], &result[abs_content_end..]);
+                    result = format!(
+                        "{}{}",
+                        &result[..abs_content_start],
+                        &result[abs_content_end..]
+                    );
                     search_pos = abs_content_start;
                 }
             } else {

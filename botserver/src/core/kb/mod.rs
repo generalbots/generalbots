@@ -109,23 +109,31 @@ impl KnowledgeBaseManager {
         kb_name: &str,
         file_path: &Path,
     ) -> Result<kb_indexer::IndexingResult> {
+        self.index_single_file_with_id(bot_id, bot_name, kb_name, file_path, None).await
+    }
+
+    pub async fn index_single_file_with_id(
+        &self,
+        bot_id: Uuid,
+        bot_name: &str,
+        kb_name: &str,
+        file_path: &Path,
+        document_id: Option<&str>,
+    ) -> Result<kb_indexer::IndexingResult> {
+        let doc_id_display = document_id.unwrap_or("(temp path)");
         info!(
-            "Indexing single file: {} into KB {} for bot {}",
-            file_path.display(),
-            kb_name,
-            bot_name
+            "Indexing single file: {} (id: {}) into KB {} for bot {}",
+            file_path.display(), doc_id_display, kb_name, bot_name
         );
 
         let result = self
             .indexer
-            .index_single_file(bot_id, bot_name, kb_name, file_path)
+            .index_single_file_with_id(bot_id, bot_name, kb_name, file_path, document_id)
             .await?;
 
         info!(
             "Successfully indexed {} chunks from {} into collection {}",
-            result.chunks_indexed,
-            file_path.display(),
-            result.collection_name
+            result.chunks_indexed, file_path.display(), result.collection_name
         );
 
         Ok(result)

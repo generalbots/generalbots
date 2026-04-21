@@ -10,6 +10,8 @@ use s3::{Bucket, Region, creds::Credentials};
 pub struct S3Repository {
     bucket_name: String,
     bucket: Arc<Bucket>,
+    access_key: String,
+    secret_key: String,
 }
 
 impl S3Repository {
@@ -30,123 +32,185 @@ impl S3Repository {
         Ok(Self {
             bucket_name: bucket.to_string(),
             bucket: Arc::new((*s3_bucket).clone()),
+            access_key: access_key.to_string(),
+            secret_key: secret_key.to_string(),
         })
     }
 
-    /// Upload data to S3 - direct call (renamed to avoid conflict with builder)
+    /// Upload data to S3 - creates bucket reference for target bucket
     pub async fn put_object_direct(
         &self,
-        _bucket: &str,
+        bucket: &str,
         key: &str,
         data: Vec<u8>,
         _content_type: Option<&str>,
     ) -> Result<()> {
-        debug!("Uploading to S3: {}/{}", self.bucket_name, key);
-        self.bucket.put_object(key, &data).await?;
-        info!("Successfully uploaded to S3: {}/{}", self.bucket_name, key);
+        debug!("Uploading to S3: {}/{}", bucket, key);
+        let target_bucket = self.bucket_for(bucket)?;
+        target_bucket.put_object(key, &data).await?;
+        info!("Successfully uploaded to S3: {}/{}", bucket, key);
         Ok(())
     }
 
-    /// Download data from S3 - direct call (renamed to avoid conflict with builder)
-    pub async fn get_object_direct(&self, _bucket: &str, key: &str) -> Result<Vec<u8>> {
-        debug!("Downloading from S3: {}/{}", self.bucket_name, key);
-        let response = self.bucket.get_object(key).await?;
+    /// Download data from S3 - creates bucket reference for target bucket
+    pub async fn get_object_direct(&self, bucket: &str, key: &str) -> Result<Vec<u8>> {
+        debug!("Downloading from S3: {}/{}", bucket, key);
+        let target_bucket = self.bucket_for(bucket)?;
+        let response = target_bucket.get_object(key).await?;
         let data = response.to_vec();
-        info!("Successfully downloaded from S3: {}/{}", self.bucket_name, key);
+        info!("Successfully downloaded from S3: {}/{}", bucket, key);
         Ok(data)
     }
 
-    /// Delete an object from S3 - direct call (renamed to avoid conflict with builder)
-    pub async fn delete_object_direct(&self, _bucket: &str, key: &str) -> Result<()> {
-        debug!("Deleting from S3: {}/{}", self.bucket_name, key);
-        self.bucket.delete_object(key).await?;
-        info!("Successfully deleted from S3: {}/{}", self.bucket_name, key);
+    /// Delete an object from S3 - creates bucket reference for target bucket
+    pub async fn delete_object_direct(&self, bucket: &str, key: &str) -> Result<()> {
+        debug!("Deleting from S3: {}/{}", bucket, key);
+        let target_bucket = self.bucket_for(bucket)?;
+        target_bucket.delete_object(key).await?;
+        info!("Successfully deleted from S3: {}/{}", bucket, key);
         Ok(())
     }
 
-    /// Copy object - implemented as get+put (renamed to avoid conflict with builder)
-    pub async fn copy_object_direct(&self, _bucket: &str, from_key: &str, to_key: &str) -> Result<()> {
-        debug!("Copying in S3: {}/{} -> {}/{}", self.bucket_name, from_key, self.bucket_name, to_key);
-        let response = self.bucket.get_object(from_key).await?;
+    /// Copy object - creates bucket reference for target bucket
+    pub async fn copy_object_direct(&self, bucket: &str, from_key: &str, to_key: &str) -> Result<()> {
+        debug!("Copying in S3: {}/{} -> {}/{}", bucket, from_key, bucket, to_key);
+        let target_bucket = self.bucket_for(bucket)?;
+        let response = target_bucket.get_object(from_key).await?;
         let data = response.to_vec();
-        self.bucket.put_object(to_key, &data).await?;
+        target_bucket.put_object(to_key, &data).await?;
         Ok(())
     }
 
-    /// List buckets
+    /// Create a Bucket reference for a specific bucket name using stored credentials
+    fn bucket_for(&self, bucket_name: &str) -> Result<Arc<Bucket>> {
+        if bucket_name == self.bucket_name {
+            return Ok(self.bucket.clone());
+        }
+        let region = self.bucket.region().clone();
+        let creds = s3::creds::Credentials::new(
+            Some(&self.access_key),
+            Some(&self.secret_key),
+            None, None, None
+        ).map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
+        let target = Bucket::new(bucket_name, region, creds)?.with_path_style();
+        Ok(Arc::new((*target).clone()))
+    }
+
+    /// List all buckets in S3/MinIO using rust-s3 crate's list_buckets
     pub async fn list_all_buckets(&self) -> Result<Vec<String>> {
-        debug!("Listing all buckets");
-        Ok(vec![self.bucket_name.clone()])
+        debug!("Listing all buckets from S3");
+
+        let region = self.bucket.region().clone();
+        let creds = s3::creds::Credentials::new(
+            Some(&self.access_key),
+            Some(&self.secret_key),
+            None, None, None
+        ).map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
+
+        let response = Bucket::list_buckets(region, creds)
+            .await
+            .map_err(|e| anyhow::anyhow!("ListBuckets failed: {}", e))?;
+
+        let buckets: Vec<String> = response.bucket_names().collect();
+        debug!("Found {} buckets: {:?}", buckets.len(), buckets);
+        Ok(buckets)
     }
 
     /// Check if an object exists
-    pub async fn object_exists(&self, _bucket: &str, key: &str) -> Result<bool> {
-        Ok(self.bucket.object_exists(key).await?)
+    pub async fn object_exists(&self, bucket: &str, key: &str) -> Result<bool> {
+        let target_bucket = self.bucket_for(bucket)?;
+        Ok(target_bucket.object_exists(key).await?)
     }
 
-    /// List objects with prefix
-    pub async fn list_objects(&self, _bucket: &str, prefix: Option<&str>) -> Result<Vec<String>> {
-        debug!("Listing objects in S3: {} with prefix {:?}", self.bucket_name, prefix);
+    /// List objects with prefix, returning only keys
+    pub async fn list_objects(&self, bucket: &str, prefix: Option<&str>) -> Result<Vec<String>> {
+        let infos = self.list_objects_with_metadata(bucket, prefix).await?;
+        Ok(infos.into_iter().map(|i| i.key).collect())
+    }
+
+    /// List objects with prefix, returning key + etag + size for change detection
+    pub async fn list_objects_with_metadata(&self, bucket: &str, prefix: Option<&str>) -> Result<Vec<S3ObjectInfo>> {
+        debug!("Listing objects with metadata in S3: {} with prefix {:?}", bucket, prefix);
+
+        let region = self.bucket.region().clone();
+        let creds = s3::creds::Credentials::new(
+            Some(&self.access_key),
+            Some(&self.secret_key),
+            None, None, None
+        ).map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
+
+        let target_bucket = Bucket::new(bucket, region, creds)?.with_path_style();
+
         let prefix_str = prefix.unwrap_or("");
-        let results = self.bucket.list(prefix_str.to_string(), Some("/".to_string())).await?;
-        let keys: Vec<String> = results.iter()
-            .flat_map(|r| r.contents.iter().map(|c| c.key.clone()))
+        let results = target_bucket.list(prefix_str.to_string(), None).await?;
+        let objects: Vec<S3ObjectInfo> = results.iter()
+            .flat_map(|r| r.contents.iter().map(|c| S3ObjectInfo {
+                key: c.key.clone(),
+                etag: c.e_tag.clone(),
+                size: c.size,
+            }))
             .collect();
-        Ok(keys)
+        debug!("Found {} objects with metadata in bucket {}", objects.len(), bucket);
+        Ok(objects)
     }
 
     /// Upload a file
     pub async fn upload_file(
         &self,
-        _bucket: &str,
+        bucket: &str,
         key: &str,
         file_path: &str,
         _content_type: Option<&str>,
     ) -> Result<()> {
-        debug!("Uploading file to S3: {} -> {}/{}", file_path, self.bucket_name, key);
+        debug!("Uploading file to S3: {} -> {}/{}", file_path, bucket, key);
+        let target_bucket = self.bucket_for(bucket)?;
         let data = tokio::fs::read(file_path).await
             .context("Failed to read file for upload")?;
-        self.bucket.put_object(key, &data).await?;
+        target_bucket.put_object(key, &data).await?;
         Ok(())
     }
 
     /// Download a file
-    pub async fn download_file(&self, _bucket: &str, key: &str, file_path: &str) -> Result<()> {
-        debug!("Downloading file from S3: {}/{} -> {}", self.bucket_name, key, file_path);
-        let response = self.bucket.get_object(key).await?;
+    pub async fn download_file(&self, bucket: &str, key: &str, file_path: &str) -> Result<()> {
+        debug!("Downloading file from S3: {}/{} -> {}", bucket, key, file_path);
+        let target_bucket = self.bucket_for(bucket)?;
+        let response = target_bucket.get_object(key).await?;
         let data = response.to_vec();
         tokio::fs::write(file_path, data).await
             .context("Failed to write downloaded file")?;
-        info!("Successfully downloaded file from S3: {}/{} -> {}", self.bucket_name, key, file_path);
+        info!("Successfully downloaded file from S3: {}/{} -> {}", bucket, key, file_path);
         Ok(())
     }
 
     /// Delete multiple objects
-    pub async fn delete_objects(&self, _bucket: &str, keys: Vec<String>) -> Result<()> {
+    pub async fn delete_objects(&self, bucket: &str, keys: Vec<String>) -> Result<()> {
         if keys.is_empty() {
             return Ok(());
         }
-        debug!("Deleting {} objects from S3: {}", keys.len(), self.bucket_name);
+        debug!("Deleting {} objects from S3: {}", keys.len(), bucket);
+        let target_bucket = self.bucket_for(bucket)?;
         let keys_count = keys.len();
         for key in keys {
-            let _ = self.bucket.delete_object(&key).await;
+            let _ = target_bucket.delete_object(&key).await;
         }
-        info!("Deleted {} objects from S3: {}", keys_count, self.bucket_name);
+        info!("Deleted {} objects from S3: {}", keys_count, bucket);
         Ok(())
     }
 
     /// Create bucket if not exists
-    pub async fn create_bucket_if_not_exists(&self, _bucket: &str) -> Result<()> {
+    pub async fn create_bucket_if_not_exists(&self, bucket: &str) -> Result<()> {
+        let _target_bucket = self.bucket_for(bucket)?;
         Ok(())
     }
 
     /// Get object metadata
     pub async fn get_object_metadata(
         &self,
-        _bucket: &str,
+        bucket: &str,
         key: &str,
     ) -> Result<Option<ObjectMetadata>> {
-        match self.bucket.head_object(key).await {
+        let target_bucket = self.bucket_for(bucket)?;
+        match target_bucket.head_object(key).await {
             Ok((response, _)) => Ok(Some(ObjectMetadata {
                 size: response.content_length.unwrap_or(0) as u64,
                 content_type: response.content_type,
@@ -196,15 +260,12 @@ pub fn copy_object(&self) -> S3CopyBuilder {
 
     /// List buckets
     pub fn list_buckets(&self) -> S3ListBucketsBuilder {
-        S3ListBucketsBuilder {
-            bucket: self.bucket.clone(),
-        }
+        S3ListBucketsBuilder { repo: Some(Arc::new(self.clone())) }
     }
 
     /// Head bucket
     pub fn head_bucket(&self) -> S3HeadBucketBuilder {
         S3HeadBucketBuilder {
-            bucket: self.bucket.clone(),
             bucket_name: None,
         }
     }
@@ -212,7 +273,6 @@ pub fn copy_object(&self) -> S3CopyBuilder {
     /// Create bucket
     pub fn create_bucket(&self) -> S3CreateBucketBuilder {
         S3CreateBucketBuilder {
-            bucket: self.bucket.clone(),
             bucket_name: None,
         }
     }
@@ -227,13 +287,21 @@ pub fn copy_object(&self) -> S3CopyBuilder {
     }
 }
 
-/// Metadata for an S3 object
+/// Metadata for an S3 object (from HEAD request)
 #[derive(Debug, Clone)]
 pub struct ObjectMetadata {
     pub size: u64,
     pub content_type: Option<String>,
     pub last_modified: Option<String>,
     pub etag: Option<String>,
+}
+
+/// Object info from list operations (key + etag + size)
+#[derive(Debug, Clone)]
+pub struct S3ObjectInfo {
+    pub key: String,
+    pub etag: Option<String>,
+    pub size: u64,
 }
 
 // ============ Builder implementations ============
@@ -311,17 +379,24 @@ impl S3CopyBuilder {
 }
 
 pub struct S3ListBucketsBuilder {
-    bucket: Arc<Bucket>,
+    repo: Option<SharedS3Repository>,
 }
 
 impl S3ListBucketsBuilder {
+    pub fn repo(mut self, repo: SharedS3Repository) -> Self { self.repo = Some(repo); self }
     pub async fn send(self) -> Result<S3ListBucketsResponse> {
-        Ok(S3ListBucketsResponse { buckets: vec![] })
+        if let Some(repo) = self.repo {
+            let names = repo.list_all_buckets().await?;
+            Ok(S3ListBucketsResponse {
+                buckets: names.into_iter().map(|name| S3Bucket { name }).collect(),
+            })
+        } else {
+            Ok(S3ListBucketsResponse { buckets: vec![] })
+        }
     }
 }
 
 pub struct S3HeadBucketBuilder {
-    bucket: Arc<Bucket>,
     bucket_name: Option<String>,
 }
 
@@ -333,7 +408,6 @@ impl S3HeadBucketBuilder {
 }
 
 pub struct S3CreateBucketBuilder {
-    bucket: Arc<Bucket>,
     bucket_name: Option<String>,
 }
 
@@ -380,7 +454,7 @@ impl S3Response {
 
 #[derive(Debug, Default)]
 pub struct S3ResponseBody {
-    data: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 impl S3ResponseBody {
