@@ -828,28 +828,32 @@ impl BotOrchestrator {
         // #[cfg(feature = "drive")]
         // set_llm_streaming(true);
 
-    let stream_tx_clone = stream_tx.clone();
+        let stream_tx_clone = stream_tx.clone();
 
-    // Create cancellation channel for this streaming session
-    let (cancel_tx, mut cancel_rx) = broadcast::channel::<()>(1);
-    let session_id_str = session.id.to_string();
+        // Create cancellation channel for this streaming session
+        let (cancel_tx, mut cancel_rx) = broadcast::channel::<()>(1);
+        let session_id_str = session.id.to_string();
 
-    // Register this streaming session for potential cancellation
-    {
-        let mut active_streams = self.state.active_streams.lock().await;
-        active_streams.insert(session_id_str.clone(), cancel_tx);
-    }
-
-    // Wrap the LLM task in a JoinHandle so we can abort it
-    let mut cancel_rx_for_abort = cancel_rx.resubscribe();
-    let llm_task = tokio::spawn(async move {
-        if let Err(e) = llm
-        .generate_stream("", &messages_clone, stream_tx_clone, &model_clone, &key_clone, tools_for_llm.as_ref())
-        .await
+        // Register this streaming session for potential cancellation
         {
-            error!("LLM streaming error: {}", e);
+            let mut active_streams = self.state.active_streams.lock().await;
+            active_streams.insert(session_id_str.clone(), cancel_tx);
         }
-    });
+
+        // Wrap the LLM task in a JoinHandle so we can abort it
+        let mut cancel_rx_for_abort = cancel_rx.resubscribe();
+        let llm_task = tokio::spawn(async move {
+            if let Err(e) = llm
+                .generate_stream("", &messages_clone, stream_tx_clone, &model_clone, &key_clone, tools_for_llm.as_ref())
+                .await
+            {
+                error!("LLM streaming error: {}", e);
+            }
+        });
+
+        // Drop the original stream_tx so stream_rx.recv() loop ends
+        // when the LLM task finishes and drops its clone.
+        drop(stream_tx);
 
         // Wait for cancellation to abort LLM task
         tokio::spawn(async move {
