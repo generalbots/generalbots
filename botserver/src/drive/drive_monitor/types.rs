@@ -72,6 +72,10 @@ impl DriveMonitor {
                     Ok(_) => log::info!("Added/updated drive_files for: {} ({})", full_key, file_type),
                     Err(e) => log::error!("Failed to upsert {}: {}", full_key, e),
                 }
+
+                if file_type == "bas" {
+                    self.sync_bas_to_work(bot_name, &obj.key).await;
+                }
             } else {
                 log::debug!("{} unchanged, skipping upsert", full_key);
             }
@@ -247,6 +251,46 @@ impl DriveMonitor {
 
         let full_key = format!("{}.gbai/{}", bot_name, s3_key);
         let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
+    }
+
+    async fn sync_bas_to_work(&self, bot_name: &str, s3_key: &str) {
+        let s3 = match &self.state.drive {
+            Some(s3) => s3,
+            None => {
+                log::error!("S3 client not available for .bas sync");
+                return;
+            }
+        };
+
+        let data = match s3.get_object_direct(&self.bucket_name, s3_key).await {
+            Ok(d) => d,
+            Err(e) => {
+                log::error!("Failed to download .bas from {}/{}: {}", self.bucket_name, s3_key, e);
+                return;
+            }
+        };
+
+        let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+        if let Err(e) = std::fs::create_dir_all(&work_dir) {
+            log::error!("Failed to create work dir {}: {}", work_dir.display(), e);
+            return;
+        }
+
+        let file_name = s3_key.split('/').next_back().unwrap_or(s3_key);
+        let work_path = work_dir.join(file_name);
+
+        match String::from_utf8(data) {
+            Ok(content) => {
+                if let Err(e) = std::fs::write(&work_path, &content) {
+                    log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
+                } else {
+                    log::info!("Synced {} to work dir {}", s3_key, work_path.display());
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to parse .bas as UTF-8: {}", e);
+            }
+        }
     }
 
     #[cfg(any(feature = "research", feature = "llm"))]
