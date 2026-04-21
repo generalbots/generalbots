@@ -7,23 +7,31 @@ on:
     - 'botlib/**'
     - 'Cargo.lock'
     - '.forgejo/workflows/botserver.yaml'
+env:
+  SCCACHE_DIR: /opt/gbo/work/.sccache
+  CARGO_TARGET_DIR: /opt/gbo/work/target
+  RUSTC_WRAPPER: sccache
+  PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 jobs:
   build:
     runs-on: gbo
     steps:
+    - name: Setup
+      run: |
+        cd /opt/gbo/work/generalbots
+        git reset --hard HEAD
+        git clean -fd
+        git pull
     - name: Build
       run: |
-        cd /opt/gbo/work/botserver
-        git reset --hard HEAD && git clean -fd
-        git pull
-        git submodule update --init --recursive botlib botserver
+        cd /opt/gbo/work/generalbots
         cargo build -p botserver
     - name: Deploy
       run: |
-        sudo incus exec system -- systemctl stop botserver || true
-        sudo incus exec system -- pkill -x botserver || true
-        sleep 1
-        sudo incus file push /opt/gbo/work/botserver/target/debug/botserver system:/opt/gbo/bin/botserver --mode=0755
-        sudo incus exec system -- systemctl start botserver
-        sleep 2
-        sudo incus exec system -- pgrep -x botserver && echo "✅ BotServer Deployed" || echo "❌ Failed"
+        timeout 5 bash -c 'while pgrep -x botserver > /dev/null; do pkill -x botserver; sleep 0.5; done' || true
+        mkdir -p /opt/gbo/bin
+        cp -f /opt/gbo/work/generalbots/target/debug/botserver /opt/gbo/bin/
+        chmod +x /opt/gbo/bin/botserver
+        cd /opt/gbo/bin && ./botserver --noconsole &
+        sleep 3
+        pgrep -x botserver && echo "✅ BotServer Deployed" || echo "❌ Failed"
