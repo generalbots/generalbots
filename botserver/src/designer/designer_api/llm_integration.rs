@@ -282,7 +282,7 @@ async fn call_designer_llm(
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     use crate::core::config::ConfigManager;
 
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
 
     // Get LLM configuration from bot config or use defaults
     let model = config_manager

@@ -1159,12 +1159,16 @@ EOF"#.to_string(),
                 }
             }
 
-            let rendered_cmd = component
-                .exec_cmd
-                .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
-                .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
-                .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
-                .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
+        let rendered_cmd = component
+            .exec_cmd
+            .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
+            .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
+            .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
+            .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
+
+        if let Err(e) = std::fs::create_dir_all(&logs_path) {
+            warn!("Failed to create log directory {}: {}", logs_path.display(), e);
+        }
 
             trace!(
                 "Starting component {} with command: {}",

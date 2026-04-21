@@ -59,7 +59,7 @@ impl EmbeddingConfig {
     pub fn from_bot_config(pool: &DbPool, _bot_id: &uuid::Uuid) -> Self {
         use crate::core::config::ConfigManager;
 
-        let config_manager = ConfigManager::new(Arc::new(pool.clone()));
+        let config_manager = ConfigManager::new(pool.clone());
 
         let embedding_url = config_manager
             .get_config(_bot_id, "embedding-url", Some(""))

@@ -48,7 +48,7 @@ async fn call_llm(
     state: &AppState,
     prompt: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
     let model = config_manager
         .get_config(&Uuid::nil(), "llm-model", None)
         .unwrap_or_default();

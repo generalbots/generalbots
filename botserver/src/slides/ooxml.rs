@@ -97,20 +97,6 @@ fn escape_xml(text: &str) -> String {
         .replace('\'', "&apos;")
 }
 
-pub fn save_pptx_preserving(original_bytes: &[u8]) -> Result<Vec<u8>, String> {
-    use ooxmlsdk::parts::presentation_document::PresentationDocument;
-
-    let reader = Cursor::new(original_bytes);
-    let pptx = PresentationDocument::new(reader)
-        .map_err(|e| format!("Failed to parse PPTX: {e}"))?;
-
-    let mut output = Cursor::new(Vec::new());
-    pptx.save(&mut output)
-        .map_err(|e| format!("Failed to save PPTX: {e}"))?;
-
-    Ok(output.into_inner())
-}
-
 pub fn update_pptx_text(
     original_bytes: &[u8],
     new_slide_texts: &[Vec<String>],
@@ -244,7 +230,11 @@ fn replace_first_text_run(para_xml: &str, new_text: &str) -> String {
                     found_first = true;
                     search_pos = abs_content_start + escaped.len() + 6;
                 } else {
-                    result = format!("{}{}", &result[..abs_content_start], &result[abs_content_end..]);
+                    result = format!(
+                        "{}{}",
+                        &result[..abs_content_start],
+                        &result[abs_content_end..]
+                    );
                     search_pos = abs_content_start;
                 }
             } else {

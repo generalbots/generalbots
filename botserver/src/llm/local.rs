@@ -36,7 +36,7 @@ pub async fn ensure_llama_servers_running(
             Ok(crate::core::bot::get_default_bot(&mut conn))
         })
         .await??;
-        let config_manager = ConfigManager::new(app_state.conn.clone().into());
+        let config_manager = ConfigManager::new(app_state.conn.clone());
         info!("Reading config for bot_id: {}", default_bot_id);
         let embedding_model_result = config_manager.get_config(&default_bot_id, "embedding-model", None);
         info!("embedding-model config result: {:?}", embedding_model_result);
@@ -388,7 +388,7 @@ pub fn start_llm_server(
     std::env::set_var("OMP_PLACES", "cores");
     std::env::set_var("OMP_PROC_BIND", "close");
     let conn = app_state.conn.clone();
-    let config_manager = ConfigManager::new(conn.clone().into());
+    let config_manager = ConfigManager::new(conn.clone());
     let mut conn = conn.get().map_err(|e| {
         Box::new(std::io::Error::other(
             format!("failed to get db connection: {e}"),

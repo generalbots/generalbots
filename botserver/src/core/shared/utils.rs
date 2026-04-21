@@ -106,10 +106,13 @@ pub fn get_work_path() -> String {
 /// In production (system container with .env but no botserver-stack): /opt/gbo/work
 /// In development (with botserver-stack directory): ./botserver-stack/data/system/work
 fn get_work_path_default() -> String {
-    let has_env = std::path::Path::new("./.env").exists() 
+    let has_env = std::path::Path::new("./.env").exists()
         || std::path::Path::new("/opt/gbo/bin/.env").exists();
+    let stack_work = std::path::Path::new("./botserver-stack/data/system/work");
     let production_work = std::path::Path::new("/opt/gbo/work");
-    if has_env || production_work.exists() {
+    if stack_work.exists() {
+        stack_work.to_str().unwrap_or("./botserver-stack/data/system/work").to_string()
+    } else if has_env || production_work.exists() {
         "/opt/gbo/work".to_string()
     } else {
         "./botserver-stack/data/system/work".to_string()
@@ -120,10 +123,13 @@ fn get_work_path_default() -> String {
 /// In production (system container with .env): /opt/gbo
 /// In development: ./botserver-stack
 pub fn get_stack_path() -> String {
-    let has_env = std::path::Path::new("./.env").exists() 
+    let stack_dir = std::path::Path::new("./botserver-stack");
+    let has_env = std::path::Path::new("./.env").exists()
         || std::path::Path::new("/opt/gbo/bin/.env").exists();
     let production_base = std::path::Path::new("/opt/gbo/bin/botserver");
-    if has_env || production_base.exists() {
+    if stack_dir.exists() {
+        "./botserver-stack".to_string()
+    } else if has_env || production_base.exists() {
         "/opt/gbo".to_string()
     } else {
         "./botserver-stack".to_string()
@@ -135,10 +141,16 @@ pub async fn create_s3_operator(
     config: &DriveConfig,
 ) -> Result<S3Repository, Box<dyn std::error::Error>> {
     let endpoint = {
-        let base = if config.server.starts_with("http://") || config.server.starts_with("https://") {
-            config.server.clone()
+        // Fallback to localhost:9100 if config.server is empty
+        let server = if config.server.is_empty() {
+            "localhost:9100".to_string()
         } else {
-            format!("http://{}", config.server)
+            config.server.clone()
+        };
+        let base = if server.starts_with("http://") || server.starts_with("https://") {
+            server
+        } else {
+            format!("http://{}", server)
         };
         let with_port = if base.contains("://") {
             let without_scheme = base.split("://").nth(1).unwrap_or("");
