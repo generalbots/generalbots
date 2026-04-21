@@ -181,7 +181,7 @@ impl WebsiteCrawlerService {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         trace!("Starting crawl for website: {}", website.url);
 
-        let config_manager = ConfigManager::new(db_pool.clone().into());
+        let config_manager = ConfigManager::new(db_pool.clone());
 
         let website_max_depth = config_manager
             .get_bot_config_value(&website.bot_id, "website-max-depth")

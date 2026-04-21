@@ -1,8 +1,30 @@
-// Core configuration module
-// Minimal implementation to allow compilation
-
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
+use crate::core::shared::utils::DbPool;
+use diesel::prelude::*;
+
+#[derive(Debug, Clone, QueryableByName)]
+struct ConfigRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    config_value: String,
+}
+
+fn is_placeholder_value(val: &str) -> bool {
+    let lower = val.trim().to_lowercase();
+    lower.is_empty() || lower == "none" || lower == "null" || lower == "n/a"
+}
+
+fn is_local_file_path(val: &str) -> bool {
+    let lower = val.to_lowercase();
+    val.starts_with("../")
+        || val.starts_with("./")
+        || val.starts_with('/')
+        || val.starts_with('~')
+        || lower.ends_with(".gguf")
+        || lower.ends_with(".bin")
+        || lower.ends_with(".safetensors")
+}
 
 /// Application configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,7 +50,7 @@ pub struct DatabaseConfig {
     pub max_connections: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DriveConfig {
     pub endpoint: String,
     pub bucket: String,
@@ -88,42 +110,141 @@ impl AppConfig {
 
 /// Configuration manager for runtime config updates
 pub struct ConfigManager {
-    db_pool: Arc<dyn Send + Sync>,
+    pool: Arc<DbPool>,
 }
 
 impl ConfigManager {
-    pub fn new<T: Send + Sync + 'static>(db_pool: Arc<T>) -> Self {
-        Self {
-            db_pool: db_pool as Arc<dyn Send + Sync>,
-        }
+    pub fn new(pool: DbPool) -> Self {
+        Self { pool: Arc::new(pool) }
     }
 
     pub fn get_config(
         &self,
-        _bot_id: &uuid::Uuid,
-        _key: &str,
+        bot_id: &uuid::Uuid,
+        key: &str,
         default: Option<&str>,
     ) -> Result<String, Box<dyn std::error::Error>> {
+        if let Ok(mut conn) = self.pool.get() {
+            let bot_val = diesel::sql_query(
+                "SELECT config_value FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .bind::<diesel::sql_types::Text, _>(key)
+            .get_result::<ConfigRow>(&mut conn)
+            .ok()
+            .map(|r| r.config_value);
+
+            if let Some(ref val) = bot_val {
+                if !is_placeholder_value(val) && !is_local_file_path(val) {
+                    return Ok(val.clone());
+                }
+            }
+
+            let default_val = diesel::sql_query(
+                "SELECT config_value FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
+            .bind::<diesel::sql_types::Text, _>(key)
+            .get_result::<ConfigRow>(&mut conn)
+            .ok()
+            .map(|r| r.config_value);
+
+            if let Some(ref val) = default_val {
+                if !is_placeholder_value(val) {
+                    return Ok(val.clone());
+                }
+            }
+        }
         Ok(default.unwrap_or("").to_string())
     }
 
     pub fn get_bot_config_value(
         &self,
-        _bot_id: &uuid::Uuid,
-        _key: &str,
+        bot_id: &uuid::Uuid,
+        key: &str,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        Ok(String::new())
+        if let Ok(mut conn) = self.pool.get() {
+            let row = diesel::sql_query(
+                "SELECT config_value FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .bind::<diesel::sql_types::Text, _>(key)
+            .get_result::<ConfigRow>(&mut conn)
+            .ok();
+            if let Some(r) = row {
+                return Ok(r.config_value);
+            }
+        }
+        Err("Config key not found".into())
     }
 
     pub fn set_config(
         &self,
-        _bot_id: &uuid::Uuid,
-        _key: &str,
-        _value: &str,
+        bot_id: &uuid::Uuid,
+        key: &str,
+        value: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        if let Ok(mut conn) = self.pool.get() {
+            diesel::sql_query(
+                "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type, is_encrypted, created_at, updated_at) \
+                 VALUES ($1, $2, $3, $4, 'string', false, NOW(), NOW()) \
+                 ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, updated_at = NOW()"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .bind::<diesel::sql_types::Text, _>(key)
+            .bind::<diesel::sql_types::Text, _>(value)
+            .execute(&mut conn)?;
+        }
         Ok(())
     }
 }
 
 // Re-export for convenience
 pub use AppConfig as Config;
+
+// Manual implementation to load from Vault
+impl Default for DriveConfig {
+    fn default() -> Self {
+        // Try to load from Vault
+        if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
+            if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
+                let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
+                
+                if let Ok(output) = std::process::Command::new("curl")
+                    .args(&["-sf", "--cacert", &ca_cert, "-H", &format!("X-Vault-Token: {}", &vault_token), &url])
+                    .output()
+                {
+                    if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                        if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
+                            let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost");
+                            let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).unwrap_or("");
+                            let secret = secret_data.get("secret").and_then(|v| v.as_str()).unwrap_or("");
+                            let bucket = secret_data.get("bucket").and_then(|v| v.as_str()).unwrap_or("default.gbai");
+                            
+                            return Self {
+                                endpoint: format!("http://{}", host),
+                                bucket: bucket.to_string(),
+                                region: "auto".to_string(),
+                                access_key: accesskey.to_string(),
+                                secret_key: secret.to_string(),
+                                server: host.to_string(),
+                            };
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fallback to empty/localhost
+        Self {
+            endpoint: "http://localhost:9100".to_string(),
+            bucket: String::new(),
+            region: "auto".to_string(),
+            access_key: String::new(),
+            secret_key: String::new(),
+            server: "localhost:9100".to_string(),
+        }
+    }
+}

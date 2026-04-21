@@ -201,21 +201,21 @@ impl BootstrapManager {
                 match pm.start("directory") {
                     Ok(_child) => {
                         info!("Directory service started, waiting for readiness...");
-                        let mut zitadel_ready = false;
-                        for i in 0..150 {
-                            sleep(Duration::from_secs(2)).await;
-                            if zitadel_health_check() {
-                                info!("Zitadel/Directory service is responding after {}s", (i + 1) * 2);
-                                zitadel_ready = true;
-                                break;
-                            }
-                            if i % 15 == 14 {
-                                info!("Zitadel health check: {}s elapsed, retrying...", (i + 1) * 2);
-                            }
-                        }
-                        if !zitadel_ready {
-                            warn!("Zitadel/Directory service did not respond after 300 seconds");
-                        }
+                let mut zitadel_ready = false;
+                for i in 0..30 {
+                    sleep(Duration::from_secs(2)).await;
+                    if zitadel_health_check() {
+                        info!("Zitadel/Directory service is responding after {}s", (i + 1) * 2);
+                        zitadel_ready = true;
+                        break;
+                    }
+                    if i == 14 {
+                        info!("Zitadel health check: 30s elapsed, retrying...");
+                    }
+                }
+                if !zitadel_ready {
+                    warn!("Zitadel/Directory service did not respond after 60 seconds, continuing anyway");
+                }
 
                         if zitadel_ready {
                             let config_path = self.stack_dir("conf/system/directory_config.json");

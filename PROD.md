@@ -3,7 +3,7 @@
 ## CRITICAL RULES — READ FIRST
 
 NEVER INCLUDE HERE CREDENTIALS OR COMPANY INFORMATION, THIS IS COMPANY AGNOSTIC.
-
+If edit conf/data make a backup first to /tmp with datetime  sufix, to be able to restore.
 Always manage services with `systemctl` inside the `system` Incus container. Never run `/opt/gbo/bin/botserver` or `/opt/gbo/bin/botui` directly — they will fail because they won't load the `.env` file containing Vault credentials and paths. The correct commands are `sudo incus exec system -- systemctl start|stop|restart|status botserver` and the same for `ui`. Systemctl handles environment loading, auto-restart, logging, and dependencies.
 
 Never push secrets (API keys, passwords, tokens) to git. Never commit `init.json` (it contains Vault unseal keys). All secrets must come from Vault — only `VAULT_*` variables are allowed in `.env`. Never deploy manually via scp or ssh; always use CI/CD. Always push all submodules (botserver, botui, botlib) before or alongside the main repo. Always ask before pushing to ALM.

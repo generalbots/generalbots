@@ -110,7 +110,7 @@ impl BotOrchestrator {
                         sm.get_conversation_history(session.id, user_id)?
                     };
 
-                    let config_manager = ConfigManager::new(state_clone.conn.clone().into());
+                    let config_manager = ConfigManager::new(state_clone.conn.clone());
                     let model = config_manager
                         .get_config(&bot_id, "llm-model", Some("gpt-3.5-turbo"))
                         .unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
@@ -149,7 +149,7 @@ impl BotOrchestrator {
         #[cfg(feature = "nvidia")]
         {
             let initial_tokens = crate::core::shared::utils::estimate_token_count(&context_data);
-            let config_manager = ConfigManager::new(self.state.conn.clone().into());
+            let config_manager = ConfigManager::new(self.state.conn.clone());
             let max_context_size = config_manager
                 .get_config(&bot_id, "llm-server-ctx-size", None)
                 .unwrap_or_default()

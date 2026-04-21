@@ -20,7 +20,7 @@ pub async fn call_llm(
             &[("user".to_string(), user_content.to_string())],
         );
 
-        let config_manager = crate::core::config::ConfigManager::new(state.conn.clone().into());
+        let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
         let model = config_manager
             .get_config(&uuid::Uuid::nil(), "llm-model", None)
             .unwrap_or_else(|_| "gpt-3.5-turbo".to_string());

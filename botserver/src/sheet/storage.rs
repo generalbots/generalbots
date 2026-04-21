@@ -16,11 +16,10 @@ pub fn get_current_user_id() -> String {
 }
 
 fn extract_id_from_path(path: &str) -> String {
-    path.split('/')
-        .last()
-        .unwrap_or("")
-        .trim_end_matches(".json")
-        .trim_end_matches(".xlsx")
+    let raw = path.split('/').last().unwrap_or("");
+    raw.strip_suffix(".json")
+        .or_else(|| raw.strip_suffix(".xlsx"))
+        .unwrap_or(raw)
         .to_string()
 }
 
@@ -42,7 +41,7 @@ pub async fn save_sheet_to_drive(
         .put_object()
         .bucket("gbo")
         .key(&path)
-        .body(content.into_bytes().into())
+        .body(content.into_bytes())
         .content_type("application/json")
         .send()
         .await
@@ -69,7 +68,7 @@ pub async fn save_sheet_as_xlsx(
         .put_object()
         .bucket("gbo")
         .key(&path)
-        .body(xlsx_bytes.clone().into())
+        .body(xlsx_bytes.clone())
         .content_type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         .send()
         .await
@@ -297,13 +296,15 @@ pub fn load_xlsx_from_bytes(
     let workbook = umya_spreadsheet::reader::xlsx::read_reader(cursor, true)
         .map_err(|e| format!("Failed to parse xlsx: {e}"))?;
 
-    let file_name = file_path
+    let raw_name = file_path
         .split('/')
         .last()
-        .unwrap_or("Untitled")
-        .trim_end_matches(".xlsx")
-        .trim_end_matches(".xlsm")
-        .trim_end_matches(".xls");
+        .unwrap_or("Untitled");
+    let file_name = raw_name
+        .strip_suffix(".xlsx")
+        .or_else(|| raw_name.strip_suffix(".xlsm"))
+        .or_else(|| raw_name.strip_suffix(".xls"))
+        .unwrap_or(raw_name);
 
     let mut worksheets = Vec::new();
 
@@ -621,7 +622,7 @@ pub async fn save_workbook_to_drive(
         .put_object()
         .bucket("gbo")
         .key(&path)
-        .body(buf.into_inner().into())
+        .body(buf.into_inner())
         .content_type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         .send()
         .await
@@ -721,22 +722,19 @@ pub async fn list_sheets_from_drive(
 
     let mut sheets = Vec::new();
 
-    if let Some(contents) = result.contents {
-        for obj in contents {
-            if let Some(key) = obj.key {
-                if key.ends_with(".json") {
-                    let id = extract_id_from_path(&key);
-                    if let Ok(sheet) = load_sheet_by_id(state, user_id, &id).await {
-                        sheets.push(SpreadsheetMetadata {
-                            id: sheet.id,
-                            name: sheet.name,
-                            owner_id: sheet.owner_id,
-                            created_at: sheet.created_at,
-                            updated_at: sheet.updated_at,
-                            worksheet_count: sheet.worksheets.len(),
-                        });
-                    }
-                }
+    for obj in &result.contents {
+        let key = &obj.key;
+        if key.ends_with(".json") {
+            let id = extract_id_from_path(key);
+            if let Ok(sheet) = load_sheet_by_id(state, user_id, &id).await {
+                sheets.push(SpreadsheetMetadata {
+                    id: sheet.id,
+                    name: sheet.name,
+                    owner_id: sheet.owner_id,
+                    created_at: sheet.created_at,
+                    updated_at: sheet.updated_at,
+                    worksheet_count: sheet.worksheets.len(),
+                });
             }
         }
     }
@@ -1108,9 +1106,9 @@ pub fn import_spreadsheet_bytes(bytes: &[u8], filename: &str) -> Result<Spreadsh
         }
     };
 
-    let name = filename.rsplit('/').next().unwrap_or(filename)
-        .trim_end_matches(&format!(".{ext}"))
-        .to_string();
+    let raw_filename = filename.rsplit('/').next().unwrap_or(filename);
+    let suffix = format!(".{ext}");
+    let name = raw_filename.strip_suffix(&suffix).unwrap_or(raw_filename).to_string();
 
     Ok(Spreadsheet {
         id: Uuid::new_v4().to_string(),
