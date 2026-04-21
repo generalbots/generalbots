@@ -34,32 +34,47 @@ impl DriveMonitor {
 
                     let current_keys: Vec<String> = objects.iter().map(|o| o.key.clone()).collect();
 
-                    for obj in &objects {
-                        let file_type = classify_file(&obj.key);
+        for obj in &objects {
+            if obj.key.ends_with('/') {
+                log::debug!("Skipping directory entry: {}", obj.key);
+                continue;
+            }
+
+            let file_type = classify_file(&obj.key);
                         let full_key = format!("{}.gbai/{}", bot_name, obj.key);
                         let etag = obj.etag.as_deref().map(normalize_etag);
 
-                        let existing = self.file_repo.get_file_state(self.bot_id, &full_key);
-                        let needs_reindex = match &existing {
-                            Some(prev) if prev.indexed && prev.etag.as_deref() == etag.as_deref() => false,
-                            Some(prev) if prev.indexed && prev.etag.as_deref() != etag.as_deref() => {
-                                log::info!("ETag changed for {}, will reindex", full_key);
-                                true
-                            }
-                            Some(_) => !existing.as_ref().map_or(false, |f| f.indexed),
-                            None => true,
-                        };
+            let existing = self.file_repo.get_file_state(self.bot_id, &full_key);
+            let needs_reindex = match &existing {
+                Some(prev) if prev.indexed && prev.etag.as_deref() == etag.as_deref() => false,
+                Some(prev) if prev.indexed && prev.etag.as_deref() != etag.as_deref() => {
+                    log::info!("ETag changed for {}, will reindex", full_key);
+                    true
+                }
+                Some(prev) if !prev.indexed && prev.etag.as_deref() == etag.as_deref() => {
+                    log::debug!("{} unchanged but not yet indexed, will index", full_key);
+                    true
+                }
+                Some(_) => true,
+                None => true,
+            };
 
-                        match self.file_repo.upsert_file(
-                            self.bot_id,
-                            &full_key,
-                            file_type,
-                            etag,
-                            None,
-                        ) {
-                            Ok(_) => log::info!("Added/updated drive_files for: {} ({})", full_key, file_type),
-                            Err(e) => log::error!("Failed to upsert {}: {}", full_key, e),
-                        }
+            let etag_changed = existing.as_ref().map_or(true, |prev| prev.etag.as_deref() != etag.as_deref());
+
+            if etag_changed || existing.is_none() {
+                match self.file_repo.upsert_file(
+                    self.bot_id,
+                    &full_key,
+                    file_type,
+                    etag,
+                    None,
+                ) {
+                    Ok(_) => log::info!("Added/updated drive_files for: {} ({})", full_key, file_type),
+                    Err(e) => log::error!("Failed to upsert {}: {}", full_key, e),
+                }
+            } else {
+                log::debug!("{} unchanged, skipping upsert", full_key);
+            }
 
             if needs_reindex && file_type == "kb" {
                     #[cfg(any(feature = "research", feature = "llm"))]
