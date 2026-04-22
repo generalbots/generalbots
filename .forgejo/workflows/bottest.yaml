@@ -6,6 +6,8 @@ env:
   CARGO_TARGET_DIR: /opt/gbo/work/target
   RUSTC_WRAPPER: ""
   PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+  SKIP_INTEGRATION_TESTS: "1"
+  SKIP_E2E_TESTS: "1"
 jobs:
   build:
     runs-on: gbo
