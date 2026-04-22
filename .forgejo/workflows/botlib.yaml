@@ -1,11 +1,10 @@
-name: Bottest CI
+name: Botlib CI
 on:
   push:
     branches: [main]
     paths:
-      - 'bottest/**'
       - 'botlib/**'
-      - '.forgejo/workflows/bottest.yaml'
+      - '.forgejo/workflows/botlib.yaml'
 env:
   SCCACHE_DIR: /opt/gbo/work/.sccache
   CARGO_TARGET_DIR: /opt/gbo/work/target
@@ -24,4 +23,4 @@ jobs:
       - name: Test
         run: |
           cd /opt/gbo/work/generalbots
-          cargo test -p bottest
+          cargo test -p botlib

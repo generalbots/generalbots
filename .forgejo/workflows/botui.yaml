@@ -5,16 +5,32 @@ on:
     paths:
       - 'botui/**'
       - 'botlib/**'
+      - '.forgejo/workflows/botui.yaml'
+env:
+  SCCACHE_DIR: /opt/gbo/work/.sccache
+  CARGO_TARGET_DIR: /opt/gbo/work/target
+  RUSTC_WRAPPER: sccache
+  PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 jobs:
   build:
     runs-on: gbo
     steps:
-    - name: Build
-      run: |
-        cd /opt/gbo/work/botui
-        git reset --hard HEAD && git clean -fd
-        git pull
-        cargo build
-    - name: Deploy
-      run: |
-        echo "BotUI deployed"
+      - name: Setup
+        run: |
+          cd /opt/gbo/work/generalbots
+          git reset --hard HEAD
+          git clean -fd
+          git pull
+      - name: Build
+        run: |
+          cd /opt/gbo/work/generalbots
+          cargo build -p botui --bin botui
+      - name: Deploy
+        run: |
+          timeout 5 bash -c 'while pgrep -x botui > /dev/null; do pkill -x botui; sleep 0.5; done' || true
+          mkdir -p /opt/gbo/bin
+          cp -f /opt/gbo/work/generalbots/target/debug/botui /opt/gbo/bin/
+          chmod +x /opt/gbo/bin/botui
+          cd /opt/gbo/bin && RUST_LOG=info nohup ./botui --noconsole >> /opt/gbo/logs/stdout.log 2>> /opt/gbo/logs/stderr.log &
+          sleep 3
+          pgrep -x botui && echo "BotUI Deployed" || echo "Failed"
