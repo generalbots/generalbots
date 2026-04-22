@@ -1,9 +1,10 @@
 use crate::core::shared::state::AppState;
 use crate::drive::drive_files::DriveFileRepository;
+use crate::drive::drive_monitor::monitor::CHECK_INTERVAL_SECS;
 #[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::KnowledgeBaseManager;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicU32};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 
 pub fn normalize_etag(etag: &str) -> String {
@@ -15,15 +16,23 @@ impl DriveMonitor {
         log::info!("DriveMonitor monitoring started for bucket: {}", self.bucket_name);
 
         loop {
-            if let Err(e) = self.scan_bucket().await {
-                log::error!("Failed to scan bucket {}: {}", self.bucket_name, e);
+            // Reentrancy protection: skip if previous scan is still running
+            if self.is_processing.load(Ordering::Relaxed) {
+                log::debug!("DriveMonitor still processing, skipping iteration");
+            } else {
+                self.is_processing.store(true, Ordering::Relaxed);
+                if let Err(e) = self.scan_bucket().await {
+                    log::error!("Failed to scan bucket {}: {}", self.bucket_name, e);
+                }
+                self.is_processing.store(false, Ordering::Relaxed);
             }
-            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(CHECK_INTERVAL_SECS)).await;
         }
     }
 
     async fn scan_bucket(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        log::info!("Scanning bucket {} for files", self.bucket_name);
+        log::info!("DriveMonitor: Starting scan of bucket {}", self.bucket_name);
+        let start = std::time::Instant::now();
 
         if let Some(s3) = &self.state.drive {
             match s3.list_objects_with_metadata(&self.bucket_name, None).await {
@@ -92,16 +101,18 @@ impl DriveMonitor {
                 }
                     }
 
-                    self.handle_deleted_files(bot_name, &current_keys);
-                }
-                Err(e) => {
-                    log::error!("Failed to list objects in {}: {}", self.bucket_name, e);
-                }
-            }
+        self.handle_deleted_files(bot_name, &current_keys);
+        }
+        Err(e) => {
+            log::error!("Failed to list objects in {}: {}", self.bucket_name, e);
+        }
+        }
         } else {
             log::warn!("S3 client not available for bucket scan");
         }
 
+        let elapsed = start.elapsed();
+        log::info!("DriveMonitor: Completed scan of {} in {:.2?}", self.bucket_name, elapsed);
         Ok(())
     }
 
