@@ -4,13 +4,24 @@ on:
     branches: [main]
     paths:
       - 'bottest/**'
+      - 'botlib/**'
+      - '.forgejo/workflows/bottest.yaml'
+env:
+  SCCACHE_DIR: /opt/gbo/work/.sccache
+  CARGO_TARGET_DIR: /opt/gbo/work/target
+  RUSTC_WRAPPER: sccache
+  PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 jobs:
   build:
     runs-on: gbo
     steps:
-    - name: Build
-      run: |
-        cd /opt/gbo/work/bottest
-        git reset --hard HEAD && git clean -fd
-        git pull
-        cargo build
+      - name: Setup
+        run: |
+          cd /opt/gbo/work/generalbots
+          git reset --hard HEAD
+          git clean -fd
+          git pull
+      - name: Test
+        run: |
+          cd /opt/gbo/work/generalbots
+          cargo test -p bottest
