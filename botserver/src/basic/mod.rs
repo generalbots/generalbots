@@ -1267,6 +1267,7 @@ pub fn convert_keywords_to_lowercase(script: &str) -> String {
         "IF", "ELSE", "WHILE", "FOR", "IN", "LOOP", "RETURN", "LET",
         "CONST", "IMPORT", "EXPORT", "FN", "PRIVATE", "SWITCH", "MATCH",
         "TRUE", "FALSE", "BREAK", "CONTINUE", "DO", "TRY", "CATCH", "THROW",
+        "AS",
     ];
 
     let mut result = String::new();
