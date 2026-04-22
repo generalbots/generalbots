@@ -1371,7 +1371,9 @@
                 m.innerHTML = `<div class="user-message"><div class="user-message-content">${escapeHtml(content)}</div></div>`;
                 updateContextUsage(contextUsage + 0.05);
             } else if (role === "assistant") {
-                m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content markdown-content" id="${msgId || ""}">${streaming ? "" : marked.parse(content)}</div></div>`;
+                const isHtml = content.trim().startsWith('<');
+                const rendered = streaming ? "" : (isHtml ? content : marked.parse(content));
+                m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content markdown-content" id="${msgId || ""}">${rendered}</div></div>`;
                 updateContextUsage(contextUsage + 0.03);
             } else if (role === "voice") {
                 m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar">🎤</div><div class="assistant-message-content">${content}</div></div>`;
@@ -1393,7 +1395,8 @@
         function updateStreamingMessage(c) {
             const m = document.getElementById(streamingMessageId);
             if (m) {
-                m.innerHTML = marked.parse(c);
+                const isHtmlStream = c.trim().startsWith('<');
+                m.innerHTML = isHtmlStream ? c : marked.parse(c);
                 if (!isUserScrolling) {
                     scrollToBottom();
                 }
@@ -1403,7 +1406,8 @@
         function finalizeStreamingMessage() {
             const m = document.getElementById(streamingMessageId);
             if (m) {
-                m.innerHTML = marked.parse(currentStreamingContent);
+                const isHtmlFinal = currentStreamingContent.trim().startsWith('<');
+                m.innerHTML = isHtmlFinal ? currentStreamingContent : marked.parse(currentStreamingContent);
                 m.removeAttribute("id");
                 if (!isUserScrolling) {
                     scrollToBottom();
