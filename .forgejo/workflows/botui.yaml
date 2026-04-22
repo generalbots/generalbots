@@ -26,9 +26,8 @@ jobs:
       - name: Deploy
         run: |
           BINARY=/opt/gbo/work/target/debug/botui
-          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl stop botui"
-          sleep 2
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl stop botui 2>/dev/null; sudo pkill -x botui 2>/dev/null; sleep 2"
           scp -o StrictHostKeyChecking=no "$BINARY" $SYSTEM_HOST:/opt/gbo/bin/botui
-          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl start botui"
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl enable botui && sudo systemctl start botui"
           sleep 3
           ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "pgrep -x botui && echo 'BotUI Deployed' || echo 'Failed'"
