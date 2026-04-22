@@ -13,6 +13,7 @@ use crate::core::config::DriveConfig;
 use crate::core::shared::state::AppState;
 use crate::core::shared::utils::get_work_path;
 use crate::drive::drive_files::drive_files as drive_files_table;
+use crate::drive::drive_monitor::monitor::CHECK_INTERVAL_SECS;
 use diesel::prelude::*;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
@@ -74,9 +75,9 @@ impl DriveCompiler {
 
         let compiler = self.clone();
 
-        // Loop que verifica drive_files a cada 30s
+        // Loop que verifica drive_files a cada 1s
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(30));
+            let mut interval = tokio::time::interval(Duration::from_secs(CHECK_INTERVAL_SECS));
 
             while compiler.is_processing.load(Ordering::SeqCst) {
                 interval.tick().await;
