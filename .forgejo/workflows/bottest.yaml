@@ -2,14 +2,8 @@ name: Bottest CI
 on:
   push:
     branches: [main]
-    paths:
-      - 'bottest/**'
-      - 'botlib/**'
-      - '.forgejo/workflows/bottest.yaml'
 env:
-  SCCACHE_DIR: /opt/gbo/work/.sccache
   CARGO_TARGET_DIR: /opt/gbo/work/target
-  RUSTC_WRAPPER: sccache
   PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 jobs:
   build:
@@ -24,4 +18,4 @@ jobs:
       - name: Test
         run: |
           cd /opt/gbo/work/generalbots
-          cargo test -p bottest
+          CARGO_BUILD_JOBS=4 cargo test -p bottest

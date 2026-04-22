@@ -2,15 +2,8 @@ name: BotServer CI
 on:
   push:
     branches: [main]
-    paths:
-      - 'botserver/**'
-      - 'botlib/**'
-      - 'Cargo.lock'
-      - '.forgejo/workflows/botserver.yaml'
 env:
-  SCCACHE_DIR: /opt/gbo/work/.sccache
   CARGO_TARGET_DIR: /opt/gbo/work/target
-  RUSTC_WRAPPER: sccache
   PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 jobs:
   build:
@@ -22,15 +15,16 @@ jobs:
           git reset --hard HEAD
           git clean -fd
           git pull
+          mkdir -p /opt/gbo/work/target
+          mkdir -p /opt/gbo/bin
       - name: Build
         run: |
           cd /opt/gbo/work/generalbots
-          cargo build -p botserver --bin botserver
+          CARGO_BUILD_JOBS=4 cargo build -p botserver --bin botserver
       - name: Deploy
         run: |
           timeout 5 bash -c 'while pgrep -x botserver > /dev/null; do pkill -x botserver; sleep 0.5; done' || true
-          mkdir -p /opt/gbo/bin
-          cp -f /opt/gbo/work/generalbots/target/debug/botserver /opt/gbo/bin/
+          cp -f /opt/gbo/work/target/debug/botserver /opt/gbo/bin/
           chmod +x /opt/gbo/bin/botserver
           cd /opt/gbo/bin && RUST_LOG=info nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2> /opt/gbo/logs/stderr.log &
           sleep 5
