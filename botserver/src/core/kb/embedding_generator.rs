@@ -299,7 +299,16 @@ impl KbEmbeddingGenerator {
     }
 
     pub async fn check_health(&self) -> bool {
-        // Strategy: try /health endpoint on BASE URL first.
+        // Remote HTTPS APIs (Cloudflare Workers AI, OpenAI, etc.) are assumed available
+        // — they don't have /health endpoints and return 401/403/301 on probe.
+        // Only local servers need TCP health checks.
+        if self.config.embedding_url.starts_with("https://") {
+            info!("Embedding server is remote HTTPS API ({}), assuming available", self.config.embedding_url);
+            set_embedding_server_ready(true);
+            return true;
+        }
+
+        // Strategy for local servers: try /health endpoint on BASE URL first.
         // - 200 OK → local server with health endpoint, ready
         // - 404/405 etc → server is reachable but has no /health (remote API or llama.cpp)
         // - Connection refused/timeout → server truly unavailable
