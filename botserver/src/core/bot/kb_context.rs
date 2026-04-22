@@ -370,10 +370,13 @@ impl KbContextManager {
         })
     }
 
-    fn deduplicate_by_document(&self, results: Vec<crate::core::kb::SearchResult>) -> Vec<crate::core::kb::SearchResult> {
+    fn deduplicate_by_document(&self, mut results: Vec<crate::core::kb::SearchResult>) -> Vec<crate::core::kb::SearchResult> {
         use std::collections::HashMap;
 
-        let mut best_by_doc: HashMap<String, crate::core::kb::SearchResult> = HashMap::new();
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+
+        let mut counts_by_doc: HashMap<String, usize> = HashMap::new();
+        let mut filtered = Vec::new();
 
         for result in results {
             let doc_key = if result.document_path.is_empty() {
@@ -382,19 +385,16 @@ impl KbContextManager {
                 result.document_path.clone()
             };
 
-            best_by_doc
-                .entry(doc_key)
-                .and_modify(|existing| {
-                    if result.score > existing.score {
-                        *existing = result.clone();
-                    }
-                })
-                .or_insert(result);
+            let count = counts_by_doc.entry(doc_key).or_insert(0);
+            // Allow up to 10 chunks per document instead of just 1,
+            // so we don't drop important information like ramais spread across a PDF
+            if *count < 10 {
+                filtered.push(result);
+                *count += 1;
+            }
         }
 
-        let mut results: Vec<_> = best_by_doc.into_values().collect();
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
-        results
+        filtered
     }
 
     fn filter_by_tokens(
