@@ -1,5 +1,3 @@
-mod security;
-
 use bottest::prelude::*;
 use reqwest::Client;
 use serde_json::json;
