@@ -13,7 +13,7 @@ use crate::core::config::DriveConfig;
 use crate::core::shared::state::AppState;
 use crate::core::shared::utils::get_work_path;
 use crate::drive::drive_files::drive_files as drive_files_table;
-use crate::drive::drive_monitor::monitor::CHECK_INTERVAL_SECS;
+use crate::drive::drive_monitor::CHECK_INTERVAL_SECS;
 use diesel::prelude::*;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
