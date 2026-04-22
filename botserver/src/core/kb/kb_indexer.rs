@@ -549,12 +549,14 @@ pub async fn index_single_file_with_id(
     kb_name: &str,
     file_path: &Path,
     document_id: Option<&str>,
-) -> Result<IndexingResult> {
-    if !is_embedding_server_ready() {
-        return Err(anyhow::anyhow!(
-            "Embedding server not available. Cannot index file."
-        ));
-    }
+    ) -> Result<IndexingResult> {
+        if !is_embedding_server_ready() {
+            if !self.embedding_generator.wait_for_server(30).await {
+                return Err(anyhow::anyhow!(
+                    "Embedding server not available. Cannot index file."
+                ));
+            }
+        }
 
     if !self.check_qdrant_health().await.unwrap_or(false) {
         return Err(anyhow::anyhow!(
