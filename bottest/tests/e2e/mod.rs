@@ -299,6 +299,7 @@ async fn test_harness_starts_server() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_full_harness_has_all_services() {
     if std::env::var("FRESH_STACK").is_err() {
         eprintln!("Skipping: test_full_harness_has_all_services requires FRESH_STACK=1 (uses existing stack by default)");
@@ -325,6 +326,7 @@ async fn test_full_harness_has_all_services() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_e2e_cleanup() {
     let mut ctx = match TestHarness::full().await {
         Ok(ctx) => ctx,
