@@ -385,14 +385,84 @@ curl -X DELETE "http://<directory-ip>:8080/v2/users/<user-id>" \
 | List users | `POST /v2/users` |
 | Update password | `POST /v2/users/{id}/password` |
 
-# /tmp permission denied for build.log
-sudo incus exec alm-ci -- chmod 1777 /tmp
-sudo incus exec alm-ci -- touch /tmp/build.log && chmod 666 /tmp/build.log
+### CI/CD Log Retrieval from Database (PREFERRED METHOD)
 
-# Clean old CI runs (keep recent)
-sudo incus exec tables -- bash -c 'export PGPASSWORD=<postgres-password>; psql -h localhost -U postgres -d PROD-ALM -c "DELETE FROM action_run WHERE id < <RECENT_ID>;"'
-sudo incus exec tables -- bash -c 'export PGPASSWORD=<postgres-password>; psql -h localhost -U postgres -d PROD-ALM -c "DELETE FROM action_run_job WHERE run_id < <RECENT_ID>;"'
+The most reliable way to get CI build logs — including compiler errors — is from the Forgejo ALM database and compressed log files. The runner logs (`/opt/gbo/logs/forgejo-runner.log`) show live activity but scroll away quickly. The database retains everything.
+
+**Status codes:** 0=pending, 1=success, 2=failure, 3=cancelled, 6=running
+
+**Step 1 — List recent runs with workflow name and status:**
+```sql
+-- Connect to ALM database
+sudo incus exec tables -- psql -h localhost -U postgres -d PROD-ALM
+
+SELECT ar.id, ar.title, ar.workflow_id, ar.status,
+       to_timestamp(ar.created) AS created_at
+FROM action_run ar
+ORDER BY ar.id DESC LIMIT 10;
 ```
+
+**Step 2 — Get job/task IDs for a failed run:**
+```sql
+SELECT arj.id AS job_id, arj.name, arj.status, arj.task_id
+FROM action_run_job arj
+WHERE arj.run_id = <FAILED_RUN_ID>;
+```
+
+**Step 3 — Get step-level status (which step failed):**
+```sql
+SELECT ats.name, ats.status, ats.log_index, ats.log_length
+FROM action_task_step ats
+WHERE ats.task_id = <TASK_ID>
+ORDER BY ats.index;
+```
+
+**Step 4 — Read the full build log (contains compiler errors):**
+```bash
+# 1. Get the log filename from action_task
+sudo incus exec tables -- psql -h localhost -U postgres -d PROD-ALM \
+  -c "SELECT log_filename FROM action_task WHERE id = <TASK_ID>;"
+
+# 2. Pull and decompress the log from alm container
+#    Log files are zstd-compressed at: /opt/gbo/data/data/actions_log/<repo-path>/<task_id>.log.zst
+sudo incus file pull alm/opt/gbo/data/data/actions_log/<LOG_FILENAME> /tmp/ci-log.log.zst
+zstd -d /tmp/ci-log.log.zst -o /tmp/ci-log.log
+cat /tmp/ci-log.log
+```
+
+**One-liner to read latest failed run log:**
+```bash
+TASK_ID=$(sudo incus exec tables -- psql -h localhost -U postgres -d PROD-ALM -t -c \
+  "SELECT at.id FROM action_task at JOIN action_run_job arj ON at.job_id = arj.id \
+   JOIN action_run ar ON arj.run_id = ar.id \
+   WHERE ar.status = 2 ORDER BY at.id DESC LIMIT 1;" | tr -d ' ')
+LOG_FILE=$(sudo incus exec tables -- psql -h localhost -U postgres -d PROD-ALM -t -c \
+  "SELECT log_filename FROM action_task WHERE id = $TASK_ID;" | tr -d ' ')
+sudo incus file pull "alm/opt/gbo/data/data/actions_log/$LOG_FILE" /tmp/ci-log.log.zst
+zstd -d /tmp/ci-log.log.zst -o /tmp/ci-log.log 2>/dev/null && cat /tmp/ci-log.log
+```
+
+**Watch CI in real-time (supplementary):**
+```bash
+# Tail runner logs (live but ephemeral)
+sudo incus exec alm-ci -- tail -f /opt/gbo/logs/forgejo-runner.log
+
+# Watch for new runs
+sudo incus exec tables -- psql -h localhost -U postgres -d PROD-ALM \
+  -c "SELECT id, title, workflow_id, status FROM action_run ORDER BY id DESC LIMIT 5;"
+```
+
+**Verify binary was updated after deploy:**
+```bash
+sudo incus exec system -- stat -c '%y' /opt/gbo/bin/botserver
+sudo incus exec system -- systemctl status botserver --no-pager
+curl -sf https://<system-domain>/api/health && echo "OK" || echo "FAILED"
+```
+
+**Understand build timing:**
+- **Rust compilation**: 2-5 minutes (cold build), 30-60 seconds (incremental)
+- **Deploy step**: ~5 seconds
+- **Total CI time**: 2-6 minutes depending on cache
 
 **Watch CI in real-time:**
 ```bash
