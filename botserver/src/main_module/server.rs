@@ -626,8 +626,9 @@ pub async fn run_axum_server(
 
         tokio::spawn(async move {
             shutdown_signal().await;
-            info!("Shutting down HTTPS server...");
+            info!("Shutting down HTTPS server - draining active connections (10s timeout)...");
             handle_clone.graceful_shutdown(Some(std::time::Duration::from_secs(10)));
+            info!("HTTPS graceful shutdown initiated, waiting for connections to drain...");
         });
 
         axum_server::bind_rustls(addr, tls_config)
@@ -656,9 +657,14 @@ pub async fn run_axum_server(
             }
         };
         info!("HTTP server listening on {}", addr);
-        axum::serve(listener, app.into_make_service())
+        info!("Server ready - shutdown via SIGINT (Ctrl+C) or SIGTERM (systemctl stop)");
+        let result = axum::serve(listener, app.into_make_service())
             .with_graceful_shutdown(shutdown_signal())
-            .await
-            .map_err(std::io::Error::other)
+            .await;
+        match &result {
+            Ok(()) => info!("HTTP server shut down gracefully"),
+            Err(e) => error!("HTTP server shutdown with error: {}", e),
+        }
+        result.map_err(std::io::Error::other)
     }
 }
