@@ -757,16 +757,13 @@ function addMessage(sender, content, msgId) {
       var renderInterval = 200; // ms between renders
 
       function isTagBalanced(html) {
+        // The browser's DOM parser is very resilient with unclosed tags.
+        // Blocking render until tags are perfectly balanced causes the entire
+        // message to be hidden (showing loading dots) if the LLM wraps everything
+        // in an outer <div>...</div> until the very last token.
+        // We only check if we're in the middle of writing a tag itself (e.g. "<di").
         if (!html) return true;
-        // Count open vs close tags for common block elements
-        var tags = ['div', 'p', 'span', 'b', 'i', 'strong', 'em', 'table', 'tr', 'td', 'ul', 'ol', 'li'];
-        for (var i = 0; i < tags.length; i++) {
-          var tag = tags[i];
-          var openCount = (html.match(new RegExp('<' + tag + '(\\s+|>)', 'gi')) || []).length;
-          var closeCount = (html.match(new RegExp('</' + tag + '>', 'gi')) || []).length;
-          if (openCount !== closeCount) return false;
-        }
-        // Check if we are currently inside an opening tag (e.g. <div class="...)
+        
         var lastChevronOpen = html.lastIndexOf('<');
         var lastChevronClose = html.lastIndexOf('>');
         if (lastChevronOpen > lastChevronClose) return false;
