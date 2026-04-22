@@ -9,7 +9,6 @@ jobs:
       CARGO_TARGET_DIR: /opt/gbo/work/target
       RUSTC_WRAPPER: ""
       PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-      SYSTEM_HOST: ${{ vars.SYSTEM_HOST }}
     steps:
       - name: Setup
         run: |

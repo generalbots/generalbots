@@ -9,7 +9,6 @@ jobs:
       CARGO_TARGET_DIR: /opt/gbo/work/target
       RUSTC_WRAPPER: ""
       PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-      SYSTEM_HOST: ${{ vars.SYSTEM_HOST }}
     steps:
       - name: Setup
         run: |
@@ -23,12 +22,12 @@ jobs:
         run: |
           cd /opt/gbo/work/generalbots
           CARGO_BUILD_JOBS=4 cargo build -p botui --bin botui
-    - name: Deploy
-      run: |
-        BINARY=/opt/gbo/work/target/debug/botui
-        ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl stop botui"
-        sleep 2
-        scp -o StrictHostKeyChecking=no "$BINARY" $SYSTEM_HOST:/opt/gbo/bin/botui
-        ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl start botui"
-        sleep 3
-        ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "pgrep -x botui && echo 'BotUI Deployed' || echo 'Failed'"
+      - name: Deploy
+        run: |
+          BINARY=/opt/gbo/work/target/debug/botui
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl stop botui"
+          sleep 2
+          scp -o StrictHostKeyChecking=no "$BINARY" $SYSTEM_HOST:/opt/gbo/bin/botui
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl start botui"
+          sleep 3
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "pgrep -x botui && echo 'BotUI Deployed' || echo 'Failed'"
