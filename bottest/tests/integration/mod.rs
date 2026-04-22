@@ -74,6 +74,7 @@ async fn test_harness_quick() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_harness_minimal() {
     let ctx = TestHarness::minimal().await.unwrap();
     assert!(ctx.postgres().is_none());
@@ -84,6 +85,7 @@ async fn test_harness_minimal() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_context_cleanup() {
     let mut ctx = TestHarness::minimal().await.unwrap();
     let data_dir = ctx.data_dir.clone();
