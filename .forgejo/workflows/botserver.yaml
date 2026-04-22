@@ -6,6 +6,7 @@ env:
   CARGO_TARGET_DIR: /opt/gbo/work/target
   RUSTC_WRAPPER: ""
   PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+  SYSTEM_HOST: 10.157.134.196
 jobs:
   build:
     runs-on: gbo
@@ -24,9 +25,10 @@ jobs:
           CARGO_BUILD_JOBS=4 cargo build -p botserver --bin botserver
       - name: Deploy
         run: |
-          timeout 5 bash -c 'while pgrep -x botserver > /dev/null; do pkill -x botserver; sleep 0.5; done' || true
-          cp -f /opt/gbo/work/target/debug/botserver /opt/gbo/bin/
-          chmod +x /opt/gbo/bin/botserver
-          cd /opt/gbo/bin && RUST_LOG=info nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2> /opt/gbo/logs/stderr.log &
-          sleep 5
-          pgrep -x botserver && echo "BotServer Deployed" || echo "Failed"
+          BINARY=/opt/gbo/work/target/debug/botserver
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "pkill -x botserver || true"
+          sleep 2
+          scp -o StrictHostKeyChecking=no "$BINARY" $SYSTEM_HOST:/opt/gbo/bin/botserver
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "cd /opt/gbo/bin && RUST_LOG=info nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2> /opt/gbo/logs/stderr.log &"
+          sleep 10
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "pgrep -x botserver && echo 'BotServer Deployed' || echo 'Failed'"
