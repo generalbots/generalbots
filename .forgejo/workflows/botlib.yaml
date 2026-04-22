@@ -2,13 +2,13 @@ name: Botlib CI
 on:
   push:
     branches: [main]
-env:
-  CARGO_TARGET_DIR: /opt/gbo/work/target
-  RUSTC_WRAPPER: ""
-  PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 jobs:
   build:
     runs-on: gbo
+    env:
+      CARGO_TARGET_DIR: /opt/gbo/work/target
+      RUSTC_WRAPPER: ""
+      PATH: /home/gbuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     steps:
       - name: Setup
         run: |
