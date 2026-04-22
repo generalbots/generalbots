@@ -69,7 +69,10 @@ async fn test_concurrent_requests_handled() {
 
     let successes = results
         .iter()
-        .filter(|r| r.as_ref().is_ok_and(|resp| resp.status().is_success()))
+        .filter(|r| match r {
+            Ok(Ok(resp)) => resp.status().is_success(),
+            _ => false,
+        })
         .count();
 
     assert!(
