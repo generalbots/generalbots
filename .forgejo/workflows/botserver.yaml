@@ -26,9 +26,9 @@ jobs:
       - name: Deploy
         run: |
           BINARY=/opt/gbo/work/target/debug/botserver
-          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "pkill -x botserver || true"
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl stop botserver"
           sleep 2
           scp -o StrictHostKeyChecking=no "$BINARY" $SYSTEM_HOST:/opt/gbo/bin/botserver
-          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "cd /opt/gbo/bin && RUST_LOG=info nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2> /opt/gbo/logs/stderr.log &"
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "sudo systemctl start botserver"
           sleep 10
-          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "pgrep -x botserver && echo 'BotServer Deployed' || echo 'Failed'"
+          ssh -o StrictHostKeyChecking=no $SYSTEM_HOST "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
