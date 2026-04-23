@@ -46,7 +46,7 @@ pub use super::schema::{
 pub use super::schema::kb::{kb_collections, kb_group_associations};
 
 pub use botlib::message_types::MessageType;
-pub use botlib::models::{ApiResponse, Attachment, BotResponse, Session, Suggestion, UserMessage};
+pub use botlib::models::{ApiResponse, Attachment, BotResponse, Session, Suggestion, Switcher, UserMessage};
 
 // Manually export OrganizationInvitation as it is defined in core but table is organization_invitations
 pub use self::core::OrganizationInvitation;

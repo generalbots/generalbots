@@ -579,14 +579,15 @@ async fn process_incoming_message(
             message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-            suggestions: vec![],
-            context_name: None,
-            context_length: 0,
-            context_max_length: 0,
-        };
-        if let Err(e) = adapter.send_message(bot_response).await {
-            error!("Failed to send routing confirmation: {}", e);
-        }
+        suggestions: vec![],
+        switchers: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
+    if let Err(e) = adapter.send_message(bot_response).await {
+        error!("Failed to send routing confirmation: {}", e);
+    }
 
         // Execute start.bas immediately by calling route_to_bot
         info!("Executing start.bas for bot '{}' via route_to_bot", routed_bot_id);
@@ -634,14 +635,15 @@ async fn process_incoming_message(
                     message_type: MessageType::BOT_RESPONSE,
                     stream_token: None,
                     is_complete: true,
-                    suggestions: vec![],
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-                };
-                if let Err(e) = adapter.send_message(bot_response).await {
-                    error!("Failed to send clear confirmation: {}", e);
-                }
+        suggestions: vec![],
+        switchers: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
+    if let Err(e) = adapter.send_message(bot_response).await {
+        error!("Failed to send clear confirmation: {}", e);
+    }
                 info!("Cleared conversation history for WhatsApp user {}", phone);
             }
             Err(e) => {
@@ -663,14 +665,15 @@ async fn process_incoming_message(
                 message_type: MessageType::BOT_RESPONSE,
                 stream_token: None,
                 is_complete: true,
-                suggestions: vec![],
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
-            if let Err(e) = adapter.send_message(bot_response).await {
-                error!("Failed to send attendant command response: {}", e);
-            }
+        suggestions: vec![],
+        switchers: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
+    if let Err(e) = adapter.send_message(bot_response).await {
+        error!("Failed to send attendant command response: {}", e);
+    }
             return Ok(());
         }
     }
@@ -1147,13 +1150,14 @@ async fn route_to_bot(
                 message_type: crate::core::shared::models::MessageType::BOT_RESPONSE,
                 stream_token: None,
                 is_complete: is_final,
-                suggestions: vec![],
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
+            suggestions: vec![],
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
 
-            if let Err(e) = adapter.send_message(wa_response).await {
+        if let Err(e) = adapter.send_message(wa_response).await {
                 log::error!("Failed to send WhatsApp response part: {}", e);
             }
             // Rate limiting is handled by WhatsAppAdapter::send_whatsapp_message
@@ -1319,13 +1323,14 @@ async fn route_to_bot(
             message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-            suggestions: vec![],
-            context_name: None,
-            context_length: 0,
-            context_max_length: 0,
-        };
+        suggestions: vec![],
+        switchers: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
 
-        if let Err(e) = adapter.send_message(error_response).await {
+    if let Err(e) = adapter.send_message(error_response).await {
             error!("Failed to send error response: {}", e);
         }
     }
@@ -1490,6 +1495,7 @@ pub async fn send_message(
         stream_token: None,
         is_complete: true,
         suggestions: vec![],
+        switchers: Vec::new(),
         context_name: None,
         context_length: 0,
         context_max_length: 0,
@@ -1600,13 +1606,14 @@ pub async fn attendant_respond(
                 message_type: MessageType::BOT_RESPONSE,
                 stream_token: None,
                 is_complete: true,
-                suggestions: vec![],
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
+        suggestions: vec![],
+        switchers: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
 
-            match adapter.send_message(response).await {
+        match adapter.send_message(response).await {
                 Ok(_) => (
                     StatusCode::OK,
                     Json(serde_json::json!({

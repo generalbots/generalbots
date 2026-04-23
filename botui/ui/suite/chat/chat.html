@@ -18,7 +18,7 @@
     <footer>
         <div class="chat-footer-content">
             <div class="suggestions-container" id="suggestions"></div>
-            <div class="switchers-container" id="switchers">
+            <div class="switchers-container" id="switchers" style="display:none">
                 <div class="switchers-label">Formato:</div>
                 <div class="switchers-chips" id="switchersChips">
                     <!-- Switcher chips will be rendered here -->
@@ -119,7 +119,7 @@
             CONTINUE: 3,
             SUGGESTION: 4,
             CONTEXT_CHANGE: 5,
-            SYSTEM: 7, // For switcher/modifier injection - doesn't appear in chat history
+            TOOL_EXEC: 6,
         };
 
         var EntityTypes = {
@@ -853,13 +853,21 @@ function processMessage(data) {
                 isStreaming = false;
 
                 // Render suggestions when message is complete
-                if (
-                    data.suggestions &&
-                    Array.isArray(data.suggestions) &&
-                    data.suggestions.length > 0
-                ) {
-                    renderSuggestions(data.suggestions);
-                }
+ if (
+ data.suggestions &&
+ Array.isArray(data.suggestions) &&
+ data.suggestions.length > 0
+ ) {
+ renderSuggestions(data.suggestions);
+ }
+
+ if (
+ data.switchers &&
+ Array.isArray(data.switchers) &&
+ data.switchers.length > 0
+ ) {
+ renderBotSwitchers(data.switchers);
+ }
     } else {
       // Streaming chunk received
       if (!isStreaming) {
@@ -972,44 +980,12 @@ function hideThinkingIndicator() {
 
  var chip = document.createElement("button");
  chip.className = "suggestion-chip";
+ chip.textContent = suggestion.text || "Suggestion";
 
-                chip.className = isSwitcher ? "switcher-chip" : "suggestion-chip";
-
-                var switcherName = action ? (action.switcher || action.context) : suggestion.text;
-                if (isSwitcher) {
-                    var hash = 0;
-                    for (var i = 0; i < switcherName.length; i++) {
-                        hash = switcherName.charCodeAt(i) + ((hash << 5) - hash);
-                    }
-                    var h = Math.abs(hash) % 360;
-                    chip.style.setProperty("--switcher-color", "hsl(" + h + ", 70%, 50%)");
-
-                    if (activeSwitchers.has(switcherName)) {
-                        chip.classList.add("active");
-                    }
-                }
-
-                chip.textContent = suggestion.text || "Suggestion";
-
-                chip.onclick = (function (sugg, act, name, isSw) {
-                    return function () {
-                        console.log("Suggestion clicked:", sugg, "as switcher:", isSw);
-                        if (isSw) {
-                            // Toggle switcher logic
-                            if (activeSwitchers.has(name)) {
-                                activeSwitchers.delete(name);
-                                chip.classList.remove("active");
-                            } else {
-                                activeSwitchers.add(name);
-                                chip.classList.add("active");
-                            }
-                            console.log("Switcher " + name + " is now " + (activeSwitchers.has(name) ? "ON" : "OFF"));
-                            renderSwitchers(); // Re-render switcher chips to update their state
-                            return; // STAY QUIET
-                        }
-
-                        if (act) {
-                            if (act.type === "invoke_tool") {
+ chip.onclick = (function (sugg, act) {
+ return function () {
+ if (act) {
+ if (act.type === "invoke_tool") {
                                 // Direct tool execution via WebSocket (Type 6)
                                 if (ws && ws.readyState === WebSocket.OPEN) {
                                     ws.send(JSON.stringify({
@@ -1034,7 +1010,7 @@ function hideThinkingIndicator() {
                         // Default fallback: send suggestion text
                         window.sendMessage(sugg.text);
                     };
-                })(suggestion, action, switcherName, isSwitcher);
+                })(suggestion, action);
 
                 suggestionsEl.appendChild(chip);
             });
@@ -1068,77 +1044,30 @@ function sendMessage(messageContent) {
 
     // Add user message to chat BEFORE sending to server
     // This ensures user message appears immediately and streaming responses go to new div
-    addMessage("user", content);
+ addMessage("user", content);
 
-    // Build switcher prompts as SYSTEM message (doesn't appear in chat history)
-    var activeKeys = Array.from(activeSwitchers);
-    var switcherPrompt = null;
+ var activeSwitcherIds = Array.from(activeSwitchers);
 
-    if (activeKeys.length > 0) {
-        var activePrompts = [];
-        var promptMap = {
-            'tables': 'REGRAS DE FORMATO: SEMPRE retorne suas respostas em formato de tabela HTML usando <table>, <thead>, <tbody>, <tr>, <th>, <td>. Cada dado deve ser uma célula. Use cabeçalhos claros na primeira linha. Se houver dados numéricos, alinhe à direita. Se houver texto, alinhe à esquerda. Use cores sutis em linhas alternadas (nth-child). NÃO use markdown tables, use HTML puro.',
-            'infographic': 'REGRAS DE FORMATO: Crie representações visuais HTML usando SVG, progress bars, stat cards, e elementos gráficos. Use elementos como: <svg> para gráficos, <div style="width:X%;background:color"> para barras de progresso, ícones emoji, badges coloridos. Organize informações visualmente com grids, flexbox, e espaçamento. Inclua legendas e rótulos visuais claros.',
-            'cards': 'REGRAS DE FORMATO: Retorne informações em formato de cards HTML. Cada card deve ter: <div class="card" style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1)">. Dentro do card use: título em <h3> ou <strong>, subtítulo em <p> style="color:#666", ícone emoji ou ícone SVG no topo, badges de status. Organize cards em grid usando display:grid ou flex-wrap.',
-            'list': 'REGRAS DE FORMATO: Use apenas listas HTML: <ul> para bullets e <ol> para números numerados. Cada item em <li>. Use sublistas aninhadas quando apropriado. NÃO use parágrafos de texto, converta tudo em itens de lista. Adicione ícones emoji no início de cada <li> quando possível. Use classes CSS para estilização: .list-item, .sub-list.',
-            'comparison': 'REGRAS DE FORMATO: Crie comparações lado a lado em HTML. Use grid de 2 colunas: <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">. Cada lado em uma <div class="comparison-side"> com borda colorida distinta. Use headers claros para cada lado. Adicione seção de "Diferenças Chave" com bullet points. Use cores contrastantes para cada lado (ex: azul vs laranja). Inclua tabela de comparação resumida no final.',
-            'timeline': 'REGRAS DE FORMATO: Organize eventos cronologicamente em formato de timeline HTML. Use <div class="timeline"> com border-left vertical. Cada evento em <div class="timeline-item"> com: data em <span class="timeline-date" style="font-weight:bold;color:#666">, título em <h3>, descrição em <p>. Adicione círculo indicador na timeline line. Ordene do mais antigo para o mais recente. Use espaçamento claro entre eventos.',
-            'markdown': 'REGRAS DE FORMATO: Use exclusivamente formato Markdown padrão. Sintaxe permitida: **negrito**, *itálico*, `inline code`, ```bloco de código```, # cabeçalhos, - bullets, 1. números, [links](url), ![alt](url), | tabela | markdown |. NÃO use HTML tags exceto para blocos de código. Siga estritamente a sintaxe CommonMark.',
-            'chart': 'REGRAS DE FORMATO: Crie gráficos e diagramas em HTML SVG. Use elementos SVG: <svg width="X" height="Y">, <line> para gráficos de linha, <rect> para gráficos de barra, <circle> para gráficos de pizza, <path> para gráficos de área. Inclua eixos com labels, grid lines, legendas. Use cores distintas para cada série de dados (ex: vermelho, azul, verde). Adicione tooltips com valores ao hover. Se o usuário pedir gráfico de pizza com "pizza vermelha", use fill="#FF0000" no SVG.'
-        };
+ if (!messageContent) {
+ hideMentionDropdown();
+ input.value = "";
+ input.focus();
+ }
 
-        activeKeys.forEach(function(id) {
-            if (promptMap[id]) {
-                activePrompts.push(promptMap[id]);
-            } else {
-                // Se o switcher não estiver no mapa padrão, o ID (texto do switcher) é o próprio prompt
-                activePrompts.push(id);
-            }
-        });
-
-        if (activePrompts.length > 0) {
-            switcherPrompt = activePrompts.join('\n\n');
-        }
-    }
-
-            // Clear input if called from input field
-    if (!messageContent) {
-      hideMentionDropdown();
-      input.value = "";
-      input.focus();
-    }
-
-    // User message was already added above before sending to server
-
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        // Send switcher prompts as SYSTEM message first (if any)
-        if (switcherPrompt) {
-            ws.send(
-                JSON.stringify({
-                    bot_id: currentBotId,
-                    user_id: currentUserId,
-                    session_id: currentSessionId,
-                    channel: "web",
-                    content: switcherPrompt,
-                    message_type: MessageType.SYSTEM, // SYSTEM message type - doesn't appear in chat
-                    timestamp: new Date().toISOString(),
-                }),
-            );
-        }
-
-        // Then send user message
-        ws.send(
-            JSON.stringify({
-                bot_id: currentBotId,
-                user_id: currentUserId,
-                session_id: currentSessionId,
-                channel: "web",
-                content: content, // Clean user content - no switcher prompts
-                message_type: MessageType.USER,
-                timestamp: new Date().toISOString(),
-            }),
-        );
-            } else {
+ if (ws && ws.readyState === WebSocket.OPEN) {
+ ws.send(
+ JSON.stringify({
+ bot_id: currentBotId,
+ user_id: currentUserId,
+ session_id: currentSessionId,
+ channel: "web",
+ content: content,
+ message_type: MessageType.USER,
+ active_switchers: activeSwitcherIds,
+ timestamp: new Date().toISOString(),
+ }),
+ );
+ } else {
                 notify("Not connected to server. Message not sent.", "warning");
             }
         }
@@ -1579,91 +1508,63 @@ function sendMessage(messageContent) {
         // Switcher Logic - Response Format Modifiers
         // activeSwitchers is already defined above as a Set
 
-        var switcherDefinitions = [
-            {
-                id: 'tables',
-                label: 'Tabelas',
-                icon: '📊',
-                color: '#1E8E3E' // Google Green 700 - cleaner, more professional
-            },
-            {
-                id: 'infographic',
-                label: 'Infográfico',
-                icon: '📈',
-                color: '#1967D2' // Google Blue 700
-            },
-            {
-                id: 'cards',
-                label: 'Cards',
-                icon: '🃏',
-                color: '#E37400' // Google Orange 700
-            },
-            {
-                id: 'list',
-                label: 'Lista',
-                icon: '📋',
-                color: '#9334E6' // Google Purple 700
-            },
-            {
-                id: 'comparison',
-                label: 'Comparação',
-                icon: '⚖️',
-                color: '#C5221F' // Google Red 700
-            },
-            {
-                id: 'timeline',
-                label: 'Timeline',
-                icon: '📅',
-                color: '#0B57D0' // Google Blue 600
-            },
-            {
-                id: 'markdown',
-                label: 'Markdown',
-                icon: '📝',
-                color: '#444746' // Google Grey 700 - neutral, professional
-            },
-            {
-                id: 'chart',
-                label: 'Gráfico',
-                icon: '📉',
-                color: '#B3261E' // Google Red 600
-            }
-        ];
+ var switcherDefinitions = [];
 
-        function renderSwitchers() {
-            var container = document.getElementById("switcherChips");
-            if (!container) return;
+ function renderBotSwitchers(switchers) {
+ if (!switchers || switchers.length === 0) return;
+ var existingIds = {};
+ switcherDefinitions.forEach(function(sw) { existingIds[sw.id] = true; });
+ switchers.forEach(function(sw) {
+ if (!existingIds[sw.id]) {
+ switcherDefinitions.push({
+ id: sw.id,
+ label: sw.label || sw.id,
+ icon: sw.icon || '🔀',
+ color: sw.color || '#666'
+ });
+ existingIds[sw.id] = true;
+ }
+ });
+ renderSwitchers();
+ var container = document.getElementById("switchers");
+ if (container && switcherDefinitions.length > 0) {
+ container.style.display = '';
+ }
+ }
 
-            container.innerHTML = switcherDefinitions.map(function(sw) {
-                var isActive = activeSwitchers.has(sw.id);
-                return (
-                    '<div class="switcher-chip' + (isActive ? ' active' : '') + '" ' +
-                    'data-switch-id="' + sw.id + '" ' +
-                    'style="--switcher-color: ' + sw.color + '; ' +
-                    (isActive ? 'color: ' + sw.color + ' background: ' + sw.color + '; ' : '') +
-                    '">' +
-                    '<span class="switcher-chip-icon">' + sw.icon + '</span>' +
-                    '<span>' + sw.label + '</span>' +
-                    '</div>'
-                );
-            }).join('');
+ function renderSwitchers() {
+ var container = document.getElementById("switcherChips");
+ if (!container) return;
 
-            // Add click handlers
-            container.querySelectorAll('.switcher-chip').forEach(function(chip) {
-                chip.addEventListener('click', function() {
-                    toggleSwitcher(this.getAttribute('data-switch-id'));
-                });
-            });
-        }
+ container.innerHTML = switcherDefinitions.map(function(sw) {
+ var isActive = activeSwitchers.has(sw.id);
+ return (
+ '<div class="switcher-chip' + (isActive ? ' active' : '') + '" ' +
+ 'data-switch-id="' + sw.id + '" ' +
+ 'style="--switcher-color: ' + sw.color + '; ' +
+ (isActive ? 'color: ' + sw.color + ' background: ' + sw.color + '; ' : '') +
+ '">' +
+ '<span class="switcher-chip-icon">' + sw.icon + '</span>' +
+ '<span>' + sw.label + '</span>' +
+ '</div>'
+ );
+ }).join('');
 
-        function toggleSwitcher(switcherId) {
-            if (activeSwitchers.has(switcherId)) {
-                activeSwitchers.delete(switcherId);
-            } else {
-                activeSwitchers.add(switcherId);
-            }
-            renderSwitchers();
-        }
+ container.querySelectorAll('.switcher-chip').forEach(function(chip) {
+ chip.addEventListener('click', function() {
+ toggleSwitcher(this.getAttribute('data-switch-id'));
+ });
+ });
+ }
+
+ function toggleSwitcher(switcherId) {
+ if (activeSwitchers.has(switcherId)) {
+ activeSwitchers.delete(switcherId);
+ } else {
+ activeSwitchers.add(switcherId);
+ }
+ renderSwitchers();
+ }
 
         function setupEventHandlers() {
             var form = document.getElementById("chatForm");
