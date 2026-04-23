@@ -35,4 +35,4 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
       - name: Sync UI Files to Stage
         run: |
-          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/data/botui/ui/
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/botui/ui/
