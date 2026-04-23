@@ -972,19 +972,29 @@ function hideThinkingIndicator() {
 
                 var chip = document.createElement("button");
                 // More robust switcher detection: check action type or context/switcher fields
-                var isSwitcher = action && (
+                var isSwitcher = (suggestion.type === "switcher") || (action && (
                     action.type === "switch_context" ||
                     action.type === "select_context" ||
+                    action.type === "switcher" ||
                     suggestion.text.toLowerCase().includes("tabela") || // Heuristic for current bot
                     action.switcher ||
                     action.context
-                );
+                ));
 
                 chip.className = isSwitcher ? "switcher-chip" : "suggestion-chip";
 
                 var switcherName = action ? (action.switcher || action.context) : suggestion.text;
-                if (isSwitcher && activeSwitchers.has(switcherName)) {
-                    chip.classList.add("active");
+                if (isSwitcher) {
+                    var hash = 0;
+                    for (var i = 0; i < switcherName.length; i++) {
+                        hash = switcherName.charCodeAt(i) + ((hash << 5) - hash);
+                    }
+                    var h = Math.abs(hash) % 360;
+                    chip.style.setProperty("--switcher-color", "hsl(" + h + ", 70%, 50%)");
+
+                    if (activeSwitchers.has(switcherName)) {
+                        chip.classList.add("active");
+                    }
                 }
 
                 chip.textContent = suggestion.text || "Suggestion";
@@ -1086,7 +1096,12 @@ function sendMessage(messageContent) {
         };
 
         activeKeys.forEach(function(id) {
-            if (promptMap[id]) activePrompts.push(promptMap[id]);
+            if (promptMap[id]) {
+                activePrompts.push(promptMap[id]);
+            } else {
+                // Se o switcher não estiver no mapa padrão, o ID (texto do switcher) é o próprio prompt
+                activePrompts.push(id);
+            }
         });
 
         if (activePrompts.length > 0) {
