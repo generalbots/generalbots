@@ -18,12 +18,12 @@ jobs:
         git pull
         git submodule update --init --recursive botlib botserver
         cargo build -p botserver
-    - name: Deploy
+    - name: Deploy to Stage
       run: |
-        sudo incus exec system -- systemctl stop botserver || true
-        sudo incus exec system -- pkill -x botserver || true
+        sudo incus exec system --project STAGE-GBO -- systemctl stop botserver || true
+        sudo incus exec system --project STAGE-GBO -- pkill -x botserver || true
         sleep 1
-        sudo incus file push /opt/gbo/work/botserver/target/debug/botserver system:/opt/gbo/bin/botserver --mode=0755
-        sudo incus exec system -- systemctl start botserver
+        sudo incus file push /opt/gbo/work/botserver/target/debug/botserver system/opt/gbo/bin/botserver --project STAGE-GBO --mode=0755
+        sudo incus exec system --project STAGE-GBO -- systemctl start botserver
         sleep 2
-        sudo incus exec system -- pgrep -x botserver && echo "✅ BotServer Deployed" || echo "❌ Failed"
+        sudo incus exec system --project STAGE-GBO -- pgrep -x botserver && echo "✅ BotServer Deployed to Stage" || echo "❌ Failed"

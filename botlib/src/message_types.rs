@@ -18,6 +18,7 @@ impl MessageType {
     pub const CONTEXT_CHANGE: Self = Self(5);
 
     pub const TOOL_EXEC: Self = Self(6);
+    pub const SYSTEM: Self = Self(7);
 }
 
 impl From<i32> for MessageType {
@@ -48,6 +49,7 @@ impl std::fmt::Display for MessageType {
             4 => "SUGGESTION",
             5 => "CONTEXT_CHANGE",
             6 => "TOOL_EXEC",
+            7 => "SYSTEM",
             _ => "UNKNOWN",
         };
         write!(f, "{name}")
