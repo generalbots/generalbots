@@ -609,7 +609,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_message() {
-        let runner = BotRunner::new();
+        let mut runner = BotRunner::new();
+        let bot = Bot::default();
+        runner.set_bot(bot);
         let customer = Customer::default();
 
         let session_id = runner.start_session(customer).unwrap();

@@ -1,84 +1,17 @@
+mod ooxml_extract;
+mod rtf;
+mod types;
+
+pub use types::{ChunkMetadata, DocumentFormat, DocumentMetadata, TextChunk};
+
 use anyhow::Result;
 use log::{debug, info, warn};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::io::Cursor;
 use std::path::Path;
 use tokio::io::AsyncReadExt;
+
 use crate::security::command_guard::SafeCommand;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DocumentFormat {
-    PDF,
-    DOCX,
-    XLSX,
-    PPTX,
-    TXT,
-    MD,
-    HTML,
-    RTF,
-    CSV,
-    JSON,
-    XML,
-}
-
-impl DocumentFormat {
-    pub fn from_extension(path: &Path) -> Option<Self> {
-        let ext = path.extension()?.to_str()?.to_lowercase();
-        match ext.as_str() {
-            "pdf" => Some(Self::PDF),
-            "docx" => Some(Self::DOCX),
-            "xlsx" => Some(Self::XLSX),
-            "pptx" => Some(Self::PPTX),
-            "txt" => Some(Self::TXT),
-            "md" | "markdown" => Some(Self::MD),
-            "html" | "htm" => Some(Self::HTML),
-            "rtf" => Some(Self::RTF),
-            "csv" => Some(Self::CSV),
-            "json" => Some(Self::JSON),
-            "xml" => Some(Self::XML),
-            _ => None,
-        }
-    }
-
-    pub fn max_size(&self) -> usize {
-        match self {
-            Self::PDF => 500 * 1024 * 1024,
-            Self::PPTX => 200 * 1024 * 1024,
-            Self::DOCX | Self::XLSX | Self::TXT | Self::JSON | Self::XML => 100 * 1024 * 1024,
-            Self::HTML | Self::RTF => 50 * 1024 * 1024,
-            Self::MD => 10 * 1024 * 1024,
-            Self::CSV => 1024 * 1024 * 1024,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DocumentMetadata {
-    pub title: Option<String>,
-    pub author: Option<String>,
-    pub creation_date: Option<String>,
-    pub modification_date: Option<String>,
-    pub page_count: Option<usize>,
-    pub word_count: Option<usize>,
-    pub language: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TextChunk {
-    pub content: String,
-    pub metadata: ChunkMetadata,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChunkMetadata {
-    pub document_path: String,
-    pub document_title: Option<String>,
-    pub chunk_index: usize,
-    pub total_chunks: usize,
-    pub start_char: usize,
-    pub end_char: usize,
-    pub page_number: Option<usize>,
-}
 
 #[derive(Debug)]
 pub struct DocumentProcessor {
@@ -124,10 +57,7 @@ impl DocumentProcessor {
         let file_size = metadata.len() as usize;
 
         if file_size == 0 {
-            debug!(
-                "Skipping empty file (0 bytes): {}",
-                file_path.display()
-            );
+            debug!("Skipping empty file (0 bytes): {}", file_path.display());
             return Ok(Vec::new());
         }
 
@@ -150,9 +80,7 @@ impl DocumentProcessor {
         );
 
         let text = self.extract_text(file_path, format).await?;
-
         let cleaned_text = Self::clean_text(&text);
-
         let chunks = self.create_chunks(&cleaned_text, file_path);
 
         info!(
@@ -165,10 +93,9 @@ impl DocumentProcessor {
     }
 
     async fn extract_text(&self, file_path: &Path, format: DocumentFormat) -> Result<String> {
-        // Check file size before processing to prevent memory exhaustion
         let metadata = tokio::fs::metadata(file_path).await?;
         let file_size = metadata.len() as usize;
-        
+
         if file_size > format.max_size() {
             return Err(anyhow::anyhow!(
                 "File too large: {} bytes (max: {} bytes)",
@@ -179,8 +106,7 @@ impl DocumentProcessor {
 
         match format {
             DocumentFormat::TXT | DocumentFormat::MD => {
-                // Use streaming read for large text files
-                if file_size > 10 * 1024 * 1024 { // 10MB
+                if file_size > 10 * 1024 * 1024 {
                     self.extract_large_text_file(file_path).await
                 } else {
                     let mut file = tokio::fs::File::open(file_path).await?;
@@ -191,29 +117,26 @@ impl DocumentProcessor {
             }
             DocumentFormat::PDF => self.extract_pdf_text(file_path).await,
             DocumentFormat::DOCX => self.extract_docx_text(file_path).await,
+            DocumentFormat::PPTX => self.extract_pptx_text(file_path).await,
+            DocumentFormat::XLSX => self.extract_xlsx_text(file_path).await,
             DocumentFormat::HTML => self.extract_html_text(file_path).await,
             DocumentFormat::CSV => self.extract_csv_text(file_path).await,
             DocumentFormat::JSON => self.extract_json_text(file_path).await,
-            _ => {
-                warn!(
-                    "Format {:?} extraction not yet implemented, using fallback",
-                    format
-                );
-                self.fallback_text_extraction(file_path).await
-            }
+            DocumentFormat::XML => self.extract_xml_text(file_path).await,
+            DocumentFormat::RTF => self.extract_rtf_text(file_path).await,
         }
     }
 
     async fn extract_large_text_file(&self, file_path: &Path) -> Result<String> {
         use tokio::io::AsyncBufReadExt;
-        
+
         let file = tokio::fs::File::open(file_path).await?;
         let reader = tokio::io::BufReader::new(file);
         let mut lines = reader.lines();
         let mut content = String::new();
         let mut line_count = 0;
-        const MAX_LINES: usize = 100_000; // Limit lines to prevent memory exhaustion
-        
+        const MAX_LINES: usize = 100_000;
+
         while let Some(line) = lines.next_line().await? {
             if line_count >= MAX_LINES {
                 warn!("Truncating large file at {} lines: {}", MAX_LINES, file_path.display());
@@ -222,13 +145,12 @@ impl DocumentProcessor {
             content.push_str(&line);
             content.push('\n');
             line_count += 1;
-            
-            // Yield control periodically
+
             if line_count % 1000 == 0 {
                 tokio::task::yield_now().await;
             }
         }
-        
+
         Ok(content)
     }
 
@@ -249,17 +171,11 @@ impl DocumentProcessor {
 
         match output {
             Ok(output) if output.status.success() => {
-                info!(
-                    "Successfully extracted PDF with pdftotext: {}",
-                    file_path.display()
-                );
+                info!("Successfully extracted PDF with pdftotext: {}", file_path.display());
                 Ok(String::from_utf8_lossy(&output.stdout).to_string())
             }
             _ => {
-                warn!(
-                    "pdftotext failed for {}, trying library extraction",
-                    file_path.display()
-                );
+                warn!("pdftotext failed for {}, trying library extraction", file_path.display());
                 self.extract_pdf_with_library(file_path)
             }
         }
@@ -301,60 +217,60 @@ impl DocumentProcessor {
     }
 
     async fn extract_docx_text(&self, file_path: &Path) -> Result<String> {
-        let file_path_str = file_path.to_string_lossy().to_string();
-        let cmd_result = SafeCommand::new("pandoc")
-            .and_then(|c| c.arg("-f"))
-            .and_then(|c| c.arg("docx"))
-            .and_then(|c| c.arg("-t"))
-            .and_then(|c| c.arg("plain"))
-            .and_then(|c| c.arg(&file_path_str));
+        let bytes = tokio::fs::read(file_path).await?;
+        let path_display = file_path.display().to_string();
+        let result = tokio::task::spawn_blocking(move || -> Result<String> {
+            match ooxml_extract::extract_docx_text_from_zip(&bytes) {
+                Ok(text) if !text.trim().is_empty() => {
+                    log::info!("Extracted DOCX text from ZIP: {path_display}");
+                    return Ok(text);
+                }
+                Ok(_) => log::warn!("DOCX ZIP extraction returned empty text: {path_display}"),
+                Err(e) => log::warn!("DOCX ZIP extraction failed for {path_display}: {e}"),
+            }
 
-        let output = match cmd_result {
-            Ok(cmd) => cmd.execute_async().await,
-            Err(e) => {
-                warn!("Failed to build pandoc command: {}", e);
-                return self.fallback_text_extraction(file_path).await;
+            #[cfg(feature = "docs")]
+            match crate::docs::ooxml::load_docx_preserving(&bytes) {
+                Ok(doc) => {
+                    let text: String = doc.paragraphs.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("\n");
+                    if !text.trim().is_empty() {
+                        log::info!("Extracted DOCX with ooxmlsdk: {path_display}");
+                        return Ok(text);
+                    }
+                    log::warn!("ooxmlsdk DOCX returned empty: {path_display}");
+                }
+                Err(e) => log::warn!("ooxmlsdk DOCX failed for {path_display}: {e}"),
             }
-        };
 
-        match output {
-            Ok(output) if output.status.success() => {
-                Ok(String::from_utf8_lossy(&output.stdout).to_string())
-            }
-            _ => {
-                warn!("pandoc failed for DOCX, using fallback");
-                self.fallback_text_extraction(file_path).await
-            }
-        }
+            Err(anyhow::anyhow!("All DOCX extraction methods failed for {path_display}"))
+        })
+        .await??;
+
+        Ok(result)
     }
 
     async fn extract_html_text(&self, file_path: &Path) -> Result<String> {
         let contents = tokio::fs::read_to_string(file_path).await?;
-
         let text = contents
             .split('<')
             .flat_map(|s| s.split('>').skip(1))
             .collect::<Vec<_>>()
             .join(" ");
-
         Ok(text)
     }
 
     async fn extract_csv_text(&self, file_path: &Path) -> Result<String> {
         let contents = tokio::fs::read_to_string(file_path).await?;
-
         let mut text = String::new();
         for line in contents.lines() {
             text.push_str(line);
             text.push('\n');
         }
-
         Ok(text)
     }
 
     async fn extract_json_text(&self, file_path: &Path) -> Result<String> {
         let contents = tokio::fs::read_to_string(file_path).await?;
-
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&contents) {
             Ok(Self::extract_json_strings(&json))
         } else {
@@ -364,7 +280,6 @@ impl DocumentProcessor {
 
     fn extract_json_strings(value: &serde_json::Value) -> String {
         let mut result = String::new();
-
         match value {
             serde_json::Value::String(s) => {
                 result.push_str(s);
@@ -382,8 +297,178 @@ impl DocumentProcessor {
             }
             _ => {}
         }
-
         result
+    }
+
+    async fn extract_pptx_text(&self, file_path: &Path) -> Result<String> {
+        let bytes = tokio::fs::read(file_path).await?;
+        let path_display = file_path.display().to_string();
+        let result = tokio::task::spawn_blocking(move || -> Result<String> {
+            match ooxml_extract::extract_pptx_text_from_zip(&bytes) {
+                Ok(text) if !text.trim().is_empty() => {
+                    log::info!("Extracted PPTX text from ZIP: {path_display}");
+                    return Ok(text);
+                }
+                Ok(_) => log::warn!("PPTX ZIP extraction returned empty text: {path_display}"),
+                Err(e) => log::warn!("PPTX ZIP extraction failed for {path_display}: {e}"),
+            }
+
+            #[cfg(feature = "slides")]
+            match crate::slides::ooxml::load_pptx_preserving(&bytes) {
+                Ok(pptx) => {
+                    let mut text = String::new();
+                    for slide in &pptx.slides {
+                        for slide_text in &slide.texts {
+                            if !text.is_empty() {
+                                text.push('\n');
+                            }
+                            text.push_str(slide_text);
+                        }
+                    }
+                    if !text.trim().is_empty() {
+                        log::info!("Extracted PPTX with ooxmlsdk: {path_display}");
+                        return Ok(text);
+                    }
+                    log::warn!("ooxmlsdk PPTX returned empty: {path_display}");
+                }
+                Err(e) => log::warn!("ooxmlsdk PPTX failed for {path_display}: {e}"),
+            }
+
+            Err(anyhow::anyhow!("All PPTX extraction methods failed for {path_display}"))
+        })
+        .await??;
+
+        Ok(result)
+    }
+
+    #[cfg(feature = "kb-extraction")]
+    async fn extract_xlsx_text(&self, file_path: &Path) -> Result<String> {
+        let path = file_path.to_path_buf();
+        let result = tokio::task::spawn_blocking(move || -> Result<String> {
+            use calamine::{open_workbook_from_rs, Reader, Xlsx};
+            use std::io::Read;
+
+            let mut file = std::fs::File::open(&path)?;
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes)?;
+            let cursor = Cursor::new(bytes.as_slice());
+            let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)
+                .map_err(|e| anyhow::anyhow!("Failed to open XLSX: {e}"))?;
+
+            let mut content = String::new();
+            for sheet_name in workbook.sheet_names() {
+                if let Ok(range) = workbook.worksheet_range(&sheet_name) {
+                    use std::fmt::Write;
+                    let _ = writeln!(&mut content, "=== {} ===", sheet_name);
+
+                    for row in range.rows() {
+                        let row_text: Vec<String> = row
+                            .iter()
+                            .map(|cell| match cell {
+                                calamine::Data::Empty => String::new(),
+                                calamine::Data::String(s)
+                                | calamine::Data::DateTimeIso(s)
+                                | calamine::Data::DurationIso(s) => s.clone(),
+                                calamine::Data::Float(f) => f.to_string(),
+                                calamine::Data::Int(i) => i.to_string(),
+                                calamine::Data::Bool(b) => b.to_string(),
+                                calamine::Data::Error(e) => format!("{e:?}"),
+                                calamine::Data::DateTime(dt) => dt.to_string(),
+                            })
+                            .collect();
+
+                        let line = row_text.join("\t");
+                        if !line.trim().is_empty() {
+                            content.push_str(&line);
+                            content.push('\n');
+                        }
+                    }
+                    content.push('\n');
+                }
+            }
+
+            Ok(content)
+        })
+        .await??;
+
+        if result.trim().is_empty() {
+            warn!("XLSX extraction produced empty text: {}", file_path.display());
+        } else {
+            info!("Extracted XLSX with calamine library: {}", file_path.display());
+        }
+
+        Ok(result)
+    }
+
+    #[cfg(not(feature = "kb-extraction"))]
+    async fn extract_xlsx_text(&self, file_path: &Path) -> Result<String> {
+        self.fallback_text_extraction(file_path).await
+    }
+
+    async fn extract_xml_text(&self, file_path: &Path) -> Result<String> {
+        let bytes = tokio::fs::read(file_path).await?;
+        let result = tokio::task::spawn_blocking(move || -> Result<String> {
+            use quick_xml::events::Event;
+            use quick_xml::Reader;
+
+            let mut reader = Reader::from_reader(bytes.as_slice());
+            let mut text = String::new();
+            let mut buf = Vec::new();
+
+            loop {
+                match reader.read_event_into(&mut buf) {
+                    Ok(Event::Text(t)) => {
+                        if let Ok(s) = t.unescape() {
+                            let s = s.trim();
+                            if !s.is_empty() {
+                                if !text.is_empty() {
+                                    text.push(' ');
+                                }
+                                text.push_str(s);
+                            }
+                        }
+                    }
+                    Ok(Event::Eof) => break,
+                    Err(e) => {
+                        return Err(anyhow::anyhow!(
+                            "XML parsing error at position {}: {e}",
+                            reader.error_position()
+                        ));
+                    }
+                    _ => {}
+                }
+                buf.clear();
+            }
+
+            Ok(text)
+        })
+        .await??;
+
+        if result.trim().is_empty() {
+            warn!("XML extraction produced empty text: {}", file_path.display());
+            return self.fallback_text_extraction(file_path).await;
+        }
+
+        info!("Extracted XML with quick-xml: {}", file_path.display());
+        Ok(result)
+    }
+
+    async fn extract_rtf_text(&self, file_path: &Path) -> Result<String> {
+        let bytes = tokio::fs::read(file_path).await?;
+        let result = tokio::task::spawn_blocking(move || -> Result<String> {
+            let content = String::from_utf8_lossy(&bytes);
+            let text = rtf::strip_rtf_commands(&content);
+            Ok(text)
+        })
+        .await??;
+
+        if result.trim().is_empty() {
+            warn!("RTF extraction produced empty text: {}", file_path.display());
+            return self.fallback_text_extraction(file_path).await;
+        }
+
+        info!("Extracted RTF text: {}", file_path.display());
+        Ok(result)
     }
 
     async fn fallback_text_extraction(&self, file_path: &Path) -> Result<String> {
@@ -415,16 +500,15 @@ impl DocumentProcessor {
 
     fn create_chunks(&self, text: &str, file_path: &Path) -> Vec<TextChunk> {
         let mut chunks = Vec::new();
-        
-        // For very large texts, limit processing to prevent memory exhaustion
-        const MAX_TEXT_SIZE: usize = 10 * 1024 * 1024; // 10MB
+
+        const MAX_TEXT_SIZE: usize = 10 * 1024 * 1024;
         let text_to_process = if text.len() > MAX_TEXT_SIZE {
             warn!("Truncating large text to {} chars for chunking: {}", MAX_TEXT_SIZE, file_path.display());
             &text[..MAX_TEXT_SIZE]
         } else {
             text
         };
-        
+
         let chars: Vec<char> = text_to_process.chars().collect();
         let total_chars = chars.len();
 
@@ -442,7 +526,6 @@ impl DocumentProcessor {
             1
         };
 
-        // Limit maximum number of chunks to prevent memory exhaustion
         const MAX_CHUNKS: usize = 1000;
         let max_chunks_to_create = std::cmp::min(total_chunks, MAX_CHUNKS);
 
@@ -451,7 +534,6 @@ impl DocumentProcessor {
 
             let mut chunk_end = end;
             if end < total_chars {
-                // Find word boundary within reasonable distance
                 let search_start = std::cmp::max(start, end.saturating_sub(100));
                 for i in (search_start..end).rev() {
                     if chars[i].is_whitespace() {
@@ -463,7 +545,6 @@ impl DocumentProcessor {
 
             let chunk_content: String = chars[start..chunk_end].iter().collect();
 
-            // Skip empty or very small chunks
             if chunk_content.trim().len() < 10 {
                 start = chunk_end;
                 continue;
@@ -518,16 +599,15 @@ impl DocumentProcessor {
 
         info!("Processing knowledge base folder: {}", kb_path.display());
 
-        // Process files in small batches to prevent memory exhaustion
         let mut results = HashMap::new();
-        const BATCH_SIZE: usize = 10; // Much smaller batch size
-        
+        const BATCH_SIZE: usize = 10;
+
         let files = self.collect_supported_files(kb_path).await?;
         info!("Found {} supported files to process", files.len());
-        
+
         for batch in files.chunks(BATCH_SIZE) {
             let mut batch_results = HashMap::new();
-            
+
             for file_path in batch {
                 match self.process_document(file_path).await {
                     Ok(chunks) => {
@@ -539,19 +619,16 @@ impl DocumentProcessor {
                         warn!("Failed to process document {}: {}", file_path.display(), e);
                     }
                 }
-                
-                // Yield control after each file
+
                 tokio::task::yield_now().await;
             }
-            
-            // Merge batch results and clear batch memory
+
             results.extend(batch_results);
-            
-            // Force memory cleanup between batches
+
             if results.len() % (BATCH_SIZE * 2) == 0 {
                 results.shrink_to_fit();
             }
-            
+
             info!("Processed batch, total documents: {}", results.len());
         }
 
@@ -571,7 +648,6 @@ impl DocumentProcessor {
         files: &mut Vec<std::path::PathBuf>,
         depth: usize,
     ) -> Result<()> {
-        // Prevent excessive recursion
         if depth > 10 {
             warn!("Skipping deep directory to prevent stack overflow: {}", dir.display());
             return Ok(());
@@ -586,7 +662,6 @@ impl DocumentProcessor {
             if metadata.is_dir() {
                 Box::pin(self.collect_files_recursive(&path, files, depth + 1)).await?;
             } else if self.is_supported_file(&path) {
-                // Skip very large files
                 if metadata.len() > 50 * 1024 * 1024 {
                     warn!("Skipping large file: {} ({})", path.display(), metadata.len());
                     continue;

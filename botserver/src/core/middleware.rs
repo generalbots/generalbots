@@ -269,7 +269,6 @@ impl RequestContext {
 
 #[derive(Clone)]
 pub struct ContextMiddlewareState {
-    pub db_pool: DbPool,
     pub jwt_secret: Arc<String>,
     pub org_cache: Arc<RwLock<std::collections::HashMap<Uuid, CachedOrganization>>>,
     pub user_cache: Arc<RwLock<std::collections::HashMap<Uuid, CachedUserData>>>,
@@ -290,9 +289,8 @@ pub struct CachedUserData {
 }
 
 impl ContextMiddlewareState {
-    pub fn new(db_pool: DbPool, jwt_secret: String) -> Self {
+    pub fn new(_db_pool: DbPool, jwt_secret: String) -> Self {
         Self {
-            db_pool,
             jwt_secret: Arc::new(jwt_secret),
             org_cache: Arc::new(RwLock::new(std::collections::HashMap::new())),
             user_cache: Arc::new(RwLock::new(std::collections::HashMap::new())),

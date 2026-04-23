@@ -2728,7 +2728,7 @@ NO QUESTIONS. JUST BUILD."#
         {
             let prompt = _prompt;
             let bot_id = _bot_id;
-            let config_manager = ConfigManager::new(self.state.conn.clone().into());
+            let config_manager = ConfigManager::new(self.state.conn.clone());
             let model = config_manager
                 .get_config(&bot_id, "llm-model", None)
                 .unwrap_or_else(|_| {
@@ -3170,40 +3170,9 @@ NO QUESTIONS. JUST BUILD."#
         .execute(&mut conn)?;
 
         Ok(())
-    }
+}
 
-    /// Ensure the bucket exists, creating it if necessary
-    async fn ensure_bucket_exists(
-        &self,
-        bucket: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        #[cfg(feature = "drive")]
-        if let Some(ref s3) = self.state.drive {
-            // Check if bucket exists
-match s3.object_exists(bucket, "").await {
-            Ok(_) => {
-                trace!("Bucket {} already exists", bucket);
-                Ok(())
-            }
-            Err(_) => {
-                Ok(())
-            }
-        }
-        } else {
-            // No S3 client, we'll use DB fallback - no bucket needed
-            trace!("No S3 client, using DB fallback for storage");
-            Ok(())
-        }
-
-        #[cfg(not(feature = "drive"))]
-        {
-            let _ = bucket;
-            trace!("Drive feature not enabled, no bucket check needed");
-            Ok(())
-        }
-    }
-
-    async fn write_to_drive(
+async fn write_to_drive(
         &self,
         bucket: &str,
         path: &str,

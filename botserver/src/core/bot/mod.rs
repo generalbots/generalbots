@@ -530,7 +530,7 @@ impl BotOrchestrator {
                         sm.get_session_context_data(&session.id, &session.user_id)?
                     };
 
-                    let config_manager = ConfigManager::new(state_clone.conn.clone().into());
+                    let config_manager = ConfigManager::new(state_clone.conn.clone());
 
                     let history_limit = config_manager
                         .get_bot_config_value(&session.bot_id, "history-limit")
@@ -838,28 +838,32 @@ impl BotOrchestrator {
         // #[cfg(feature = "drive")]
         // set_llm_streaming(true);
 
-    let stream_tx_clone = stream_tx.clone();
+        let stream_tx_clone = stream_tx.clone();
 
-    // Create cancellation channel for this streaming session
-    let (cancel_tx, mut cancel_rx) = broadcast::channel::<()>(1);
-    let session_id_str = session.id.to_string();
+        // Create cancellation channel for this streaming session
+        let (cancel_tx, mut cancel_rx) = broadcast::channel::<()>(1);
+        let session_id_str = session.id.to_string();
 
-    // Register this streaming session for potential cancellation
-    {
-        let mut active_streams = self.state.active_streams.lock().await;
-        active_streams.insert(session_id_str.clone(), cancel_tx);
-    }
-
-    // Wrap the LLM task in a JoinHandle so we can abort it
-    let mut cancel_rx_for_abort = cancel_rx.resubscribe();
-    let llm_task = tokio::spawn(async move {
-        if let Err(e) = llm
-        .generate_stream("", &messages_clone, stream_tx_clone, &model_clone, &key_clone, tools_for_llm.as_ref())
-        .await
+        // Register this streaming session for potential cancellation
         {
-            error!("LLM streaming error: {}", e);
+            let mut active_streams = self.state.active_streams.lock().await;
+            active_streams.insert(session_id_str.clone(), cancel_tx);
         }
-    });
+
+        // Wrap the LLM task in a JoinHandle so we can abort it
+        let mut cancel_rx_for_abort = cancel_rx.resubscribe();
+        let llm_task = tokio::spawn(async move {
+            if let Err(e) = llm
+                .generate_stream("", &messages_clone, stream_tx_clone, &model_clone, &key_clone, tools_for_llm.as_ref())
+                .await
+            {
+                error!("LLM streaming error: {}", e);
+            }
+        });
+
+        // Drop the original stream_tx so stream_rx.recv() loop ends
+        // when the LLM task finishes and drops its clone.
+        drop(stream_tx);
 
         // Wait for cancellation to abort LLM task
         tokio::spawn(async move {
@@ -885,7 +889,7 @@ impl BotOrchestrator {
         #[cfg(feature = "nvidia")]
         {
             let initial_tokens = crate::core::shared::utils::estimate_token_count(&context_data);
-            let config_manager = ConfigManager::new(self.state.conn.clone().into());
+            let config_manager = ConfigManager::new(self.state.conn.clone());
             let max_context_size = config_manager
                 .get_config(&session.bot_id, "llm-server-ctx-size", None)
                 .unwrap_or_default()

@@ -3,7 +3,7 @@ use log::{debug, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+
 use uuid::Uuid;
 
 use crate::core::config::ConfigManager;
@@ -35,7 +35,7 @@ impl QdrantConfig {
         let (url, api_key) = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
             sm.get_vectordb_config_sync()
         } else {
-            let config_manager = ConfigManager::new(Arc::new(pool.clone()));
+            let config_manager = ConfigManager::new(pool.clone());
             let url = config_manager
                 .get_config(bot_id, "vectordb-url", Some(""))
                 .unwrap_or_else(|_| "".to_string());
@@ -532,55 +532,74 @@ impl KbIndexer {
         Ok(())
     }
 
-    pub async fn index_single_file(
-        &self,
-        bot_id: Uuid,
-        bot_name: &str,
-        kb_name: &str,
-        file_path: &Path,
+pub async fn index_single_file(
+    &self,
+    bot_id: Uuid,
+    bot_name: &str,
+    kb_name: &str,
+    file_path: &Path,
+) -> Result<IndexingResult> {
+    self.index_single_file_with_id(bot_id, bot_name, kb_name, file_path, None).await
+}
+
+pub async fn index_single_file_with_id(
+    &self,
+    bot_id: Uuid,
+    bot_name: &str,
+    kb_name: &str,
+    file_path: &Path,
+    document_id: Option<&str>,
     ) -> Result<IndexingResult> {
         if !is_embedding_server_ready() {
-            return Err(anyhow::anyhow!(
-                "Embedding server not available. Cannot index file."
-            ));
+            if !self.embedding_generator.wait_for_server(30).await {
+                return Err(anyhow::anyhow!(
+                    "Embedding server not available. Cannot index file."
+                ));
+            }
         }
 
-        if !self.check_qdrant_health().await.unwrap_or(false) {
-            return Err(anyhow::anyhow!(
-                "Qdrant vector database is not available."
-            ));
-        }
+    if !self.check_qdrant_health().await.unwrap_or(false) {
+        return Err(anyhow::anyhow!(
+            "Qdrant vector database is not available."
+        ));
+    }
 
-        let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
-        let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
+    let bot_id_short = bot_id.to_string().chars().take(8).collect::<String>();
+    let collection_name = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
 
-        self.ensure_collection_exists(&collection_name).await?;
+    self.ensure_collection_exists(&collection_name).await?;
 
-        info!(
-            "Indexing single file: {} into collection {}",
-            file_path.display(),
-            collection_name
-        );
+    let doc_path = document_id
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| file_path.to_string_lossy().to_string());
 
-        let chunks = self.document_processor.process_document(file_path).await?;
+    info!(
+        "Indexing single file: {} (id: {}) into collection {}",
+        file_path.display(), doc_path, collection_name
+    );
 
-        if chunks.is_empty() {
-            warn!("No chunks extracted from file: {}", file_path.display());
-            return Ok(IndexingResult {
-                collection_name,
-                documents_processed: 0,
-                chunks_indexed: 0,
-            });
-        }
+    if let Err(e) = self.delete_file_points(&collection_name, &doc_path).await {
+        warn!("Failed to delete old points for {} before reindex: {}", doc_path, e);
+    }
 
-        let doc_path = file_path.to_string_lossy().to_string();
-        let embeddings = self
-            .embedding_generator
-            .generate_embeddings(&chunks)
-            .await?;
+    let chunks = self.document_processor.process_document(file_path).await?;
 
-        let points = Self::create_qdrant_points(&doc_path, embeddings)?;
-        self.upsert_points(&collection_name, points).await?;
+    if chunks.is_empty() {
+        warn!("No chunks extracted from file: {}", file_path.display());
+        return Ok(IndexingResult {
+            collection_name,
+            documents_processed: 0,
+            chunks_indexed: 0,
+        });
+    }
+
+    let embeddings = self
+        .embedding_generator
+        .generate_embeddings(&chunks)
+        .await?;
+
+    let points = Self::create_qdrant_points(&doc_path, embeddings)?;
+    self.upsert_points(&collection_name, points).await?;
 
         self.update_collection_metadata(&collection_name, bot_name, kb_name, chunks.len())?;
 

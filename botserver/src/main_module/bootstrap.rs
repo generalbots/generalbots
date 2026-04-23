@@ -435,7 +435,7 @@ pub async fn create_app_state(
     #[cfg(feature = "directory")]
     bootstrap_directory_admin(&zitadel_config).await;
 
-    let config_manager = ConfigManager::new(pool.clone().into());
+    let config_manager = ConfigManager::new(pool.clone());
 
     let mut bot_conn = pool
         .get()
@@ -927,6 +927,7 @@ pub async fn start_background_services(
         }
 
 // Step 1: Discover bots from S3 buckets (*.gbai) and auto-create missing
+    log::error!("Drive client status: {:?}", state_for_scan.drive.is_some());
     if let Some(s3_client) = &state_for_scan.drive {
         match s3_client.list_all_buckets().await {
             Ok(buckets) => {

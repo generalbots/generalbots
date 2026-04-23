@@ -59,7 +59,7 @@ impl EmbeddingConfig {
     pub fn from_bot_config(pool: &DbPool, _bot_id: &uuid::Uuid) -> Self {
         use crate::core::config::ConfigManager;
 
-        let config_manager = ConfigManager::new(Arc::new(pool.clone()));
+        let config_manager = ConfigManager::new(pool.clone());
 
         let embedding_url = config_manager
             .get_config(_bot_id, "embedding-url", Some(""))
@@ -299,7 +299,16 @@ impl KbEmbeddingGenerator {
     }
 
     pub async fn check_health(&self) -> bool {
-        // Strategy: try /health endpoint on BASE URL first.
+        // Remote HTTPS APIs (Cloudflare Workers AI, OpenAI, etc.) are assumed available
+        // — they don't have /health endpoints and return 401/403/301 on probe.
+        // Only local servers need TCP health checks.
+        if self.config.embedding_url.starts_with("https://") {
+            info!("Embedding server is remote HTTPS API ({}), assuming available", self.config.embedding_url);
+            set_embedding_server_ready(true);
+            return true;
+        }
+
+        // Strategy for local servers: try /health endpoint on BASE URL first.
         // - 200 OK → local server with health endpoint, ready
         // - 404/405 etc → server is reachable but has no /health (remote API or llama.cpp)
         // - Connection refused/timeout → server truly unavailable
@@ -311,12 +320,12 @@ impl KbEmbeddingGenerator {
             Duration::from_secs(self.config.connect_timeout_seconds),
             self.client.get(&health_url).send()
         ).await {
-            Ok(Ok(response)) => {
-                let status = response.status();
-                if status.is_success() {
-                    info!("Embedding server health check passed ({})", self.config.embedding_url);
-                    set_embedding_server_ready(true);
-                    true
+        Ok(Ok(response)) => {
+            let status = response.status();
+            if status.is_success() {
+                info!("Embedding server health check passed ({})", self.config.embedding_url);
+                set_embedding_server_ready(true);
+                true
             } else if status.as_u16() == 404 || status.as_u16() == 405 {
                 // Server is reachable but has no /health endpoint (remote API, llama.cpp /embedding-only)
                 // Try a HEAD request to the base URL to confirm it's up
@@ -327,25 +336,31 @@ impl KbEmbeddingGenerator {
                 ).await {
                     Ok(Ok(_)) => {
                         info!("Embedding server reachable at {}, marking as ready", base_url);
-                            set_embedding_server_ready(true);
-                            true
-                        }
+                        set_embedding_server_ready(true);
+                        true
+                    }
                     Ok(Err(e)) => {
                         warn!("Embedding server unreachable at {}: {}", base_url, e);
-                            set_embedding_server_ready(false);
-                            false
-                        }
+                        set_embedding_server_ready(false);
+                        false
+                    }
                     Err(_) => {
                         warn!("Embedding server probe timed out for {}", base_url);
-                            set_embedding_server_ready(false);
-                            false
-                        }
+                        set_embedding_server_ready(false);
+                        false
                     }
-                } else {
-                    warn!("Embedding server health check returned status {}", status);
-                    set_embedding_server_ready(false);
-                    false
                 }
+            } else if status.is_redirection() || status.as_u16() == 401 || status.as_u16() == 403 {
+                // Redirect (301/302) or auth-required (401/403) means the server IS reachable
+                // This is typical for remote APIs like Cloudflare Workers AI
+                info!("Embedding server reachable at {} (status {} indicates external API), marking as ready", base_url, status);
+                set_embedding_server_ready(true);
+                true
+            } else {
+                warn!("Embedding server health check returned status {}", status);
+                set_embedding_server_ready(false);
+                false
+            }
             }
             Ok(Err(e)) => {
                 // Connection failed entirely — server not running or network issue

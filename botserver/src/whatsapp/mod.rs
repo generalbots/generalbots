@@ -1653,7 +1653,7 @@ pub async fn attendant_respond(
 }
 
 async fn get_verify_token_for_bot(state: &Arc<AppState>, bot_id: &Uuid) -> String {
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
     let bot_id_clone = *bot_id;
 
     tokio::task::spawn_blocking(move || {

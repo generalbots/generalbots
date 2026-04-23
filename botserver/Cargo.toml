@@ -10,7 +10,7 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory"]
+default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "kb-extraction"]
 
 # ===== SECURITY MODES =====
 # no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
@@ -42,16 +42,19 @@ marketing = ["people", "automation", "drive", "cache"]
 # Productivity
 calendar = ["automation", "drive", "cache"]
 tasks = ["automation", "drive", "cache", "dep:cron"]
-project = ["automation", "drive", "cache", "quick-xml"]
+project = ["automation", "drive", "cache"]
 goals = ["automation", "drive", "cache"]
 workspaces = ["automation", "drive", "cache"]
 tickets = ["automation", "drive", "cache"]
 billing = ["automation", "drive", "cache"]
 
-# Documents
-docs = ["automation", "drive", "cache", "docx-rs", "ooxmlsdk"]
-sheet = ["automation", "drive", "cache", "calamine", "dep:rust_xlsxwriter", "dep:umya-spreadsheet"]
-slides = ["automation", "drive", "cache", "ooxmlsdk"]
+# Document Processing (lightweight - KB extraction without heavy OOXML SDKs)
+kb-extraction = ["drive", "dep:calamine"]
+
+# Documents (full editing UI - opt-in, adds ~4min compile time from ooxmlsdk)
+docs = ["automation", "drive", "cache", "dep:docx-rs", "dep:ooxmlsdk", "kb-extraction"]
+sheet = ["automation", "drive", "cache", "dep:calamine", "dep:rust_xlsxwriter", "dep:umya-spreadsheet", "kb-extraction"]
+slides = ["automation", "drive", "cache", "dep:ooxmlsdk", "kb-extraction"]
 paper = ["automation", "drive", "cache"]
 
 # Media
@@ -172,7 +175,7 @@ umya-spreadsheet = { workspace = true, optional = true }
 # File Storage & Drive (drive feature)
 # minio removed - use rust-s3 via S3Repository instead
 pdf-extract = { workspace = true, optional = true }
-quick-xml = { workspace = true, optional = true }
+quick-xml = { workspace = true }
 flate2 = { workspace = true }
 zip = { workspace = true }
 tar = { workspace = true }

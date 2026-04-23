@@ -16,7 +16,7 @@ pub async fn execute_llm_with_context(
     system_prompt: &str,
     user_prompt: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
 
     let model = config_manager
         .get_config(&bot_id, "llm-model", None)
