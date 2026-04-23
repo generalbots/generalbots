@@ -438,6 +438,16 @@ impl BotOrchestrator {
             }
         }
 
+        // Handle SYSTEM messages (type 7) - inject into history as system role
+        if message.message_type == MessageType::SYSTEM {
+            if !message_content.is_empty() {
+                info!("SYSTEM message injection for session {}", session_id);
+                let mut sm = self.state.session_manager.blocking_lock();
+                sm.save_message(session_id, user_id, 3, &message_content, 1)?; // role 3 = System
+            }
+            return Ok(());
+        }
+
         // Legacy: Handle direct tool invocation via __TOOL__: prefix
         if message_content.starts_with("__TOOL__:") {
             let tool_name = message_content.trim_start_matches("__TOOL__:").trim();
