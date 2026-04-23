@@ -727,6 +727,17 @@ CARGO_BUILD_JOBS=1 cargo check -p botserver 2>&1 | tail -200
 
 ---
 
+---
+
+## 🧪 Testing Staging Environment (STAGE-GBO)
+
+To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO environment:
+- Use the `10.0.3.x` subnet for container IPs (e.g., `10.0.3.10` for the system container).
+- Route testing via the host gateway at `10.0.0.1` or directly hit container IPs inside the staging host.
+- Do NOT confuse staging IP ranges (`10.0.3.x`) with production ranges.
+
+---
+
 ## 🎭 Playwright Browser Testing - YOLO Mode
 
 **When user requests to start YOLO mode with Playwright:**
