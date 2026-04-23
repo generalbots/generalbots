@@ -972,14 +972,15 @@ function hideThinkingIndicator() {
 
                 var chip = document.createElement("button");
                 // More robust switcher detection: check action type or context/switcher fields
-                var isSwitcher = (suggestion.type === "switcher") || (action && (
-                    action.type === "switch_context" ||
-                    action.type === "select_context" ||
-                    action.type === "switcher" ||
-                    suggestion.text.toLowerCase().includes("tabela") || // Heuristic for current bot
-                    action.switcher ||
-                    action.context
-                ));
+                var isSwitcher = (suggestion.type === "switcher") || 
+                    (suggestion.text && suggestion.text.toLowerCase().includes("tabela")) || // Heuristic for current bot
+                    (action && (
+                        action.type === "switch_context" ||
+                        action.type === "select_context" ||
+                        action.type === "switcher" ||
+                        action.switcher ||
+                        action.context
+                    ));
 
                 chip.className = isSwitcher ? "switcher-chip" : "suggestion-chip";
 
