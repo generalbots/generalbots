@@ -970,17 +970,8 @@ function hideThinkingIndicator() {
                     }
                 }
 
-                var chip = document.createElement("button");
-                // More robust switcher detection: check action type or context/switcher fields
-                var isSwitcher = (suggestion.type === "switcher") || 
-                    (suggestion.text && suggestion.text.toLowerCase().includes("tabela")) || // Heuristic for current bot
-                    (action && (
-                        action.type === "switch_context" ||
-                        action.type === "select_context" ||
-                        action.type === "switcher" ||
-                        action.switcher ||
-                        action.context
-                    ));
+ var chip = document.createElement("button");
+ chip.className = "suggestion-chip";
 
                 chip.className = isSwitcher ? "switcher-chip" : "suggestion-chip";
 
