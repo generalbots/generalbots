@@ -257,14 +257,15 @@ impl ZitadelClient {
     pub async fn list_users(&self, limit: u32, offset: u32) -> Result<Vec<serde_json::Value>> {
         let token = self.get_access_token().await?;
         let url = format!(
-            "{}/v2/users?limit={}&offset={}",
+            "{}/management/v1/users/_search?limit={}&offset={}",
             self.config.api_url, limit, offset
         );
 
         let response = self
             .http_client
-            .get(&url)
+            .post(&url)
             .bearer_auth(&token)
+            .json(&serde_json::json!({}))
             .send()
             .await
             .map_err(|e| anyhow!("Failed to list users: {}", e))?;
@@ -290,7 +291,7 @@ impl ZitadelClient {
 
     pub async fn search_users(&self, query: &str) -> Result<Vec<serde_json::Value>> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/users/_search", self.config.api_url);
+        let url = format!("{}/management/v1/users/_search", self.config.api_url);
 
         let body = serde_json::json!({
             "queries": [{
