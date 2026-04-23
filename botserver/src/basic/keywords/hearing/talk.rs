@@ -42,6 +42,7 @@ pub async fn execute_talk(
         stream_token: None,
         is_complete: true,
         suggestions: Vec::new(),
+        switchers: Vec::new(),
         context_name: None,
         context_length: 0,
         context_max_length: 0,

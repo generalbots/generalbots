@@ -19,9 +19,13 @@ use crate::llm::OpenAIClient;
 use crate::nvidia::get_system_metrics;
 use crate::core::shared::message_types::MessageType;
 use crate::core::shared::models::{BotResponse, UserMessage, UserSession};
+#[cfg(not(feature = "chat"))]
+use crate::core::shared::models::Switcher;
 use crate::core::shared::state::AppState;
 #[cfg(feature = "chat")]
 use crate::basic::keywords::add_suggestion::get_suggestions;
+#[cfg(feature = "chat")]
+use crate::basic::keywords::switcher::{get_switchers, resolve_active_switchers};
 use html2md::parse_html;
 
 use axum::extract::ws::{Message, WebSocket};
@@ -408,45 +412,44 @@ impl BotOrchestrator {
                     format!("Erro ao executar '{}': {}", tool_name, tool_result.error.unwrap_or_default())
                 };
 
-                // Direct tool execution — return result immediately, no LLM call
-                let mut suggestions = vec![];
-                if let Some(cache) = &self.state.cache {
-                    #[cfg(feature = "chat")]
-                    {
-                        // Try to restore existing suggestions so they don't disappear in the UI
-                        suggestions = get_suggestions(Some(cache), &message.bot_id, &message.session_id);
-                    }
-                }
+    // Direct tool execution — return result immediately, no LLM call
+    let mut suggestions = vec![];
+    let mut switchers = vec![];
+    if let Some(cache) = &self.state.cache {
+        #[cfg(feature = "chat")]
+        {
+            // Try to restore existing suggestions so they don't disappear in the UI
+            suggestions = get_suggestions(Some(cache), &message.bot_id, &message.session_id);
+            switchers = get_switchers(Some(cache), &message.bot_id, &message.session_id);
+        }
+    }
 
-                let final_response = BotResponse {
-                    bot_id: message.bot_id.clone(),
-                    user_id: message.user_id.clone(),
-                    session_id: message.session_id.clone(),
-                    channel: message.channel.clone(),
-                    content: response_content,
-                    message_type: MessageType::BOT_RESPONSE,
-                    stream_token: None,
-                    is_complete: true,
-                    suggestions,
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-                };
+    let final_response = BotResponse {
+        bot_id: message.bot_id.clone(),
+        user_id: message.user_id.clone(),
+        session_id: message.session_id.clone(),
+        channel: message.channel.clone(),
+        content: response_content,
+        message_type: MessageType::BOT_RESPONSE,
+        stream_token: None,
+        is_complete: true,
+        suggestions,
+        switchers,
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
 
                 let _ = response_tx.send(final_response).await;
                 return Ok(());
             }
         }
 
-        // Handle SYSTEM messages (type 7) - inject into history as system role
-        if message.message_type == MessageType::SYSTEM {
-            if !message_content.is_empty() {
-                info!("SYSTEM message injection for session {}", session_id);
-                let mut sm = self.state.session_manager.blocking_lock();
-                sm.save_message(session_id, user_id, 3, &message_content, 1)?; // role 3 = System
-            }
-            return Ok(());
-        }
+    // Handle SYSTEM messages (type 7) - no longer saved to DB, just acknowledge
+    if message.message_type == MessageType::SYSTEM {
+        trace!("SYSTEM message received for session {} (deprecated - switchers now via active_switchers field)", session_id);
+        return Ok(());
+    }
 
         // Legacy: Handle direct tool invocation via __TOOL__: prefix
         if message_content.starts_with("__TOOL__:") {
@@ -477,11 +480,13 @@ impl BotOrchestrator {
                     message_type: MessageType::BOT_RESPONSE,
                     stream_token: None,
                     is_complete: true,
-                    suggestions: vec![],
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-                };
+            suggestions: vec![],
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
+
                 
                 if let Err(e) = response_tx.send(final_response).await {
                     error!("Failed to send tool response: {}", e);
@@ -603,10 +608,26 @@ impl BotOrchestrator {
                     Ok((session, context_data, history, model, key, system_prompt, bot_llm_url, explicit_llm_provider, bot_endpoint_path))
                 },
             )
-            .await??
-        };
+    .await??
+    };
 
-        let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+    let system_prompt = if !message.active_switchers.is_empty() {
+        let switcher_prompts = resolve_active_switchers(
+            self.state.cache.as_ref(),
+            &session.bot_id.to_string(),
+            &session.id.to_string(),
+            &message.active_switchers,
+        );
+        if switcher_prompts.is_empty() {
+            system_prompt
+        } else {
+            format!("{system_prompt}\n\n{switcher_prompts}")
+        }
+    } else {
+        system_prompt
+    };
+
+    let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
 
         trace!("Built messages array with {} items, first message role: {:?}",
             messages.as_array().map(|a| a.len()).unwrap_or(0),
@@ -731,22 +752,28 @@ impl BotOrchestrator {
                 let bot_id_str = message.bot_id.clone();
                 let session_id_str = message.session_id.clone();
                 
-                #[cfg(feature = "chat")]
-                let suggestions = get_suggestions(self.state.cache.as_ref(), &bot_id_str, &session_id_str);
-                #[cfg(not(feature = "chat"))]
-                let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
+        #[cfg(feature = "chat")]
+        let suggestions = get_suggestions(self.state.cache.as_ref(), &bot_id_str, &session_id_str);
+        #[cfg(not(feature = "chat"))]
+        let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
 
-                let final_response = BotResponse {
-                    bot_id: message.bot_id,
-                    user_id: message.user_id,
-                    session_id: message.session_id,
-                    channel: message.channel,
-                    content: String::new(),
-                    message_type: MessageType::BOT_RESPONSE,
-                    stream_token: None,
-                    is_complete: true,
-                    suggestions,
-                    context_name: None,
+        #[cfg(feature = "chat")]
+        let switchers = get_switchers(self.state.cache.as_ref(), &bot_id_str, &session_id_str);
+        #[cfg(not(feature = "chat"))]
+        let switchers: Vec<Switcher> = Vec::new();
+
+        let final_response = BotResponse {
+            bot_id: message.bot_id,
+            user_id: message.user_id,
+            session_id: message.session_id,
+            channel: message.channel,
+            content: String::new(),
+            message_type: MessageType::BOT_RESPONSE,
+            stream_token: None,
+            is_complete: true,
+            suggestions,
+            switchers,
+            context_name: None,
                     context_length: 0,
                     context_max_length: 0,
                 };
@@ -982,8 +1009,9 @@ while let Some(chunk) = stream_rx.recv().await {
                                 message_type: MessageType::BOT_RESPONSE,
                                 stream_token: None,
                                 is_complete: false,
-                                suggestions: Vec::new(),
-                                context_name: None,
+            suggestions: Vec::new(),
+            switchers: Vec::new(),
+            context_name: None,
                                 context_length: 0,
                                 context_max_length: 0,
                             };
@@ -1046,6 +1074,7 @@ while let Some(chunk) = stream_rx.recv().await {
                         stream_token: None,
                         is_complete: false,
                         suggestions: Vec::new(),
+                        switchers: Vec::new(),
                         context_name: None,
                         context_length: 0,
                         context_max_length: 0,
@@ -1078,6 +1107,7 @@ while let Some(chunk) = stream_rx.recv().await {
                         stream_token: None,
                         is_complete: false,
                         suggestions: Vec::new(),
+                        switchers: Vec::new(),
                         context_name: None,
                         context_length: 0,
                         context_max_length: 0,
@@ -1114,6 +1144,7 @@ while let Some(chunk) = stream_rx.recv().await {
                     stream_token: None,
                     is_complete: false,
                     suggestions: Vec::new(),
+                    switchers: Vec::new(),
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
@@ -1165,6 +1196,7 @@ while let Some(chunk) = stream_rx.recv().await {
                     stream_token: None,
                     is_complete: false,
                     suggestions: Vec::new(),
+                    switchers: Vec::new(),
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
@@ -1205,6 +1237,7 @@ while let Some(chunk) = stream_rx.recv().await {
                         stream_token: None,
                         is_complete: false,
                         suggestions: Vec::new(),
+                        switchers: Vec::new(),
                         context_name: None,
                         context_length: 0,
                         context_max_length: 0,
@@ -1264,6 +1297,7 @@ while let Some(chunk) = stream_rx.recv().await {
                         stream_token: None,
                         is_complete: false,
                         suggestions: Vec::new(),
+                        switchers: Vec::new(),
                         context_name: None,
                         context_length: 0,
                         context_max_length: 0,
@@ -1348,6 +1382,11 @@ while let Some(chunk) = stream_rx.recv().await {
         #[cfg(not(feature = "chat"))]
         let suggestions: Vec<crate::core::shared::models::Suggestion> = Vec::new();
 
+        #[cfg(feature = "chat")]
+        let switchers = get_switchers(self.state.cache.as_ref(), &bot_id_str, &session_id_str);
+        #[cfg(not(feature = "chat"))]
+        let switchers: Vec<Switcher> = Vec::new();
+
         // Flush any remaining HTML buffer before sending final response
         if !html_buffer.is_empty() {
             trace!("Flushing remaining {} chars in HTML buffer", html_buffer.len());
@@ -1359,13 +1398,14 @@ while let Some(chunk) = stream_rx.recv().await {
                 content: html_buffer.clone(),
                 message_type: MessageType::BOT_RESPONSE,
                 stream_token: None,
-                is_complete: false,
-                suggestions: Vec::new(),
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
-            let _ = response_tx.send(final_chunk).await;
+            is_complete: false,
+            suggestions: Vec::new(),
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
+        let _ = response_tx.send(final_chunk).await;
             html_buffer.clear();
         }
 
@@ -1383,11 +1423,12 @@ while let Some(chunk) = stream_rx.recv().await {
             message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-            suggestions,
-            context_name: None,
-            context_length: 0,
-            context_max_length: 0,
-        };
+    suggestions,
+    switchers,
+    context_name: None,
+    context_length: 0,
+    context_max_length: 0,
+};
 
         response_tx.send(final_response).await?;
         Ok(())
@@ -1411,6 +1452,7 @@ while let Some(chunk) = stream_rx.recv().await {
             stream_token: None,
             is_complete: true,
             suggestions: Vec::new(),
+            switchers: Vec::new(),
             context_name: None,
             context_length: 0,
             context_max_length: 0,
@@ -1711,10 +1753,11 @@ async fn handle_websocket(
                                             }
                                         }
 
-                                        // Fetch suggestions from Redis and send to frontend
-                                        let user_id_str = user_id.to_string();
-                                        let suggestions = get_suggestions(state_for_redis.cache.as_ref(), &bot_id_str, &session_id_str);
-                                        if !suggestions.is_empty() {
+        // Fetch suggestions and switchers from Redis and send to frontend
+        let user_id_str = user_id.to_string();
+        let suggestions = get_suggestions(state_for_redis.cache.as_ref(), &bot_id_str, &session_id_str);
+        let switchers = get_switchers(state_for_redis.cache.as_ref(), &bot_id_str, &session_id_str);
+        if !suggestions.is_empty() || !switchers.is_empty() {
                                             info!("Sending {} suggestions to frontend for session {}", suggestions.len(), session_id);
                                             let response = BotResponse {
                                                 bot_id: bot_id_str.clone(),
@@ -1724,9 +1767,10 @@ async fn handle_websocket(
                                                 content: String::new(),
                                                 message_type: MessageType::BOT_RESPONSE,
                                                 stream_token: None,
-                                                is_complete: true,
-                                                suggestions,
-                                                context_name: None,
+            is_complete: true,
+            suggestions,
+            switchers,
+            context_name: None,
                                                 context_length: 0,
                                                 context_max_length: 0,
                                             };

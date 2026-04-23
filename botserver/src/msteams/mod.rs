@@ -100,11 +100,12 @@ async fn send_message(
         message_type: botlib::MessageType::BOT_RESPONSE,
         stream_token: None,
         is_complete: true,
-        suggestions: vec![],
-        context_name: None,
-        context_length: 0,
-        context_max_length: 0,
-    };
+            suggestions: vec![],
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
 
     match adapter.send_message(response).await {
         Ok(_) => (StatusCode::OK, Json(serde_json::json!({"success": true}))),

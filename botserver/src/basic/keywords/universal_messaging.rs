@@ -249,43 +249,46 @@ pub async fn send_message_to_recipient(
                 message_type: MessageType::EXTERNAL,
                 stream_token: None,
                 is_complete: true,
-                suggestions: vec![],
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
-            adapter.send_message(response).await?;
-        }
-        "instagram" => {
-            let adapter = InstagramAdapter::new();
-            let response = crate::core::shared::models::BotResponse {
-                bot_id: "default".to_string(),
-                session_id: user.id.to_string(),
-                user_id: recipient_id.clone(),
-                channel: "instagram".to_string(),
-                content: message.to_string(),
-                message_type: MessageType::EXTERNAL,
-                stream_token: None,
-                is_complete: true,
-                suggestions: vec![],
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
-            adapter.send_message(response).await?;
-        }
-        "teams" => {
-            let adapter = TeamsAdapter::new(state.conn.clone(), user.bot_id);
-            let response = crate::core::shared::models::BotResponse {
-                bot_id: "default".to_string(),
-                session_id: user.id.to_string(),
-                user_id: recipient_id.clone(),
-                channel: "teams".to_string(),
-                content: message.to_string(),
-                message_type: MessageType::EXTERNAL,
-                stream_token: None,
-                is_complete: true,
-                suggestions: vec![],
+            suggestions: vec![],
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
+        adapter.send_message(response).await?;
+    }
+    "instagram" => {
+        let adapter = InstagramAdapter::new();
+        let response = crate::core::shared::models::BotResponse {
+            bot_id: "default".to_string(),
+            session_id: user.id.to_string(),
+            user_id: recipient_id.clone(),
+            channel: "instagram".to_string(),
+            content: message.to_string(),
+            message_type: MessageType::EXTERNAL,
+            stream_token: None,
+            is_complete: true,
+            suggestions: vec![],
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
+        adapter.send_message(response).await?;
+    }
+    "teams" => {
+        let adapter = TeamsAdapter::new(state.conn.clone(), user.bot_id);
+        let response = crate::core::shared::models::BotResponse {
+            bot_id: "default".to_string(),
+            session_id: user.id.to_string(),
+            user_id: recipient_id.clone(),
+            channel: "teams".to_string(),
+            content: message.to_string(),
+            message_type: MessageType::EXTERNAL,
+            stream_token: None,
+            is_complete: true,
+            suggestions: vec![],
+            switchers: Vec::new(),
                 context_name: None,
                 context_length: 0,
                 context_max_length: 0,
@@ -608,6 +611,7 @@ async fn send_web_message(
         stream_token: None,
         is_complete: true,
         suggestions: Vec::new(),
+        switchers: Vec::new(),
         context_name: None,
         context_length: 0,
         context_max_length: 0,
