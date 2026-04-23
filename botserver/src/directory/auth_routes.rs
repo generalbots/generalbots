@@ -174,7 +174,7 @@ pub async fn login(
         admin_token
     };
 
-    let search_url = format!("{}/v2/users", client.api_url());
+    let search_url = format!("{}/management/v1/users/_search", client.api_url());
     let search_body = serde_json::json!({
         "queries": [{
             "emailQuery": {
@@ -228,7 +228,7 @@ pub async fn login(
         .get("result")
         .and_then(|r| r.as_array())
         .and_then(|arr| arr.first())
-        .and_then(|u| u.get("userId"))
+        .and_then(|u| u.get("id").or_else(|| u.get("userId")))
         .and_then(|v| v.as_str())
         .map(String::from);
 
