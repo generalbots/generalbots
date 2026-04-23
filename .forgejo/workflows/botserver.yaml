@@ -27,3 +27,6 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo systemctl enable botserver && sudo systemctl start botserver"
           sleep 10
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
+      - name: Sync UI Files to Stage
+        run: |
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/botserver/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/data/botui/ui/
