@@ -12,13 +12,19 @@ jobs:
       SYSTEM_HOST: ${{ vars.SYSTEM_HOST }}
       SYSTEM_USER: gbuser
     steps:
+      - name: Setup
+        run: |
+          cd /opt/gbo/work/generalbots
+          git reset --hard HEAD
+          git clean -fd
+          git pull
+          git submodule update --init --recursive
+          mkdir -p /opt/gbo/work/target
+          mkdir -p /opt/gbo/bin
       - name: Build
         run: |
-          cd /opt/gbo/work/botserver
-          git reset --hard HEAD && git clean -fd
-          git pull
-          git submodule update --init --recursive botlib botserver
-          cargo build -p botserver
+          cd /opt/gbo/work/generalbots
+          CARGO_BUILD_JOBS=4 cargo build -p botserver --bin botserver
       - name: Deploy to Stage
         run: |
           BINARY=/opt/gbo/work/target/debug/botserver
@@ -29,8 +35,4 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
       - name: Sync UI Files to Stage
         run: |
-          cd /opt/gbo/work/generalbots
-          git reset --hard HEAD && git clean -fd
-          git pull
-          git submodule update --init --recursive
-          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/data/botui/ui/
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/data/botui/ui/
