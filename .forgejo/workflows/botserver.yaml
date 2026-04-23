@@ -21,10 +21,9 @@ jobs:
           cargo build -p botserver
       - name: Deploy to Stage
         run: |
-          sudo incus exec system --project STAGE-GBO -- systemctl stop botserver || true
-          sudo incus exec system --project STAGE-GBO -- pkill -x botserver || true
-          sleep 1
-          sudo incus file push /opt/gbo/work/botserver/target/debug/botserver system/opt/gbo/bin/botserver --project STAGE-GBO --mode=0755
-          sudo incus exec system --project STAGE-GBO -- systemctl start botserver
-          sleep 2
-          sudo incus exec system --project STAGE-GBO -- pgrep -x botserver && echo "BotServer Deployed to Stage" || echo "Failed"
+          BINARY=/opt/gbo/work/target/debug/botserver
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo systemctl stop botserver 2>/dev/null; sudo pkill -x botserver 2>/dev/null; sleep 1"
+          scp -o StrictHostKeyChecking=no "$BINARY" ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/bin/botserver-new
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo systemctl enable botserver && sudo systemctl start botserver"
+          sleep 10
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
