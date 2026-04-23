@@ -206,7 +206,7 @@ fn fill_pending_info(
     .bind::<Text, _>(config_key)
     .execute(&mut conn)?;
 
-    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone().into());
+    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     config_manager
         .set_config(&bot_id, config_key, value)
         .map_err(|e| format!("Failed to set config: {}", e))?;

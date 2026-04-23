@@ -1,7 +1,6 @@
 use crate::docs::ooxml::{load_docx_preserving, update_docx_text};
 use crate::docs::types::{Document, DocumentMetadata};
 use crate::core::shared::state::AppState;
-use crate::drive::s3_repository::S3Repository;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::io::Cursor;
@@ -78,12 +77,14 @@ pub async fn load_docx_from_bytes(
     user_identifier: &str,
     file_path: &str,
 ) -> Result<Document, String> {
-    let file_name = file_path
+    let raw_name = file_path
         .split('/')
         .last()
-        .unwrap_or("Untitled")
-        .trim_end_matches(".docx")
-        .trim_end_matches(".doc");
+        .unwrap_or("Untitled");
+    let file_name = raw_name
+        .strip_suffix(".docx")
+        .or_else(|| raw_name.strip_suffix(".doc"))
+        .unwrap_or(raw_name);
 
     let doc_id = generate_doc_id();
 
@@ -247,12 +248,12 @@ pub async fn save_document_as_docx(
     let docx_path = format!("{base_path}/{doc_id}.docx");
 
     s3_client
-        .put_object(
-            &state.bucket_name,
-            &docx_path,
-            docx_bytes.clone(),
-            Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-        )
+        .put_object()
+        .bucket(&state.bucket_name)
+        .key(&docx_path)
+        .body(docx_bytes.clone())
+        .content_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        .send()
         .await
         .map_err(|e| format!("Failed to save DOCX: {e}"))?;
 
@@ -346,12 +347,12 @@ pub async fn save_document_to_drive(
     let meta_path = format!("{base_path}/{doc_id}.meta.json");
 
     s3_client
-        .put_object(
-            &state.bucket_name,
-            &doc_path,
-            content.as_bytes().to_vec(),
-            Some("text/html"),
-        )
+        .put_object()
+        .bucket(&state.bucket_name)
+        .key(&doc_path)
+        .body(content.as_bytes().to_vec())
+        .content_type("text/html")
+        .send()
         .await
         .map_err(|e| format!("Failed to save document: {e}"))?;
 
@@ -367,12 +368,12 @@ pub async fn save_document_to_drive(
     });
 
     s3_client
-        .put_object(
-            &state.bucket_name,
-            &meta_path,
-            metadata.to_string().into_bytes(),
-            Some("application/json"),
-        )
+        .put_object()
+        .bucket(&state.bucket_name)
+        .key(&meta_path)
+        .body(metadata.to_string().into_bytes())
+        .content_type("application/json")
+        .send()
         .await
         .map_err(|e| format!("Failed to save metadata: {e}"))?;
 
@@ -493,7 +494,7 @@ pub async fn list_documents_from_drive(
                     if let Ok(meta_result) = s3_client
                         .get_object()
                         .bucket(&state.bucket_name)
-                        .key(key)
+                        .key(&key)
                         .send()
                         .await
                     {

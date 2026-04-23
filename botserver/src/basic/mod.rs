@@ -1260,27 +1260,30 @@ impl ScriptService {
     }
 
     /// Convert BASIC keywords to lowercase without touching variables
-    /// Uses the centralized keyword list from get_all_keywords()
-    pub fn convert_keywords_to_lowercase(script: &str) -> String {
-        use crate::basic::keywords::get_all_keywords;
-        
-        let keywords = get_all_keywords();
+    /// Only lowercases Rhai built-in keywords (if, while, for, etc.)
+    /// Custom syntax keywords (TALK, HEAR, ADD_SUGGESTION, etc.) must remain uppercase
+pub fn convert_keywords_to_lowercase(script: &str) -> String {
+    let rhai_builtins = [
+        "IF", "ELSE", "WHILE", "FOR", "IN", "LOOP", "RETURN", "LET",
+        "CONST", "IMPORT", "EXPORT", "FN", "PRIVATE", "SWITCH", "MATCH",
+        "TRUE", "FALSE", "BREAK", "CONTINUE", "DO", "TRY", "CATCH", "THROW",
+        "AS",
+    ];
 
-        let mut result = String::new();
-        for line in script.lines() {
-            let mut processed_line = line.to_string();
-            for keyword in &keywords {
-                // Use word boundaries to avoid replacing parts of variable names
-                let pattern = format!(r"\b{}\b", regex::escape(keyword));
-                if let Ok(re) = regex::Regex::new(&pattern) {
-                    processed_line = re.replace_all(&processed_line, keyword.to_lowercase()).to_string();
-                }
+    let mut result = String::new();
+    for line in script.lines() {
+        let mut processed_line = line.to_string();
+        for keyword in &rhai_builtins {
+            let pattern = format!(r"\b{}\b", regex::escape(keyword));
+            if let Ok(re) = regex::Regex::new(&pattern) {
+                processed_line = re.replace_all(&processed_line, keyword.to_lowercase()).to_string();
             }
-            result.push_str(&processed_line);
-            result.push('\n');
         }
-        result
+        result.push_str(&processed_line);
+        result.push('\n');
     }
+    result
+}
 
 
     /// Convert ALL multi-word keywords to underscore versions (function calls)

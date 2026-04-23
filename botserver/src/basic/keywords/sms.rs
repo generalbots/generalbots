@@ -486,7 +486,7 @@ async fn execute_send_sms(
     provider_override: Option<&str>,
     priority_override: Option<&str>,
 ) -> Result<SmsSendResult, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
     let bot_id = user.bot_id;
 
     let provider_name = match provider_override {
@@ -589,7 +589,7 @@ async fn send_via_twilio(
     message: &str,
     priority: &SmsPriority,
 ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
 
     let account_sid = config_manager
         .get_config(bot_id, "twilio-account-sid", None)
@@ -645,7 +645,7 @@ async fn send_via_aws_sns(
     message: &str,
     priority: &SmsPriority,
 ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
 
     let access_key = config_manager
         .get_config(bot_id, "aws-access-key", None)
@@ -710,7 +710,7 @@ async fn send_via_vonage(
     message: &str,
     priority: &SmsPriority,
 ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
 
     let api_key = config_manager
         .get_config(bot_id, "vonage-api-key", None)
@@ -776,7 +776,7 @@ async fn send_via_messagebird(
     message: &str,
     priority: &SmsPriority,
 ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
 
     let api_key = config_manager
         .get_config(bot_id, "messagebird-api-key", None)
@@ -830,7 +830,7 @@ async fn send_via_custom_webhook(
     message: &str,
     priority: &SmsPriority,
 ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = ConfigManager::new(state.conn.clone().into());
+    let config_manager = ConfigManager::new(state.conn.clone());
 
     let webhook_url = config_manager
         .get_config(bot_id, &format!("{}-webhook-url", webhook_name), None)

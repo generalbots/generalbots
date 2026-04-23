@@ -69,13 +69,15 @@ pub fn add_suggestion_keyword(
 ) {
     // Each closure needs its own Arc<redis::Client> and UserSession clone
     let cache = state.cache.clone();
+    let cache2 = state.cache.clone();
     let cache3 = state.cache.clone();
     let cache4 = state.cache.clone();
+    let user_session = user_session.clone();
+    let user_session2 = user_session.clone();
     let user_session3 = user_session.clone();
     let user_session4 = user_session.clone();
 
     // ADD_SUGGESTION_TOOL "tool_name" as "button text"
-    // Note: compiler converts AS -> as (lowercase keywords), so we use lowercase here
     engine
         .register_custom_syntax(
             ["ADD_SUGGESTION_TOOL", "$expr$", "as", "$expr$"],
@@ -106,14 +108,14 @@ pub fn add_suggestion_keyword(
                 let text_value = context.eval_expression_tree(&inputs[0])?.to_string();
                 let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                add_text_suggestion(cache3.as_ref(), &user_session3, &text_value, &button_text)?;
+                add_text_suggestion(cache2.as_ref(), &user_session2, &text_value, &button_text)?;
 
                 Ok(Dynamic::UNIT)
             },
         )
         .expect("valid syntax registration");
 
-    // ADD_SUGGESTION "context_name" as "button text"
+    // ADD_SUGGESTION "context_name" as "button text" (register BEFORE simple form so simple form has higher priority)
     engine
         .register_custom_syntax(
             ["ADD_SUGGESTION", "$expr$", "as", "$expr$"],
@@ -123,9 +125,30 @@ pub fn add_suggestion_keyword(
                 let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
 
                 add_context_suggestion(
+                    cache3.as_ref(),
+                    &user_session3,
+                    &context_name,
+                    &button_text,
+                )?;
+
+                Ok(Dynamic::UNIT)
+            },
+        )
+        .expect("valid syntax registration");
+
+    // ADD_SUGGESTION "button text" (simple form - sends message on click)
+    // Registered LAST so it has HIGHEST priority — Rhai tries this first, falls back to 2-arg form
+    engine
+        .register_custom_syntax(
+            ["ADD_SUGGESTION", "$expr$"],
+            true,
+            move |context, inputs| {
+                let button_text = context.eval_expression_tree(&inputs[0])?.to_string();
+
+                add_text_suggestion(
                     cache4.as_ref(),
                     &user_session4,
-                    &context_name,
+                    &button_text,
                     &button_text,
                 )?;
 

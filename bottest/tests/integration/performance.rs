@@ -1,5 +1,3 @@
-mod performance;
-
 use bottest::prelude::*;
 use reqwest::Client;
 use std::time::{Duration, Instant};
@@ -71,7 +69,10 @@ async fn test_concurrent_requests_handled() {
 
     let successes = results
         .iter()
-        .filter(|r| r.as_ref().map(|resp| resp.status().is_success()).unwrap_or(false))
+        .filter(|r| match r {
+            Ok(Ok(resp)) => resp.status().is_success(),
+            _ => false,
+        })
         .count();
 
     assert!(

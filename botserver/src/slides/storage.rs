@@ -50,11 +50,10 @@ pub async fn remove_from_cache(pres_id: &str) {
 }
 
 fn extract_id_from_path(path: &str) -> String {
-    path.split('/')
-        .last()
-        .unwrap_or_default()
-        .trim_end_matches(".json")
-        .trim_end_matches(".pptx")
+    let raw = path.split('/').last().unwrap_or_default();
+    raw.strip_suffix(".json")
+        .or_else(|| raw.strip_suffix(".pptx"))
+        .unwrap_or(raw)
         .to_string()
 }
 
@@ -80,7 +79,7 @@ pub async fn save_presentation_to_drive(
         .put_object()
         .bucket("gbo")
         .key(&path)
-        .body(content.into_bytes().into())
+        .body(content.into_bytes())
         .content_type("application/json")
         .send()
         .await
@@ -122,7 +121,7 @@ pub async fn save_presentation_as_pptx(
         .put_object()
         .bucket("gbo")
         .key(&path)
-        .body(pptx_bytes.clone().into())
+        .body(pptx_bytes.clone())
         .content_type("application/vnd.openxmlformats-officedocument.presentationml.presentation")
         .send()
         .await
@@ -536,12 +535,14 @@ pub async fn load_pptx_from_bytes(
     let mut archive = ZipArchive::new(cursor)
         .map_err(|e| format!("Failed to open PPTX archive: {e}"))?;
 
-    let file_name = file_path
+    let raw_name = file_path
         .split('/')
         .last()
-        .unwrap_or("Untitled")
-        .trim_end_matches(".pptx")
-        .trim_end_matches(".ppt");
+        .unwrap_or("Untitled");
+    let file_name = raw_name
+        .strip_suffix(".pptx")
+        .or_else(|| raw_name.strip_suffix(".ppt"))
+        .unwrap_or(raw_name);
 
     let pres_id = generate_presentation_id();
 
@@ -768,22 +769,19 @@ pub async fn list_presentations_from_drive(
 
     let mut presentations = Vec::new();
 
-    if let Some(contents) = result.contents {
-        for obj in contents {
-            if let Some(key) = obj.key {
-                if key.ends_with(".json") {
-                    let id = extract_id_from_path(&key);
-                    if let Ok(presentation) = load_presentation_by_id(state, user_id, &id).await {
-                        presentations.push(PresentationMetadata {
-                            id: presentation.id,
-                            name: presentation.name,
-                            owner_id: presentation.owner_id,
-                            slide_count: presentation.slides.len(),
-                            created_at: presentation.created_at,
-                            updated_at: presentation.updated_at,
-                        });
-                    }
-                }
+    for obj in &result.contents {
+        let key = &obj.key;
+        if key.ends_with(".json") {
+            let id = extract_id_from_path(key);
+            if let Ok(presentation) = load_presentation_by_id(state, user_id, &id).await {
+                presentations.push(PresentationMetadata {
+                    id: presentation.id,
+                    name: presentation.name,
+                    owner_id: presentation.owner_id,
+                    slide_count: presentation.slides.len(),
+                    created_at: presentation.created_at,
+                    updated_at: presentation.updated_at,
+                });
             }
         }
     }

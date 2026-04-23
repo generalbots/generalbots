@@ -79,7 +79,7 @@ pub async fn execute_llm_generation(
     state: Arc<AppState>,
     prompt: String,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone().into());
+    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let model = config_manager
         .get_config(&Uuid::nil(), "llm-model", None)
         .unwrap_or_default();
