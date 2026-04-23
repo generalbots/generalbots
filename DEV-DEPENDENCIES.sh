@@ -40,15 +40,14 @@ case $OS in
     *) echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
-install_cargo_tools() {
-    CARGO_BIN="${HOME}/.cargo/bin"
-    if [ -f "$CARGO_BIN/cargo" ]; then
-        export PATH="$CARGO_BIN:$PATH"
-        . "$CARGO_BIN/env" 2>/dev/null
-        cargo install mold --locked 2>/dev/null || true
-    fi
+install_mold() {
+    curl -L "https://github.com/rui314/mold/releases/download/v2.4.0/mold-2.4.0-x86_64-linux.tar.gz" -o /tmp/mold.tar.gz
+    tar -xzf /tmp/mold.tar.gz -C /tmp
+    cp "/tmp/mold-2.4.0-x86_64-linux/bin/mold" /usr/local/bin/
+    rm -rf /tmp/mold-2.4.0* /tmp/mold.tar.gz
+    ldconfig
 }
 
-command -v mold &> /dev/null || install_cargo_tools
+command -v mold &> /dev/null || install_mold
 
 echo "Dev dependencies installed!"

@@ -19,7 +19,7 @@ const TRACKING_PIXEL: [u8; 43] = [
 ];
 
 pub fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) -> bool {
-    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone().into());
+    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let bot_id = bot_id.unwrap_or(Uuid::nil());
 
     config_manager
@@ -29,7 +29,7 @@ pub fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) ->
 }
 
 pub fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<AppState>) -> String {
-    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone().into());
+    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let base_url = config_manager
         .get_config(&Uuid::nil(), "server-url", Some(""))
         .unwrap_or_else(|_| "".to_string());

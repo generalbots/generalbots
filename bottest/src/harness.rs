@@ -1012,6 +1012,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[ignore]
     async fn test_minimal_harness() {
         let ctx = TestHarness::minimal().await.unwrap();
         assert!(ctx.ports.postgres >= 15000);

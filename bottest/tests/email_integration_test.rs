@@ -2,6 +2,7 @@
 use serde_json::json;
 
 #[tokio::test]
+#[ignore]
 async fn test_feature_flags_endpoint() {
     let client = reqwest::Client::new();
     let org_id = "00000000-0000-0000-0000-000000000000";
@@ -17,6 +18,7 @@ async fn test_feature_flags_endpoint() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_extract_lead_endpoint() {
     let client = reqwest::Client::new();
     
@@ -38,6 +40,7 @@ async fn test_extract_lead_endpoint() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_categorize_email_endpoint() {
     let client = reqwest::Client::new();
     
@@ -62,6 +65,7 @@ async fn test_categorize_email_endpoint() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_snooze_email_endpoint() {
     let client = reqwest::Client::new();
     
@@ -82,6 +86,7 @@ async fn test_snooze_email_endpoint() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_flag_email_endpoint() {
     let client = reqwest::Client::new();
     

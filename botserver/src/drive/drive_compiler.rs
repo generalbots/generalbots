@@ -9,9 +9,11 @@
 /// SEM usar /opt/gbo/data/ como intermediário!
 
 use crate::basic::compiler::BasicCompiler;
+use crate::core::config::DriveConfig;
 use crate::core::shared::state::AppState;
 use crate::core::shared::utils::get_work_path;
 use crate::drive::drive_files::drive_files as drive_files_table;
+use crate::drive::drive_monitor::CHECK_INTERVAL_SECS;
 use diesel::prelude::*;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
@@ -28,6 +30,29 @@ pub struct DriveCompiler {
     work_root: PathBuf,
     is_processing: Arc<AtomicBool>,
     last_etags: Arc<RwLock<HashMap<String, String>>>,
+}
+
+/// Helper function to download file from S3
+/// Separated to avoid Send trait issues with tokio::spawn
+async fn download_from_s3(file_path: &str) -> Result<Vec<u8>, Box<dyn Error + Send + Sync>> {
+    let config = DriveConfig::default();
+    let s3_repo = crate::core::shared::utils::create_s3_operator(&config)
+        .await
+        .map_err(|e| format!("Failed to create S3 operator: {}", e))?;
+
+    // file_path format: {bot}.gbai/{bot}.gbdialog/{tool}.bas
+    // S3 bucket = first part ({bot}.gbai), key = rest
+    let parts: Vec<&str> = file_path.split('/').collect();
+    if parts.len() < 2 {
+        return Err("Invalid file path for S3 download".into());
+    }
+
+    let bucket_name = parts[0];
+    let s3_key = parts[1..].join("/");
+
+    s3_repo.get_object_direct(bucket_name, &s3_key)
+        .await
+        .map_err(|e| format!("S3 get_object_direct failed for {}/{}: {}", bucket_name, s3_key, e).into())
 }
 
 impl DriveCompiler {
@@ -50,9 +75,9 @@ impl DriveCompiler {
 
         let compiler = self.clone();
 
-        // Loop que verifica drive_files a cada 30s
+        // Loop que verifica drive_files a cada 1s
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(30));
+            let mut interval = tokio::time::interval(Duration::from_secs(CHECK_INTERVAL_SECS));
 
             while compiler.is_processing.load(Ordering::SeqCst) {
                 interval.tick().await;
@@ -109,36 +134,76 @@ impl DriveCompiler {
 
     /// Compilar arquivo .bas → .ast DIRETAMENTE em work/{bot}.gbai/{bot}.gbdialog/
     async fn compile_file(&self, bot_id: Uuid, file_path: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
-        // file_path: {bot}.gbai/{bot}.gbdialog/{tool}.bas
+        // file_path formats:
+        // - {bot}.gbai/{bot}.gbdialog/{tool}.bas (full path with bucket prefix)
+        // - {bot}.gbdialog/{tool}.bas (without bucket prefix)
+        // - {bot}.gbkb/{doc}.txt (KB files - skip compilation)
         let parts: Vec<&str> = file_path.split('/').collect();
-        if parts.len() < 3 {
+        if parts.len() < 2 {
             return Err("Invalid file path format".into());
         }
 
-        let bot_name = parts[0].trim_end_matches(".gbai");
-        let tool_name = parts.last().ok_or("Invalid file path")?.trim_end_matches(".bas");
-
-        // Work dir: /opt/gbo/work/{bot}.gbai/{bot}.gbdialog/
+    // Determine bot name and work directory structure
+    let (_bot_name, work_dir) = if parts[0].ends_with(".gbai") {
+        // Full path: {bot}.gbai/{bot}.gbdialog/{tool}.bas
+        let bot_name = parts[0].strip_suffix(".gbai").unwrap_or(parts[0]);
         let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
-        std::fs::create_dir_all(&work_dir)?;
+        (bot_name, work_dir)
+    } else if parts.len() >= 2 && parts[0].ends_with(".gbdialog") {
+        // Short path: {bot}.gbdialog/{tool}.bas
+        let bot_name = parts[0].strip_suffix(".gbdialog").unwrap_or(parts[0]);
+        let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+        (bot_name, work_dir)
+    } else if parts.len() >= 2 && parts[0].ends_with(".gbkb") {
+        // KB file: {bot}.gbkb/{doc}.txt - skip compilation
+        debug!("Skipping KB file: {}", file_path);
+        return Ok(());
+    } else {
+        warn!("Unknown file path format: {}", file_path);
+        return Err("Invalid file path format".into());
+    };
+
+    // Create work directory
+    std::fs::create_dir_all(&work_dir)?;
+
+    // Determine tool name from last part of path
+    let tool_name = parts.last().unwrap_or(&"unknown").strip_suffix(".bas").unwrap_or(parts.last().unwrap_or(&"unknown"));
 
         // Caminho do .bas no work
         let work_bas_path = work_dir.join(format!("{}.bas", tool_name));
 
-        // Baixar do MinIO direto para work dir
-        // (isso pressupõe que o DriveMonitor já sincronizou, ou buscamos do S3 aqui)
-        // Por enquanto, assumimos que o arquivo já está em work dir de sincronização anterior
-        // Se não existir, precisa buscar do S3
-
+        // Check if file exists in work dir
         if !work_bas_path.exists() {
-            // Buscar do S3 - isso deveria ser feito pelo DriveMonitor
-                // Por enquanto, apenas logamos
-                warn!("File {} not found in work dir, skipping", work_bas_path.display());
-                return Ok(());
+            // File doesn't exist in work dir - need to download from S3
+            // This should be done by DriveMonitor, but we can try to fetch it here
+            warn!("File {} not found in work dir, attempting to download from S3", work_bas_path.display());
+            
+            // Download in separate task to avoid Send issues
+            let download_result = download_from_s3(file_path).await;
+            
+            match download_result {
+                Ok(content) => {
+                    if let Err(e) = std::fs::write(&work_bas_path, content) {
+                        warn!("Failed to write {} to work dir: {}", work_bas_path.display(), e);
+                        return Err(format!("Failed to write file: {}", e).into());
+                    }
+                    info!("Downloaded {} to {}", file_path, work_bas_path.display());
+                }
+                Err(e) => {
+                    warn!("Failed to download {} from S3: {}", file_path, e);
+                    return Err(format!("File not found in S3: {}", file_path).into());
+                }
             }
+        }
 
-            // Ler conteúdo
-            let _content = std::fs::read_to_string(&work_bas_path)?;
+        // Verify file exists now
+        if !work_bas_path.exists() {
+            warn!("File {} still not found after download attempt", work_bas_path.display());
+            return Ok(());
+        }
+
+        // Ler conteúdo
+        let _content = std::fs::read_to_string(&work_bas_path)?;
 
         // Compilar com BasicCompiler (já está no work dir, então compila in-place)
         let mut compiler = BasicCompiler::new(self.state.clone(), bot_id);
