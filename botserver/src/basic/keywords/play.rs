@@ -582,15 +582,16 @@ async fn send_play_to_client(
         message_type: crate::core::shared::message_types::MessageType::BOT_RESPONSE,
         stream_token: None,
         is_complete: true,
-        suggestions: Vec::new(),
-        context_name: None,
-        context_length: 0,
-        context_max_length: 0,
-    };
+            suggestions: Vec::new(),
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
 
-    state
-        .web_adapter
-        .send_message_to_session(&session_id.to_string(), bot_response)
+        state
+            .web_adapter
+            .send_message_to_session(&session_id.to_string(), bot_response)
         .await
         .map_err(|e| format!("Failed to send to client: {e}"))?;
 
@@ -624,6 +625,7 @@ async fn send_player_command(
                 stream_token: None,
                 is_complete: true,
                 suggestions: Vec::new(),
+                switchers: Vec::new(),
                 context_name: None,
                 context_length: 0,
                 context_max_length: 0,

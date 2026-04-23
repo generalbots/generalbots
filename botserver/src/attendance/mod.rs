@@ -207,15 +207,16 @@ pub async fn attendant_respond(
                 message_type: botlib::MessageType::BOT_RESPONSE,
                 stream_token: None,
                 is_complete: true,
-                suggestions: vec![],
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
+        suggestions: vec![],
+        switchers: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
 
-            match adapter.send_message(response).await {
-                Ok(_) => {
-                    broadcast_attendant_action(&state, &session, &request, "attendant_response")
+    match adapter.send_message(response).await {
+        Ok(_) => {
+            broadcast_attendant_action(&state, &session, &request, "attendant_response")
                         .await;
 
                     (
@@ -253,12 +254,13 @@ pub async fn attendant_respond(
                     message_type: botlib::MessageType::BOT_RESPONSE,
                     stream_token: None,
                     is_complete: true,
-                    suggestions: vec![],
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-                };
-                tx.send(response).await.is_ok()
+        suggestions: vec![],
+        switchers: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
+    tx.send(response).await.is_ok()
             } else {
                 false
             };
@@ -578,12 +580,13 @@ async fn handle_attendant_message(
                                     message_type: botlib::MessageType::BOT_RESPONSE,
                                     stream_token: None,
                                     is_complete: true,
-                                    suggestions: vec![],
-                                    context_name: None,
-                                    context_length: 0,
-                                    context_max_length: 0,
-                                };
-                                let _ = adapter.send_message(response).await;
+        suggestions: vec![],
+        switchers: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
+    let _ = adapter.send_message(response).await;
                             }
                         }
 

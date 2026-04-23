@@ -334,23 +334,27 @@ pub fn get_suggestions(
             redis::cmd("SMEMBERS").arg(&redis_key).query(&mut conn);
 
         match result {
-            Ok(items) => {
-                for item in items {
-                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&item) {
-                        let suggestion = crate::core::shared::models::Suggestion {
-                            text: json["text"].as_str().unwrap_or("").to_string(),
-                            context: json["context"].as_str().map(|s| s.to_string()),
-                            action: json
-                                .get("action")
-                                .and_then(|v| serde_json::to_string(v).ok()),
-                            icon: json
-                                .get("icon")
-                                .and_then(|v| v.as_str())
-                                .map(|s| s.to_string()),
-                        };
-                        suggestions.push(suggestion);
+        Ok(items) => {
+            for item in items {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&item) {
+                    let item_type = json["type"].as_str().unwrap_or("");
+                    if item_type == "switcher" || item_type == "switch_context" {
+                        continue;
                     }
+                    let suggestion = crate::core::shared::models::Suggestion {
+                        text: json["text"].as_str().unwrap_or("").to_string(),
+                        context: json["context"].as_str().map(|s| s.to_string()),
+                        action: json
+                            .get("action")
+                            .and_then(|v| serde_json::to_string(v).ok()),
+                        icon: json
+                            .get("icon")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
+                    };
+                    suggestions.push(suggestion);
                 }
+            }
                 info!(
                     "Retrieved {} suggestions for session {}",
                     suggestions.len(),

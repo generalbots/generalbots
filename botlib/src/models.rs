@@ -152,6 +152,8 @@ pub struct UserMessage {
     pub timestamp: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub active_switchers: Vec<String>,
 }
 
 impl UserMessage {
@@ -173,6 +175,7 @@ impl UserMessage {
             media_url: None,
             timestamp: Utc::now(),
             context_name: None,
+            active_switchers: Vec::new(),
         }
     }
 
@@ -241,6 +244,49 @@ impl<S: Into<String>> From<S> for Suggestion {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Switcher {
+    pub id: String,
+    pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+impl Switcher {
+    #[must_use]
+    pub fn new(id: impl Into<String>, label: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            label: label.into(),
+            prompt: None,
+            color: None,
+            icon: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_prompt(mut self, prompt: impl Into<String>) -> Self {
+        self.prompt = Some(prompt.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_color(mut self, color: impl Into<String>) -> Self {
+        self.color = Some(color.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_icon(mut self, icon: impl Into<String>) -> Self {
+        self.icon = Some(icon.into());
+        self
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotResponse {
     pub bot_id: String,
@@ -254,6 +300,8 @@ pub struct BotResponse {
     pub is_complete: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub suggestions: Vec<Suggestion>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub switchers: Vec<Switcher>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context_name: Option<String>,
     #[serde(default)]
@@ -281,6 +329,7 @@ impl BotResponse {
             stream_token: None,
             is_complete: true,
             suggestions: Vec::new(),
+            switchers: Vec::new(),
             context_name: None,
             context_length: 0,
             context_max_length: 0,
@@ -305,6 +354,7 @@ impl BotResponse {
             stream_token: Some(stream_token.into()),
             is_complete: false,
             suggestions: Vec::new(),
+            switchers: Vec::new(),
             context_name: None,
             context_length: 0,
             context_max_length: 0,
@@ -373,9 +423,10 @@ impl Default for BotResponse {
             stream_token: None,
             is_complete: true,
             suggestions: Vec::new(),
-            context_name: None,
-            context_length: 0,
-            context_max_length: 0,
+        switchers: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
         }
     }
 }

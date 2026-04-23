@@ -31,7 +31,7 @@ pub use limits::{
     RATE_LIMIT_BURST_MULTIPLIER, RATE_LIMIT_WINDOW_SECONDS,
 };
 pub use message_types::MessageType;
-pub use models::{ApiResponse, BotResponse, Session, Suggestion, UserMessage};
+pub use models::{ApiResponse, BotResponse, Session, Suggestion, Switcher, UserMessage};
 pub use resilience::{ResilienceError, RetryConfig};
 pub use version::{
     get_botserver_version, init_version_registry, register_component, version_string,
