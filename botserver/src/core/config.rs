@@ -69,22 +69,28 @@ pub struct EmailConfig {
 
 impl Default for AppConfig {
     fn default() -> Self {
+        // Configuration loading priority: 1) Environment (from Vault via .env), 2) Defaults for development
         Self {
             server: ServerConfig {
-                host: "localhost".to_string(),
-                port: 8080,
-                base_url: "http://localhost:8080".to_string(),
+                host: "0.0.0.0".to_string(),
+                port: std::env::var("PORT")
+                    .ok()
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(8080),
+                base_url: String::new(),
             },
             database: DatabaseConfig {
-                url: std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-                    "postgresql://postgres:postgres@localhost/botserver".to_string()
-                }),
+                url: std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost/botserver".to_string()),
                 max_connections: 10,
             },
-            drive: DriveConfig::default(),
+            drive: DriveConfig::from_vault()
+                .unwrap_or_else(|_| DriveConfig::default()),
             email: EmailConfig::default(),
-            site_path: "/opt/gbo/data".to_string(),
-            data_dir: "/opt/gbo/data".to_string(),
+            site_path: std::env::var("SITE_PATH")
+                .unwrap_or_else(|_| "/opt/gbo/data".to_string()),
+            data_dir: std::env::var("DATA_DIR")
+                .unwrap_or_else(|_| "/opt/gbo/data".to_string()),
         }
     }
 }
@@ -102,30 +108,31 @@ impl AppConfig {
         Ok(Self::default())
     }
 
-    pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
-        // Read PORT from environment, fallback to 8080
-        let port: u16 = std::env::var("PORT")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(8080);
-        
-        Ok(Self {
-            server: ServerConfig {
-                host: std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
-                port,
-                base_url: format!("http://localhost:{}", port),
-            },
-            database: DatabaseConfig {
-                url: std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost/botserver".to_string()),
-                max_connections: 10,
-            },
-            drive: DriveConfig::default(),
-            email: EmailConfig::default(),
-            site_path: std::env::var("SITE_PATH").unwrap_or_else(|_| "/opt/gbo/data".to_string()),
-            data_dir: std::env::var("DATA_DIR").unwrap_or_else(|_| "/opt/gbo/data".to_string()),
-        })
-    }
+pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
+    // Configuration loading: Environment vars (from Vault via .env) with fallbacks for development
+    Ok(Self {
+        server: ServerConfig {
+            host: "0.0.0.0".to_string(),
+            port: std::env::var("PORT")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(8080),
+            base_url: String::new(),
+        },
+        database: DatabaseConfig {
+            url: std::env::var("DATABASE_URL")
+                .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost/botserver".to_string()),
+            max_connections: 10,
+        },
+        drive: DriveConfig::from_vault()
+            .unwrap_or_else(|_| DriveConfig::default()),
+        email: EmailConfig::default(),
+        site_path: std::env::var("SITE_PATH")
+            .unwrap_or_else(|_| "/opt/gbo/data".to_string()),
+        data_dir: std::env::var("DATA_DIR")
+            .unwrap_or_else(|_| "/opt/gbo/data".to_string()),
+    })
+}
 }
 
 /// Configuration manager for runtime config updates
@@ -257,14 +264,19 @@ impl Default for DriveConfig {
             }
         }
         
-        // Fallback to empty/localhost
+        // Fallback for development: read from environment or use minimal defaults
         Self {
-            endpoint: "http://localhost:9100".to_string(),
-            bucket: String::new(),
+            endpoint: std::env::var("MINIO_ENDPOINT")
+                .unwrap_or_else(|_| "http://localhost:9100".to_string()),
+            bucket: std::env::var("MINIO_BUCKET")
+                .unwrap_or_else(|_| "default.gbai".to_string()),
             region: "auto".to_string(),
-            access_key: String::new(),
-            secret_key: String::new(),
-            server: "localhost:9100".to_string(),
+            access_key: std::env::var("MINIO_ACCESS_KEY")
+                .unwrap_or_else(|_| "minioadmin".to_string()),
+            secret_key: std::env::var("MINIO_SECRET_KEY")
+                .unwrap_or_else(|_| "minioadmin".to_string()),
+            server: std::env::var("MINIO_SERVER")
+                .unwrap_or_else(|_| "localhost:9100".to_string()),
         }
     }
 }
