@@ -12,6 +12,12 @@ jobs:
       SYSTEM_HOST: ${{ vars.SYSTEM_HOST }}
       SYSTEM_USER: gbuser
     steps:
+      - name: Prepare workspace
+        run: |
+          mkdir -p /opt/gbo/work/generalbots /opt/gbo/work/target /opt/gbo/bin
+          if [ ! -d /opt/gbo/work/generalbots/.git ]; then
+            git clone https://alm.pragmatismo.com.br/GeneralBots/generalbots.git /opt/gbo/work/generalbots
+          fi
       - name: Setup
         run: |
           cd /opt/gbo/work/generalbots
@@ -19,8 +25,6 @@ jobs:
           git clean -fd
           git pull
           git submodule update --init --recursive
-          mkdir -p /opt/gbo/work/target
-          mkdir -p /opt/gbo/bin
       - name: Build
         run: |
           cd /opt/gbo/work/generalbots
@@ -35,7 +39,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
       - name: Sync UI Files to Stage
         run: |
-          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "ls -la /opt/gbo/bin/botui/ui/suite/chat/ 2>/dev/null; ls -la /opt/gbo/botui/ui/suite/chat/ 2>/dev/null; cat /proc/\$(pgrep -x botserver)/cwd 2>/dev/null; readlink /proc/\$(pgrep -x botserver)/cwd 2>/dev/null; echo '---'; cat /proc/\$(pgrep -x botserver)/environ 2>/dev/null | tr '\0' '\n' | grep BOTUI 2>/dev/null; echo '---end'"
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "readlink /proc/\$(pgrep -x botserver)/cwd 2>/dev/null || echo 'botserver not running'"
           rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/botui/ui/
           rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/bin/botui/ui/
-          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "ls -la /opt/gbo/bin/botui/ui/suite/chat/chat.html /opt/gbo/botui/ui/suite/chat/chat.html 2>/dev/null; wc -c /opt/gbo/bin/botui/ui/suite/chat/chat.html /opt/gbo/botui/ui/suite/chat/chat.html 2>/dev/null"
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "ls -la /opt/gbo/botui/ui/suite/chat/chat.html /opt/gbo/bin/botui/ui/suite/chat/chat.html 2>/dev/null"
