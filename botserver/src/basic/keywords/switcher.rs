@@ -89,6 +89,8 @@ pub fn add_switcher_keyword(
     engine: &mut Engine,
 ) {
     let cache = state.cache.clone();
+    let cache2 = state.cache.clone();
+    let user_session2 = user_session.clone();
 
     engine
         .register_custom_syntax(
@@ -103,6 +105,25 @@ pub fn add_switcher_keyword(
                     &user_session,
                     &first_param,
                     &button_text,
+                )?;
+
+                Ok(Dynamic::UNIT)
+            },
+        )
+        .expect("valid syntax registration");
+
+    engine
+        .register_custom_syntax(
+            ["ADD_SWITCHER", "$expr$"],
+            true,
+            move |context, inputs| {
+                let switcher_id = context.eval_expression_tree(&inputs[0])?.to_string();
+
+                add_switcher(
+                    cache2.as_ref(),
+                    &user_session2,
+                    &switcher_id,
+                    &switcher_id,
                 )?;
 
                 Ok(Dynamic::UNIT)
