@@ -22,8 +22,14 @@
 <main id="messages"></main>
 
 <footer>
-  <div class="suggestions-container" id="suggestions"></div>
-  <div class="mention-dropdown" id="mentionDropdown">
+ <div class="chat-footer-content">
+ <div class="suggestions-container" id="suggestions"></div>
+ <div class="switchers-container" id="switchers" style="display:none">
+ <div class="switchers-label">Formato:</div>
+ <div class="switchers-chips" id="switcherChips"></div>
+ </div>
+ </div>
+ <div class="mention-dropdown" id="mentionDropdown">
     <div class="mention-header">
       <span class="mention-title" data-i18n="chat-mention-title"
         >Reference Entity</span
@@ -171,10 +177,12 @@
             },
         };
 
-        var ws = null;
-        var currentSessionId = null;
-        var currentUserId = null;
-        var currentBotId = "default";
+var ws = null;
+var currentSessionId = null;
+var currentUserId = null;
+var currentBotId = "default";
+var activeSwitchers = new Set();
+var switcherDefinitions = [];
         var currentBotName = "default";
         var isStreaming = false;
         var streamingMessageId = null;
@@ -192,11 +200,73 @@
             results: [],
         };
 
-        function escapeHtml(text) {
-            var div = document.createElement("div");
-            div.textContent = text;
-            return div.innerHTML;
-        }
+function escapeHtml(text) {
+ var div = document.createElement("div");
+ div.textContent = text;
+ return div.innerHTML;
+ }
+
+var SWITCHER_ICONS = {
+ tables: "\u{1F4CA}", infographic: "\u{1F4CD}", cards: "\u{1F0CF}",
+ list: "\u{1F4CB}", comparison: "\u2696", timeline: "\u{23F0}",
+ markdown: "\u{1F4DD}", chart: "\u{1F4C8}"
+};
+
+function renderSwitcherChips() {
+ var container = document.getElementById("switcherChips");
+ if (!container) return;
+ container.innerHTML = switcherDefinitions.map(function(sw) {
+ var isActive = activeSwitchers.has(sw.id);
+ return '<div class="switcher-chip' + (isActive ? ' active' : '') + '" ' +
+ 'data-switch-id="' + sw.id + '" ' +
+ 'style="--switcher-color: ' + (sw.color || '#666') + '; ' +
+ (isActive ? 'color: white; background: ' + (sw.color || '#666') + '; ' : '') + '">' +
+ '<span class="switcher-chip-icon">' + (sw.icon || '\u{1F500}') + '</span>' +
+ '<span>' + sw.label + '</span></div>';
+ }).join('');
+}
+
+function toggleSwitcher(switcherId) {
+ if (activeSwitchers.has(switcherId)) {
+ activeSwitchers.delete(switcherId);
+ } else {
+ activeSwitchers.add(switcherId);
+ }
+ renderSwitcherChips();
+}
+
+function renderBotSwitchers(switchers) {
+ if (!switchers || switchers.length === 0) return;
+ var existingIds = {};
+ switcherDefinitions.forEach(function(sw) { existingIds[sw.id] = true; });
+ switchers.forEach(function(sw) {
+ if (!existingIds[sw.id]) {
+ switcherDefinitions.push({
+ id: sw.id,
+ label: sw.label || sw.id,
+ icon: sw.icon || SWITCHER_ICONS[sw.id] || "\u{1F500}",
+ color: sw.color || "#666"
+ });
+ existingIds[sw.id] = true;
+ }
+ });
+ renderSwitcherChips();
+ var container = document.getElementById("switchers");
+ if (container && switcherDefinitions.length > 0) {
+ container.style.display = '';
+ }
+ var chipsContainer = document.getElementById("switcherChips");
+ if (chipsContainer && !chipsContainer.dataset.hasClickHandler) {
+ chipsContainer.addEventListener("click", function(e) {
+ var chip = e.target.closest(".switcher-chip");
+ if (chip) {
+ var switcherId = chip.getAttribute("data-switch-id");
+ if (switcherId) toggleSwitcher(switcherId);
+ }
+ });
+ chipsContainer.dataset.hasClickHandler = "true";
+ }
+}
 
         // Scroll handling
         function scrollToBottom(animate) {
@@ -829,9 +899,12 @@ function updateStreaming(content) {
             addMessage("bot", data.content);
           }
           isStreaming = false;
-          if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
-            renderSuggestions(data.suggestions);
-          }
+ if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+ renderSuggestions(data.suggestions);
+ }
+ if (data.switchers && Array.isArray(data.switchers) && data.switchers.length > 0) {
+ renderBotSwitchers(data.switchers);
+ }
         } else {
           if (!isStreaming) {
             isStreaming = true;
@@ -892,19 +965,26 @@ function updateStreaming(content) {
 
                                 console.log("Parsed action:", action);
 
-                                if (action.type === "invoke_tool") {
-                                    // Invoke tool directly via WebSocket - invisible to user
-                                    ws.send(JSON.stringify({
-                                        bot_id: currentBotId,
-                                        user_id: currentUserId,
-                                        session_id: currentSessionId,
-                                        channel: "web",
-                                        content: action.tool,
-                                        message_type: 6,  // TOOL_EXEC
-                                        timestamp: new Date().toISOString(),
-                                    }));
-                                    return;
-                                } else if (action.type === "send_message") {
+ if (action.type === "invoke_tool") {
+ // Invoke tool directly via WebSocket - invisible to user
+ ws.send(JSON.stringify({
+ bot_id: currentBotId,
+ user_id: currentUserId,
+ session_id: currentSessionId,
+ channel: "web",
+ content: action.tool,
+ message_type: 6, // TOOL_EXEC
+ active_switchers: Array.from(activeSwitchers),
+ timestamp: new Date().toISOString(),
+ }));
+ return;
+ } else if (action.type === "switch_context" && action.switcher) {
+ if (!activeSwitchers.has(action.switcher)) {
+ activeSwitchers.add(action.switcher);
+ renderSwitcherChips();
+ }
+ window.sendMessage(sugg.text);
+ } else if (action.type === "send_message") {
                                     window.sendMessage(
                                         action.message || sugg.text,
                                     );
@@ -962,18 +1042,19 @@ function sendMessage(messageContent) {
 
   addMessage("user", content);
 
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(
-      JSON.stringify({
-        bot_id: currentBotId,
-        user_id: currentUserId,
-        session_id: currentSessionId,
-        channel: "web",
-        content: content,
-        message_type: MessageType.USER,
-        timestamp: new Date().toISOString(),
-      }),
-    );
+ if (ws && ws.readyState === WebSocket.OPEN) {
+ ws.send(
+ JSON.stringify({
+ bot_id: currentBotId,
+ user_id: currentUserId,
+ session_id: currentSessionId,
+ channel: "web",
+ content: content,
+ message_type: MessageType.USER,
+ active_switchers: Array.from(activeSwitchers),
+ timestamp: new Date().toISOString(),
+ }),
+ );
   } else {
     notify("Not connected to server. Message not sent.", "warning");
   }
