@@ -100,8 +100,7 @@ pub fn add_switcher_keyword(
       button_text,
     );
     result.map_err(|e| e.to_string())
-  })
-  .expect("valid function registration");
+  });
 }
 
 fn add_switcher(
