@@ -13,12 +13,12 @@ pub fn normalize_etag(etag: &str) -> String {
 
 impl DriveMonitor {
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        log::info!("DriveMonitor monitoring started for bucket: {}", self.bucket_name);
+        log::trace!("DriveMonitor monitoring started for bucket: {}", self.bucket_name);
 
         loop {
             // Reentrancy protection: skip if previous scan is still running
             if self.is_processing.load(Ordering::Relaxed) {
-                log::debug!("DriveMonitor still processing, skipping iteration");
+                log::trace!("DriveMonitor still processing, skipping iteration");
             } else {
                 self.is_processing.store(true, Ordering::Relaxed);
                 if let Err(e) = self.scan_bucket().await {
@@ -31,13 +31,13 @@ impl DriveMonitor {
     }
 
     async fn scan_bucket(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        log::info!("DriveMonitor: Starting scan of bucket {}", self.bucket_name);
+        log::trace!("DriveMonitor: Starting scan of bucket {}", self.bucket_name);
         let start = std::time::Instant::now();
 
         if let Some(s3) = &self.state.drive {
             match s3.list_objects_with_metadata(&self.bucket_name, None).await {
                 Ok(objects) => {
-                    log::info!("Found {} objects in bucket {}", objects.len(), self.bucket_name);
+                    log::trace!("Found {} objects in bucket {}", objects.len(), self.bucket_name);
 
                     let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
 
@@ -78,7 +78,7 @@ impl DriveMonitor {
                     etag,
                     None,
                 ) {
-                    Ok(_) => log::info!("Added/updated drive_files for: {} ({})", full_key, file_type),
+                    Ok(_) => log::info!("DriveMonitor: Added/updated drive_files for: {} ({})", full_key, file_type),
                     Err(e) => log::error!("Failed to upsert {}: {}", full_key, e),
                 }
 
@@ -86,7 +86,7 @@ impl DriveMonitor {
                     self.sync_bas_to_work(bot_name, &obj.key).await;
                 }
             } else {
-                log::debug!("{} unchanged, skipping upsert", full_key);
+                log::trace!("{} unchanged, skipping upsert", full_key);
             }
 
             if needs_reindex && file_type == "kb" {
@@ -112,7 +112,7 @@ impl DriveMonitor {
         }
 
         let elapsed = start.elapsed();
-        log::info!("DriveMonitor: Completed scan of {} in {:.2?}", self.bucket_name, elapsed);
+        log::trace!("DriveMonitor: Completed scan of {} in {:.2?}", self.bucket_name, elapsed);
         Ok(())
     }
 
@@ -252,11 +252,11 @@ impl DriveMonitor {
                 if key.is_empty() {
                     continue;
                 }
-                if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
-                    log::error!("Failed to set config {}={} for bot {}: {}", key, value, bot_name, e);
-                } else {
-                    log::info!("Synced config {}={} for bot {}", key, value, bot_name);
-                }
+if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
+                log::error!("Failed to set config {}={} for bot {}: {}", key, value, bot_name, e);
+            } else {
+                log::trace!("Synced config {}={} for bot {}", key, value, bot_name);
+            }
             }
         }
 
@@ -292,11 +292,11 @@ impl DriveMonitor {
 
         match String::from_utf8(data) {
             Ok(content) => {
-                if let Err(e) = std::fs::write(&work_path, &content) {
-                    log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
-                } else {
-                    log::info!("Synced {} to work dir {}", s3_key, work_path.display());
-                }
+if let Err(e) = std::fs::write(&work_path, &content) {
+                log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
+            } else {
+                log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
+            }
             }
             Err(e) => {
                 log::error!("Failed to parse .bas as UTF-8: {}", e);
