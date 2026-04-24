@@ -32,3 +32,8 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo mv /opt/gbo/bin/botui-new /opt/gbo/bin/botui && sudo chmod +x /opt/gbo/bin/botui && sudo systemctl enable botui && sudo systemctl start botui"
           sleep 3
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "pgrep -x botui && echo 'BotUI Deployed' || echo 'Failed'"
+      - name: Sync UI Files to Stage
+        run: |
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/botui/ui/
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/bin/botui/ui/
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "ls -la /opt/gbo/botui/ui/suite/chat/chat.html /opt/gbo/bin/botui/ui/suite/chat/chat.html 2>/dev/null; wc -c /opt/gbo/botui/ui/suite/chat/chat.html /opt/gbo/bin/botui/ui/suite/chat/chat.html 2>/dev/null"
