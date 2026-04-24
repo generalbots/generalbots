@@ -15,26 +15,26 @@ jobs:
       SYSTEM_USER: gbuser
 
     steps:
-      - name: Setup
-        run: |
-          cd /opt/gbo/work/generalbots
-          git reset --hard HEAD
-          git clean -fd
-          git pull
-          git submodule update --init --recursive
-          mkdir -p /opt/gbo/work/target
-          mkdir -p /opt/gbo/bin
+- name: Setup
+run: |
+ cd /opt/gbo/work/generalbots
+ git reset --hard HEAD
+ git clean -fd
+ git pull
+ git submodule update --init --recursive
+ mkdir -p /opt/gbo/work/target
+ mkdir -p /opt/gbo/bin
+- name: Build
+run: |
+ cd /opt/gbo/work/generalbots
+ CARGO_BUILD_JOBS=4 cargo build -p botserver --bin botserver
 
-      - name: Build
-        run: |
-          cd /opt/gbo/work/generalbots
-          CARGO_BUILD_JOBS=4 cargo build -p botserver --bin botserver
-
-      - name: Deploy to Stage
-        run: |
-          BINARY=/opt/gbo/work/target/debug/botserver
-          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo systemctl stop botserver 2>/dev/null; sudo pkill -x botserver 2>/dev/null; sleep 1"
-          scp -o StrictHostKeyChecking=no "$BINARY" ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/bin/botserver-new
-          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo systemctl enable botserver && sudo systemctl start botserver"
-          sleep 10
-          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
+- name: Deploy to Stage
+run: |
+ BINARY=/opt/gbo/work/target/debug/botserver
+ ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo systemctl stop botserver 2>/dev/null; sudo pkill -x botserver 2>/dev/null; sleep 1"
+ tar -czf /tmp/botserver.tar.gz -C /opt/gbo/work/target/debug botserver
+ ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "tar -xzf /tmp/botserver.tar.gz -C /opt/gbo/bin/"
+ ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo chmod +x /opt/gbo/bin/botserver && sudo systemctl enable botserver && sudo systemctl start botserver"
+ sleep 10
+ ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
