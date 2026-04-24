@@ -611,21 +611,24 @@ impl BotOrchestrator {
     .await??
     };
 
-    let system_prompt = if !message.active_switchers.is_empty() {
-        let switcher_prompts = resolve_active_switchers(
-            self.state.cache.as_ref(),
-            &session.bot_id.to_string(),
-            &session.id.to_string(),
-            &message.active_switchers,
-        );
-        if switcher_prompts.is_empty() {
-            system_prompt
-        } else {
-            format!("{system_prompt}\n\n{switcher_prompts}")
-        }
-    } else {
-        system_prompt
-    };
+let system_prompt = if !message.active_switchers.is_empty() {
+                log::debug!("Switchers active: {:?}", message.active_switchers);
+                let switcher_prompts = resolve_active_switchers(
+                    self.state.cache.as_ref(),
+                    &session.bot_id.to_string(),
+                    &session.id.to_string(),
+                    &message.active_switchers,
+                );
+                log::debug!("Switcher prompts: {}", switcher_prompts);
+                if switcher_prompts.is_empty() {
+                    system_prompt
+                } else {
+                    format!("{system_prompt}\n\n{switcher_prompts}")
+                }
+            } else {
+                log::debug!("No active switchers for this message");
+                system_prompt
+            };
 
     let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
 
