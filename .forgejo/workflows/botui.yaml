@@ -2,6 +2,9 @@ name: BotUI CI
 on:
   push:
     branches: [main]
+defaults:
+  run:
+    working-directory: /opt/gbo/work/generalbots
 jobs:
   build:
     runs-on: gbo
@@ -12,9 +15,12 @@ jobs:
       SYSTEM_HOST: ${{ vars.SYSTEM_HOST }}
       SYSTEM_USER: gbuser
     steps:
-      - name: Setup
+      - name: Prepare workspace
         run: |
-          cd /opt/gbo/work/generalbots
+          mkdir -p /opt/gbo/work/generalbots /opt/gbo/work/target /opt/gbo/bin
+          if [ ! -d /opt/gbo/work/generalbots/.git ]; then
+            git clone https://alm.pragmatismo.com.br/GeneralBots/generalbots.git /opt/gbo/work/generalbots
+          fi
           git reset --hard HEAD
           git clean -fd
           git pull
@@ -22,7 +28,6 @@ jobs:
           mkdir -p /opt/gbo/bin
       - name: Build
         run: |
-          cd /opt/gbo/work/generalbots
           CARGO_BUILD_JOBS=4 cargo build -p botui --bin botui
       - name: Deploy
         run: |
@@ -36,4 +41,4 @@ jobs:
         run: |
           rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/botui/ui/
           rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/bin/botui/ui/
-          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "ls -la /opt/gbo/botui/ui/suite/chat/chat.html /opt/gbo/bin/botui/ui/suite/chat/chat.html 2>/dev/null; wc -c /opt/gbo/botui/ui/suite/chat/chat.html /opt/gbo/bin/botui/ui/suite/chat/chat.html 2>/dev/null"
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "wc -c /opt/gbo/botui/ui/suite/chat/chat.html /opt/gbo/bin/botui/ui/suite/chat/chat.html 2>/dev/null"
