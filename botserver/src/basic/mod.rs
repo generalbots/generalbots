@@ -1382,19 +1382,25 @@ pub fn convert_keywords_to_lowercase(script: &str) -> String {
                             let params = Self::parse_parameters(params_str.as_str());
                             let param_count = params.len();
 
-                            // Validate parameter count
-                            if param_count >= *min_params && param_count <= *max_params {
-                                // Convert keyword to underscores
-                                let keyword = pattern.replace(r"\s+", "_");
+                    // Validate parameter count
+                    if param_count >= *min_params && param_count <= *max_params {
+                        // Convert keyword to underscores
+                        let keyword = pattern.replace(r"\s+", "_");
 
-                                // Build function call
-                                let params_str = if params.is_empty() {
-                                    String::new()
-                                } else {
-                                    params.join(", ")
-                                };
+                        // Build function call
+                        // Special handling for ADD_SWITCHER which uses "as" syntax
+                        let output = if keyword == "ADD_SWITCHER" && params.len() == 2 {
+                            format!("ADD_SWITCHER {} as {};", params[0], params[1])
+                        } else {
+                            let params_str = if params.is_empty() {
+                                String::new()
+                            } else {
+                                params.join(", ")
+                            };
+                            format!("{}({});", keyword, params_str)
+                        };
 
-                                result.push_str(&format!("{}({});", keyword, params_str));
+                        result.push_str(&output);
                                 result.push('\n');
                                 converted = true;
                                 break;
