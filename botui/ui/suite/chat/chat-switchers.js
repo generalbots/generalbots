@@ -1,5 +1,5 @@
 // Chat Switchers Module - Manages format switchers (tables, infographic, cards, etc.)
-// This module handles both UI rendering and state management for switchers
+// Uses event delegation for better reliability with dynamic content
 
 var activeSwitchers = new Set();
 var switcherDefinitions = [];
@@ -47,11 +47,19 @@ function renderSwitchers() {
         );
     }).join('');
     
-    container.querySelectorAll('.switcher-chip').forEach(function(chip) {
-        chip.addEventListener('click', function() {
-            toggleSwitcher(this.getAttribute('data-switch-id'));
+    // Event delegation - attach once to parent
+    if (!container.dataset.hasClickHandler) {
+        container.addEventListener('click', function(e) {
+            var chip = e.target.closest('.switcher-chip');
+            if (chip) {
+                var switcherId = chip.getAttribute('data-switch-id');
+                if (switcherId) {
+                    toggleSwitcher(switcherId);
+                }
+            }
         });
-    });
+        container.dataset.hasClickHandler = 'true';
+    }
 }
 
 function toggleSwitcher(switcherId) {
@@ -65,11 +73,15 @@ function toggleSwitcher(switcherId) {
         console.log('Added switcher:', switcherId);
     }
     console.log('activeSwitchers after:', Array.from(activeSwitchers));
+    
+    // Re-render to show active state
     renderSwitchers();
 }
 
 function getActiveSwitcherIds() {
-    return Array.from(activeSwitchers);
+    var ids = Array.from(activeSwitchers);
+    console.log('getActiveSwitcherIds returning:', ids);
+    return ids;
 }
 
 function clearSwitchers() {
