@@ -84,8 +84,7 @@ impl Default for AppConfig {
                     .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost/botserver".to_string()),
                 max_connections: 10,
             },
-            drive: DriveConfig::from_vault()
-                .unwrap_or_else(|_| DriveConfig::default()),
+            drive: DriveConfig::default(),
             email: EmailConfig::default(),
             site_path: std::env::var("SITE_PATH")
                 .unwrap_or_else(|_| "/opt/gbo/data".to_string()),
@@ -124,8 +123,7 @@ pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
                 .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost/botserver".to_string()),
             max_connections: 10,
         },
-        drive: DriveConfig::from_vault()
-            .unwrap_or_else(|_| DriveConfig::default()),
+        drive: DriveConfig::default(),
         email: EmailConfig::default(),
         site_path: std::env::var("SITE_PATH")
             .unwrap_or_else(|_| "/opt/gbo/data".to_string()),
