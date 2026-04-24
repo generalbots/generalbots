@@ -35,8 +35,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
       - name: Sync UI Files to Stage
         run: |
-          # Sync UI files to stage container
+          # Sync UI files - botserver reads from /opt/gbo/botui/ui/
           rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/botui/ui/
-          # Copy to the path where botserver serves from
-          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo incus exec system --project STAGE-GBO -- cp /opt/gbo/botui/ui/suite/chat/chat.html /opt/gbo/bin/ui/suite/chat/chat.html"
-          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo incus exec system --project STAGE-GBO -- ls -la /opt/gbo/bin/ui/suite/chat/chat.html"
+          # Verify sync
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "wc -c /opt/gbo/botui/ui/suite/chat/chat.html"
