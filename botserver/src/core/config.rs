@@ -103,8 +103,28 @@ impl AppConfig {
     }
 
     pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
-        // Try to load config from environment variables
-        Ok(Self::default())
+        // Read PORT from environment, fallback to 8080
+        let port: u16 = std::env::var("PORT")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(8080);
+        
+        Ok(Self {
+            server: ServerConfig {
+                host: std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
+                port,
+                base_url: format!("http://localhost:{}", port),
+            },
+            database: DatabaseConfig {
+                url: std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost/botserver".to_string()),
+                max_connections: 10,
+            },
+            drive: DriveConfig::default(),
+            email: EmailConfig::default(),
+            site_path: std::env::var("SITE_PATH").unwrap_or_else(|_| "/opt/gbo/data".to_string()),
+            data_dir: std::env::var("DATA_DIR").unwrap_or_else(|_| "/opt/gbo/data".to_string()),
+        })
     }
 }
 
