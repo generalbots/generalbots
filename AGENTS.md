@@ -17,7 +17,7 @@ I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! 
 > - ❌ **NEVER** write internal IPs to logs or output
 > - When debugging network issues, mask IPs (e.g., "10.x.x.x" instead of "10.16.164.222")
 > - Use hostnames instead of IPs in configs and documentation
-See botserver/src/drive/local_file_monitor.rs to see how to load from /opt/gbo/data the list of development bots.
+See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from the drive (MinIO storage).
 - ❌ **NEVER** use `cargo clean` - causes 30min rebuilds, use `./reset.sh` for database issues
 
 >
@@ -72,8 +72,8 @@ User Message (WebSocket)
 │
 ▼
 ┌─────────────────────────────────┐
-│  2. start.bas Execution         │  /opt/gbo/data/{bot}.gbai/...
-│     - Runs ONCE per session     │  {bot}.gbdialog/start.bas
+│ 2. start.bas Execution │ Drive (MinIO) storage
+│ - Runs ONCE per session │ {bot}.gbdialog/start.bas
 │     - ADD_SUGGESTION calls      │  Adds button suggestions
 │     - Sets Redis flag           │  prevents re-run
 └──────────────┬──────────────────┘
@@ -179,7 +179,7 @@ END TABLE
 
 ### {tool}.bas - Tool Scripts
 
-**Location:** `/opt/gbo/data/{bot}.gbai/{bot}.gbdialog/{tool}.bas`
+**Location:** Drive storage: `{bot}.gbdialog/{tool}.bas`
 **Compiled to:** `{tool}.ast` (in memory or `/opt/gbo/work/`)
 **Execution:** Via `CALL "tool"` or TOOL_EXEC (type 6)
 
@@ -437,9 +437,8 @@ END SWITCH
 ## 🧭 LLM Navigation Guide
 
 ### Reading This Workspace
-/opt/gbo/data is a place also for bots.
 **For LLMs analyzing this codebase:**
-0. Bots are in drive, each bucket is a bot. Respect LOAD_ONLY.
+0. Bots are in drive (MinIO storage), each bucket is a bot. Respect LOAD_ONLY.
 1. Start with **[Component Dependency Graph](../README.md#-component-dependency-graph)** in README to understand relationships
 2. Review **[Module Responsibility Matrix](../README.md#-module-responsibility-matrix)** for what each module does
 3. Study **[Data Flow Patterns](../README.md#-data-flow-patterns)** to understand execution flow
@@ -898,7 +897,7 @@ curl -X POST http://localhost:9000/api/features \
   -d '{"name": "test"}'
 
 # 4. Test via BASIC script
-# Create test.bas in /opt/gbo/data/testbot.gbai/testbot.gbdialog/
+# Create test.bas in {bot}.gbdialog/ folder (drive storage)
 # NEW_FEATURE "test"
 
 # 5. Check logs
@@ -1381,7 +1380,7 @@ Continue on gb/ workspace. Follow AGENTS.md strictly:
 - **Host OS:** Ubuntu LTS
 - **Container engine:** Incus (LXC-based)
 - **Base path:** `/opt/gbo/` (General Bots Operations)
-- **Data path:** `/opt/gbo/data` — shared data, configs, bot definitions
+- **Data path:** `/opt/gbo/data` — shared data, configs (bot definitions are in MinIO drive storage)
 - **Bin path:** `/opt/gbo/bin` — compiled binaries
 - **Conf path:** `/opt/gbo/conf` — service configurations
 - **Log path:** `/opt/gbo/logs` — application logs
@@ -1390,7 +1389,7 @@ Continue on gb/ workspace. Follow AGENTS.md strictly:
 
 | Role | Service | Typical Port | Notes |
 |------|---------|-------------|-------|
-| **dns** | CoreDNS | 53 | DNS resolution, zone files in `/opt/gbo/data` |
+| **dns** | CoreDNS | 53 | DNS resolution, zone files in `/opt/gbo/conf/` |
 | **proxy** | Caddy | 80/443 | Reverse proxy, TLS termination |
 | **tables** | PostgreSQL | 5432 | Primary database |
 | **email** | Stalwart | 993/465/587 | Mail server (IMAPS, SMTPS, Submission) |
