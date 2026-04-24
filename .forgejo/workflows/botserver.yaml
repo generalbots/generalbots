@@ -2,9 +2,6 @@ name: BotServer CI
 on:
   push:
     branches: [main]
-defaults:
-  run:
-    working-directory: /opt/gbo/work/generalbots
 jobs:
   build:
     runs-on: gbo
@@ -15,30 +12,31 @@ jobs:
       SYSTEM_HOST: ${{ vars.SYSTEM_HOST }}
       SYSTEM_USER: gbuser
     steps:
-      - name: Prepare workspace
+      - name: Setup
         run: |
-          mkdir -p /opt/gbo/work/generalbots /opt/gbo/work/target /opt/gbo/bin
-          if [ ! -d /opt/gbo/work/generalbots/.git ]; then
-            git clone https://alm.pragmatismo.com.br/GeneralBots/generalbots.git /opt/gbo/work/generalbots
-          fi
           cd /opt/gbo/work/generalbots
           git reset --hard HEAD
           git clean -fd
           git pull
           git submodule update --init --recursive
-      - name: Build botui (to embed UI files)
+          mkdir -p /opt/gbo/work/target
+          mkdir -p /opt/gbo/bin
+      - name: Build
         run: |
-          cargo build -p botui --bin botui --release
-      - name: Build botserver with embedded UI
-        run: |
-          # Copy botui/ui to botserver/ui so rust-embed can find it
-          cp -r botui/ui botserver/ui
-          CARGO_BUILD_JOBS=4 cargo build -p botserver --bin botserver --features embed-ui --release
+          cd /opt/gbo/work/generalbots
+          CARGO_BUILD_JOBS=4 cargo build -p botserver --bin botserver
       - name: Deploy to Stage
         run: |
-          BINARY=/opt/gbo/work/target/release/botserver
+          BINARY=/opt/gbo/work/target/debug/botserver
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo systemctl stop botserver 2>/dev/null; sudo pkill -x botserver 2>/dev/null; sleep 1"
           scp -o StrictHostKeyChecking=no "$BINARY" ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/bin/botserver-new
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && sudo chmod +x /opt/gbo/bin/botserver && sudo systemctl enable botserver && sudo systemctl start botserver"
           sleep 10
           ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "curl -sf http://localhost:8080/health && echo 'BotServer Deployed' || echo 'Failed'"
+      - name: Sync UI Files to Stage
+        run: |
+          # Sync UI files to stage container
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" /opt/gbo/work/generalbots/botui/ui/ ${SYSTEM_USER}@${SYSTEM_HOST}:/opt/gbo/botui/ui/
+          # Copy to the path where botserver serves from
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo incus exec system --project STAGE-GBO -- cp /opt/gbo/botui/ui/suite/chat/chat.html /opt/gbo/bin/ui/suite/chat/chat.html"
+          ssh -o StrictHostKeyChecking=no ${SYSTEM_USER}@${SYSTEM_HOST} "sudo incus exec system --project STAGE-GBO -- ls -la /opt/gbo/bin/ui/suite/chat/chat.html"
