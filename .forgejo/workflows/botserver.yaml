@@ -2,6 +2,12 @@ name: BotServer CI
 on:
   push:
     branches: [main]
+    paths:
+      - "botserver/**"
+      - "botlib/**"
+      - ".forgejo/workflows/botserver.yaml"
+      - "Cargo.toml"
+      - "Cargo.lock"
 jobs:
   build:
     runs-on: gbo
