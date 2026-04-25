@@ -1388,10 +1388,17 @@ pub fn convert_keywords_to_lowercase(script: &str) -> String {
                         let keyword = pattern.replace(r"\s+", "_");
 
                         // Build function call
-                        // Special handling for ADD_SWITCHER which uses "as" syntax
-                        let output = if keyword == "ADD_SWITCHER" && params.len() == 2 {
-                            format!("ADD_SWITCHER {} as {};", params[0], params[1])
+            // Special handling for ADD_SWITCHER which uses "as" syntax
+                    let output = if keyword == "ADD_SWITCHER" {
+                        let (switcher_id, label) = if params.len() == 2 {
+                            (params[0].clone(), params[1].clone())
+                        } else if params.len() == 3 && params[1].eq_ignore_ascii_case("AS") {
+                            (params[0].clone(), params[2].clone())
                         } else {
+                            (params[0].clone(), params.last().cloned().unwrap_or_default())
+                        };
+                        format!("ADD_SWITCHER {} as {};", switcher_id, label)
+                    } else {
                             let params_str = if params.is_empty() {
                                 String::new()
                             } else {
