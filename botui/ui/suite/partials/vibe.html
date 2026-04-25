@@ -1,1898 +1,677 @@
 <!-- Vibe Window — APP_CREATE Canvas + Agents IDE (Phase 7) -->
 <link rel="stylesheet" href="/suite/vibe/agents-sidebar.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe.css" />
 
 <div class="vibe-container" id="vibeWindow">
-    <!-- Pipeline Tabs -->
-    <div class="vibe-pipeline">
-        <button class="vibe-pipeline-tab" data-stage="plan">// PLAN</button>
-        <button class="vibe-pipeline-tab active" data-stage="build">
-            // BUILD
-        </button>
-        <button class="vibe-pipeline-tab" data-stage="review">// REVIEW</button>
-        <button class="vibe-pipeline-tab" data-stage="deploy">// DEPLOY</button>
-        <button class="vibe-pipeline-tab" data-stage="monitor">
-            // MONITOR
-        </button>
-    </div>
-
-    <!-- Main Content: Canvas + Sidebar -->
-    <div class="vibe-body">
-        <!-- Agents & Workspaces Sidebar (Fixed to left as in image) -->
-        <aside class="agents-sidebar" id="agentsSidebar" style="background: var(--surface)">
-            <div class="as-logo-section" style="
-                    padding: 16px;
-                    border-bottom: 1px solid var(--border);
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                ">
-                <h2 style="
-                        margin: 0;
-                        font-size: 15px;
-                        color: var(--text);
-                        font-weight: 800;
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                    ">
-                    <span style="font-size: 18px; color: var(--accent)">🌱</span>
-                    mantis farm
-                </h2>
-                <div style="
-                        display: flex;
-                        gap: 12px;
-                        color: var(--text-muted);
-                        font-size: 14px;
-                    ">
-                    <span style="cursor: pointer" title="Home">⌂</span>
-                    <span style="cursor: pointer" title="Overview">◱</span>
-                </div>
-            </div>
-
-            <div class="as-section">
-                <div class="as-section-header">
-                    <h3>Agents</h3>
-                    <button class="as-collapse-btn" id="agentsSidebarCollapse" type="button">
-                        ◀
-                    </button>
-                </div>
-
-                <div class="as-agent-list" id="asAgentList">
-                    <!-- Mantis #1 EVOLVED -->
-                    <div class="as-agent-card" data-agent-id="1" style="border-left: 3px solid var(--accent)">
-                        <div class="as-agent-header">
-                            <span class="as-status-dot green"></span>
-                            <span class="as-agent-name">Mantis #1</span>
-                            <span class="as-drag-handle" style="margin-left: auto">⋮</span>
-                        </div>
-                        <div class="as-agent-body">
-                            <span class="as-agent-icons">👀 ⚙️ ⚡</span>
-                            <span class="as-badge badge-evolved">EVOLVED</span>
-                        </div>
-                    </div>
-
-                    <!-- Mantis #2 BRED -->
-                    <div class="as-agent-card" data-agent-id="2">
-                        <div class="as-agent-header">
-                            <span class="as-status-dot yellow"></span>
-                            <span class="as-agent-name">Mantis #2</span>
-                            <span class="as-drag-handle" style="margin-left: auto">⋮</span>
-                        </div>
-                        <div class="as-agent-body">
-                            <span class="as-agent-icons">🥚</span>
-                            <span class="as-badge badge-bred">BRED</span>
-                        </div>
-                    </div>
-
-                    <!-- Mantis #3 & #4 WILD -->
-                    <div class="as-agent-card" style="opacity: 0.6" data-agent-id="3">
-                        <div class="as-agent-header">
-                            <span class="as-status-dot gray"></span>
-                            <span class="as-agent-name">Mantis #3</span>
-                            <span class="as-drag-handle" style="margin-left: auto">⋮</span>
-                        </div>
-                        <div class="as-agent-body">
-                            <span class="as-agent-icons" style="filter: grayscale(1)">🥚</span>
-                            <span class="as-badge badge-wild"
-                                style="background: var(--surface-active, #ccc)">WILD</span>
-                        </div>
-                    </div>
-                    <div class="as-agent-card" style="opacity: 0.6" data-agent-id="4">
-                        <div class="as-agent-header">
-                            <span class="as-status-dot gray"></span>
-                            <span class="as-agent-name">Mantis #4</span>
-                            <span class="as-drag-handle" style="margin-left: auto">⋮</span>
-                        </div>
-                        <div class="as-agent-body">
-                            <span class="as-agent-icons" style="filter: grayscale(1)">🥚</span>
-                            <span class="as-badge badge-wild"
-                                style="background: var(--surface-active, #ccc)">WILD</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="padding: 0 8px">
-                    <button class="as-create-btn" id="createAgentBtn" type="button"
-                        style="width: calc(100% - 16px); margin: 8px">
-                        + Create a New Mantis
-                    </button>
-                </div>
-            </div>
-
-            <div class="as-section">
-                <div class="as-section-header">
-                    <h3>Workspaces</h3>
-                </div>
-
-                <div class="as-workspace-list" id="asWorkspaceList">
-                    <div class="as-workspace-item">
-                        <button class="as-workspace-toggle" type="button" style="
-                                background: var(--bg);
-                                border-left: 3px solid var(--accent);
-                            ">
-                            <span class="as-workspace-arrow">▼</span>
-                            <span>E-Commerce App Development</span>
-                        </button>
-                        <div class="as-workspace-body" style="display: block">
-                            <div class="as-workspace-agent">Mantis #1</div>
-                            <div class="as-workspace-agent">Mantis #4</div>
-                            <div class="as-workspace-dropzone" data-workspace="ecommerce">
-                                Drag a Mantis to Include
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="as-workspace-item">
-                        <button class="as-workspace-toggle" type="button">
-                            <span class="as-workspace-arrow">▶</span>
-                            <span>Accountability App Development</span>
-                        </button>
-                        <div class="as-workspace-body" style="display: none">
-                            <div class="as-workspace-agent">Mantis #4</div>
-                            <div class="as-workspace-dropzone" data-workspace="accountability">
-                                Drag a Mantis to Include
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="padding: 0 8px">
-                    <button class="as-create-btn" id="createWorkspaceBtn" type="button"
-                        style="width: calc(100% - 16px); margin: 8px">
-                        + Create a New Project
-                    </button>
-                </div>
-            </div>
-        </aside>
-
-        <!-- MCP Servers (Added via Phase 3) -->
-        <div style="width: 280px; margin-left: 280px; position: absolute; left: 0; bottom: 0; top: 60px; pointer-events: none; z-index: 50;">
-            <div style="pointer-events: auto; position: absolute; bottom: 24px; left: 24px; right: 24px;">
-                <div hx-get="/suite/partials/vibe-mcp-panel.html" hx-trigger="load"></div>
-            </div>
-        </div>
-
-        <!-- Canvas Area -->
-        <div class="vibe-canvas" id="vibeCanvas" style="
-                background: var(--bg, #fdfdfd);
-                background-image: radial-gradient(
-                    var(--border) 1px,
-                    transparent 1px
-                );
-                background-size: 20px 20px;
-                position: relative;
-            ">
-            <div style="
-                    padding: 16px 24px;
-                    font-size: 11px;
-                    color: var(--text-muted);
-                    font-weight: 600;
-                    letter-spacing: 0.5px;
-                    border-bottom: 1px solid var(--border);
-                    background: var(--surface);
-                    opacity: 0.95;
-                    backdrop-filter: blur(4px);
-                ">
-                // DASHBOARD
-                <span style="color: var(--text-secondary); margin: 0 6px">&gt;</span>
-                // E-COMMERCE APP DEVELOPMENT
-                <div style="float: right">
-                     <button class="vibe-db-btn" onclick="document.getElementById('vibeDbModal').style.display='flex'" style="
-                            border: 1px solid var(--accent);
-                            background: transparent;
-                            color: var(--text);
-                            border-radius: 4px;
-                            padding: 2px 8px;
-                            cursor: pointer;
-                            margin-right: 12px;
-                            font-weight: 600;
-                        ">
-                        🗄️ Schema
-                    </button>
-                    <button class="vibe-git-btn" onclick="document.getElementById('vibeGitModal').style.display='flex'" style="
-                            border: 1px solid var(--accent);
-                            background: transparent;
-                            color: var(--text);
-                            border-radius: 4px;
-                            padding: 2px 8px;
-                            cursor: pointer;
-                            margin-right: 12px;
-                            font-weight: 600;
-                        ">
-                        🌱 Source Control
-                    </button>
-                    <button class="vibe-browser-btn" onclick="document.getElementById('vibeBrowserModal').style.display='flex'" style="
-                            border: 1px solid var(--accent);
-                            background: transparent;
-                            color: var(--text);
-                            border-radius: 4px;
-                            padding: 2px 8px;
-                            cursor: pointer;
-                            margin-right: 12px;
-                            font-weight: 600;
-                        ">
-                        🌐 Base
-                    </button>
-                    <button class="vibe-terminal-btn" onclick="document.getElementById('vibeTerminalModal').style.display='flex'" style="
-                            border: 1px solid var(--accent);
-                            background: transparent;
-                            color: var(--text);
-                            border-radius: 4px;
-                            padding: 2px 8px;
-                            cursor: pointer;
-                            margin-right: 12px;
-                            font-weight: 600;
-                        ">
-                        ⌨️ Shell
-                    </button>
-                     <button class="vibe-code-btn" onclick="document.getElementById('vibeEditorModal').style.display='flex'" style="
-                            border: 1px solid var(--accent);
-                            background: transparent;
-                            color: var(--text);
-                            border-radius: 4px;
-                            padding: 2px 8px;
-                            cursor: pointer;
-                            margin-right: 12px;
-                            font-weight: 600;
-                        ">
-                        💻 Code
-                    </button>
-                    <button class="vibe-deploy-btn" onclick="showDeploymentModal()" style="
-                            border: 1px solid var(--accent);
-                            background: var(--accent);
-                            color: var(--bg);
-                            border-radius: 4px;
-                            padding: 2px 8px;
-                            cursor: pointer;
-                            margin-right: 12px;
-                            font-weight: 600;
-                        ">
-                        🚀 Deploy
-                    </button>
-                    <button style="
-                            border: 1px solid var(--border);
-                            background: var(--bg);
-                            border-radius: 4px;
-                            padding: 2px 8px;
-                            cursor: pointer;
-                        ">
-                        -
-                    </button>
-                    <span style="
-                            font-size: 11px;
-                            margin: 0 8px;
-                            color: var(--text);
-                        ">100%</span>
-                    <button style="
-                            border: 1px solid var(--border);
-                            background: var(--bg);
-                            border-radius: 4px;
-                            padding: 2px 8px;
-                            cursor: pointer;
-                        ">
-                        +
-                    </button>
-                </div>
-            </div>
-
-            <!-- Steps Nodes (populated dynamically from chat/API) -->
-            <div class="vibe-steps" id="vibeSteps" style="
-                    padding: 40px;
-                    display: none;
-                    gap: 60px;
-                    align-items: flex-start;
-                    overflow-x: auto;
-                "></div>
-
-            <!-- Empty state -->
-            <div id="vibeCanvasEmpty" style="
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 16px;
-                    padding: 60px;
-                    text-align: center;
-                ">
-                <div style="
-                        font-size: 56px;
-                        animation: float 3s ease-in-out infinite;
-                    ">
-                    🌱
-                </div>
-                <h3 style="
-                        margin: 0;
-                        font-size: 22px;
-                        font-weight: 800;
-                        color: var(--text);
-                        font-family: &quot;Fira Code&quot;, monospace;
-                    ">
-                    Vibe — App Builder
-                </h3>
-                <p style="
-                        margin: 0;
-                        font-size: 14px;
-                        color: var(--text-muted);
-                        max-width: 440px;
-                        line-height: 1.6;
-                    ">
-                    Describe what you want to build in the chat. Mantis #1 will
-                    analyze your request, generate task nodes on this canvas,
-                    and build the entire application for you.
-                </p>
-                <div style="
-                        display: flex;
-                        gap: 10px;
-                        flex-wrap: wrap;
-                        justify-content: center;
-                        margin-top: 12px;
-                    ">
-                    <button class="vibe-quick-btn" type="button"
-                        onclick="document.getElementById('vibeChatInput').value='Create an e-commerce app for selling handmade crafts with shopping cart and payments'; document.getElementById('vibeChatInput').focus();"
-                        style="
-                            padding: 8px 16px;
-                            border: 1px solid var(--border);
-                            border-radius: 20px;
-                            background: var(--bg);
-                            font-size: 12px;
-                            cursor: pointer;
-                            color: var(--text-muted);
-                            transition: all 0.15s;
-                            font-family: &quot;Fira Code&quot;, monospace;
-                        ">
-                        🛍️ E-Commerce App
-                    </button>
-                    <button class="vibe-quick-btn" type="button"
-                        onclick="document.getElementById('vibeChatInput').value='Build a CRM system with contacts, leads, and deal pipeline tracking'; document.getElementById('vibeChatInput').focus();"
-                        style="
-                            padding: 8px 16px;
-                            border: 1px solid var(--border);
-                            border-radius: 20px;
-                            background: var(--bg);
-                            font-size: 12px;
-                            cursor: pointer;
-                            color: var(--text-muted);
-                            transition: all 0.15s;
-                            font-family: &quot;Fira Code&quot;, monospace;
-                        ">
-                        📇 CRM System
-                    </button>
-                    <button class="vibe-quick-btn" type="button"
-                        onclick="document.getElementById('vibeChatInput').value='Create a project management dashboard with tasks, Kanban board, and team assignments'; document.getElementById('vibeChatInput').focus();"
-                        style="
-                            padding: 8px 16px;
-                            border: 1px solid var(--border);
-                            border-radius: 20px;
-                            background: var(--bg);
-                            font-size: 12px;
-                            cursor: pointer;
-                            color: var(--text-muted);
-                            transition: all 0.15s;
-                            font-family: &quot;Fira Code&quot;, monospace;
-                        ">
-                        📊 Project Manager
-                    </button>
-                </div>
-            </div>
-
-            <!-- Vibe Chat Overlay (LIVE) -->
-            <div id="vibeChatOverlay" style="
-                    position: absolute;
-                    bottom: 24px;
-                    right: 24px;
-                    width: 380px;
-                    background: var(--surface);
-                    border-radius: 12px;
-                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                    border: 1px solid var(--border);
-                    color: var(--text);
-                    z-index: 100;
-                ">
-                <div style="
-                        padding: 12px 16px;
-                        background: var(--surface-hover);
-                        border-bottom: 1px solid var(--border);
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                    ">
-                    <div style="display: flex; align-items: center; gap: 8px">
-                        <span class="as-status-dot green" id="vibeChatStatusDot"
-                            style="box-shadow: 0 0 8px var(--accent)"></span>
-                        <span style="font-size: 12px; font-weight: 600">Mantis #1</span>
-                    </div>
-                    <span id="vibeChatStatusBadge" style="
-                            font-size: 10px;
-                            color: var(--text-muted);
-                            background: var(--surface-hover);
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                        ">CONNECTING…</span>
-                </div>
-
-                <div id="vibeChatMessages" style="
-                        padding: 16px;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 12px;
-                        font-size: 12px;
-                        line-height: 1.5;
-                        min-height: 220px;
-                        max-height: 350px;
-                        overflow-y: auto;
-                        font-family:
-                            &quot;Segoe UI&quot;, system-ui, sans-serif;
-                    ">
-                    <!-- Welcome hint -->
-                    <div style="
-                            align-self: center;
-                            background: rgba(132, 214, 105, 0.12);
-                            color: var(--accent);
-                            padding: 8px 14px;
-                            border-radius: 8px;
-                            font-size: 11px;
-                            text-align: center;
-                        ">
-                        💡 TIP: Describe your project. The more detail, the
-                        better the plan.
-                    </div>
-                </div>
-
-                <div style="
-                        padding: 12px;
-                        border-top: 1px solid var(--border);
-                        background: var(--surface);
-                    ">
-                    <form id="vibeChatForm" autocomplete="off" style="
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            background: var(--surface-hover);
-                            padding: 8px 12px;
-                            border-radius: 20px;
-                            border: 1px solid var(--border);
-                        ">
-                        <span style="
-                                color: var(--text-muted);
-                                cursor: pointer;
-                                transform: rotate(-45deg);
-                            ">📎</span>
-                        <input type="text" id="vibeChatInput" placeholder="Describe your project…" style="
-                                flex: 1;
-                                background: transparent;
-                                border: none;
-                                color: var(--text);
-                                font-size: 13px;
-                                outline: none;
-                                font-family:
-                                    &quot;Segoe UI&quot;, system-ui, sans-serif;
-                            " />
-                        <button type="submit" id="vibeChatSend" style="
-                                background: var(--accent);
-                                color: var(--surface);
-                                width: 24px;
-                                height: 24px;
-                                border-radius: 50%;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                cursor: pointer;
-                                font-size: 14px;
-                                font-weight: bold;
-                                border: none;
-                            ">
-                            ↑
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Editor Panel (hidden by default) -->
-            <div class="vibe-editor-modal" id="vibeEditorModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-                <button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-                <div hx-get="/suite/partials/editor.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-            </div>
-
-            <!-- Database Panel (hidden by default) -->
-            <div class="vibe-db-modal" id="vibeDbModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-                <button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-                <div hx-get="/suite/partials/database.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-            </div>
-
-            <!-- Git Panel (hidden by default) -->
-            <div class="vibe-git-modal" id="vibeGitModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-                <button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-                <div hx-get="/suite/partials/git-status.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-            </div>
-
-            <!-- Browser Panel (hidden by default) -->
-            <div class="vibe-browser-modal" id="vibeBrowserModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-                <button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-                <div hx-get="/suite/partials/browser-controls.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-            </div>
-
-            <!-- Terminal Panel (hidden by default) -->
-            <div class="vibe-terminal-modal" id="vibeTerminalModal" style="display: none; position: absolute; bottom: 24px; left: 300px; right: 24px; height: 350px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-                <button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 4px; right: 8px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-                <div hx-get="/suite/partials/terminal.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-            </div>
-
-            <!-- Preview Panel (hidden by default) -->
-            <div class="vibe-preview" id="vibePreview" style="display: none">
-                <div class="vibe-preview-header">
-                    <span>// PREVIEW</span>
-                    <input type="text" class="vibe-preview-url" id="vibePreviewUrl" value="" readonly />
-                </div>
-                <div class="vibe-preview-content" id="vibePreviewContent"></div>
-            </div>
-
-            <!-- Deployment Panel (hidden by default) -->
-            <div class="vibe-deployment-modal" id="vibeDeploymentModal" style="display: none">
-                <div class="vibe-deployment-overlay" onclick="closeDeploymentModal()"></div>
-                <div class="vibe-deployment-panel" style="
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        background: var(--surface);
-                        border-radius: 16px;
-                        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
-                        width: 600px;
-                        max-width: 90%;
-                        max-height: 80vh;
-                        overflow-y: auto;
-                        border: 1px solid var(--border);
-                        z-index: 1000;
-                    ">
-                    <div style="
-                            padding: 24px;
-                            border-bottom: 1px solid var(--border);
-                        ">
-                        <h2 style="
-                                margin: 0;
-                                font-size: 20px;
-                                color: var(--text);
-                                display: flex;
-                                align-items: center;
-                                gap: 12px;
-                            ">
-                            <span style="font-size: 24px">🚀</span>
-                            Deploy Your App
-                        </h2>
-                        <p style="
-                                margin: 8px 0 0;
-                                font-size: 14px;
-                                color: var(--text-muted);
-                            ">
-                            Choose where to deploy your application
-                        </p>
-                    </div>
-
-                    <div style="padding: 24px">
-                        <!-- Deployment Options -->
-                        <div style="
-                                display: grid;
-                                grid-template-columns: 1fr 1fr;
-                                gap: 16px;
-                                margin-bottom: 24px;
-                            ">
-                            <!-- Internal Deployment -->
-                            <div class="deployment-option" id="deploymentInternal"
-                                onclick="selectDeploymentTarget('internal')" style="
-                                    padding: 20px;
-                                    border: 2px solid var(--border);
-                                    border-radius: 12px;
-                                    cursor: pointer;
-                                    transition: all 0.2s;
-                                ">
-                                <div style="
-                                        display: flex;
-                                        align-items: center;
-                                        gap: 12px;
-                                        margin-bottom: 12px;
-                                    ">
-                                    <span style="font-size: 32px">📱</span>
-                                    <div>
-                                        <h3 style="
-                                                margin: 0;
-                                                font-size: 16px;
-                                                color: var(--text);
-                                            ">
-                                            GB Platform
-                                        </h3>
-                                        <span style="
-                                                font-size: 12px;
-                                                color: var(--text-muted);
-                                            ">Internal</span>
-                                    </div>
-                                </div>
-                                <ul style="
-                                        margin: 0;
-                                        padding-left: 20px;
-                                        font-size: 13px;
-                                        color: var(--text-muted);
-                                        line-height: 1.6;
-                                    ">
-                                    <li>Serve from /apps/{name}</li>
-                                    <li>Use GB API endpoints</li>
-                                    <li>Fast iteration cycles</li>
-                                    <li>Shared platform resources</li>
-                                </ul>
-                            </div>
-
-                            <!-- External Deployment -->
-                            <div class="deployment-option" id="deploymentExternal"
-                                onclick="selectDeploymentTarget('external')" style="
-                                    padding: 20px;
-                                    border: 2px solid var(--border);
-                                    border-radius: 12px;
-                                    cursor: pointer;
-                                    transition: all 0.2s;
-                                ">
-                                <div style="
-                                        display: flex;
-                                        align-items: center;
-                                        gap: 12px;
-                                        margin-bottom: 12px;
-                                    ">
-                                    <span style="font-size: 32px">🌐</span>
-                                    <div>
-                                        <h3 style="
-                                                margin: 0;
-                                                font-size: 16px;
-                                                color: var(--text);
-                                            ">
-                                            Forgejo ALM
-                                        </h3>
-                                        <span style="
-                                                font-size: 12px;
-                                                color: var(--text-muted);
-                                            ">External</span>
-                                    </div>
-                                </div>
-                                <ul style="
-                                        margin: 0;
-                                        padding-left: 20px;
-                                        font-size: 13px;
-                                        color: var(--text-muted);
-                                        line-height: 1.6;
-                                    ">
-                                    <li>Push to Git repository</li>
-                                    <li>CI/CD pipeline automation</li>
-                                    <li>Custom domain support</li>
-                                    <li>Independent deployment</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- Internal Configuration (shown by default) -->
-                        <div id="deploymentInternalConfig" style="margin-bottom: 24px">
-                            <h3 style="
-                                    margin: 0 0 16px;
-                                    font-size: 14px;
-                                    color: var(--text);
-                                ">
-                                Internal Deployment Settings
-                            </h3>
-                            <form id="internalDeployForm">
-                                <div style="margin-bottom: 16px">
-                                    <label style="
-                                            display: block;
-                                            margin-bottom: 8px;
-                                            font-size: 13px;
-                                            color: var(--text-muted);
-                                        ">App Route</label>
-                                    <input type="text" id="deployRoute" placeholder="my-app" style="
-                                            width: 100%;
-                                            padding: 10px 12px;
-                                            border: 1px solid var(--border);
-                                            border-radius: 8px;
-                                            background: var(--bg);
-                                            color: var(--text);
-                                            font-size: 14px;
-                                        " />
-                                    <span style="
-                                            font-size: 12px;
-                                            color: var(--text-muted);
-                                            margin-top: 4px;
-                                            display: block;
-                                        ">
-                                        App will be available at: /apps/<span id="deployRoutePreview">my-app</span>/
-                                    </span>
-                                </div>
-                                <div style="margin-bottom: 16px">
-                                    <label style="
-                                            display: flex;
-                                            align-items: center;
-                                            gap: 8px;
-                                            font-size: 13px;
-                                            color: var(--text);
-                                            cursor: pointer;
-                                        ">
-                                        <input type="checkbox" id="deploySharedResources" checked style="margin: 0" />
-                                        Use shared platform resources (database,
-                                        cache, storage)
-                                    </label>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- External Configuration (hidden by default) -->
-                        <div id="deploymentExternalConfig" style="display: none; margin-bottom: 24px">
-                            <h3 style="
-                                    margin: 0 0 16px;
-                                    font-size: 14px;
-                                    color: var(--text);
-                                ">
-                                Forgejo Repository Settings
-                            </h3>
-                            <form id="externalDeployForm">
-                                <div style="margin-bottom: 16px">
-                                    <label style="
-                                            display: block;
-                                            margin-bottom: 8px;
-                                            font-size: 13px;
-                                            color: var(--text-muted);
-                                        ">Repository Name</label>
-                                    <input type="text" id="deployRepoName" placeholder="my-app" style="
-                                            width: 100%;
-                                            padding: 10px 12px;
-                                            border: 1px solid var(--border);
-                                            border-radius: 8px;
-                                            background: var(--bg);
-                                            color: var(--text);
-                                            font-size: 14px;
-                                        " />
-                                </div>
-                                <div style="margin-bottom: 16px">
-                                    <label style="
-                                            display: block;
-                                            margin-bottom: 8px;
-                                            font-size: 13px;
-                                            color: var(--text-muted);
-                                        ">Custom Domain (optional)</label>
-                                    <input type="text" id="deployCustomDomain" placeholder="myapp.example.com" style="
-                                            width: 100%;
-                                            padding: 10px 12px;
-                                            border: 1px solid var(--border);
-                                            border-radius: 8px;
-                                            background: var(--bg);
-                                            color: var(--text);
-                                            font-size: 14px;
-                                        " />
-                                </div>
-                                <div style="margin-bottom: 16px">
-                                    <label style="
-                                            display: flex;
-                                            align-items: center;
-                                            gap: 8px;
-                                            font-size: 13px;
-                                            color: var(--text);
-                                            cursor: pointer;
-                                        ">
-                                        <input type="checkbox" id="deployCiCd" checked style="margin: 0" />
-                                        Enable CI/CD pipeline (automatic builds
-                                        and deployments)
-                                    </label>
-                                </div>
-                                <div style="margin-bottom: 16px">
-                                    <label style="
-                                            display: block;
-                                            margin-bottom: 8px;
-                                            font-size: 13px;
-                                            color: var(--text-muted);
-                                        ">App Type</label>
-                                    <select id="deployAppType" style="
-                                            width: 100%;
-                                            padding: 10px 12px;
-                                            border: 1px solid var(--border);
-                                            border-radius: 8px;
-                                            background: var(--bg);
-                                            color: var(--text);
-                                            font-size: 14px;
-                                        ">
-                                        <option value="htmx">
-                                            HTMX App (Server-side rendering)
-                                        </option>
-                                        <option value="react">
-                                            React App (SPA)
-                                        </option>
-                                        <option value="vue">
-                                            Vue App (SPA)
-                                        </option>
-                                    </select>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div style="
-                                display: flex;
-                                gap: 12px;
-                                justify-content: flex-end;
-                            ">
-                            <button type="button" onclick="closeDeploymentModal()" style="
-                                    padding: 10px 20px;
-                                    border: 1px solid var(--border);
-                                    border-radius: 8px;
-                                    background: transparent;
-                                    color: var(--text);
-                                    font-size: 14px;
-                                    cursor: pointer;
-                                ">
-                                Cancel
-                            </button>
-                            <button type="button" id="deployButton" onclick="executeDeployment()" style="
-                                    padding: 10px 20px;
-                                    border: none;
-                                    border-radius: 8px;
-                                    background: var(--accent);
-                                    color: white;
-                                    font-size: 14px;
-                                    font-weight: 600;
-                                    cursor: pointer;
-                                ">
-                                Deploy Now
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- Pipeline Tabs -->
+<div class="vibe-pipeline">
+<button class="vibe-pipeline-tab" data-stage="plan">// PLAN</button>
+<button class="vibe-pipeline-tab active" data-stage="build">
+// BUILD
+</button>
+<button class="vibe-pipeline-tab" data-stage="review">// REVIEW</button>
+<button class="vibe-pipeline-tab" data-stage="deploy">// DEPLOY</button>
+<button class="vibe-pipeline-tab" data-stage="monitor">
+// MONITOR
+</button>
 </div>
 
-<script>
-    (function () {
-        "use strict";
-
-        /* ── state ── */
-        var vibeWs = null;
-        var vibeSessionId = null;
-        var vibeUserId = null;
-        var vibeBotId = "default";
-        var vibeBotName = "default";
-        var vibeStreaming = false;
-        var vibeStreamId = null;
-        var vibeStreamContent = "";
-        var taskNodes = [];
-        var currentProject = "My App";
-        var nodeIdCounter = 0;
-
-        /* ── helpers ── */
-        function esc(text) {
-            var d = document.createElement("div");
-            d.textContent = text || "";
-            return d.innerHTML;
-        }
-
-        function vibeAddMsg(role, text) {
-            var box = document.getElementById("vibeChatMessages");
-            if (!box) return;
-            var div = document.createElement("div");
-            if (role === "user") {
-                div.style.cssText =
-                    "align-self:flex-end;background:var(--accent);color:var(--surface);font-weight:500;padding:10px 14px;border-radius:12px 12px 0 12px;max-width:85%;word-wrap:break-word;";
-                div.textContent = text;
-            } else if (role === "system") {
-                div.style.cssText =
-                    "align-self:center;background:rgba(132,214,105,0.12);color: var(--accent);padding:6px 12px;border-radius:8px;font-size:11px;text-align:center;";
-                div.innerHTML = text;
-            } else {
-                div.style.cssText =
-                    "align-self:flex-start;background:var(--surface-hover);color:var(--text);padding:10px 14px;border-radius:12px 12px 12px 0;max-width:85%;word-wrap:break-word;";
-                div.className = "vibe-bot-msg";
-                if (typeof marked !== "undefined" && marked.parse) {
-                    div.innerHTML = marked.parse(text);
-                } else {
-                    div.textContent = text;
-                }
-            }
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-            return div;
-        }
-
-        function vibeAddStreamStart() {
-            vibeStreamId = "vibe-stream-" + Date.now();
-            vibeStreamContent = "";
-            var el = vibeAddMsg("bot", "▍");
-            if (el) el.id = vibeStreamId;
-            return el;
-        }
-
-        function vibeUpdateStream(content) {
-            vibeStreamContent += content || "";
-            var el = document.getElementById(vibeStreamId);
-            if (!el) return;
-            if (typeof marked !== "undefined" && marked.parse) {
-                el.innerHTML = marked.parse(vibeStreamContent);
-            } else {
-                el.textContent = vibeStreamContent;
-            }
-            var box = document.getElementById("vibeChatMessages");
-            if (box) box.scrollTop = box.scrollHeight;
-        }
-
-        function vibeFinalizeStream() {
-            var el = document.getElementById(vibeStreamId);
-            if (el) {
-                if (typeof marked !== "undefined" && marked.parse) {
-                    el.innerHTML = marked.parse(vibeStreamContent);
-                } else {
-                    el.textContent = vibeStreamContent;
-                }
-                el.removeAttribute("id");
-            }
-            vibeStreamId = null;
-            vibeStreamContent = "";
-            vibeStreaming = false;
-        }
-
-        /* ── update status badge ── */
-        function setVibeStatus(status) {
-            var dot = document.getElementById("vibeChatStatusDot");
-            var badge = document.getElementById("vibeChatStatusBadge");
-            if (status === "connected") {
-                if (dot) {
-                    dot.className = "as-status-dot green";
-                    dot.style.boxShadow = "0 0 8px var(--accent)";
-                }
-                if (badge) {
-                    badge.textContent = "EVOLVED";
-                    badge.style.background = "var(--accent)";
-                    badge.style.color = "var(--bg)";
-                }
-            } else if (status === "connecting") {
-                if (dot) {
-                    dot.className = "as-status-dot yellow";
-                    dot.style.boxShadow = "0 0 8px #f59e0b";
-                }
-                if (badge) {
-                    badge.textContent = "CONNECTING…";
-                    badge.style.background = "var(--surface-hover)";
-                    badge.style.color = "var(--text-muted)";
-                }
-            } else {
-                if (dot) {
-                    dot.className = "as-status-dot red";
-                    dot.style.boxShadow = "0 0 8px #ef4444";
-                }
-                if (badge) {
-                    badge.textContent = "OFFLINE";
-                    badge.style.background = "var(--surface-hover)";
-                    badge.style.color = "var(--text-muted)";
-                }
-            }
-        }
-
-        /* ── update agent sidebar card ── */
-        function updateMantis1(status, detail) {
-            var card = document.querySelector(
-                '.as-agent-card[data-agent-id="1"]',
-            );
-            if (!card) return;
-            var bar = card.querySelector(".as-agent-bar .as-bar-fill");
-            if (status === "working") {
-                card.style.borderLeftColor = "#f59e0b";
-                if (!card.querySelector(".as-agent-bar")) {
-                    var barWrapper = document.createElement("div");
-                    barWrapper.className = "as-agent-bar";
-                    barWrapper.innerHTML =
-                        '<div class="as-bar-fill bred" style="width:0%;transition:width 0.5s;"></div>';
-                    card.appendChild(barWrapper);
-                }
-            } else if (status === "done") {
-                card.style.borderLeftColor = "var(--accent)";
-                bar = card.querySelector(".as-bar-fill");
-                if (bar) bar.style.width = "100%";
-                setTimeout(function () {
-                    var b = card.querySelector(".as-agent-bar");
-                    if (b) b.remove();
-                }, 2000);
-            }
-        }
-
-        /* ── create task node on canvas ── */
-        function addTaskNode(title, description, meta) {
-            var stepsContainer = document.getElementById("vibeSteps");
-            if (!stepsContainer) return;
-            stepsContainer.style.display = "flex";
-            var emptyState = document.getElementById("vibeCanvasEmpty");
-            if (emptyState) emptyState.style.display = "none";
-
-            nodeIdCounter++;
-            meta = meta || {};
-            var fileCount =
-                meta.estimated_files ||
-                meta.files ||
-                Math.floor(Math.random() * 15 + 3);
-            var time =
-                meta.estimated_time ||
-                meta.time ||
-                Math.floor(Math.random() * 20 + 5) + "m";
-            var tokens =
-                meta.estimated_tokens ||
-                meta.tokens ||
-                "~" + Math.floor(Math.random() * 30 + 10) + "k tokens";
-            var status = meta.status || "Planning";
-            var fileList = meta.fileList || [];
-            var isFirst = stepsContainer.children.length === 0;
-            var nodeId = "vibe-node-" + nodeIdCounter;
-
-            var statusBg =
-                status === "Done"
-                    ? "var(--accent)"
-                    : status === "Planning"
-                        ? "var(--success-light, #eef8eb)"
-                        : "var(--warning-light, var(--bg)3cd)";
-            var statusColor =
-                status === "Done"
-                    ? "var(--bg)"
-                    : status === "Planning"
-                        ? "var(--accent)"
-                        : "var(--warning, #856404)";
-
-            var subTasksHtml = "";
-            if (fileList.length > 0) {
-                subTasksHtml =
-                    '<div id="' +
-                    nodeId +
-                    '-files" style="display:none;padding:8px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--text-muted, #555);">';
-                for (var fi = 0; fi < fileList.length; fi++) {
-                    subTasksHtml +=
-                        '<div style="padding:2px 0;display:flex;align-items:center;gap:4px;"><span style="color: var(--accent);">📄</span> ' +
-                        esc(fileList[fi]) +
-                        "</div>";
-                }
-                subTasksHtml += "</div>";
-            }
-
-            var node = document.createElement("div");
-            node.className = "vibe-task-node";
-            node.style.cssText =
-                "background: var(--bg);border:" +
-                (isFirst
-                    ? "2px solid var(--accent)"
-                    : "1px solid var(--border)") +
-                ";border-radius:8px;width:280px;box-shadow:0 " +
-                (isFirst ? "4" : "2") +
-                "px 12px rgba(" +
-                (isFirst ? "132,214,105,0.15" : "0,0,0,0.05") +
-                ");position:relative;flex-shrink:0;animation:nodeIn 0.4s ease;";
-
-            node.innerHTML =
-                '<div style="padding:12px 16px;border-bottom: 1px solid var(--border);">' +
-                '<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:10px;color: var(--text-muted);">' +
-                "<span>" +
-                fileCount +
-                " files</span><span>" +
-                time +
-                "</span><span>" +
-                tokens +
-                "</span>" +
-                "</div>" +
-                '<h4 style="margin:0 0 8px 0;font-size:14px;color: var(--text);font-weight:700;">' +
-                esc(title) +
-                "</h4>" +
-                '<p style="margin:0;font-size:11px;color: var(--text-muted);line-height:1.4;">' +
-                esc(description) +
-                "</p>" +
-                "</div>" +
-                '<div style="padding:10px 16px;background: var(--surface);border-bottom: 1px solid var(--border);font-size:11px;">' +
-                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-                '<span style="color: var(--text-muted);">Status</span>' +
-                '<span style="background:' +
-                statusBg +
-                ";color:" +
-                statusColor +
-                ';padding:2px 8px;border-radius:12px;font-weight:600;">' +
-                esc(status) +
-                "</span>" +
-                "</div>" +
-                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-                '<span style="color: var(--text-muted);">Mantis Manager</span>' +
-                '<span style="display:flex;align-items:center;gap:4px;"><span class="as-status-dot green"></span> Mantis #1</span>' +
-                "</div>" +
-                "</div>" +
-                '<div style="padding:8px 16px;font-size:10px;font-weight:700;color: var(--text-muted);">' +
-                '<div data-toggle="' +
-                nodeId +
-                "-files\" style=\"padding:4px 0;cursor:pointer;user-select:none;\" onclick=\"(function(el){var t=document.getElementById(el.getAttribute('data-toggle'));if(t){t.style.display=t.style.display==='none'?'':'none';var a=el.querySelector('span');if(a)a.textContent=t.style.display==='none'?'▶':'▼';}})(this)\">// SUB-TASKS <span style=\"float:right;\">▶</span></div>" +
-                '<div style="padding:4px 0;cursor:pointer;">// LOGS <span style="float:right;">▶</span></div>' +
-                "</div>" +
-                subTasksHtml;
-
-            if (isFirst || stepsContainer.children.length > 0) {
-                var line = document.createElement("div");
-                line.style.cssText =
-                    "position:absolute;right:-60px;top:50%;width:60px;height:2px;background:var(--accent);z-index:10;";
-                node.appendChild(line);
-                if (!isFirst) {
-                    var dot = document.createElement("div");
-                    dot.style.cssText =
-                        "position:absolute;left:-5px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:var(--accent);z-index:20;";
-                    node.appendChild(dot);
-                }
-            }
-
-            stepsContainer.appendChild(node);
-            stepsContainer.scrollLeft = stepsContainer.scrollWidth;
-            taskNodes.push({
-                title: title,
-                description: description,
-                meta: meta,
-            });
-            return node;
-        }
-
-        /* ── call /api/autotask/classify (real backend) ── */
-        function callAutotask(intent) {
-            updateMantis1("working");
-            vibeAddMsg("system", "🔄 Mantis #1 is analyzing your request…");
-
-            // Connect task progress WS to get live orchestrator events
-            connectTaskProgressWs(null);
-
-            // Update breadcrumb
-            var breadcrumb = document.querySelector(
-                ".vibe-canvas div:first-child",
-            );
-            if (breadcrumb) {
-                currentProject = intent
-                    .substring(0, 40)
-                    .replace(/[^a-zA-Z0-9 ]/g, "");
-                breadcrumb.innerHTML =
-                    '// DASHBOARD <span style="color: var(--text-secondary);margin:0 6px;">&gt;</span> // ' +
-                    esc(currentProject.toUpperCase()) +
-                    ' <div style="float:right;"><button style="border: 1px solid var(--border);background: var(--bg);border-radius:4px;padding:2px 8px;cursor:pointer;">-</button><span style="font-size:11px;margin:0 8px;color: var(--text);">100%</span><button style="border: 1px solid var(--border);background: var(--bg);border-radius:4px;padding:2px 8px;cursor:pointer;">+</button></div>';
-            }
-
-            var token =
-                localStorage.getItem("gb-access-token") ||
-                sessionStorage.getItem("gb-access-token");
-            fetch("/api/autotask/classify", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + token,
-                },
-                body: JSON.stringify({ intent: intent, auto_process: true }),
-            })
-                .then(function (r) {
-                    return r.json();
-                })
-                .then(function (data) {
-                    updateMantis1("done");
-
-                    if (data.success && data.result) {
-                        var r = data.result;
-
-                        // Connect to task-specific progress WS if we have a task_id
-                        if (r.task_id) {
-                            connectTaskProgressWs(r.task_id);
-                        }
-
-                        // Add task nodes from created_resources
-                        if (
-                            r.created_resources &&
-                            r.created_resources.length > 0
-                        ) {
-                            r.created_resources.forEach(function (res, i) {
-                                setTimeout(function () {
-                                    addTaskNode(
-                                        res.name || res.resource_type,
-                                        res.resource_type +
-                                        (res.path ? " → " + res.path : ""),
-                                        { status: "Done" },
-                                    );
-                                }, i * 400);
-                            });
-                        } else {
-                            addTaskNode(
-                                "Project Setup",
-                                "Setting up: " + intent,
-                                { status: "Planning" },
-                            );
-                        }
-
-                        vibeAddMsg(
-                            "bot",
-                            r.message || "Done! Your project is ready.",
-                        );
-
-                        if (r.app_url) {
-                            vibeAddMsg(
-                                "system",
-                                '✅ App available at <a href="' +
-                                r.app_url +
-                                '" target="_blank" style="color: var(--accent);text-decoration:underline;">' +
-                                esc(r.app_url) +
-                                "</a>",
-                            );
-
-                            var preview =
-                                document.getElementById("vibePreview");
-                            var urlBar =
-                                document.getElementById("vibePreviewUrl");
-                            var content =
-                                document.getElementById("vibePreviewContent");
-                            if (preview) preview.style.display = "";
-                            if (urlBar) urlBar.value = r.app_url;
-                            if (content)
-                                content.innerHTML =
-                                    '<iframe src="' +
-                                    r.app_url +
-                                    '" style="width:100%;height:100%;border:none;"></iframe>';
-                        }
-
-                        if (r.next_steps && r.next_steps.length > 0) {
-                            vibeAddMsg(
-                                "bot",
-                                "**Next steps:**\n" +
-                                r.next_steps
-                                    .map(function (s) {
-                                        return "• " + s;
-                                    })
-                                    .join("\n"),
-                            );
-                        }
-                    } else {
-                        vibeAddMsg(
-                            "bot",
-                            "I classified your intent as **" +
-                            (data.intent_type || "UNKNOWN") +
-                            "**. " +
-                            (data.error || "Processing complete."),
-                        );
-                        addTaskNode("Analysis", intent, { status: "Planning" });
-                    }
-                })
-                .catch(function (err) {
-                    updateMantis1("done");
-                    vibeAddMsg(
-                        "system",
-                        "⚠️ Backend unavailable — showing plan preview.",
-                    );
-                    var words = intent.split(/[.,;]/);
-                    addTaskNode(
-                        "Project Setup",
-                        "Create project structure and install dependencies",
-                        { status: "Planning" },
-                    );
-                    if (words.length > 1) {
-                        setTimeout(function () {
-                            addTaskNode(
-                                "Database Schema",
-                                "Define tables for: " +
-                                words.slice(0, 3).join(", "),
-                                { status: "Pending" },
-                            );
-                        }, 500);
-                    }
-                    vibeAddMsg(
-                        "bot",
-                        "I've created a preliminary plan with " +
-                        Math.min(words.length + 1, 5) +
-                        " nodes. Once the backend is available, I'll process the full build.",
-                    );
-                });
-        }
-
-        /* ── WebSocket to backend (re-use chat WS) ── */
-        function connectVibeWs() {
-            setVibeStatus("connecting");
-
-            var botName = window.__INITIAL_BOT_NAME__ || "default";
-            fetch("/api/auth?bot_name=" + encodeURIComponent(botName))
-                .then(function (r) {
-                    return r.json();
-                })
-                .then(function (auth) {
-                    vibeUserId = auth.user_id;
-                    vibeSessionId = auth.session_id;
-                    vibeBotId = auth.bot_id || "default";
-                    vibeBotName = botName;
-
-                    var proto =
-                        location.protocol === "https:" ? "wss://" : "ws://";
-                    var url =
-                        proto +
-                        location.host +
-                        "/ws?session_id=" +
-                        vibeSessionId +
-                        "&user_id=" +
-                        vibeUserId +
-                        "&bot_name=" +
-                        vibeBotName;
-                    vibeWs = new WebSocket(url);
-
-                    vibeWs.onopen = function () {
-                        setVibeStatus("connected");
-                    };
-
-                    vibeWs.onmessage = function (event) {
-                        try {
-                            var data = JSON.parse(event.data);
-                            if (data.type === "connected") return;
-                            if (data.event) return; // system events
-
-                            // Agent-mode messages → update sidebar
-                            if (data.type === "thought_process") {
-                                vibeAddMsg("system", "💭 " + esc(data.content));
-                                return;
-                            }
-                            if (data.type === "terminal_output") {
-                                vibeAddMsg("system", "🖥️ " + esc(data.line));
-                                return;
-                            }
-                            if (data.type === "step_progress") {
-                                var pct = Math.round(
-                                    (data.current / data.total) * 100,
-                                );
-                                updateMantis1("working");
-                                var bar = document.querySelector(
-                                    '.as-agent-card[data-agent-id="1"] .as-bar-fill',
-                                );
-                                if (bar) bar.style.width = pct + "%";
-                                return;
-                            }
-
-                            // Bot responses → chat
-                            if (data.message_type === 2) {
-                                if (data.is_complete) {
-                                    if (vibeStreaming) {
-                                        vibeFinalizeStream();
-                                    } else if (
-                                        data.content &&
-                                        data.content.trim()
-                                    ) {
-                                        vibeAddMsg("bot", data.content);
-                                    }
-                                    vibeStreaming = false;
-                                } else {
-                                    if (!vibeStreaming) {
-                                        vibeStreaming = true;
-                                        vibeAddStreamStart();
-                                        vibeUpdateStream(data.content || "");
-                                    } else {
-                                        vibeUpdateStream(data.content || "");
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            console.error("Vibe WS parse error:", e);
-                        }
-                    };
-
-                    vibeWs.onclose = function () {
-                        setVibeStatus("disconnected");
-                    };
-                    vibeWs.onerror = function () {
-                        setVibeStatus("disconnected");
-                    };
-                })
-                .catch(function () {
-                    setVibeStatus("disconnected");
-                    vibeAddMsg(
-                        "system",
-                        "⚠️ Could not connect to backend. You can still plan offline.",
-                    );
-                });
-        }
-
-        /* ── send via WS (for regular chat) ── */
-        function vibeSendWs(content) {
-            if (vibeWs && vibeWs.readyState === WebSocket.OPEN) {
-                vibeWs.send(
-                    JSON.stringify({
-                        bot_id: vibeBotId,
-                        user_id: vibeUserId,
-                        session_id: vibeSessionId,
-                        channel: "web",
-                        content: content,
-                        message_type: 1,
-                        timestamp: new Date().toISOString(),
-                    }),
-                );
-            }
-        }
-
-        /* ── Task Progress WebSocket (orchestrator events) ── */
-        var taskProgressWs = null;
-
-        function connectTaskProgressWs(taskId) {
-            var proto = location.protocol === "https:" ? "wss://" : "ws://";
-            var url =
-                proto +
-                location.host +
-                "/ws/task-progress" +
-                (taskId ? "/" + taskId : "");
-            if (taskProgressWs) {
-                try {
-                    taskProgressWs.close();
-                } catch (ignore) { }
-            }
-            taskProgressWs = new WebSocket(url);
-
-            taskProgressWs.onmessage = function (event) {
-                try {
-                    var data = JSON.parse(event.data);
-                    if (data.type === "connected") return;
-
-                    if (
-                        data.event_type === "agent_thought" ||
-                        data.step === "agent_thought"
-                    ) {
-                        var agentLabel = (data.details || "mantis_1").replace(
-                            "mantis_",
-                            "Mantis #",
-                        );
-                        vibeAddMsg(
-                            "system",
-                            "💭 " +
-                            agentLabel +
-                            ": " +
-                            esc(data.text || data.message || ""),
-                        );
-                        return;
-                    }
-
-                    if (
-                        data.event_type === "agent_update" ||
-                        data.step === "agent_update"
-                    ) {
-                        try {
-                            var info =
-                                typeof data.details === "string"
-                                    ? JSON.parse(data.details)
-                                    : data.details;
-                            if (info) {
-                                updateAgentCard(
-                                    info.agent_id,
-                                    info.status,
-                                    info.detail,
-                                );
-                            }
-                        } catch (ignore) { }
-                        return;
-                    }
-
-                    if (
-                        data.event_type === "task_node" ||
-                        data.step === "task_node"
-                    ) {
-                        try {
-                            var nodeInfo =
-                                typeof data.details === "string"
-                                    ? JSON.parse(data.details)
-                                    : data.details;
-                            if (nodeInfo) {
-                                addTaskNode(
-                                    nodeInfo.title || data.message || "Task",
-                                    nodeInfo.description || "",
-                                    {
-                                        status: nodeInfo.status || "Planning",
-                                        estimated_files:
-                                            nodeInfo.estimated_files,
-                                        estimated_time: nodeInfo.estimated_time,
-                                        estimated_tokens:
-                                            nodeInfo.estimated_tokens,
-                                        fileList: nodeInfo.files || [],
-                                    },
-                                );
-                            }
-                        } catch (ignore) {
-                            addTaskNode(data.message || "Task", "", {
-                                status: "Planning",
-                            });
-                        }
-                        return;
-                    }
-
-                    if (
-                        data.event_type === "step_progress" ||
-                        data.step === "step_progress"
-                    ) {
-                        var pct = 0;
-                        if (data.current_step && data.total_steps) {
-                            pct = Math.round(
-                                (data.current_step / data.total_steps) * 100,
-                            );
-                        } else if (data.current && data.total) {
-                            pct = Math.round((data.current / data.total) * 100);
-                        }
-                        updateMantis1("working");
-                        var bar = document.querySelector(
-                            '.as-agent-card[data-agent-id="1"] .as-bar-fill',
-                        );
-                        if (bar) bar.style.width = pct + "%";
-
-                        var stageMap = {
-                            Planning: "plan",
-                            Building: "build",
-                            Reviewing: "review",
-                            Deploying: "deploy",
-                            Monitoring: "monitor",
-                        };
-                        var stageLabel = data.message || "";
-                        var tabStage = stageMap[stageLabel];
-                        if (tabStage) {
-                            var allTabs =
-                                document.querySelectorAll(".vibe-pipeline-tab");
-                            allTabs.forEach(function (t) {
-                                t.classList.remove("active");
-                            });
-                            var activeTab = document.querySelector(
-                                '.vibe-pipeline-tab[data-stage="' +
-                                tabStage +
-                                '"]',
-                            );
-                            if (activeTab) activeTab.classList.add("active");
-                        }
-                        return;
-                    }
-
-                    if (
-                        data.event_type === "pipeline_complete" ||
-                        data.step === "pipeline_complete"
-                    ) {
-                        updateMantis1("done");
-                        vibeAddMsg(
-                            "system",
-                            "✅ Pipeline complete — all stages finished",
-                        );
-                        return;
-                    }
-
-                    if (data.event_type === "manifest_update") {
-                        return;
-                    }
-                } catch (e) {
-                    console.error("Task progress parse error:", e);
-                }
-            };
-
-            taskProgressWs.onerror = function () { };
-            taskProgressWs.onclose = function () { };
-        }
-
-        function updateAgentCard(agentId, status, detail) {
-            var card = document.querySelector(
-                '.as-agent-card[data-agent-id="' + agentId + '"]',
-            );
-            if (!card) return;
-            card.style.opacity = "1";
-
-            var badge = card.querySelector(".as-badge");
-            var dot = card.querySelector(".as-status-dot");
-
-            if (status === "WORKING") {
-                card.style.borderLeft = "3px solid #f59e0b";
-                if (dot) {
-                    dot.className = "as-status-dot yellow";
-                }
-                if (badge) {
-                    badge.textContent = "WORKING";
-                    badge.className = "as-badge badge-bred";
-                }
-                if (!card.querySelector(".as-agent-bar")) {
-                    var barWrapper = document.createElement("div");
-                    barWrapper.className = "as-agent-bar";
-                    barWrapper.innerHTML =
-                        '<div class="as-bar-fill bred" style="width:0%;transition:width 0.5s;"></div>';
-                    card.appendChild(barWrapper);
-                }
-            } else if (status === "EVOLVED" || status === "DONE") {
-                card.style.borderLeft = "3px solid var(--accent)";
-                if (dot) {
-                    dot.className = "as-status-dot green";
-                }
-                if (badge) {
-                    badge.textContent = "EVOLVED";
-                    badge.className = "as-badge badge-evolved";
-                }
-                var agBar = card.querySelector(".as-bar-fill");
-                if (agBar) agBar.style.width = "100%";
-                setTimeout(function () {
-                    var b = card.querySelector(".as-agent-bar");
-                    if (b) b.remove();
-                }, 2000);
-            } else if (status === "BRED") {
-                card.style.borderLeft = "3px solid #f59e0b";
-                if (dot) {
-                    dot.className = "as-status-dot yellow";
-                }
-                if (badge) {
-                    badge.textContent = "BRED";
-                    badge.className = "as-badge badge-bred";
-                }
-            } else if (status === "FAILED") {
-                card.style.borderLeft = "3px solid #ef4444";
-                if (dot) {
-                    dot.className = "as-status-dot red";
-                }
-                if (badge) {
-                    badge.textContent = "FAILED";
-                    badge.className = "as-badge badge-bred";
-                    badge.style.background = "#ef4444";
-                }
-            }
-
-            if (detail) {
-                var detailEl = card.querySelector(".as-agent-detail");
-                if (!detailEl) {
-                    detailEl = document.createElement("span");
-                    detailEl.className = "as-agent-detail";
-                    detailEl.style.cssText =
-                        "font-size:10px;color: var(--text-muted);display:block;padding:0 12px 4px;";
-                    var body = card.querySelector(".as-agent-body");
-                    if (body) body.after(detailEl);
-                }
-                detailEl.textContent = detail;
-            }
-        }
-
-        /* ── form submit ── */
-        function handleVibeSubmit(e) {
-            e.preventDefault();
-            var input = document.getElementById("vibeChatInput");
-            if (!input) return;
-            var text = input.value.trim();
-            if (!text) return;
-            input.value = "";
-
-            vibeAddMsg("user", text);
-
-            // Vibe is an App Builder — always route through the autotask pipeline.
-            // The backend LLM classifier determines the intent type in any language.
-            callAutotask(text);
-        }
-
-        /* ── init ── */
-        function initVibe() {
-            setupPipelineTabs();
-            setupSidebarCollapse();
-            setupWorkspaceAccordions();
-
-            // Wire up chat form
-            var form = document.getElementById("vibeChatForm");
-            if (form) form.addEventListener("submit", handleVibeSubmit);
-
-            // Connect WebSocket
-            connectVibeWs();
-        }
-
-        function setupPipelineTabs() {
-            var container = document.querySelector(".vibe-pipeline");
-            if (!container) return;
-            container.addEventListener("click", function (e) {
-                var tab = e.target.closest(".vibe-pipeline-tab");
-                if (!tab) return;
-                container
-                    .querySelectorAll(".vibe-pipeline-tab")
-                    .forEach(function (t) {
-                        t.classList.remove("active");
-                    });
-                tab.classList.add("active");
-            });
-        }
-
-        function setupSidebarCollapse() {
-            var btn = document.getElementById("agentsSidebarCollapse");
-            var sidebar = document.getElementById("agentsSidebar");
-            if (!btn || !sidebar) return;
-            btn.addEventListener("click", function () {
-                sidebar.classList.toggle("collapsed");
-                btn.textContent = sidebar.classList.contains("collapsed")
-                    ? "▶"
-                    : "◀";
-            });
-        }
-
-        function setupWorkspaceAccordions() {
-            var toggles = document.querySelectorAll(".as-workspace-toggle");
-            toggles.forEach(function (toggle) {
-                toggle.addEventListener("click", function () {
-                    var body = this.nextElementSibling;
-                    var arrow = this.querySelector(".as-workspace-arrow");
-                    if (body) {
-                        var isOpen = body.style.display !== "none";
-                        body.style.display = isOpen ? "none" : "";
-                        if (arrow) arrow.textContent = isOpen ? "▶" : "▼";
-                    }
-                });
-            });
-        }
-
-        /* ── Deployment Modal Functions ── */
-        var selectedDeploymentTarget = "internal";
-
-        function selectDeploymentTarget(target) {
-            selectedDeploymentTarget = target;
-
-            // Update visual selection
-            var internalOption = document.getElementById("deploymentInternal");
-            var externalOption = document.getElementById("deploymentExternal");
-            var internalConfig = document.getElementById(
-                "deploymentInternalConfig",
-            );
-            var externalConfig = document.getElementById(
-                "deploymentExternalConfig",
-            );
-
-            if (target === "internal") {
-                internalOption.style.borderColor = "var(--accent)";
-                internalOption.style.background = "rgba(132, 214, 105, 0.06)";
-                externalOption.style.borderColor = "var(--border)";
-                externalOption.style.background = "transparent";
-                internalConfig.style.display = "block";
-                externalConfig.style.display = "none";
-            } else {
-                externalOption.style.borderColor = "var(--accent)";
-                externalOption.style.background = "rgba(132, 214, 105, 0.06)";
-                internalOption.style.borderColor = "var(--border)";
-                internalOption.style.background = "transparent";
-                internalConfig.style.display = "none";
-                externalConfig.style.display = "block";
-            }
-        }
-
-        function showDeploymentModal() {
-            var modal = document.getElementById("vibeDeploymentModal");
-            if (modal) {
-                modal.style.display = "block";
-                selectDeploymentTarget("internal");
-            }
-        }
-
-        function closeDeploymentModal() {
-            var modal = document.getElementById("vibeDeploymentModal");
-            if (modal) {
-                modal.style.display = "none";
-            }
-        }
-
-        async function executeDeployment() {
-            var deployButton = document.getElementById("deployButton");
-            if (deployButton) {
-                deployButton.textContent = "Deploying...";
-                deployButton.disabled = true;
-            }
-
-            let payload = {
-                app_name: document.getElementById('deployRepoName')?.value || document.getElementById('deployRoute')?.value || "my-app",
-                target: {},
-                environment: "production",
-                manifest: {} // Get from Vibe canvas
-            };
-
-            if (selectedDeploymentTarget === 'external') {
-                payload.target = {
-                    External: {
-                        repo_url: "https://alm.pragmatismo.com.br/" + payload.app_name,
-                        custom_domain: document.getElementById('deployCustomDomain')?.value || null,
-                        ci_cd_enabled: document.getElementById('deployCiCd')?.checked ?? true
-                    }
-                };
-                payload.app_type = document.getElementById('deployAppType')?.value || "htmx";
-            } else {
-                let route = document.getElementById('deployRoute')?.value || "my-app";
-                payload.target = {
-                    Internal: {
-                        route: "/apps/" + route,
-                        shared_resources: document.getElementById('deploySharedResources')?.checked ?? true
-                    }
-                };
-                payload.app_type = "gb-native";
-            }
-
-            try {
-                vibeAddMsg("system", "🚀 Initiating deployment API call...");
-                const response = await fetch('/api/deployment/deploy', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-
-                if (response.ok && (result.success || result.status === 'Deployed' || result.status === 'Building')) {
-                    closeDeploymentModal();
-                    vibeAddMsg("system", "✅ Deployment Successful! " + (result.url ? result.url : ""));
-                    
-                    var previewUrl = document.getElementById("vibePreviewUrl");
-                    var previewPanel = document.getElementById("vibePreview");
-                    if (previewUrl && previewPanel && result.url) {
-                        previewUrl.value = result.url;
-                        previewPanel.style.display = "block";
-                    }
-                } else {
-                    vibeAddMsg("system", "❌ Deployment failed: " + (result.error || result.status));
-                }
-            } catch (e) {
-                vibeAddMsg("system", "❌ Deployment error: " + e.message);
-            } finally {
-                if (deployButton) {
-                    deployButton.textContent = "Deploy Now";
-                    deployButton.disabled = false;
-                }
-            }
-        }
-
-        // Update route preview in real-time
-        if (document.readyState !== "loading") {
-            var routeInput = document.getElementById("deployRoute");
-            if (routeInput) {
-                routeInput.addEventListener("input", function () {
-                    var preview = document.getElementById("deployRoutePreview");
-                    if (preview) {
-                        preview.textContent = this.value || "my-app";
-                    }
-                });
-            }
-        }
-
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", initVibe);
-        } else {
-            initVibe();
-        }
-    })();
-</script>
-<style>
-    @keyframes nodeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    @keyframes float {
-
-        0%,
-        100% {
-            transform: translateY(0);
-        }
-
-        50% {
-            transform: translateY(-10px);
-        }
-    }
-
-    .vibe-quick-btn:hover {
-        border-color: var(--accent) !important;
-        color: var(--accent) !important;
-        background: rgba(132, 214, 105, 0.06) !important;
-        transform: translateY(-2px);
-    }
-</style>
+<!-- Main Content: Canvas + Sidebar -->
+<div class="vibe-body">
+<!-- Agents & Workspaces Sidebar -->
+<aside class="agents-sidebar" id="agentsSidebar" style="background: var(--surface)">
+<div class="as-logo-section" style="
+padding: 16px;
+border-bottom: 1px solid var(--border);
+display: flex;
+align-items: center;
+justify-content: space-between;
+">
+<h2 style="
+margin: 0;
+font-size: 15px;
+color: var(--text);
+font-weight: 800;
+display: flex;
+align-items: center;
+gap: 8px;
+">
+<span style="font-size: 18px; color: var(--accent)">🌱</span>
+mantis farm
+</h2>
+<div style="
+display: flex;
+gap: 12px;
+color: var(--text-muted);
+font-size: 14px;
+">
+<span style="cursor: pointer" title="Home">⌂</span>
+<span style="cursor: pointer" title="Overview">◱</span>
+</div>
+</div>
+
+<div class="as-section">
+<div class="as-section-header">
+<h3>Agents</h3>
+<button class="as-collapse-btn" id="agentsSidebarCollapse" type="button">
+◀
+</button>
+</div>
+
+<div class="as-agent-list" id="asAgentList">
+<div class="as-agent-card" data-agent-id="1" style="border-left: 3px solid var(--accent)">
+<div class="as-agent-header">
+<span class="as-status-dot green"></span>
+<span class="as-agent-name">Mantis #1</span>
+<span class="as-drag-handle" style="margin-left: auto">⋮</span>
+</div>
+<div class="as-agent-body">
+<span class="as-agent-icons">👀 ⚙️ ⚡</span>
+<span class="as-badge badge-evolved">EVOLVED</span>
+</div>
+</div>
+
+<div class="as-agent-card" data-agent-id="2">
+<div class="as-agent-header">
+<span class="as-status-dot yellow"></span>
+<span class="as-agent-name">Mantis #2</span>
+<span class="as-drag-handle" style="margin-left: auto">⋮</span>
+</div>
+<div class="as-agent-body">
+<span class="as-agent-icons">🥚</span>
+<span class="as-badge badge-bred">BRED</span>
+</div>
+</div>
+
+<div class="as-agent-card" style="opacity: 0.6" data-agent-id="3">
+<div class="as-agent-header">
+<span class="as-status-dot gray"></span>
+<span class="as-agent-name">Mantis #3</span>
+<span class="as-drag-handle" style="margin-left: auto">⋮</span>
+</div>
+<div class="as-agent-body">
+<span class="as-agent-icons" style="filter: grayscale(1)">🥚</span>
+<span class="as-badge badge-wild"
+style="background: var(--surface-active, #ccc)">WILD</span>
+</div>
+</div>
+<div class="as-agent-card" style="opacity: 0.6" data-agent-id="4">
+<div class="as-agent-header">
+<span class="as-status-dot gray"></span>
+<span class="as-agent-name">Mantis #4</span>
+<span class="as-drag-handle" style="margin-left: auto">⋮</span>
+</div>
+<div class="as-agent-body">
+<span class="as-agent-icons" style="filter: grayscale(1)">🥚</span>
+<span class="as-badge badge-wild"
+style="background: var(--surface-active, #ccc)">WILD</span>
+</div>
+</div>
+</div>
+
+<div style="padding: 0 8px">
+<button class="as-create-btn" id="createAgentBtn" type="button"
+style="width: calc(100% - 16px); margin: 8px">
++ Create a New Mantis
+</button>
+</div>
+</div>
+
+<div class="as-section">
+<div class="as-section-header">
+<h3>Workspaces</h3>
+</div>
+
+<div class="as-workspace-list" id="asWorkspaceList">
+<div class="as-workspace-item">
+<button class="as-workspace-toggle" type="button" style="
+background: var(--bg);
+border-left: 3px solid var(--accent);
+">
+<span class="as-workspace-arrow">▼</span>
+<span>E-Commerce App Development</span>
+</button>
+<div class="as-workspace-body" style="display: block">
+<div class="as-workspace-agent">Mantis #1</div>
+<div class="as-workspace-agent">Mantis #4</div>
+<div class="as-workspace-dropzone" data-workspace="ecommerce">
+Drag a Mantis to Include
+</div>
+</div>
+</div>
+
+<div class="as-workspace-item">
+<button class="as-workspace-toggle" type="button">
+<span class="as-workspace-arrow">▶</span>
+<span>Accountability App Development</span>
+</button>
+<div class="as-workspace-body" style="display: none">
+<div class="as-workspace-agent">Mantis #4</div>
+<div class="as-workspace-dropzone" data-workspace="accountability">
+Drag a Mantis to Include
+</div>
+</div>
+</div>
+</div>
+
+<div style="padding: 0 8px">
+<button class="as-create-btn" id="createWorkspaceBtn" type="button"
+style="width: calc(100% - 16px); margin: 8px">
++ Create a New Project
+</button>
+</div>
+</div>
+</aside>
+
+<!-- MCP Servers -->
+<div style="width: 280px; margin-left: 280px; position: absolute; left: 0; bottom: 0; top: 60px; pointer-events: none; z-index: 50;">
+<div style="pointer-events: auto; position: absolute; bottom: 24px; left: 24px; right: 24px;">
+<div hx-get="/suite/partials/vibe-mcp-panel.html" hx-trigger="load"></div>
+</div>
+</div>
+
+<!-- Canvas Area -->
+<div class="vibe-canvas" id="vibeCanvas" style="
+background: var(--bg, #fdfdfd);
+background-image: radial-gradient(
+var(--border) 1px,
+transparent 1px
+);
+background-size: 20px 20px;
+position: relative;
+">
+<div class="vibe-canvas-header" style="
+padding: 16px 24px;
+font-size: 11px;
+color: var(--text-muted);
+font-weight: 600;
+letter-spacing: 0.5px;
+border-bottom: 1px solid var(--border);
+background: var(--surface);
+opacity: 0.95;
+backdrop-filter: blur(4px);
+">
+// DASHBOARD
+<span style="color: var(--text-secondary); margin: 0 6px">&gt;</span>
+// E-COMMERCE APP DEVELOPMENT
+<div style="float: right">
+<button class="vibe-db-btn" onclick="document.getElementById('vibeDbModal').style.display='flex'" style="
+border: 1px solid var(--accent);
+background: transparent;
+color: var(--text);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
+🗄️ Schema
+</button>
+<button class="vibe-git-btn" onclick="document.getElementById('vibeGitModal').style.display='flex'" style="
+border: 1px solid var(--accent);
+background: transparent;
+color: var(--text);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
+🌱 Source Control
+</button>
+<button class="vibe-browser-btn" onclick="document.getElementById('vibeBrowserModal').style.display='flex'" style="
+border: 1px solid var(--accent);
+background: transparent;
+color: var(--text);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
+🌐 Base
+</button>
+<button class="vibe-terminal-btn" onclick="document.getElementById('vibeTerminalModal').style.display='flex'" style="
+border: 1px solid var(--accent);
+background: transparent;
+color: var(--text);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
+⌨️ Shell
+</button>
+<button class="vibe-code-btn" onclick="document.getElementById('vibeEditorModal').style.display='flex'" style="
+border: 1px solid var(--accent);
+background: transparent;
+color: var(--text);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
+💻 Code
+</button>
+<button class="vibe-deploy-btn" onclick="showDeploymentModal()" style="
+border: 1px solid var(--accent);
+background: var(--accent);
+color: var(--bg);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
+🚀 Deploy
+</button>
+<button style="
+border: 1px solid var(--border);
+background: var(--bg);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+">
+-
+</button>
+<span style="
+font-size: 11px;
+margin: 0 8px;
+color: var(--text);
+">100%</span>
+<button style="
+border: 1px solid var(--border);
+background: var(--bg);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+">
++
+</button>
+</div>
+</div>
+
+<!-- Steps Nodes -->
+<div class="vibe-steps" id="vibeSteps" style="
+padding: 40px;
+display: none;
+gap: 60px;
+align-items: flex-start;
+overflow-x: auto;
+"></div>
+
+<!-- Empty state -->
+<div id="vibeCanvasEmpty" style="
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 16px;
+padding: 60px;
+text-align: center;
+">
+<div style="font-size: 56px; animation: float 3s ease-in-out infinite;">
+🌱
+</div>
+<h3 style="
+margin: 0;
+font-size: 22px;
+font-weight: 800;
+color: var(--text);
+font-family: &quot;Fira Code&quot;, monospace;
+">
+Vibe — App Builder
+</h3>
+<p style="
+margin: 0;
+font-size: 14px;
+color: var(--text-muted);
+max-width: 440px;
+line-height: 1.6;
+">
+Describe what you want to build in the chat. Mantis #1 will
+analyze your request, generate task nodes on this canvas,
+and build the entire application for you.
+</p>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 12px;">
+<button class="vibe-quick-btn" type="button"
+onclick="document.getElementById('vibeChatInput').value='Create an e-commerce app for selling handmade crafts with shopping cart and payments'; document.getElementById('vibeChatInput').focus();"
+style="
+padding: 8px 16px;
+border: 1px solid var(--border);
+border-radius: 20px;
+background: var(--bg);
+font-size: 12px;
+cursor: pointer;
+color: var(--text-muted);
+transition: all 0.15s;
+font-family: &quot;Fira Code&quot;, monospace;
+">
+🛍️ E-Commerce App
+</button>
+<button class="vibe-quick-btn" type="button"
+onclick="document.getElementById('vibeChatInput').value='Build a CRM system with contacts, leads, and deal pipeline tracking'; document.getElementById('vibeChatInput').focus();"
+style="
+padding: 8px 16px;
+border: 1px solid var(--border);
+border-radius: 20px;
+background: var(--bg);
+font-size: 12px;
+cursor: pointer;
+color: var(--text-muted);
+transition: all 0.15s;
+font-family: &quot;Fira Code&quot;, monospace;
+">
+📇 CRM System
+</button>
+<button class="vibe-quick-btn" type="button"
+onclick="document.getElementById('vibeChatInput').value='Create a project management dashboard with tasks, Kanban board, and team assignments'; document.getElementById('vibeChatInput').focus();"
+style="
+padding: 8px 16px;
+border: 1px solid var(--border);
+border-radius: 20px;
+background: var(--bg);
+font-size: 12px;
+cursor: pointer;
+color: var(--text-muted);
+transition: all 0.15s;
+font-family: &quot;Fira Code&quot;, monospace;
+">
+📊 Project Manager
+</button>
+</div>
+</div>
+
+<!-- Vibe Chat Overlay -->
+<div id="vibeChatOverlay" style="
+position: absolute;
+bottom: 24px;
+right: 24px;
+width: 380px;
+background: var(--surface);
+border-radius: 12px;
+box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+display: flex;
+flex-direction: column;
+overflow: hidden;
+border: 1px solid var(--border);
+color: var(--text);
+z-index: 100;
+">
+<div style="
+padding: 12px 16px;
+background: var(--surface-hover);
+border-bottom: 1px solid var(--border);
+display: flex;
+justify-content: space-between;
+align-items: center;
+">
+<div style="display: flex; align-items: center; gap: 8px">
+<span class="as-status-dot green" id="vibeChatStatusDot"
+style="box-shadow: 0 0 8px var(--accent)"></span>
+<span style="font-size: 12px; font-weight: 600">Mantis #1</span>
+</div>
+<span id="vibeChatStatusBadge" style="
+font-size: 10px;
+color: var(--text-muted);
+background: var(--surface-hover);
+padding: 2px 6px;
+border-radius: 4px;
+">CONNECTING…</span>
+</div>
+
+<div id="vibeChatMessages" style="
+padding: 16px;
+display: flex;
+flex-direction: column;
+gap: 12px;
+font-size: 12px;
+line-height: 1.5;
+min-height: 220px;
+max-height: 350px;
+overflow-y: auto;
+font-family: &quot;Segoe UI&quot;, system-ui, sans-serif;
+">
+<div style="
+align-self: center;
+background: rgba(132, 214, 105, 0.12);
+color: var(--accent);
+padding: 8px 14px;
+border-radius: 8px;
+font-size: 11px;
+text-align: center;
+">
+💡 TIP: Describe your project. The more detail, the better the plan.
+</div>
+</div>
+
+<div style="
+padding: 12px;
+border-top: 1px solid var(--border);
+background: var(--surface);
+">
+<form id="vibeChatForm" autocomplete="off" style="
+display: flex;
+align-items: center;
+gap: 8px;
+background: var(--surface-hover);
+padding: 8px 12px;
+border-radius: 20px;
+border: 1px solid var(--border);
+">
+<span style="color: var(--text-muted); cursor: pointer; transform: rotate(-45deg);">📎</span>
+<input type="text" id="vibeChatInput" placeholder="Describe your project…" style="
+flex: 1;
+background: transparent;
+border: none;
+color: var(--text);
+font-size: 13px;
+outline: none;
+font-family: &quot;Segoe UI&quot;, system-ui, sans-serif;
+" />
+<button type="submit" id="vibeChatSend" style="
+background: var(--accent);
+color: var(--surface);
+width: 24px;
+height: 24px;
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+font-size: 14px;
+font-weight: bold;
+border: none;
+">
+↑
+</button>
+</form>
+</div>
+</div>
+
+<!-- Editor Panel -->
+<div class="vibe-editor-modal" id="vibeEditorModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
+<div hx-get="/suite/partials/editor.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
+</div>
+
+<!-- Database Panel -->
+<div class="vibe-db-modal" id="vibeDbModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
+<div hx-get="/suite/partials/database.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
+</div>
+
+<!-- Git Panel -->
+<div class="vibe-git-modal" id="vibeGitModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
+<div hx-get="/suite/partials/git-status.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
+</div>
+
+<!-- Browser Panel -->
+<div class="vibe-browser-modal" id="vibeBrowserModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
+<div hx-get="/suite/partials/browser-controls.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
+</div>
+
+<!-- Terminal Panel -->
+<div class="vibe-terminal-modal" id="vibeTerminalModal" style="display: none; position: absolute; bottom: 24px; left: 300px; right: 24px; height: 350px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 4px; right: 8px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
+<div hx-get="/suite/partials/terminal.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
+</div>
+
+<!-- Preview Panel -->
+<div class="vibe-preview" id="vibePreview" style="display: none">
+<div class="vibe-preview-header">
+<span>// PREVIEW</span>
+<input type="text" class="vibe-preview-url" id="vibePreviewUrl" value="" readonly />
+</div>
+<div class="vibe-preview-content" id="vibePreviewContent"></div>
+</div>
+
+<!-- Deployment Panel -->
+<div class="vibe-deployment-modal" id="vibeDeploymentModal" style="display: none">
+<div class="vibe-deployment-overlay" onclick="closeDeploymentModal()"></div>
+<div class="vibe-deployment-panel" style="
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+background: var(--surface);
+border-radius: 16px;
+box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+width: 600px;
+max-width: 90%;
+max-height: 80vh;
+overflow-y: auto;
+border: 1px solid var(--border);
+z-index: 1000;
+">
+<div style="padding: 24px; border-bottom: 1px solid var(--border);">
+<h2 style="margin: 0; font-size: 20px; color: var(--text); display: flex; align-items: center; gap: 12px;">
+<span style="font-size: 24px">🚀</span>
+Deploy Your App
+</h2>
+<p style="margin: 8px 0 0; font-size: 14px; color: var(--text-muted);">
+Choose where to deploy your application
+</p>
+</div>
+
+<div style="padding: 24px">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+<div class="deployment-option" id="deploymentInternal"
+onclick="selectDeploymentTarget('internal')" style="
+padding: 20px;
+border: 2px solid var(--border);
+border-radius: 12px;
+cursor: pointer;
+transition: all 0.2s;
+">
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+<span style="font-size: 32px">📱</span>
+<div>
+<h3 style="margin: 0; font-size: 16px; color: var(--text);">GB Platform</h3>
+<span style="font-size: 12px; color: var(--text-muted);">Internal</span>
+</div>
+</div>
+<ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+<li>Serve from /apps/{name}</li>
+<li>Use GB API endpoints</li>
+<li>Fast iteration cycles</li>
+<li>Shared platform resources</li>
+</ul>
+</div>
+
+<div class="deployment-option" id="deploymentExternal"
+onclick="selectDeploymentTarget('external')" style="
+padding: 20px;
+border: 2px solid var(--border);
+border-radius: 12px;
+cursor: pointer;
+transition: all 0.2s;
+">
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+<span style="font-size: 32px">🌐</span>
+<div>
+<h3 style="margin: 0; font-size: 16px; color: var(--text);">Forgejo ALM</h3>
+<span style="font-size: 12px; color: var(--text-muted);">External</span>
+</div>
+</div>
+<ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+<li>Push to Git repository</li>
+<li>CI/CD pipeline automation</li>
+<li>Custom domain support</li>
+<li>Independent deployment</li>
+</ul>
+</div>
+</div>
+
+<div id="deploymentInternalConfig" style="margin-bottom: 24px">
+<h3 style="margin: 0 0 16px; font-size: 14px; color: var(--text);">Internal Deployment Settings</h3>
+<form id="internalDeployForm">
+<div style="margin-bottom: 16px">
+<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">App Route</label>
+<input type="text" id="deployRoute" placeholder="my-app" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;" />
+<span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
+App will be available at: /apps/<span id="deployRoutePreview">my-app</span>/
+</span>
+</div>
+<div style="margin-bottom: 16px">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer;">
+<input type="checkbox" id="deploySharedResources" checked style="margin: 0" />
+Use shared platform resources (database, cache, storage)
+</label>
+</div>
+</form>
+</div>
+
+<div id="deploymentExternalConfig" style="display: none; margin-bottom: 24px">
+<h3 style="margin: 0 0 16px; font-size: 14px; color: var(--text);">Forgejo Repository Settings</h3>
+<form id="externalDeployForm">
+<div style="margin-bottom: 16px">
+<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">Repository Name</label>
+<input type="text" id="deployRepoName" placeholder="my-app" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;" />
+</div>
+<div style="margin-bottom: 16px">
+<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">Custom Domain (optional)</label>
+<input type="text" id="deployCustomDomain" placeholder="myapp.example.com" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;" />
+</div>
+<div style="margin-bottom: 16px">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer;">
+<input type="checkbox" id="deployCiCd" checked style="margin: 0" />
+Enable CI/CD pipeline (automatic builds and deployments)
+</label>
+</div>
+<div style="margin-bottom: 16px">
+<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">App Type</label>
+<select id="deployAppType" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;">
+<option value="htmx">HTMX App (Server-side rendering)</option>
+<option value="react">React App (SPA)</option>
+<option value="vue">Vue App (SPA)</option>
+</select>
+</div>
+</form>
+</div>
+
+<div style="display: flex; gap: 12px; justify-content: flex-end;">
+<button type="button" onclick="closeDeploymentModal()" style="padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text); font-size: 14px; cursor: pointer;">Cancel</button>
+<button type="button" id="deployButton" onclick="executeDeployment()" style="padding: 10px 20px; border: none; border-radius: 8px; background: var(--accent); color: white; font-size: 14px; font-weight: 600; cursor: pointer;">Deploy Now</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<script src="/suite/vibe/vibe-state.js"></script>
+<script src="/suite/vibe/vibe-helpers.js"></script>
+<script src="/suite/vibe/vibe-canvas.js"></script>
+<script src="/suite/vibe/vibe-agents.js"></script>
+<script src="/suite/vibe/vibe-websocket.js"></script>
+<script src="/suite/vibe/vibe-autotask.js"></script>
+<script src="/suite/vibe/vibe-deploy.js"></script>
+<script src="/suite/vibe/vibe-init.js"></script>
