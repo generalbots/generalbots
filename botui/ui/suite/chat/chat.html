@@ -1,59 +1,70 @@
 <link rel="stylesheet" href="/suite/chat/chat.css?v=10" />
 <link rel="stylesheet" href="/suite/css/markdown-message.css" />
-<script src="/suite/js/vendor/marked.min.js"></script>
+<link rel="stylesheet" href="/suite/css/chat-agent-mode.css" />
 
 <div class="chat-layout" id="chat-app">
-  <div class="connection-status connecting" id="connectionStatus" style="display: none">
-    <span class="connection-status-dot"></span>
-    <span class="connection-text">Connecting...</span>
+  <div class="chat-loading-overlay" id="chatLoadingOverlay">
+    <div class="chat-loading-spinner"></div>
+    <div class="chat-loading-text">Carregando...</div>
   </div>
 
-  <main id="messages"></main>
-
-  <footer>
-    <div class="chat-footer-content">
-      <div class="suggestions-container" id="suggestions"></div>
-      <div class="switchers-container" id="switchers" style="display:none">
-        <div class="switchers-label">Formato:</div>
-        <div class="switchers-chips" id="switchersChips"></div>
-      </div>
+  <div class="chat-content-wrapper" id="chatContentWrapper" style="display: none;">
+    <div class="connection-status connecting" id="connectionStatus" style="display: none">
+      <span class="connection-status-dot"></span>
+      <span class="connection-text">Connecting...</span>
     </div>
-    <div class="mention-dropdown" id="mentionDropdown">
-      <div class="mention-header">
-        <span class="mention-title" data-i18n="chat-mention-title">Reference Entity</span>
-      </div>
-      <div class="mention-results" id="mentionResults"></div>
-    </div>
-    <form class="input-container" id="chatForm">
-      <input name="content" id="messageInput" type="text" 
-             placeholder="Message... (type @ to mention)" 
-             data-i18n-placeholder="chat-placeholder" 
-             autofocus autocomplete="off" />
-      <button type="submit" id="sendBtn" title="Send" data-i18n-title="chat-send">↑</button>
-    </form>
-  </footer>
 
-  <button class="scroll-to-bottom" id="scrollToBottom" title="Scroll to bottom">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="6 9 12 15 18 9"></polyline>
-    </svg>
-  </button>
+    <main id="messages"></main>
+
+    <footer>
+      <div class="chat-footer-content">
+        <div class="suggestions-container" id="suggestions"></div>
+        <div class="switchers-container" id="switchers" style="display:none">
+          <div class="switchers-label">Formato:</div>
+          <div class="switchers-chips" id="switcherChips"></div>
+        </div>
+      </div>
+      <div class="mention-dropdown" id="mentionDropdown">
+        <div class="mention-header">
+          <span class="mention-title" data-i18n="chat-mention-title">Reference Entity</span>
+        </div>
+        <div class="mention-results" id="mentionResults"></div>
+      </div>
+      <form class="input-container" id="chatForm">
+        <input name="content" id="messageInput" type="text"
+          placeholder="Message... (type @ to mention)"
+          data-i18n-placeholder="chat-placeholder" autofocus autocomplete="off" />
+        <button type="submit" id="sendBtn" title="Send" data-i18n-title="chat-send">&#8593;</button>
+      </form>
+    </footer>
+    <button class="scroll-to-bottom" id="scrollToBottom" title="Scroll to bottom">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  <div class="entity-card-tooltip" id="entityCardTooltip">
+    <div class="entity-card-header">
+      <span class="entity-card-type"></span>
+      <span class="entity-card-status"></span>
+    </div>
+    <div class="entity-card-title"></div>
+    <div class="entity-card-details"></div>
+    <div class="entity-card-actions">
+      <button class="entity-card-btn" data-action="view" data-i18n="action-view">View</button>
+    </div>
+  </div>
 </div>
 
-<div class="entity-card-tooltip" id="entityCardTooltip">
-  <div class="entity-card-header">
-    <span class="entity-card-type"></span>
-    <span class="entity-card-status"></span>
-  </div>
-  <div class="entity-card-title"></div>
-  <div class="entity-card-details"></div>
-  <div class="entity-card-actions">
-    <button class="entity-card-btn" data-action="view" data-i18n="action-view">View</button>
-  </div>
-</div>
-
-<!-- Chat Modules -->
+<script src="/suite/js/vendor/marked.min.js"></script>
+<script src="/suite/chat/chat-state.js"></script>
 <script src="/suite/chat/chat-switchers.js"></script>
+<script src="/suite/chat/chat-mentions.js"></script>
 <script src="/suite/chat/chat-messages.js"></script>
-<script src="/suite/chat/chat-main.js"></script>
+<script src="/suite/chat/chat-suggestions.js"></script>
+<script src="/suite/chat/chat-theme.js"></script>
+<script src="/suite/chat/chat-websocket.js"></script>
+<script src="/suite/chat/chat-init.js"></script>
+<script src="/suite/js/chat-agent-mode.js"></script>

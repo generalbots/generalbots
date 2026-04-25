@@ -1,0 +1,13 @@
+var vibeWs = null;
+var vibeSessionId = null;
+var vibeUserId = null;
+var vibeBotId = "default";
+var vibeBotName = "default";
+var vibeStreaming = false;
+var vibeStreamId = null;
+var vibeStreamContent = "";
+var taskNodes = [];
+var currentProject = "My App";
+var nodeIdCounter = 0;
+var taskProgressWs = null;
+var selectedDeploymentTarget = "internal";
