@@ -84,23 +84,32 @@ pub fn clear_switchers_keyword(
 }
 
 pub fn add_switcher_keyword(
-  state: Arc<AppState>,
-  user_session: UserSession,
-  engine: &mut Engine,
+    state: Arc<AppState>,
+    user_session: UserSession,
+    engine: &mut Engine,
 ) {
-  let cache = state.cache.clone();
-  let user_session_clone = user_session.clone();
+    let cache = state.cache.clone();
+    let user_session_clone = user_session.clone();
 
-  engine
-  .register_fn("add_switcher", move |switcher_id: &str, button_text: &str| {
-    let result = add_switcher(
-      cache.as_ref(),
-      &user_session_clone,
-      switcher_id,
-      button_text,
-    );
-    result.map_err(|e| e.to_string())
-  });
+    engine
+        .register_custom_syntax(
+            ["ADD_SWITCHER", "$expr$", "as", "$expr$"],
+            true,
+            move |context, inputs| {
+                let switcher_id = context.eval_expression_tree(&inputs[0])?.to_string();
+                let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
+
+                add_switcher(
+                    cache.as_ref(),
+                    &user_session_clone,
+                    &switcher_id,
+                    &button_text,
+                )?;
+
+                Ok(Dynamic::UNIT)
+            },
+        )
+        .expect("valid syntax registration");
 }
 
 fn add_switcher(
