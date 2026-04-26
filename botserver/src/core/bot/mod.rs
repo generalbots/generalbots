@@ -362,11 +362,11 @@ impl BotOrchestrator {
     }
 
 
-    #[cfg(feature = "llm")]
-    pub async fn stream_response(
-        &self,
-        message: UserMessage,
-        response_tx: mpsc::Sender<BotResponse>,
+#[cfg(feature = "llm")]
+pub async fn stream_response(
+    &self,
+    mut message: UserMessage,
+    response_tx: mpsc::Sender<BotResponse>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         trace!(
             "Streaming response for user: {}, session: {}",
@@ -374,13 +374,12 @@ impl BotOrchestrator {
             message.session_id
         );
 
-        let user_id = Uuid::parse_str(&message.user_id)?;
-        let session_id = Uuid::parse_str(&message.session_id)?;
-        let message_content = message.content.clone();
+    let user_id = Uuid::parse_str(&message.user_id)?;
+    let session_id = Uuid::parse_str(&message.session_id)?;
 
-        // Handle direct tool execution via TOOL_EXEC message type (invisible to user)
-        if message.message_type == MessageType::TOOL_EXEC {
-            let tool_name = message_content.trim();
+// Handle direct tool execution via TOOL_EXEC message type (invisible to user)
+    if message.message_type == MessageType::TOOL_EXEC {
+        let tool_name = message.content.trim();
             if !tool_name.is_empty() {
                 info!("tool_exec: Direct tool execution: {}", tool_name);
                 
@@ -451,7 +450,56 @@ impl BotOrchestrator {
         return Ok(());
     }
 
-        // Legacy: Handle direct tool invocation via __TOOL__: prefix
+    // Handle SWITCHER_TOGGLE (type 8) - user clicked a switcher chip
+    // Re-process last user message with the active switchers injected into system prompt
+    // Mutates message in-place to avoid recursive async call
+    // Replays are NOT saved to message_history, so the DB always has the last original user question
+    // When user types a new message (e.g. "faz azul"), it IS saved and becomes the new base for switchers
+    let mut is_switcher_replay = false;
+    if message.message_type == MessageType::SWITCHER_TOGGLE {
+        let last_user_content: Option<String> = {
+            let conn = self.state.conn.get().ok();
+            let session_id_for_query = session_id;
+            conn.and_then(|mut db_conn| {
+                use crate::core::shared::models::schema::message_history::dsl::*;
+                message_history
+                    .filter(session_id.eq(session_id_for_query))
+                    .filter(role.eq(1))
+                    .order(created_at.desc())
+                    .select(content_encrypted)
+                    .first::<String>(&mut db_conn)
+                    .ok()
+            })
+        };
+
+        if let Some(last_content) = last_user_content {
+            message.content = last_content;
+            message.message_type = MessageType::USER;
+            is_switcher_replay = true;
+        } else {
+            let empty_response = BotResponse {
+                bot_id: message.bot_id.clone(),
+                user_id: message.user_id.clone(),
+                session_id: message.session_id.clone(),
+                channel: message.channel.clone(),
+                content: String::new(),
+                message_type: MessageType::BOT_RESPONSE,
+                stream_token: None,
+                is_complete: true,
+                suggestions: Vec::new(),
+                switchers: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            };
+            let _ = response_tx.send(empty_response).await;
+            return Ok(());
+        }
+    }
+
+    let message_content = message.content.clone();
+
+    // Legacy: Handle direct tool invocation via __TOOL__: prefix
         if message_content.starts_with("__TOOL__:") {
             let tool_name = message_content.trim_start_matches("__TOOL__:").trim();
             if !tool_name.is_empty() {
@@ -525,10 +573,10 @@ impl BotOrchestrator {
                         session.context_data = serde_json::Value::Object(map);
                     }
 
-                    if !message.content.trim().is_empty() {
-                        let mut sm = state_clone.session_manager.blocking_lock();
-                        sm.save_message(session.id, user_id, 1, &message.content, 1)?;
-                    }
+    if !message.content.trim().is_empty() && !is_switcher_replay {
+        let mut sm = state_clone.session_manager.blocking_lock();
+        sm.save_message(session.id, user_id, 1, &message.content, 1)?;
+    }
 
                     let context_data = {
                         let sm = state_clone.session_manager.blocking_lock();

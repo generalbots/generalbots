@@ -36,6 +36,8 @@ var MessageType = {
   CONTINUE: 3,
   SUGGESTION: 4,
   CONTEXT_CHANGE: 5,
+  TOOL_EXEC: 6,
+  SWITCHER_TOGGLE: 8,
 };
 
 var EntityTypes = {

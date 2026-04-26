@@ -19,6 +19,24 @@ function toggleSwitcher(switcherId) {
     ChatState.activeSwitchers.add(switcherId);
   }
   renderSwitcherChips();
+
+  var input = document.getElementById("messageInput");
+  var inputText = input ? input.value.trim() : "";
+
+  if (inputText) {
+    window.sendMessage(inputText);
+  } else if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
+    ChatState.ws.send(JSON.stringify({
+      bot_id: ChatState.currentBotId,
+      user_id: ChatState.currentUserId,
+      session_id: ChatState.currentSessionId,
+      channel: "web",
+      content: "",
+      message_type: MessageType.SWITCHER_TOGGLE,
+      active_switchers: Array.from(ChatState.activeSwitchers),
+      timestamp: new Date().toISOString(),
+    }));
+  }
 }
 
 function renderBotSwitchers(switchers) {
