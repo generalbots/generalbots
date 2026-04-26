@@ -53,9 +53,60 @@ use regex;
 use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
+use diesel::OptionalExtension;
 
 pub mod channels;
 pub mod multimedia;
+
+/// Check if a user has access to a bot
+/// Returns Ok(()) if access is allowed, Err with status code and message if not
+pub fn check_bot_access(
+    conn: &mut PgConnection,
+    bot_id: Uuid,
+    user_id: Uuid,
+) -> Result<(), (StatusCode, String)> {
+    use crate::core::shared::models::schema::bots;
+
+    if bot_id == Uuid::nil() {
+        return Err((StatusCode::NOT_FOUND, "Bot not found".to_string()));
+    }
+
+    let bot_result = bots::table
+        .filter(bots::id.eq(bot_id))
+        .select((bots::is_public, bots::org_id))
+        .first::<(bool, Option<Uuid>)>(conn)
+        .optional();
+
+    match bot_result {
+        Ok(Some((public, bot_org_id))) => {
+            if public {
+                return Ok(());
+            }
+
+            if let Some(org_id) = bot_org_id {
+                use crate::core::shared::models::schema::user_organizations;
+
+                let is_member = user_organizations::table
+                    .filter(user_organizations::user_id.eq(user_id))
+                    .filter(user_organizations::org_id.eq(org_id))
+                    .select(user_organizations::id)
+                    .first::<Uuid>(conn)
+                    .optional()
+                    .unwrap_or(None)
+                    .is_some();
+
+                if is_member {
+                    return Ok(());
+                }
+
+                Err((StatusCode::FORBIDDEN, "Access denied - not a member of this organization".to_string()))
+            } else {
+                Err((StatusCode::FORBIDDEN, "Access denied - bot is private".to_string()))
+            }
+        }
+        _ => Err((StatusCode::NOT_FOUND, "Bot not found".to_string())),
+    }
+}
 
 pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
     use crate::core::shared::models::schema::bots::dsl::*;
@@ -147,18 +198,27 @@ pub async fn get_bot_config(
         }
     };
 
-    // Query bot_configuration table for this bot's configuration
-    use crate::core::shared::models::schema::bot_configuration::dsl::*;
+    // Get bot_id and is_public from bots table
+    let (target_bot_id, is_public) = match get_bot_id_by_name(&mut conn, &bot_name) {
+        Ok(found_id) => {
+            // Query is_public from bots table
+            use crate::core::shared::models::schema::bots::dsl::*;
+            use diesel::OptionalExtension;
+            let public_result = bots
+                .filter(id.eq(found_id))
+                .select(is_public)
+                .first::<bool>(&mut conn)
+                .optional();
 
-    let mut is_public = false;
-    let mut theme_color1: Option<String> = None;
-    let mut theme_color2: Option<String> = None;
-    let mut theme_title: Option<String> = None;
-    let mut theme_logo: Option<String> = None;
-    let mut theme_logo_text: Option<String> = None;
-
-    let target_bot_id = match get_bot_id_by_name(&mut conn, &bot_name) {
-        Ok(found_id) => found_id,
+            match public_result {
+                Ok(Some(p)) => (found_id, p),
+                Ok(None) => (found_id, false),
+                Err(e) => {
+                    warn!("Failed to query is_public for bot '{}': {}", bot_name, e);
+                    (found_id, false)
+                }
+            }
+        }
         Err(e) => {
             warn!("Failed to find bot ID for name '{}': {}", bot_name, e);
             return Ok(Json(BotConfigResponse {
@@ -172,7 +232,15 @@ pub async fn get_bot_config(
         }
     };
 
-    // Query all config values for this specific bot
+    let mut theme_color1: Option<String> = None;
+    let mut theme_color2: Option<String> = None;
+    let mut theme_title: Option<String> = None;
+    let mut theme_logo: Option<String> = None;
+    let mut theme_logo_text: Option<String> = None;
+
+    // Query theme config values from bot_configuration table
+    use crate::core::shared::models::schema::bot_configuration::dsl::*;
+
     match bot_configuration
         .filter(bot_id.eq(target_bot_id))
         .select((config_key, config_value))
@@ -198,7 +266,9 @@ pub async fn get_bot_config(
 
                 match clean_key.to_lowercase().as_str() {
                     "public" => {
-                        is_public = value.eq_ignore_ascii_case("true") || value == "1";
+                        // Also check config table for backward compatibility
+                        // But is_public from bots table takes precedence
+                        info!("Found 'public' in config table: {}", value);
                     }
                     "theme-color1" => {
                         theme_color1 = Some(value);
@@ -1557,31 +1627,45 @@ pub async fn websocket_handler(
     info!("WebSocket: session_id from params = {:?}, user_id = {:?}", session_id, user_id);
 
     // Look up bot_id from bot_name
-    let bot_id = {
+    let (bot_id, _bot_is_public) = {
         let conn = state.conn.get().ok();
         if let Some(mut db_conn) = conn {
             use crate::core::shared::models::schema::bots::dsl::*;
 
             // Try to parse as UUID first, if that fails treat as bot name
-            let result: Result<Uuid, _> = if let Ok(uuid) = Uuid::parse_str(&bot_name) {
+            let result: Result<(Uuid, bool), _> = if let Ok(uuid) = Uuid::parse_str(&bot_name) {
                 // Parameter is a UUID, look up by id
-                bots.filter(id.eq(uuid)).select(id).first(&mut db_conn)
+                bots.filter(id.eq(uuid))
+                    .select((id, is_public))
+                    .first(&mut db_conn)
             } else {
                 // Parameter is a bot name, look up by name
                 bots.filter(name.eq(&bot_name))
-                    .select(id)
+                    .select((id, is_public))
                     .first(&mut db_conn)
             };
 
             result.unwrap_or_else(|_| {
                 log::warn!("Bot not found: {}, using nil bot_id", bot_name);
-                Uuid::nil()
+                (Uuid::nil(), false)
             })
         } else {
             log::warn!("Could not get database connection, using nil bot_id");
-            Uuid::nil()
+            (Uuid::nil(), false)
         }
     };
+
+    // Check bot access before upgrading WebSocket
+    if bot_id != Uuid::nil() {
+        let conn = state.conn.get().ok();
+        if let Some(mut db_conn) = conn {
+            if let Err((status, msg)) = check_bot_access(&mut db_conn, bot_id, user_id) {
+                return (status, msg).into_response();
+            }
+        } else {
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response();
+        }
+    }
 
     ws.on_upgrade(move |socket| handle_websocket(socket, state, session_id, user_id, bot_id))
         .into_response()
