@@ -51,6 +51,7 @@ diesel::table! {
         updated_at -> Timestamptz,
         is_active -> Nullable<Bool>,
         database_name -> Nullable<Varchar>,
+        is_public -> Bool,
     }
 }
 
@@ -297,6 +298,20 @@ diesel::joinable!(website_crawls -> bots (bot_id));
 diesel::joinable!(organization_invitations -> organizations (org_id));
 
 diesel::table! {
+    user_organizations (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        org_id -> Uuid,
+        role -> Varchar,
+        is_default -> Bool,
+        joined_at -> Timestamptz,
+    }
+}
+
+diesel::joinable!(user_organizations -> users (user_id));
+diesel::joinable!(user_organizations -> organizations (org_id));
+
+diesel::table! {
     user_preferences (id) {
         id -> Uuid,
         user_id -> Uuid,
@@ -349,9 +364,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     rbac_user_groups,
     rbac_group_roles,
     users,
+    user_organizations,
     website_crawls,
     bots,
     bot_configuration,
     organizations,
     organization_invitations,
-);
+    );
