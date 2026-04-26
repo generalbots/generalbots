@@ -104,6 +104,8 @@ pub struct Bot {
     pub updated_at: DateTime<Utc>,
     pub is_active: Option<bool>,
     pub org_id: Option<Uuid>,
+    pub database_name: Option<String>,
+    pub is_public: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
