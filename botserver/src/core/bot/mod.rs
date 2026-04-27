@@ -770,24 +770,11 @@ let system_prompt = if !message.active_switchers.is_empty() {
 
         #[cfg(any(feature = "research", feature = "llm"))]
         {
-            // Execute start.bas on first message - ONLY run once per session to load suggestions
+            // Execute start.bas on first message - run EVERY time (no Redis flag check)
             let actual_session_id = session.id.to_string();
 
-            // Check if start.bas has already been executed for this session
-            let start_bas_key = format!("start_bas_executed:{}", actual_session_id);
-            let should_execute_start_bas = if let Some(cache) = &self.state.cache {
-                if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-                    let executed: Result<Option<String>, redis::RedisError> = redis::cmd("GET")
-                        .arg(&start_bas_key)
-                        .query_async(&mut conn)
-                        .await;
-                    matches!(executed, Ok(None))
-                } else {
-                    true // If cache fails, try to execute
-                }
-            } else {
-                true // If no cache, try to execute
-            };
+            // Always execute start.bas - no Redis check
+            let should_execute_start_bas = true;
 
         if should_execute_start_bas {
             // Execute start.bas from work directory
@@ -844,19 +831,7 @@ let system_prompt = if !message.active_switchers.is_empty() {
             match result {
                 Ok(Ok(())) => {
                     trace!("start.bas completed successfully for session {}", actual_session_id);
-
-                    // Mark start.bas as executed for this session to prevent re-running
-                    if let Some(cache) = &self.state.cache {
-                        if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-                            let _: Result<(), redis::RedisError> = redis::cmd("SET")
-                                .arg(&start_bas_key)
-                                .arg("1")
-                                .arg("EX")
-                                .arg("86400") // Expire after 24 hours
-                                .query_async(&mut conn)
-                                .await;
-                        }
-                    }
+                    // Note: No Redis flag set - start.bas runs on every message
                 }
                 Ok(Err(e)) => {
                     error!("start.bas error for session {}: {}", actual_session_id, e);
@@ -1792,8 +1767,7 @@ async fn handle_websocket(
 
         if let Some(bot_name) = bot_name_result {
             // Web clients expect start.bas to execute their first screen every time they connect/reload.
-            // We always run it, but we SET the start_bas_key flag right after so stream_response skips execution.
-            let start_bas_key = format!("start_bas_executed:{}", session_id);
+            // Execute unconditionally on every WebSocket connection.
             let should_execute_start_bas = true;
 
             if should_execute_start_bas {
@@ -1876,20 +1850,7 @@ async fn handle_websocket(
                                 match result {
                                     Ok(Ok(())) => {
                                         info!("start.bas executed successfully for bot {}", bot_name);
-
-                                        // Mark start.bas as executed for this session to prevent re-running
-                                        if let Some(cache) = &state_for_redis.cache {
-                                            if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-                                                let _: Result<(), redis::RedisError> = redis::cmd("SET")
-                                                    .arg(&start_bas_key)
-                                                    .arg("1")
-                                                    .arg("EX")
-                                                    .arg("86400") // Expire after 24 hours
-                                                    .query_async(&mut conn)
-                                                    .await;
-                                                info!("Marked start.bas as executed for session {}", session_id);
-                                            }
-                                        }
+                                        // Note: No Redis flag set - start.bas runs on every WebSocket connection
 
         // Fetch suggestions and switchers from Redis and send to frontend
         // Use session_id_for_redis (DB session) not session_id_str (WebSocket session) for Redis key consistency
