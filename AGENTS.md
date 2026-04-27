@@ -189,8 +189,8 @@ Verify: PostgreSQL 5432, Valkey 6379, BotServer 8080, BotUI 3000
 4. Test: cargo check -p botserver, ./restart.sh, verify in browser
 5. Commit: clear message with root cause, impact, files, testing notes
 
-Logs: /opt/gbo/logs/err.log (errors) | /opt/gbo/logs/out.log (output) | botserver.log (dev only) | botui.log | [drive_monitor] prefix | CLIENT: prefix
-On staging/production: check err.log and out.log in /opt/gbo/logs/
+Logs: check container logs via `sudo incus exec system -- journalctl -u botserver` | botserver.log (dev only) | botui.log | [drive_monitor] prefix | CLIENT: prefix
+On staging/production: check logs in container via `sudo incus exec system -- tail -f logs/err.log`
 
 > Troubleshooting: botbook/src/12-ecosystem-reference/troubleshooting.md
 
@@ -200,7 +200,7 @@ On staging/production: check err.log and out.log in /opt/gbo/logs/
 
 Push to ALM → CI builds on alm-ci → deploys to system container via SSH
 NEVER deploy manually. CI path: alm-ci builds → tar+gzip → /opt/gbo/bin/botserver → restart
-CI deploy: alm-ci at /opt/gbo/data/botserver/target/debug/botserver → SSH → system container
+CI deploy: alm-ci at /opt/gbo/bin/botserver → SSH → system container
 Runner: gbuser uid 1000, workspace /opt/gbo/data/, SSH key /home/gbuser/.ssh/id_ed25519
 
 > CI/CD details: botbook/src/12-ecosystem-reference/ci-cd.md
@@ -242,19 +242,19 @@ ALM port is 4747. Runner token in action_runner_token table.
 - ALWAYS backup files to /tmp before editing
 
 ### Infrastructure Paths
-- Base: /opt/gbo/ | Data: /opt/gbo/data | Bin: /opt/gbo/bin
-- Conf: /opt/gbo/conf | Logs: /opt/gbo/logs
+- Base: /opt/gbo/ | Bin: /opt/gbo/bin | Conf: /opt/gbo/conf | Logs: /opt/gbo/logs
+- Bots are stored in MinIO (drive), NOT in /opt/gbo/data
 
 ### Service Operations
-- DNS (CoreDNS): config /opt/gbo/conf/Corefile, zones /opt/gbo/data/domain.zone
-- PostgreSQL: data /opt/gbo/data, backup pg_dump, restore pg_restore
+- DNS (CoreDNS): config /opt/gbo/conf/Corefile, zones in MinIO
+- PostgreSQL: backup pg_dump, restore pg_restore
 - Email (Stalwart): config /opt/gbo/conf/config.toml, check DKIM TXT records
 - Proxy (Caddy): config /opt/gbo/conf/config, validate then reload
-- MinIO: internal API http://drive-ip:9000, data /opt/gbo/data
+- MinIO: internal API http://drive-ip:9000, bots stored as buckets
 - Bot System: binary /opt/gbo/bin/botserver, Valkey port 6379
 - ALM (Forgejo): port 4747, CI runner separate container, token from DB
 - CI Runner: config /opt/gbo/bin/config.yaml, runs as gbuser, systemd service
-  sccache at /usr/local/bin/sccache, workspace /opt/gbo/data/
+sccache at /usr/local/bin/sccache, workspace /opt/gbo/data/
 
 ### Network — NAT Port Forwarding
 External ports DNAT to container IPs via iptables. Rules in /etc/iptables.rules
