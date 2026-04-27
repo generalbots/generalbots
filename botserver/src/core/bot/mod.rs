@@ -1843,6 +1843,9 @@ async fn handle_websocket(
 
                         if let Ok(Some(mut session)) = session_result {
                             info!("start.bas: Found session {} for websocket session {}", session.id, session_id);
+                            
+                            // Save session ID before session is moved into closure
+                            let session_id_for_redis = session.id.to_string();
 
                             // Store WebSocket session_id in context so TALK can route messages correctly
                             if let serde_json::Value::Object(ref mut map) = session.context_data {
@@ -1889,9 +1892,10 @@ async fn handle_websocket(
                                         }
 
         // Fetch suggestions and switchers from Redis and send to frontend
+        // Use session_id_for_redis (DB session) not session_id_str (WebSocket session) for Redis key consistency
         let user_id_str = user_id.to_string();
-        let suggestions = get_suggestions(state_for_redis.cache.as_ref(), &bot_id_str, &session_id_str);
-        let switchers = get_switchers(state_for_redis.cache.as_ref(), &bot_id_str, &session_id_str);
+        let suggestions = get_suggestions(state_for_redis.cache.as_ref(), &bot_id_str, &session_id_for_redis);
+        let switchers = get_switchers(state_for_redis.cache.as_ref(), &bot_id_str, &session_id_for_redis);
         if !suggestions.is_empty() || !switchers.is_empty() {
                                             info!("Sending {} suggestions to frontend for session {}", suggestions.len(), session_id);
                                             let response = BotResponse {
