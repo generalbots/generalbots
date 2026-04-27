@@ -146,6 +146,9 @@ fn add_switcher(
         let mut conn = match get_redis_connection(cache_client) {
             Some(conn) => conn,
             None => {
+                // Debug: write to file
+                let _ = std::fs::append_to_file("/tmp/switcher_debug.log")
+                    .and_then(|mut f| writeln!(f, "ADD_SWITCHER: cache not ready, skipping"));
                 trace!("Cache not ready, skipping add switcher");
                 return Ok(());
             }
@@ -156,11 +159,13 @@ fn add_switcher(
             .arg(switcher_data.to_string())
             .query(&mut conn);
 
-        info!("ADD_SWITCHER: Stored switcher '{}' ({}) to Redis key '{}' for session {}", 
-              switcher_id, 
-              if is_standard_switcher(first_param) { "standard" } else { "custom" },
-              redis_key,
-              user_session.id);
+        // Debug: write to file
+        let _ = std::fs::append_to_file("/tmp/switcher_debug.log")
+            .and_then(|mut f| writeln!(f, "ADD_SWITCHER: Stored switcher '{}' ({}) to Redis key '{}' for session {}", 
+                switcher_id, 
+                if is_standard_switcher(first_param) { "standard" } else { "custom" },
+                redis_key,
+                user_session.id));
     } else {
         trace!("No cache configured, switcher not added");
     }
@@ -209,18 +214,20 @@ pub fn get_switchers(
                         switchers.push(switcher);
                     }
                 }
-                info!(
-                    "Retrieved {} switchers from Redis key '{}' for session {}",
-                    switchers.len(),
-                    redis_key,
-                    session_id
-                );
-                // Debug: log each switcher
+                // Debug: write to file
+                let _ = std::fs::append_to_file("/tmp/switcher_debug.log")
+                    .and_then(|mut f| writeln!(f, "get_switchers: Retrieved {} switchers from Redis key '{}' for session {}", 
+                        switchers.len(), redis_key, session_id));
                 for sw in &switchers {
-                    info!("  - Switcher: id={}, label={}", sw.id, sw.label.as_deref().unwrap_or(""));
+                    let _ = std::fs::append_to_file("/tmp/switcher_debug.log")
+                        .and_then(|mut f| writeln!(f, "  - Switcher: id={}, label={}", sw.id, sw.label.as_deref().unwrap_or("")));
                 }
             }
-            Err(e) => error!("Failed to get switchers from Redis: {}", e),
+            Err(e) => {
+                let _ = std::fs::append_to_file("/tmp/switcher_debug.log")
+                    .and_then(|mut f| writeln!(f, "get_switchers: Error: {}", e));
+                error!("Failed to get switchers from Redis: {}", e);
+            }
         }
     }
 
