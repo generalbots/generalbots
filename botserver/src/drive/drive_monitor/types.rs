@@ -70,24 +70,24 @@ impl DriveMonitor {
 
             let etag_changed = existing.as_ref().map_or(true, |prev| prev.etag.as_deref() != etag.as_deref());
 
-            if etag_changed || existing.is_none() {
-                match self.file_repo.upsert_file(
-                    self.bot_id,
-                    &full_key,
-                    file_type,
-                    etag,
-                    None,
-                ) {
-                    Ok(_) => log::info!("DriveMonitor: Added/updated drive_files for: {} ({})", full_key, file_type),
-                    Err(e) => log::error!("Failed to upsert {}: {}", full_key, e),
-                }
-
-                if file_type == "bas" {
-                    self.sync_bas_to_work(bot_name, &obj.key).await;
-                }
-            } else {
-                log::trace!("{} unchanged, skipping upsert", full_key);
+        if etag_changed || existing.is_none() || needs_reindex {
+            match self.file_repo.upsert_file(
+                self.bot_id,
+                &full_key,
+                file_type,
+                etag,
+                None,
+            ) {
+                Ok(_) => log::info!("DriveMonitor: Added/updated drive_files for: {} ({})", full_key, file_type),
+                Err(e) => log::error!("Failed to upsert {}: {}", full_key, e),
             }
+
+            if file_type == "bas" {
+                self.sync_bas_to_work(bot_name, &obj.key).await;
+            }
+        } else {
+            log::trace!("{} unchanged, skipping upsert", full_key);
+        }
 
             if needs_reindex && file_type == "kb" {
                     #[cfg(any(feature = "research", feature = "llm"))]
@@ -290,14 +290,16 @@ if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
         let file_name = s3_key.split('/').next_back().unwrap_or(s3_key);
         let work_path = work_dir.join(file_name);
 
-        match String::from_utf8(data) {
-            Ok(content) => {
-if let Err(e) = std::fs::write(&work_path, &content) {
+    match String::from_utf8(data) {
+        Ok(content) => {
+            if let Err(e) = std::fs::write(&work_path, &content) {
                 log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
             } else {
                 log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
+                let full_key = format!("{}.gbai/{}", bot_name, s3_key);
+                let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
             }
-            }
+        }
             Err(e) => {
                 log::error!("Failed to parse .bas as UTF-8: {}", e);
             }
