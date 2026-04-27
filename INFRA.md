@@ -47,7 +47,7 @@ Always manage services with systemctl inside the system container. Never run bin
 | system | BotServer + Valkey | 8080/6379 | Main API + cache |
 | tables | PostgreSQL | 5432 | Primary database |
 | vault | Vault | 8200 | Secrets |
-| drive | MinIO | 9000/9100 | Object storage |
+| drive | MinIO | 9100 (9000 external) | Object storage, connect from inside container |
 | directory | Zitadel | 9000 | Identity provider |
 | llm | llama.cpp | 8081 | Local LLM |
 | vectordb | Qdrant | 6333 | Vector database |
@@ -282,26 +282,47 @@ All bot files live in MinIO buckets. Use mc CLI at /opt/gbo/bin/mc from drive co
 {bot}.gbai/{bot}.gbot/      — config.csv
 {bot}.gbai/{bot}.gbkb/      — knowledge base
 
+### MinIO Connection Setup
+
+MinIO credentials come from the drive.service Environment vars (MINIO_ROOT_USER, MINIO_ROOT_PASSWORD).
+The root user from .service env has full read/write access. Always connect from inside the drive container:
+
+```bash
+# 1. Set mc alias (run once per session) — use credentials from drive.service Environment
+sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:$PATH && \
+  mc alias set local http://localhost:9100 <MINIO_ROOT_USER> <MINIO_ROOT_PASSWORD>'
+
+# 2. Verify connection
+sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:$PATH && mc ls local/'
+```
+
+MinIO listens on port 9100 (NOT 9000). The 9000 port is for external DNAT only.
+Credentials are in drive.service: `sudo incus exec drive -- systemctl cat drive`
+
 ### Common mc Commands
 
 ```bash
-# All mc commands need PATH set
+# All mc commands need PATH set and mc alias configured first
 sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:$PATH && mc <command>'
 
-mc ls local/                                    # List all buckets
-mc ls local/<bot>.gbai/                         # List bot bucket
-mc cat local/<bot>.gbai/<bot>.gbdialog/start.bas  # Read file
-mc cp local/<bot>.gbai/<bot>.gbdialog/file /tmp/  # Download
-mc cp /tmp/file local/<bot>.gbai/<bot>.gbot/config.csv  # Upload (triggers DriveMonitor)
-mc stat local/<bot>.gbai/<bot>.gbot/config.csv  # Show ETag/metadata
-mc mb local/newbot.gbai                         # Create bucket
-mc admin info local                             # Health check
+mc ls local/ # List all buckets
+mc ls local/<bot>.gbai/ # List bot bucket
+mc cat local/<bot>.gbai/<bot>.gbdialog/start.bas # Read file
+mc cp local/<bot>.gbai/<bot>.gbdialog/file /tmp/ # Download
+mc cp /tmp/file local/<bot>.gbai/<bot>.gbot/config.csv # Upload (triggers DriveMonitor)
+mc stat local/<bot>.gbai/<bot>.gbot/config.csv # Show ETag/metadata
+mc mb local/newbot.gbai # Create bucket
+mc admin info local # Health check
 
 # Force re-sync (change ETag without content change)
 mc cp local/<bot>.gbai/<bot>.gbot/config.csv local/<bot>.gbai/<bot>.gbot/config.csv
 ```
 
-### Upload config.csv workflow: download via mc cat → edit locally → push via mc cp → wait 15s → verify in logs
+### Upload/Download workflow
+
+1. Download: `mc cp local/<bot>.gbai/<bot>.gbdialog/file /tmp/` → edit locally → `mc cp /tmp/file local/<bot>.gbai/<bot>.gbdialog/file`
+2. Or read directly: `mc cat local/<bot>.gbai/<bot>.gbdialog/start.bas`
+3. Wait 15s for DriveMonitor to pick up changes → verify in logs
 
 ---
 
