@@ -202,13 +202,29 @@ impl KnowledgeBaseManager {
                 .ok();
 
                 if let Some(row) = existing {
-                    if let Some(count) = row.document_count {
-                        if count > 0 {
-                            info!(
-                                "KB {} for bot {}/{} already indexed with {} docs, skipping re-index",
-                                kb_name, bot_name, bot_id, count
-                            );
-                            return Ok(());
+                    if let Some(db_doc_count) = row.document_count {
+                        if db_doc_count > 0 {
+                            let collection_name = format!("{}_{}_{}", bot_name, bot_id.to_string().chars().take(8).collect::<String>(), kb_name);
+                            
+                            if let Ok(collection_info) = self.indexer.get_collection_info(&collection_name).await {
+                                if collection_info.points_count > 0 {
+                                    info!(
+                                        "KB {} for bot {}/{} already indexed with {} docs in Qdrant ({} points), skipping re-index",
+                                        kb_name, bot_name, bot_id, db_doc_count, collection_info.points_count
+                                    );
+                                    return Ok(());
+                                } else {
+                                    warn!(
+                                        "KB {} for bot {}/{} has {} docs in DB but 0 points in Qdrant, will re-index",
+                                        kb_name, bot_name, bot_id, db_doc_count
+                                    );
+                                }
+                            } else {
+                                warn!(
+                                    "KB {} for bot {}/{} collection not found in Qdrant, will re-index",
+                                    kb_name, bot_name, bot_id
+                                );
+                            }
                         }
                     }
                 }
