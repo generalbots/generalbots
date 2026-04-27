@@ -156,12 +156,11 @@ fn add_switcher(
             .arg(switcher_data.to_string())
             .query(&mut conn);
 
-        trace!(
-            "Added switcher '{}' ({}) to session {}",
-            switcher_id,
-            if is_standard_switcher(first_param) { "standard" } else { "custom" },
-            user_session.id
-        );
+        info!("ADD_SWITCHER: Stored switcher '{}' ({}) to Redis key '{}' for session {}", 
+              switcher_id, 
+              if is_standard_switcher(first_param) { "standard" } else { "custom" },
+              redis_key,
+              user_session.id);
     } else {
         trace!("No cache configured, switcher not added");
     }
@@ -211,10 +210,15 @@ pub fn get_switchers(
                     }
                 }
                 info!(
-                    "Retrieved {} switchers for session {}",
+                    "Retrieved {} switchers from Redis key '{}' for session {}",
                     switchers.len(),
+                    redis_key,
                     session_id
                 );
+                // Debug: log each switcher
+                for sw in &switchers {
+                    info!("  - Switcher: id={}, label={}", sw.id, sw.label.as_deref().unwrap_or(""));
+                }
             }
             Err(e) => error!("Failed to get switchers from Redis: {}", e),
         }
