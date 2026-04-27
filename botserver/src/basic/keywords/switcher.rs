@@ -1,7 +1,7 @@
 use crate::core::shared::models::Switcher;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
-use log::{error, info, trace};
+use log::{debug, error, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
@@ -146,12 +146,7 @@ fn add_switcher(
         let mut conn = match get_redis_connection(cache_client) {
             Some(conn) => conn,
             None => {
-                // Debug: write to file
-                let _ = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open("/tmp/switcher_debug.log")
-                    .and_then(|mut f| writeln!(f, "ADD_SWITCHER: cache not ready, skipping"));
+                debug!("ADD_SWITCHER: cache not ready, skipping");
                 trace!("Cache not ready, skipping add switcher");
                 return Ok(());
             }
@@ -162,16 +157,11 @@ fn add_switcher(
             .arg(switcher_data.to_string())
             .query(&mut conn);
 
-        // Debug: write to file
-        let _ = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/switcher_debug.log")
-            .and_then(|mut f| writeln!(f, "ADD_SWITCHER: Stored switcher '{}' ({}) to Redis key '{}' for session {}", 
-                switcher_id, 
-                if is_standard_switcher(first_param) { "standard" } else { "custom" },
-                redis_key,
-                user_session.id));
+        debug!("ADD_SWITCHER: Stored '{}' ({}) to Redis key '{}' for session {}", 
+              switcher_id, 
+              if is_standard_switcher(first_param) { "standard" } else { "custom" },
+              redis_key,
+              user_session.id);
     } else {
         trace!("No cache configured, switcher not added");
     }
@@ -220,27 +210,14 @@ pub fn get_switchers(
                         switchers.push(switcher);
                     }
                 }
-                // Debug: write to file
-                let _ = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open("/tmp/switcher_debug.log")
-                    .and_then(|mut f| writeln!(f, "get_switchers: Retrieved {} switchers from Redis key '{}' for session {}", 
-                        switchers.len(), redis_key, session_id));
+                debug!("get_switchers: Retrieved {} switchers from Redis key '{}' for session {}", 
+                    switchers.len(), redis_key, session_id);
                 for sw in &switchers {
-                    let _ = std::fs::OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open("/tmp/switcher_debug.log")
-                        .and_then(|mut f| writeln!(f, "  - Switcher: id={}, label={}", sw.id, sw.label.as_deref().unwrap_or("")));
+                    debug!("  - Switcher: id={}, label={}", sw.id, sw.label.as_deref().unwrap_or(""));
                 }
             }
             Err(e) => {
-                let _ = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open("/tmp/switcher_debug.log")
-                    .and_then(|mut f| writeln!(f, "get_switchers: Error: {}", e));
+                debug!("get_switchers: Redis error: {}", e);
                 error!("Failed to get switchers from Redis: {}", e);
             }
         }
