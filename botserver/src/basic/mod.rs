@@ -1314,17 +1314,20 @@ pub fn convert_keywords_to_lowercase(script: &str) -> String {
             // GET family
             (r#"GET\s+BOT\s+MEMORY"#, 1, 1, vec!["key"]),
 
-            // CLEAR family
-            (r#"CLEAR\s+SUGGESTIONS"#, 0, 0, vec![]),
-            (r#"CLEAR\s+TOOLS"#, 0, 0, vec![]),
-            (r#"CLEAR\s+WEBSITES"#, 0, 0, vec![]),
+        // CLEAR family
+        (r#"CLEAR\s+SUGGESTIONS"#, 0, 0, vec![]),
+        (r#"CLEAR\s+SWITCHERS"#, 0, 0, vec![]),
+        (r#"CLEAR\s+TOOLS"#, 0, 0, vec![]),
+        (r#"CLEAR\s+WEBSITES"#, 0, 0, vec![]),
 
 // ADD family - single-token keywords to avoid ADD conflicts
 (r#"ADD_SUGGESTION_TOOL"#, 2, 2, vec!["tool", "text"]),
 (r#"ADD_SUGGESTION_TEXT"#, 2, 2, vec!["value", "text"]),
 (r#"ADD_SUGGESTION(?!\\s+TOOL|\\s+TEXT|_)"#, 2, 2, vec!["context", "text"]),
-(r#"ADD\s+SWITCHER"#, 2, 2, vec!["switcher", "text"]),
-(r#"ADD\\s+MEMBER"#, 2, 2, vec!["name", "role"]),
+        (r#"ADD_SWITCHER"#, 2, 2, vec!["switcher", "text"]),
+        (r#"ADD\s+SWITCHER"#, 2, 2, vec!["switcher", "text"]),
+        (r#"ADD_MEMBER"#, 2, 2, vec!["name", "role"]),
+        (r#"ADD\s+MEMBER"#, 2, 2, vec!["name", "role"]),
 
             // CREATE family
             (r#"CREATE\s+TASK"#, 1, 1, vec!["task"]),
@@ -1352,12 +1355,13 @@ pub fn convert_keywords_to_lowercase(script: &str) -> String {
             // Skip lines that already use underscore-style custom syntax
             // These are registered directly with Rhai and should not be converted
             let trimmed_upper = trimmed.to_uppercase();
-            if trimmed_upper.contains("ADD_SUGGESTION_TOOL") ||
-               trimmed_upper.contains("ADD_SUGGESTION_TEXT") ||
-               trimmed_upper.starts_with("ADD_SUGGESTION_") ||
-               trimmed_upper.contains("ADD_SWITCHER") ||
-               trimmed_upper.starts_with("ADD_MEMBER") ||
-               (trimmed_upper.starts_with("USE_") && trimmed.contains('(')) {
+        if trimmed_upper.contains("ADD_SUGGESTION_TOOL") ||
+            trimmed_upper.contains("ADD_SUGGESTION_TEXT") ||
+            trimmed_upper.starts_with("ADD_SUGGESTION_") ||
+            (trimmed_upper.starts_with("ADD_SWITCHER") && trimmed.contains(" as ")) ||
+            trimmed_upper.starts_with("ADD_MEMBER") ||
+            (trimmed_upper.starts_with("CLEAR_SWITCHERS") && trimmed.contains('(')) ||
+            (trimmed_upper.starts_with("USE_") && trimmed.contains('(')) {
                 // Keep original line and add semicolon if needed
                 result.push_str(line);
                 if !trimmed.ends_with(';') && !trimmed.ends_with('{') && !trimmed.ends_with('}') {
