@@ -17,6 +17,8 @@
 - NEVER use cargo clean — causes 30min rebuilds, use ./reset.sh for DB issues
 - Secret files go in /tmp/ only (vault-token-gb, vault-unseal-key-gb)
 - See botserver/src/drive/local_file_monitor.rs for how bots load from drive (MinIO)
+- ⚠️ **NEVER modify bottemplates/** - Bots are stored in MinIO (drive) on stage/production
+- To modify a bot: access stage via SSH → get Vault credentials → edit bot files in MinIO bucket
 
 ---
 
