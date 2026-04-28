@@ -1,0 +1,28 @@
+- generic [ref=e5]:
+  - generic [ref=e6]:
+    - generic [ref=e7]: Chat
+    - generic [ref=e8]:
+      - button [ref=e9] [cursor=pointer]:
+        - img [ref=e10]
+      - button [ref=e11] [cursor=pointer]:
+        - img [ref=e12]
+      - button [ref=e14] [cursor=pointer]:
+        - img [ref=e15]
+  - generic [ref=e19]:
+    - generic [ref=e20]:
+      - main [ref=e21]:
+        - paragraph [ref=e24]: Olá! Bem-vindo(o) ao assistente virtual do Salesianos. Voce pode me perguntar sobre qualquer coisa ou escolher Cartas, Procedimentos ou Ramais.
+      - contentinfo [ref=e25]:
+        - generic [ref=e26]:
+          - button "Cartas" [ref=e27] [cursor=pointer]
+          - button "Procedimentos" [ref=e28] [cursor=pointer]
+          - button "Ramais" [ref=e29] [cursor=pointer]
+          - button "Todos" [ref=e30] [cursor=pointer]
+        - generic [ref=e31]:
+          - textbox "Message... (type @ to mention)" [ref=e32]
+          - button "↑" [ref=e33] [cursor=pointer]
+      - button "Scroll to bottom":
+        - img
+    - generic:
+      - generic:
+        - button "View"
