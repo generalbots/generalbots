@@ -62,6 +62,7 @@ async def root():
         {
             "service": settings.project_name,
             "version": settings.version,
+            "commit": settings.commit,
             "status": "running",
             "docs": "/api/docs",
             "endpoints": {
@@ -78,7 +79,12 @@ async def root():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": settings.version, "device": settings.device}
+    return {
+        "status": "healthy",
+        "version": settings.version,
+        "commit": settings.commit,
+        "device": settings.device,
+    }
 
 
 if __name__ == "__main__":
