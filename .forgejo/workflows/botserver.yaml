@@ -24,7 +24,7 @@ jobs:
           cd /opt/gbo/work/generalbots
           git pull
           git submodule update --init --recursive
-          git ls-files -z | xargs -0 -I{} touch -d "$(git log -1 --format='@%ct' -- '{}')" '{}'
+          git ls-files -z | xargs -0 touch -d "@$(git log -1 --format='%ct')"
           git log --oneline -1
 
       - name: Build BotServer and BotUI
