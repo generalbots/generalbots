@@ -18,7 +18,7 @@ jobs:
       CARGO_TARGET_DIR: /opt/gbo/work/target
       RUSTC_WRAPPER: ""
       PATH: /home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin
-      STAGE_SYSTEM_HOST: "10.0.3.10"
+      STAGE_SYSTEM_HOST: "system"
       SYSTEM_USER: gbuser
     
     steps:
@@ -29,14 +29,12 @@ jobs:
           git clean -fd
           git pull
           git submodule update --init --recursive
-          mkdir -p /opt/gbo/work/target
-          mkdir -p /opt/gbo/bin
       
       - name: Build BotServer and BotUI
         run: |
           cd /opt/gbo/work/generalbots
-          CARGO_BUILD_JOBS=4 cargo build -p botserver --bin botserver
-          CARGO_BUILD_JOBS=4 cargo build -p botui --bin botui
+          CARGO_BUILD_JOBS=6 RUST_WRAPPER=/usr/local/bin/sccache cargo build -p botserver --bin botserver
+          CARGO_BUILD_JOBS=6 RUST_WRAPPER=/usr/local/bin/sccache cargo build -p botui --bin botui
       
       - name: Deploy to Stage
         run: |
@@ -44,26 +42,22 @@ jobs:
           
           # Copy both binaries to stage system container
           scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-            /opt/gbo/work/target/debug/botserver \
+            /opt/gbo/work/generalbots/target/debug/botserver \
             ${SYSTEM_USER}@${STAGE_SYSTEM_HOST}:/opt/gbo/bin/botserver-new
           
           scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-            /opt/gbo/work/target/debug/botui \
+            /opt/gbo/work/generalbots/target/debug/botui \
             ${SYSTEM_USER}@${STAGE_SYSTEM_HOST}:/opt/gbo/bin/botui-new
           
           # Restart services on stage
           ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             ${SYSTEM_USER}@${STAGE_SYSTEM_HOST} "\
+              
+              sudo systemctl stop botserver && sudo systemctl stop botui
+              sudo killall botui -9  & sudo killall botserver -9
               sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && \
               sudo mv /opt/gbo/bin/botui-new /opt/gbo/bin/botui && \
               sudo chmod +x /opt/gbo/bin/botserver /opt/gbo/bin/botui && \
-              sudo systemctl restart botserver && \
-              sudo systemctl restart ui"
+              sudo systemctl start botserver && \
+              sudo systemctl start ui"
           
-          sleep 10
-          
-          # Health checks
-          ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-            ${SYSTEM_USER}@${STAGE_SYSTEM_HOST} "\
-              curl -sf http://localhost:8080/health && echo '✅ BotServer OK' || echo '❌ BotServer FAILED'; \
-              curl -sf http://localhost:3000/ && echo '✅ BotUI OK' || echo '❌ BotUI FAILED'"

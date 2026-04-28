@@ -50,11 +50,25 @@ A **Knowledge Base (KB)** is a collection of documents that your bot uses to ans
 |--------|-----------|----------|
 | **PDF** | `.pdf` | Manuals, reports, official documents |
 | **Word** | `.docx`, `.doc` | Policies, procedures, articles |
+| **Excel** | `.xlsx`, `.xls` | FAQs, structured data, tabular content |
+| **OpenDocument Spreadsheet** | `.ods` | Open-source spreadsheet data |
+| **PowerPoint** | `.pptx`, `.ppt` | Training materials, slide decks |
+| **OpenDocument Presentation** | `.odp` | Open-source presentations |
+| **E-book** | `.epub` | Books, long-form guides |
+| **OpenDocument Text** | `.odt` | Open-source word processing |
 | **Text** | `.txt` | Simple content, FAQs |
 | **Markdown** | `.md` | Technical documentation |
-| **Excel** | `.xlsx`, `.xls` | FAQs, structured data |
-| **PowerPoint** | `.pptx` | Training materials |
+| **reStructuredText** | `.rst` | Python/docs project documentation |
+| **AsciiDoc** | `.adoc` | Technical publishing |
 | **HTML** | `.html` | Web content |
+| **CSV / TSV** | `.csv`, `.tsv` | Tabular data, exports |
+| **JSON / JSONL** | `.json`, `.jsonl` | Structured data, API responses |
+| **YAML** | `.yaml`, `.yml` | Configuration, structured content |
+| **TOML** | `.toml` | Configuration files |
+| **Source Code** | `.py`, `.rs`, `.js`, `.ts`, `.sh`, `.sql`, `.graphql`, `.proto` | Code documentation, technical references |
+| **CSS / SVG** | `.css`, `.svg` | Style references, vector graphics text |
+| **Calendar / Contacts / Email** | `.ics`, `.vcf`, `.eml` | Scheduling, address books, message archives |
+| **Config / Log** | `.ini`, `.conf`, `.cfg`, `.env`, `.properties`, `.log` | System configuration, diagnostics |
 
 ---
 
@@ -475,10 +489,12 @@ HEAR question
 
 | File Type | Max Size |
 |-----------|----------|
-| PDF | 50 MB |
-| Word | 25 MB |
-| Excel | 25 MB |
-| Text/MD | 10 MB |
+| PDF | 100 MB |
+| Word / EPUB / ODT | 100 MB |
+| Excel / ODS | 100 MB |
+| PowerPoint / ODP | 100 MB |
+| Text / MD / Code / Config | 100 MB |
+| Any text-based format | 100 MB |
 
 ---
 

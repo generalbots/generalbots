@@ -8,7 +8,7 @@ The Knowledge Base (KB) system enables semantic search and document retrieval fo
 |---------|-------------|
 | **Storage** | S3-compatible drive + PostgreSQL metadata + Qdrant vectors |
 | **Search** | Hybrid (semantic + keyword) with optional reranking |
-| **Formats** | PDF, DOCX, TXT, MD, HTML, CSV, JSON |
+| **Formats** | PDF, DOCX, DOC, XLSX, XLS, ODS, PPTX, PPT, ODP, EPUB, ODT, TXT, MD, HTML, CSV, JSON, YAML, TOML, and 30+ text-based formats |
 | **Integration** | Automatic context injection into LLM responses |
 
 ## Basic Usage
