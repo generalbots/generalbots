@@ -33,6 +33,7 @@ jobs:
       - name: Build BotServer and BotUI
         run: |
           cd /opt/gbo/work/generalbots
+          rustup default stable
           export RUSTC_WRAPPER=sccache
           echo "=== sccache stats before build ==="
           sccache --show-stats 2>/dev/null || echo "sccache not available"
