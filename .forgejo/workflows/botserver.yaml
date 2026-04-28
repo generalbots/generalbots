@@ -35,8 +35,14 @@ jobs:
           cd /opt/gbo/work/generalbots
           # Build with default features (excludes ooxmlsdk - no heavy docs feature)
           # Default features: chat, automation, cache, llm, vectordb, crawler, drive, directory, kb-extraction
+          # Using sccache for faster incremental builds
+          export RUSTC_WRAPPER=sccache
+          echo "=== sccache stats before build ==="
+          sccache --show-stats 2>/dev/null || echo "sccache not available"
           CARGO_BUILD_JOBS=6 cargo build -p botserver --bin botserver
           CARGO_BUILD_JOBS=6 cargo build -p botui --bin botui
+          echo "=== sccache stats after build ==="
+          sccache --show-stats 2>/dev/null || echo "sccache not available"
       
       - name: Deploy to Stage
         run: |
