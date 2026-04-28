@@ -73,7 +73,20 @@ bot.gbkb/
 
 ## Supported File Types
 
-PDF, DOCX, TXT, MD, HTML, CSV, JSON
+| Category | Formats | Extensions |
+|----------|---------|------------|
+| Documents | PDF, Word | `.pdf`, `.docx`, `.doc` |
+| Spreadsheets | Excel, OpenDocument | `.xlsx`, `.xls`, `.ods` |
+| Presentations | PowerPoint, OpenDocument | `.pptx`, `.ppt`, `.odp` |
+| E-books | EPUB, OpenDocument Text | `.epub`, `.odt` |
+| Text | Plain, Markdown, reStructuredText, AsciiDoc | `.txt`, `.md`, `.rst`, `.adoc` |
+| Web | HTML | `.html` |
+| Data | CSV, JSON, JSONL, TSV | `.csv`, `.json`, `.jsonl`, `.tsv` |
+| Config | YAML, TOML, INI, Properties | `.yaml`, `.yml`, `.toml`, `.ini`, `.conf`, `.cfg`, `.env`, `.properties` |
+| Code | Python, Rust, JS/TS, Shell, SQL, GraphQL, Proto | `.py`, `.rs`, `.js`, `.ts`, `.sh`, `.sql`, `.graphql`, `.proto` |
+| Style | CSS, SVG | `.css`, `.svg` |
+| Calendar | iCalendar, vCard, Email | `.ics`, `.vcf`, `.eml` |
+| Logs | Log files | `.log` |
 
 ## Performance
 

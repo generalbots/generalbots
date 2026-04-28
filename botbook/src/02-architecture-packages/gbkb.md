@@ -6,7 +6,7 @@ The `.gbkb` package contains your bot's domain knowledge - documents that the AI
 
 When you place documents in a `.gbkb` folder, the system automatically:
 
-1. **Extracts text** from your files (PDF, DOCX, TXT, MD, HTML, CSV)
+1. **Extracts text** from your files (PDF, DOCX, XLSX, PPTX, EPUB, TXT, MD, HTML, CSV, JSON, YAML, TOML, and more)
 2. **Creates searchable indexes** using vector embeddings
 3. **Enables semantic search** so users can ask questions naturally
 
@@ -45,13 +45,20 @@ CLEAR KB "policies"
 
 ## Supported File Types
 
-| Format | Extensions |
-|--------|------------|
-| PDF | `.pdf` |
-| Word | `.docx`, `.doc` |
-| Text | `.txt`, `.md` |
-| Web | `.html` |
-| Data | `.csv`, `.json` |
+| Category | Formats | Extensions |
+|----------|---------|------------|
+| **Documents** | PDF, Word | `.pdf`, `.docx`, `.doc` |
+| **Spreadsheets** | Excel, OpenDocument | `.xlsx`, `.xls`, `.ods` |
+| **Presentations** | PowerPoint, OpenDocument | `.pptx`, `.ppt`, `.odp` |
+| **E-books** | EPUB, OpenDocument Text | `.epub`, `.odt` |
+| **Text** | Plain, Markdown, reStructuredText, AsciiDoc | `.txt`, `.md`, `.rst`, `.adoc` |
+| **Web** | HTML | `.html` |
+| **Data** | CSV, JSON, JSONL, TSV | `.csv`, `.json`, `.jsonl`, `.tsv` |
+| **Config** | YAML, TOML, INI, Properties | `.yaml`, `.yml`, `.toml`, `.ini`, `.conf`, `.cfg`, `.env`, `.properties` |
+| **Code** | Python, Rust, JS/TS, Shell, SQL, GraphQL, Proto | `.py`, `.rs`, `.js`, `.ts`, `.sh`, `.sql`, `.graphql`, `.proto` |
+| **Style** | CSS, SVG | `.css`, `.svg` |
+| **Calendar** | iCalendar, vCard, Email | `.ics`, `.vcf`, `.eml` |
+| **Logs** | Log files | `.log` |
 
 ## Key Points
 
