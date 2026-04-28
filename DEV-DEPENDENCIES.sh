@@ -52,8 +52,16 @@ command -v mold &> /dev/null || install_mold
 
 configure_cargo() {
 echo "Configuring Cargo for fast linking (mold/lld)..."
-mkdir -p /home/gbuser/.cargo
-cat > /home/gbuser/.cargo/config.toml << 'EOF'
+
+# Detect current user's home directory
+if [ -n "$SUDO_USER" ]; then
+    USER_HOME=$(eval echo ~$SUDO_USER)
+else
+    USER_HOME=$HOME
+fi
+
+mkdir -p "$USER_HOME/.cargo"
+cat > "$USER_HOME/.cargo/config.toml" << 'EOF'
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=lld"]
@@ -61,7 +69,9 @@ rustflags = ["-C", "link-arg=-fuse-ld=lld"]
 [build]
 jobs = 6
 EOF
-echo "Cargo configured! Link time reduced by ~30-40%"
+
+echo "Cargo configured for $USER_HOME!"
+echo "Link time reduced by ~30-40%"
 }
 
 configure_cargo
