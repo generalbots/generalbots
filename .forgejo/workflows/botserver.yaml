@@ -33,8 +33,8 @@ jobs:
           export RUSTC_WRAPPER=sccache
           echo "=== sccache stats before build ==="
           sccache --show-stats 2>/dev/null || echo "sccache not available"
-          CARGO_BUILD_JOBS=6 cargo build -p botserver --bin botserver
-          CARGO_BUILD_JOBS=6 cargo build -p botui --bin botui
+        CARGO_BUILD_JOBS=6 cargo build -p botserver --bin botserver
+        CARGO_BUILD_JOBS=6 cargo build -p botui --bin botui --release
           echo "=== sccache stats after build ==="
           sccache --show-stats 2>/dev/null || echo "sccache not available"
 
@@ -45,7 +45,7 @@ jobs:
             /opt/gbo/work/generalbots/target/debug/botserver \
             gbuser@system:/opt/gbo/bin/botserver-new
           scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-            /opt/gbo/work/generalbots/target/debug/botui \
+            /opt/gbo/work/generalbots/target/release/botui \
             gbuser@system:/opt/gbo/bin/botui-new
           ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             gbuser@system \
