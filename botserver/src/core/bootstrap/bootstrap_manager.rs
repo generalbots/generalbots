@@ -1,6 +1,6 @@
 // Bootstrap manager implementation
 use crate::core::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgress};
-use crate::core::bootstrap::bootstrap_utils::{alm_ci_health_check, alm_health_check, cache_health_check, drive_health_check, safe_pkill, tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check};
+use crate::core::bootstrap::bootstrap_utils::{alm_health_check, cache_health_check, drive_health_check, safe_pkill, tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check};
 use crate::core::config::AppConfig;
 use crate::core::package_manager::{InstallMode, PackageManager};
 use crate::core::shared::utils::get_stack_path;
@@ -260,22 +260,23 @@ impl BootstrapManager {
             }
         }
 
-        if pm.is_installed("alm-ci") {
-            let alm_ci_already_running = alm_ci_health_check();
-            if alm_ci_already_running {
-                info!("ALM CI (Forgejo Runner) is already running");
-            } else {
-                info!("Starting ALM CI (Forgejo Runner) service...");
-                match pm.start("alm-ci") {
-                    Ok(_child) => {
-                        info!("ALM CI service started");
-                    }
-                    Err(e) => {
-                        warn!("Failed to start ALM CI service: {}", e);
-                    }
-                }
-            }
-        }
+    // TEMP DISABLED: ALM CI startup hangs bootstrap
+    // if pm.is_installed("alm-ci") {
+    //     let alm_ci_already_running = alm_ci_health_check();
+    //     if alm_ci_already_running {
+    //     info!("ALM CI (Forgejo Runner) is already running");
+    //     } else {
+    //     info!("Starting ALM CI (Forgejo Runner) service...");
+    //     match pm.start("alm-ci") {
+    //         Ok(_child) => {
+    //         info!("ALM CI service started");
+    //         }
+    //         Err(e) => {
+    //         warn!("Failed to start ALM CI service: {}", e);
+    //         }
+    //     }
+    //     }
+    // }
 
         // Caddy is the web server
         let caddy_cmd = SafeCommand::new("caddy")

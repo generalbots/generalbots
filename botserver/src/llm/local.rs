@@ -61,7 +61,7 @@ pub async fn ensure_llama_servers_running(
         )
     };
     let (
-        _default_bot_id,
+        default_bot_id,
         llm_server_enabled,
         llm_url,
         llm_model,
@@ -79,19 +79,44 @@ pub async fn ensure_llama_servers_running(
         llm_server_path
     };
 
-    let llm_model = if llm_model.is_empty() {
-        info!("No LLM model configured, using default: DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf");
-        "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string()
-    } else {
-        llm_model
-    };
+let llm_url = if llm_url.is_empty() && llm_server_enabled {
+    let url = "http://localhost:8081/v1/chat/completions".to_string();
+    info!("No llm-url configured with local server enabled, using default: {url}");
+    let config_manager = ConfigManager::new(app_state.conn.clone());
+    if let Err(e) = config_manager.set_config(&default_bot_id, "llm-url", &url) {
+        warn!("Failed to persist default llm-url: {e}");
+    }
+    url
+} else {
+    llm_url
+};
 
-    let embedding_model = if embedding_model.is_empty() {
-        info!("No embedding model configured, using default: bge-small-en-v1.5-f32.gguf");
-        "bge-small-en-v1.5-f32.gguf".to_string()
-    } else {
-        embedding_model
-    };
+let llm_model = if llm_model.is_empty() {
+    info!("No LLM model configured, using default: DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf");
+    "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string()
+} else {
+    llm_model
+};
+
+let embedding_model = if embedding_model.is_empty() {
+    info!("No embedding model configured, using default: bge-small-en-v1.5-f32.gguf");
+    "bge-small-en-v1.5-f32.gguf".to_string()
+} else {
+    embedding_model
+};
+
+let embedding_url = if embedding_url.is_empty() {
+    let default_port = "8082";
+    let url = format!("http://localhost:{default_port}/v1/embeddings");
+    info!("No embedding-url configured, using default: {url}");
+    let config_manager = ConfigManager::new(app_state.conn.clone());
+    if let Err(e) = config_manager.set_config(&default_bot_id, "embedding-url", &url) {
+        warn!("Failed to persist default embedding-url: {e}");
+    }
+    url
+} else {
+    embedding_url
+};
 
     // For llama-server startup, use path relative to botserver root
     // The models are in <stack_path>/data/llm/ and the llama-server runs from botserver root
@@ -443,7 +468,7 @@ pub fn start_llm_server(
         .unwrap_or_else(|_| "32000".to_string());
     let n_ctx_size = if n_ctx_size.is_empty() { "32000".to_string() } else { n_ctx_size };
 
-    let _cmd_path = if cfg!(windows) {
+    let cmd_path = if cfg!(windows) {
         format!("{}\\llama-server.exe", llama_cpp_path)
     } else {
         format!("{}/llama-server", llama_cpp_path)
@@ -489,12 +514,10 @@ pub fn start_llm_server(
     args_vec.push(&n_ctx_size);
     args_vec.push("--verbose");
 
-    let mut command = SafeCommand::new("llama-server")?;
+    let mut command = SafeCommand::new(&cmd_path)?;
     command = command.args(&args_vec)?;
-
-    if cfg!(windows) {
-        command = command.working_dir(std::path::Path::new(&llama_cpp_path))?;
-    }
+    command = command.working_dir(std::path::Path::new(&llama_cpp_path))?;
+    command = command.env("LD_LIBRARY_PATH", &llama_cpp_path)?;
 
     let log_file_path = if cfg!(windows) {
         format!("{}\\llm-stdout.log", llama_cpp_path)
@@ -558,22 +581,27 @@ pub async fn start_embedding_server(
         "-m", &model_path,
         "--host", "0.0.0.0",
         "--port", port,
-        "--embedding",
+        "--embeddings",
+        "--pooling", "mean",
         "--n-gpu-layers", "0",
-        "--verbose",
+        "--ctx-size", "512",
     ];
 
     if !cfg!(windows) {
         args_vec.push("--ubatch-size");
-        args_vec.push("2048");
+        args_vec.push("512");
     }
 
-    let mut command = SafeCommand::new("llama-server")?;
+    let cmd_path = if cfg!(windows) {
+        format!("{}\\llama-server.exe", llama_cpp_path)
+    } else {
+        format!("{}/llama-server", llama_cpp_path)
+    };
+
+    let mut command = SafeCommand::new(&cmd_path)?;
     command = command.args(&args_vec)?;
-
-    if cfg!(windows) {
-        command = command.working_dir(std::path::Path::new(&llama_cpp_path))?;
-    }
+    command = command.working_dir(std::path::Path::new(&llama_cpp_path))?;
+    command = command.env("LD_LIBRARY_PATH", &llama_cpp_path)?;
 
     let log_file_path = if cfg!(windows) {
         format!("{}\\stdout.log", llama_cpp_path)
