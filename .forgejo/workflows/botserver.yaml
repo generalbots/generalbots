@@ -33,9 +33,6 @@ jobs:
       - name: Build BotServer and BotUI
         run: |
           cd /opt/gbo/work/generalbots
-          # Build with default features (excludes ooxmlsdk - no heavy docs feature)
-          # Default features: chat, automation, cache, llm, vectordb, crawler, drive, directory, kb-extraction
-          # Using sccache for faster incremental builds
           export RUSTC_WRAPPER=sccache
           echo "=== sccache stats before build ==="
           sccache --show-stats 2>/dev/null || echo "sccache not available"
@@ -48,7 +45,6 @@ jobs:
         run: |
           echo "=== Deploying BotServer and BotUI to Stage ==="
           
-          # Copy both binaries to stage system container
           scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             /opt/gbo/work/target/debug/botserver \
             ${SYSTEM_USER}@${STAGE_SYSTEM_HOST}:/opt/gbo/bin/botserver-new
@@ -57,7 +53,6 @@ jobs:
             /opt/gbo/work/target/debug/botui \
             ${SYSTEM_USER}@${STAGE_SYSTEM_HOST}:/opt/gbo/bin/botui-new
           
-          # Restart services on stage
           ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             ${SYSTEM_USER}@${STAGE_SYSTEM_HOST} "\
               sudo systemctl stop botserver && \
@@ -70,7 +65,6 @@ jobs:
           
           sleep 10
           
-          # Health checks
           ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             ${SYSTEM_USER}@${STAGE_SYSTEM_HOST} "\
               curl -sf http://localhost:8080/health && echo '✅ BotServer OK' || echo '❌ BotServer FAILED'; \
