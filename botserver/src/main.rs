@@ -255,6 +255,7 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
         Ok(existing) if !existing.is_empty() => format!("{},{}", existing, noise_filters),
         _ => format!("info,{}", noise_filters),
     };
+// Test mold+sccache build
 
     std::env::set_var("RUST_LOG", &rust_log);
 
