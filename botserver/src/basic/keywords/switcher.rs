@@ -213,7 +213,7 @@ pub fn get_switchers(
                 debug!("get_switchers: Retrieved {} switchers from Redis key '{}' for session {}", 
                     switchers.len(), redis_key, session_id);
                 for sw in &switchers {
-                    debug!("  - Switcher: id={}, label={}", sw.id, sw.label.as_deref().unwrap_or(""));
+                    debug!("  - Switcher: id={}, label={}", sw.id, sw.label.as_ref().unwrap_or(""));
                 }
             }
             Err(e) => {
