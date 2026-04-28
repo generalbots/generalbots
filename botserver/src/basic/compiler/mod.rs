@@ -535,7 +535,8 @@ impl BasicCompiler {
                 .replace("GROUP BY", "GROUP_BY")
                 .replace("ADD SUGGESTION TOOL", "ADD_SUGGESTION_TOOL")
                 .replace("ADD SUGGESTION TEXT", "ADD_SUGGESTION_TEXT")
-        .replace("ADD SUGGESTION", "ADD_SUGGESTION");
+                .replace("ADD SUGGESTION", "ADD_SUGGESTION")
+                .replace("ADD SWITCHER", "ADD_SWITCHER");
             if normalized.starts_with("SET SCHEDULE") || trimmed.starts_with("SET SCHEDULE") {
                 has_schedule = true;
                 let parts: Vec<&str> = normalized.split('"').collect();
