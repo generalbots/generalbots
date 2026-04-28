@@ -18,7 +18,7 @@ Document → Extract Text → Chunk → Embed → Store in Qdrant
 
 | Stage | Description |
 |-------|-------------|
-| **Extract** | Pull text from PDF, DOCX, HTML, MD, TXT, CSV |
+| **Extract** | Pull text from PDF, DOCX, DOC, XLSX, XLS, ODS, PPTX, PPT, ODP, EPUB, ODT, HTML, MD, TXT, CSV, JSON, YAML, TOML, and more |
 | **Chunk** | Split into ~500 token segments with 50 token overlap |
 | **Embed** | Generate vectors using BGE model |
 | **Store** | Save to Qdrant with metadata |
@@ -28,10 +28,20 @@ Document → Extract Text → Chunk → Embed → Store in Qdrant
 | Format | Notes |
 |--------|-------|
 | PDF | Full text extraction, OCR for scanned docs |
-| DOCX | Microsoft Word documents |
-| TXT/MD | Plain text and Markdown |
+| DOCX/DOC | Microsoft Word documents |
+| XLSX/XLS/ODS | Spreadsheets (Excel, OpenDocument) — each row indexed |
+| PPTX/PPT/ODP | Presentations (PowerPoint, OpenDocument) — slide text extracted |
+| EPUB/ODT | E-books and OpenDocument text |
+| TXT/MD/RST/ADOC | Plain text, Markdown, reStructuredText, AsciiDoc |
 | HTML | Web pages (text only) |
-| CSV/JSON | Structured data |
+| CSV/TSV | Tabular data — each row indexed separately |
+| JSON/JSONL | Structured data |
+| YAML/TOML/INI | Configuration files |
+| PY/RS/JS/TS/SH/SQL | Source code files |
+| CSS/SVG | Style and vector graphics |
+| ICS/VCF/EML | Calendar, contacts, email |
+| LOG | Log files |
+| Any `text/*` MIME | Catch-all for any text-based format (max 100MB) |
 
 ## Website Indexing
 
