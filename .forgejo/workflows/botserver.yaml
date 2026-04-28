@@ -18,7 +18,7 @@ jobs:
       CARGO_TARGET_DIR: /opt/gbo/work/target
       RUSTC_WRAPPER: sccache
       PATH: /home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin
-      STAGE_SYSTEM_HOST: system
+      STAGE_SYSTEM_HOST: 10.0.3.10
       SYSTEM_USER: gbuser
     
     steps:
