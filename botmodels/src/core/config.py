@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     project_name: str = "BotModels API"
     version: str = "2.0.0"
     api_key: str = "change-me"
+    commit: str = "unknown"
 
     # External Providers for Speech (Optional)
     groq_api_key: Optional[str] = None

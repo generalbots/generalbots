@@ -29,7 +29,10 @@ class AnomalyResult(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "service": "anomaly-detection"}
+    return {"status": "healthy", "service": "anomaly-detection", "commit": os.environ.get("BOTMODELS_COMMIT", "unknown")}
+
+
+import os
 
 
 @app.post("/api/detect", response_model=AnomalyResult)
