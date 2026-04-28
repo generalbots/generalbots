@@ -1,73 +1,66 @@
 name: BotServer CI
 
 on:
-push:
-branches: [main]
-paths:
-- "botserver/**"
-- "botui/**"
-- "botlib/**"
-- ".forgejo/workflows/botserver.yaml"
-- "Cargo.toml"
-- "Cargo.lock"
+  push:
+    branches: [main]
+    paths:
+      - "botserver/**"
+      - "botui/**"
+      - "botlib/**"
+      - ".forgejo/workflows/botserver.yaml"
+      - "Cargo.toml"
+      - "Cargo.lock"
 
 jobs:
-build:
-runs-on: gbo
-env:
-CARGO_TARGET_DIR: /opt/gbo/work/target
-RUSTC_WRAPPER: sccache
-CARGO_INCREMENTAL: "0"
-SCCACHE_RECACHE: ""
-PATH: /home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin
-STAGE_SYSTEM_HOST: 10.0.3.10
-SYSTEM_USER: gbuser
+  build:
+    runs-on: gbo
+    env:
+      CARGO_TARGET_DIR: /opt/gbo/work/target
+      RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: "0"
+      PATH: /home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin
+      STAGE_SYSTEM_HOST: 10.0.3.10
+      SYSTEM_USER: gbuser
+    steps:
+      - name: Setup
+        run: |
+          cd /opt/gbo/work/generalbots
+          git pull
+          git submodule update --init --recursive
+          git log --oneline -1
 
-steps:
-- name: Setup
-run: |
-cd /opt/gbo/work/generalbots
-git pull
-git submodule update --init --recursive
-git log --oneline -1
+      - name: Build BotServer and BotUI
+        run: |
+          cd /opt/gbo/work/generalbots
+          rustup default stable
+          export RUSTC_WRAPPER=sccache
+          echo "=== sccache stats before build ==="
+          sccache --show-stats 2>/dev/null || echo "sccache not available"
+          CARGO_BUILD_JOBS=6 cargo build -p botserver --bin botserver
+          CARGO_BUILD_JOBS=6 cargo build -p botui --bin botui
+          echo "=== sccache stats after build ==="
+          sccache --show-stats 2>/dev/null || echo "sccache not available"
 
-- name: Build BotServer and BotUI
-run: |
-cd /opt/gbo/work/generalbots
-rustup default stable
-export RUSTC_WRAPPER=sccache
-echo "=== sccache stats before build ==="
-sccache --show-stats 2>/dev/null || echo "sccache not available"
-CARGO_BUILD_JOBS=6 cargo build -p botserver --bin botserver
-CARGO_BUILD_JOBS=6 cargo build -p botui --bin botui
-echo "=== sccache stats after build ==="
-sccache --show-stats 2>/dev/null || echo "sccache not available"
-
-- name: Deploy to Stage
-run: |
-echo "=== Deploying BotServer and BotUI to Stage ==="
-
-scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-/opt/gbo/work/target/debug/botserver \
-${SYSTEM_USER}@${STAGE_SYSTEM_HOST}:/opt/gbo/bin/botserver-new
-
-scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-/opt/gbo/work/target/debug/botui \
-${SYSTEM_USER}@${STAGE_SYSTEM_HOST}:/opt/gbo/bin/botui-new
-
-ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-${SYSTEM_USER}@${STAGE_SYSTEM_HOST} "\
-sudo systemctl stop botserver || true && \
-sudo systemctl stop ui || true && \
-sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && \
-sudo mv /opt/gbo/bin/botui-new /opt/gbo/bin/botui && \
-sudo chmod +x /opt/gbo/bin/botserver /opt/gbo/bin/botui && \
-sudo systemctl start botserver && \
-sudo systemctl start ui"
-
-sleep 10
-
-ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-${SYSTEM_USER}@${STAGE_SYSTEM_HOST} "\
-curl -sf http://localhost:8080/health && echo 'BotServer OK' || echo 'BotServer FAILED'; \
-curl -sf http://localhost:3000/ && echo 'BotUI OK' || echo 'BotUI FAILED'"
+      - name: Deploy to Stage
+        run: |
+          echo "=== Deploying BotServer and BotUI to Stage ==="
+          scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            /opt/gbo/work/target/debug/botserver \
+            ${SYSTEM_USER}@${STAGE_SYSTEM_HOST}:/opt/gbo/bin/botserver-new
+          scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            /opt/gbo/work/target/debug/botui \
+            ${SYSTEM_USER}@${STAGE_SYSTEM_HOST}:/opt/gbo/bin/botui-new
+          ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            ${SYSTEM_USER}@${STAGE_SYSTEM_HOST} \
+            "sudo systemctl stop botserver || true && \
+             sudo systemctl stop ui || true && \
+             sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && \
+             sudo mv /opt/gbo/bin/botui-new /opt/gbo/bin/botui && \
+             sudo chmod +x /opt/gbo/bin/botserver /opt/gbo/bin/botui && \
+             sudo systemctl start botserver && \
+             sudo systemctl start ui"
+          sleep 10
+          ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            ${SYSTEM_USER}@${STAGE_SYSTEM_HOST} \
+            "curl -sf http://localhost:8080/health && echo 'BotServer OK' || echo 'BotServer FAILED'; \
+             curl -sf http://localhost:3000/ && echo 'BotUI OK' || echo 'BotUI FAILED'"
