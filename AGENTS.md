@@ -224,6 +224,11 @@ result = DETECT "folha_salarios"
 
 ## 💬 Common BASIC Keywords Reference
 
+### Language Guidelines
+- Use formal language in all comments and documentation
+- Avoid slang, neologisms, or informal expressions
+- Maintain professional tone in code comments
+
 ### TALK - Bot Response
 
 ```basic
