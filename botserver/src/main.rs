@@ -1,7 +1,7 @@
 #![recursion_limit = "512"]
 
 // Module declarations
-pub mod main_module;
+pub mod main_module; // ci-timing
 
 // Re-export commonly used items from main_module
 pub use main_module::{BootstrapProgress, health_check, health_check_simple, receive_client_errors};
