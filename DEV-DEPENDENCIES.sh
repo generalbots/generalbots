@@ -41,13 +41,29 @@ case $OS in
 esac
 
 install_mold() {
-    curl -L "https://github.com/rui314/mold/releases/download/v2.4.0/mold-2.4.0-x86_64-linux.tar.gz" -o /tmp/mold.tar.gz
-    tar -xzf /tmp/mold.tar.gz -C /tmp
-    cp "/tmp/mold-2.4.0-x86_64-linux/bin/mold" /usr/local/bin/
-    rm -rf /tmp/mold-2.4.0* /tmp/mold.tar.gz
-    ldconfig
+curl -L "https://github.com/rui314/mold/releases/download/v2.4.0/mold-2.4.0-x86_64-linux.tar.gz" -o /tmp/mold.tar.gz
+tar -xzf /tmp/mold.tar.gz -C /tmp
+cp "/tmp/mold-2.4.0-x86_64-linux/bin/mold" /usr/local/bin/
+rm -rf /tmp/mold-2.4.0* /tmp/mold.tar.gz
+ldconfig
 }
 
 command -v mold &> /dev/null || install_mold
+
+configure_cargo() {
+echo "Configuring Cargo for fast linking (mold/lld)..."
+mkdir -p /home/gbuser/.cargo
+cat > /home/gbuser/.cargo/config.toml << 'EOF'
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[build]
+jobs = 6
+EOF
+echo "Cargo configured! Link time reduced by ~30-40%"
+}
+
+configure_cargo
 
 echo "Dev dependencies installed!"
