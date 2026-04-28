@@ -50,30 +50,13 @@ ldconfig
 
 command -v mold &> /dev/null || install_mold
 
-configure_cargo() {
-echo "Configuring Cargo for fast linking (mold/lld)..."
-
-# Detect current user's home directory
-if [ -n "$SUDO_USER" ]; then
-    USER_HOME=$(eval echo ~$SUDO_USER)
-else
-    USER_HOME=$HOME
-fi
-
-mkdir -p "$USER_HOME/.cargo"
-cat > "$USER_HOME/.cargo/config.toml" << 'EOF'
-[target.x86_64-unknown-linux-gnu]
-linker = "clang"
-rustflags = ["-C", "link-arg=-fuse-ld=lld"]
-
-[build]
-jobs = 6
-EOF
-
-echo "Cargo configured for $USER_HOME!"
-echo "Link time reduced by ~30-40%"
-}
-
-configure_cargo
-
 echo "Dev dependencies installed!"
+echo ""
+echo "✅ Tools installed: clang, lld, mold, sccache"
+echo "📦 Project will use .cargo/config.toml from workspace"
+echo "⚡ Link time reduced by ~30-40% with mold/lld"
+echo ""
+echo "Next steps:"
+echo "  1. Run: ./DEV-DEPENDENCIES.sh (already done)"
+echo "  2. Workspace .cargo/config.toml will be used automatically"
+echo "  3. Build: cargo build -p botserver --bin botserver"
