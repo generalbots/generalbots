@@ -20,6 +20,7 @@ jobs:
       PATH: /home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin
       STAGE_SYSTEM_HOST: "system"
       SYSTEM_USER: gbuser
+      CARGO_BUILD_JOBS=8
     
     steps:
       - name: Setup
@@ -33,8 +34,8 @@ jobs:
       - name: Build BotServer and BotUI
         run: |
           cd /opt/gbo/work/generalbots
-          CARGO_BUILD_JOBS=6 RUST_WRAPPER=/usr/local/bin/sccache cargo build -p botserver --bin botserver
-          CARGO_BUILD_JOBS=6 RUST_WRAPPER=/usr/local/bin/sccache cargo build -p botui --bin botui
+          cargo build -p botserver --bin botserver
+          cargo build -p botui --bin botui
       
       - name: Deploy to Stage
         run: |
