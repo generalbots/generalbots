@@ -16,14 +16,18 @@ jobs:
     runs-on: gbo
     env:
       RUSTC_WRAPPER: sccache
-      CARGO_INCREMENTAL: "0"
+          CARGO_INCREMENTAL: "1"
       PATH: /home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin
     steps:
       - name: Setup
         run: |
           cd /opt/gbo/work/generalbots
-          git pull
-          git ls-files -z | xargs -0 touch -d "@$(git log -1 --format='%ct')"
+          OLD_REV=$(git rev-parse HEAD)
+          git pull --rebase || git rebase --abort && git reset --hard origin/main
+          NEW_REV=$(git rev-parse HEAD)
+          if [ "$OLD_REV" != "$NEW_REV" ]; then
+            git diff --name-only -z "$OLD_REV" "$NEW_REV" | xargs -0 touch
+          fi
           git log --oneline -1
 
       - name: Build BotServer and BotUI
