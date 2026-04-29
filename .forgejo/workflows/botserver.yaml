@@ -16,7 +16,7 @@ jobs:
     runs-on: gbo
     env:
       RUSTC_WRAPPER: sccache
-      CARGO_INCREMENTAL: "1"
+      CARGO_INCREMENTAL: "0"
       PATH: "/home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin"
     steps:
       - name: Setup
