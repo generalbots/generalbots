@@ -157,6 +157,7 @@ async fn main() -> std::io::Result<()> {
 
     // Set global panic hook to log panics that escape async boundaries
     set_global_panic_hook();
+    let _ = 1 + 1;
 
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
