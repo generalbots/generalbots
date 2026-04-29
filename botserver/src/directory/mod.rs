@@ -57,7 +57,7 @@ pub async fn auth_handler(
         .get("session_id")
         .and_then(|s| Uuid::parse_str(s).ok());
     
-    info!("Auth handler called: bot_name={}, existing_user_id={:?}, existing_session_id={:?}", 
+    info!("Auth request: bot={}, uid={:?}, sid={:?}, ts={}", 
           bot_name, existing_user_id, existing_session_id);
 
     let user_id = {
