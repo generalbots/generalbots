@@ -26,19 +26,26 @@ install_rust() {
 }
 
 install_sccache() {
+  WANT_VER="0.14.0"
+  CURRENT_VER=""
   if command -v sccache &> /dev/null; then
-    echo "sccache already installed: $(sccache --version)"
-  else
-    echo "Installing sccache..."
-    SCCACHE_VER="v0.8.1"
-    ARCH=$(uname -m)
-    curl -L "https://github.com/mozilla/sccache/releases/download/${SCCACHE_VER}/sccache-${SCCACHE_VER}-${ARCH}-unknown-linux-musl.tar.gz" -o /tmp/sccache.tar.gz
-    tar -xzf /tmp/sccache.tar.gz -C /tmp
-    cp "/tmp/sccache-${SCCACHE_VER}-${ARCH}-unknown-linux-musl/sccache" /usr/local/bin/
-    chmod +x /usr/local/bin/sccache
-    rm -rf /tmp/sccache*
-    echo "sccache installed: $(sccache --version)"
+    CURRENT_VER=$(sccache --version 2>/dev/null | grep -oP '[\d.]+' | head -1)
   fi
+  if [ "$CURRENT_VER" = "$WANT_VER" ]; then
+    echo "sccache $WANT_VER already installed"
+    return
+  fi
+  echo "Upgrading sccache from ${CURRENT_VER:-none} to $WANT_VER..."
+  rm -f /usr/local/bin/sccache /usr/local/bin/sccache-dist
+  if ! command -v cargo-binstall &> /dev/null; then
+    echo "Installing cargo-binstall..."
+    curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    cp /root/.cargo/bin/cargo-binstall /usr/local/bin/ 2>/dev/null || true
+  fi
+  cargo binstall -y sccache@$WANT_VER --targets x86_64-unknown-linux-musl
+  find /root/.cargo/bin /home/*/.cargo/bin -name sccache -exec cp {} /usr/local/bin/ \; 2>/dev/null || true
+  chmod +x /usr/local/bin/sccache
+  sccache --version
 }
 
 install_mold() {
