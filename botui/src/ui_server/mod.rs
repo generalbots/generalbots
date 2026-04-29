@@ -595,13 +595,16 @@ pub fn remove_section(html: &str, section: &str) -> String {
 }
 
 async fn health(State(state): State<AppState>) -> (StatusCode, axum::Json<serde_json::Value>) {
+    let commit = option_env!("BOTUI_COMMIT").unwrap_or("unknown");
     if state.health_check().await {
         (
             StatusCode::OK,
             axum::Json(serde_json::json!({
                 "status": "healthy",
                 "service": "botui",
-                "mode": "web"
+                "mode": "web",
+                "version": env!("CARGO_PKG_VERSION"),
+                "commit": commit
             })),
         )
     } else {
@@ -610,20 +613,24 @@ async fn health(State(state): State<AppState>) -> (StatusCode, axum::Json<serde_
             axum::Json(serde_json::json!({
                 "status": "unhealthy",
                 "service": "botui",
-                "error": "botserver unreachable"
+                "error": "botserver unreachable",
+                "version": env!("CARGO_PKG_VERSION"),
+                "commit": commit
             })),
         )
     }
 }
 
 async fn api_health(State(state): State<AppState>) -> (StatusCode, axum::Json<serde_json::Value>) {
+    let commit = option_env!("BOTUI_COMMIT").unwrap_or("unknown");
     if state.health_check().await {
         (
             StatusCode::OK,
             axum::Json(serde_json::json!({
                 "status": "ok",
                 "botserver": "healthy",
-                "version": env!("CARGO_PKG_VERSION")
+                "version": env!("CARGO_PKG_VERSION"),
+                "commit": commit
             })),
         )
     } else {
@@ -632,7 +639,8 @@ async fn api_health(State(state): State<AppState>) -> (StatusCode, axum::Json<se
             axum::Json(serde_json::json!({
                 "status": "error",
                 "botserver": "unhealthy",
-                "version": env!("CARGO_PKG_VERSION")
+                "version": env!("CARGO_PKG_VERSION"),
+                "commit": commit
             })),
         )
     }

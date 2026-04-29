@@ -1693,18 +1693,21 @@ VAULT_CACERT={}
                     ("smtp_from".to_string(), "none".to_string()),
                 ],
             ),
-            (
-                "secret/gbo/llm",
-                vec![
-                    ("url".to_string(), "".to_string()),
-                    ("host".to_string(), "localhost".to_string()),
-                    ("port".to_string(), "8081".to_string()),
-                    ("model".to_string(), "gpt-4".to_string()),
-                    ("openai_key".to_string(), "none".to_string()),
-                    ("anthropic_key".to_string(), "none".to_string()),
-                    ("ollama_url".to_string(), "".to_string()),
-                ],
-            ),
+        (
+            "secret/gbo/llm",
+            vec![
+                ("url".to_string(), "".to_string()),
+                ("host".to_string(), "localhost".to_string()),
+                ("port".to_string(), "8081".to_string()),
+                ("model".to_string(), "gpt-4".to_string()),
+                ("openai_key".to_string(), "none".to_string()),
+                ("anthropic_key".to_string(), "none".to_string()),
+                ("ollama_url".to_string(), "".to_string()),
+                ("embedding_url".to_string(), "http://localhost:8082/v1/embeddings".to_string()),
+                ("embedding_model".to_string(), "bge-small-en-v1.5-f32.gguf".to_string()),
+                ("embedding_port".to_string(), "8082".to_string()),
+            ],
+        ),
             (
                 "secret/gbo/encryption",
                 vec![("master_key".to_string(), master_key)],

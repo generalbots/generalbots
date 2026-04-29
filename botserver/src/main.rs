@@ -1,7 +1,7 @@
 #![recursion_limit = "512"]
 
 // Module declarations
-pub mod main_module;
+pub mod main_module; // ci-timing
 
 // Re-export commonly used items from main_module
 pub use main_module::{BootstrapProgress, health_check, health_check_simple, receive_client_errors};
@@ -255,6 +255,7 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
         Ok(existing) if !existing.is_empty() => format!("{},{}", existing, noise_filters),
         _ => format!("info,{}", noise_filters),
     };
+// Test mold+sccache build
 
     std::env::set_var("RUST_LOG", &rust_log);
 
@@ -433,3 +434,4 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
     Ok(())
 }
 // force rebuild Fri Apr  3 21:42:33 -03 2026
+// Force new CI run - Tue Apr 28 05:22:39 PM -03 2026
