@@ -37,7 +37,7 @@ pub fn init_logging_and_i18n(no_console: bool, no_ui: bool) {
   \____||_| \_\___|_| |_|\___/|___/_|\_\ |____/ \___/|_|  \__,_|
                                            |_|
 "#);
-    println!("Starting General Bots {}...", env!("CARGO_PKG_VERSION"));
+    println!("General Bots {} starting...", env!("CARGO_PKG_VERSION"));
     }
 
     let locales_path = if std::path::Path::new("./locales").exists() {
