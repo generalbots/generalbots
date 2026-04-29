@@ -1,5 +1,4 @@
 [build]
-rustc-wrapper = "sccache"
 jobs = 6
 
 [target.x86_64-unknown-linux-gnu]
