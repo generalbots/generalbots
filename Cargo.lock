@@ -671,6 +671,7 @@ dependencies = [
  "mimalloc",
  "mockito",
  "num-format",
+ "ole",
  "once_cell",
  "ooxmlsdk",
  "pdf-extract",
@@ -3901,6 +3902,12 @@ checksum = "12f40cff3dde1b6087cc5d5f5d4d65712f34016a03ed60e9c08dcc392736b5b7"
 dependencies = [
  "asn1-rs 0.7.1",
 ]
+
+[[package]]
+name = "ole"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f0add6eeb62fdaf7afd332d52763f27d365cfd047f95e232671532c1efb3a66"
 
 [[package]]
 name = "once_cell"

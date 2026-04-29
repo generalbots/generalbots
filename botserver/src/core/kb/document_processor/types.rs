@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 pub enum DocumentFormat {
     PDF,
     DOCX,
+    DOC,
     XLSX,
+    XLS,
     PPTX,
     TXT,
     MD,
@@ -21,7 +23,9 @@ impl DocumentFormat {
         match ext.as_str() {
             "pdf" => Some(Self::PDF),
             "docx" => Some(Self::DOCX),
+            "doc" => Some(Self::DOC),
             "xlsx" => Some(Self::XLSX),
+            "xls" => Some(Self::XLS),
             "pptx" => Some(Self::PPTX),
             "txt" => Some(Self::TXT),
             "md" | "markdown" => Some(Self::MD),
@@ -38,7 +42,7 @@ impl DocumentFormat {
         match self {
             Self::PDF => 500 * 1024 * 1024,
             Self::PPTX => 200 * 1024 * 1024,
-            Self::DOCX | Self::XLSX | Self::TXT | Self::JSON | Self::XML => 100 * 1024 * 1024,
+            Self::DOCX | Self::DOC | Self::XLSX | Self::XLS | Self::TXT | Self::JSON | Self::XML => 100 * 1024 * 1024,
             Self::HTML | Self::RTF => 50 * 1024 * 1024,
             Self::MD => 10 * 1024 * 1024,
             Self::CSV => 1024 * 1024 * 1024,

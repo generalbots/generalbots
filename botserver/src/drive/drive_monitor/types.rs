@@ -84,21 +84,23 @@ impl DriveMonitor {
 
             if file_type == "bas" {
                 self.sync_bas_to_work(bot_name, &obj.key).await;
+            } else if file_type != "kb" && file_type != "config" {
+                let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
             }
         } else {
             log::trace!("{} unchanged, skipping upsert", full_key);
         }
 
-            if needs_reindex && file_type == "kb" {
-                    #[cfg(any(feature = "research", feature = "llm"))]
-                    {
-                        self.index_kb_file(bot_name, &full_key, &obj.key).await;
-                    }
-                }
+        if needs_reindex && file_type == "kb" {
+            #[cfg(any(feature = "research", feature = "llm"))]
+            {
+                self.index_kb_file(bot_name, &full_key, &obj.key).await;
+            }
+        }
 
-                if file_type == "config" && needs_reindex {
-                    self.sync_bot_config(bot_name, &obj.key).await;
-                }
+        if file_type == "config" && needs_reindex {
+            self.sync_bot_config(bot_name, &obj.key).await;
+        }
                     }
 
         self.handle_deleted_files(bot_name, &current_keys);
