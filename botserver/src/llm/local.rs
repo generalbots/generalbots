@@ -7,12 +7,19 @@ use crate::core::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use reqwest;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio;
+
+static LLAMA_SERVERS_STARTED: AtomicBool = AtomicBool::new(false);
 
 pub async fn ensure_llama_servers_running(
     app_state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    if LLAMA_SERVERS_STARTED.swap(true, Ordering::SeqCst) {
+        info!("ensure_llama_servers_running already called, skipping duplicate invocation");
+        return Ok(());
+    }
     trace!("ensure_llama_servers_running ENTER");
     let start_mem = MemoryStats::current();
     trace!(
@@ -91,32 +98,29 @@ let llm_url = if llm_url.is_empty() && llm_server_enabled {
     llm_url
 };
 
-let llm_model = if llm_model.is_empty() {
-    info!("No LLM model configured, using default: DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf");
-    "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string()
-} else {
-    llm_model
-};
+    // Use config values, fallback to safe defaults for local development
+    let llm_model = if llm_model.is_empty() {
+        info!("No LLM model configured, using default: DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf");
+        "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string()
+    } else {
+        llm_model
+    };
 
-let embedding_model = if embedding_model.is_empty() {
-    info!("No embedding model configured, using default: bge-small-en-v1.5-f32.gguf");
-    "bge-small-en-v1.5-f32.gguf".to_string()
-} else {
-    embedding_model
-};
+    let embedding_model = if embedding_model.is_empty() {
+        info!("No embedding model configured, using default: bge-small-en-v1.5-f32.gguf");
+        "bge-small-en-v1.5-f32.gguf".to_string()
+    } else {
+        embedding_model
+    };
 
-let embedding_url = if embedding_url.is_empty() {
-    let default_port = "8082";
-    let url = format!("http://localhost:{default_port}/v1/embeddings");
-    info!("No embedding-url configured, using default: {url}");
-    let config_manager = ConfigManager::new(app_state.conn.clone());
-    if let Err(e) = config_manager.set_config(&default_bot_id, "embedding-url", &url) {
-        warn!("Failed to persist default embedding-url: {e}");
-    }
-    url
-} else {
-    embedding_url
-};
+    let embedding_url = if embedding_url.is_empty() {
+        let default_port = "8082";
+        let url = format!("http://localhost:{default_port}/v1/embeddings");
+        info!("No embedding-url configured, using default: {url}");
+        url
+    } else {
+        embedding_url
+    };
 
     // For llama-server startup, use path relative to botserver root
     // The models are in <stack_path>/data/llm/ and the llama-server runs from botserver root
@@ -136,38 +140,6 @@ let embedding_url = if embedding_url.is_empty() {
     info!("  LLM Model: {llm_model}");
     info!("  Embedding Model: {embedding_model}");
     info!("  LLM Server Path: {llm_server_path}");
-    info!("Restarting any existing llama-server processes...");
-    trace!("About to pkill llama-server...");
-    let before_pkill = MemoryStats::current();
-    trace!(
-        "[LLM_LOCAL] Before pkill, RSS={}",
-        MemoryStats::format_bytes(before_pkill.rss_bytes)
-    );
-
-    let pkill_result = SafeCommand::new("sh")
-        .and_then(|c| c.arg("-c"))
-        .and_then(|c| c.trusted_shell_script_arg("pkill llama-server -9; true"));
-
-    match pkill_result {
-        Ok(cmd) => {
-            if let Err(e) = cmd.execute() {
-                error!("Failed to execute pkill for llama-server: {e}");
-            } else {
-                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                info!("Existing llama-server processes terminated (if any)");
-            }
-        }
-        Err(e) => error!("Failed to build pkill command: {e}"),
-    }
-    trace!("pkill done");
-
-    let after_pkill = MemoryStats::current();
-    trace!(
-        "[LLM_LOCAL] After pkill, RSS={} (delta={})",
-        MemoryStats::format_bytes(after_pkill.rss_bytes),
-        MemoryStats::format_bytes(after_pkill.rss_bytes.saturating_sub(before_pkill.rss_bytes))
-    );
-
     let llm_running = if llm_url.starts_with("https://") {
         info!("Using external HTTPS LLM server, skipping local startup");
         true
@@ -187,6 +159,23 @@ let embedding_url = if embedding_url.is_empty() {
             set_embedding_server_ready(true);
         }
         return Ok(());
+    }
+
+    info!("Killing existing llama-server processes to restart with correct args...");
+    let pkill_result = SafeCommand::new("sh")
+        .and_then(|c| c.arg("-c"))
+        .and_then(|c| c.trusted_shell_script_arg("pkill llama-server -9; true"));
+
+    match pkill_result {
+        Ok(cmd) => {
+            if let Err(e) = cmd.execute() {
+                error!("Failed to execute pkill for llama-server: {e}");
+            } else {
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                info!("Existing llama-server processes terminated");
+            }
+        }
+        Err(e) => error!("Failed to build pkill command: {e}"),
     }
     let mut tasks = vec![];
     if !llm_running && !llm_model.is_empty() {
@@ -474,6 +463,12 @@ pub fn start_llm_server(
         format!("{}/llama-server", llama_cpp_path)
     };
 
+    // Get ubatch-size from config, default to 512 if not set
+    let ubatch_size = config_manager
+        .get_config(&default_bot_id, "llm-server-ubatch-size", Some("512"))
+        .unwrap_or_else(|_| "512".to_string());
+    let ubatch_size = if ubatch_size.is_empty() { "512".to_string() } else { ubatch_size };
+
     let mut args_vec = vec![
         "-m", &model_path,
         "--host", "0.0.0.0",
@@ -482,7 +477,7 @@ pub fn start_llm_server(
         "--temp", "0.6",
         "--repeat-penalty", "1.2",
         "--n-gpu-layers", &gpu_layers,
-        "--ubatch-size", "2048",
+        "--ubatch-size", &ubatch_size,
     ];
 
     if !reasoning_format.is_empty() {
@@ -578,7 +573,7 @@ pub async fn start_embedding_server(
     };
 
     let mut args_vec = vec![
-        "-m", &model_path,
+        "-m", &full_model_path,
         "--host", "0.0.0.0",
         "--port", port,
         "--embeddings",
@@ -636,5 +631,10 @@ pub async fn start_embedding_server(
 }
 
 fn extract_port(url: &str) -> &str {
-    url.rsplit(':').next().unwrap_or("8081")
+    url.rsplit(':')
+        .next()
+        .unwrap_or("8081")
+        .split('/')
+        .next()
+        .unwrap_or("8081")
 }

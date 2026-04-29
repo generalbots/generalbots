@@ -98,13 +98,14 @@ impl DriveFileRepository {
                 drive_files::created_at.eq(now),
                 drive_files::updated_at.eq(now),
             ))
-            .on_conflict((drive_files::bot_id, drive_files::file_path))
-            .do_update()
-            .set((
-                drive_files::etag.eq(etag_clone),
-                drive_files::last_modified.eq(last_modified_clone),
-                drive_files::updated_at.eq(now),
-            ))
+        .on_conflict((drive_files::bot_id, drive_files::file_path))
+        .do_update()
+        .set((
+            drive_files::file_type.eq(file_type),
+            drive_files::etag.eq(etag_clone),
+            drive_files::last_modified.eq(last_modified_clone),
+            drive_files::updated_at.eq(now),
+        ))
             .execute(&mut conn)
             .map_err(|e| e.to_string())?;
 
