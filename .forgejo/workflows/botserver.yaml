@@ -21,6 +21,7 @@ jobs:
       - name: Setup
         run: |
           cd /opt/gbo/work/generalbots
+          git stash 2>/dev/null || true
           OLD_REV=$(git rev-parse HEAD)
           git pull --rebase || { git rebase --abort; git reset --hard origin/main; }
           NEW_REV=$(git rev-parse HEAD)
