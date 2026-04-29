@@ -33,16 +33,23 @@ install_sccache() {
   fi
   if [ "$CURRENT_VER" = "$WANT_VER" ]; then
     echo "sccache $WANT_VER already installed"
-    return
+  else
+    echo "Upgrading sccache from ${CURRENT_VER:-none} to $WANT_VER..."
+    rm -f /usr/local/bin/sccache /usr/local/bin/sccache-dist
+    ARCH=$(uname -m)
+    curl -L "https://github.com/mozilla/sccache/releases/download/v${WANT_VER}/sccache-v${WANT_VER}-${ARCH}-unknown-linux-musl.tar.gz" -o /tmp/sccache.tar.gz
+    tar -xzf /tmp/sccache.tar.gz -C /tmp
+    cp "/tmp/sccache-v${WANT_VER}-${ARCH}-unknown-linux-musl/sccache" /usr/local/bin/sccache.real
+    chmod +x /usr/local/bin/sccache.real
+    rm -rf /tmp/sccache*
   fi
-  echo "Upgrading sccache from ${CURRENT_VER:-none} to $WANT_VER..."
-  rm -f /usr/local/bin/sccache /usr/local/bin/sccache-dist
-  ARCH=$(uname -m)
-  curl -L "https://github.com/mozilla/sccache/releases/download/v${WANT_VER}/sccache-v${WANT_VER}-${ARCH}-unknown-linux-musl.tar.gz" -o /tmp/sccache.tar.gz
-  tar -xzf /tmp/sccache.tar.gz -C /tmp
-  cp "/tmp/sccache-v${WANT_VER}-${ARCH}-unknown-linux-musl/sccache" /usr/local/bin/sccache
+  # Install wrapper that unsets CARGO_INCREMENTAL before calling sccache.real
+  cat > /usr/local/bin/sccache << 'EOF'
+#!/bin/bash
+unset CARGO_INCREMENTAL
+exec /usr/local/bin/sccache.real "$@"
+EOF
   chmod +x /usr/local/bin/sccache
-  rm -rf /tmp/sccache*
   sccache --version
 }
 
@@ -77,11 +84,8 @@ jobs = -1
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=mold"]
-
-[env]
-RUSTC_WRAPPER = "sccache"
 CARGOCONF
-    echo "Created .cargo/config.toml with mold + sccache"
+    echo "Created .cargo/config.toml with mold"
   else
     echo ".cargo/config.toml already exists, skipping"
   fi
