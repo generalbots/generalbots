@@ -16,16 +16,17 @@ jobs:
     runs-on: gbo
     env:
       RUSTC_WRAPPER: sccache
-          CARGO_INCREMENTAL: "1"
-      PATH: /home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin
+      CARGO_INCREMENTAL: "1"
+      PATH: "/home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin"
     steps:
       - name: Setup
         run: |
           cd /opt/gbo/work/generalbots
           OLD_REV=$(git rev-parse HEAD)
-          git pull --rebase || git rebase --abort && git reset --hard origin/main
+          git pull --rebase || { git rebase --abort; git reset --hard origin/main; }
           NEW_REV=$(git rev-parse HEAD)
-          if [ "$OLD_REV" != "$NEW_REV" ]; then
+          if [ "$OLD_REV" != "$NEW_REV" ]
+          then
             git diff --name-only -z "$OLD_REV" "$NEW_REV" | xargs -0 touch
           fi
           git log --oneline -1
@@ -54,14 +55,14 @@ jobs:
           ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             gbuser@system \
             "sudo systemctl stop botserver || true && \
-             sudo systemctl stop ui || true && \
-             sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && \
-             sudo mv /opt/gbo/bin/botui-new /opt/gbo/bin/botui && \
-             sudo chmod +x /opt/gbo/bin/botserver /opt/gbo/bin/botui && \
-             sudo systemctl start botserver && \
-             sudo systemctl start ui"
+            sudo systemctl stop ui || true && \
+            sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && \
+            sudo mv /opt/gbo/bin/botui-new /opt/gbo/bin/botui && \
+            sudo chmod +x /opt/gbo/bin/botserver /opt/gbo/bin/botui && \
+            sudo systemctl start botserver && \
+            sudo systemctl start ui"
           sleep 10
           ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             gbuser@system \
             "curl -sf http://localhost:5858/api/health && echo 'BotServer OK' || echo 'BotServer FAILED'; \
-             curl -sf http://localhost:3000/ && echo 'BotUI OK' || echo 'BotUI FAILED'"
+            curl -sf http://localhost:3000/ && echo 'BotUI OK' || echo 'BotUI FAILED'"
