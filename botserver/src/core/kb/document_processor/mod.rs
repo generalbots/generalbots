@@ -7,7 +7,6 @@ pub use types::{ChunkMetadata, DocumentFormat, DocumentMetadata, TextChunk};
 use anyhow::Result;
 use log::{debug, info, warn};
 use std::collections::HashMap;
-use std::io::Cursor;
 use std::path::Path;
 use tokio::io::AsyncReadExt;
 

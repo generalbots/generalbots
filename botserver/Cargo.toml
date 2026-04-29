@@ -49,7 +49,7 @@ tickets = ["automation", "drive", "cache"]
 billing = ["automation", "drive", "cache"]
 
 # Document Processing (lightweight - KB extraction without heavy OOXML SDKs)
-kb-extraction = ["drive", "dep:calamine"]
+kb-extraction = ["drive", "dep:calamine", "dep:ole"]
 
 # Documents (full editing UI - opt-in, adds ~4min compile time from ooxmlsdk)
 docs = ["automation", "drive", "cache", "dep:docx-rs", "dep:ooxmlsdk", "kb-extraction"]
@@ -169,6 +169,7 @@ mailparse = { workspace = true, optional = true }
 docx-rs = { workspace = true, optional = true }
 ooxmlsdk = { workspace = true, optional = true, features = ["parts"] }
 calamine = { workspace = true, optional = true }
+ole = { version = "0.1", optional = true }
 rust_xlsxwriter = { workspace = true, optional = true }
 umya-spreadsheet = { workspace = true, optional = true }
 

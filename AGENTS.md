@@ -17,7 +17,7 @@ I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! 
 > - ❌ **NEVER** write internal IPs to logs or output
 > - When debugging network issues, mask IPs (e.g., "10.x.x.x" instead of "10.16.164.222")
 > - Use hostnames instead of IPs in configs and documentation
-See botserver/src/drive/local_file_monitor.rs to see how to load from /opt/gbo/data the list of development bots.
+See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from MinIO drive buckets (`.gbai` format).
 - ❌ **NEVER** use `cargo clean` - causes 30min rebuilds, use `./reset.sh` for database issues
 
 >
@@ -72,8 +72,8 @@ User Message (WebSocket)
 │
 ▼
 ┌─────────────────────────────────┐
-│  2. start.bas Execution         │  /opt/gbo/data/{bot}.gbai/...
-│     - Runs ONCE per session     │  {bot}.gbdialog/start.bas
+│ 2. start.bas Execution │ MinIO: {bot}.gbai/...
+│ - Runs ONCE per session │ {bot}.gbdialog/start.bas
 │     - ADD_SUGGESTION calls      │  Adds button suggestions
 │     - Sets Redis flag           │  prevents re-run
 └──────────────┬──────────────────┘
