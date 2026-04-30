@@ -696,7 +696,11 @@ async fn extract_xlsx_text(file_path: &Path) -> Result<String> {
                             calamine::Data::Empty => String::new(),
                             calamine::Data::String(s)
                             | calamine::Data::DateTimeIso(s)
-                            | calamine::Data::DurationIso(s) => s.clone(),
+                            | calamine::Data::DurationIso(s) => {
+                                // Remove HTML tags from cell text (Calamine formatting artifacts)
+                                let re = regex::Regex::new(r"<[^>]*>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
+                                re.replace_all(s, "").to_string()
+                            },
                             calamine::Data::Float(f) => f.to_string(),
                             calamine::Data::Int(i) => i.to_string(),
                             calamine::Data::Bool(b) => b.to_string(),
