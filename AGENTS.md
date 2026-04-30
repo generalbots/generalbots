@@ -1558,10 +1558,66 @@ sudo incus file push /tmp/config.toml email/opt/gbo/conf/config.toml
 - **Validate:** `caddy validate --config /opt/gbo/conf/config`
 - **Reload:** `caddy reload --config /opt/gbo/conf/config`
 
-#### Storage (MinIO)
+#### Storage (MinIO / Drive)
 - **Console:** Behind proxy
-- **Internal API:** http://<drive-ip>:9000
+- **Internal API:** http://127.0.0.1:9100 (dev stack)
 - **Data:** `/opt/gbo/data`
+- **Bucket format:** `{botname}.gbai` — each bot is a MinIO bucket
+- **Credentials:** Stored in Vault at `secret/gbo/drive`
+
+**Getting Drive credentials from Vault:**
+```bash
+export VAULT_ADDR=https://localhost:8200
+export VAULT_CACERT=/home/ubuntu/src/generalbots/botserver-stack/conf/system/certificates/ca/ca.crt
+
+# Read token from /tmp (preferred) or botserver/.env
+export VAULT_TOKEN=$(cat /tmp/vault-token-gb 2>/dev/null || grep VAULT_TOKEN /home/ubuntu/src/generalbots/botserver/.env | cut -d= -f2)
+
+# Retrieve drive credentials
+VAULT_BIN=/home/ubuntu/src/generalbots/botserver-stack/bin/vault/vault
+DRIVE_ACCESSKEY=$($VAULT_BIN kv get -field=accesskey secret/gbo/drive)
+DRIVE_SECRET=$($VAULT_BIN kv get -field=secret secret/gbo/drive)
+DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
+```
+
+**Using mc (MinIO Client) with Drive:**
+```bash
+# Install mc if not present (to /tmp, never repo root)
+curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /tmp/mc && chmod +x /tmp/mc
+
+# Configure mc alias (use credentials from Vault above)
+/tmp/mc alias set local http://127.0.0.1:${DRIVE_PORT} ${DRIVE_ACCESSKEY} ${DRIVE_SECRET} --api s3v4
+
+# List bot buckets
+/tmp/mc ls local/
+
+# List files in a bot bucket
+/tmp/mc ls local/{botname}.gbai/
+
+# Upload file to bot KB
+/tmp/mc cp /path/to/file.xlsx local/{botname}.gbai/{botname}.gbkb/docs/
+
+# Create a new bot bucket and upload files
+/tmp/mc mb local/testbot.gbai
+/tmp/mc cp start.bas local/testbot.gbai/testbot.gbdialog/start.bas
+
+# Download a file from a bot bucket
+/tmp/mc cp local/{botname}.gbai/{botname}.gbkb/docs/file.xlsx /tmp/
+```
+
+**Vault secret paths for all services:**
+| Path | Contents |
+|------|----------|
+| `secret/gbo/drive` | accesskey, secret, host, port |
+| `secret/gbo/tables` | Database credentials |
+| `secret/gbo/cache` | Valkey/Redis credentials |
+| `secret/gbo/directory` | Zitadel/identity credentials |
+| `secret/gbo/llm` | LLM service credentials |
+| `secret/gbo/vectordb` | Qdrant credentials |
+| `secret/gbo/alm` | Forgejo/ALM credentials |
+| `secret/gbo/email` | Stalwart/mail credentials |
+| `secret/gbo/meet` | LiveKit credentials |
+| `secret/gbo/encryption` | Encryption keys |
 
 #### Bot System (system)
 - **Service:** BotServer + Valkey (Redis-compatible)
