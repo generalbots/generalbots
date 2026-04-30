@@ -911,7 +911,7 @@ let system_prompt = if !message.active_switchers.is_empty() {
             stream_token: None,
             is_complete: true,
             suggestions,
-            switchers: Vec::new(),
+            switchers,
             context_name: None,
             context_length: 0,
             context_max_length: 0,
