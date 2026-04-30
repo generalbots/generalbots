@@ -30,8 +30,8 @@ jobs:
         run: |
           cd /opt/gbo/work/generalbots
           rustup default stable
-          CARGO_BUILD_JOBS=6 cargo build -p botserver --bin botserver
-          CARGO_BUILD_JOBS=6 cargo build -p botui --bin botui --release --features embed-ui
+          CARGO_BUILD_JOBS=24 cargo build -p botserver --bin botserver
+          CARGO_BUILD_JOBS=24 cargo build -p botui --bin botui --release --features embed-ui
 
       - name: Deploy to Stage
         run: |
