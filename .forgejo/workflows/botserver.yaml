@@ -55,14 +55,14 @@ jobs:
           ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             gbuser@system \
             "sudo systemctl stop botserver || true && \
-            sudo systemctl stop ui || true && \
+            sudo systemctl stop botui || true && \
             sudo mv /opt/gbo/bin/botserver-new /opt/gbo/bin/botserver && \
             sudo mv /opt/gbo/bin/botui-new /opt/gbo/bin/botui && \
             sudo chmod +x /opt/gbo/bin/botserver /opt/gbo/bin/botui && \
             sudo systemctl start botserver && \
-            sudo systemctl start ui"
+            sudo systemctl start botui"
           sleep 10
           ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             gbuser@system \
             "curl -sf http://localhost:5858/api/health && echo 'BotServer OK' || echo 'BotServer FAILED'; \
-            curl -sf http://localhost:3000/ && echo 'BotUI OK' || echo 'BotUI FAILED'"
+            curl -sf http://localhost:5859/ && echo 'BotUI OK' || echo 'BotUI FAILED'"
