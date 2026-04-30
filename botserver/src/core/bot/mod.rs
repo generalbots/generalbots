@@ -26,7 +26,6 @@ use crate::core::shared::state::AppState;
 use crate::basic::keywords::add_suggestion::get_suggestions;
 #[cfg(feature = "chat")]
 use crate::basic::keywords::switcher::{get_switchers, resolve_active_switchers};
-use html2md::parse_html;
 
 use axum::extract::ws::{Message, WebSocket};
 use axum::{
@@ -899,6 +898,7 @@ let system_prompt = if !message.active_switchers.is_empty() {
         #[cfg(not(feature = "chat"))]
         let switchers: Vec<Switcher> = Vec::new();
 
+        let user_id_str = user_id.to_string();
         // Flush any remaining content in html_buffer
         if !html_buffer.is_empty() {
             let content_to_send = html_buffer
@@ -1063,6 +1063,16 @@ let system_prompt = if !message.active_switchers.is_empty() {
                 llm_task.abort();
             }
         });
+
+        fn is_inside_html_tag(html: &str) -> bool {
+            let last_open = html.rfind('<');
+            let last_close = html.rfind('>');
+            match (last_open, last_close) {
+                (Some(o), Some(c)) => o > c,
+                (Some(_), None) => true,
+                _ => false,
+            }
+        }
 
         let mut full_response = String::new();
         let mut analysis_buffer = String::new();
@@ -1369,7 +1379,7 @@ while let Some(chunk) = stream_rx.recv().await {
                 // 1. HTML tag pair completed (e.g., </div>, </h1>, </p>, </ul>, </li>)
                 // 2. Buffer is large enough (> 500 chars)
                 // 3. This is the last chunk (is_complete will be true next iteration)
-                let should_flush = html_buffer.len() > 500 
+                let should_flush = (html_buffer.len() > 1000 
                     || html_buffer.contains("</div>")
                     || html_buffer.contains("</h1>")
                     || html_buffer.contains("</h2>")
@@ -1387,7 +1397,15 @@ while let Some(chunk) = stream_rx.recv().await {
                     || html_buffer.contains("</th>")
                     || html_buffer.contains("</section>")
                     || html_buffer.contains("</header>")
-                    || html_buffer.contains("</footer>");
+                    || html_buffer.contains("</footer>")
+                    || html_buffer.contains("</azul>")
+                    || html_buffer.contains("</ouro>")
+                    || html_buffer.contains("</hero>")
+                    || html_buffer.contains("</wrap>")
+                    || html_buffer.contains("</corpo>")
+                    || html_buffer.contains("</item>")
+                    || html_buffer.contains("</rodape>"))
+                    && !is_inside_html_tag(&html_buffer);
 
                 if should_flush {
                     // Sanitize malformed tags (e.g. "< class" -> "<class", "</ div" -> "</div")
@@ -1437,25 +1455,14 @@ while let Some(chunk) = stream_rx.recv().await {
             preview.replace('\n', "\\n"));
 
         let full_response_len = full_response.len();
-        let is_html = full_response.contains("<") && full_response.contains(">");
-        let content_for_save = if is_html {
-            let parsed = parse_html(&full_response);
-            // Fallback to original if parsing returns empty
-            if parsed.trim().is_empty() {
-                full_response.clone()
-            } else {
-                parsed
-            }
-        } else {
-            full_response.clone()
-        };
+        let content_for_save = full_response.clone();
         let history_preview = if content_for_save.len() > 100 {
             format!("{}...", content_for_save.split_at(100).0)
         } else {
             content_for_save.clone()
         };
-        info!("history_save: session_id={} user_id={} full_response_len={} is_html={} content_len={} preview={}",
-            session.id, user_id, full_response_len, is_html, content_for_save.len(), history_preview);
+        info!("history_save: session_id={} user_id={} full_response_len={} has_html={} content_len={} preview={}",
+            session.id, user_id, full_response_len, has_html, content_for_save.len(), history_preview);
         
         let state_for_save = self.state.clone();
         let content_for_save_owned = content_for_save;

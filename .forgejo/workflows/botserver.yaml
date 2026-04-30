@@ -39,7 +39,7 @@ jobs:
           echo "=== sccache stats before build ==="
           sccache --show-stats 2>/dev/null || echo "sccache not available"
           CARGO_BUILD_JOBS=6 cargo build -p botserver --bin botserver
-          CARGO_BUILD_JOBS=6 cargo build -p botui --bin botui --release
+          CARGO_BUILD_JOBS=6 cargo build -p botui --bin botui --release --features embed-ui
           echo "=== sccache stats after build ==="
           sccache --show-stats 2>/dev/null || echo "sccache not available"
 

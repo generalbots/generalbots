@@ -25,6 +25,13 @@ pub struct ClaudeMessage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClaudeThinking {
+    #[serde(rename = "type")]
+    pub thinking_type: String, // "enabled"
+    pub budget_tokens: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaudeRequest {
     pub model: String,
     pub max_tokens: u32,
@@ -33,6 +40,8 @@ pub struct ClaudeRequest {
     pub system: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thinking: Option<ClaudeThinking>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,6 +71,8 @@ pub struct ClaudeStreamDelta {
     pub delta_type: String,
     #[serde(default)]
     pub text: String,
+    #[serde(default)]
+    pub thinking: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -315,10 +326,10 @@ impl ClaudeClient {
             .join("")
     }
 
-    /// Process SSE data and extract text - handles both Anthropic and Azure formats
-    fn process_sse_data(&self, data: &str, model_name: &str) -> Option<String> {
+    /// Process SSE data and extract content/reasoning
+    fn process_sse_data(&self, data: &str, model_name: &str) -> (Option<String>, Option<String>) {
         if data == "[DONE]" {
-            return None;
+            return (None, None);
         }
 
         let handler = get_handler(model_name);
@@ -328,21 +339,25 @@ impl ClaudeClient {
             if chunk.object == "chat.completion.chunk" || !chunk.choices.is_empty() {
                 for choice in &chunk.choices {
                     if let Some(delta) = &choice.delta {
-                        // Get content (prefer content over reasoning_content)
-                        let text = delta
-                            .content
-                            .as_deref()
-                            .unwrap_or("");
+                        // Check for reasoning content (O1/DeepSeek/Claude on Azure style)
+                        if let Some(reasoning) = &delta.reasoning_content {
+                            if !reasoning.is_empty() {
+                                return (None, Some(reasoning.to_string()));
+                            }
+                        }
 
-                        if !text.is_empty() {
-                            let processed = handler.process_content(text);
-                            if !processed.is_empty() {
-                                return Some(processed);
+                        // Get content
+                        if let Some(text) = &delta.content {
+                            if !text.is_empty() {
+                                let processed = handler.process_content(text);
+                                if !processed.is_empty() {
+                                    return (Some(processed), None);
+                                }
                             }
                         }
                     }
                 }
-                return None;
+                return (None, None);
             }
         }
 
@@ -354,24 +369,18 @@ impl ClaudeClient {
                         if delta.delta_type == "text_delta" && !delta.text.is_empty() {
                             let processed = handler.process_content(&delta.text);
                             if !processed.is_empty() {
-                                return Some(processed);
+                                return (Some(processed), None);
                             }
+                        } else if delta.delta_type == "thinking_delta" && !delta.thinking.is_empty() {
+                            return (None, Some(delta.thinking.clone()));
                         }
                     }
                 }
-                "message_start" => trace!("CLAUDE message_start"),
-                "content_block_start" => trace!("CLAUDE content_block_start"),
-                "content_block_stop" => trace!("CLAUDE content_block_stop"),
-                "message_stop" => trace!("CLAUDE message_stop"),
-                "message_delta" => trace!("CLAUDE message_delta"),
-                "error" => {
-                    error!("CLAUDE Error event: {}", data);
-                }
-                _ => trace!("CLAUDE Event: {}", event.event_type),
+                _ => {}
             }
         }
 
-        None
+        (None, None)
     }
 
     /// Streaming implementation using reqwest - mimics Node.js https.request with res.on('data')
@@ -551,12 +560,25 @@ impl ClaudeClient {
                     }
 
                     // Process SSE data and send text chunks
-                    if let Some(text) = self.process_sse_data(data, model_name) {
-                        if tx.send(text.clone()).await.is_err() {
+                    let (content, reasoning) = self.process_sse_data(data, model_name);
+                    
+                    if let Some(text) = content {
+                        if tx.send(text).await.is_err() {
                             warn!("CLAUDE Receiver dropped, stopping stream");
                             return Ok(());
                         }
                         text_chunks_sent += 1;
+                    }
+                    
+                    if let Some(think) = reasoning {
+                        let think_msg = serde_json::json!({
+                            "type": "thinking",
+                            "content": think
+                        }).to_string();
+                        if tx.send(think_msg).await.is_err() {
+                            warn!("CLAUDE Receiver dropped, stopping stream");
+                            return Ok(());
+                        }
                     }
                 }
             }
@@ -568,9 +590,17 @@ impl ClaudeClient {
                 let line = line.trim();
                 if let Some(data) = line.strip_prefix("data: ") {
                     if data != "[DONE]" {
-                        if let Some(text) = self.process_sse_data(data, model_name) {
+                        let (content, reasoning) = self.process_sse_data(data, model_name);
+                        if let Some(text) = content {
                             let _ = tx.send(text).await;
                             text_chunks_sent += 1;
+                        }
+                        if let Some(think) = reasoning {
+                            let think_msg = serde_json::json!({
+                                "type": "thinking",
+                                "content": think
+                            }).to_string();
+                            let _ = tx.send(think_msg).await;
                         }
                     }
                 }
@@ -610,12 +640,22 @@ impl ClaudeClient {
             return Err("No messages to send".into());
         }
 
+        let thinking = if model_name.contains("3-7") || model_name.contains("4-7") {
+            Some(ClaudeThinking {
+                thinking_type: "enabled".to_string(),
+                budget_tokens: 2048,
+            })
+        } else {
+            None
+        };
+
         let request = ClaudeRequest {
             model: model_name.to_string(),
-            max_tokens: 16000,
+            max_tokens: if thinking.is_some() { 16000 } else { 4096 },
             messages: claude_messages,
             system,
             stream: Some(true),
+            thinking,
         };
 
         let request_body = serde_json::to_string(&request)?;
@@ -657,6 +697,7 @@ impl LLMProvider for ClaudeClient {
             messages: claude_messages,
             system,
             stream: None,
+            thinking: None,
         };
 
         let body = serde_json::to_string(&request)?;
