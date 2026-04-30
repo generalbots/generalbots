@@ -84,6 +84,8 @@ impl DriveMonitor {
 
             if file_type == "bas" {
                 self.sync_bas_to_work(bot_name, &obj.key).await;
+            } else if file_type == "prompt" {
+                self.sync_gbot_to_work(bot_name, &obj.key).await;
             } else if file_type != "kb" && file_type != "config" {
                 let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
             }
@@ -308,6 +310,48 @@ if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
         }
     }
 
+    async fn sync_gbot_to_work(&self, bot_name: &str, s3_key: &str) {
+        let s3 = match &self.state.drive {
+            Some(s3) => s3,
+            None => {
+                log::error!("S3 client not available for .gbot sync");
+                return;
+            }
+        };
+
+        let data = match s3.get_object_direct(&self.bucket_name, s3_key).await {
+            Ok(d) => d,
+            Err(e) => {
+                log::error!("Failed to download gbot file from {}/{}: {}", self.bucket_name, s3_key, e);
+                return;
+            }
+        };
+
+        let work_dir = self.work_root.join(format!("{}.gbai/{}.gbot", bot_name, bot_name));
+        if let Err(e) = std::fs::create_dir_all(&work_dir) {
+            log::error!("Failed to create work dir {}: {}", work_dir.display(), e);
+            return;
+        }
+
+        let file_name = s3_key.split('/').next_back().unwrap_or(s3_key);
+        let work_path = work_dir.join(file_name);
+
+        match String::from_utf8(data) {
+            Ok(content) => {
+                if let Err(e) = std::fs::write(&work_path, &content) {
+                    log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
+                } else {
+                    log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
+                    let full_key = format!("{}.gbai/{}", bot_name, s3_key);
+                    let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to parse gbot file as UTF-8: {}", e);
+            }
+        }
+    }
+
     #[cfg(any(feature = "research", feature = "llm"))]
     fn delete_kb_file_vectors(&self, bot_name: &str, _full_key: &str, s3_key: &str) {
         let parsed = match parse_kb_path(s3_key) {
@@ -360,12 +404,15 @@ if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
 }
 
 fn classify_file(key: &str) -> &'static str {
-    if key.ends_with(".bas") {
+    let lower = key.to_lowercase();
+    if lower.ends_with(".bas") {
         "bas"
-    } else if key.contains(".gbkb/") && is_kb_extension(key) {
+    } else if lower.contains(".gbkb/") && is_kb_extension(key) {
         "kb"
-    } else if key.contains(".gbot/") && key.ends_with("config.csv") {
+    } else if lower.contains(".gbot/") && lower.ends_with("config.csv") {
         "config"
+    } else if lower.contains(".gbot/") && (lower.ends_with("prompt.md") || lower.ends_with("prompt.txt")) {
+        "prompt"
     } else {
         "other"
     }
