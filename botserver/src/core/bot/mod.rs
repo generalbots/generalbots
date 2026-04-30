@@ -886,21 +886,45 @@ let system_prompt = if !message.active_switchers.is_empty() {
         #[cfg(not(feature = "chat"))]
         let switchers: Vec<Switcher> = Vec::new();
 
+        // Flush any remaining content in html_buffer
+        if !html_buffer.is_empty() {
+            let content_to_send = html_buffer
+                .replace("< ", "<")
+                .replace("</ ", "</");
+            
+            let response = BotResponse {
+                bot_id: bot_id_str.clone(),
+                user_id: user_id_str.clone(),
+                session_id: session_id_str.clone(),
+                channel: message.channel.clone(),
+                content: content_to_send,
+                message_type: MessageType::BOT_RESPONSE,
+                stream_token: None,
+                is_complete: false,
+                suggestions: Vec::new(),
+                switchers: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            };
+            let _ = response_tx.send(response).await;
+        }
+
         let final_response = BotResponse {
-            bot_id: message.bot_id,
-            user_id: message.user_id,
-            session_id: message.session_id,
+            bot_id: bot_id_str,
+            user_id: user_id_str,
+            session_id: session_id_str,
             channel: message.channel,
             content: String::new(),
             message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-            suggestions,
-            switchers,
+            suggestions: suggestions
+                .into_iter()
+                .map(|s| s.suggestion_text)
+                .collect(),
+            switchers: Vec::new(),
             context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-                };
 
                 if let Err(e) = response_tx.send(final_response).await {
                     warn!("Failed to send final response for empty content: {}", e);
@@ -1350,7 +1374,11 @@ while let Some(chunk) = stream_rx.recv().await {
                     || html_buffer.contains("</footer>");
 
                 if should_flush {
-                    let content_to_send = html_buffer.clone();
+                    // Sanitize malformed tags (e.g. "< class" -> "<class", "</ div" -> "</div")
+                    let content_to_send = html_buffer
+                        .replace("< ", "<")
+                        .replace("</ ", "</");
+                    
                     html_buffer.clear();
 
                     let response = BotResponse {
