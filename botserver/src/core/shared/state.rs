@@ -422,6 +422,8 @@ pub struct AppState {
     pub jwt_manager: Option<Arc<JwtManager>>,
     pub auth_provider_registry: Option<Arc<AuthProviderRegistry>>,
     pub rbac_manager: Option<Arc<RbacManager>>,
+    /// In-memory guard to prevent redundant start.bas execution: session_id → executed
+    pub start_bas_guards: Arc<tokio::sync::Mutex<HashMap<uuid::Uuid, bool>>>,
 }
 
 impl Clone for AppState {
@@ -472,6 +474,7 @@ impl Clone for AppState {
             jwt_manager: self.jwt_manager.clone(),
             auth_provider_registry: self.auth_provider_registry.clone(),
             rbac_manager: self.rbac_manager.clone(),
+            start_bas_guards: Arc::clone(&self.start_bas_guards),
         }
     }
 }
@@ -688,6 +691,7 @@ impl Default for AppState {
             jwt_manager: None,
             auth_provider_registry: None,
             rbac_manager: None,
+            start_bas_guards: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         }
     }
 }

@@ -652,6 +652,7 @@ pub async fn create_app_state(
         jwt_manager: None,
         auth_provider_registry: None,
         rbac_manager: None,
+        start_bas_guards: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
     });
 
     Ok(app_state)
