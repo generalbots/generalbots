@@ -34,10 +34,16 @@ function renderMentionInMessage(content) {
   });
 }
 
+function stripThinkTags(content) {
+  // Remove <think>...</think> and anything in between
+  return content.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, "").trim();
+}
+
 function stripMarkdownBlocks(content) {
-  var htmlMatch = content.match(/^```(?:html|xml)?\s*\n([\s\S]+?)\n?```$/i);
+  var cleanContent = stripThinkTags(content);
+  var htmlMatch = cleanContent.match(/^```(?:html|xml)?\s*\n([\s\S]+?)\n?```$/i);
   if (htmlMatch) return htmlMatch[1].trim();
-  return content;
+  return cleanContent;
 }
 
 function addMessage(sender, content, msgId) {

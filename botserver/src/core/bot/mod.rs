@@ -1002,7 +1002,7 @@ let system_prompt = if !message.active_switchers.is_empty() {
         let mut tool_call_buffer = String::new(); // Accumulate potential tool call JSON chunks
         let mut accumulating_tool_call = false; // Track if we're currently accumulating a tool call
         let mut html_buffer = String::new(); // Buffer for HTML content
-        let _handler = llm_models::get_handler(&model);
+        let handler = llm_models::get_handler(&model);
 
         trace!("Using model handler for {}", model);
         info!("llm_start: Starting LLM streaming for session {}", session.id);
@@ -1264,94 +1264,28 @@ while let Some(chunk) = stream_rx.recv().await {
 
             analysis_buffer.push_str(&chunk);
 
-            // TEMP DISABLED: Thinking detection causing deadlock
-            // Just pass content through directly for now
-            /*
+            // Apply model-specific handler for thinking/analysis content
             if !in_analysis && handler.has_analysis_markers(&analysis_buffer) {
                 in_analysis = true;
-                ANALYSIS_START_TIME.store(
-                    std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs(),
-                    Ordering::SeqCst,
-                );
-                log::debug!(
-                    "Detected start of thinking/analysis content for model {}",
-                    model
-                );
-
-                // Send thinking indicator
-                let thinking_msg = BotResponse {
-                    bot_id: message.bot_id.clone(),
-                    user_id: message.user_id.clone(),
-                    session_id: message.session_id.clone(),
-                    channel: message.channel.clone(),
-                    content: "🤔 Pensando...".to_string(),
-                    message_type: MessageType::BOT_RESPONSE,
-                    stream_token: None,
-                    is_complete: false,
-                    suggestions: Vec::new(),
-                    switchers: Vec::new(),
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-                };
-                
-                if response_tx.send(thinking_msg).await.is_err() {
-                    warn!("stream_exit: Response channel closed for session {}", session.id);
-                    break;
-                }
-                continue;
+                log::debug!("Detected start of thinking/analysis content for model {}", model);
+                // We don't send a "Thinking" message here to avoid UI flickering, 
+                // just start accumulating in analysis_buffer
             }
 
             if in_analysis {
-                let elapsed = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-                    - ANALYSIS_START_TIME.load(Ordering::SeqCst);
-                if elapsed > ANALYSIS_TIMEOUT_SECS {
-                    warn!("Analysis timeout after {}s, forcing exit", elapsed);
+                if handler.is_analysis_complete(&analysis_buffer) {
                     in_analysis = false;
+                    trace!("Detected end of thinking for model {}", model);
+                    // Process accumulated thinking content (usually strips tags)
+                    let _processed = handler.process_content(&analysis_buffer);
+                    // We discard thinking content for display, but could log it if needed
+                    analysis_buffer.clear();
+                    continue;
+                } else {
+                    // Still in thinking mode, skip sending this chunk to user
+                    continue;
                 }
             }
-
-            if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
-                in_analysis = false;
-                trace!("Detected end of thinking for model {}", model);
-                let processed = handler.process_content(&analysis_buffer);
-                if !processed.is_empty() {
-                    full_response.push_str(&processed);
-                    let response = BotResponse {
-                        bot_id: message.bot_id.clone(),
-                        user_id: message.user_id.clone(),
-                        session_id: message.session_id.clone(),
-                        channel: message.channel.clone(),
-                        content: processed,
-                        message_type: MessageType::BOT_RESPONSE,
-                        stream_token: None,
-                        is_complete: false,
-                        suggestions: Vec::new(),
-                        switchers: Vec::new(),
-                        context_name: None,
-                        context_length: 0,
-                        context_max_length: 0,
-                    };
-                    if response_tx.send(response).await.is_err() {
-                        warn!("stream_exit: Response channel closed for session {}", session.id);
-                        break;
-                    }
-                }
-                analysis_buffer.clear();
-                continue;
-            }
-
-            if in_analysis {
-                trace!("Accumulating thinking content, not sending to user");
-                continue;
-            }
-            */
 
             // If in analysis mode from previous chunks, just clear and continue (TEMPORARY)
             if in_analysis {
@@ -1371,10 +1305,18 @@ while let Some(chunk) = stream_rx.recv().await {
                     || html_buffer.contains("</div>")
                     || html_buffer.contains("</h1>")
                     || html_buffer.contains("</h2>")
+                    || html_buffer.contains("</h3>")
+                    || html_buffer.contains("</h4>")
+                    || html_buffer.contains("</h5>")
+                    || html_buffer.contains("</h6>")
                     || html_buffer.contains("</p>")
                     || html_buffer.contains("</ul>")
                     || html_buffer.contains("</ol>")
                     || html_buffer.contains("</li>")
+                    || html_buffer.contains("</table>")
+                    || html_buffer.contains("</tr>")
+                    || html_buffer.contains("</td>")
+                    || html_buffer.contains("</th>")
                     || html_buffer.contains("</section>")
                     || html_buffer.contains("</header>")
                     || html_buffer.contains("</footer>");

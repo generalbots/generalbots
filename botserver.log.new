@@ -1,0 +1,331 @@
+
+   ____  ____      _   _           _       ____                _ 
+  / ___||  _ \    | | | | ___  ___| | __  | __ )  ___  _ __ __| |
+ | |  _ | |_) |   | |_| |/ _ \/ __| |/ / |  _ \ / _ \| '__/ _` |
+ | |_| ||  _ <    |  _  | (_) \__ \   <  | |_) | (_) | | | (_| |
+  \____||_| \_\___|_| |_|\___/|___/_|\_\ |____/ \___/|_|  \__,_|
+                                           |_|
+
+General Bots 6.3.1 starting...
+20260429223219.420 info bundle:Loading embedded locale translations (rust-embed)
+20260429223219.421 info bundle:Loading embedded locales, found 36 files
+20260429223219.422 info bundle:Loading embedded files for locale: en
+20260429223219.422 info bundle:Found .ftl file for locale en: en/admin.ftl
+20260429223219.427 info bundle:Parsed 453 keys from en/admin.ftl
+20260429223219.428 info bundle:Found .ftl file for locale en: en/analytics.ftl
+20260429223219.429 info bundle:Parsed 159 keys from en/analytics.ftl
+20260429223219.429 info bundle:Found .ftl file for locale en: en/auth.ftl
+20260429223219.431 info bundle:Parsed 184 keys from en/auth.ftl
+20260429223219.431 info bundle:Found .ftl file for locale en: en/bot-templates.ftl
+20260429223219.432 info bundle:Parsed 134 keys from en/bot-templates.ftl
+20260429223219.433 info bundle:Found .ftl file for locale en: en/channels.ftl
+20260429223219.434 info bundle:Parsed 168 keys from en/channels.ftl
+20260429223219.434 info bundle:Found .ftl file for locale en: en/common.ftl
+20260429223219.436 info bundle:Parsed 261 keys from en/common.ftl
+20260429223219.437 info bundle:Found .ftl file for locale en: en/contacts.ftl
+20260429223219.439 info bundle:Parsed 238 keys from en/contacts.ftl
+20260429223219.439 info bundle:Found .ftl file for locale en: en/errors.ftl
+20260429223219.440 info bundle:Parsed 93 keys from en/errors.ftl
+20260429223219.440 info bundle:Found .ftl file for locale en: en/notifications.ftl
+20260429223219.441 info bundle:Parsed 100 keys from en/notifications.ftl
+20260429223219.441 info bundle:Found .ftl file for locale en: en/ui.ftl
+20260429223219.448 info bundle:Parsed 1110 keys from en/ui.ftl
+20260429223219.452 info bundle:Found .ftl file for locale en: en/video.ftl
+20260429223219.454 info bundle:Parsed 87 keys from en/video.ftl
+20260429223219.454 info bundle:Found .ftl file for locale en: en/webinar.ftl
+20260429223219.455 info bundle:Parsed 228 keys from en/webinar.ftl
+20260429223219.456 info bundle:Loading embedded files for locale: es
+20260429223219.456 info bundle:Found .ftl file for locale es: es/admin.ftl
+20260429223219.458 info bundle:Parsed 287 keys from es/admin.ftl
+20260429223219.459 info bundle:Found .ftl file for locale es: es/analytics.ftl
+20260429223219.459 info bundle:Parsed 137 keys from es/analytics.ftl
+20260429223219.460 info bundle:Found .ftl file for locale es: es/auth.ftl
+20260429223219.461 info bundle:Parsed 184 keys from es/auth.ftl
+20260429223219.462 info bundle:Found .ftl file for locale es: es/bot-templates.ftl
+20260429223219.463 info bundle:Parsed 134 keys from es/bot-templates.ftl
+20260429223219.463 info bundle:Found .ftl file for locale es: es/channels.ftl
+20260429223219.464 info bundle:Parsed 168 keys from es/channels.ftl
+20260429223219.465 info bundle:Found .ftl file for locale es: es/common.ftl
+20260429223219.467 info bundle:Parsed 261 keys from es/common.ftl
+20260429223219.468 info bundle:Found .ftl file for locale es: es/contacts.ftl
+20260429223219.470 info bundle:Parsed 238 keys from es/contacts.ftl
+20260429223219.470 info bundle:Found .ftl file for locale es: es/errors.ftl
+20260429223219.471 info bundle:Parsed 93 keys from es/errors.ftl
+20260429223219.472 info bundle:Found .ftl file for locale es: es/notifications.ftl
+20260429223219.473 info bundle:Parsed 100 keys from es/notifications.ftl
+20260429223219.474 info bundle:Found .ftl file for locale es: es/ui.ftl
+20260429223219.478 info bundle:Parsed 659 keys from es/ui.ftl
+20260429223219.482 info bundle:Found .ftl file for locale es: es/video.ftl
+20260429223219.485 info bundle:Parsed 87 keys from es/video.ftl
+20260429223219.486 info bundle:Found .ftl file for locale es: es/webinar.ftl
+20260429223219.492 info bundle:Parsed 228 keys from es/webinar.ftl
+20260429223219.504 info bundle:Loading embedded files for locale: pt-BR
+20260429223219.504 info bundle:Found .ftl file for locale pt-BR: pt-BR/admin.ftl
+20260429223219.511 info bundle:Parsed 453 keys from pt-BR/admin.ftl
+20260429223219.512 info bundle:Found .ftl file for locale pt-BR: pt-BR/analytics.ftl
+20260429223219.514 info bundle:Parsed 159 keys from pt-BR/analytics.ftl
+20260429223219.517 info bundle:Found .ftl file for locale pt-BR: pt-BR/auth.ftl
+20260429223219.518 info bundle:Parsed 184 keys from pt-BR/auth.ftl
+20260429223219.518 info bundle:Found .ftl file for locale pt-BR: pt-BR/bot-templates.ftl
+20260429223219.519 info bundle:Parsed 134 keys from pt-BR/bot-templates.ftl
+20260429223219.527 info bundle:Found .ftl file for locale pt-BR: pt-BR/channels.ftl
+20260429223219.528 info bundle:Parsed 168 keys from pt-BR/channels.ftl
+20260429223219.528 info bundle:Found .ftl file for locale pt-BR: pt-BR/common.ftl
+20260429223219.530 info bundle:Parsed 261 keys from pt-BR/common.ftl
+20260429223219.531 info bundle:Found .ftl file for locale pt-BR: pt-BR/contacts.ftl
+20260429223219.533 info bundle:Parsed 238 keys from pt-BR/contacts.ftl
+20260429223219.533 info bundle:Found .ftl file for locale pt-BR: pt-BR/errors.ftl
+20260429223219.534 info bundle:Parsed 93 keys from pt-BR/errors.ftl
+20260429223219.535 info bundle:Found .ftl file for locale pt-BR: pt-BR/notifications.ftl
+20260429223219.536 info bundle:Parsed 100 keys from pt-BR/notifications.ftl
+20260429223219.536 info bundle:Found .ftl file for locale pt-BR: pt-BR/ui.ftl
+20260429223219.545 info bundle:Parsed 1110 keys from pt-BR/ui.ftl
+20260429223219.549 info bundle:Found .ftl file for locale pt-BR: pt-BR/video.ftl
+20260429223219.550 info bundle:Parsed 87 keys from pt-BR/video.ftl
+20260429223219.551 info bundle:Found .ftl file for locale pt-BR: pt-BR/webinar.ftl
+20260429223219.554 info bundle:Parsed 228 keys from pt-BR/webinar.ftl
+20260429223219.558 info bundle:Loaded 3 embedded locales: [Locale { language: "en", region: None }, 
+                         Locale { language: "es", region: None }, Locale { language: "pt", region: S
+                         ome("BR") }]
+20260429223219.558 info bootstrap:i18n initialized from ./locales with locales: ["en", "es", "pt-BR"
+                         ]
+20260429223219.560 info bootstrap:Bootstrap check: .env exists=true, stack/.env exists=false, init.j
+                         son exists=true, remote_vault=false, bootstrap_completed=true
+20260429223219.560 info bootstrap:>>> BRANCH: bootstrap_completed=TRUE - starting services only
+20260429223219.560 info bootstrap:Ensuring database and drive services are running...
+20260429223219.616 info installer:Detected Vulkan - using Vulkan build
+20260429223219.616 info installer:LLM component using llama.cpp b7345 for this platform
+20260429223219.659 info bootstrap_manager:Starting bootstrap process...
+20260429223220.131 info bootstrap_manager:Vault is already running
+20260429223220.593 info bootstrap_manager:Vector database (Qdrant) is already running
+20260429223220.734 info bootstrap_manager:PostgreSQL is already running
+20260429223220.752 info bootstrap_manager:Valkey cache is already running
+20260429223220.811 info bootstrap_manager:MinIO is already running
+20260429223221.103 info bootstrap_manager:Zitadel/Directory service is already running
+20260429223221.103 info bootstrap_manager:Directory config already exists, skipping OAuth setup
+20260429223221.534 info bootstrap_manager:ALM (Forgejo) is already running
+20260429223221.535 warn bootstrap_manager:Failed to create caddy command: CommandNotAllowed("caddy")
+20260429223221.535 info bootstrap_manager:Bootstrap process completed!
+20260429223221.950 info bootstrap_manager:Syncing templates to database...
+20260429223221.951 info bootstrap_manager:Uploading templates to drive...
+20260429223222.054 info bootstrap:Running database migrations...
+20260429223222.136 info bootstrap:Database migrations completed successfully
+20260429223222.136 info botserver:Database initialized - PostgreSQL connected
+20260429223222.136 info bootstrap:Loading config from database after template sync...
+20260429223222.333 info bootstrap:Server configured to listen on 0.0.0.0:8080
+20260429223222.407 info bootstrap:Attempting to connect to cache, trying 2 URL(s)
+20260429223222.423 info bootstrap:Cache initialized - Valkey connected via redis://localhost:6379
+20260429223222.425 info utils:Creating S3 operator with endpoint: http://localhost:9100/, access_key
+                         : FHsfr2loR5cw4Y8O
+20260429223222.714 info drive_utils:Uploaded vendor file to MinIO: s3://default.gbai/default.gblib/v
+                         endor/htmx.min.js
+20260429223222.720 info bootstrap:Loaded Zitadel config from ./botserver-stack/conf/system/directory
+                         _config.json: url=http://localhost:8300
+20260429223222.744 info bootstrap:Using admin PAT token for bootstrap authentication
+20260429223222.752 info bootstrap:Checking if bootstrap is needed...
+20260429223223.056 info bootstrap:No admin user found, bootstrapping initial admin account...
+20260429223223.754 warn bootstrap:Bootstrap check failed (Zitadel may not be ready): Failed to creat
+                         e admin user: Failed to create user: {"code":6,"message":"User already exis
+                         ts (V3-DKcYh)","details":[{"@type":"type.googleapis.com/zitadel.v1.ErrorDet
+                         ail","id":"V3-DKcYh","message":"User already exists"}]}
+20260429223223.764 info bootstrap:Using default bot: default (id: f47ac10b-58cc-4372-a567-0e02b2c3d4
+                         80)
+20260429223223.827 info bootstrap:LLM URL: https://prod-gbo.openai.azure.com/openai/deployments/gpt-
+                         5.4-mini/chat/completions?api-version=2025-01-01-preview
+20260429223223.829 info bootstrap:LLM Model: gpt-5.4-mini
+20260429223223.842 info llm:LLM provider: explicit=None, detected=OpenAI, URL=https://prod-gbo.opena
+                         i.azure.com/openai/deployments/gpt-5.4-mini/chat/completions?api-version=20
+                         25-01-01-preview
+20260429223223.842 info llm:Creating OpenAI LLM provider with URL: https://prod-gbo.openai.azure.com
+                         /openai/deployments/gpt-5.4-mini/chat/completions?api-version=2025-01-01-pr
+                         eview
+20260429223223.846 info bootstrap:Initializing DynamicLLMProvider with config: URL=https://prod-gbo.
+                         openai.azure.com/openai/deployments/gpt-5.4-mini/chat/completions?api-versi
+                         on=2025-01-01-preview, Model=gpt-5.4-mini, Endpoint=/v1/chat/completions
+20260429223223.846 info llm:LLM provider: explicit=None, detected=OpenAI, URL=https://prod-gbo.opena
+                         i.azure.com/openai/deployments/gpt-5.4-mini/chat/completions?api-version=20
+                         25-01-01-preview
+20260429223223.847 info llm:Creating OpenAI LLM provider with URL: https://prod-gbo.openai.azure.com
+                         /openai/deployments/gpt-5.4-mini/chat/completions?api-version=2025-01-01-pr
+                         eview
+20260429223223.850 info llm:LLM provider updated dynamically
+20260429223223.850 info bootstrap:DynamicLLMProvider initialized successfully
+20260429223223.858 info bootstrap:Embedding URL: https://api.cloudflare.com/client/v4/accounts/f2add
+                         7c340d7475f64ab0b2c9ed04853/ai/run/@cf/baai/bge-m3
+20260429223223.860 info bootstrap:Embedding Model: all-MiniLM-L6-v2
+20260429223223.860 info bootstrap:Embedding Key: configured
+20260429223223.860 info bootstrap:Semantic Cache Enabled: false
+20260429223223.860 info bootstrap:Cache Similarity Threshold: 0.85
+20260429223223.860 info cache:Initializing CachedLLMProvider with semantic cache and DB pool
+20260429223223.860 info cache:Cache config: TTL=3600s, Semantic=false, Threshold=0.85
+20260429223223.866 info embedding_generator:EmbeddingConfig::from_bot_config - bot_id: f47ac10b-58cc
+                         -4372-a567-0e02b2c3d480, embedding_url: https://api.cloudflare.com/client/v
+                         4/accounts/f2ad, embedding_key: SET, dimensions: 1024
+20260429223223.904 info kb:KB Manager using embedding config from bot f47ac10b-58cc-4372-a567-0e02b2
+                         c3d480: url=https://api.cloudflare.com/client/v4/accounts/f2add7c340d7475f6
+                         4ab0b2c9ed04853/ai/run/@cf/baai/bge-m3, model=BAAI/bge-multilingual-gemma2
+20260429223223.999 info bootstrap:Syncing bot databases on startup...
+20260429223224.124 info bot_database:Database bot_default already exists
+20260429223224.148 info bot_database:Database bot_test_xlsx already exists
+20260429223224.149 info bot_database:Bot database sync complete: 0 created, 2 verified, 0 errors
+20260429223224.149 info bootstrap:Bot database sync complete: 0 created, 2 verified, 0 errors
+20260429223224.177 info botserver:Memory monitor started
+20260429223224.177 info botserver:Starting HTTP server on 0.0.0.0:8080
+20260429223224.178 info bot:Scanning drive for .gbai files to mount bots...
+20260429223224.178 info bot:Checking directory for bots: /opt/gbo/data
+20260429223224.178 info memory_monitor:[MONITOR] Started (interval=30s, threshold=50MB)
+20260429223224.178 info bot:Directory does not exist, skipping: /opt/gbo/data
+20260429223224.179 info bot:Checking directory for bots: ./templates
+20260429223224.179 info bot:Directory does not exist, skipping: ./templates
+20260429223224.179 info bot:Checking directory for bots: ../bottemplates
+20260429223224.179 info bot:Directory does not exist, skipping: ../bottemplates
+20260429223224.179 info bot:BotServer ready - 0 bots loaded
+20260429223224.236 info local:Reading config for bot_id: f47ac10b-58cc-4372-a567-0e02b2c3d480
+20260429223224.301 info local:embedding-model config result: Ok("")
+20260429223224.313 info local:No embedding model configured, using default: bge-small-en-v1.5-f32.gg
+                         uf
+20260429223224.314 info local:Starting LLM servers...
+20260429223224.314 info local:Configuration:
+20260429223224.314 info local:  LLM URL: https://prod-gbo.openai.azure.com/openai/deployments/gpt-5.
+                         4-mini/chat/completions?api-version=2025-01-01-preview
+20260429223224.314 info local:  Embedding URL: https://api.cloudflare.com/client/v4/accounts/f2add7c
+                         340d7475f64ab0b2c9ed04853/ai/run/@cf/baai/bge-m3
+20260429223224.314 info local:  LLM Model: gpt-5.4-mini
+20260429223224.314 info local:  Embedding Model: bge-small-en-v1.5-f32.gguf
+20260429223224.314 info local:  LLM Server Path: ./botserver-stack/bin/llm/build/bin
+20260429223224.315 info local:Using external HTTPS LLM server, skipping local startup
+20260429223224.315 info local:Using external HTTPS embedding server, skipping local startup
+20260429223224.315 info local:Both LLM and Embedding servers are already running
+20260429223224.315 info embedding_generator:Embedding server marked as ready
+20260429223224.319 info bootstrap:Memory monitor started
+20260429223224.319 info bot:Scanning drive for .gbai files to mount bots...
+20260429223224.319 info bot:Checking directory for bots: /opt/gbo/data
+20260429223224.319 info bot:Directory does not exist, skipping: /opt/gbo/data
+20260429223224.319 info memory_monitor:[MONITOR] Started (interval=30s, threshold=50MB)
+20260429223224.319 info bot:Checking directory for bots: ./templates
+20260429223224.320 info bot:Directory does not exist, skipping: ./templates
+20260429223224.320 info bot:Checking directory for bots: ../bottemplates
+20260429223224.320 info bot:Directory does not exist, skipping: ../bottemplates
+20260429223224.320 info bot:BotServer ready - 0 bots loaded
+20260429223224.320 info local:ensure_llama_servers_running already called, skipping duplicate invoca
+                         tion
+20260429223224.327 error bootstrap:Drive client status: true
+20260429223224.355 info drive_compiler:DriveCompiler started - compiling .bas files directly to work
+                          dir
+20260429223224.356 info botserver:Server started on port 8080
+20260429223224.390 info cors:Creating CORS layer with development defaults (no origins configured)
+20260429223224.471 warn server:JWT_SECRET not set, using default development secret - DO NOT USE IN 
+                         PRODUCTION
+20260429223224.473 info server:JWT Manager initialized successfully
+20260429223224.475 info server:RBAC Manager initialized with 300 default route permissions
+20260429223224.475 info auth_provider:Registered auth provider: local-jwt (priority: 100)
+20260429223224.475 info auth_provider:Registered auth provider: api-key (priority: 200)
+20260429223224.475 info server:Auth provider registry initialized with 2 providers
+20260429223224.475 info product:Loaded product configuration from: ./botserver/.product
+20260429223224.476 info product:Product config loaded: name='General Bots', apps={"mail", "people", 
+                         "settings", "tasks", "campaigns", "crm", "attendance", "chat", "sources", "
+                         drive", "meet"}, theme='sentient'
+20260429223224.476 info server:Product: General Bots | Theme: sentient | Apps: ["mail", "people", "s
+                         ettings", "tasks", "campaigns", "crm", "attendance", "chat", "sources", "dr
+                         ive", "meet"]
+20260429223224.503 info server:Serving apps from: /opt/gbo/data
+20260429223224.504 info server:Security middleware enabled: rate limiting, security headers, panic h
+                         andler, request ID tracking, authentication
+20260429223224.504 info server:Serving UI from external folder: ./botui/ui/suite
+20260429223224.550 info bootstrap:Found 2 active bots to monitor
+20260429223224.576 warn server:TLS certificates not found, using HTTP
+20260429223224.579 info server:HTTP server listening on 0.0.0.0:8080
+20260429223224.579 info server:Server ready - shutdown via SIGINT (Ctrl+C) or SIGTERM (systemctl sto
+                         p)
+20260429223224.611 info shutdown:Shutdown signal handler installed, waiting for SIGINT or SIGTERM...
+20260429223224.624 info shutdown:SIGTERM handler installed successfully
+20260429223224.749 info embedding_generator:EmbeddingConfig::from_bot_config - bot_id: f47ac10b-58cc
+                         -4372-a567-0e02b2c3d480, embedding_url: https://api.cloudflare.com/client/v
+                         4/accounts/f2ad, embedding_key: SET, dimensions: 1024
+20260429223224.781 info kb:KB Manager using embedding config from bot f47ac10b-58cc-4372-a567-0e02b2
+                         c3d480: url=https://api.cloudflare.com/client/v4/accounts/f2add7c340d7475f6
+                         4ab0b2c9ed04853/ai/run/@cf/baai/bge-m3, model=BAAI/bge-multilingual-gemma2
+20260429223224.832 info embedding_generator:EmbeddingConfig::from_bot_config - bot_id: 27c1eb8f-a43e
+                         -44f0-acce-4fe127ae65d4, embedding_url: , embedding_key: NONE, dimensions: 
+                         2048
+20260429223224.837 info kb:KB Manager using embedding config from bot 27c1eb8f-a43e-44f0-acce-4fe127
+                         ae65d4: url=, model=BAAI/bge-multilingual-gemma2
+20260429223224.854 info bootstrap:Starting DriveMonitor for bot: default (bucket: default.gbai)
+20260429223224.899 info bootstrap:Starting DriveMonitor for bot: test-xlsx (bucket: test-xlsx.gbai)
+20260429223225.319 info drive_compiler:Compiled test-xlsx.gbai/test-xlsx.gbdialog/start.bas to start
+                         .ast
+20260429223225.320 info drive_compiler:DriveCompiler: test-xlsx.gbai/test-xlsx.gbdialog/start.bas co
+                         mpiled successfully
+20260429223226.471 info middleware:Processing GET /api/auth
+20260429223226.472 info middleware:Path is public/anonymous, skipping auth
+20260429223226.472 info request_id:request; request_id=4b2ca39b-fe52-40da-a4cf-26298f80e18c correlat
+                         ion_id=None seq=0
+20260429223226.474 info directory:Auth request v2: bot=default, uid=Some(d9ef95d3-1b58-480f-a5b3-3dd
+                         17c3beac5), sid=Some(fa9589c4-04bb-4891-b9ec-cf88c258810c)
+20260429223226.532 info directory:Attempting to get existing session: fa9589c4-04bb-4891-b9ec-cf88c2
+                         58810c
+20260429223226.536 info directory:Successfully retrieved existing session: fa9589c4-04bb-4891-b9ec-c
+                         f88c258810c
+20260429223227.073 info middleware:Processing GET /ws/default
+20260429223227.076 info middleware:Path is public/anonymous, skipping auth
+20260429223227.080 info request_id:request; request_id=a4695c12-804e-4269-8a81-7301fd28d009 correlat
+                         ion_id=None seq=1
+20260429223227.081 info bot:websocket_handler: Received request with params: {"session_id": "fa9589c
+                         4-04bb-4891-b9ec-cf88c258810c", "user_id": "d9ef95d3-1b58-480f-a5b3-3dd17c3
+                         beac5", "bot_name": "default"}
+20260429223227.081 info bot:WebSocket: session_id from params = fa9589c4-04bb-4891-b9ec-cf88c258810c
+                         , user_id = d9ef95d3-1b58-480f-a5b3-3dd17c3beac5
+20260429223228.411 info middleware:Processing GET /ws/default
+20260429223228.412 info middleware:Path is public/anonymous, skipping auth
+20260429223228.412 info request_id:request; request_id=02911b13-280d-4e57-9bd0-48f3a64088b5 correlat
+                         ion_id=None seq=2
+20260429223228.413 info bot:websocket_handler: Received request with params: {"session_id": "fa9589c
+                         4-04bb-4891-b9ec-cf88c258810c", "user_id": "d9ef95d3-1b58-480f-a5b3-3dd17c3
+                         beac5", "bot_name": "default"}
+20260429223228.413 info bot:WebSocket: session_id from params = fa9589c4-04bb-4891-b9ec-cf88c258810c
+                         , user_id = d9ef95d3-1b58-480f-a5b3-3dd17c3beac5
+20260429223230.640 info middleware:Processing GET /ws/default
+20260429223230.641 info middleware:Path is public/anonymous, skipping auth
+20260429223230.645 info request_id:request; request_id=c4600451-ee03-4461-8b71-8efd7645fc59 correlat
+                         ion_id=None seq=3
+20260429223230.646 info bot:websocket_handler: Received request with params: {"bot_name": "default",
+                          "user_id": "d9ef95d3-1b58-480f-a5b3-3dd17c3beac5", "session_id": "fa9589c4
+                         -04bb-4891-b9ec-cf88c258810c"}
+20260429223230.647 info bot:WebSocket: session_id from params = fa9589c4-04bb-4891-b9ec-cf88c258810c
+                         , user_id = d9ef95d3-1b58-480f-a5b3-3dd17c3beac5
+20260429223233.908 info middleware:Processing GET /ws/default
+20260429223233.909 info middleware:Path is public/anonymous, skipping auth
+20260429223233.909 info request_id:request; request_id=0cd6136f-e349-4311-8ec0-d7dbf61dc4cb correlat
+                         ion_id=None seq=4
+20260429223233.910 info bot:websocket_handler: Received request with params: {"user_id": "d9ef95d3-1
+                         b58-480f-a5b3-3dd17c3beac5", "bot_name": "default", "session_id": "fa9589c4
+                         -04bb-4891-b9ec-cf88c258810c"}
+20260429223233.910 info bot:WebSocket: session_id from params = fa9589c4-04bb-4891-b9ec-cf88c258810c
+                         , user_id = d9ef95d3-1b58-480f-a5b3-3dd17c3beac5
+20260429223238.304 info middleware:Processing GET /ws/default
+20260429223238.306 info middleware:Path is public/anonymous, skipping auth
+20260429223238.307 info request_id:request; request_id=53ae45af-0b66-42db-a17b-8ca2d5a24250 correlat
+                         ion_id=None seq=5
+20260429223238.307 info bot:websocket_handler: Received request with params: {"bot_name": "default",
+                          "user_id": "d9ef95d3-1b58-480f-a5b3-3dd17c3beac5", "session_id": "fa9589c4
+                         -04bb-4891-b9ec-cf88c258810c"}
+20260429223238.307 info bot:WebSocket: session_id from params = fa9589c4-04bb-4891-b9ec-cf88c258810c
+                         , user_id = d9ef95d3-1b58-480f-a5b3-3dd17c3beac5
+20260429223243.673 info middleware:Processing GET /ws/default
+20260429223243.674 info middleware:Path is public/anonymous, skipping auth
+20260429223243.674 info request_id:request; request_id=f24f8a28-5cf9-4ea8-be39-862f11a37bd7 correlat
+                         ion_id=None seq=6
+20260429223243.675 info bot:websocket_handler: Received request with params: {"bot_name": "default",
+                          "session_id": "fa9589c4-04bb-4891-b9ec-cf88c258810c", "user_id": "d9ef95d3
+                         -1b58-480f-a5b3-3dd17c3beac5"}
+20260429223243.675 info bot:WebSocket: session_id from params = fa9589c4-04bb-4891-b9ec-cf88c258810c
+                         , user_id = d9ef95d3-1b58-480f-a5b3-3dd17c3beac5
+20260429223419.258 info shutdown:Received SIGTERM (systemctl stop), initiating graceful shutdown...
+20260429223419.259 info shutdown:Shutdown signal received - server will stop accepting new connectio
+                         ns
+20260429223419.259 warn shutdown:Graceful shutdown timeout is 10s for HTTPS, after which process wil
+                         l exit
+
+Thank you for using General Bots!
+
+20260429223419.267 info server:HTTP server shut down gracefully
