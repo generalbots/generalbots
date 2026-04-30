@@ -909,10 +909,7 @@ let system_prompt = if !message.active_switchers.is_empty() {
             message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-            suggestions: suggestions
-                .into_iter()
-                .map(|s| s.text)
-                .collect(),
+            suggestions,
             switchers: Vec::new(),
             context_name: None,
             context_length: 0,
