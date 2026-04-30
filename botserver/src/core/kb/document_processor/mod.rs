@@ -875,3 +875,4 @@ fn extract_text_from_word_document(stream_data: &[u8]) -> String {
         .collect::<Vec<_>>()
         .join(" ")
 }
+
