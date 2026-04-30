@@ -15,8 +15,7 @@ jobs:
   build:
     runs-on: gbo
     env:
-      RUSTC_WRAPPER: sccache
-      CARGO_INCREMENTAL: 0
+      CARGO_INCREMENTAL: 1
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
       PATH: "/home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin"
     steps:
@@ -24,27 +23,15 @@ jobs:
         run: |
           cd /opt/gbo/work/generalbots
           git stash 2>/dev/null || true
-          OLD_REV=$(git rev-parse HEAD)
           git pull --rebase || { git rebase --abort; git reset --hard origin/main; }
-          NEW_REV=$(git rev-parse HEAD)
-          if [ "$OLD_REV" != "$NEW_REV" ]
-          then
-            git diff --name-only -z "$OLD_REV" "$NEW_REV" | xargs -0 touch
-          fi
           git log --oneline -1
 
       - name: Build BotServer and BotUI
         run: |
           cd /opt/gbo/work/generalbots
           rustup default stable
-          sccache --start-server || true
-          export RUSTC_WRAPPER=sccache
-          echo "=== sccache stats before build ==="
-          sccache --show-stats 2>/dev/null || echo "sccache not available"
           CARGO_BUILD_JOBS=6 cargo build -p botserver --bin botserver
           CARGO_BUILD_JOBS=6 cargo build -p botui --bin botui --release --features embed-ui
-          echo "=== sccache stats after build ==="
-          sccache --show-stats 2>/dev/null || echo "sccache not available"
 
       - name: Deploy to Stage
         run: |
