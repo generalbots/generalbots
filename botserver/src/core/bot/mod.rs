@@ -770,14 +770,23 @@ let system_prompt = if !message.active_switchers.is_empty() {
 
         #[cfg(any(feature = "research", feature = "llm"))]
         {
-            // Execute start.bas on first message only (use Redis flag to prevent re-execution)
-            let actual_session_id = session.id.to_string();
+            // Execute start.bas on first message only (multi-layered guard: Redis + In-memory)
+            let actual_session_id_uuid = session.id;
+            let actual_session_id = actual_session_id_uuid.to_string();
             let bot_id_str = session.bot_id.to_string();
             let start_bas_flag_key = format!("start_bas_executed:{}:{}", bot_id_str, actual_session_id);
 
-            // Check Redis flag - only execute start.bas once per session
-            // We use SET NX to atomically check and set the flag
-            let should_execute_start_bas = if let Some(cache) = &self.state.cache {
+            // 1. Check in-memory guard first (fastest, most reliable for this instance)
+            let in_memory_executed = {
+                let guards = self.state.start_bas_guards.lock().await;
+                guards.get(&actual_session_id_uuid).cloned().unwrap_or(false)
+            };
+
+            // Check Redis flag - only execute start.bas once per session across instances
+            let should_execute_start_bas = if in_memory_executed {
+                trace!("start.bas already executed (in-memory) for session {}, skipping", actual_session_id);
+                false
+            } else if let Some(cache) = &self.state.cache {
                 if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
                     let was_set: Option<String> = redis::cmd("SET")
                         .arg(&start_bas_flag_key)
@@ -789,25 +798,21 @@ let system_prompt = if !message.active_switchers.is_empty() {
                         .await
                         .ok();
                     
-                    // If SET NX returned "OK" (Some("OK")), it means it was the first time
-                    // If it returned nil (None), it means it was already set
                     let is_first_time = was_set.is_some();
-                    
                     if !is_first_time {
-                        trace!("start.bas already executed for session {}, skipping in stream_response", actual_session_id);
+                        trace!("start.bas already executed (Redis) for session {}, skipping", actual_session_id);
+                        // Update in-memory guard if Redis says it's already done
+                        let mut guards = self.state.start_bas_guards.lock().await;
+                        guards.insert(actual_session_id_uuid, true);
                     }
                     is_first_time
                 } else {
-                    // Fallback: if Redis is down, we check if it's already initialized in memory if possible, 
-                    // but here we default to false to be safe and avoid double execution in most cases
-                    warn!("Failed to get Redis connection for start.bas guard, skipping to avoid redundant execution");
+                    warn!("Failed to get Redis connection for start.bas guard, defaulting to skip to avoid redundancy");
                     false 
                 }
             } else {
-                // If no cache, we can't easily track globally, so we run it (legacy behavior)
-                // or we could track in-memory. For now, let's allow it to run once per instance.
-                trace!("No cache configured, allowing start.bas execution in stream_response");
-                true
+                // No cache, we must rely solely on in-memory guard
+                true // If it's not in memory (checked above), we run it
             };
 
         if should_execute_start_bas {
@@ -865,6 +870,9 @@ let system_prompt = if !message.active_switchers.is_empty() {
             match result {
                 Ok(Ok(())) => {
                     info!("start.bas completed successfully for session {}", actual_session_id);
+                    // Final confirmation in memory
+                    let mut guards = state_clone.start_bas_guards.blocking_lock();
+                    guards.insert(actual_session_id_for_task, true);
                 }
                 Ok(Err(e)) => {
                     error!("start.bas error for session {}: {}", actual_session_id, e);
@@ -1809,10 +1817,19 @@ async fn handle_websocket(
                     };
 
                     if let Ok(Some(mut session)) = session_result {
-                        let actual_session_id = session.id.to_string();
+                        let actual_session_id_uuid = session.id;
+                        let actual_session_id = actual_session_id_uuid.to_string();
                         let start_bas_flag_key = format!("start_bas_executed:{}:{}", bot_id_str, actual_session_id);
                         
-                        let should_execute = if let Some(cache) = &state_for_start.cache {
+                        // 1. Check in-memory guard
+                        let in_memory_executed = {
+                            let guards = state_for_start.start_bas_guards.lock().await;
+                            guards.get(&actual_session_id_uuid).cloned().unwrap_or(false)
+                        };
+
+                        let should_execute = if in_memory_executed {
+                            false
+                        } else if let Some(cache) = &state_for_start.cache {
                             if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
                                 let was_set: Option<String> = redis::cmd("SET")
                                     .arg(&start_bas_flag_key)
@@ -1823,12 +1840,19 @@ async fn handle_websocket(
                                     .query_async(&mut conn)
                                     .await
                                     .ok();
-                                was_set.is_some()
+                                
+                                let is_first_time = was_set.is_some();
+                                if !is_first_time {
+                                    // Update memory if Redis knows it's done
+                                    let mut guards = state_for_start.start_bas_guards.lock().await;
+                                    guards.insert(actual_session_id_uuid, true);
+                                }
+                                is_first_time
                             } else {
                                 false
                             }
                         } else {
-                            true
+                            true // Check in-memory guard above handled it
                         };
 
                         if !should_execute {
@@ -1849,7 +1873,12 @@ async fn handle_websocket(
                         }).await;
 
                         match result {
-                            Ok(Ok(())) => info!("start.bas executed successfully for bot {}", bot_name),
+                            Ok(Ok(())) => {
+                                info!("start.bas executed successfully for bot {}", bot_name);
+                                // Final confirmation in memory
+                                let mut guards = state_for_redis.start_bas_guards.blocking_lock();
+                                guards.insert(actual_session_id_uuid, true);
+                            }
                             Ok(Err(e)) => error!("start.bas error: {}", e),
                             Err(e) => error!("start.bas task error: {}", e),
                         }
