@@ -373,8 +373,7 @@ calamine::Data::String(s)
 | calamine::Data::DateTimeIso(s)
 | calamine::Data::DurationIso(s) => {
 // Remove HTML tags and ensure UTF-8
-let cleaned = strip_html_tags(s);
-cleaned
+Self::strip_html_tags(s)
 },
 calamine::Data::Float(f) => f.to_string(),
 calamine::Data::Int(i) => i.to_string(),
@@ -434,7 +433,10 @@ async fn extract_xls_text(&self, file_path: &Path) -> Result<String> {
                                 calamine::Data::Empty => String::new(),
                                 calamine::Data::String(s)
                                 | calamine::Data::DateTimeIso(s)
-                                | calamine::Data::DurationIso(s) => s.clone(),
+                                | calamine::Data::DurationIso(s) => {
+                                    // Remove HTML tags and ensure clean text
+                                    Self::strip_html_tags(s)
+                                },
                                 calamine::Data::Float(f) => f.to_string(),
                                 calamine::Data::Int(i) => i.to_string(),
                                 calamine::Data::Bool(b) => b.to_string(),
