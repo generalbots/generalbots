@@ -47,33 +47,35 @@ function stripMarkdownBlocks(content) {
 }
 
 function addMessage(sender, content, msgId) {
-  var messages = document.getElementById("messages");
-  if (!messages) return;
+var messages = document.getElementById("messages");
+if (!messages) return;
 
-  var div = document.createElement("div");
-  div.className = "message " + sender;
-  if (msgId) div.id = msgId;
+var div = document.createElement("div");
+div.className = "message " + sender;
+if (msgId) div.id = msgId;
 
-  if (sender === "user") {
-    var processedContent = renderMentionInMessage(escapeHtml(content));
-    div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
-  } else {
-    var cleanContent = stripMarkdownBlocks(content);
-    var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
+if (sender === "user") {
+var processedContent = renderMentionInMessage(escapeHtml(content));
+div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
+} else {
+var cleanContent = stripMarkdownBlocks(content);
+// Strip HTML tags from XLSX content to prevent rendering
+cleanContent = cleanContent.replace(/<[^>]*>/g, "");
+var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
 
-    var parsed;
-    if (msgId) {
-      parsed = '<div class="streaming-loading"><span class="loading-dots">...</span></div>';
-    } else if (hasHtmlTags) {
-      parsed = cleanContent;
-    } else {
-      parsed = typeof marked !== "undefined" && marked.parse
-        ? marked.parse(cleanContent)
-        : escapeHtml(cleanContent);
-    }
-    parsed = renderMentionInMessage(parsed);
-    div.innerHTML = '<div class="message-content bot-message">' + parsed + "</div>";
-  }
+var parsed;
+if (msgId) {
+parsed = '<div class="streaming-loading"><span class="loading-dots">...</span></div>';
+} else if (hasHtmlTags) {
+parsed = escapeHtml(cleanContent);
+} else {
+parsed = typeof marked !== "undefined" && marked.parse
+? marked.parse(cleanContent)
+: escapeHtml(cleanContent);
+}
+parsed = renderMentionInMessage(parsed);
+div.innerHTML = '<div class="message-content bot-message">' + parsed + "</div>";
+}
 
   messages.appendChild(div);
 
@@ -95,48 +97,52 @@ function isTagBalanced(html) {
 }
 
 function updateStreaming(content) {
-  var el = document.getElementById(ChatState.streamingMessageId);
-  if (!el) return;
+var el = document.getElementById(ChatState.streamingMessageId);
+if (!el) return;
 
-  var msgContent = el.querySelector(".message-content");
-  var cleanContent = stripMarkdownBlocks(content);
-  var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
+var msgContent = el.querySelector(".message-content");
+var cleanContent = stripMarkdownBlocks(content);
+// Strip HTML tags from XLSX content to prevent rendering
+cleanContent = cleanContent.replace(/<[^>]*>/g, "");
+var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
 
-  if (isHtml) {
-    if (isTagBalanced(cleanContent) || (Date.now() - ChatState.lastRenderTime > 2000)) {
-      msgContent.innerHTML = renderMentionInMessage(cleanContent);
-      ChatState.lastRenderTime = Date.now();
-      if (!ChatState.isUserScrolling) scrollToBottom(true);
-    }
-  } else {
-    var parsed = typeof marked !== "undefined" && marked.parse
-      ? marked.parse(cleanContent)
-      : escapeHtml(cleanContent);
-    parsed = renderMentionInMessage(parsed);
-    msgContent.innerHTML = parsed;
-    if (!ChatState.isUserScrolling) scrollToBottom(true);
-  }
+if (isHtml) {
+if (isTagBalanced(cleanContent) || (Date.now() - ChatState.lastRenderTime > 2000)) {
+msgContent.innerHTML = renderMentionInMessage(escapeHtml(cleanContent));
+ChatState.lastRenderTime = Date.now();
+if (!ChatState.isUserScrolling) scrollToBottom(true);
+}
+} else {
+var parsed = typeof marked !== "undefined" && marked.parse
+? marked.parse(cleanContent)
+: escapeHtml(cleanContent);
+parsed = renderMentionInMessage(parsed);
+msgContent.innerHTML = parsed;
+if (!ChatState.isUserScrolling) scrollToBottom(true);
+}
 }
 
 function finalizeStreaming() {
-  var el = document.getElementById(ChatState.streamingMessageId);
-  if (el) {
-    var cleanContent = stripMarkdownBlocks(ChatState.currentStreamingContent);
-    var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
-    var parsed = hasHtmlTags
-      ? cleanContent
-      : (typeof marked !== "undefined" && marked.parse
-        ? marked.parse(cleanContent)
-        : escapeHtml(cleanContent));
-    parsed = renderMentionInMessage(parsed);
-    el.querySelector(".message-content").innerHTML = parsed;
-    el.removeAttribute("id");
-    setupMentionClickHandlers(el);
-    if (!ChatState.isUserScrolling) scrollToBottom(true);
-  }
-  ChatState.streamingMessageId = null;
-  ChatState.currentStreamingContent = "";
-  ChatState.streamingBuffer = "";
+var el = document.getElementById(ChatState.streamingMessageId);
+if (el) {
+var cleanContent = stripMarkdownBlocks(ChatState.currentStreamingContent);
+// Strip HTML tags from XLSX content to prevent rendering
+cleanContent = cleanContent.replace(/<[^>]*>/g, "");
+var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
+var parsed = hasHtmlTags
+? escapeHtml(cleanContent)
+: (typeof marked !== "undefined" && marked.parse
+? marked.parse(cleanContent)
+: escapeHtml(cleanContent));
+parsed = renderMentionInMessage(parsed);
+el.querySelector(".message-content").innerHTML = parsed;
+el.removeAttribute("id");
+setupMentionClickHandlers(el);
+if (!ChatState.isUserScrolling) scrollToBottom(true);
+}
+ChatState.streamingMessageId = null;
+ChatState.currentStreamingContent = "";
+ChatState.streamingBuffer = "";
 }
 
 function processMessage(data) {

@@ -337,64 +337,75 @@ impl DocumentProcessor {
 
             Err(anyhow::anyhow!("All PPTX extraction methods failed for {path_display}"))
         })
-        .await??;
+.await??;
 
-        Ok(result)
-    }
+Ok(result)
+}
+
+/// Remove HTML tags from string
+fn strip_html_tags(s: &str) -> String {
+// Remove HTML tags: <tag>, <tag attr="value">, </tag>
+let re = regex::Regex::new(r"<[^>]*>").unwrap();
+re.replace_all(s, "").to_string()
+}
 
 #[cfg(feature = "kb-extraction")]
 async fn extract_xlsx_text(&self, file_path: &Path) -> Result<String> {
-    let path = file_path.to_path_buf();
-    let result = tokio::task::spawn_blocking(move || -> Result<String> {
-        use calamine::{open_workbook, Reader, Xlsx};
+let path = file_path.to_path_buf();
+let result = tokio::task::spawn_blocking(move || -> Result<String> {
+use calamine::{open_workbook, Reader, Xlsx};
 
-        let mut workbook: Xlsx<_> = open_workbook(&path)
-            .map_err(|e| anyhow::anyhow!("Failed to open XLSX: {e}"))?;
+let mut workbook: Xlsx<_> = open_workbook(&path)
+.map_err(|e| anyhow::anyhow!("Failed to open XLSX: {e}"))?;
 
-            let mut content = String::new();
-            for sheet_name in workbook.sheet_names() {
-                if let Ok(range) = workbook.worksheet_range(&sheet_name) {
-                    use std::fmt::Write;
-                    let _ = writeln!(&mut content, "=== {} ===", sheet_name);
+let mut content = String::new();
+for sheet_name in workbook.sheet_names() {
+if let Ok(range) = workbook.worksheet_range(&sheet_name) {
+use std::fmt::Write;
+let _ = writeln!(&mut content, "=== {} ===", sheet_name);
 
-                    for row in range.rows() {
-                        let row_text: Vec<String> = row
-                            .iter()
-                            .map(|cell| match cell {
-                                calamine::Data::Empty => String::new(),
-                                calamine::Data::String(s)
-                                | calamine::Data::DateTimeIso(s)
-                                | calamine::Data::DurationIso(s) => s.clone(),
-                                calamine::Data::Float(f) => f.to_string(),
-                                calamine::Data::Int(i) => i.to_string(),
-                                calamine::Data::Bool(b) => b.to_string(),
-                                calamine::Data::Error(e) => format!("{e:?}"),
-                                calamine::Data::DateTime(dt) => dt.to_string(),
-                            })
-                            .collect();
+for row in range.rows() {
+let row_text: Vec<String> = row
+.iter()
+.map(|cell| match cell {
+calamine::Data::Empty => String::new(),
+calamine::Data::String(s)
+| calamine::Data::DateTimeIso(s)
+| calamine::Data::DurationIso(s) => {
+// Remove HTML tags and ensure UTF-8
+let cleaned = strip_html_tags(s);
+cleaned
+},
+calamine::Data::Float(f) => f.to_string(),
+calamine::Data::Int(i) => i.to_string(),
+calamine::Data::Bool(b) => b.to_string(),
+calamine::Data::Error(e) => format!("{e:?}"),
+calamine::Data::DateTime(dt) => dt.to_string(),
+})
+.collect();
 
-                        let line = row_text.join("\t");
-                        if !line.trim().is_empty() {
-                            content.push_str(&line);
-                            content.push('\n');
-                        }
-                    }
-                    content.push('\n');
-                }
-            }
+let line = row_text.join("\t");
+if !line.trim().is_empty() {
+content.push_str(&line);
+content.push('\n');
+}
+}
+content.push('\n');
+}
+}
 
-            Ok(content)
-        })
-        .await??;
+Ok(content)
+})
+.await??;
 
-        if result.trim().is_empty() {
-            warn!("XLSX extraction produced empty text: {}", file_path.display());
-        } else {
-            info!("Extracted XLSX with calamine library: {}", file_path.display());
-        }
+if result.trim().is_empty() {
+warn!("XLSX extraction produced empty text: {}", file_path.display());
+} else {
+info!("Extracted XLSX with calamine library: {}", file_path.display());
+}
 
-        Ok(result)
-    }
+Ok(result)
+}
 
     #[cfg(not(feature = "kb-extraction"))]
     async fn extract_xlsx_text(&self, file_path: &Path) -> Result<String> {
