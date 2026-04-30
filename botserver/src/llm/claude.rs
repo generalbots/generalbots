@@ -382,7 +382,11 @@ impl ClaudeClient {
         tx: mpsc::Sender<String>,
         model_name: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
+        let url = if self.base_url.contains("/v1/messages") || self.base_url.contains("/messages") {
+            self.base_url.clone()
+        } else {
+            format!("{}/v1/messages", self.base_url.trim_end_matches('/'))
+        };
         let start_time = Instant::now();
 
         trace!(
@@ -659,7 +663,11 @@ impl LLMProvider for ClaudeClient {
         trace!("CLAUDE request: model={}, body_len={}", model_name, body.len());
 
         let start = Instant::now();
-        let url = format!("{}/v1/messages", self.base_url.trim_end_matches('/'));
+        let url = if self.base_url.contains("/v1/messages") || self.base_url.contains("/messages") {
+            self.base_url.clone()
+        } else {
+            format!("{}/v1/messages", self.base_url.trim_end_matches('/'))
+        };
 
         // Use reqwest for non-streaming
         let client = reqwest::Client::builder()
