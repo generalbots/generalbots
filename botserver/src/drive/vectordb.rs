@@ -697,9 +697,14 @@ async fn extract_xlsx_text(file_path: &Path) -> Result<String> {
                             calamine::Data::String(s)
                             | calamine::Data::DateTimeIso(s)
                             | calamine::Data::DurationIso(s) => {
-                                // Remove HTML tags from cell text (Calamine formatting artifacts)
-                                let re = regex::Regex::new(r"<[^>]*>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
-                                re.replace_all(s, "").to_string()
+                                // Remove HTML tags and formatting artifacts
+                                let re_style = regex::Regex::new(r"(?is)<(style|script)[^>]*>.*?</\1>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
+                                let s1 = re_style.replace_all(s, "");
+                                let re_tags = regex::Regex::new(r"<[^>]*>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
+                                let s2 = re_tags.replace_all(&s1, "");
+                                let s3 = s2.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"");
+                                let re_spaces = regex::Regex::new(r"\s+").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
+                                re_spaces.replace_all(&s3, " ").to_string().trim().to_string()
                             },
                             calamine::Data::Float(f) => f.to_string(),
                             calamine::Data::Int(i) => i.to_string(),

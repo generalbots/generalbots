@@ -344,9 +344,24 @@ Ok(result)
 
 /// Remove HTML tags from string
 fn strip_html_tags(s: &str) -> String {
-// Remove HTML tags: <tag>, <tag attr="value">, </tag>
-let re = regex::Regex::new(r"<[^>]*>").unwrap();
-re.replace_all(s, "").to_string()
+    // 1. Remove <style> and <script> blocks entirely
+    let re_style = regex::Regex::new(r"(?is)<(style|script)[^>]*>.*?</\1>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
+    let s1 = re_style.replace_all(s, "");
+    
+    // 2. Remove all other HTML tags
+    let re_tags = regex::Regex::new(r"<[^>]*>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
+    let s2 = re_tags.replace_all(&s1, "");
+    
+    // 3. Replace common entities
+    let s3 = s2.replace("&nbsp;", " ")
+               .replace("&amp;", "&")
+               .replace("&lt;", "<")
+               .replace("&gt;", ">")
+               .replace("&quot;", "\"");
+               
+    // 4. Collapse multiple spaces/newlines
+    let re_spaces = regex::Regex::new(r"\s+").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
+    re_spaces.replace_all(&s3, " ").to_string().trim().to_string()
 }
 
 #[cfg(feature = "kb-extraction")]
