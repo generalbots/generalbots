@@ -840,9 +840,10 @@ let system_prompt = if !message.active_switchers.is_empty() {
             let bot_id_clone = session.bot_id;
 
             // Execute start.bas synchronously (blocking)
+            let state_for_task = state_clone.clone();
             let result = tokio::task::spawn_blocking(move || {
                 let session_result = {
-                    let mut sm = state_clone.session_manager.blocking_lock();
+                    let mut sm = state_for_task.session_manager.blocking_lock();
                     sm.get_session_by_id(actual_session_id_for_task)
                 };
 
@@ -855,10 +856,10 @@ let system_prompt = if !message.active_switchers.is_empty() {
                 };
 
                 let mut script_service = crate::basic::ScriptService::new(
-                    state_clone.clone(),
+                    state_for_task.clone(),
                     sess
                 );
-                script_service.load_bot_config_params(&state_clone, bot_id_clone);
+                script_service.load_bot_config_params(&state_for_task, bot_id_clone);
 
                 match script_service.run(&ast_content) {
                     Ok(_) => Ok(()),
