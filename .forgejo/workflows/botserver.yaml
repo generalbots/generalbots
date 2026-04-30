@@ -16,6 +16,8 @@ jobs:
     runs-on: gbo
     env:
       RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: 0
+      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
       PATH: "/home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin"
     steps:
       - name: Setup
@@ -35,6 +37,7 @@ jobs:
         run: |
           cd /opt/gbo/work/generalbots
           rustup default stable
+          sccache --start-server || true
           export RUSTC_WRAPPER=sccache
           echo "=== sccache stats before build ==="
           sccache --show-stats 2>/dev/null || echo "sccache not available"
