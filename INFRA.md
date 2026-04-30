@@ -24,8 +24,8 @@ URL pattern: chat.{stage.}domain.com/botname for bot access.
 
 ### Critical Environment Details
 
-- BotServer internal port varies by environment (check .env `PORT=`, typically 5858 on stage, 8080 on prod)
-- BotUI must have `BOTSERVER_URL=http://localhost:{PORT}` matching botserver's PORT in its service Environment
+- BotServer internal port varies by environment (check .env `PORT=`, typically 5858)
+- BotUI must have `BOTSERVER_URL=http://localhost:5858` matching botserver's PORT in its service Environment
 - Cache (Valkey) runs in the `cache` container — botserver reads host/port from Vault `secret/gbo/cache`
 - Vault `secret/gbo/cache` contains: host (cache container IP), port (6379), password
 - NEVER put CACHE_URL/REDIS_URL in .env — all non-VAULT env vars are forbidden in production
@@ -63,14 +63,14 @@ Externally, services are exposed via reverse proxy (Caddy). Internally, containe
 
 | Service | External URL | Internal Address |
 |---------|--------------|------------------|
-| BotServer | `https://<system-domain>` | `http://<system-ip>:8080` |
-| BotUI | `https://<chat-domain>` | `http://<system-ip>:3000` |
+| BotServer | `https://<system-domain>` | `http://<system-ip>:5858` |
+| BotUI | `https://<chat-domain>` | `http://<system-ip>:5859` |
 | Zitadel | `https://<login-domain>` | `http://<directory-ip>:8080` |
 | Forgejo | `https://<alm-domain>` | `http://<alm-ip>:4747` |
 | Webmail | `https://<webmail-domain>` | `http://<webmail-ip>:80` |
 | Roundcube | `https://<roundcube-domain>` | `http://<webmail-ip>:80` |
 
-**Note:** BotUI's `BOTSERVER_URL` must be `http://<system-ip>:8080` internally, NOT the external HTTPS URL.
+**Note:** BotUI's `BOTSERVER_URL` must be `http://<system-ip>:5858` internally, NOT the external HTTPS URL.
 
 ---
 
@@ -86,7 +86,7 @@ sudo incus list
 
 # 2. Service health - all should show "active (running)"
 sudo incus exec system -- systemctl is-active botserver
-sudo incus exec system -- systemctl is-active ui
+sudo incus exec system -- systemctl is-active botui
 sudo incus exec directory -- systemctl is-active directory 2>/dev/null || echo "Directory check failed"
 sudo incus exec drive -- pgrep -f minio > /dev/null && echo "MinIO OK" || echo "MinIO DOWN"
 sudo incus exec tables -- pgrep -f postgres > /dev/null && echo "PostgreSQL OK" || echo "PostgreSQL DOWN"
@@ -140,7 +140,7 @@ echo "Containers:"
 sudo incus list -c n4,s | grep -E "(system|tables|vault|directory|drive|cache|llm|vector_db|alm-ci)" | awk '{print $1 ": " $3 " " $4}'
 echo ""
 echo "Services:"
-for svc in botserver ui; do
+for svc in botserver botui; do
   sudo incus exec system -- systemctl is-active $svc 2>/dev/null && echo "  $svc: ACTIVE" || echo "  $svc: DOWN"
 done
 echo ""
@@ -311,14 +311,14 @@ sudo incus exec system -- ldd /opt/gbo/bin/botserver | grep "not found"
 1. **If systemd failed:**
 ```bash
 sudo incus exec system -- systemctl restart botserver
-sudo incus exec system -- systemctl restart ui
+sudo incus exec system -- systemctl restart botui
 ```
 
 2. **If GLIBC mismatch:** Binary compiled with wrong glibc. Must rebuild inside system container (Debian 12, glibc 2.36).
 
 3. **If port conflict:**
 ```bash
-sudo incus exec system -- lsof -i :8080
+sudo incus exec system -- lsof -i :5858
 sudo incus exec system -- killall botserver
 sudo incus exec system -- systemctl start botserver
 ```
@@ -678,7 +678,7 @@ sudo incus exec proxy -- systemctl restart proxy
 
 **botserver won't start:** Run `sudo incus exec system -- ldd /opt/gbo/bin/botserver | grep "not found"` to check for missing libraries. Run `sudo incus exec system -- timeout 10 /opt/gbo/bin/botserver 2>&1` to see startup errors. Confirm `/opt/gbo/work/` exists and is accessible.
 
-**botui can't reach botserver:** Check that the `ui.service` systemd file has `BOTSERVER_URL=http://localhost:5858` — not the external HTTPS URL. Fix with `sed -i 's|BOTSERVER_URL=.*|BOTSERVER_URL=http://localhost:5858|'` on the service file, then `systemctl daemon-reload` and `systemctl restart ui`.
+**botui can't reach botserver:** Check that the `botui.service` systemd file has `BOTSERVER_URL=http://localhost:5858` — not the external HTTPS URL. Fix with `sed -i 's|BOTSERVER_URL=.*|BOTSERVER_URL=http://localhost:5858|'` on the service file, then `systemctl daemon-reload` and `systemctl restart botui`.
 
 **Suggestions not showing:** Confirm bot `.bas` files exist in MinIO Drive under `{bot}.gbai/{bot}.gbdialog/`. Check logs for compilation errors. Clear the AST cache in `/opt/gbo/work/` and restart botserver.
 

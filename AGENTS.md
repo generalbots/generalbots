@@ -5,11 +5,11 @@
 - **❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation**
 - **❌ NEVER use `scp`, direct SSH binary copy, or manual deployment to system container**
 - **✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically**
-8080 is server 3000 is client ui 
+5858 is server 5859 is client ui 
 if you are in trouble with some tool, please go to the ofiical website to get proper install or instructions
-To test web is http://localhost:3000 (botui!)
+To test web is http://localhost:5859 (botui!)
 Use apenas a lingua culta ao falar .
-test login here http://localhost:3000/suite/auth/login.html
+test login here http://localhost:5859/suite/auth/login.html
 > **⚠️ CRITICAL SECURITY WARNING**
 I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! Just fix, to me and push to CI. So I can test in PROD, for a while.
 >Use Playwrigth MCP to start localhost:3000/<bot> now.
@@ -39,8 +39,8 @@ See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from Mi
 
 | Crate | Purpose | Port | Tech Stack |
 |-------|---------|------|------------|
-| **botserver** | Main API server, business logic | 8080 | Axum, Diesel, Rhai BASIC |
-| **botui** | Web UI server (dev) + proxy | 3000 | Axum, HTML/HTMX/CSS |
+| **botserver** | Main API server, business logic | 5858 | Axum, Diesel, Rhai BASIC |
+| **botui** | Web UI server (dev) + proxy | 5859 | Axum, HTML/HTMX/CSS |
 | **botapp** | Desktop app wrapper | - | Tauri 2 |
 | **botlib** | Shared library | - | Core types, errors |
 | **botbook** | Documentation | - | mdBook |
@@ -492,8 +492,8 @@ tail -f botserver.log botui.log
 After reset completes, verify:
 - ✅ PostgreSQL running (port 5432)
 - ✅ Valkey cache running (port 6379)
-- ✅ BotServer listening on port 8080
-- ✅ BotUI listening on port 3000
+- ✅ BotServer listening on port 5858
+- ✅ BotUI listening on port 5859
 - ✅ No errors in botserver.log
 
 ---
