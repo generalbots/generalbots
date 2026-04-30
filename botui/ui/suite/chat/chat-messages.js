@@ -59,22 +59,17 @@ var processedContent = renderMentionInMessage(escapeHtml(content));
 div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
 } else {
 var cleanContent = stripMarkdownBlocks(content);
-// Strip HTML tags from XLSX content to prevent rendering
-cleanContent = cleanContent.replace(/<[^>]*>/g, "");
-var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
-
-var parsed;
-if (msgId) {
-parsed = '<div class="streaming-loading"><span class="loading-dots">...</span></div>';
-} else if (hasHtmlTags) {
-parsed = escapeHtml(cleanContent);
-} else {
-parsed = typeof marked !== "undefined" && marked.parse
-? marked.parse(cleanContent)
-: escapeHtml(cleanContent);
-}
-parsed = renderMentionInMessage(parsed);
-div.innerHTML = '<div class="message-content bot-message">' + parsed + "</div>";
+    if (msgId) {
+        parsed = '<div class="streaming-loading"><span class="loading-dots">...</span></div>';
+    } else if (hasHtmlTags) {
+        parsed = cleanContent; // Don't escape HTML tags
+    } else {
+        parsed = typeof marked !== "undefined" && marked.parse
+            ? marked.parse(cleanContent)
+            : escapeHtml(cleanContent);
+    }
+    parsed = renderMentionInMessage(parsed);
+    div.innerHTML = '<div class="message-content bot-message">' + parsed + "</div>";
 }
 
   messages.appendChild(div);
@@ -102,17 +97,16 @@ if (!el) return;
 
 var msgContent = el.querySelector(".message-content");
 var cleanContent = stripMarkdownBlocks(content);
-// Strip HTML tags from XLSX content to prevent rendering
-cleanContent = cleanContent.replace(/<[^>]*>/g, "");
 var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
 
 if (isHtml) {
-if (isTagBalanced(cleanContent) || (Date.now() - ChatState.lastRenderTime > 2000)) {
-msgContent.innerHTML = renderMentionInMessage(escapeHtml(cleanContent));
-ChatState.lastRenderTime = Date.now();
-if (!ChatState.isUserScrolling) scrollToBottom(true);
+    if (isTagBalanced(cleanContent) || (Date.now() - ChatState.lastRenderTime > 2000)) {
+        msgContent.innerHTML = renderMentionInMessage(cleanContent); // Don't escape HTML
+        ChatState.lastRenderTime = Date.now();
+        if (!ChatState.isUserScrolling) scrollToBottom(true);
+    }
 }
-} else {
+ else {
 var parsed = typeof marked !== "undefined" && marked.parse
 ? marked.parse(cleanContent)
 : escapeHtml(cleanContent);
@@ -126,14 +120,12 @@ function finalizeStreaming() {
 var el = document.getElementById(ChatState.streamingMessageId);
 if (el) {
 var cleanContent = stripMarkdownBlocks(ChatState.currentStreamingContent);
-// Strip HTML tags from XLSX content to prevent rendering
-cleanContent = cleanContent.replace(/<[^>]*>/g, "");
 var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
 var parsed = hasHtmlTags
-? escapeHtml(cleanContent)
-: (typeof marked !== "undefined" && marked.parse
-? marked.parse(cleanContent)
-: escapeHtml(cleanContent));
+    ? cleanContent // Don't escape HTML
+    : (typeof marked !== "undefined" && marked.parse
+        ? marked.parse(cleanContent)
+        : escapeHtml(cleanContent));
 parsed = renderMentionInMessage(parsed);
 el.querySelector(".message-content").innerHTML = parsed;
 el.removeAttribute("id");
