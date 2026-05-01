@@ -2,13 +2,13 @@
 <link rel="stylesheet" href="/suite/css/markdown-message.css" />
 <link rel="stylesheet" href="/suite/css/chat-agent-mode.css" />
 
-<div class="chat-layout" id="chat-app">
-  <div class="chat-loading-overlay" id="chatLoadingOverlay">
-    <div class="chat-loading-spinner"></div>
-    <div class="chat-loading-text">Carregando...</div>
-  </div>
+<div class="chat-layout" id="chat-app" style="opacity: 0; visibility: hidden;">
+<div class="chat-loading-overlay" id="chatLoadingOverlay">
+<div class="chat-loading-spinner"></div>
+<div class="chat-loading-text">Carregando...</div>
+</div>
 
-  <div class="chat-content-wrapper" id="chatContentWrapper" style="display: none;">
+<div class="chat-content-wrapper" id="chatContentWrapper">
     <div class="connection-status connecting" id="connectionStatus" style="display: none">
       <span class="connection-status-dot"></span>
       <span class="connection-text">Connecting...</span>

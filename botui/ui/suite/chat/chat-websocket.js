@@ -43,14 +43,15 @@ function connectWebSocket() {
 
   ChatState.ws = new WebSocket(url);
 
-  ChatState.ws.onopen = function () {
-    ChatState.disconnectNotified = false;
-    updateConnectionStatus("connected");
-    var loadingOverlay = document.getElementById("chatLoadingOverlay");
-    var contentWrapper = document.getElementById("chatContentWrapper");
-    if (loadingOverlay) loadingOverlay.style.display = "none";
-    if (contentWrapper) contentWrapper.style.display = "flex";
-  };
+ChatState.ws.onopen = function () {
+  ChatState.disconnectNotified = false;
+  updateConnectionStatus("connected");
+  var loadingOverlay = document.getElementById("chatLoadingOverlay");
+  if (loadingOverlay) loadingOverlay.style.display = "none";
+  if (typeof window.showChatApp === "function") {
+    window.showChatApp();
+  }
+};
 
   ChatState.ws.onmessage = function (event) {
     try {

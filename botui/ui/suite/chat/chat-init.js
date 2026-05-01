@@ -122,5 +122,15 @@ function initChat() {
   proceedWithChatInit();
 }
 
+function showChatApp() {
+  var chatApp = document.getElementById("chat-app");
+  if (chatApp) {
+    chatApp.style.opacity = "1";
+    chatApp.style.visibility = "visible";
+  }
+}
+
+window.showChatApp = showChatApp;
+
 setupEventHandlers();
 initChat();
