@@ -33,12 +33,8 @@ steps:
   run: |
     cd /opt/gbo/work/generalbots
     rustup default stable
-    export CARGO_HOME=/home/gbuser/.cargo
-    export RUSTC_WRAPPER=sccache
-    sccache --start-server || true
     CARGO_BUILD_JOBS=24 cargo build -p botserver --bin botserver --profile fast
     CARGO_BUILD_JOBS=24 cargo build -p botui --bin botui --profile fast --features embed-ui
-    sccache --show-stats || true
 
       - name: Deploy to Stage
         run: |
