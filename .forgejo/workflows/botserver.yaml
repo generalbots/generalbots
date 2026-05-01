@@ -1,10 +1,15 @@
 name: BotServer CI
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "**"
+push:
+  branches: [main]
+  paths:
+  - "botserver/**"
+  - "botui/**"
+  - "botlib/**"
+  - ".forgejo/workflows/botserver.yaml"
+  - "Cargo.toml"
+  - "Cargo.lock"
 
 jobs:
   build:
@@ -17,7 +22,11 @@ steps:
 - name: Setup
   run: |
     cd /opt/gbo/work/generalbots
-    git pull
+    if ! git pull; then
+      echo "::error::Git pull failed. Please resolve conflicts manually."
+      exit 1
+    fi
+    git log --oneline -1
 
 - name: Build BotServer and BotUI
   run: |
