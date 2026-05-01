@@ -3,6 +3,8 @@ name: BotServer CI
 on:
   push:
     branches: [main]
+    paths:
+      - "**"
 
 jobs:
   build:
