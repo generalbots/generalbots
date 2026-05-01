@@ -17,11 +17,7 @@ steps:
 - name: Setup
   run: |
     cd /opt/gbo/work/generalbots
-    if ! git pull; then
-      echo "::error::Git pull failed. Please resolve conflicts manually."
-      exit 1
-    fi
-    git log --oneline -1
+    git pull
 
 - name: Build BotServer and BotUI
   run: |
