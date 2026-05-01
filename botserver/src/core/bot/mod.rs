@@ -1346,30 +1346,9 @@ while let Some(chunk) = stream_rx.recv().await {
             }
 
 if !in_analysis {
-            full_response.push_str(&chunk);
-
-            // Send immediately without buffering
-            let response = BotResponse {
-                bot_id: message.bot_id.clone(),
-                user_id: message.user_id.clone(),
-                session_id: message.session_id.clone(),
-                channel: message.channel.clone(),
-                content: chunk.clone(),
-                message_type: MessageType::BOT_RESPONSE,
-                stream_token: None,
-                is_complete: false,
-                suggestions: Vec::new(),
-                switchers: Vec::new(),
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
-
-            if response_tx.send(response).await.is_err() {
-                warn!("Response channel closed");
-                break;
-            }
-        }
+// Accumulate full response - DO NOT send chunks
+full_response.push_str(&chunk);
+}
         }
 
         info!("llm_end: Streaming loop ended for session {}, chunk_count={}, full_response_len={}", session.id, chunk_count, full_response.len());
@@ -1437,28 +1416,24 @@ if !in_analysis {
         #[cfg(not(feature = "chat"))]
         let switchers: Vec<Switcher> = Vec::new();
 
-    // Content was already sent as streaming chunks.
-        // Sending full_response again would duplicate it (especially for WhatsApp which accumulates buffer).
-        // The final response is just a signal that streaming is complete - it should not contain content.
-        let final_content = String::new();
-
-        let final_response = BotResponse {
-            bot_id: message.bot_id,
-            user_id: message.user_id,
-            session_id: message.session_id,
-            channel: message.channel,
-            content: final_content,
-            message_type: MessageType::BOT_RESPONSE,
-            stream_token: None,
-            is_complete: true,
-    suggestions,
-    switchers,
-    context_name: None,
-    context_length: 0,
-    context_max_length: 0,
+// Send accumulated full response (not streaming anymore)
+let final_response = BotResponse {
+bot_id: message.bot_id,
+user_id: message.user_id,
+session_id: message.session_id,
+channel: message.channel,
+content: full_response.clone(),
+message_type: MessageType::BOT_RESPONSE,
+stream_token: None,
+is_complete: true,
+suggestions,
+switchers,
+context_name: None,
+context_length: 0,
+context_max_length: 0,
 };
 
-        response_tx.send(final_response).await?;
+response_tx.send(final_response).await?;
         Ok(())
     }
 

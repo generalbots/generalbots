@@ -83,13 +83,21 @@ function setupEventHandlers() {
     form.onsubmit = function (e) { e.preventDefault(); sendMessage(); return false; };
   }
 
-  if (input) {
-    input.addEventListener("input", handleMentionInput);
-    input.onkeydown = function (e) {
-      if (handleMentionKeydown(e)) return;
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-    };
-  }
+if (input) {
+if (typeof handleMentionInput === 'function') {
+input.addEventListener("input", handleMentionInput);
+}
+if (typeof handleMentionKeydown === 'function') {
+input.onkeydown = function (e) {
+if (handleMentionKeydown(e)) return;
+if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+};
+} else {
+input.onkeydown = function (e) {
+if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+};
+}
+}
 
   if (sendBtn) {
     sendBtn.onclick = function (e) { e.preventDefault(); sendMessage(); };
@@ -110,16 +118,20 @@ function setupEventHandlers() {
     });
   }
 
-  document.addEventListener("click", function (e) {
-    if (!e.target.closest("#mentionDropdown") && !e.target.closest("#messageInput")) {
-      hideMentionDropdown();
-    }
-  });
+document.addEventListener("click", function (e) {
+if (!e.target.closest("#mentionDropdown") && !e.target.closest("#messageInput")) {
+if (typeof hideMentionDropdown === 'function') {
+hideMentionDropdown();
+}
+}
+});
 }
 
 function initChat() {
-  loadBotConfig();
-  proceedWithChatInit();
+if (typeof loadBotConfig === 'function') {
+loadBotConfig();
+}
+proceedWithChatInit();
 }
 
 function showChatApp() {
@@ -132,5 +144,15 @@ function showChatApp() {
 
 window.showChatApp = showChatApp;
 
+// Wait for DOM to be ready before initializing
+if (typeof document !== 'undefined') {
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', function() {
 setupEventHandlers();
 initChat();
+});
+} else {
+setupEventHandlers();
+initChat();
+}
+}
