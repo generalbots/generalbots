@@ -1346,72 +1346,31 @@ while let Some(chunk) = stream_rx.recv().await {
                 trace!("Cleared leftover in_analysis state");
             }
 
-            if !in_analysis {
-                full_response.push_str(&chunk);
-                html_buffer.push_str(&chunk);
+if !in_analysis {
+            full_response.push_str(&chunk);
 
-                // Check if we should flush the buffer:
-                // 1. HTML tag pair completed (e.g., </div>, </h1>, </p>, </ul>, </li>)
-                // 2. Buffer is large enough (> 500 chars)
-                // 3. This is the last chunk (is_complete will be true next iteration)
-                let should_flush = (html_buffer.len() > 1000 
-                    || html_buffer.contains("</div>")
-                    || html_buffer.contains("</h1>")
-                    || html_buffer.contains("</h2>")
-                    || html_buffer.contains("</h3>")
-                    || html_buffer.contains("</h4>")
-                    || html_buffer.contains("</h5>")
-                    || html_buffer.contains("</h6>")
-                    || html_buffer.contains("</p>")
-                    || html_buffer.contains("</ul>")
-                    || html_buffer.contains("</ol>")
-                    || html_buffer.contains("</li>")
-                    || html_buffer.contains("</table>")
-                    || html_buffer.contains("</tr>")
-                    || html_buffer.contains("</td>")
-                    || html_buffer.contains("</th>")
-                    || html_buffer.contains("</section>")
-                    || html_buffer.contains("</header>")
-                    || html_buffer.contains("</footer>")
-                    || html_buffer.contains("</azul>")
-                    || html_buffer.contains("</ouro>")
-                    || html_buffer.contains("</hero>")
-                    || html_buffer.contains("</wrap>")
-                    || html_buffer.contains("</corpo>")
-                    || html_buffer.contains("</item>")
-                    || html_buffer.contains("</rodape>"))
-                    && !is_inside_html_tag(&html_buffer);
+            // Send immediately without buffering
+            let response = BotResponse {
+                bot_id: message.bot_id.clone(),
+                user_id: message.user_id.clone(),
+                session_id: message.session_id.clone(),
+                channel: message.channel.clone(),
+                content: chunk.clone(),
+                message_type: MessageType::BOT_RESPONSE,
+                stream_token: None,
+                is_complete: false,
+                suggestions: Vec::new(),
+                switchers: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            };
 
-                if should_flush {
-                    // Sanitize malformed tags (e.g. "< class" -> "<class", "</ div" -> "</div")
-                    let content_to_send = html_buffer
-                        .replace("< ", "<")
-                        .replace("</ ", "</");
-                    
-                    html_buffer.clear();
-
-                    let response = BotResponse {
-                        bot_id: message.bot_id.clone(),
-                        user_id: message.user_id.clone(),
-                        session_id: message.session_id.clone(),
-                        channel: message.channel.clone(),
-                        content: content_to_send,
-                        message_type: MessageType::BOT_RESPONSE,
-                        stream_token: None,
-                        is_complete: false,
-                        suggestions: Vec::new(),
-                        switchers: Vec::new(),
-                        context_name: None,
-                        context_length: 0,
-                        context_max_length: 0,
-                    };
-
-                    if response_tx.send(response).await.is_err() {
-                        warn!("Response channel closed");
-                        break;
-                    }
-                }
+            if response_tx.send(response).await.is_err() {
+                warn!("Response channel closed");
+                break;
             }
+        }
         }
 
         info!("llm_end: Streaming loop ended for session {}, chunk_count={}, full_response_len={}", session.id, chunk_count, full_response.len());
