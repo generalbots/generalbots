@@ -233,6 +233,13 @@ strip = true
 panic = "abort"
 codegen-units = 1
 
+[profile.fast]
+inherits = "release"
+lto = false
+opt-level = 3
+strip = true
+codegen-units = 16
+
 [profile.ci]
 inherits = "release"
 lto = false
