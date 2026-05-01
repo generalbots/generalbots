@@ -1,15 +1,8 @@
 name: BotServer CI
 
 on:
-push:
-  branches: [main]
-  paths:
-  - "botserver/**"
-  - "botui/**"
-  - "botlib/**"
-  - ".forgejo/workflows/botserver.yaml"
-  - "Cargo.toml"
-  - "Cargo.lock"
+  push:
+    branches: [main]
 
 jobs:
   build:
