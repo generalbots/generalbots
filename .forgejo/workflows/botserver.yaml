@@ -10,7 +10,6 @@ push:
   - ".forgejo/workflows/botserver.yaml"
   - "Cargo.toml"
   - "Cargo.lock"
-  - "Cargo.lock"
 
 jobs:
   build:
