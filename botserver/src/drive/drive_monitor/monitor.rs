@@ -4,7 +4,7 @@ use std::time::Duration;
 use super::types::DriveMonitor;
 
 /// Intervalo de verificação do DriveMonitor e DriveCompiler (em segundos)
-pub const CHECK_INTERVAL_SECS: u64 = 1;
+pub const CHECK_INTERVAL_SECS: u64 = 2;
 
 impl DriveMonitor {
     pub fn calculate_backoff(&self) -> Duration {

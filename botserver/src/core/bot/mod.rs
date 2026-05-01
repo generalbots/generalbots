@@ -1054,8 +1054,7 @@ let system_prompt = if !message.active_switchers.is_empty() {
         let mut in_analysis = false;
         let mut tool_call_buffer = String::new(); // Accumulate potential tool call JSON chunks
         let mut accumulating_tool_call = false; // Track if we're currently accumulating a tool call
-        let mut html_buffer = String::new(); // Buffer for HTML content
-        let handler = llm_models::get_handler(&model);
+    let handler = llm_models::get_handler(&model);
 
         trace!("Using model handler for {}", model);
         info!("llm_start: Starting LLM streaming for session {}", session.id);
@@ -1438,29 +1437,7 @@ if !in_analysis {
         #[cfg(not(feature = "chat"))]
         let switchers: Vec<Switcher> = Vec::new();
 
-        // Flush any remaining HTML buffer before sending final response
-        if !html_buffer.is_empty() {
-            trace!("Flushing remaining {} chars in HTML buffer", html_buffer.len());
-            let final_chunk = BotResponse {
-                bot_id: message.bot_id.clone(),
-                user_id: message.user_id.clone(),
-                session_id: message.session_id.clone(),
-                channel: message.channel.clone(),
-                content: html_buffer.clone(),
-                message_type: MessageType::BOT_RESPONSE,
-                stream_token: None,
-            is_complete: false,
-            suggestions: Vec::new(),
-            switchers: Vec::new(),
-            context_name: None,
-            context_length: 0,
-            context_max_length: 0,
-        };
-        let _ = response_tx.send(final_chunk).await;
-            html_buffer.clear();
-        }
-
-        // Content was already sent as streaming chunks.
+    // Content was already sent as streaming chunks.
         // Sending full_response again would duplicate it (especially for WhatsApp which accumulates buffer).
         // The final response is just a signal that streaming is complete - it should not contain content.
         let final_content = String::new();

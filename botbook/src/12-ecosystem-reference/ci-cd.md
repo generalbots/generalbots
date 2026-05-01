@@ -143,7 +143,7 @@ sudo incus exec alm-ci -- tail -f /opt/gbo/logs/forgejo-runner.log | grep -E "Cl
 | Rust compilation (incremental) | 30-60 seconds |
 | First build (dependencies) | Downloads ~200 crates |
 | Deploy step | ~5 seconds |
-| Total CI time | 2-6 minutes depending on cache |
+| Total CI time | 2-4 minutes (incremental with mold) |
 
 ---
 
@@ -173,7 +173,7 @@ curl -sf https://<system-domain>/api/health && echo "OK" || echo "FAILED"
 - **User:** gbuser (uid 1000)
 - **Workspace:** /opt/gbo/data/
 - **SSH deploy key:** /home/gbuser/.ssh/id_ed25519
-- **sccache:** /usr/local/bin/sccache (via RUSTC_WRAPPER=sccache)
+- **Cache:** Native Cargo incremental (target/ persistence)
 - **Cargo cache:** /home/gbuser/.cargo/
 - **Rustup:** /home/gbuser/.rustup/
 

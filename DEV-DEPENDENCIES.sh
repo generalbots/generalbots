@@ -25,33 +25,6 @@ install_rust() {
   fi
 }
 
-install_sccache() {
-  WANT_VER="0.14.0"
-  CURRENT_VER=""
-  if command -v sccache &> /dev/null; then
-    CURRENT_VER=$(sccache --version 2>/dev/null | grep -oP '[\d.]+' | head -1)
-  fi
-  if [ "$CURRENT_VER" = "$WANT_VER" ]; then
-    echo "sccache $WANT_VER already installed"
-  else
-    echo "Upgrading sccache from ${CURRENT_VER:-none} to $WANT_VER..."
-    rm -f /usr/local/bin/sccache /usr/local/bin/sccache-dist
-    ARCH=$(uname -m)
-    curl -L "https://github.com/mozilla/sccache/releases/download/v${WANT_VER}/sccache-v${WANT_VER}-${ARCH}-unknown-linux-musl.tar.gz" -o /tmp/sccache.tar.gz
-    tar -xzf /tmp/sccache.tar.gz -C /tmp
-    cp "/tmp/sccache-v${WANT_VER}-${ARCH}-unknown-linux-musl/sccache" /usr/local/bin/sccache.real
-    chmod +x /usr/local/bin/sccache.real
-    rm -rf /tmp/sccache*
-  fi
-  # Install wrapper that unsets CARGO_INCREMENTAL before calling sccache.real
-  cat > /usr/local/bin/sccache << 'EOF'
-#!/bin/bash
-unset CARGO_INCREMENTAL
-exec /usr/local/bin/sccache.real "$@"
-EOF
-  chmod +x /usr/local/bin/sccache
-  sccache --version
-}
 
 install_mold() {
   if command -v mold &> /dev/null; then
@@ -92,7 +65,6 @@ CARGOCONF
 }
 
 install_rust
-install_sccache
 install_mold
 install_cargo_tools
 setup_cargo_config
@@ -101,7 +73,6 @@ echo ""
 echo "✅ Dev environment ready:"
 echo "   Rust:       $(rustc --version)"
 echo "   Linker:     clang + lld + mold"
-echo "   Cache:      sccache"
 echo "   Audit:      cargo-audit, cargo-machete, cargo-tree"
 echo "📦 .cargo/config.toml configured"
 echo "⚡ Build: cargo build -p botserver --bin botserver"
