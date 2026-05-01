@@ -1,15 +1,16 @@
 name: BotServer CI
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "botserver/**"
-      - "botui/**"
-      - "botlib/**"
-      - ".forgejo/workflows/botserver.yaml"
-      - "Cargo.toml"
-      - "Cargo.lock"
+push:
+  branches: [main]
+  paths:
+  - "botserver/**"
+  - "botui/**"
+  - "botlib/**"
+  - ".forgejo/workflows/botserver.yaml"
+  - "Cargo.toml"
+  - "Cargo.lock"
+  - "Cargo.lock"
 
 jobs:
   build:
@@ -18,20 +19,23 @@ jobs:
       CARGO_INCREMENTAL: 1
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
       PATH: "/home/gbuser/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin"
-    steps:
-      - name: Setup
-        run: |
-          cd /opt/gbo/work/generalbots
-          git stash 2>/dev/null || true
-          git pull --rebase || { git rebase --abort; git reset --hard origin/main; }
-          git log --oneline -1
+steps:
+- name: Setup
+  run: |
+    cd /opt/gbo/work/generalbots
+    git pull
+    git log --oneline -1
 
-      - name: Build BotServer and BotUI
-        run: |
-          cd /opt/gbo/work/generalbots
-          rustup default stable
-          CARGO_BUILD_JOBS=24 cargo build -p botserver --bin botserver
-          CARGO_BUILD_JOBS=24 cargo build -p botui --bin botui --release --features embed-ui
+- name: Build BotServer and BotUI
+  run: |
+    cd /opt/gbo/work/generalbots
+    rustup default stable
+    export CARGO_HOME=/home/gbuser/.cargo
+    export RUSTC_WRAPPER=sccache
+    sccache --start-server || true
+    CARGO_BUILD_JOBS=24 cargo build -p botserver --bin botserver
+    CARGO_BUILD_JOBS=24 cargo build -p botui --bin botui --release --features embed-ui
+    sccache --show-stats || true
 
       - name: Deploy to Stage
         run: |
