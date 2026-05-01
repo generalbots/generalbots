@@ -57,20 +57,18 @@ if (msgId) div.id = msgId;
 if (sender === "user") {
 var processedContent = renderMentionInMessage(escapeHtml(content));
 div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
-} else {
-var cleanContent = stripMarkdownBlocks(content);
+  } else {
+    var cleanContent = stripMarkdownBlocks(content);
+    var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
+    var parsed;
     if (msgId) {
-        parsed = '<div class="streaming-loading"><span class="loading-dots">...</span></div>';
-    } else if (hasHtmlTags) {
-        parsed = cleanContent; // Don't escape HTML tags
+      parsed = '<div class="streaming-loading"><span class="loading-dots">...</span></div>';
     } else {
-        parsed = typeof marked !== "undefined" && marked.parse
-            ? marked.parse(cleanContent)
-            : escapeHtml(cleanContent);
+      parsed = escapeHtml(cleanContent);
     }
     parsed = renderMentionInMessage(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + parsed + "</div>";
-}
+  }
 
   messages.appendChild(div);
 
