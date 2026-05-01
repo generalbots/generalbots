@@ -40,11 +40,11 @@ steps:
         run: |
           echo "=== Deploying to Stage ==="
           scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-            /opt/gbo/work/generalbots/target/debug/botserver \
-            gbuser@system:/opt/gbo/bin/botserver-new
-          scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-            /opt/gbo/work/generalbots/target/release/botui \
-            gbuser@system:/opt/gbo/bin/botui-new
+        /opt/gbo/work/generalbots/target/fast/botserver \
+        gbuser@system:/opt/gbo/bin/botserver-new
+        scp -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+        /opt/gbo/work/generalbots/target/fast/botui \
+        gbuser@system:/opt/gbo/bin/botui-new
           ssh -i /home/gbuser/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             gbuser@system \
             "sudo systemctl stop botserver || true && \
