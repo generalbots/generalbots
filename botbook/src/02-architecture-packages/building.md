@@ -79,6 +79,7 @@ sudo apt update
 sudo apt install -y \
     clang \
     lld \
+    mold \
     build-essential \
     pkg-config \
     libssl-dev \
@@ -111,7 +112,7 @@ mkdir -p ~/.cargo
 cat >> ~/.cargo/config.toml << EOF
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
-rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"] # or "lld"
 EOF
 ```
 
@@ -123,6 +124,7 @@ EOF
 sudo dnf install -y \
     clang \
     lld \
+    mold \
     gcc \
     gcc-c++ \
     make \
@@ -156,7 +158,7 @@ mkdir -p ~/.cargo
 cat >> ~/.cargo/config.toml << EOF
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
-rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"] # or "lld"
 EOF
 ```
 
@@ -192,9 +194,9 @@ git submodule update --init --recursive
 
 ## Build Cache with sccache
 
-sccache caches compilation artifacts for faster rebuilds.
+sccache (Shared Compilation Cache) caches compilation artifacts to accelerate rebuilds across different environments.
 
-Install and configure:
+### Installation & Configuration
 
 ```bash
 cargo install sccache
@@ -204,14 +206,26 @@ compiler = "sccache"' >> ~/.cargo/config.toml
 export RUSTC_WRAPPER=sccache
 ```
 
-Verify cache hits:
+### Ephemeral vs. Persistent Environments
 
+The decision to use `sccache` depends heavily on your build environment:
+
+#### 1. When to use sccache (Ephemeral/Clean CI)
+Use `sccache` in environments that start with a **clean disk** for every build (e.g., standard GitHub Actions, cloud-based CI). Since the `target/` directory is lost between runs, `sccache` allows you to recover compiled artifacts from a remote bucket (S3/GCS) or global persistent cache, saving hours of dependency recompilation.
+
+#### 2. When to avoid sccache (Persistent/Self-hosted)
+If you are using a **self-hosted runner** with a **persistent `target/` directory** (like the standard General Bots production setup), Cargo's native incremental logic is usually faster than `sccache`.
+- **Reason**: Cargo native incrementalism only checks file timestamps and metadata. `sccache` must calculate cryptographic hashes of every source file, which adds overhead.
+- **Recommendation**: For persistent runners, rely on `CARGO_INCREMENTAL=1` and a fast linker like `mold` or `lld`.
+
+### Monitoring and Maintenance
+
+Verify cache hits:
 ```bash
 sccache --show-stats
 ```
 
 Clear cache if needed:
-
 ```bash
 sccache --zero-stats
 ```
@@ -494,7 +508,7 @@ $env:PQ_LIB_DIR="C:\Program Files\PostgreSQL\15\lib"
 
 ### Out of Memory During Build
 
-Use sccache to cache compilations:
+Use sccache to cache compilations (helps avoid recompilation in ephemeral CI, but does not reduce peak memory of a single crate):
 
 ```bash
 cargo install sccache
