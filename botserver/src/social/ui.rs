@@ -166,49 +166,54 @@ pub async fn handle_social_list_page(State(_state): State<Arc<AppState>>) -> Htm
             }
         }
 
-        function renderPosts(posts) {
-            const list = document.getElementById('postsList');
-            if (!posts || posts.length === 0) {
-                list.innerHTML = '<div class="empty-state">No posts yet. Create your first post to get started.</div>';
-                return;
-            }
-            list.innerHTML = posts.map(p => `
-                <div class="post-card">
-                    <div class="post-header">
-                        <div class="post-platform">
-                            <div class="platform-icon platform-${p.platform || 'twitter'}">${getPlatformIcon(p.platform)}</div>
-                            <span>${p.platform || 'Twitter'}</span>
-                        </div>
-                        <span class="post-status status-${p.status || 'draft'}">${p.status || 'Draft'}</span>
-                    </div>
-                    <div class="post-content">${p.content}</div>
-                    <div class="post-stats">
-                        <span class="post-stat">❤️ ${p.likes || 0}</span>
-                        <span class="post-stat">💬 ${p.comments || 0}</span>
-                        <span class="post-stat">🔄 ${p.shares || 0}</span>
-                        <span class="post-stat">👁️ ${p.impressions || 0}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
-        function renderAccounts(accounts) {
-            const list = document.getElementById('accountsList');
-            if (!accounts || accounts.length === 0) {
-                list.innerHTML = '<div class="empty-state" style="padding: 20px;">No accounts connected</div>';
-                return;
-            }
-            list.innerHTML = accounts.map(a => `
-                <div class="account-item">
-                    <div class="account-avatar" style="background: ${getPlatformColor(a.platform)};"></div>
-                    <div class="account-info">
-                        <div class="account-name">${a.name}</div>
-                        <div class="account-handle">@${a.handle}</div>
-                    </div>
-                    <div class="account-status ${a.connected ? 'connected' : 'disconnected'}"></div>
+function renderPosts(posts) {
+    const list = document.getElementById('postsList');
+    if (!posts || posts.length === 0) {
+        list.innerHTML = '<div class="empty-state">No posts yet. Create your first post to get started.</div>';
+        return;
+    }
+    list.innerHTML = posts.map(p => `
+        <div class="post-card">
+            <div class="post-header">
+                <div class="post-platform">
+                    <div class="platform-icon platform-${escapeHtml(p.platform || 'twitter')}">${escapeHtml(getPlatformIcon(p.platform))}</div>
+                    <span>${escapeHtml(p.platform || 'Twitter')}</span>
                 </div>
-            `).join('');
-        }
+                <span class="post-status status-${escapeHtml(p.status || 'draft')}">${escapeHtml(p.status || 'Draft')}</span>
+            </div>
+            <div class="post-content">${escapeHtml(p.content)}</div>
+            <div class="post-stats">
+                <span class="post-stat">❤️ ${p.likes || 0}</span>
+                <span class="post-stat">💬 ${p.comments || 0}</span>
+                <span class="post-stat">🔄 ${p.shares || 0}</span>
+                <span class="post-stat">👁️ ${p.impressions || 0}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderAccounts(accounts) {
+    const list = document.getElementById('accountsList');
+    if (!accounts || accounts.length === 0) {
+        list.innerHTML = '<div class="empty-state" style="padding: 20px;">No accounts connected</div>';
+        return;
+    }
+    list.innerHTML = accounts.map(a => `
+        <div class="account-item">
+            <div class="account-avatar" style="background: ${escapeHtml(getPlatformColor(a.platform))}"></div>
+            <div class="account-info">
+                <div class="account-name">${escapeHtml(a.name)}</div>
+                <div class="account-handle">@${escapeHtml(a.handle)}</div>
+            </div>
+            <div class="account-status ${a.connected ? 'connected' : 'disconnected'}"></div>
+        </div>
+    `).join('');
+}
 
         function getPlatformIcon(platform) {
             const icons = { twitter: 'X', facebook: 'f', instagram: '📷', linkedin: 'in' };

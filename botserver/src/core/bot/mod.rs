@@ -715,9 +715,9 @@ pub async fn stream_response(
                         .or_else(|_| std::fs::read_to_string(format!("{}PROMPT.txt", gbot_dir)))
                         .or_else(|_| std::fs::read_to_string(format!("{}prompt.txt", gbot_dir)))
                         .unwrap_or_else(|_| {
-                            config_manager
-                                .get_config(&session.bot_id, "system-prompt", Some("You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response."))
-                                .unwrap_or_else(|_| "You are a helpful General Bots assistant.".to_string())
+        config_manager
+            .get_config(&session.bot_id, "system-prompt", Some("You are a helpful assistant with access to tools that can help you complete tasks. When a user's request matches one of your available tools, use the appropriate tool instead of providing a generic response.\n\nResponda APENAS com fragmentos HTML válidos. Não use markdown. Não use blocos de código (``` ou `). Não escreva prosa fora de tags HTML. Não inclua <html>, <head>, <body> ou <!DOCTYPE>. Use apenas: <p>, <h3>, <ul>, <li>, <strong>, <em>, <blockquote>, <div class=\"...\">. Cada tag que você abrir DEVE ser fechada corretamente. Comece sua resposta diretamente com uma tag HTML, nunca com texto puro."))
+            .unwrap_or_else(|_| "You are a helpful General Bots assistant.".to_string())
                         });
 
                     info!("Loaded system-prompt for bot {}: {}", session.bot_id, system_prompt.chars().take(500).collect::<String>());
@@ -1345,10 +1345,29 @@ while let Some(chunk) = stream_rx.recv().await {
                 trace!("Cleared leftover in_analysis state");
             }
 
-if !in_analysis {
-// Accumulate full response - DO NOT send chunks
-full_response.push_str(&chunk);
-}
+            if !in_analysis {
+                full_response.push_str(&chunk);
+                // R4+R7: Stream each chunk immediately to the frontend via WebSocket
+                let response = BotResponse {
+                    bot_id: message.bot_id.clone(),
+                    user_id: message.user_id.clone(),
+                    session_id: message.session_id.clone(),
+                    channel: message.channel.clone(),
+                    content: chunk,
+                    message_type: MessageType::BOT_RESPONSE,
+                    stream_token: None,
+                    is_complete: false,
+                    suggestions: Vec::new(),
+                    switchers: Vec::new(),
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
+                };
+                if response_tx.send(response).await.is_err() {
+                    warn!("stream_exit: Response channel closed for session {}", session.id);
+                    break;
+                }
+            }
         }
 
         info!("llm_end: Streaming loop ended for session {}, chunk_count={}, full_response_len={}", session.id, chunk_count, full_response.len());
@@ -1362,6 +1381,13 @@ full_response.push_str(&chunk);
         } else {
             full_response.clone()
         };
+// DEBUG: Save HTML to file for verification
+if full_response.contains("<gb-") || full_response.contains("<style>") {
+    use std::fs;
+    let debug_filename = format!("/tmp/html_debug_{}.txt", session.id);
+    let _ = fs::write(&debug_filename, &full_response);
+    error!("DEBUG: Invalid HTML saved to {}", debug_filename);
+}
         info!("llm_output: session={} has_html={} has_div={} has_style={} is_truncated={} len={} preview=\"{}\"",
             session_id, has_html, has_div, has_style, is_truncated, full_response.len(), 
             preview.replace('\n', "\\n"));
@@ -1416,24 +1442,31 @@ full_response.push_str(&chunk);
         #[cfg(not(feature = "chat"))]
         let switchers: Vec<Switcher> = Vec::new();
 
-// Send accumulated full response (not streaming anymore)
-let final_response = BotResponse {
-bot_id: message.bot_id,
-user_id: message.user_id,
-session_id: message.session_id,
-channel: message.channel,
-content: full_response.clone(),
-message_type: MessageType::BOT_RESPONSE,
-stream_token: None,
-is_complete: true,
-suggestions,
-switchers,
-context_name: None,
-context_length: 0,
-context_max_length: 0,
-};
+// DEBUG: Log full HTML before sending
+trace!("DEBUG_FULL_HTML: {}", full_response);
+// Save to file for analysis
+use std::fs;
+let debug_path = format!("/tmp/html_trace_{}.txt", session.id);
+let _ = fs::write(&debug_path, &full_response);
+trace!("DEBUG: HTML saved to {}", debug_path);
 
-response_tx.send(final_response).await?;
+// Send accumulated full response (not streaming anymore)
+ let final_response = BotResponse {
+ bot_id: message.bot_id,
+ user_id: message.user_id,
+ session_id: message.session_id,
+ channel: message.channel,
+ content: full_response.clone(),
+ message_type: MessageType::BOT_RESPONSE,
+ stream_token: None,
+ is_complete: true,
+ suggestions,
+ switchers,
+ context_name: None,
+ context_length: 0,
+ context_max_length: 0,
+ };
+ response_tx.send(final_response).await?;
         Ok(())
     }
 

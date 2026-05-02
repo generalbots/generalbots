@@ -11,6 +11,7 @@ rm -f botserver.log botmodels.log
 
 # Build only botserver (botui likely already built)
 cargo build -p botserver
+cargo build -p botui
 
 # Start botmodels
 cd botmodels
@@ -41,6 +42,8 @@ fi
 # Start botserver
 BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info ./target/debug/botserver --noconsole > botserver.log 2>&1 &
 echo "  botserver PID: $!"
+./target/debug/botui 2>&1 &
+
 
 # Quick health check
 sleep 2

@@ -80,25 +80,30 @@ pub async fn handle_video_list_page(
                 console.error('Failed to load videos:', e);
             }
         }
-        function renderVideos(projects) {
-            const grid = document.getElementById('videoGrid');
-            if (!projects || projects.length === 0) {
-                grid.innerHTML = '<div class="empty-state"><h3>No videos yet</h3><p>Upload your first video to get started</p></div>';
-                return;
-            }
-            grid.innerHTML = projects.map(p => `
-                <div class="video-card" onclick="window.location='/suite/video/${p.id}'">
-                    <div class="video-thumbnail">
-                        <img src="${p.thumbnail_url || '/assets/video-placeholder.png'}" alt="${p.name}">
-                        <span class="video-duration">${formatDuration(p.duration_ms / 1000)}</span>
-                    </div>
-                    <div class="video-info">
-                        <div class="video-title">${p.name}</div>
-                        <div class="video-meta">${p.status} • ${formatDate(p.created_at)}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderVideos(projects) {
+    const grid = document.getElementById('videoGrid');
+    if (!projects || projects.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><h3>No videos yet</h3><p>Upload your first video to get started</p></div>';
+        return;
+    }
+    grid.innerHTML = projects.map(p => `
+        <div class="video-card" onclick="window.location='/suite/video/${escapeHtml(p.id)}'">
+            <div class="video-thumbnail">
+                <img src="${escapeHtml(p.thumbnail_url || '/assets/video-placeholder.png')}" alt="${escapeHtml(p.name)}">
+                <span class="video-duration">${escapeHtml(formatDuration(p.duration_ms / 1000))}</span>
+            </div>
+            <div class="video-info">
+                <div class="video-title">${escapeHtml(p.name)}</div>
+                <div class="video-meta">${escapeHtml(p.status)} • ${escapeHtml(formatDate(p.created_at))}</div>
+            </div>
+        </div>
+    `).join('');
+}
         function formatDuration(seconds) {
             if (!seconds) return '0:00';
             const mins = Math.floor(seconds / 60);
