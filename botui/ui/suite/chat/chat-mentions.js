@@ -242,8 +242,15 @@ function hideEntityCard() {
 }
 
 function fetchEntityDetails(type, name) {
-  return fetch("/api/search/entity?type=" + encodeURIComponent(type) + "&name=" + encodeURIComponent(name))
-    .then(function (r) { return r.json(); })
-    .then(function (data) { return data && data.details ? data.details : "No additional details available"; })
-    .catch(function () { return "Unable to load details"; });
+return fetch("/api/search/entity?type=" + encodeURIComponent(type) + "&name=" + encodeURIComponent(name))
+.then(function (r) { return r.json(); })
+.then(function (data) { return data && data.details ? data.details : "No additional details available"; })
+.catch(function () { return "Unable to load details"; });
+}
+
+// Export functions to global scope for use in chat-init.js
+if (typeof window !== 'undefined') {
+window.handleMentionInput = handleMentionInput;
+window.handleMentionKeydown = handleMentionKeydown;
+window.hideMentionDropdown = hideMentionDropdown;
 }

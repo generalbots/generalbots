@@ -3465,31 +3465,38 @@ async fn write_to_drive(
     const sendBtn = panel.querySelector('.designer-input button');
     const messages = panel.querySelector('.designer-messages');
 
-    async function sendMessage() {{
-        const msg = input.value.trim();
-        if (!msg) return;
+function escapeHtml(str) {{
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}}
 
-        messages.innerHTML += `<div class="designer-msg user">${{msg}}</div>`;
-        input.value = '';
-        messages.scrollTop = messages.scrollHeight;
+async function sendMessage() {{
+    const msg = input.value.trim();
+    if (!msg) return;
 
-        try {{
-            const res = await fetch('/api/designer/modify', {{
-                method: 'POST',
-                headers: {{ 'Content-Type': 'application/json' }},
-                body: JSON.stringify({{ app_name: APP_NAME, current_page: currentPage, message: msg }})
-            }});
-            const data = await res.json();
-            messages.innerHTML += `<div class="designer-msg ai">${{data.message || 'Done!'}}</div>`;
-            if (data.success && data.changes && data.changes.length > 0) {{
-                setTimeout(() => location.reload(), 1500);
-            }}
-        }} catch (e) {{
-            messages.innerHTML += `<div class="designer-msg ai">Sorry, something went wrong. Try again.</div>`;
-            if (window.AppLogger) window.AppLogger.error('Designer error', e.toString());
+    messages.innerHTML += `<div class="designer-msg user">${{escapeHtml(msg)}}</div>`;
+    input.value = '';
+    messages.scrollTop = messages.scrollHeight;
+
+    try {{
+        const res = await fetch('/api/designer/modify', {{
+            method: 'POST',
+            headers: {{ 'Content-Type': 'application/json' }},
+            body: JSON.stringify({{ app_name: APP_NAME, current_page: currentPage, message: msg }})
+        }});
+        const data = await res.json();
+        messages.innerHTML += `<div class="designer-msg ai">${{escapeHtml(data.message || 'Done!')}}</div>`;
+        if (data.success && data.changes && data.changes.length > 0) {{
+            setTimeout(() => location.reload(), 1500);
         }}
-        messages.scrollTop = messages.scrollHeight;
+    }} catch (e) {{
+        messages.innerHTML += `<div class="designer-msg ai">Sorry, something went wrong. Try again.</div>`;
+        if (window.AppLogger) window.AppLogger.error('Designer error', e.toString());
     }}
+    messages.scrollTop = messages.scrollHeight;
+}}
 
     sendBtn.onclick = sendMessage;
     input.onkeypress = (e) => {{ if (e.key === 'Enter') sendMessage(); }};

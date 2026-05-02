@@ -35,14 +35,16 @@ function renderMentionInMessage(content) {
 }
 
 function stripThinkTags(content) {
-  // Remove <think>...</think> and anything in between
-  return content.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, "").trim();
+  // R6: Remove <think>...</think> but do NOT trim — preserves leading '<' in HTML chunks
+  return content.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, "");
 }
 
 function stripMarkdownBlocks(content) {
   var cleanContent = stripThinkTags(content);
+  var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
+  if (hasHtmlTags) return cleanContent;
   var htmlMatch = cleanContent.match(/^```(?:html|xml)?\s*\n([\s\S]+?)\n?```$/i);
-  if (htmlMatch) return htmlMatch[1].trim();
+  if (htmlMatch) return htmlMatch[1];
   return cleanContent;
 }
 
@@ -54,15 +56,19 @@ var div = document.createElement("div");
 div.className = "message " + sender;
 if (msgId) div.id = msgId;
 
-if (sender === "user") {
-var processedContent = renderMentionInMessage(escapeHtml(content));
-div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
+  if (sender === "user") {
+    var processedContent = renderMentionInMessage(escapeHtml(content));
+    div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
   } else {
     var cleanContent = stripMarkdownBlocks(content);
     var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
     var parsed;
-    if (msgId) {
-      parsed = '<div class="streaming-loading"><span class="loading-dots">...</span></div>';
+    if (hasHtmlTags) {
+      // F3: HTML content from LLM — render raw via innerHTML (never textContent)
+      parsed = cleanContent;
+    } else if (msgId) {
+      // Streaming message with no HTML yet — show placeholder
+      parsed = "";
     } else {
       parsed = escapeHtml(cleanContent);
     }
@@ -98,12 +104,11 @@ function updateStreaming(content) {
   var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
 
   if (isHtml) {
-    if (!el.querySelector(".streaming-loading")) {
-      var loader = document.createElement("div");
-      loader.className = "streaming-loading";
-      loader.innerHTML = '<span class="loading-dots">...</span>';
-      msgContent.appendChild(loader);
-    }
+    // F3+F5: Render HTML chunks directly via innerHTML += (never textContent/innerText)
+    // For streaming HTML, set full accumulated content — partial tags won't render, but completed ones will
+    var parsed = renderMentionInMessage(cleanContent);
+    msgContent.innerHTML = parsed;
+    if (!ChatState.isUserScrolling) scrollToBottom(true);
   } else {
     var parsed = typeof marked !== "undefined" && marked.parse
       ? marked.parse(cleanContent)
