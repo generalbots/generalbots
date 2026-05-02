@@ -54,6 +54,12 @@ See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from Mi
 - **Env file:** `botserver/.env`
 - **UI Files:** `botui/ui/suite/`
 
+### BotUI Development Mode
+**IMPORTANT:** BotUI serves static HTML/JS/CSS files directly from `botui/ui/` - **NO recompilation needed** for frontend changes.
+- Changes to `.html`, `.js`, `.css` files in `botui/ui/` take effect immediately on page refresh
+- Only Rust code changes in `botui/src/` require rebuild with `cargo build -p botui`
+- This is "gate desligada" (gate off) mode - static assets served directly from filesystem
+
 ---
 
 ## 🏗️ System Architecture Overview

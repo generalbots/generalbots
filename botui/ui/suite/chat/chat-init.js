@@ -75,21 +75,25 @@ function proceedWithChatInit() {
 }
 
 function setupEventHandlers() {
-  var form = document.getElementById("chatForm");
-  var input = document.getElementById("messageInput");
-  var sendBtn = document.getElementById("sendBtn");
+var form = document.getElementById("chatForm");
+var input = document.getElementById("messageInput");
+var sendBtn = document.getElementById("sendBtn");
 
-  if (form) {
-    form.onsubmit = function (e) { e.preventDefault(); sendMessage(); return false; };
-  }
+if (form) {
+form.onsubmit = function (e) { e.preventDefault(); sendMessage(); return false; };
+}
 
 if (input) {
-if (typeof handleMentionInput === 'function') {
-input.addEventListener("input", handleMentionInput);
+// Only attach mention handlers if they exist
+var mentionInputHandler = window.handleMentionInput;
+var mentionKeydownHandler = window.handleMentionKeydown;
+
+if (mentionInputHandler) {
+input.addEventListener("input", mentionInputHandler);
 }
-if (typeof handleMentionKeydown === 'function') {
+if (mentionKeydownHandler) {
 input.onkeydown = function (e) {
-if (handleMentionKeydown(e)) return;
+if (mentionKeydownHandler(e)) return;
 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 };
 } else {
@@ -99,29 +103,30 @@ if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 }
 
-  if (sendBtn) {
-    sendBtn.onclick = function (e) { e.preventDefault(); sendMessage(); };
-  }
+if (sendBtn) {
+sendBtn.onclick = function (e) { e.preventDefault(); sendMessage(); };
+}
 
-  var scrollBtn = document.getElementById("scrollToBottom");
-  if (scrollBtn) {
-    scrollBtn.addEventListener("click", function () { scrollToBottom(true); ChatState.isUserScrolling = false; });
-  }
+var scrollBtn = document.getElementById("scrollToBottom");
+if (scrollBtn) {
+scrollBtn.addEventListener("click", function () { scrollToBottom(true); ChatState.isUserScrolling = false; });
+}
 
-  var messagesEl = document.getElementById("messages");
-  if (messagesEl) {
-    messagesEl.addEventListener("scroll", function () {
-      ChatState.isUserScrolling = true;
-      updateScrollButton();
-      clearTimeout(messagesEl.scrollTimeout);
-      messagesEl.scrollTimeout = setTimeout(function () { ChatState.isUserScrolling = false; }, 1000);
-    });
-  }
+var messagesEl = document.getElementById("messages");
+if (messagesEl) {
+messagesEl.addEventListener("scroll", function () {
+ChatState.isUserScrolling = true;
+updateScrollButton();
+clearTimeout(messagesEl.scrollTimeout);
+messagesEl.scrollTimeout = setTimeout(function () { ChatState.isUserScrolling = false; }, 1000);
+});
+}
 
 document.addEventListener("click", function (e) {
 if (!e.target.closest("#mentionDropdown") && !e.target.closest("#messageInput")) {
-if (typeof hideMentionDropdown === 'function') {
-hideMentionDropdown();
+var hideMention = window.hideMentionDropdown;
+if (hideMention) {
+hideMention();
 }
 }
 });
