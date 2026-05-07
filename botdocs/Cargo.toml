@@ -1,0 +1,30 @@
+[package]
+name = "botdocs"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots document processing, collaboration, and conversion"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+botlib = { path = "../botlib" }
+axum = { workspace = true, features = ["ws", "multipart", "macros"] }
+chrono = { workspace = true, features = ["serde", "clock"] }
+diesel = { workspace = true, features = ["postgres", "r2d2"] }
+docx-rs = { workspace = true }
+futures-util = { workspace = true, features = ["sink"] }
+log = { workspace = true }
+once_cell = { workspace = true }
+ooxmlsdk = { workspace = true, features = ["parts"] }
+rand = { workspace = true }
+regex = { workspace = true }
+r2d2 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+uuid = { workspace = true, features = ["serde", "v4"] }
+zip = { workspace = true }
+
+[lints]
+workspace = true

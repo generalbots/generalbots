@@ -1,0 +1,16 @@
+[package]
+name = "bottickets"
+version = "6.3.0"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true, features = ["ws", "multipart", "macros"] }
+chrono = { workspace = true, features = ["serde"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "serde_json", "uuid", "chrono"] }
+r2d2 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
