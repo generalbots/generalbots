@@ -1,4 +1,4 @@
-use botlib::http_client::create_tls_client;
+use botlib::security::create_tls_client;
 use log::{error, info, trace};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};

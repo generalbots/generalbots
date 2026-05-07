@@ -1,4 +1,4 @@
-use botlib::DbPool;
+use botlib::db_pool::DbPool;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Float, Integer, Nullable, Text, Timestamptz};
