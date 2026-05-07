@@ -1,4 +1,4 @@
-use super::OsType;
+use crate::OsType;
 
 #[must_use]
 pub const fn detect_os() -> OsType {

@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use super::container::ContainerSettings;
+use crate::container::ContainerSettings;
 
 #[derive(Debug, Clone)]
 pub struct InstallResult {

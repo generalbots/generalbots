@@ -6,4 +6,6 @@ pub use command_guard::{
     safe_nvidia_smi, has_nvidia_gpu_safe, validate_argument, validate_path,
     CommandGuardError, SafeCommand,
 };
-pub use utils::get_stack_path;
+pub use utils::{ca_cert_path, get_stack_path};
+#[cfg(feature = "http-client")]
+pub use utils::{create_tls_client, create_tls_client_with_ca};

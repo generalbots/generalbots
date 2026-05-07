@@ -1,4 +1,4 @@
-use botlib::create_tls_client;
+use botlib::security::create_tls_client;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

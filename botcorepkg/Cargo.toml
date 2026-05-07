@@ -12,6 +12,7 @@ default = []
 [dependencies]
 botlib = { workspace = true }
 botcoresecrets = { workspace = true }
+botsecurity = { workspace = true }
 anyhow = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
@@ -26,3 +27,4 @@ chrono = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
 r2d2 = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
+dotenvy = { workspace = true }
