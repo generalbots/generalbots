@@ -1,6 +1,6 @@
 use crate::auth::{AuthConfig, AuthError, AuthenticatedUser, BotAccess, Permission, Role};
 use crate::VaultConfigProvider;
-use botlib::http_client::create_tls_client;
+use botlib::security::create_tls_client;
 use anyhow::Result;
 use axum::{
     body::Body,

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use log::{info, warn};
-use super::generate_random_string;
+use crate::generate_random_string;
 use botlib::security::get_stack_path;
 
 pub async fn setup_alm() -> anyhow::Result<()> {
