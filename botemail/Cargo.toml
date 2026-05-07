@@ -1,0 +1,37 @@
+[package]
+name = "botemail"
+version = "6.3.0"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[features]
+default = []
+mail = ["imap"]
+vectordb = ["qdrant-client"]
+
+[dependencies]
+botlib = { workspace = true }
+diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "uuid"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+axum = { workspace = true, features = ["ws", "multipart", "macros"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
+chrono = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+tokio = { workspace = true, features = ["full"] }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+tracing = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+base64 = { workspace = true }
+lettre = { workspace = true, features = ["tokio1-rustls-tls", "tokio1"] }
+imap = { workspace = true, optional = true }
+mailparse = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
+url = { workspace = true }
+futures = { workspace = true }
+qdrant-client = { version = "1.12", optional = true }

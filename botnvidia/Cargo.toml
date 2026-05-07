@@ -1,0 +1,16 @@
+[package]
+name = "botnvidia"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots NVIDIA GPU monitoring module"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+botlib = { path = "../botlib" }
+anyhow = { workspace = true }
+sysinfo = { workspace = true }
+
+[lints]
+workspace = true

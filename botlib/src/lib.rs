@@ -1,4 +1,5 @@
 pub mod branding;
+pub mod db_pool;
 pub mod error;
 #[cfg(feature = "http-client")]
 pub mod http_client;
@@ -9,6 +10,8 @@ pub mod logging;
 pub mod message_types;
 pub mod models;
 pub mod resilience;
+pub mod security;
+pub mod traits;
 pub mod version;
 
 pub use branding::{

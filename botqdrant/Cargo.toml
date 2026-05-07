@@ -1,0 +1,18 @@
+[package]
+name = "botqdrant"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots Qdrant vector database client"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+anyhow = { workspace = true }
+log = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls", "json"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

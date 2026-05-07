@@ -1,0 +1,22 @@
+[package]
+name = "botcalendar"
+version = "6.3.0"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true, features = ["ws", "multipart", "macros"] }
+chrono = { workspace = true, features = ["serde", "clock"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json"] }
+icalendar = { workspace = true }
+log = { workspace = true }
+r2d2 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros", "io-util"] }
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[lints]
+workspace = true

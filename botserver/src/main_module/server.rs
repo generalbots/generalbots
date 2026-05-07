@@ -270,63 +270,33 @@ pub async fn run_axum_server(
         api_router = api_router.merge(crate::meet::configure());
     }
 
-    #[cfg(feature = "mail")]
-    {
-        api_router = api_router.merge(crate::email::configure());
-    }
+// email routes moved to base_router (crate state adapter)
 
-    #[cfg(all(feature = "calendar", feature = "scripting"))]
-    {
-        let calendar_engine = Arc::new(crate::basic::keywords::book::CalendarEngine::new(
-            app_state.conn.clone(),
-        ));
-
-        api_router = api_router.merge(crate::calendar::caldav::create_caldav_router(
-            calendar_engine,
-        ));
-    }
-
-    #[cfg(feature = "tasks")]
-    {
-        api_router = api_router.merge(crate::tasks::configure_task_routes());
-    }
-
-    #[cfg(feature = "calendar")]
-    {
-        api_router = api_router.merge(crate::calendar::configure_calendar_routes());
-        api_router = api_router.merge(crate::calendar::ui::configure_calendar_ui_routes());
-    }
+#[cfg(feature = "tasks")]
+{
+    api_router = api_router.merge(crate::tasks::configure_task_routes(app_state.clone()));
+}
 
     #[cfg(feature = "analytics")]
     {
-        api_router = api_router.merge(crate::analytics::configure_analytics_routes());
+        api_router = api_router.merge(crate::analytics::configure_analytics_routes(&app_state));
     }
     api_router = api_router.merge(crate::core::i18n::configure_i18n_routes());
     #[cfg(feature = "docs")]
     {
-        api_router = api_router.merge(crate::docs::configure_docs_routes());
+        api_router = api_router.merge(crate::docs::configure_docs_routes(&app_state));
     }
     #[cfg(feature = "paper")]
     {
-        api_router = api_router.merge(crate::paper::configure_paper_routes());
+        api_router = api_router.merge(crate::paper::configure_paper_routes(app_state.clone()));
     }
-    #[cfg(feature = "sheet")]
-    {
-        api_router = api_router.merge(crate::sheet::configure_sheet_routes());
-    }
-    #[cfg(feature = "slides")]
-    {
-        api_router = api_router.merge(crate::slides::configure_slides_routes());
-    }
-    #[cfg(feature = "video")]
-    {
-        api_router = api_router.merge(crate::video::configure_video_routes());
-        api_router = api_router.merge(crate::video::ui::configure_video_ui_routes());
-    }
+    // sheet routes moved to base_router (crate state adapter)
+    // slides routes moved to base_router (crate state adapter)
+    // video routes moved to base_router (crate state adapter)
     #[cfg(feature = "research")]
     {
-        api_router = api_router.merge(crate::research::configure_research_routes());
-        api_router = api_router.merge(crate::research::ui::configure_research_ui_routes());
+        api_router = api_router.merge(crate::research::configure_research_routes(&app_state));
+        api_router = api_router.merge(crate::research::configure_research_ui_routes(&app_state));
     }
     #[cfg(any(feature = "research", feature = "llm"))]
     {
@@ -335,34 +305,30 @@ pub async fn run_axum_server(
             post(crate::core::kb::website_crawler_service::handle_force_recrawl)
         );
     }
-    #[cfg(feature = "sources")]
-    {
-        api_router = api_router.merge(crate::sources::configure_sources_routes());
-        api_router = api_router.merge(crate::sources::ui::configure_sources_ui_routes());
-    }
+    // sources routes moved to base_router (crate state adapter)
     #[cfg(feature = "designer")]
     {
-        api_router = api_router.merge(crate::designer::configure_designer_routes());
-        api_router = api_router.merge(crate::designer::ui::configure_designer_ui_routes());
+        api_router = api_router.merge(crate::designer::configure_designer_routes(&app_state));
+        api_router = api_router.merge(crate::designer::configure_designer_ui_routes(&app_state));
     }
     #[cfg(feature = "dashboards")]
     {
-        api_router = api_router.merge(crate::dashboards::configure_dashboards_routes());
-        api_router = api_router.merge(crate::dashboards::ui::configure_dashboards_ui_routes());
+        api_router = api_router.merge(crate::dashboards::configure_dashboards_routes(&app_state));
+        api_router = api_router.merge(crate::dashboards::configure_dashboards_ui_routes(&app_state));
     }
     #[cfg(feature = "compliance")]
     {
-        api_router = api_router.merge(crate::legal::configure_legal_routes());
-        api_router = api_router.merge(crate::legal::ui::configure_legal_ui_routes());
+        api_router = api_router.merge(crate::legal::configure_legal_routes(&app_state));
+        api_router = api_router.merge(crate::legal::configure_legal_ui_routes(&app_state));
     }
     #[cfg(feature = "compliance")]
     {
-        api_router = api_router.merge(crate::compliance::configure_compliance_routes());
-        api_router = api_router.merge(crate::compliance::ui::configure_compliance_ui_routes());
+        api_router = api_router.merge(crate::compliance::configure_compliance_routes(&app_state));
+        api_router = api_router.merge(crate::compliance::configure_compliance_ui_routes(&app_state));
     }
     #[cfg(feature = "monitoring")]
     {
-        api_router = api_router.merge(crate::monitoring::configure());
+        api_router = api_router.merge(crate::monitoring::configure(&app_state));
     }
     api_router = api_router.merge(crate::security::configure_protection_routes());
     api_router = api_router.merge(crate::settings::configure_settings_routes());
@@ -376,19 +342,15 @@ pub async fn run_axum_server(
         api_router = api_router.merge(crate::auto_task::configure_autotask_routes());
     }
     api_router = api_router.merge(crate::core::shared::admin::configure());
-    #[cfg(feature = "workspaces")]
-    {
-        api_router = api_router.merge(crate::workspaces::configure_workspaces_routes());
-        api_router = api_router.merge(crate::workspaces::ui::configure_workspaces_ui_routes());
-    }
+    
     #[cfg(feature = "project")]
     {
         api_router = api_router.merge(crate::project::configure());
     }
     #[cfg(all(feature = "analytics", feature = "goals"))]
     {
-        api_router = api_router.merge(crate::analytics::goals::configure_goals_routes());
-        api_router = api_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes());
+api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&app_state));
+    api_router = api_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes(&app_state));
     }
     #[cfg(feature = "player")]
     {
@@ -396,80 +358,63 @@ pub async fn run_axum_server(
     }
     #[cfg(feature = "canvas")]
     {
-        api_router = api_router.merge(crate::canvas::configure_canvas_routes());
-        api_router = api_router.merge(crate::canvas::ui::configure_canvas_ui_routes());
+        api_router = api_router.merge(crate::canvas::configure_canvas_routes(&app_state));
+        api_router = api_router.merge(crate::canvas::ui::configure_canvas_ui_routes(&app_state));
     }
     #[cfg(feature = "social")]
     {
-        api_router = api_router.merge(crate::social::configure_social_routes());
-        api_router = api_router.merge(crate::social::ui::configure_social_ui_routes());
+        api_router = api_router.merge(crate::social::configure_social_routes(&app_state));
+        api_router = api_router.merge(crate::social::ui::configure_social_ui_routes(&app_state));
     }
     #[cfg(feature = "learn")]
     {
         api_router = api_router.merge(crate::learn::ui::configure_learn_ui_routes());
     }
-    #[cfg(feature = "mail")]
-    {
-        api_router = api_router.merge(crate::email::ui::configure_email_ui_routes());
-    }
+    // email UI routes moved to base_router (crate state adapter)
     #[cfg(feature = "meet")]
     {
         api_router = api_router.merge(crate::meet::ui::configure_meet_ui_routes());
     }
-    #[cfg(feature = "people")]
-    {
-        api_router = api_router.merge(crate::contacts::crm_ui::configure_crm_routes());
-        api_router = api_router.merge(crate::contacts::crm::configure_crm_api_routes());
-    }
+    // contacts routes moved to base_router (crate state adapter)
     #[cfg(feature = "billing")]
     {
-        api_router = api_router.merge(crate::billing::billing_ui::configure_billing_routes());
-        api_router = api_router.merge(crate::billing::api::configure_billing_api_routes());
-        api_router = api_router.merge(crate::products::configure_products_routes());
-        api_router = api_router.merge(crate::products::api::configure_products_api_routes());
+        api_router = api_router.merge(crate::billing::billing_ui::configure_billing_routes(&app_state));
+        api_router = api_router.merge(crate::billing::api::configure_billing_api_routes(&app_state));
+        
     }
-    #[cfg(feature = "tickets")]
-    {
-        api_router = api_router.merge(crate::tickets::configure_tickets_routes());
-        api_router = api_router.merge(crate::tickets::ui::configure_tickets_ui_routes());
-    }
-    #[cfg(feature = "people")]
-    {
-        api_router = api_router.merge(crate::people::configure_people_routes());
-        api_router = api_router.merge(crate::people::ui::configure_people_ui_routes());
-    }
-    #[cfg(feature = "attendant")]
-    {
-        api_router = api_router.merge(crate::attendant::configure_attendant_routes());
-        api_router = api_router.merge(crate::attendant::ui::configure_attendant_ui_routes());
-    }
+    
+    
+    
 
     #[cfg(feature = "whatsapp")]
     {
-        api_router = api_router.merge(crate::whatsapp::configure());
+        api_router = api_router.merge(crate::whatsapp::configure(app_state.clone()));
     }
 
     #[cfg(feature = "marketing")]
     {
-        api_router = api_router.merge(crate::marketing::configure_marketing_routes());
+        api_router = api_router.merge(crate::marketing::configure_marketing_routes(&app_state));
     }
 
     #[cfg(feature = "telegram")]
     {
-        api_router = api_router.merge(crate::telegram::configure());
+        api_router = api_router.merge(crate::telegram::configure(app_state.clone()));
     }
 
-    #[cfg(feature = "attendant")]
-    {
-        api_router = api_router.merge(crate::attendance::configure_attendance_routes());
-    }
+ #[cfg(feature = "attendant")]
+ {
+ api_router = api_router.merge(crate::attendance::configure_attendance_routes(&app_state));
+ }
 
-    api_router = api_router.merge(crate::core::oauth::routes::configure());
+ api_router = api_router.merge(crate::core::oauth::routes::configure());
 
-    // Deployment routes for VibeCode platform
-    api_router = api_router.merge(crate::deployment::configure_deployment_routes());
+ // Deployment routes for VibeCode platform
+ #[cfg(feature = "deployment")]
+ {
+ api_router = api_router.merge(crate::deployment::configure_deployment_routes());
+ }
 
-    // BotCoder IDE APIs
+ // BotCoder IDE APIs
     api_router = api_router.merge(crate::api::editor::configure_editor_routes());
     api_router = api_router.merge(crate::api::database::configure_database_routes());
     api_router = api_router.merge(crate::api::git::configure_git_routes());
@@ -545,10 +490,141 @@ pub async fn run_axum_server(
     app_state_with_auth.rbac_manager = Some(Arc::clone(&rbac_manager));
     let app_state = Arc::new(app_state_with_auth);
 
-    let base_router = Router::new()
-        .merge(api_router.with_state(app_state.clone()))
-        // Static files fallback for legacy /apps/* paths
-        .nest_service("/static", ServeDir::new(&site_path));
+let base_router = Router::new()
+    .merge(api_router.with_state(app_state.clone()))
+    // Static files fallback for legacy /apps/* paths
+    .nest_service("/static", ServeDir::new(&site_path));
+
+    let base_router = {
+        let r = base_router;
+        #[cfg(feature = "calendar")]
+        {
+            r.merge(crate::calendar::configure_calendar_routes(&app_state))
+                .merge(crate::calendar::configure_calendar_ui_routes(&app_state))
+                .merge(crate::calendar::create_caldav_router(&app_state))
+        }
+        #[cfg(not(feature = "calendar"))]
+        r
+    };
+
+let base_router = {
+    let r = base_router;
+    #[cfg(feature = "mail")]
+    {
+        r.merge(crate::email::configure(app_state.clone()))
+        .merge(crate::email::configure_email_ui_routes(app_state.clone()))
+    }
+    #[cfg(not(feature = "mail"))]
+    r
+};
+
+let base_router = {
+    let r = base_router;
+    #[cfg(feature = "sheet")]
+    {
+        r.merge(crate::sheet::configure_sheet_routes(app_state.clone()))
+    }
+    #[cfg(not(feature = "sheet"))]
+    r
+};
+
+let base_router = {
+    let r = base_router;
+    #[cfg(feature = "slides")]
+    {
+        r.merge(crate::slides::configure_slides_routes(app_state.clone()))
+    }
+    #[cfg(not(feature = "slides"))]
+    r
+};
+
+let base_router = {
+    let r = base_router;
+    #[cfg(feature = "video")]
+    {
+        r.merge(crate::video::configure_video_routes(app_state.clone()))
+        .merge(crate::video::configure_video_ui_routes(app_state.clone()))
+    }
+    #[cfg(not(feature = "video"))]
+    r
+};
+
+let base_router = {
+    let r = base_router;
+    #[cfg(feature = "sources")]
+    {
+        r.merge(crate::sources::configure_sources_routes(app_state.clone()))
+        .merge(crate::sources::configure_sources_ui_routes(app_state.clone()))
+    }
+    #[cfg(not(feature = "sources"))]
+    r
+};
+
+let base_router = {
+    let r = base_router;
+    #[cfg(feature = "people")]
+    {
+        r.merge(crate::contacts::configure_crm_routes(app_state.clone()))
+        .merge(crate::contacts::configure_crm_api_routes(app_state.clone()))
+    }
+    #[cfg(not(feature = "people"))]
+    r
+};
+
+let base_router = {
+    let r = base_router;
+    #[cfg(feature = "workspaces")]
+    {
+        r.merge(crate::workspaces::configure_workspaces_routes(&app_state))
+        .merge(crate::workspaces::configure_workspaces_ui_routes(&app_state))
+    }
+    #[cfg(not(feature = "workspaces"))]
+    r
+};
+
+    let base_router = {
+        let r = base_router;
+        #[cfg(feature = "billing")]
+        {
+            r.merge(crate::products::configure_products_routes(&app_state))
+                .merge(crate::products::configure_products_api_routes(&app_state))
+        }
+        #[cfg(not(feature = "billing"))]
+        r
+    };
+
+    let base_router = {
+        let r = base_router;
+        #[cfg(feature = "tickets")]
+        {
+            r.merge(crate::tickets::configure_tickets_routes(&app_state))
+                .merge(crate::tickets::configure_tickets_ui_routes(&app_state))
+        }
+        #[cfg(not(feature = "tickets"))]
+        r
+    };
+
+    let base_router = {
+        let r = base_router;
+        #[cfg(feature = "people")]
+        {
+            r.merge(crate::people::configure_people_routes(&app_state))
+                .merge(crate::people::configure_people_ui_routes(&app_state))
+        }
+        #[cfg(not(feature = "people"))]
+        r
+    };
+
+    let base_router = {
+        let r = base_router;
+        #[cfg(feature = "attendant")]
+        {
+            r.merge(crate::attendant::configure_attendant_routes(&app_state))
+                .merge(crate::attendant::configure_attendant_ui_routes(&app_state))
+        }
+        #[cfg(not(feature = "attendant"))]
+        r
+    };
 
     // Add UI routes based on availability
     let app_with_ui = if ui_path_exists {

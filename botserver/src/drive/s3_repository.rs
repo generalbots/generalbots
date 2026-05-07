@@ -82,7 +82,7 @@ impl S3Repository {
     }
 
     /// Create a Bucket reference for a specific bucket name using stored credentials
-    fn bucket_for(&self, bucket_name: &str) -> Result<Arc<Bucket>> {
+    pub fn bucket_for(&self, bucket_name: &str) -> Result<Arc<Bucket>> {
         if bucket_name == self.bucket_name {
             return Ok(self.bucket.clone());
         }

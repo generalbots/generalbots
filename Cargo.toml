@@ -2,10 +2,62 @@
 [workspace]
 resolver = "2"
 members = [
-    "botlib",
-    "botserver",
-    "bottest",
-    "botui",
+  "botautotask",
+  "botlib",
+  "botattendance",
+  "botbilling",
+  "botcanvas",
+  "botcalendar",
+  "botchannels",
+  "botcompliance",
+  "botcontacts",
+  "botdashboards",
+  "botdeployment",
+  "botdesigner",
+  "botdocs",
+  "botemail",
+  "botkb",
+  "botlearn",
+  "botlegal",
+  "botllm",
+  "botmaintenance",
+  "botmarketing",
+  "botmonitoring",
+  "botmsteams",
+  "botmultimodal",
+  "botnvidia",
+  "botpaper",
+  "botpeople",
+  "botplayer",
+  "botproducts",
+  "botproject",
+  "botqdrant",
+  "botresearch",
+  "botsearch",
+  "botsecurity",
+  "botserver",
+  "botsheet",
+  "botslides",
+  "botsocial",
+  "botsources",
+  "bottasks",
+  "bottelegram",
+  "bottest",
+  "bottickets",
+  "bottimeseries",
+  "botui",
+  "botvideo",
+  "botweba",
+  "botwhatsapp",
+  "botworkspaces",
+    "botinstagram",
+    "botbrowser",
+"botcorebot",
+  "botcorepkg",
+  "botcoresession",
+  "botcoreoauth",
+  "botcoresecrets",
+  "botcoredirectory",
 ]
 
 [workspace.lints.rust]
@@ -19,7 +71,61 @@ members = [
 
 [workspace.dependencies]
 # ─── INTERNAL CRATES ───
+botautotask = { path = "botautotask" }
 botlib = { path = "botlib" }
+botanalytics = { path = "botanalytics" }
+botattendance = { path = "botattendance" }
+botattendant = { path = "botattendant" }
+botbilling = { path = "botbilling" }
+botbrowser = { path = "botbrowser" }
+botcalendar = { path = "botcalendar" }
+botcanvas = { path = "botcanvas" }
+botchannels = { path = "botchannels" }
+botcompliance = { path = "botcompliance" }
+botcontacts = { path = "botcontacts" }
+botdashboards = { path = "botdashboards" }
+botdeployment = { path = "botdeployment" }
+botdesigner = { path = "botdesigner" }
+botdocs = { path = "botdocs" }
+botemail = { path = "botemail" }
+botkb = { path = "botkb" }
+botlearn = { path = "botlearn" }
+botlegal = { path = "botlegal" }
+botllm = { path = "botllm" }
+botmaintenance = { path = "botmaintenance" }
+botmarketing = { path = "botmarketing" }
+botmonitoring = { path = "botmonitoring" }
+botmsteams = { path = "botmsteams" }
+botmultimodal = { path = "botmultimodal" }
+botnvidia = { path = "botnvidia" }
+botpaper = { path = "botpaper" }
+botpeople = { path = "botpeople" }
+botplayer = { path = "botplayer" }
+botproducts = { path = "botproducts" }
+botproject = { path = "botproject" }
+botqdrant = { path = "botqdrant" }
+botresearch = { path = "botresearch" }
+botsearch = { path = "botsearch" }
+botsecurity = { path = "botsecurity" }
+botsheet = { path = "botsheet" }
+botslides = { path = "botslides" }
+botsocial = { path = "botsocial" }
+botsources = { path = "botsources" }
+bottasks = { path = "bottasks" }
+bottelegram = { path = "bottelegram" }
+bottickets = { path = "bottickets" }
+bottimeseries = { path = "bottimeseries" }
+botvideo = { path = "botvideo" }
+botweba = { path = "botweba" }
+botwhatsapp = { path = "botwhatsapp" }
+botworkspaces = { path = "botworkspaces" }
+botinstagram = { path = "botinstagram" }
+botcoresession = { path = "botcoresession" }
+botcoreoauth = { path = "botcoreoauth" }
+botcoresecrets = { path = "botcoresecrets" }
+botcoredirectory = { path = "botcoredirectory" }
+botcorebot = { path = "botcorebot" }
+botcorepkg = { path = "botcorepkg" }
 
 # ─── CORE / ERROR HANDLING ───
 anyhow = "1.0"
@@ -73,6 +179,7 @@ reqwest = { version = "0.12", default-features = false }
 # ─── DATABASE ───
 diesel = { version = "2.2" }
 diesel_migrations = "2.2"
+r2d2 = "0.8"
 
 # ─── CACHING ───
 redis = { version = "0.27", default-features = false }
@@ -130,7 +237,7 @@ qrcode = { version = "0.14", default-features = false }
 
 # ─── EMAIL ───
 imap = "3.0.0-alpha.15"
-lettre = { version = "0.11", features = ["smtp-transport", "builder"] }
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "builder"] }
 mailparse = "0.15"
 
 # ─── CONFIGURATION ───

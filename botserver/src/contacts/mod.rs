@@ -1,20 +1,36 @@
-// Contacts API - Core contact management functionality
-pub mod contacts_api;
+use crate::core::bot::get_default_bot;
+use crate::core::shared::state::AppState;
+use axum::Router;
+use std::sync::Arc;
 
-#[cfg(feature = "calendar")]
-pub mod calendar_integration;
-pub mod crm;
-pub mod crm_ui;
-#[cfg(feature = "external_sync")]
-pub mod external_sync;
-#[cfg(feature = "external_sync")]
-pub mod google_client;
-#[cfg(feature = "external_sync")]
-pub mod microsoft_client;
-#[cfg(feature = "external_sync")]
-pub mod sync_types;
-#[cfg(feature = "tasks")]
-pub mod tasks_integration;
+pub use botcontacts::{
+    ContactsError, ContactsService, CrateState, CreateAccountRequest, CreateActivityRequest,
+    CreateCampaignRequest, CreateContactRequest, CreateDealRequest, CreateLeadForm,
+    CreateLeadRequest, CreateOpportunityRequest, CrmAccount, CrmActivity, CrmCampaign,
+    CrmContact, CrmDeal, CrmNote, CrmOpportunity, CrmPipelineStage, Contact,
+    ContactActivity, ContactGroup, ContactSource, ContactStatus, ActivityType,
+    ListQuery, PipelineStats, StageStats, CrmStats, UpdateDealRequest, UpdateLeadRequest,
+    UpdateOpportunityRequest, ImportPostgresRequest, UpdateCampaignRequest, LeadStageQuery,
+    CountStageQuery, ContactsApiCreateRequest, ContactsApiUpdateRequest, ContactListQuery,
+    ContactListResponse, ImportRequest, ImportFormat, ImportResult, ImportError,
+    create_contacts_tables_migration,
+};
 
-// Re-export contacts_api types for backward compatibility
-pub use contacts_api::*;
+fn make_crate_state(app_state: &Arc<AppState>) -> CrateState {
+    CrateState::new(
+        app_state.conn.clone(),
+        Arc::new(|conn| get_default_bot(conn)),
+        Arc::new(|_conn, _contact_id, _action, _bot_id| {}),
+        Arc::new(|_conn, _deal_id, _old_stage, _new_stage, _bot_id| {}),
+    )
+}
+
+pub fn configure_crm_routes(app_state: Arc<AppState>) -> Router {
+    botcontacts::routes::configure_crm_ui_routes()
+        .with_state(Arc::new(make_crate_state(&app_state)))
+}
+
+pub fn configure_crm_api_routes(app_state: Arc<AppState>) -> Router {
+    botcontacts::routes::configure_crm_api_routes()
+        .with_state(Arc::new(make_crate_state(&app_state)))
+}

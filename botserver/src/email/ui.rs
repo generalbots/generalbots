@@ -606,9 +606,10 @@ pub async fn handle_email_compose_page(State(_state): State<Arc<AppState>>) -> H
     Html(html.to_string())
 }
 
-pub fn configure_email_ui_routes() -> Router<Arc<AppState>> {
+pub fn configure_email_ui_routes(app_state: Arc<AppState>) -> Router {
     Router::new()
         .route("/suite/email", get(handle_email_inbox_page))
         .route("/suite/email/compose", get(handle_email_compose_page))
         .route("/suite/email/:id", get(handle_email_detail_page))
+        .with_state(app_state)
 }

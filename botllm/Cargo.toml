@@ -1,0 +1,25 @@
+[package]
+name = "botllm"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots LLM provider implementations and core types"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+async-trait = { workspace = true }
+futures = { workspace = true }
+futures-util = { workspace = true }
+governor = { workspace = true }
+jsonwebtoken = { workspace = true }
+log = { workspace = true }
+rand = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls", "json", "stream"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "fs"] }
+
+[lints]
+workspace = true
