@@ -1,0 +1,28 @@
+[package]
+name = "botbilling"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots billing, invoicing, quotas, and subscription management"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true }
+bigdecimal = { workspace = true, features = ["serde"] }
+chrono = { workspace = true, features = ["serde", "clock"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json", "numeric"] }
+hex = { workspace = true }
+hmac = { workspace = true }
+r2d2 = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros", "fs"] }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+async-trait = { workspace = true }
+
+[lints]
+workspace = true

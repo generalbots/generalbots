@@ -1,0 +1,25 @@
+[package]
+name = "botsources"
+version = "6.3.0"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[features]
+drive = ["pdf-extract"]
+
+[dependencies]
+axum = { workspace = true }
+chrono = { workspace = true, features = ["clock", "std", "serde"] }
+diesel = { workspace = true, features = ["extras", "postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+log = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+zip = { workspace = true }
+pdf-extract = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+
+[lints]
+workspace = true

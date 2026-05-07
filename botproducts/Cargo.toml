@@ -1,0 +1,22 @@
+[package]
+name = "botproducts"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots products, services, inventory, and pricing management"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true }
+bigdecimal = { workspace = true, features = ["serde"] }
+chrono = { workspace = true, features = ["serde", "clock"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json", "numeric"] }
+r2d2 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros", "fs"] }
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[lints]
+workspace = true

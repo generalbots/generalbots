@@ -1,92 +1,51 @@
-pub use crate::core::bot::channels::instagram::*;
-
 use crate::core::shared::state::AppState;
-use axum::{
-    extract::{Query, State},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
-use serde::Deserialize;
+use axum::Router;
 use std::sync::Arc;
 
-#[derive(Debug, Deserialize)]
-pub struct WebhookVerifyQuery {
-    #[serde(rename = "hub.mode")]
-    pub mode: Option<String>,
-    #[serde(rename = "hub.verify_token")]
-    pub verify_token: Option<String>,
-    #[serde(rename = "hub.challenge")]
-    pub challenge: Option<String>,
+pub use botinstagram::{
+    adapter::InstagramAdapter,
+    channel::ChannelAdapter,
+    handlers,
+    state::ChannelState,
+    types,
+    webhook,
+};
+
+fn make_channel_state(app_state: &Arc<AppState>) -> Arc<ChannelState> {
+    let config_state = app_state.clone();
+    let get_config: botinstagram::state::GetConfigFn = Arc::new(
+        move |bot_id: &str, key: &str, default: Option<&str>| -> Result<String, String> {
+            let config_manager = crate::core::config::ConfigManager::new(config_state.conn.clone());
+            let bot_uuid = uuid::Uuid::parse_str(bot_id).unwrap_or(uuid::Uuid::nil());
+            config_manager
+                .get_config(&bot_uuid, key, default)
+                .map_err(|e| e.to_string())
+        },
+    );
+
+    let stream_state = app_state.clone();
+    let stream_response: botinstagram::state::StreamResponseFn = Arc::new(
+        move |user_message: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
+            let state = stream_state.clone();
+            tokio::spawn(async move {
+                let orchestrator = crate::core::bot::BotOrchestrator::new(state);
+                orchestrator
+                    .stream_response(user_message, tx)
+                    .await
+                    .map_err(|e| e.to_string())
+            })
+        },
+    );
+
+    let attendant_broadcast = app_state.attendant_broadcast.clone();
+
+    Arc::new(ChannelState {
+        get_config,
+        stream_response,
+        attendant_broadcast,
+    })
 }
 
-pub fn configure() -> Router<Arc<AppState>> {
-    Router::new()
-        .route(
-            "/api/instagram/webhook",
-            get(verify_webhook).post(handle_webhook),
-        )
-        .route("/api/instagram/send", post(send_message))
-}
-
-async fn verify_webhook(Query(query): Query<WebhookVerifyQuery>) -> impl IntoResponse {
-    let adapter = InstagramAdapter::new();
-
-    match (
-        query.mode.as_deref(),
-        query.verify_token.as_deref(),
-        query.challenge,
-    ) {
-        (Some(mode), Some(token), Some(challenge)) => adapter
-            .handle_webhook_verification(mode, token, &challenge)
-            .map_or_else(
-                || (StatusCode::FORBIDDEN, "Verification failed".to_string()),
-                |response| (StatusCode::OK, response),
-            ),
-        _ => (StatusCode::BAD_REQUEST, "Missing parameters".to_string()),
-    }
-}
-
-async fn handle_webhook(
-    State(_state): State<Arc<AppState>>,
-    Json(payload): Json<InstagramWebhookPayload>,
-) -> impl IntoResponse {
-    for entry in payload.entry {
-        if let Some(messaging_list) = entry.messaging {
-            for messaging in messaging_list {
-                if let Some(message) = messaging.message {
-                    if let Some(text) = message.text {
-                        log::info!(
-                            "Instagram message from={} text={}",
-                            messaging.sender.id,
-                            text
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    StatusCode::OK
-}
-
-async fn send_message(
-    State(_state): State<Arc<AppState>>,
-    Json(request): Json<serde_json::Value>,
-) -> impl IntoResponse {
-    let adapter = InstagramAdapter::new();
-    let recipient = request.get("to").and_then(|v| v.as_str()).unwrap_or("");
-    let message = request
-        .get("message")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-
-    match adapter.send_instagram_message(recipient, message).await {
-        Ok(_) => (StatusCode::OK, Json(serde_json::json!({"success": true}))),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"success": false, "error": e.to_string()})),
-        ),
-    }
+pub fn configure(app_state: Arc<AppState>) -> Router {
+    botinstagram::webhook::configure().with_state(make_channel_state(&app_state))
 }

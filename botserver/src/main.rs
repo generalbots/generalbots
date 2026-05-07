@@ -34,6 +34,7 @@ pub mod contacts;
 pub mod core;
 #[cfg(feature = "designer")]
 pub mod designer;
+#[cfg(feature = "deployment")]
 pub mod deployment;
 pub mod api;
 pub mod browser;
@@ -44,6 +45,7 @@ pub mod embedded_ui;
 pub mod learn;
 #[cfg(feature = "compliance")]
 pub mod legal;
+#[cfg(feature = "maintenance")]
 pub mod maintenance;
 #[cfg(feature = "monitoring")]
 pub mod monitoring;

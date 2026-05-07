@@ -1,0 +1,20 @@
+[package]
+name = "botbrowser"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots browser automation"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+log = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+chrono = { workspace = true, features = ["serde", "clock"] }
+uuid = { workspace = true, features = ["v4"] }
+anyhow = { workspace = true }
+axum = { workspace = true }
+
+[lints]
+workspace = true

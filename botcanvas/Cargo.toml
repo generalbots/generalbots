@@ -1,0 +1,16 @@
+[package]
+name = "botcanvas"
+version = "6.3.0"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true, features = ["ws", "multipart", "macros"] }
+chrono = { workspace = true, features = ["clock", "std", "serde"] }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+r2d2 = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true }
+uuid = { workspace = true, features = ["v4", "v5", "serde"] }

@@ -1,0 +1,20 @@
+[package]
+name = "botsearch"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots full-text search service"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+botlib = { path = "../botlib", features = ["database"] }
+chrono = { workspace = true, features = ["serde", "clock"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json", "numeric"] }
+log = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[lints]
+workspace = true

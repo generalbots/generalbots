@@ -1,0 +1,24 @@
+[package]
+name = "botslides"
+version = "6.3.0"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+botlib = { workspace = true }
+axum = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+tokio = { workspace = true, features = ["sync"] }
+tokio-stream = { workspace = true }
+futures-util = { workspace = true }
+log = { workspace = true }
+once_cell = { workspace = true }
+rand = { workspace = true }
+diesel = { workspace = true, features = ["r2d2", "postgres"] }
+ooxmlsdk = { workspace = true, features = ["parts"] }
+zip = { workspace = true }

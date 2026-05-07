@@ -1,0 +1,23 @@
+[package]
+name = "botattendant"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots contact center attendant queue, session, and agent management"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true }
+chrono = { workspace = true, features = ["serde", "clock"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json"] }
+r2d2 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros", "fs"] }
+uuid = { workspace = true, features = ["serde", "v4"] }
+log = { workspace = true }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true

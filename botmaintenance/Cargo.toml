@@ -1,0 +1,21 @@
+[package]
+name = "botmaintenance"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots system maintenance and cleanup"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true }
+chrono = { workspace = true, features = ["serde", "clock"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json"] }
+log = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[lints]
+workspace = true

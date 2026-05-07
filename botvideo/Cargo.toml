@@ -1,0 +1,24 @@
+[package]
+name = "botvideo"
+version = "6.3.0"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+botlib = { workspace = true }
+
+axum = { workspace = true, features = ["ws", "multipart", "macros"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "serde_json", "chrono", "uuid"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+tokio = { workspace = true, features = ["full"] }
+futures = { workspace = true }
+tracing = { workspace = true }
+log = { workspace = true }
+redis = { workspace = true, features = ["r2d2"] }
+reqwest = { workspace = true, features = ["json"] }
+dirs = { workspace = true }
