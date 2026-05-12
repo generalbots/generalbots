@@ -11,7 +11,6 @@ use governor::{
     Quota, RateLimiter,
 };
 use std::{collections::HashMap, net::SocketAddr, num::NonZeroU32, sync::Arc};
-use tokio::sync::RwLock;
 
 type Limiter = RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware>;
 
@@ -236,3 +235,5 @@ fn rate_limit_response(limiter_type: LimiterType) -> Response {
 pub fn create_rate_limit_state(config: RateLimitConfig) -> Arc<RateLimitState> {
     Arc::new(RateLimitState::new(config))
 }
+
+use tokio::sync::RwLock;

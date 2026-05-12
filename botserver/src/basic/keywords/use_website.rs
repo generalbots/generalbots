@@ -1,10 +1,8 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{debug, error, info, trace};
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
-use uuid::Uuid;
 
 /// Parse refresh interval string (e.g., "1d", "1w", "1m", "1y") into days
 /// Returns the number of days for the refresh interval
@@ -778,7 +776,7 @@ pub fn clear_websites_keyword(state: Arc<AppState>, user: UserSession, engine: &
 }
 
 fn clear_all_websites(
-    conn_pool: crate::core::shared::utils::DbPool,
+    conn_pool: botcore::shared::utils::DbPool,
     session_id: Uuid,
 ) -> Result<usize, String> {
     let mut conn = conn_pool
@@ -798,7 +796,7 @@ fn clear_all_websites(
 }
 
 pub fn get_active_websites_for_session(
-    conn_pool: &crate::core::shared::utils::DbPool,
+    conn_pool: &botcore::shared::utils::DbPool,
     session_id: Uuid,
 ) -> Result<Vec<(String, String)>, String> {
     let mut conn = conn_pool
@@ -855,3 +853,6 @@ mod tests {
         );
     }
 }
+
+use std::sync::Arc;
+use uuid::Uuid;

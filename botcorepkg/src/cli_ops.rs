@@ -1,4 +1,4 @@
-use botcoresecrets::{SecretPaths, SecretsManager};
+use botcoresecrets::SecretsManager;
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -16,8 +16,8 @@ pub fn remove_protection() -> Result<()> {
     Ok(())
 }
 
-pub fn verify_protection() -> botsecurity::VerifyResult {
-    botsecurity::VerifyResult::default()
+pub fn verify_protection() -> String {
+    "Protection verification requires botsecurity integration".to_string()
 }
 
 pub async fn vault_put(path: &str, kvs: &[&str]) -> Result<()> {

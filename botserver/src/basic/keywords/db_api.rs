@@ -1,10 +1,6 @@
 use super::table_access::{
     check_field_write_access, check_table_access, filter_fields_by_role, AccessType, UserRoles,
 };
-use crate::core::shared::state::AppState;
-use crate::core::shared::sanitize_identifier;
-use crate::core::urls::ApiUrls;
-use crate::security::error_sanitizer::log_and_sanitize;
 use crate::security::sql_guard::{
     build_safe_count_query, build_safe_select_by_id_query, build_safe_select_query,
     is_table_allowed_with_conn, validate_table_name,
@@ -16,13 +12,9 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use diesel::prelude::*;
-use diesel::sql_query;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::sync::Arc;
-use uuid::Uuid;
 
 fn user_roles_from_headers(headers: &HeaderMap) -> UserRoles {
     let roles = headers
@@ -822,3 +814,12 @@ struct CountResult {
     #[diesel(sql_type = diesel::sql_types::BigInt)]
     count: i64,
 }
+
+use botcore::shared::state::AppState;
+use botcore::shared::sanitize_identifier;
+use botcore::urls::ApiUrls;
+use crate::security::error_sanitizer::log_and_sanitize;
+use diesel::prelude::*;
+use diesel::sql_query;
+use std::sync::Arc;
+use uuid::Uuid;

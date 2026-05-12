@@ -29,9 +29,7 @@
 \*****************************************************************************/
 
 use rhai::{Dynamic, Map};
-use serde_json::Value;
 
-use super::transfer::FileData;
 
 pub fn dynamic_to_json(value: &Dynamic) -> Value {
     if value.is_unit() {
@@ -107,3 +105,6 @@ mod tests {
         assert!(!file_data.content.is_empty());
     }
 }
+
+use serde_json::Value;
+use super::transfer::FileData;

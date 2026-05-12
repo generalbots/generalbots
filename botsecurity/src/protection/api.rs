@@ -4,6 +4,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use botcore::AppState;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -68,7 +69,7 @@ struct ActionResponse {
     message: String,
 }
 
-pub fn configure_protection_routes() -> Router<()> {
+pub fn configure_protection_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/security/protection/status", get(get_all_status))
         .route("/api/security/fix", post(security_fix_handler))

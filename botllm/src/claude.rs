@@ -363,20 +363,17 @@ impl ClaudeClient {
 
         // Try standard Anthropic SSE format
         if let Ok(event) = serde_json::from_str::<ClaudeStreamEvent>(data) {
-            match event.event_type.as_str() {
-                "content_block_delta" => {
-                    if let Some(delta) = event.delta {
-                        if delta.delta_type == "text_delta" && !delta.text.is_empty() {
-                            let processed = handler.process_content(&delta.text);
-                            if !processed.is_empty() {
-                                return (Some(processed), None);
-                            }
-                        } else if delta.delta_type == "thinking_delta" && !delta.thinking.is_empty() {
-                            return (None, Some(delta.thinking.clone()));
+            if event.event_type.as_str() == "content_block_delta" {
+                if let Some(delta) = event.delta {
+                    if delta.delta_type == "text_delta" && !delta.text.is_empty() {
+                        let processed = handler.process_content(&delta.text);
+                        if !processed.is_empty() {
+                            return (Some(processed), None);
                         }
+                    } else if delta.delta_type == "thinking_delta" && !delta.thinking.is_empty() {
+                        return (None, Some(delta.thinking.clone()));
                     }
                 }
-                _ => {}
             }
         }
 

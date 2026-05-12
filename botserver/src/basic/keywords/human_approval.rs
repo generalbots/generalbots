@@ -1,9 +1,6 @@
 use chrono::{DateTime, Duration, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use tracing::info;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalRequest {
@@ -770,3 +767,7 @@ pub mod sql {
         WHERE bot_id = $1 AND name = $2
     ";
 }
+
+use std::collections::HashMap;
+use tracing::info;
+use uuid::Uuid;

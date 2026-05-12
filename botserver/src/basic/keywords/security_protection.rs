@@ -1,8 +1,5 @@
 use crate::security::protection::{ProtectionManager, ProtectionTool};
-use crate::security::protection::manager::ProtectionConfig;
-use crate::core::shared::state::AppState;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityToolResult {
@@ -228,7 +225,7 @@ pub fn security_service_is_running(status: &SecurityToolResult) -> bool {
 
 fn parse_tool_name(name: &str) -> Result<ProtectionTool, String> {
     ProtectionTool::from_str(name)
-        .ok_or_else(|| format!("Unknown security tool: {name}. Valid tools: lynis, rkhunter, chkrootkit, suricata, lmd, clamav"))
+        .map_err(|_| format!("Unknown security tool: {name}. Valid tools: lynis, rkhunter, chkrootkit, suricata, lmd, clamav"))
 }
 
 #[cfg(test)]
@@ -327,3 +324,8 @@ mod tests {
         assert!(json.contains("\"score\":78"));
     }
 }
+
+use crate::security::protection::manager::ProtectionConfig;
+use botcore::shared::state::AppState;
+use std::str::FromStr;
+use std::sync::Arc;

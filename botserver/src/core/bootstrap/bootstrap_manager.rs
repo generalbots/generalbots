@@ -1,12 +1,8 @@
 // Bootstrap manager implementation
 use crate::core::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgress};
 use crate::core::bootstrap::bootstrap_utils::{alm_health_check, cache_health_check, drive_health_check, safe_pkill, tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check};
-use crate::core::config::AppConfig;
 use crate::core::package_manager::{InstallMode, PackageManager};
-use crate::core::shared::utils::get_stack_path;
-use crate::security::command_guard::SafeCommand;
 use log::{info, warn};
-use std::path::PathBuf;
 use tokio::time::{sleep, Duration};
 
 impl BootstrapManager {
@@ -380,3 +376,8 @@ impl BootstrapManager {
 // Standalone functions for backward compatibility
 pub use super::instance::{check_single_instance, release_instance_lock};
 pub use super::vault::{has_installed_stack, reset_vault_only, get_db_password_from_vault};
+
+use crate::core::config::AppConfig;
+use botcore::shared::utils::get_stack_path;
+use crate::security::command_guard::SafeCommand;
+use std::path::PathBuf;

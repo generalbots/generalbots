@@ -1,12 +1,10 @@
 
 
 
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{debug, info};
 use rhai::{Array, Dynamic, Engine, Map};
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn on_form_submit_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let user1 = user.clone();
@@ -235,3 +233,6 @@ fn create_error_response(message: &str) -> Map {
 fn trace_call(operation: &str, user: &UserSession) {
     debug!("{} called by user: {}", operation, user.user_id);
 }
+
+use std::sync::Arc;
+use uuid::Uuid;

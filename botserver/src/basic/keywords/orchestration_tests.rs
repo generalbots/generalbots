@@ -1,7 +1,7 @@
 use crate::basic::keywords::orchestration::*;
 use crate::basic::keywords::events::*;
 use crate::basic::keywords::enhanced_memory::*;
-use crate::core::shared::state::AppState;
+use botcore::shared::state::AppState;
 use crate::basic::UserSession;
 use std::sync::Arc;
 use uuid::Uuid;

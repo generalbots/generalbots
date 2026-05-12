@@ -36,8 +36,8 @@
 
 
 
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::debug;
 use rhai::Engine;
 use std::sync::Arc;

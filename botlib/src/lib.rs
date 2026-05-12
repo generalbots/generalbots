@@ -13,6 +13,7 @@ pub mod resilience;
 pub mod security;
 pub mod traits;
 pub mod version;
+pub mod work_path;
 
 pub use branding::{
     branding, init_branding, is_white_label, platform_name, platform_short, BrandingConfig,
@@ -34,8 +35,13 @@ pub use limits::{
     RATE_LIMIT_BURST_MULTIPLIER, RATE_LIMIT_WINDOW_SECONDS,
 };
 pub use message_types::MessageType;
-pub use models::{ApiResponse, BotResponse, Session, Suggestion, Switcher, UserMessage};
+pub use models::{ApiResponse, BotResponse, Session, Suggestion, Switcher, TriggerKind, UserMessage, WorkflowExecution};
 pub use resilience::{ResilienceError, RetryConfig};
+pub use traits::{
+    BoxFutureBool, BoxFutureDriveList, BoxFutureOptionDriveMeta, BoxFutureOptionValue,
+    BoxFutureResult, BoxFutureString, BoxFutureUnit, BoxFutureValue, BoxFutureVecDriveObject,
+    BoxFutureVecString, BoxFutureVecU8, BoxFutureVecValue, BoxError,
+};
 pub use version::{
     get_botserver_version, init_version_registry, register_component, version_string,
     ComponentSource, ComponentStatus, ComponentVersion, VersionRegistry, BOTSERVER_VERSION,

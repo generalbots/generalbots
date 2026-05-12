@@ -1,5 +1,4 @@
 use crate::env_defaults::get_from_env;
-use crate::paths::SecretPaths;
 use anyhow::{anyhow, Result};
 use log::{debug, info, warn};
 use std::collections::HashMap;
@@ -125,7 +124,7 @@ impl SecretsManager {
     }
 
     pub fn get_clone() -> Result<SecretsManager> {
-        Self::get().map(|sm| sm.clone())
+        Self::get().cloned()
     }
 
     pub fn is_enabled(&self) -> bool {

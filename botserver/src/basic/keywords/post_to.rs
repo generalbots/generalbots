@@ -1,8 +1,5 @@
 use crate::channels::{ChannelManager, ChannelType, PostContent};
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
 use rhai::{Dynamic, Engine, EvalAltResult, Map};
-use std::sync::Arc;
 
 pub fn post_to_keyword(state: &Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(state);
@@ -370,3 +367,7 @@ pub fn get_channel_limits(channel_name: &str) -> Result<Dynamic, Box<EvalAltResu
 
     Ok(Dynamic::from_map(map))
 }
+
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
+use std::sync::Arc;

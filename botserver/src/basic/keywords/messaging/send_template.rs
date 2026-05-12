@@ -1,8 +1,7 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{debug, info, trace};
 use rhai::{Array, Dynamic, Engine, Map};
-use std::sync::Arc;
 
 pub fn send_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
@@ -515,3 +514,5 @@ mod tests {
         assert!(id.starts_with("msg_"));
     }
 }
+
+use std::sync::Arc;

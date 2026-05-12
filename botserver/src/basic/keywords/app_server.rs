@@ -1,6 +1,6 @@
-use crate::core::shared::get_content_type;
-use crate::core::shared::state::AppState;
-use crate::core::shared::utils::get_stack_path;
+use botcore::shared::utils::get_content_type;
+use botcore::shared::state::AppState;
+use botcore::shared::utils::get_stack_path;
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -10,7 +10,6 @@ use axum::{
     Router,
 };
 use log::{error, info, trace, warn};
-use std::sync::Arc;
 
 /// Rewrite CDN URLs to local paths for HTMX and other vendor libraries
 /// This ensures old apps with CDN references still work with local files
@@ -137,21 +136,20 @@ pub async fn serve_vendor_file(
 
 #[cfg(feature = "drive")]
     if let Some(ref drive) = state.drive {
-        match drive.get_object().bucket(&bucket).key(&key).send().await {
-            Ok(response) => {
-                let content = response.body.collect().await.unwrap_or_default().into_bytes();
-                return Response::builder()
-                    .status(StatusCode::OK)
-                    .header(header::CONTENT_TYPE, content_type)
-                    .header(header::CACHE_CONTROL, "public, max-age=86400")
-                    .body(Body::from(content))
-                    .unwrap_or_else(|_| {
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            "Failed to build response",
-                        )
-                            .into_response()
-                    });
+        match drive.get_object(&bucket, &key).await {
+                    Ok(content) => {
+                        return Response::builder()
+                        .status(StatusCode::OK)
+                        .header(header::CONTENT_TYPE, content_type)
+                        .header(header::CACHE_CONTROL, "public, max-age=86400")
+                        .body(Body::from(content))
+                        .unwrap_or_else(|_| {
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                "Failed to build response",
+                            )
+                                .into_response()
+                        });
             }
             Err(e) => {
                 error!("Failed to get object: {}", e);
@@ -303,19 +301,17 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
     // Try to serve from MinIO
     #[cfg(feature = "drive")]
     if let Some(ref drive) = state.drive {
-        match drive.get_object().bucket(&bucket).key(&key).send().await {
-            Ok(response) => {
-                let content = response.body.collect().await.map(|c| c.into_bytes()).unwrap_or_default();
-                let content_type = get_content_type(&sanitized_file_path);
+        match drive.get_object(&bucket, &key).await {
+                    Ok(content) => {
+                        let content_type = get_content_type(&sanitized_file_path);
 
-                // For HTML files, rewrite CDN URLs to local paths
-                let final_content = if content_type.starts_with("text/html") {
-                    let html = String::from_utf8_lossy(&content);
-                    let rewritten = rewrite_cdn_urls(&html);
-                    rewritten.into_bytes()
-                } else {
-                    content
-                };
+                        let final_content = if content_type.starts_with("text/html") {
+                            let html = String::from_utf8_lossy(&content);
+                            let rewritten = rewrite_cdn_urls(&html);
+                            rewritten.into_bytes()
+        } else {
+            content.to_vec()
+        };
 
                 return Response::builder()
                     .status(StatusCode::OK)
@@ -481,3 +477,5 @@ mod tests {
         );
     }
 }
+
+use std::sync::Arc;

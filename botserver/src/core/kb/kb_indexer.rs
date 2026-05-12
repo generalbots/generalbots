@@ -1,14 +1,11 @@
 use anyhow::Result;
 use log::{debug, info, trace, warn};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use uuid::Uuid;
 
-use crate::core::config::ConfigManager;
-use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
-use crate::core::shared::utils::{create_tls_client, DbPool};
+use botcore::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
+use botcore::shared::utils::{create_tls_client, DbPool, get_vectordb_config_from_value};
 
 use super::document_processor::{DocumentProcessor, TextChunk};
 use super::embedding_generator::{is_embedding_server_ready, Embedding, EmbeddingConfig, KbEmbeddingGenerator};
@@ -32,18 +29,18 @@ impl Default for QdrantConfig {
 
 impl QdrantConfig {
     pub fn from_config(pool: DbPool, bot_id: &Uuid) -> Self {
-        let (url, api_key) = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
-            sm.get_vectordb_config_sync()
+        let (url, api_key, _collection) = if let Ok(sm) = botcore::shared::utils::get_secrets_manager_sync() {
+            get_vectordb_config_from_value(&sm)
         } else {
             let config_manager = ConfigManager::new(pool.clone());
             let url = config_manager
                 .get_config(bot_id, "vectordb-url", Some(""))
                 .unwrap_or_else(|_| "".to_string());
-            (url, None)
+            (url, "".to_string(), "default".to_string())
         };
         Self {
             url,
-            api_key,
+            api_key: Some(api_key),
             timeout_secs: 30,
         }
     }
@@ -550,12 +547,12 @@ pub async fn index_single_file_with_id(
     file_path: &Path,
     document_id: Option<&str>,
     ) -> Result<IndexingResult> {
-        if !is_embedding_server_ready() {
-            if !self.embedding_generator.wait_for_server(30).await {
+        if !is_embedding_server_ready()
+            && !self.embedding_generator.wait_for_server(30).await
+        {
                 return Err(anyhow::anyhow!(
                     "Embedding server not available. Cannot index file."
                 ));
-            }
         }
 
     if !self.check_qdrant_health().await.unwrap_or(false) {
@@ -946,13 +943,13 @@ pub struct KbFolderMonitor {
 
 impl KbFolderMonitor {
     pub fn new(work_root: PathBuf, embedding_config: EmbeddingConfig) -> Self {
-        let qdrant_config = if let Some(sm) = crate::core::shared::utils::get_secrets_manager_sync() {
-            let (url, api_key) = sm.get_vectordb_config_sync();
-            QdrantConfig {
-                url,
-                api_key,
-                timeout_secs: 30,
-            }
+        let qdrant_config = if let Ok(sm) = botcore::shared::utils::get_secrets_manager_sync() {
+            let (url, api_key, _collection) = get_vectordb_config_from_value(&sm);
+                QdrantConfig {
+                    url,
+                    api_key: Some(api_key),
+                    timeout_secs: 30,
+                }
         } else {
             QdrantConfig::default()
         };
@@ -988,3 +985,7 @@ impl KbFolderMonitor {
         Ok(result)
     }
 }
+
+use std::collections::HashMap;
+use uuid::Uuid;
+use botcore::config::ConfigManager;

@@ -28,14 +28,12 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::core::config::ConfigManager;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::config::ConfigManager;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SmsProvider {
@@ -876,3 +874,6 @@ async fn send_via_custom_webhook(
         Err(format!("Custom webhook error: {}", error_text).into())
     }
 }
+
+use std::sync::Arc;
+use uuid::Uuid;

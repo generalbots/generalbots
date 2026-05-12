@@ -1,13 +1,7 @@
-use crate::core::shared::models::{workflow_events, WorkflowEvent};
-use crate::core::shared::state::AppState;
-use crate::basic::UserSession;
-use diesel::prelude::*;
+use botcore::shared::schema::workflow_events;
+use botcore::shared::models::WorkflowEvent;
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
-use uuid::Uuid;
 #[cfg(feature = "cache")]
-use redis::AsyncCommands;
-
 const ALLOWED_EVENTS: &[&str] = &[
     "workflow_step_complete",
     "approval_received", 
@@ -127,13 +121,14 @@ async fn publish_event(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut conn = state.conn.get()?;
     
-    let event_data_json = serde_json::to_string(event_data)?;
-    
     let new_event = WorkflowEvent {
         id: Uuid::new_v4(),
-        workflow_id: None,
+        execution_id: Uuid::nil(),
+        workflow_id: Uuid::nil(),
         event_name: event_name.to_string(),
-        event_data_json: Some(event_data_json),
+        event_type: "custom".to_string(),
+        payload: event_data.clone(),
+        event_data_json: Some(event_data.clone()),
         processed: false,
         created_at: chrono::Utc::now(),
     };
@@ -188,3 +183,10 @@ async fn wait_for_event(
     
     Ok(false)
 }
+
+use botcore::shared::state::AppState;
+use crate::basic::UserSession;
+use diesel::prelude::*;
+use std::sync::Arc;
+use uuid::Uuid;
+use redis::AsyncCommands;

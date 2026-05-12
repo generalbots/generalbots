@@ -28,18 +28,11 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
 
-use super::archive::*;
-use super::basic_io::*;
-use super::copy_move::*;
-use super::pdf::*;
-use super::transfer::*;
-use super::utils::dynamic_to_file_data;
 
 pub fn register_file_operations(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_read_keyword(Arc::clone(&state), user.clone(), engine);
@@ -742,3 +735,11 @@ pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine
         )
         .expect("valid syntax registration");
 }
+
+use std::sync::Arc;
+use super::archive::*;
+use super::basic_io::*;
+use super::copy_move::*;
+use super::pdf::*;
+use super::transfer::*;
+use super::utils::dynamic_to_file_data;

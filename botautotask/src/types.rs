@@ -7,6 +7,8 @@ use tokio::sync::broadcast;
 use uuid::Uuid;
 
 pub type DbPool = Arc<Pool<ConnectionManager<PgConnection>>>;
+type BoxError = Box<dyn std::error::Error + Send + Sync>;
+type BoxFuture<T> = std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, BoxError>> + Send>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserSession {
@@ -257,9 +259,7 @@ pub trait LlmProviderOps: Send + Sync {
         model: &str,
         key: &str,
         system_prompt: Option<&str>,
-    ) -> std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<(), Box<dyn std::error::Error + Send + Sync>>> + Send>,
-    >;
+    ) -> BoxFuture<()>;
 }
 
 pub trait ConfigOps: Send + Sync {
@@ -285,9 +285,7 @@ pub trait DriveOps: Send + Sync {
         key: &str,
         body: Vec<u8>,
         content_type: &str,
-    ) -> std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<(), Box<dyn std::error::Error + Send + Sync>>> + Send>,
-    >;
+    ) -> BoxFuture<()>;
 }
 
 pub trait ScriptRunner: Send + Sync {

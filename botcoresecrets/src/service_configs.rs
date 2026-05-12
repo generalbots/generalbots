@@ -1,8 +1,6 @@
-use crate::paths::SecretPaths;
 use crate::env_defaults::get_from_env;
+use crate::paths::SecretPaths;
 use anyhow::{anyhow, Result};
-use log::{debug, info, warn};
-use std::collections::HashMap;
 
 pub struct ServiceConfigResult;
 
@@ -15,7 +13,7 @@ impl SecretsManager {
                 let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
 
                 let result = std::process::Command::new("curl")
-                    .args(&[
+                    .args([
                         "-sf",
                         "--cacert",
                         &ca_cert,
@@ -62,7 +60,7 @@ impl SecretsManager {
                 let url = format!("{}/v1/secret/data/gbo/cache", vault_addr);
 
                 let result = std::process::Command::new("curl")
-                    .args(&[
+                    .args([
                         "-sf",
                         "--cacert",
                         &ca_cert,
@@ -106,7 +104,7 @@ impl SecretsManager {
                 let url = format!("{}/v1/secret/data/gbo/vectordb", vault_addr);
 
                 let result = std::process::Command::new("curl")
-                    .args(&[
+                    .args([
                         "-sf",
                         "--cacert",
                         &ca_cert,

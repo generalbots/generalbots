@@ -23,3 +23,10 @@ reqwest = { workspace = true, features = ["rustls-tls"] }
 serde = { workspace = true, features = ["derive", "std"] }
 serde_json = { workspace = true }
 uuid = { workspace = true, features = ["v4", "v5"] }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+once_cell = { workspace = true }
+rand = { workspace = true }
+dirs = { workspace = true }
+botcore = { workspace = true }
+botlib = { workspace = true }
+botsecurity = { workspace = true }

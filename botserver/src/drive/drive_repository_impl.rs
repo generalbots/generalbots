@@ -78,9 +78,9 @@ impl DriveRepository for S3Repository {
         let bucket = bucket.to_string();
         let prefix = prefix.map(String::from);
         Box::pin(async move {
-            repo.list_objects(&bucket, prefix.as_deref())
-                .await
-                .map_err(|e| e.to_string())
+        repo.list_objects(&bucket, prefix.as_deref())
+            .await
+            .map_err(|e| e.to_string())
         })
     }
 
@@ -218,10 +218,10 @@ impl DriveRepository for S3Repository {
                 })
                 .collect();
             let common_prefixes = if let Some(d) = &delim {
-                let prefixes = repo
-                    .list_objects(&bucket, Some(prefix.as_str()))
-                    .await
-                    .map_err(|e| e.to_string())?;
+            let prefixes = repo
+                .list_objects(&bucket, Some(prefix.as_str()))
+                .await
+                .map_err(|e| e.to_string())?;
                 prefixes
                     .iter()
                     .filter(|p| p.ends_with(d.as_str()))

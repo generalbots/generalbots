@@ -68,7 +68,7 @@ impl DriveMonitor {
                 None => true,
             };
 
-            let etag_changed = existing.as_ref().map_or(true, |prev| prev.etag.as_deref() != etag.as_deref());
+            let etag_changed = existing.as_ref().is_none_or(|prev| prev.etag.as_deref() != etag.as_deref());
 
         if etag_changed || existing.is_none() || needs_reindex {
             match self.file_repo.upsert_file(

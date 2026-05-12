@@ -1,25 +1,11 @@
 #[cfg(feature = "llm")]
-use crate::llm::LLMProvider;
 #[cfg(feature = "drive")]
-use crate::drive::s3_repository::S3Repository;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{debug, info};
 #[cfg(feature = "llm")]
-use log::warn;
-use rhai::Dynamic;
-use rhai::Engine;
-#[cfg(feature = "llm")]
-use serde_json::json;
-use std::error::Error;
-use std::fs;
-use std::io::Read;
-use std::path::PathBuf;
-#[cfg(feature = "llm")]
-use std::sync::Arc;
-
-pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Engine) {
-    let state_clone = state.clone();
+pub fn create_site_keyword(state: std::sync::Arc<AppState>, user: UserSession, engine: &mut Engine) {
+    let state_clone = state;
     let user_clone = user;
 
     engine
@@ -44,33 +30,28 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
                     }
                 };
 
-                let s3 = state_clone.drive.clone().map(std::sync::Arc::new);
-                let bucket = state_clone.bucket_name.clone();
-                let bot_id = user_clone.bot_id.to_string();
+    let bucket = state_clone.bucket_name.clone();
+    let bot_id = user_clone.bot_id.to_string();
 
-                #[cfg(feature = "llm")]
-                let llm = Some(state_clone.llm_provider.clone());
-                #[cfg(not(feature = "llm"))]
-                let llm: Option<()> = None;
-
-                let params = SiteCreationParams {
-                    alias,
-                    template_dir,
-                    prompt,
-                };
-                let (tx, rx) = std::sync::mpsc::channel();
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_current_thread()
-                        .enable_all()
-                        .build();
-                    let result = match rt {
-                        Ok(rt) => rt.block_on(async {
-                            create_site(config, s3, bucket, bot_id, llm, params).await
-                        }),
-                        Err(e) => Err(format!("Runtime creation failed: {}", e).into()),
-                    };
-                    let _ = tx.send(result);
-                });
+    let params = SiteCreationParams {
+        alias,
+        template_dir,
+        prompt,
+    };
+    let state_for_thread = state_clone.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = match rt {
+            Ok(rt) => rt.block_on(async {
+                create_site(config, state_for_thread.drive.clone(), bucket, bot_id, state_for_thread.llm_provider.clone(), params).await
+            }),
+            Err(e) => Err(format!("Runtime creation failed: {}", e).into()),
+        };
+        let _ = tx.send(result);
+    });
                 let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))
                         .map_err(|e| format!("Site creation failed: {}", e))?;
                 Ok(Dynamic::from(result))
@@ -88,10 +69,10 @@ struct SiteCreationParams {
 #[cfg(feature = "llm")]
 async fn create_site(
     config: crate::core::config::AppConfig,
-    #[cfg(feature = "drive")] s3: Option<std::sync::Arc<S3Repository>>,
+    #[cfg(feature = "drive")] s3: Option<std::sync::Arc<dyn botlib::traits::DriveRepository>>,
     bucket: String,
     bot_id: String,
-    llm: Option<Arc<dyn LLMProvider>>,
+    llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
     params: SiteCreationParams,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
     let alias_str = params.alias.to_string();
@@ -127,7 +108,7 @@ async fn create_site(
 #[cfg(not(feature = "llm"))]
 async fn create_site(
     config: crate::core::config::AppConfig,
-    s3: Option<std::sync::Arc<S3Repository>>,
+    s3: Option<std::sync::Arc<dyn botlib::traits::DriveRepository>>,
     bucket: String,
     bot_id: String,
     _llm: Option<()>,
@@ -198,7 +179,7 @@ fn load_templates(template_path: &std::path::Path) -> Result<String, Box<dyn Err
 
 #[cfg(feature = "llm")]
 async fn generate_html_from_prompt(
-    llm: Option<Arc<dyn LLMProvider>>,
+    llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
     templates: &str,
     prompt: &str,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
@@ -343,7 +324,7 @@ fn generate_placeholder_html(prompt: &str) -> String {
 }
 
 async fn store_to_drive(
-    s3: Option<&std::sync::Arc<S3Repository>>,
+    s3: Option<&std::sync::Arc<dyn botlib::traits::DriveRepository>>,
     bucket: &str,
     bot_id: &str,
     drive_path: &str,
@@ -358,12 +339,7 @@ async fn store_to_drive(
     info!("Storing to drive: s3://{}/{}", bucket, key);
 
     s3_client
-        .put_object()
-        .bucket(bucket)
-        .key(&key)
-        .body(html_content.as_bytes().to_vec())
-        .content_type("text/html")
-        .send()
+        .put_object(bucket, &key, html_content.as_bytes().to_vec(), None)
         .await
         .map_err(|e| format!("Failed to store to drive: {}", e))?;
 
@@ -371,12 +347,7 @@ async fn store_to_drive(
     let schema = r#"{"tables": {}, "version": 1}"#;
 
     s3_client
-        .put_object()
-        .bucket(bucket)
-        .key(&schema_key)
-        .body(schema.as_bytes().to_vec())
-        .content_type("application/json")
-        .send()
+        .put_object(bucket, &schema_key, schema.as_bytes().to_vec(), None)
         .await
         .map_err(|e| format!("Failed to store schema: {}", e))?;
 
@@ -576,3 +547,13 @@ function closeModal(id) {
     document.getElementById(id)?.classList.remove('active');
 }
 ";
+
+use log::warn;
+use rhai::Dynamic;
+use rhai::Engine;
+use serde_json::json;
+use std::error::Error;
+use std::fs;
+use std::io::Read;
+use std::path::PathBuf;
+use std::sync::Arc;

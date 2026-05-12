@@ -1,10 +1,9 @@
 use axum::{
-    extract::{Path, State},
+    extract::Path,
     response::Html,
     routing::get,
     Router,
 };
-use std::sync::Arc;
 use uuid::Uuid;
 
 

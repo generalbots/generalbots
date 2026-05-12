@@ -1,9 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
@@ -427,7 +424,7 @@ impl OrganizationRbacService {
             })
             .collect();
 
-        applicable_policies.sort_by(|a, b| b.priority.cmp(&a.priority));
+        applicable_policies.sort_by_key(|b| std::cmp::Reverse(b.priority));
 
         for policy in applicable_policies {
             let principal_matches = self.check_principal_match(policy, request);
@@ -973,3 +970,7 @@ impl OrganizationRbacService {
             .unwrap_or_default()
     }
 }
+
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;

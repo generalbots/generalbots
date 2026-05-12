@@ -643,6 +643,7 @@ match x {
 - ❌ **NEVER** build in release mode - ONLY debug builds allowed
 - ❌ **NEVER** use `--release` flag on ANY cargo command
 - ❌ **NEVER** run `cargo build` - use `cargo check` for syntax verification
+- ❌ **NEVER** run `cargo check` synchronously - always `nohup cargo check > /tmp/<crate>_check.log 2>&1 &`
 - ❌ **NEVER** compile directly for production - ALWAYS use push + CI/CD pipeline
 - ❌ **NEVER** use `scp` or manual transfer to deploy - ONLY CI/CD ensures correct deployment
 - ❌ **NEVER** manually copy binaries to production system container - ALWAYS push to ALM and let CI/CD build and deploy
@@ -724,6 +725,121 @@ END LOOP
 ### ⚡ Streaming Build Rule
 
 **Do NOT wait for `cargo` to finish.** As soon as the first errors appear in output, cancel/interrupt the build, fix those errors immediately, then re-run. This avoids wasting time on a full compile when errors are already visible.
+
+### 🔀 Parallel & Non-Blocking Execution Philosophy
+
+**NEVER block the agent on long-running processes.** Always launch builds/checks in the background and continue working on code analysis, fixes, or planning while they run.
+
+#### Core Principles
+1. **NEVER WAIT** — Long-running tools (cargo check, cargo clippy, builds) must run in background via `nohup`
+2. **ALWAYS PARALLEL** — Launch multiple independent checks simultaneously
+3. **KEEP THINKING** — While processes run, analyze code, plan fixes, read files, write edits
+4. **POLL LATER** — Check background process results when convenient, not immediately
+5. **NEVER IDLE** — If a tool is running, start another task instead of waiting
+6. **NEVER STOP THE LOOP** — The user only talks at the start; once tasked, the agent drives autonomously through the full cycle: launch → analyze → fix → verify → repeat. NEVER stop mid-loop to ask "should I continue?" — just keep going until 0 warnings/0 errors or a blocker that genuinely requires user input
+
+#### Background Compile Pattern
+```bash
+# Launch compile checks in background — NEVER wait synchronously
+nohup cargo check -p botcore > /tmp/botcore_check.log 2>&1 &
+nohup cargo check -p botserver > /tmp/botserver_check.log 2>&1 &
+nohup cargo check -p botlib > /tmp/botlib_check.log 2>&1 &
+echo "Checks running in background — continue analyzing code"
+
+# Later, when convenient, poll results:
+tail -50 /tmp/botcore_check.log
+tail -50 /tmp/botserver_check.log
+
+# Check if still running:
+ps aux | grep 'cargo check' | grep -v grep
+```
+
+#### Parallel Workflow
+```
+1. Launch: nohup cargo check -p <crate1> > /tmp/<crate1>_check.log 2>&1 &
+2. Launch: nohup cargo check -p <crate2> > /tmp/<crate2>_check.log 2>&1 &
+3. IMMEDIATELY: Read files, analyze code, plan fixes (do NOT wait)
+4. Read more files, grep patterns, understand architecture
+5. When ready: tail /tmp/<crate1>_check.log to see results
+6. Fix errors offline (batch by file)
+7. Re-launch checks in background
+8. Continue working on next files while checks run
+```
+
+#### Rules
+- ❌ **NEVER** run `cargo check` synchronously and wait — always `nohup ... &`
+- ❌ **NEVER** run only one check when multiple crates need verification — launch all in parallel
+- ❌ **NEVER** sit idle waiting for a process — start another analysis task
+- ❌ **NEVER** stop the loop to ask the user "should I continue?" — drive autonomously until done
+- ❌ **NEVER** fix errors one-by-one by hand when a Python script can batch-fix them — always generate a Python script
+- ✅ **ALWAYS** write logs to `/tmp/` (never repo root)
+- ✅ **ALWAYS** check if processes are still running before launching new ones (`ps aux | grep cargo`)
+- ✅ **ALWAYS** kill stale processes before re-launching (`pkill -f "cargo check -p <crate>"`)
+- ✅ **ALWAYS** continue code analysis/fixing while background processes run
+- ✅ **ALWAYS** generate Python scripts for batch fixes — save to `/tmp/fix_*.py`, run with `python3 /tmp/fix_*.py`
+
+### 🐍 Python Batch-Fix Scripts
+
+**When 5+ errors share a pattern, ALWAYS generate a Python script instead of fixing by hand.**
+
+The LLM agent writes a Python script that:
+1. Reads the error log (`/tmp/<crate>_check.log`)
+2. Parses error locations (file:line:col)
+3. Reads each file, applies regex-based fixes
+4. Writes all fixes at once
+5. Reports what was fixed
+
+**Pattern:**
+```python
+#!/usr/bin/env python3
+"""Batch fix script: <description>"""
+import re, os, sys
+
+WORKSPACE = "/home/ubuntu/src/generalbots"
+
+def fix_file(filepath, fixes):
+    with open(filepath, 'r') as f:
+        content = f.read()
+    for old, new in fixes:
+        content = content.replace(old, new)
+    with open(filepath, 'w') as f:
+        f.write(content)
+    print(f"Fixed: {filepath}")
+
+# Example: fix field renames across all files
+for root, dirs, files in os.walk(WORKSPACE + "/botserver"):
+    for fn in files:
+        if fn.endswith('.rs'):
+            path = os.path.join(root, fn)
+            fix_file(path, [
+                ("endpoint_url", "endpoint"),
+                ("bucket_name", "bucket"),
+            ])
+```
+
+**LLM-Enabled Python Scripts (for complex analysis):**
+- For fixes requiring semantic understanding (e.g., "which type does this method return?"), use `openai` Python package
+- Set `DEV_LLM_URL` and `DEV_LLM_KEY` in `.env` — these are DEV-only keys for the agent's Python scripts
+- NEVER commit these keys — they are in `.env` only, loaded at runtime
+- Pattern: script sends error context to LLM, LLM suggests fix, script applies it
+
+```python
+# LLM-assisted fix pattern
+import openai, os
+client = openai.OpenAI(
+    base_url=os.getenv("DEV_LLM_URL"),
+    api_key=os.getenv("DEV_LLM_KEY")
+)
+def ask_llm(error_msg, code_context):
+    resp = client.chat.completions.create(
+        model=os.getenv("DEV_LLM_MODEL", "default"),
+        messages=[
+            {"role": "system", "content": "You are a Rust fix generator. Return ONLY the fixed code, no explanations."},
+            {"role": "user", "content": f"Error:\n{error_msg}\n\nCode:\n{code_context}"}
+        ]
+    )
+    return resp.choices[0].message.content
+```
 
 ---
 
@@ -1248,14 +1364,16 @@ When starting a new session or continuing work:
 ```
 Continue on gb/ workspace. Follow AGENTS.md strictly:
 
-1. Check current state with build/diagnostics
-2. Fix ALL warnings and errors - NO #[allow()] attributes
-3. Delete unused code, don't suppress warnings
-4. Remove unused parameters, don't prefix with _
-5. Replace ALL unwrap()/expect() with proper error handling
-6. Verify after each fix batch
-7. Loop until 0 warnings, 0 errors
-8. Refactor files >450 lines
+1. Launch background checks: nohup cargo check -p <crate> > /tmp/<crate>_check.log 2>&1 &
+2. While compiling: read files, analyze code, plan fixes
+3. Poll results when convenient: tail /tmp/<crate>_check.log
+4. Fix ALL warnings and errors - NO #[allow()] attributes
+5. Delete unused code, don't suppress warnings
+6. Remove unused parameters, don't prefix with _
+7. Replace ALL unwrap()/expect() with proper error handling
+8. Re-launch checks in background after fixes
+9. Loop until 0 warnings, 0 errors
+10. Refactor files >450 lines
 ```
 
 ---
@@ -1276,6 +1394,8 @@ Continue on gb/ workspace. Follow AGENTS.md strictly:
 - **BATCH BY FILE** - Fix ALL errors in a file at once
 - **WRITE ONCE** - Single edit per file with all fixes
 - **VERIFY LAST** - Only compile/diagnostics after ALL fixes
+- **NEVER BLOCK** - Launch checks with `nohup &`, continue working while they compile
+- **ALWAYS PARALLEL** - Run multiple crate checks simultaneously, never one-at-a-time
 - **DELETE DEAD CODE** - Don't keep unused code around
 - **GIT WORKFLOW** - ALWAYS push to ALL repositories (github, pragmatismo)
 

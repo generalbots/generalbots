@@ -1,28 +1,10 @@
 use anyhow::{Context, Result};
 use log::{info, trace, warn};
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::Semaphore;
 
-use crate::core::shared::DbPool;
-use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
-use super::document_processor::TextChunk;
+use botcore::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 
-static EMBEDDING_SERVER_READY: AtomicBool = AtomicBool::new(false);
-
-pub fn is_embedding_server_ready() -> bool {
-    EMBEDDING_SERVER_READY.load(Ordering::SeqCst)
-}
-
-pub fn set_embedding_server_ready(ready: bool) {
-    EMBEDDING_SERVER_READY.store(ready, Ordering::SeqCst);
-    if ready {
-        info!("Embedding server marked as ready");
-    }
-}
+pub use botcore::kb::embedding_generator::{is_embedding_server_ready, set_embedding_server_ready};
 
 #[derive(Debug, Clone)]
 pub struct EmbeddingConfig {
@@ -58,7 +40,7 @@ impl EmbeddingConfig {
     }
 
     pub fn from_bot_config(pool: &DbPool, _bot_id: &uuid::Uuid) -> Self {
-        use crate::core::config::ConfigManager;
+        use botcore::config::ConfigManager;
 
         let config_manager = ConfigManager::new(pool.clone());
 
@@ -401,7 +383,6 @@ impl KbEmbeddingGenerator {
 
     pub async fn generate_embeddings(
 
-
         &self,
         chunks: &[TextChunk],
     ) -> Result<Vec<(TextChunk, Embedding)>> {
@@ -513,7 +494,7 @@ impl KbEmbeddingGenerator {
     async fn generate_local_embeddings(&self, texts: &[String]) -> Result<Vec<Embedding>> {
         // Apply token-aware truncation to each text before creating request
         let truncated_texts: Vec<String> = texts.iter()
-            .map(|text| crate::core::shared::utils::truncate_text_for_model(text, &self.config.embedding_model, 600))
+            .map(|text| botcore::shared::utils::truncate_text_for_model(text, &self.config.embedding_model, 600))
             .collect();
 
         // Detect API format based on URL pattern
@@ -910,3 +891,10 @@ impl EmailLike for SimpleEmail {
         &self.body
     }
 }
+
+use reqwest::Client;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Semaphore;
+use botcore::shared::DbPool;
+use super::document_processor::TextChunk;

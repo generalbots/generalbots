@@ -1,6 +1,4 @@
 use serde::{Deserialize, Serialize};
-use crate::core::features::COMPILED_FEATURES;
-use crate::core::product::PRODUCT_CONFIG;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceManifest {
@@ -165,3 +163,6 @@ impl Default for WorkspaceManifest {
         Self::new()
     }
 }
+
+use crate::core::features::COMPILED_FEATURES;
+use crate::core::product::PRODUCT_CONFIG;

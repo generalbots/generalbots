@@ -1,0 +1,33 @@
+[package]
+name = "botbasic_system"
+version = "6.3.0"
+edition = "2021"
+description = "BASIC system keywords - bot management, file ops, scheduling, security, app server, face API"
+license = "AGPL-3.0"
+
+[features]
+default = []
+chat = []
+automation = []
+tasks = []
+drive = []
+security = []
+
+[dependencies]
+botbasic_types = { path = "../botbasic_types" }
+rhai = { workspace = true, features = ["sync"] }
+
+botlib = { workspace = true }
+botschema = { workspace = true }
+chrono = { workspace = true, features = ["clock", "std"] }
+cron = { workspace = true }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+log = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls", "json", "multipart"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+
+[lints]
+workspace = true

@@ -2,30 +2,13 @@
 
 use diesel::RunQueryDsl;
 use log::{error, info, trace, warn};
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use uuid::Uuid;
 
 use crate::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
-use crate::core::bot::BotOrchestrator;
-use crate::core::bot_database::BotDatabaseManager;
-use crate::core::config::AppConfig;
-use crate::core::config::ConfigManager;
-use crate::core::package_manager::InstallMode;
-use crate::core::session::SessionManager;
-use crate::core::shared::state::AppState;
-use crate::core::shared::utils::{create_conn, get_stack_path};
+use botcore::shared::utils::{create_conn, get_stack_path};
 #[cfg(feature = "drive")]
-use crate::core::shared::utils::create_s3_operator;
-
-use super::BootstrapProgress;
-
 #[cfg(feature = "llm")]
-use crate::llm::local::ensure_llama_servers_running;
-
 /// Initialize logging and i18n
 pub fn init_logging_and_i18n(no_console: bool, no_ui: bool) {
-    use crate::core::i18n;
 
     if no_console || no_ui {
         botlib::logging::init_compact_logger_with_style("info");
@@ -232,14 +215,14 @@ pub async fn run_bootstrap(
 /// Initialize database pool and run migrations
 pub async fn init_database(
     progress_tx: &tokio::sync::mpsc::UnboundedSender<BootstrapProgress>,
-) -> Result<crate::core::shared::utils::DbPool, std::io::Error> {
-    use crate::core::shared::utils;
+) -> Result<botcore::shared::utils::DbPool, std::io::Error> {
+    use botcore::shared::utils;
 
     trace!("Creating database pool again...");
     progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
 
     // Ensure secrets manager is initialized before creating database connection
-    crate::core::shared::utils::init_secrets_manager()
+    botcore::shared::utils::init_secrets_manager()
         .await
         .expect("Failed to initialize secrets manager");
 
@@ -247,7 +230,10 @@ pub async fn init_database(
         Ok(pool) => {
             trace!("Running database migrations...");
             info!("Running database migrations...");
-            if let Err(e) = utils::run_migrations(&pool) {
+            if let Err(e) = {
+    let mut conn = pool.get().map_err(|e| std::io::Error::other(format!("Pool error: {e}")))?;
+    utils::run_migrations(&mut conn)
+    } {
                 error!("Failed to run migrations: {}", e);
 
                 warn!("Continuing despite migration errors - database might be partially migrated");
@@ -276,7 +262,7 @@ pub async fn init_database(
 
 /// Load configuration from database
 pub async fn load_config(
-    pool: &crate::core::shared::utils::DbPool,
+    pool: &botcore::shared::utils::DbPool,
 ) -> Result<AppConfig, std::io::Error> {
     info!("Loading config from database after template sync...");
     let refreshed_cfg = AppConfig::from_database(pool).unwrap_or_else(|e| {
@@ -405,7 +391,7 @@ urls.push(String::new());
 /// Create the AppState
 pub async fn create_app_state(
     cfg: AppConfig,
-    pool: crate::core::shared::utils::DbPool,
+    pool: botcore::shared::utils::DbPool,
     #[cfg(feature = "cache")] redis_client: &Option<Arc<redis::Client>>,
 ) -> Result<Arc<AppState>, std::io::Error> {
     use std::collections::HashMap;
@@ -419,7 +405,7 @@ pub async fn create_app_state(
     let voice_adapter = Arc::new(VoiceAdapter::new());
 
     #[cfg(feature = "drive")]
-    let drive = match create_s3_operator(&cfg.drive).await {
+    let drive = match S3Repository::new(&cfg.drive.endpoint, &cfg.drive.access_key, &cfg.drive.secret_key, &cfg.drive.bucket) {
         Ok(client) => client,
         Err(e) => {
             return Err(std::io::Error::other(format!("Failed to initialize Drive: {}", e)));
@@ -429,13 +415,15 @@ pub async fn create_app_state(
     #[cfg(feature = "drive")]
     super::ensure_vendor_files_in_minio(&drive).await;
 
-    let session_manager = Arc::new(Mutex::new(SessionManager::new(
+    let session_manager_inner = crate::core::session::LocalSessionManager(botcoresession::SessionManager::new(
         pool.get().map_err(|e| {
             std::io::Error::other(format!("Failed to get database connection: {}", e))
         })?,
         #[cfg(feature = "cache")]
         redis_client.clone(),
-    )));
+    ));
+    let session_manager: Arc<tokio::sync::Mutex<dyn botlib::traits::SessionManagerService>> =
+        Arc::new(tokio::sync::Mutex::new(session_manager_inner));
 
     #[cfg(feature = "directory")]
     let (auth_service, zitadel_config) = init_directory_service()?;
@@ -445,10 +433,9 @@ pub async fn create_app_state(
 
     let config_manager = ConfigManager::new(pool.clone());
 
-    let mut bot_conn = pool
-        .get()
-        .map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
-    let (default_bot_id, default_bot_name) = crate::core::bot::get_default_bot(&mut bot_conn);
+    let _ = pool.get().map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
+    let (default_bot_id_str, default_bot_name) = crate::core::bot::get_default_bot();
+    let default_bot_id = uuid::Uuid::parse_str(&default_bot_id_str).unwrap_or_default();
     info!(
         "Using default bot: {} (id: {})",
         default_bot_name, default_bot_id
@@ -546,7 +533,7 @@ pub async fn create_app_state(
     #[cfg(feature = "llm")]
     let llm_provider = init_llm_provider(
         &config_manager,
-        default_bot_id.to_string().as_str(),
+        &default_bot_id.to_string(),
         dynamic_llm_provider.clone(),
         &pool,
         redis_client.clone(),
@@ -558,19 +545,19 @@ pub async fn create_app_state(
     #[cfg(feature = "tasks")]
     let task_engine = Arc::new(crate::tasks::TaskEngine::new(pool.clone()));
 
-    let metrics_collector = crate::core::shared::analytics::MetricsCollector::new();
+    let metrics_collector = botcore::shared::analytics::MetricsCollector::new();
 
     #[cfg(feature = "tasks")]
     let task_scheduler = None;
 
     let (attendant_tx, _attendant_rx) =
-        tokio::sync::broadcast::channel::<crate::core::shared::state::AttendantNotification>(1000);
+        tokio::sync::broadcast::channel::<botcore::shared::state::AttendantNotification>(1000);
 
     let (task_progress_tx, _task_progress_rx) =
-        tokio::sync::broadcast::channel::<crate::core::shared::state::TaskProgressEvent>(1000);
+        tokio::sync::broadcast::channel::<botcore::shared::state::TaskProgressEvent>(1000);
 
     // Initialize BotDatabaseManager for per-bot database support
-    let database_url = crate::core::shared::utils::get_database_url_sync().unwrap_or_default();
+    let database_url = botcore::shared::utils::get_database_url_sync().unwrap_or_default();
     let bot_database_manager = Arc::new(BotDatabaseManager::new(pool.clone(), &database_url));
 
     // Sync all bot databases on startup - ensures each bot has its own database
@@ -594,7 +581,7 @@ pub async fn create_app_state(
 
     let app_state = Arc::new(AppState {
         #[cfg(feature = "drive")]
-        drive: Some(drive),
+        drive: Some(std::sync::Arc::new(drive) as std::sync::Arc<dyn botlib::traits::DriveRepository>),
         #[cfg(not(feature = "drive"))]
         drive: None,
         config: Some(cfg.clone()),
@@ -604,16 +591,18 @@ pub async fn create_app_state(
         bucket_name: "default.gbai".to_string(),
         #[cfg(feature = "cache")]
         cache: redis_client.clone(),
-        session_manager: session_manager.clone(),
+        session_manager,
         metrics_collector,
-        #[cfg(feature = "tasks")]
-        task_scheduler,
-        #[cfg(feature = "llm")]
-        llm_provider: llm_provider.clone(),
+    #[cfg(feature = "tasks")]
+    task_scheduler,
+    #[cfg(not(feature = "tasks"))]
+    task_scheduler: None,
+    #[cfg(feature = "llm")]
+        llm_provider: Some(Arc::new(crate::llm::BotlibLLMProviderWrapper(llm_provider.clone())) as Arc<dyn botlib::traits::LLMProvider>),
         #[cfg(feature = "llm")]
         dynamic_llm_provider: Some(dynamic_llm_provider.clone()),
         #[cfg(feature = "directory")]
-        auth_service: auth_service.clone(),
+        auth_service: Some(auth_service.clone() as Arc<tokio::sync::Mutex<dyn botlib::traits::AuthServiceTrait>>),
             channels: Arc::new(tokio::sync::Mutex::new({
                 let mut map = HashMap::new();
                 map.insert(
@@ -627,12 +616,16 @@ pub async fn create_app_state(
             hear_channels: Arc::new(std::sync::Mutex::new(HashMap::new())),
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
-        #[cfg(any(feature = "research", feature = "llm"))]
-        kb_manager: Some(kb_manager.clone()),
-        #[cfg(feature = "tasks")]
-        task_engine,
+#[cfg(any(feature = "research", feature = "llm"))]
+kb_manager: Some(kb_manager.clone() as std::sync::Arc<dyn botlib::traits::KnowledgeBase>),
+#[cfg(not(any(feature = "research", feature = "llm")))]
+kb_manager: None,
+#[cfg(feature = "tasks")]
+task_engine,
+#[cfg(not(feature = "tasks"))]
+task_engine: None,
         extensions: {
-            let ext = crate::core::shared::state::Extensions::new();
+            let ext = botcore::shared::state::Extensions::new();
             #[cfg(feature = "llm")]
             ext.insert_blocking(Arc::clone(&dynamic_llm_provider));
             ext
@@ -641,14 +634,18 @@ pub async fn create_app_state(
         task_progress_broadcast: Some(task_progress_tx),
         billing_alert_broadcast: None,
         task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
-        #[cfg(feature = "terminal")]
-        terminal_manager: crate::api::terminal::TerminalManager::new(),
-        #[cfg(feature = "project")]
-        project_service: Arc::new(tokio::sync::RwLock::new(
-            crate::project::ProjectService::new(),
-        )),
-        #[cfg(feature = "compliance")]
-        legal_service: Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new())),
+#[cfg(feature = "terminal")]
+terminal_manager: Some(Arc::new(crate::api::terminal::TerminalManager::new()) as botcore::shared::state::UnresolvedService),
+#[cfg(not(feature = "terminal"))]
+terminal_manager: None,
+#[cfg(feature = "project")]
+project_service: Some(Arc::new(tokio::sync::RwLock::new(crate::project::ProjectService::new())) as botcore::shared::state::UnresolvedService),
+#[cfg(not(feature = "project"))]
+project_service: None,
+#[cfg(feature = "compliance")]
+legal_service: Some(Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new())) as botcore::shared::state::UnresolvedService),
+#[cfg(not(feature = "compliance"))]
+legal_service: None,
         jwt_manager: None,
         auth_provider_registry: None,
         rbac_manager: None,
@@ -786,7 +783,7 @@ fn init_llm_provider(
     config_manager: &ConfigManager,
     default_bot_id: &str,
     dynamic_llm_provider: Arc<crate::llm::DynamicLLMProvider>,
-    pool: &crate::core::shared::utils::DbPool,
+    pool: &botcore::shared::utils::DbPool,
     redis_client: Option<Arc<redis::Client>>,
 ) -> Arc<dyn crate::llm::LLMProvider> {
     use crate::llm::cache::{CacheConfig, CachedLLMProvider, EmbeddingService, LocalEmbeddingService};
@@ -856,13 +853,13 @@ fn init_llm_provider(
 /// Start background services and monitors
 pub async fn start_background_services(
   app_state: Arc<AppState>,
-  _pool: &crate::core::shared::utils::DbPool,
+  _pool: &botcore::shared::utils::DbPool,
 ) {
-    use crate::core::shared::memory_monitor::{log_process_memory, start_memory_monitor};
+    use botcore::shared::memory_monitor::{log_process_memory, start_memory_monitor};
 
     // Resume workflows after server restart
     if let Err(e) =
-        crate::basic::keywords::orchestration::resume_workflows_on_startup(app_state.clone()).await
+        crate::basic::keywords::orchestration::resume_workflows_on_startup(Arc::new(crate::basic::AppStateBasicRuntime(app_state.clone()))).await
     {
         log::warn!("Failed to resume workflows on startup: {}", e);
     }
@@ -913,10 +910,10 @@ pub async fn start_background_services(
   #[cfg(feature = "drive")]
   async fn start_drive_monitors(
     app_state: Arc<AppState>,
-    _pool: &crate::core::shared::utils::DbPool,
+    _pool: &botcore::shared::utils::DbPool,
   ) {
-    use crate::core::shared::memory_monitor::register_thread;
-    use crate::core::shared::models::schema::bots;
+    use botcore::shared::memory_monitor::register_thread;
+    use botcore::shared::models::schema::bots;
     use diesel::prelude::*;
 
     let drive_monitor_state = app_state.clone();
@@ -1063,8 +1060,8 @@ pub async fn start_background_services(
 
 #[cfg(feature = "drive")]
 fn create_bot_from_drive(
-    _state: &Arc<crate::core::shared::state::AppState>,
-    pool: &crate::core::shared::utils::DbPool,
+    _state: &Arc<botcore::shared::state::AppState>,
+    pool: &botcore::shared::utils::DbPool,
     bot_name: &str,
 ) -> Result<(), String> {
     use diesel::sql_query;
@@ -1139,7 +1136,6 @@ fn create_bot_from_drive(
     Ok(())
 }
 
-
 // DriveCompiler compiles .bas files based on drive_files table changes
 #[cfg(feature = "drive")]
 async fn start_drive_compiler(app_state: Arc<AppState>) {
@@ -1155,7 +1151,7 @@ trace!("DriveCompiler started - compiling .bas files from drive_files");
 //
 // async fn start_config_watcher(app_state: Arc<AppState>) {
 //     use crate::core::config::watcher::ConfigWatcher;
-//     use crate::core::shared::utils::get_work_path;
+//     use botcore::shared::utils::get_work_path;
 //     use std::sync::Arc as StdArc;
 //
 //     let data_dir = std::path::PathBuf::from(get_work_path());
@@ -1163,3 +1159,17 @@ trace!("DriveCompiler started - compiling .bas files from drive_files");
 //     let _handle = StdArc::new(watcher).spawn();
 //     trace!("ConfigWatcher started - monitoring config.csv changes");
 // }
+
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use uuid::Uuid;
+use crate::core::bot::BotOrchestrator;
+use crate::core::bot_database::BotDatabaseManager;
+use crate::core::config::AppConfig;
+use botcore::config::ConfigManager;
+use crate::core::package_manager::InstallMode;
+use botcore::shared::state::AppState;
+use crate::drive::s3_repository::S3Repository;
+use super::BootstrapProgress;
+use crate::llm::local::ensure_llama_servers_running;
+use crate::core::i18n;

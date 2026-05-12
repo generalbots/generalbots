@@ -1,6 +1,5 @@
 use crate::component::ComponentConfig;
 use crate::installer::{get_component_url, get_llama_cpp_url, LLAMA_CPP_VERSION};
-use botlib::security::get_stack_path;
 use log::{info, warn};
 use std::collections::HashMap;
 

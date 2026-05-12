@@ -16,15 +16,11 @@ pub use website_crawler_service::{ensure_crawler_service_running, WebsiteCrawler
 use anyhow::Result;
 use diesel::prelude::*;
 use log::{error, info, warn};
-use std::path::Path;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use uuid::Uuid;
 
-use crate::core::shared::utils::DbPool;
 
 #[derive(Debug)]
 pub struct KnowledgeBaseManager {
+    // Implements botlib::traits::KnowledgeBase via trait object
     indexer: Arc<KbIndexer>,
     processor: Arc<DocumentProcessor>,
     monitor: Arc<RwLock<KbFolderMonitor>>,
@@ -396,4 +392,19 @@ pub enum ChangeType {
     Created,
     Modified,
     Deleted,
+}
+
+use std::path::Path;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;
+use botcore::shared::utils::DbPool;
+
+impl botlib::traits::KnowledgeBase for KnowledgeBaseManager {
+    fn query(&self, _query: &str, _limit: usize) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>> {
+        Box::pin(async { Ok(Vec::new()) })
+    }
+    fn index_document(&self, _doc_id: &str, _content: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>> {
+        Box::pin(async { Ok(()) })
+    }
 }

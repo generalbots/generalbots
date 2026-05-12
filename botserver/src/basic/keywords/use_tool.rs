@@ -1,11 +1,8 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use rhai::{Dynamic, Engine};
-use std::path::Path;
-use std::sync::Arc;
-use uuid::Uuid;
 pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -141,10 +138,10 @@ fn associate_tool_with_session(
     user: &UserSession,
     tool_name: &str,
 ) -> Result<String, String> {
-    use crate::core::shared::models::schema::session_tool_associations;
+    use botcore::shared::models::schema::session_tool_associations;
 
     // Check if tool's .mcp.json file exists in work directory
-    let work_root = crate::core::shared::utils::get_work_path();
+    let work_root = botcore::shared::utils::get_work_path();
 
     // Get bot name to construct the path
     let bot_name = get_bot_name_from_id(state, &user.bot_id)?;
@@ -226,7 +223,7 @@ pub fn get_session_tools(
     conn: &mut PgConnection,
     session_id: &Uuid,
 ) -> Result<Vec<String>, diesel::result::Error> {
-    use crate::core::shared::models::schema::session_tool_associations;
+    use botcore::shared::models::schema::session_tool_associations;
     let session_id_str = session_id.to_string();
     session_tool_associations::table
         .filter(session_tool_associations::session_id.eq(&session_id_str))
@@ -237,7 +234,7 @@ pub fn clear_session_tools(
     conn: &mut PgConnection,
     session_id: &Uuid,
 ) -> Result<usize, diesel::result::Error> {
-    use crate::core::shared::models::schema::session_tool_associations;
+    use botcore::shared::models::schema::session_tool_associations;
     let session_id_str = session_id.to_string();
     diesel::delete(
         session_tool_associations::table
@@ -247,7 +244,7 @@ pub fn clear_session_tools(
 }
 
 fn get_bot_name_from_id(state: &AppState, bot_id: &uuid::Uuid) -> Result<String, String> {
-    use crate::core::shared::models::schema::bots;
+    use botcore::shared::models::schema::bots;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
     let bot_name: String = bots::table
         .filter(bots::id.eq(bot_id))
@@ -256,3 +253,7 @@ fn get_bot_name_from_id(state: &AppState, bot_id: &uuid::Uuid) -> Result<String,
         .map_err(|e| format!("Failed to get bot name for id {}: {}", bot_id, e))?;
     Ok(bot_name)
 }
+
+use std::path::Path;
+use std::sync::Arc;
+use uuid::Uuid;

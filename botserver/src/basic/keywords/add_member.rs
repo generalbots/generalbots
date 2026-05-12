@@ -1,12 +1,9 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
-use serde_json::json;
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn add_member_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -475,3 +472,7 @@ mod tests {
         assert!(!viewer_perms.get("delete").unwrap().as_bool().unwrap());
     }
 }
+
+use serde_json::json;
+use std::sync::Arc;
+use uuid::Uuid;

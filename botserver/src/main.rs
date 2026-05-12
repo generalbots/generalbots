@@ -20,7 +20,7 @@ pub mod analytics;
 #[cfg(feature = "attendant")]
 pub mod attendant;
 #[cfg(feature = "automation")]
-pub mod auto_task;
+pub use botautotask as auto_task;
 #[cfg(feature = "scripting")]
 pub mod basic;
 #[cfg(feature = "billing")]
@@ -28,6 +28,7 @@ pub mod billing;
 pub mod botmodels;
 #[cfg(feature = "canvas")]
 pub mod canvas;
+#[cfg(feature = "social")]
 pub mod channels;
 #[cfg(feature = "people")]
 pub mod contacts;
@@ -49,6 +50,7 @@ pub mod legal;
 pub mod maintenance;
 #[cfg(feature = "monitoring")]
 pub mod monitoring;
+#[cfg(feature = "multimodal")]
 pub mod multimodal;
 #[cfg(feature = "marketing")]
 pub mod marketing;
@@ -64,7 +66,9 @@ pub mod products;
 pub mod project;
 #[cfg(feature = "research")]
 pub mod research;
+#[cfg(feature = "search")]
 pub mod search;
+#[cfg(feature = "security")]
 pub mod security;
 pub mod settings;
 #[cfg(feature = "sheet")]
@@ -121,6 +125,9 @@ pub mod nvidia;
 #[cfg(feature = "tasks")]
 pub mod tasks;
 
+#[cfg(feature = "timeseries")]
+pub mod timeseries;
+
 #[cfg(feature = "vectordb")]
 #[path = "vector-db/mod.rs"]
 pub mod vector_db;
@@ -145,7 +152,6 @@ pub use tasks::TaskEngine;
 
 use dotenvy::dotenv;
 use log::{error, info, trace, warn};
-use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -153,11 +159,11 @@ async fn main() -> std::io::Result<()> {
         init_database, init_logging_and_i18n, load_config, parse_cli_args, run_axum_server,
         run_bootstrap, start_background_services, BootstrapProgress,
     };
-    use crate::core::shared::memory_monitor::MemoryStats;
-    use crate::core::shared::memory_monitor::register_thread;
-    use crate::security::set_global_panic_hook;
+    #[cfg(feature = "security")]
 
-    // Set global panic hook to log panics that escape async boundaries
+    #[cfg(not(feature = "security"))]
+    fn set_global_panic_hook() {}
+
     set_global_panic_hook();
     let _ = 1 + 1;
 
@@ -165,6 +171,7 @@ async fn main() -> std::io::Result<()> {
     let no_ui = args.contains(&"--noui".to_string());
 
     // Handle `botserver security fix` and `botserver security status` CLI subcommands
+    #[cfg(feature = "security")]
     if args.get(1).map(|s| s.as_str()) == Some("security") {
         let subcommand = args.get(2).map(|s| s.as_str()).unwrap_or("status");
         match subcommand {
@@ -206,7 +213,7 @@ async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
 
     let env_path_early = std::path::Path::new("./.env");
-    let stack = crate::core::shared::utils::get_stack_path();
+    let stack = botcore::shared::utils::get_stack_path();
     let vault_init_path_early = std::path::PathBuf::from(format!("{}/conf/vault/init.json", stack));
     let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
     let is_remote_vault = !vault_addr.is_empty()
@@ -220,7 +227,7 @@ async fn main() -> std::io::Result<()> {
     });
 
     if bootstrap_ready {
-        if let Err(e) = crate::core::shared::utils::init_secrets_manager().await {
+        if let Err(e) = botcore::shared::utils::init_secrets_manager().await {
             warn!(
                 "Failed to initialize SecretsManager: {}. Falling back to env vars.",
                 e
@@ -265,7 +272,7 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
     init_logging_and_i18n(no_console, no_ui);
 
     let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
-    let (state_tx, _state_rx) = tokio::sync::mpsc::channel::<Arc<crate::core::shared::state::AppState>>(1);
+    let (state_tx, _state_rx) = tokio::sync::mpsc::channel::<Arc<botcore::shared::state::AppState>>(1);
 
     if args.len() > 1 {
         let command = &args[1];
@@ -347,7 +354,7 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
 
     // Resume workflows after server restart
     if let Err(e) =
-        crate::basic::keywords::orchestration::resume_workflows_on_startup(app_state.clone()).await
+        crate::basic::keywords::orchestration::resume_workflows_on_startup(Arc::new(crate::basic::AppStateBasicRuntime(app_state.clone()))).await
     {
         log::warn!("Failed to resume workflows on startup: {}", e);
     }
@@ -366,7 +373,7 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
     }
 
     // Start memory monitoring - check every 30 seconds, warn if growth > 50MB
-    use crate::core::shared::memory_monitor::{log_process_memory, start_memory_monitor};
+    use botcore::shared::memory_monitor::{log_process_memory, start_memory_monitor};
     start_memory_monitor(30, 50);
     info!("Memory monitor started");
     log_process_memory();
@@ -411,7 +418,7 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
                 MemoryStats::format_bytes(MemoryStats::current().rss_bytes)
             );
             loop {
-                crate::core::shared::memory_monitor::record_thread_activity("automation-service");
+                botcore::shared::memory_monitor::record_thread_activity("automation-service");
                 if let Err(e) = automation.check_scheduled_tasks().await {
                     error!("Error checking scheduled tasks: {}", e);
                 }
@@ -436,3 +443,8 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
 
     Ok(())
 }
+
+use std::sync::Arc;
+use botcore::shared::memory_monitor::MemoryStats;
+use botcore::shared::memory_monitor::register_thread;
+use crate::security::set_global_panic_hook;

@@ -1,8 +1,5 @@
 use anyhow::{Context, Result};
 use log::{debug, info, trace, warn};
-use serde::Deserialize;
-use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 const DEFAULT_CACHE_DIR: &str = "./botserver-installers";
@@ -343,3 +340,7 @@ fn sha256_hex(data: &[u8]) -> String {
     let result = hasher.finalize();
     hex::encode(result)
 }
+
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::fs;
