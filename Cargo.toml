@@ -63,13 +63,15 @@ members = [
     "botbasic_core",
     "botbasic_data",
     "botbasic_comms",
-	"botbasic_ai",
+  "botbasic_ai",
 	"botbasic_system",
+	"botbasic_compiler",
   "botschema",
 	"botmodelsbridge",
 	"botapi",
 	"botmeet",
 	"botsettings",
+	"botdrive",
 ]
 
 [workspace.lints.rust]
@@ -142,6 +144,7 @@ botbasic_data = { path = "botbasic_data" }
 botbasic_comms = { path = "botbasic_comms" }
 botbasic_ai = { path = "botbasic_ai" }
 botbasic_system = { path = "botbasic_system" }
+botbasic_compiler = { path = "botbasic_compiler" }
 botschema = { path = "botschema" }
 botmodelsbridge = { path = "botmodelsbridge" }
 botcore = { path = "botcore" }
@@ -385,7 +388,7 @@ opt-level = "s"
 
 [profile.dev]
 debug = 1
-incremental = false
-codegen-units = 32
+incremental = true
+codegen-units = 128
 opt-level = 0
 

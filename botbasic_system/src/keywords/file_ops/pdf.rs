@@ -47,7 +47,7 @@ pub struct PdfResult {
     pub local_name: String,
 }
 
-pub fn register_generate_pdf_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_generate_pdf_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
@@ -122,7 +122,7 @@ pub fn register_generate_pdf_keyword(state: &Arc<dyn BasicRuntime>, user: UserSe
         .expect("valid syntax registration");
 }
 
-pub fn register_merge_pdf_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_merge_pdf_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 

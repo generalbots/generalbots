@@ -650,6 +650,7 @@ legal_service: None,
         auth_provider_registry: None,
         rbac_manager: None,
         start_bas_guards: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+        script_runner: None,
     });
 
     Ok(app_state)

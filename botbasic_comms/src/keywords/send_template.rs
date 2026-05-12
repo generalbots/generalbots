@@ -42,7 +42,7 @@ use log::debug;
 use rhai::Engine;
 use std::sync::Arc;
 
-use crate::keywords::messaging::register_messaging_keywords;
+use super::messaging::register_messaging_keywords;
 
 
 

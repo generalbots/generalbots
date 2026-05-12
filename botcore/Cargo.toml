@@ -7,25 +7,43 @@ edition = "2021"
 botbasic_types = { workspace = true }
 botschema = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
+# botsecurity removed to break circular dep — use botlib::security:: instead
+botcoresecrets = { path = "../botcoresecrets" }
+base64 = { workspace = true }
+dotenvy = { workspace = true }
+hex = { workspace = true }
+sha2 = { workspace = true }
+toml = { workspace = true }
+zip = { workspace = true }
+quick-xml = { workspace = true }
+url = { workspace = true }
+# botllm removed to break circular dep (botllm depends on botcore)
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true }
+calamine = { workspace = true }
 chrono = { workspace = true }
+cron = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
 diesel_migrations = { workspace = true }
+governor = { workspace = true }
 indicatif = { workspace = true, optional = true }
+jsonwebtoken = { workspace = true }
 lettre = { workspace = true, optional = true }
 log = { workspace = true }
+once_cell = { workspace = true }
+rand = { workspace = true }
 redis = { workspace = true, optional = true }
+regex = { workspace = true }
 reqwest = { workspace = true }
 rhai = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 smartstring = { workspace = true }
 sysinfo = { workspace = true, optional = true }
-tokio = { workspace = true, features = ["fs"] }
+tokio = { workspace = true, features = ["fs", "process"] }
+tracing = { workspace = true }
 uuid = { workspace = true }
-
 urlencoding = { workspace = true }
 
 [features]
@@ -58,4 +76,24 @@ monitoring = ["dep:sysinfo"]
 jemalloc = []
 llm = []
 directory = []
+automation = []
+security = []
+chat = []
+multimodal = []
+video = []
+whatsapp = []
+telegram = []
 
+docs = []
+paper = []
+sheet = []
+slides = []
+settings = []
+player = []
+sources = []
+designer = []
+editor = []
+kb-extraction = []
+vectordb = []
+[lints]
+workspace = true

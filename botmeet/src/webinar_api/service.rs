@@ -10,7 +10,7 @@ use uuid::Uuid;
 use super::constants::{QA_QUESTION_MAX_LENGTH, MAX_RAISED_HANDS_VISIBLE};
 use super::error::WebinarError;
 use super::types::{
-    CreateWebinarRequest, PanelistInvite, ParticipantRole, ParticipantStatus, QAQuestion,
+    CreateWebinarRequest, ParticipantRole, ParticipantStatus, QAQuestion,
     QuestionStatus, RegisterRequest, RegistrationStatus, Webinar, WebinarParticipant,
     WebinarRegistration, WebinarSettings, WebinarStatus, WebinarEventType,
 };

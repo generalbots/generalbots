@@ -42,21 +42,21 @@ use crate::keywords::file_ops::transfer::*;
 use crate::keywords::file_ops::utils::dynamic_to_file_data;
 
 pub fn register_file_operations(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    register_read_keyword(Arc::clone(&state), user.clone(), engine);
-    register_write_keyword(Arc::clone(&state), user.clone(), engine);
-    register_delete_file_keyword(Arc::clone(&state), user.clone(), engine);
-    register_copy_keyword(Arc::clone(&state), user.clone(), engine);
-    register_move_keyword(Arc::clone(&state), user.clone(), engine);
-    register_list_keyword(Arc::clone(&state), user.clone(), engine);
-    register_compress_keyword(Arc::clone(&state), user.clone(), engine);
-    register_extract_keyword(Arc::clone(&state), user.clone(), engine);
-    register_upload_keyword(Arc::clone(&state), user.clone(), engine);
-    register_download_keyword(Arc::clone(&state), user.clone(), engine);
-    register_generate_pdf_keyword(Arc::clone(&state), user.clone(), engine);
-    register_merge_pdf_keyword(state, user, engine);
+    register_read_keyword(Arc::clone(state), user.clone(), engine);
+    register_write_keyword(Arc::clone(state), user.clone(), engine);
+    register_delete_file_keyword(Arc::clone(state), user.clone(), engine);
+    register_copy_keyword(Arc::clone(state), user.clone(), engine);
+    register_move_keyword(Arc::clone(state), user.clone(), engine);
+    register_list_keyword(Arc::clone(state), user.clone(), engine);
+    register_compress_keyword(Arc::clone(state), user.clone(), engine);
+    register_extract_keyword(Arc::clone(state), user.clone(), engine);
+    register_upload_keyword(Arc::clone(state), user.clone(), engine);
+    register_download_keyword(Arc::clone(state), user.clone(), engine);
+    register_generate_pdf_keyword(Arc::clone(state), user.clone(), engine);
+    register_merge_pdf_keyword(Arc::clone(state), user, engine);
 }
 
-pub fn register_read_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_read_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(["READ", "$expr$"], false, move |context, inputs| {
             let path = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -109,7 +109,7 @@ pub fn register_read_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, e
         .expect("valid syntax registration");
 }
 
-pub fn register_write_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_write_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
@@ -175,7 +175,7 @@ pub fn register_write_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, 
         .expect("valid syntax registration");
 }
 
-pub fn register_delete_file_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_delete_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
     let state_clone2 = Arc::clone(&state);
@@ -292,7 +292,7 @@ pub fn register_delete_file_keyword(state: &Arc<dyn BasicRuntime>, user: UserSes
         .expect("valid syntax registration");
 }
 
-pub fn register_copy_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_copy_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
@@ -354,7 +354,7 @@ pub fn register_copy_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, e
         .expect("valid syntax registration");
 }
 
-pub fn register_move_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_move_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
@@ -416,7 +416,7 @@ pub fn register_move_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, e
         .expect("valid syntax registration");
 }
 
-pub fn register_list_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_list_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
@@ -475,7 +475,7 @@ pub fn register_list_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, e
         .expect("valid syntax registration");
 }
 
-pub fn register_compress_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_compress_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
@@ -553,7 +553,7 @@ pub fn register_compress_keyword(state: &Arc<dyn BasicRuntime>, user: UserSessio
         .expect("valid syntax registration");
 }
 
-pub fn register_extract_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_extract_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
@@ -618,7 +618,7 @@ pub fn register_extract_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession
         .expect("valid syntax registration");
 }
 
-pub fn register_upload_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_upload_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
@@ -681,7 +681,7 @@ pub fn register_upload_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession,
         .expect("valid syntax registration");
 }
 
-pub fn register_download_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_download_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 

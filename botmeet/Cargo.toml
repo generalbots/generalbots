@@ -10,7 +10,7 @@ default = []
 botcore = { path = "../botcore" }
 botsecurity = { path = "../botsecurity" }
 botlib = { path = "../botlib" }
-botschema = { path = "../botschema" }
+botschema = { path = "../botschema", features = ["meet"] }
 axum = { workspace = true, features = ["ws", "macros"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

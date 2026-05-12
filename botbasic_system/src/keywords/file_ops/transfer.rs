@@ -31,6 +31,7 @@
 use botbasic_types::schema::bots::dsl::*;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
+use std::sync::Arc;
 use diesel::prelude::*;
 use log::{error, trace};
 use std::error::Error;
@@ -48,7 +49,7 @@ pub async fn execute_upload(
     file_data: FileData,
     destination: &str,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
-    let client = state.drive_repository().as_ref().ok_or("S3 client not configured")?;
+    let client = state.drive_repository().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;

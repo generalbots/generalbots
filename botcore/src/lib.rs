@@ -5,6 +5,25 @@ pub mod urls;
 pub mod kb;
 pub mod bot;
 
+// Modules moved from botserver/src/core/
+pub mod automation;
+pub mod bootstrap;
+pub mod bot_database;
+pub mod dns;
+pub mod features;
+pub mod i18n;
+pub mod incus;
+pub mod large_org_optimizer;
+pub mod manifest;
+pub mod middleware;
+pub mod organization;
+pub mod organization_invitations;
+pub mod organization_rbac;
+pub mod package_manager;
+pub mod performance;
+pub mod product;
+pub mod rate_limit;
+
 pub use shared::state::AppState;
 pub use shared::utils::DbPool;
 pub use shared::enums::*;

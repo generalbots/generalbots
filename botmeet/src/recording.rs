@@ -1182,14 +1182,14 @@ mod tests {
 
     #[test]
     fn test_recording_status_display() {
-        assert_eq!(format!("{:?}", RecordingStatus::Pending), "Pending");
-        assert_eq!(format!("{:?}", RecordingStatus::Recording), "Recording");
-        assert_eq!(format!("{:?}", RecordingStatus::Completed), "Completed");
+        assert_eq!(format!("{}", RecordingStatus::Recording), "recording");
+        assert_eq!(format!("{}", RecordingStatus::Processing), "processing");
+        assert_eq!(format!("{}", RecordingStatus::Ready), "ready");
     }
 
     #[test]
-    fn test_recording_format_display() {
-        assert_eq!(format!("{:?}", RecordingFormat::WebM), "WebM");
-        assert_eq!(format!("{:?}", RecordingFormat::Mp4), "Mp4");
+    fn test_recording_quality_display() {
+        assert_eq!(format!("{}", RecordingQuality::Standard), "standard");
+        assert_eq!(format!("{}", RecordingQuality::High), "high");
     }
 }

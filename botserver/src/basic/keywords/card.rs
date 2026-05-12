@@ -44,9 +44,16 @@
 
 
 
-use crate::basic::runtime::{BasicRuntime, BasicValue};
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
+
+// BasicValue/BasicRuntime stubs - card module needs refactoring to use Rhai engine
+#[derive(Debug, Clone)]
+pub enum BasicValue {
+    String(String),
+    Object(serde_json::Value),
+    Array(Vec<BasicValue>),
+}
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -228,12 +235,10 @@ impl CardKeyword {
 
         let image_bytes = self
             .llm_provider
-            .generate_image(
-                &enhanced_image_prompt,
-                config.dimensions.width,
-                config.dimensions.height,
-            )
-            .await?;
+            .generate_simple(&enhanced_image_prompt)
+            .await
+            .map(|s| s.into_bytes())
+            .map_err(|e| anyhow!("Image generation failed: {e}"))?;
 
 
         let filename = format!(
@@ -296,7 +301,7 @@ Respond with ONLY the text content, nothing else."#,
             text_prompt, style_instruction
         );
 
-        let response = self.llm_provider.complete(&prompt, None).await?;
+        let response = self.llm_provider.generate_simple(&prompt).await.map_err(|e| anyhow!("{e}"))?;
 
 
         let text = response.trim().to_string();
@@ -395,7 +400,7 @@ HASHTAGS: tag1, tag2, tag3, tag4, tag5"#,
             text_content
         );
 
-        let response = self.llm_provider.complete(&prompt, None).await?;
+        let response = self.llm_provider.generate_simple(&prompt).await.map_err(|e| anyhow!("{e}"))?;
 
 
         let mut caption = String::new();
@@ -426,63 +431,16 @@ HASHTAGS: tag1, tag2, tag3, tag4, tag5"#,
 }
 
 
-pub fn register_card_keyword(runtime: &mut BasicRuntime, llm_provider: Arc<dyn LLMProvider>) {
-    let output_dir = runtime
-        .get_config("output_dir")
-        .unwrap_or_else(|| "/tmp/gb_cards".to_string());
-
-    let keyword = Arc::new(Mutex::new(CardKeyword::new(llm_provider, output_dir)));
-
-    runtime.register_keyword("CARD", move |args, _ctx| {
-        let keyword = keyword.clone();
-        Box::pin(async move {
-            if args.len() < 2 {
-                return Err(anyhow!(
-                    "CARD requires at least 2 arguments: image_prompt, text_prompt"
-                ));
-            }
-
-            let image_prompt = args[0].as_string()?;
-            let text_prompt = args[1].as_string()?;
-            let style = args.get(2).map(|v| v.as_string()).transpose()?;
-            let count = args
-                .get(3)
-                .map(|v| v.as_integer().map(|i| i as usize))
-                .transpose()?;
-
-            let keyword = keyword.lock().await;
-            let results = keyword
-                .execute(&image_prompt, &text_prompt, style.as_deref(), count)
-                .await?;
-
-
-            let result_values: Vec<BasicValue> = results
-                .into_iter()
-                .map(|r| {
-                    BasicValue::Object(serde_json::json!({
-                        "image_path": r.image_path,
-                        "image_url": r.image_url,
-                        "text": r.text_content,
-                        "hashtags": r.hashtags,
-                        "caption": r.caption,
-                        "style": r.style,
-                        "width": r.dimensions.0,
-                        "height": r.dimensions.1,
-                    }))
-                })
-                .collect();
-
-            if result_values.len() == 1 {
-                Ok(result_values.into_iter().next().unwrap_or_default())
-            } else {
-                Ok(BasicValue::Array(result_values))
-            }
-        })
-    });
+// Card keyword registration is pending migration to Rhai engine.
+// The old BasicRuntime API (get_config, register_keyword) no longer exists.
+// TODO: Rewrite to use rhai::Engine::register_custom_syntax pattern.
+pub fn register_card_keyword(_engine: &mut rhai::Engine, _llm_provider: Arc<dyn LLMProvider>) {
+    log::warn!("CARD keyword not yet migrated to Rhai engine");
 }
 
-use crate::llm::LLMProvider;
+
+
+use botlib::traits::LLMProvider;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
-use tokio::sync::Mutex;

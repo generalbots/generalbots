@@ -42,6 +42,16 @@ pub trait ChannelAdapter: Send + Sync + Debug {
         let _ = session_id;
         Err("remove_connection: not implemented".to_string())
     }
+
+    fn start_voice_session(&self, session_id: &str, user_id: &str) -> BoxFutureString {
+        let _ = (session_id, user_id);
+        Box::pin(async { Err("start_voice_session: not implemented".to_string()) })
+    }
+
+    fn stop_voice_session(&self, session_id: &str) -> BoxFutureUnit {
+        let _ = session_id;
+        Box::pin(async { Err("stop_voice_session: not implemented".to_string()) })
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

@@ -1,4 +1,4 @@
-use botcore::shared::models::{BotResponse, UserMessage};
+use botcore::shared::{BotResponse, UserMessage};
 use botcore::shared::state::AppState;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -399,6 +399,7 @@ impl MeetingService {
                 media_url: None,
                 timestamp: chrono::Utc::now(),
                 context_name: None,
+                active_switchers: Vec::new(),
             };
 
             if let Ok(response) = Self::process_with_bot(user_message) {
