@@ -5,10 +5,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use uuid::Uuid;
 
-use crate::core::shared::utils::DbPool;
 
 // ============================================================================
 // Organization Types
@@ -1045,3 +1042,7 @@ pub mod permissions {
 
     pub const WILDCARD: &str = "*";
 }
+
+use std::collections::HashMap;
+use uuid::Uuid;
+use botcore::shared::utils::DbPool;

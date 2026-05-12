@@ -1,12 +1,9 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum TriggerType {
@@ -767,7 +764,7 @@ pub fn match_bot_triggers(message: &str, bots: &[SessionBot]) -> Vec<SessionBot>
         }
     }
 
-    matching_bots.sort_by(|a, b| b.priority.cmp(&a.priority));
+    matching_bots.sort_by_key(|b| std::cmp::Reverse(b.priority));
     matching_bots
 }
 
@@ -790,7 +787,7 @@ pub fn match_tool_triggers(tool_name: &str, bots: &[SessionBot]) -> Vec<SessionB
         }
     }
 
-    matching_bots.sort_by(|a, b| b.priority.cmp(&a.priority));
+    matching_bots.sort_by_key(|b| std::cmp::Reverse(b.priority));
     matching_bots
 }
 
@@ -835,3 +832,7 @@ struct BotConfigRow {
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     model_config: Option<String>,
 }
+
+use std::fmt;
+use std::sync::Arc;
+use uuid::Uuid;

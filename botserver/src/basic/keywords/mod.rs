@@ -1,87 +1,134 @@
+// ===== RE-EXPORTED FROM botbasic_core =====
+pub use botbasic_core::keywords::arrays;
+pub use botbasic_core::keywords::core_functions;
+pub use botbasic_core::keywords::datetime;
+pub use botbasic_core::keywords::errors;
+pub use botbasic_core::keywords::first;
+pub use botbasic_core::keywords::for_next;
+pub use botbasic_core::keywords::format;
+pub use botbasic_core::keywords::hear_talk;
+pub use botbasic_core::keywords::hearing;
+pub use botbasic_core::keywords::last;
+pub use botbasic_core::keywords::math;
+pub use botbasic_core::keywords::print;
+pub use botbasic_core::keywords::procedures;
+pub use botbasic_core::keywords::set_context;
+pub use botbasic_core::keywords::set_user;
+pub use botbasic_core::keywords::string_functions;
+pub use botbasic_core::keywords::switch_case;
+pub use botbasic_core::keywords::validation;
+pub use botbasic_core::keywords::wait;
+
+// ===== RE-EXPORTED FROM botbasic_data =====
+pub use botbasic_data::keywords::bot_memory;
+pub use botbasic_data::keywords::clear_kb;
+#[cfg(feature = "people")]
+pub use botbasic_data::keywords::crm;
+pub use botbasic_data::keywords::data_operations;
+pub use botbasic_data::keywords::detect;
+pub use botbasic_data::keywords::find;
+pub use botbasic_data::keywords::get;
+pub use botbasic_data::keywords::import_export;
+pub use botbasic_data::keywords::kb_statistics;
+#[cfg(feature = "people")]
+pub use botbasic_data::keywords::lead_scoring;
+#[cfg(all(feature = "billing", feature = "multimodal"))]
+pub use botbasic_data::keywords::products;
+pub use botbasic_data::keywords::save_from_unstructured;
+pub use botbasic_data::keywords::search;
+pub use botbasic_data::keywords::set;
+pub use botbasic_data::keywords::table_access;
+pub use botbasic_data::keywords::table_definition;
+pub use botbasic_data::keywords::table_migration;
+pub use botbasic_data::keywords::think_kb;
+pub use botbasic_data::keywords::use_account;
+pub use botbasic_data::keywords::use_kb;
+pub use botbasic_data::keywords::user_memory;
+
+// ===== RE-EXPORTED FROM botbasic_comms (Phase 2a) =====
+#[cfg(feature = "video")]
+pub use botbasic_comms::keywords::weather;
+#[cfg(feature = "mail")]
+pub use botbasic_comms::keywords::create_draft;
+#[cfg(feature = "meet")]
+pub use botbasic_comms::keywords::play;
+#[cfg(feature = "automation")]
+pub use botbasic_comms::keywords::webhook;
+#[cfg(feature = "mail")]
+pub use botbasic_comms::keywords::on_email;
+
+// ===== RE-EXPORTED FROM botbasic_ai (Phase 2a) =====
+#[cfg(feature = "llm")]
+pub use botbasic_ai::keywords::remember;
+#[cfg(feature = "llm")]
+pub use botbasic_ai::keywords::episodic_memory;
+#[cfg(feature = "llm")]
+pub use botbasic_ai::keywords::knowledge_graph;
+pub use botbasic_ai::keywords::human_approval;
+pub use botbasic_ai::keywords::qrcode;
+pub use botbasic_ai::keywords::web_data;
+pub use botbasic_ai::keywords::http_operations;
+#[cfg(feature = "automation")]
+pub use botbasic_ai::keywords::on_form_submit;
+pub use botbasic_ai::keywords::use_tool;
+pub use botbasic_ai::keywords::orchestration;
+#[cfg(feature = "llm")]
+pub use botbasic_ai::keywords::llm_keyword;
+#[cfg(feature = "llm")]
+pub use botbasic_ai::keywords::ai_tools;
+#[cfg(feature = "llm")]
+pub use botbasic_ai::keywords::model_routing;
+pub use botbasic_ai::keywords::agent_reflection;
+#[cfg(feature = "automation")]
+pub use botbasic_ai::keywords::api_tool_generator;
+
+// ===== RE-EXPORTED FROM botbasic_system (Phase 2a) =====
+#[cfg(feature = "drive")]
+pub use botbasic_system::keywords::file_operations;
+#[cfg(feature = "tasks")]
+pub use botbasic_system::keywords::create_task;
+#[cfg(feature = "automation")]
+pub use botbasic_system::keywords::on;
+#[cfg(feature = "automation")]
+pub use botbasic_system::keywords::on_change;
+#[cfg(feature = "tasks")]
+pub use botbasic_system::keywords::set_schedule;
+#[cfg(feature = "automation")]
+pub use botbasic_system::keywords::synchronize;
+
 // ===== CORE KEYWORDS (always available) =====
 #[cfg(feature = "chat")]
 pub mod add_bot;
 #[cfg(feature = "chat")]
 pub mod add_member;
 #[cfg(feature = "chat")]
-pub mod add_suggestion;
+pub use botbasic_comms::keywords::add_suggestion;
 #[cfg(feature = "chat")]
-pub mod switcher;
-pub mod agent_reflection;
-#[cfg(feature = "llm")]
-pub mod ai_tools;
-#[cfg(feature = "automation")]
-pub mod api_tool_generator;
+pub use botbasic_comms::keywords::switcher;
 pub mod app_server;
-pub mod arrays;
-pub mod bot_memory;
 pub mod clear_tools;
 #[cfg(feature = "automation")]
 pub mod code_sandbox;
-pub mod core_functions;
 #[cfg(feature = "people")]
-pub mod crm;
-pub mod data_operations;
-pub mod datetime;
 pub mod db_api;
 pub mod face_api;
 
 // ===== WORKFLOW ORCHESTRATION MODULES =====
-pub mod orchestration;
 pub mod events;
 pub mod enhanced_memory;
 pub mod enhanced_llm;
 
-pub mod errors;
-pub mod find;
-pub mod first;
-#[cfg(feature = "billing")]
-pub mod products;
-pub mod search;
-pub mod for_next;
-pub mod format;
-pub mod get;
-pub mod hear_talk;
-pub mod hearing;
-pub mod http_operations;
-pub mod human_approval;
-pub mod last;
-#[cfg(feature = "llm")]
-pub mod llm_keyword;
 #[cfg(feature = "llm")]
 pub mod llm_macros;
-pub mod math;
-pub mod detect;
 #[cfg(feature = "automation")]
 pub mod mcp_client;
 #[cfg(feature = "automation")]
 pub mod mcp_directory;
 pub mod messaging;
-pub mod on;
-#[cfg(feature = "automation")]
-pub mod on_form_submit;
-pub mod print;
-pub mod procedures;
-pub mod qrcode;
 #[cfg(feature = "security")]
 pub mod security_protection;
-pub mod set;
-pub mod set_context;
-pub mod set_user;
-pub mod string_functions;
-pub mod switch_case;
-pub mod table_access;
-pub mod table_definition;
-pub mod table_migration;
 pub mod universal_messaging;
-pub mod use_tool;
 pub mod use_website;
-pub mod user_memory;
-pub mod validation;
-pub mod wait;
-pub mod web_data;
-#[cfg(feature = "automation")]
-pub mod webhook;
 
 // ===== CALENDAR FEATURE KEYWORDS =====
 #[cfg(feature = "calendar")]
@@ -89,19 +136,11 @@ pub mod book;
 
 // ===== MAIL FEATURE KEYWORDS =====
 #[cfg(feature = "mail")]
-pub mod create_draft;
-#[cfg(feature = "mail")]
-pub mod on_email;
-#[cfg(feature = "mail")]
 pub mod send_mail;
 #[cfg(feature = "mail")]
 pub mod send_template;
 
 // ===== TASKS FEATURE KEYWORDS =====
-#[cfg(feature = "tasks")]
-pub mod create_task;
-#[cfg(feature = "tasks")]
-pub mod set_schedule;
 
 // ===== SOCIAL FEATURE KEYWORDS =====
 #[cfg(feature = "social")]
@@ -110,38 +149,14 @@ pub mod social;
 pub mod social_media;
 
 // ===== LLM FEATURE KEYWORDS =====
-#[cfg(feature = "llm")]
-pub mod episodic_memory;
-#[cfg(feature = "llm")]
-pub mod knowledge_graph;
-#[cfg(feature = "llm")]
-pub mod model_routing;
-#[cfg(feature = "llm")]
+#[cfg(feature = "multimodal")]
 pub mod multimodal;
-#[cfg(feature = "llm")]
-pub mod remember;
-#[cfg(feature = "llm")]
-pub mod save_from_unstructured;
 
 // ===== VECTORDB FEATURE KEYWORDS =====
-#[cfg(feature = "vectordb")]
-pub mod clear_kb;
-#[cfg(feature = "vectordb")]
-pub mod kb_statistics;
-#[cfg(feature = "vectordb")]
-pub mod think_kb;
-#[cfg(feature = "vectordb")]
-pub mod use_kb;
 
 // ===== DRIVE FEATURE KEYWORDS =====
-#[cfg(feature = "drive")]
-pub mod file_operations;
-#[cfg(feature = "drive")]
-pub mod import_export;
 
 // ===== PEOPLE FEATURE KEYWORDS =====
-#[cfg(feature = "people")]
-pub mod lead_scoring;
 
 // ===== COMMUNICATIONS FEATURE KEYWORDS =====
 #[cfg(any(feature = "whatsapp", feature = "telegram", feature = "mail"))]
@@ -152,28 +167,17 @@ pub mod sms;
 pub mod transfer_to_human;
 
 // ===== AUTOMATION FEATURE KEYWORDS =====
-#[cfg(feature = "automation")]
-pub mod on_change;
-#[cfg(feature = "automation")]
-pub mod synchronize;
 
 // ===== MEET FEATURE KEYWORDS =====
-#[cfg(feature = "meet")]
-pub mod play;
-
-// ===== USE ACCOUNT (needs directory or people) =====
-#[cfg(any(feature = "directory", feature = "people", feature = "drive"))]
-pub mod use_account;
 
 // ===== MEDIA FEATURE KEYWORDS =====
-#[cfg(feature = "video")]
-pub mod weather;
 
 // ===== CREATE SITE (needs drive) =====
 #[cfg(feature = "drive")]
 pub mod create_site;
 
 pub use app_server::configure_app_server_routes;
+#[cfg(feature = "people")]
 pub use db_api::configure_db_routes;
 #[cfg(feature = "automation")]
 pub use mcp_client::{McpClient, McpRequest, McpResponse, McpServer, McpTool};

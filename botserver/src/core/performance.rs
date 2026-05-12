@@ -1,11 +1,7 @@
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
@@ -405,7 +401,7 @@ pub struct IndexUsage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuerySuggestion {
-    pub suggestion_type: SuggestionType,
+    pub suggestion_type: PerformanceSuggestionType,
     pub description: String,
     pub impact: Impact,
     pub implementation: Option<String>,
@@ -413,7 +409,7 @@ pub struct QuerySuggestion {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum SuggestionType {
+pub enum PerformanceSuggestionType {
     AddIndex,
     UseIndex,
     AddLimit,
@@ -529,7 +525,7 @@ impl QueryOptimizer {
 
         if query_pattern.to_lowercase().contains("select *") {
             suggestions.push(QuerySuggestion {
-                suggestion_type: SuggestionType::RemoveSelectStar,
+                suggestion_type: PerformanceSuggestionType::RemoveSelectStar,
                 description: "Replace SELECT * with specific columns to reduce data transfer".to_string(),
                 impact: Impact::Medium,
                 implementation: Some("SELECT specific_column1, specific_column2 FROM ...".to_string()),
@@ -538,7 +534,7 @@ impl QueryOptimizer {
 
         if !query_pattern.to_lowercase().contains("limit") {
             suggestions.push(QuerySuggestion {
-                suggestion_type: SuggestionType::AddLimit,
+                suggestion_type: PerformanceSuggestionType::AddLimit,
                 description: "Add LIMIT clause to prevent fetching too many rows".to_string(),
                 impact: Impact::High,
                 implementation: Some("... LIMIT 100".to_string()),
@@ -549,7 +545,7 @@ impl QueryOptimizer {
             && !query_pattern.to_lowercase().contains("index")
         {
             suggestions.push(QuerySuggestion {
-                suggestion_type: SuggestionType::AddIndex,
+                suggestion_type: PerformanceSuggestionType::AddIndex,
                 description: "Consider adding an index on filtered columns".to_string(),
                 impact: Impact::High,
                 implementation: None,
@@ -558,7 +554,7 @@ impl QueryOptimizer {
 
         if query_pattern.to_lowercase().contains("in (select") {
             suggestions.push(QuerySuggestion {
-                suggestion_type: SuggestionType::UseJoinInsteadOfSubquery,
+                suggestion_type: PerformanceSuggestionType::UseJoinInsteadOfSubquery,
                 description: "Replace IN subquery with JOIN for better performance".to_string(),
                 impact: Impact::Medium,
                 implementation: Some("Use INNER JOIN instead of IN (SELECT ...)".to_string()),
@@ -863,3 +859,8 @@ pub fn parse_cursor(cursor: &str) -> Option<(Uuid, DateTime<Utc>)> {
 
     Some((id, timestamp))
 }
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;

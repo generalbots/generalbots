@@ -1,11 +1,8 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{debug, trace};
-use reqwest::Url;
 use rhai::{Array, Dynamic, Engine, EvalAltResult, Map, Position};
 use scraper::{Html, Selector};
-use std::sync::Arc;
-use std::time::Duration;
 
 pub fn register_web_data_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_rss_keyword(state.clone(), user.clone(), engine);
@@ -465,3 +462,7 @@ async fn scrape_images(url: &str) -> Result<Array, Box<dyn std::error::Error + S
     }
     Ok(results)
 }
+
+use reqwest::Url;
+use std::sync::Arc;
+use std::time::Duration;

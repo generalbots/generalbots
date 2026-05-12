@@ -28,20 +28,16 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::core::shared::models::schema::bots::dsl::*;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::models::schema::bots::dsl::*;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use flate2::read::GzDecoder;
 use log::{error, trace};
-use std::error::Error;
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::path::Path;
-use tar::Archive;
 use zip::{write::FileOptions, ZipArchive, ZipWriter};
 
-use super::basic_io::execute_read;
 
 pub async fn execute_compress(
     state: &AppState,
@@ -86,11 +82,7 @@ pub async fn execute_compress(
     let key = format!("{bot_name}.gbdrive/{archive_name}");
 
     client
-        .put_object()
-        .bucket(&bucket_name)
-        .key(&key)
-        .body(archive_content)
-        .send()
+        .put_object(&bucket_name, &key, archive_content, None)
         .await
         .map_err(|e| format!("S3 put failed: {e}"))?;
 
@@ -146,17 +138,8 @@ pub async fn execute_extract(
     let archive_key = format!("{bot_name}.gbdrive/{archive}");
 
     let data = client
-        .get_object()
-        .bucket(&bucket_name)
-        .key(&archive_key)
-        .send()
-        .await
-        .map_err(|e| format!("S3 get failed: {e}"))?
-        .body
-        .collect()
-        .await
-        .map_err(|e| format!("Body collect failed: {e}"))?
-        .into_bytes();
+        .get_object(&bucket_name, &archive_key).await
+        .map_err(|e| format!("S3 get failed: {e}"))?;
 
     let temp_dir = std::env::temp_dir();
     let archive_path = temp_dir.join(archive);
@@ -179,11 +162,7 @@ let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
 
         let dest_key = format!("{bot_name}.gbdrive/{dest_path}");
         client
-            .put_object()
-            .bucket(&bucket_name)
-            .key(&dest_key)
-            .body(content)
-            .send()
+            .put_object(&bucket_name, &dest_key, content, None)
             .await
             .map_err(|e| format!("S3 put failed: {e}"))?;
 
@@ -205,11 +184,7 @@ let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
 
             let dest_key = format!("{bot_name}.gbdrive/{dest_path}");
         client
-            .put_object()
-            .bucket(&bucket_name)
-            .key(&dest_key)
-            .body(content)
-            .send()
+            .put_object(&bucket_name, &dest_key, content, None)
             .await
             .map_err(|e| format!("S3 put failed: {e}"))?;
 
@@ -222,3 +197,8 @@ let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
     trace!("EXTRACT successful: {} files", extracted_files.len());
     Ok(extracted_files)
 }
+
+use std::error::Error;
+use std::path::Path;
+use tar::Archive;
+use super::basic_io::execute_read;

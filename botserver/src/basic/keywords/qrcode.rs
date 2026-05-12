@@ -28,17 +28,11 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{error, trace};
 use png::{BitDepth, ColorType, Encoder};
-use qrcode::QrCode;
 use rhai::{Dynamic, Engine};
-use std::fs::File;
-use std::io::BufWriter;
-use std::path::Path;
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn register_qrcode_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_qr_code_keyword(state.clone(), user.clone(), engine);
@@ -248,7 +242,7 @@ fn execute_qr_code_generation(
         }
     }
 
-    let work_path = crate::core::shared::utils::get_work_path();
+    let work_path = botcore::shared::utils::get_work_path();
     let data_dir = state
         .config
         .as_ref()
@@ -428,3 +422,10 @@ mod tests {
         assert!(result.is_ok());
     }
 }
+
+use qrcode::QrCode;
+use std::fs::File;
+use std::io::BufWriter;
+use std::path::Path;
+use std::sync::Arc;
+use uuid::Uuid;

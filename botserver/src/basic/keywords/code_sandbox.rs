@@ -1,15 +1,10 @@
 use crate::security::command_guard::SafeCommand;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{trace, warn};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::timeout;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[derive(Default)]
@@ -864,3 +859,9 @@ lxc.mount.entry = tmpfs tmp tmpfs defaults 0 0
 "
     .to_string()
 }
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::timeout;
+use uuid::Uuid;

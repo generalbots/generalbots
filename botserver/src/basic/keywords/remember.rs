@@ -1,12 +1,8 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use chrono::{Duration, Utc};
-use diesel::prelude::*;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
-use serde_json::json;
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -321,3 +317,8 @@ mod tests {
         assert!(parse_duration("invalid").is_err());
     }
 }
+
+use diesel::prelude::*;
+use serde_json::json;
+use std::sync::Arc;
+use uuid::Uuid;

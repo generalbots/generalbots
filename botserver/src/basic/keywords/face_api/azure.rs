@@ -2,9 +2,7 @@
 //!
 //! This module contains Azure-specific response types and conversions.
 
-use crate::botmodels::{BoundingBox, DetectedFace, EmotionScores, FaceAttributes, FaceLandmarks, Gender, GlassesType, Point2D};
-use serde::Deserialize;
-use uuid::Uuid;
+use botmodelsbridge::{BoundingBox, DetectedFace, EmotionScores, FaceAttributes, FaceLandmarks, Gender, GlassesType, Point2D};
 
 // ============================================================================
 // Azure API Response Types
@@ -161,3 +159,6 @@ impl AzureFaceResponse {
         }
     }
 }
+
+use serde::Deserialize;
+use uuid::Uuid;

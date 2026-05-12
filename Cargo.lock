@@ -674,6 +674,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "botapi"
+version = "6.3.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "botcore",
+ "botsecurity",
+ "futures-util",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "botattendance"
 version = "6.3.0"
 dependencies = [
@@ -725,6 +740,135 @@ dependencies = [
  "regex",
  "rhai",
  "rust-s3",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "botbasic_ai"
+version = "6.3.0"
+dependencies = [
+ "base64",
+ "botbasic_types",
+ "botlib",
+ "botschema",
+ "chrono",
+ "diesel",
+ "log",
+ "png",
+ "qrcode",
+ "redis",
+ "reqwest",
+ "rhai",
+ "rss",
+ "scraper",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "botbasic_comms"
+version = "6.3.0"
+dependencies = [
+ "base64",
+ "bigdecimal",
+ "botbasic_core",
+ "botbasic_data",
+ "botbasic_types",
+ "botlib",
+ "botschema",
+ "chrono",
+ "diesel",
+ "icalendar",
+ "log",
+ "num-format",
+ "redis",
+ "regex",
+ "reqwest",
+ "rhai",
+ "serde",
+ "serde_json",
+ "tokio",
+ "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botbasic_core"
+version = "6.3.0"
+dependencies = [
+ "bigdecimal",
+ "botbasic_types",
+ "botlib",
+ "chrono",
+ "diesel",
+ "log",
+ "num-format",
+ "rand 0.9.4",
+ "redis",
+ "regex",
+ "reqwest",
+ "rhai",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "botbasic_data"
+version = "6.3.0"
+dependencies = [
+ "botbasic_core",
+ "botbasic_types",
+ "botlib",
+ "chrono",
+ "diesel",
+ "log",
+ "regex",
+ "reqwest",
+ "rhai",
+ "serde",
+ "serde_json",
+ "tokio",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "botbasic_system"
+version = "6.3.0"
+dependencies = [
+ "botbasic_types",
+ "botlib",
+ "botschema",
+ "chrono",
+ "cron",
+ "diesel",
+ "log",
+ "reqwest",
+ "rhai",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "botbasic_types"
+version = "6.3.0"
+dependencies = [
+ "botlib",
+ "chrono",
+ "diesel",
+ "log",
+ "redis",
+ "rhai",
  "serde",
  "serde_json",
  "tokio",
@@ -855,6 +999,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "botcore"
+version = "6.3.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "botbasic_types",
+ "botlib",
+ "botschema",
+ "chrono",
+ "diesel",
+ "diesel_migrations",
+ "indicatif",
+ "lettre",
+ "log",
+ "redis",
+ "reqwest",
+ "rhai",
+ "serde",
+ "serde_json",
+ "smartstring",
+ "sysinfo",
+ "tokio",
+ "urlencoding",
+ "uuid",
+]
+
+[[package]]
 name = "botcorebot"
 version = "6.3.0"
 dependencies = [
@@ -887,13 +1059,20 @@ dependencies = [
  "anyhow",
  "argon2",
  "axum",
+ "botcore",
+ "botlib",
+ "botsecurity",
  "chrono",
  "diesel",
+ "dirs 5.0.1",
  "log",
+ "once_cell",
  "r2d2",
+ "rand 0.9.4",
  "reqwest",
  "serde",
  "serde_json",
+ "tokio",
  "uuid",
 ]
 
@@ -1148,17 +1327,30 @@ name = "botllm"
 version = "6.3.0"
 dependencies = [
  "async-trait",
+ "botcore",
+ "botlib",
+ "botsecurity",
+ "chrono",
+ "diesel",
  "futures",
  "futures-util",
  "governor",
+ "hex",
  "jsonwebtoken",
  "log",
  "rand 0.9.4",
+ "redis",
  "regex",
  "reqwest",
+ "rhai",
+ "scopeguard",
  "serde",
  "serde_json",
+ "sha2",
  "tokio",
+ "tracing",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -1184,6 +1376,46 @@ dependencies = [
  "diesel",
  "log",
  "r2d2",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "botmeet"
+version = "6.3.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "botcore",
+ "botlib",
+ "botschema",
+ "botsecurity",
+ "chrono",
+ "diesel",
+ "futures",
+ "log",
+ "png",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botmodelsbridge"
+version = "6.3.0"
+dependencies = [
+ "base64",
+ "botsecurity",
+ "chrono",
+ "log",
+ "reqwest",
  "serde",
  "serde_json",
  "tokio",
@@ -1319,10 +1551,18 @@ name = "botqdrant"
 version = "6.3.0"
 dependencies = [
  "anyhow",
+ "botcore",
+ "botlib",
+ "chrono",
+ "diesel",
  "log",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",
+ "tokio",
+ "uuid",
+ "zip 2.4.2",
 ]
 
 [[package]]
@@ -1339,6 +1579,17 @@ dependencies = [
  "serde_json",
  "tokio",
  "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botschema"
+version = "6.3.0"
+dependencies = [
+ "chrono",
+ "diesel",
+ "serde",
+ "serde_json",
  "uuid",
 ]
 
@@ -1365,6 +1616,7 @@ dependencies = [
  "async-trait",
  "axum",
  "base64",
+ "botcore",
  "botlib",
  "chrono",
  "diesel",
@@ -1410,8 +1662,16 @@ dependencies = [
  "base64",
  "bigdecimal",
  "botanalytics",
+ "botapi",
  "botattendance",
  "botattendant",
+ "botautotask",
+ "botbasic_ai",
+ "botbasic_comms",
+ "botbasic_core",
+ "botbasic_data",
+ "botbasic_system",
+ "botbasic_types",
  "botbilling",
  "botbrowser",
  "botcalendar",
@@ -1419,6 +1679,13 @@ dependencies = [
  "botchannels",
  "botcompliance",
  "botcontacts",
+ "botcore",
+ "botcorebot",
+ "botcoredirectory",
+ "botcoreoauth",
+ "botcorepkg",
+ "botcoresecrets",
+ "botcoresession",
  "botdashboards",
  "botdeployment",
  "botdesigner",
@@ -1432,6 +1699,8 @@ dependencies = [
  "botllm",
  "botmaintenance",
  "botmarketing",
+ "botmeet",
+ "botmodelsbridge",
  "botmonitoring",
  "botmsteams",
  "botmultimodal",
@@ -1445,6 +1714,7 @@ dependencies = [
  "botresearch",
  "botsearch",
  "botsecurity",
+ "botsettings",
  "botsheet",
  "botslides",
  "botsocial",
@@ -1533,6 +1803,26 @@ dependencies = [
  "walkdir",
  "x509-parser 0.15.1",
  "zip 2.4.2",
+]
+
+[[package]]
+name = "botsettings"
+version = "6.3.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "botcore",
+ "botschema",
+ "botsecurity",
+ "chrono",
+ "diesel",
+ "lettre",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -2268,6 +2558,12 @@ name = "crc-catalog"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19d374276b40fb8bbdee95aef7c7fa6b5316ec764510eb64b8dd0e2ed0d7e7f5"
+
+[[package]]
+name = "crc16"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "338089f42c427b86394a5ee60ff321da23a5c89c9d89514c829687b26359fcff"
 
 [[package]]
 name = "crc32fast"
@@ -5938,6 +6234,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "combine",
+ "crc16",
  "futures-util",
  "itertools 0.13.0",
  "itoa",
@@ -5945,6 +6242,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "r2d2",
+ "rand 0.8.6",
  "ryu",
  "tokio",
  "tokio-util",

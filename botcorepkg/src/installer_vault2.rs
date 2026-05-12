@@ -4,10 +4,8 @@ use crate::installer_vault::vault_seeds_exist;
 use anyhow::{Context, Result};
 use botlib::security::SafeCommand;
 use log::{info, warn};
-use std::path::Path;
 
 pub fn seed_vault_defaults(
-    base_path: &std::path::Path,
     vault_addr: &str,
     root_token: &str,
     ca_cert: &std::path::Path,
@@ -266,10 +264,10 @@ VAULT_CACERT={}
     }
 
     if let Some(ref token) = root_token {
-        if vault_seeds_exist(base_path, &vault_addr, token, &ca_cert, &vault_bin)? {
+            if vault_seeds_exist(&vault_addr, token, &ca_cert, &vault_bin)? {
             info!("Vault credentials already exist, skipping seed on recovery");
         } else {
-            let _ = seed_vault_defaults(base_path, &vault_addr, token, &ca_cert, &vault_bin);
+            let _ = seed_vault_defaults(&vault_addr, token, &ca_cert, &vault_bin);
         }
     }
 

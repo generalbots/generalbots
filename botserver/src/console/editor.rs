@@ -50,12 +50,7 @@ impl Editor {
     }
     pub async fn save(&mut self, app_state: &Arc<AppState>) -> Result<()> {
         if let Some(drive) = &app_state.drive {
-            drive.put_object(
-                &self.bucket,
-                &self.key,
-                self.content.as_bytes().to_vec(),
-                None,
-            ).await?;
+        drive.put_object(&self.bucket, &self.key, self.content.as_bytes().to_vec(), None).await?;
             self.modified = false;
         }
         Ok(())

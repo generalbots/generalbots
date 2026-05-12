@@ -1,10 +1,8 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::debug;
 use rhai::{Dynamic, Engine, Map};
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn get_posts_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -99,3 +97,6 @@ fn get_social_posts(
         })
         .collect())
 }
+
+use std::sync::Arc;
+use uuid::Uuid;

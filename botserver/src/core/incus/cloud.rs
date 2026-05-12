@@ -1,8 +1,5 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::process::Command;
-use tokio::process::Command as AsyncCommand;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IncusCloudConfig {
@@ -372,3 +369,8 @@ pub fn create_default_cloud_config() -> IncusCloudConfig {
         ],
     }
 }
+
+use std::collections::HashMap;
+use std::process::Command;
+use tokio::process::Command as AsyncCommand;
+use uuid::Uuid;

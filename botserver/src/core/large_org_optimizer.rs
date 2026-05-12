@@ -1,10 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use uuid::Uuid;
 
 pub struct LargeOrgOptimizer {
     config: OptimizerConfig,
@@ -371,15 +367,11 @@ impl LargeOrgOptimizer {
 
     async fn record_query_time(&self, time_ms: u64) {
         let stats = self.query_stats.read().await;
-        let total = stats.total_queries.load(Ordering::Relaxed);
-        let current_avg = stats.avg_query_time_ms.load(Ordering::Relaxed);
+let total = stats.total_queries.load(Ordering::Relaxed);
+let current_avg = stats.avg_query_time_ms.load(Ordering::Relaxed);
 
-        if total > 0 {
-            let new_avg = ((current_avg * (total - 1)) + time_ms) / total;
-            stats.avg_query_time_ms.store(new_avg, Ordering::Relaxed);
-        } else {
-            stats.avg_query_time_ms.store(time_ms, Ordering::Relaxed);
-        }
+let new_avg = ((current_avg * (total.saturating_sub(1))) + time_ms).checked_div(total).unwrap_or(0);
+stats.avg_query_time_ms.store(new_avg, Ordering::Relaxed);
 
         if time_ms > 1000 {
             stats.slow_queries.fetch_add(1, Ordering::Relaxed);
@@ -957,3 +949,8 @@ mod tests {
         }
     }
 }
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;

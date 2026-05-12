@@ -1,4 +1,3 @@
-use crate::cli::{generate_access_key, generate_password, generate_secret_key};
 use crate::{InstallMode, PackageManager};
 use botcoresecrets::{SecretPaths, SecretsManager};
 use botlib::security::SafeCommand;

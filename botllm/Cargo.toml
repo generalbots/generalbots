@@ -9,17 +9,30 @@ repository = "https://github.com/GeneralBots/BotServer"
 
 [dependencies]
 async-trait = { workspace = true }
+botcore = { workspace = true }
+botlib = { workspace = true }
+botsecurity = { workspace = true }
+chrono = { workspace = true, features = ["clock", "std", "serde"] }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
 futures = { workspace = true }
 futures-util = { workspace = true }
 governor = { workspace = true }
+hex = { workspace = true }
 jsonwebtoken = { workspace = true }
 log = { workspace = true }
 rand = { workspace = true }
+redis = { workspace = true, features = ["tokio-comp"] }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "json", "stream"] }
+rhai = { workspace = true, features = ["sync"] }
+scopeguard = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time", "rt", "fs"] }
+tracing = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
 
 [lints]
 workspace = true

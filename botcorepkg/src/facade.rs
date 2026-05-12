@@ -1,4 +1,4 @@
-use crate::cache::{CacheResult, DownloadCache};
+use crate::cache::DownloadCache;
 use crate::component::{ComponentConfig, InstallResult};
 use crate::installer::PackageManager;
 use crate::InstallMode;

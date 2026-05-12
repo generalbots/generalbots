@@ -4,7 +4,7 @@ use botlib::security::SafeCommand;
 use anyhow::Result;
 use std::collections::HashMap;
 
-async fn confirm_action(prompt: &str) -> bool {
+fn confirm_action(prompt: &str) -> bool {
     print!("{prompt}");
     let _ = std::io::Write::flush(&mut std::io::stdout());
     let mut input = String::new();

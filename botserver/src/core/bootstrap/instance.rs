@@ -2,7 +2,7 @@
 //!
 //! Extracted from mod.rs
 
-use crate::core::shared::utils::get_stack_path;
+use botcore::shared::utils::get_stack_path;
 use crate::security::command_guard::SafeCommand;
 use log::warn;
 use std::fs;

@@ -1,0 +1,30 @@
+[package]
+name = "botbasic_core"
+version = "6.3.0"
+edition = "2021"
+description = "BASIC language core keywords - arrays, math, validation, datetime, strings, control flow, hearing, procedures, errors"
+license = "AGPL-3.0"
+
+[features]
+default = []
+
+[dependencies]
+botlib = { workspace = true, features = ["database", "http-client"] }
+botbasic_types = { path = "../botbasic_types" }
+rhai = { workspace = true, features = ["sync"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+chrono = { workspace = true, features = ["clock", "std"] }
+uuid = { workspace = true, features = ["v4"] }
+regex = { workspace = true }
+log = { workspace = true }
+num-format = { workspace = true }
+bigdecimal = { workspace = true, features = ["serde"] }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+redis = { workspace = true, features = ["tokio-comp"] }
+tokio = { workspace = true, features = ["sync", "rt", "macros"] }
+rand = { workspace = true }
+
+reqwest = { workspace = true, features = ["rustls-tls", "json"] }
+[lints]
+workspace = true

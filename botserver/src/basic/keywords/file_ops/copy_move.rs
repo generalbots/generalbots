@@ -31,14 +31,7 @@
 use crate::basic::keywords::use_account::{
     get_account_credentials, is_account_path, parse_account_path,
 };
-use crate::core::shared::models::schema::bots::dsl::*;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
-use diesel::prelude::*;
-use log::trace;
-use std::error::Error;
 
-use super::basic_io::execute_delete_file;
 
 pub async fn execute_copy(
     state: &AppState,
@@ -71,12 +64,7 @@ pub async fn execute_copy(
     let dest_key = format!("{bot_name}.gbdrive/{destination}");
 
     client
-        .copy_object()
-        .bucket(&bucket_name)
-        .source(&source_key)
-        .dest(&dest_key)
-        .send()
-        .await
+        .copy_object(&bucket_name, &source_key, &dest_key).await
         .map_err(|e| format!("S3 copy failed: {e}"))?;
 
     trace!("COPY successful: {source} -> {destination}");
@@ -217,15 +205,7 @@ pub async fn read_from_local(
     let key = format!("{bot_name}.gbdrive/{path}");
 
     let bytes = client
-        .get_object()
-        .bucket(&bucket_name)
-        .key(&key)
-        .send()
-        .await?
-        .body
-        .collect()
-        .await?
-        .into_bytes();
+        .get_object(&bucket_name, &key).await?;
     Ok(bytes)
 }
 
@@ -246,11 +226,7 @@ pub async fn write_to_local(
     let key = format!("{bot_name}.gbdrive/{path}");
 
     client
-        .put_object()
-        .bucket(&bucket_name)
-        .key(&key)
-        .body(content.to_vec())
-        .send()
+        .put_object(&bucket_name, &key, content.to_vec(), None)
         .await?;
     Ok(())
 }
@@ -268,3 +244,11 @@ pub async fn execute_move(
     trace!("MOVE successful: {source} -> {destination}");
     Ok(())
 }
+
+use botcore::shared::models::schema::bots::dsl::*;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
+use diesel::prelude::*;
+use log::trace;
+use std::error::Error;
+use super::basic_io::execute_delete_file;

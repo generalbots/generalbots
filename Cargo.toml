@@ -56,8 +56,20 @@ members = [
   "botcorepkg",
   "botcoresession",
   "botcoreoauth",
-  "botcoresecrets",
+    "botcoresecrets",
   "botcoredirectory",
+  "botcore",
+  "botbasic_types",
+    "botbasic_core",
+    "botbasic_data",
+    "botbasic_comms",
+	"botbasic_ai",
+	"botbasic_system",
+  "botschema",
+	"botmodelsbridge",
+	"botapi",
+	"botmeet",
+	"botsettings",
 ]
 
 [workspace.lints.rust]
@@ -124,6 +136,15 @@ botcoresession = { path = "botcoresession" }
 botcoreoauth = { path = "botcoreoauth" }
 botcoresecrets = { path = "botcoresecrets" }
 botcoredirectory = { path = "botcoredirectory" }
+botbasic_types = { path = "botbasic_types" }
+botbasic_core = { path = "botbasic_core" }
+botbasic_data = { path = "botbasic_data" }
+botbasic_comms = { path = "botbasic_comms" }
+botbasic_ai = { path = "botbasic_ai" }
+botbasic_system = { path = "botbasic_system" }
+botschema = { path = "botschema" }
+botmodelsbridge = { path = "botmodelsbridge" }
+botcore = { path = "botcore" }
 botcorebot = { path = "botcorebot" }
 botcorepkg = { path = "botcorepkg" }
 
@@ -263,6 +284,7 @@ rust-s3 = "0.37.1"
 rhai = { version = "1.23", features = ["sync"] }
 
 # ─── VECTOR DB ───
+qdrant-client = "1.17"
 
 # ─── VIDEO / MEETINGS ───
 livekit = "0.7"

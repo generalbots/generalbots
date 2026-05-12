@@ -13,7 +13,7 @@ println!("cargo:rustc-env=BOTSERVER_BUILD_DATE={}", chrono_now());
 
 let commit = std::env::var("BOTSERVER_COMMIT")
 .ok()
-.or_else(|| git_commit_hash());
+.or_else(git_commit_hash);
 if let Some(hash) = commit {
 println!("cargo:rustc-env=BOTSERVER_COMMIT={}", hash);
 }

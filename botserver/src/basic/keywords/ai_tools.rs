@@ -1,9 +1,7 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{debug, trace};
 use rhai::{Dynamic, Engine, EvalAltResult, Map, Position};
-use std::sync::Arc;
-use std::time::Duration;
 
 pub fn register_ai_tools_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_translate_keyword(state.clone(), user.clone(), engine);
@@ -183,11 +181,7 @@ async fn translate_text(
     text: &str,
     target_lang: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let llm_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager().await {
-        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "".to_string())
-    } else {
-        "".to_string()
-    };
+    let llm_url = std::env::var("LLM_URL").unwrap_or_else(|_| "".to_string());
     let prompt = format!(
         "Translate to {}. Return ONLY the translation:\n\n{}",
         target_lang, text
@@ -236,11 +230,7 @@ async fn perform_ocr(image_path: &str) -> Result<String, Box<dyn std::error::Err
 async fn analyze_sentiment(
     text: &str,
 ) -> Result<Dynamic, Box<dyn std::error::Error + Send + Sync>> {
-    let llm_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager().await {
-        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "".to_string())
-    } else {
-        "".to_string()
-    };
+    let llm_url = std::env::var("LLM_URL").unwrap_or_else(|_| "".to_string());
     let prompt = format!(
         r#"Analyze sentiment. Return JSON only:
 {{"sentiment":"positive/negative/neutral","score":-100 to 100,"urgent":true/false}}
@@ -345,11 +335,7 @@ async fn classify_text(
     text: &str,
     categories: &[String],
 ) -> Result<Dynamic, Box<dyn std::error::Error + Send + Sync>> {
-    let llm_url = if let Some(sm) = crate::core::shared::utils::get_secrets_manager().await {
-        sm.get_value("gbo/llm", "url").await.unwrap_or_else(|_| "".to_string())
-    } else {
-        "".to_string()
-    };
+    let llm_url = std::env::var("LLM_URL").unwrap_or_else(|_| "".to_string());
     let cats = categories.join(", ");
     let prompt = format!(
         r#"Classify into one of: {}
@@ -405,3 +391,6 @@ Text: {}"#,
     result.insert("confidence".into(), Dynamic::from(0.0_f64));
     Ok(Dynamic::from(result))
 }
+
+use std::sync::Arc;
+use std::time::Duration;

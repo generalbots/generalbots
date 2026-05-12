@@ -1,6 +1,5 @@
 /// Qdrant HTTP Client - Native implementation without qdrant-client crate
 /// Uses reqwest for HTTP communication with Qdrant REST API
-
 use anyhow::{Result, Context};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -250,8 +249,7 @@ impl QdrantClient {
         if status.is_success() {
             let result: Value = response.json().await.context("Failed to parse search response")?;
             let points = result["result"]
-                .as_array()
-                .map(|arr| arr.clone())
+                .as_array().cloned()
                 .unwrap_or_default();
             debug!("Found {} search results", points.len());
             Ok(points)

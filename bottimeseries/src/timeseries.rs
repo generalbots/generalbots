@@ -176,7 +176,6 @@ pub struct QueryResult {
 pub struct TimeSeriesClient {
     config: TimeSeriesConfig,
     http_client: reqwest::Client,
-    write_buffer: Arc<RwLock<Vec<MetricPoint>>>,
     write_sender: mpsc::Sender<MetricPoint>,
 }
 
@@ -184,18 +183,17 @@ impl TimeSeriesClient {
     pub async fn new(config: TimeSeriesConfig) -> Result<Self, TimeSeriesError> {
         let http_client = create_tls_client(Some(30));
 
-        let write_buffer = Arc::new(RwLock::new(Vec::with_capacity(config.batch_size)));
-        let (write_sender, write_receiver) = mpsc::channel::<MetricPoint>(10000);
+    let (write_sender, write_receiver) = mpsc::channel::<MetricPoint>(10000);
+    let write_buffer = Arc::new(RwLock::new(Vec::with_capacity(config.batch_size)));
 
-        let client = Self {
-            config: config.clone(),
-            http_client: http_client.clone(),
-            write_buffer: write_buffer.clone(),
-            write_sender,
-        };
+    let client = Self {
+        config: config.clone(),
+        http_client: http_client.clone(),
+        write_sender,
+    };
 
-        let buffer_clone = write_buffer.clone();
-        let config_clone = config.clone();
+    let buffer_clone = write_buffer;
+    let config_clone = config.clone();
         tokio::spawn(async move {
             Self::background_writer(write_receiver, buffer_clone, http_client, config_clone).await;
         });

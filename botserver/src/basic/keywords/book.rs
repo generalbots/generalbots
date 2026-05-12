@@ -1,17 +1,14 @@
-use crate::core::shared::schema::calendar_events;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::schema::calendar_events;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use chrono::{DateTime, Duration, Timelike, Utc};
-use diesel::prelude::*;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct CalendarEngine {
-    _db: crate::core::shared::utils::DbPool,
+    _db: botcore::shared::utils::DbPool,
 }
 
 #[derive(Debug)]
@@ -49,7 +46,7 @@ pub struct RecurrenceRule {
 
 impl CalendarEngine {
     #[must_use]
-    pub fn new(db: crate::core::shared::utils::DbPool) -> Self {
+    pub fn new(db: botcore::shared::utils::DbPool) -> Self {
         Self { _db: db }
     }
 
@@ -682,3 +679,7 @@ fn send_meeting_invite(
     );
     Ok(())
 }
+
+use diesel::prelude::*;
+use std::sync::Arc;
+use uuid::Uuid;

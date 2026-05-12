@@ -1,11 +1,8 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{debug, trace};
 use rhai::{Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PostEngagement {
@@ -480,3 +477,7 @@ mod tests {
         assert!(dynamic.is_map());
     }
 }
+
+use serde_json::Value;
+use std::sync::Arc;
+use uuid::Uuid;

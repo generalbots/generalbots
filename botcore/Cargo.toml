@@ -1,0 +1,61 @@
+[package]
+name = "botcore"
+version = "6.3.1"
+edition = "2021"
+
+[dependencies]
+botbasic_types = { workspace = true }
+botschema = { workspace = true }
+botlib = { workspace = true, features = ["database"] }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+axum = { workspace = true }
+chrono = { workspace = true }
+diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
+diesel_migrations = { workspace = true }
+indicatif = { workspace = true, optional = true }
+lettre = { workspace = true, optional = true }
+log = { workspace = true }
+redis = { workspace = true, optional = true }
+reqwest = { workspace = true }
+rhai = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+smartstring = { workspace = true }
+sysinfo = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["fs"] }
+uuid = { workspace = true }
+
+urlencoding = { workspace = true }
+
+[features]
+default = ["cache", "mail", "tasks", "people", "tickets", "billing", "attendant",
+"calendar", "goals", "canvas", "workspaces", "social", "analytics",
+"compliance", "meet", "research", "rbac", "learn", "project", "dashboards", "monitoring"]
+cache = ["dep:redis"]
+mail = ["dep:lettre"]
+tasks = []
+people = []
+tickets = []
+billing = []
+attendant = []
+calendar = []
+goals = []
+canvas = []
+workspaces = []
+social = []
+analytics = []
+compliance = []
+meet = []
+research = []
+rbac = []
+learn = []
+project = []
+dashboards = []
+drive = []
+progress-bars = ["dep:indicatif"]
+monitoring = ["dep:sysinfo"]
+jemalloc = []
+llm = []
+directory = []
+

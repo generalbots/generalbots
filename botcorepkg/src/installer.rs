@@ -78,11 +78,9 @@ pub fn get_llama_cpp_url() -> Option<String> {
     {
         #[cfg(target_arch = "x86_64")]
         {
-            if std::path::Path::new("/usr/local/cuda").exists()
-                || std::path::Path::new("/opt/cuda").exists()
-                || std::env::var("CUDA_HOME").is_ok()
-            {
-            }
+        let _ = std::path::Path::new("/usr/local/cuda").exists()
+            || std::path::Path::new("/opt/cuda").exists()
+            || std::env::var("CUDA_HOME").is_ok();
 
             if std::path::Path::new("/usr/share/vulkan").exists()
                 || std::env::var("VULKAN_SDK").is_ok()

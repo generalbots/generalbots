@@ -1,0 +1,26 @@
+[package]
+name = "botsettings"
+version = "6.3.1"
+edition = "2021"
+
+[features]
+default = []
+
+[dependencies]
+botcore = { path = "../botcore" }
+botsecurity = { path = "../botsecurity" }
+botschema = { path = "../botschema" }
+axum = { workspace = true, features = ["ws", "macros"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
+chrono = { workspace = true, features = ["clock", "std"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+log = { workspace = true }
+anyhow = { workspace = true }
+lettre = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true

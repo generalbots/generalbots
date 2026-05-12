@@ -1,17 +1,9 @@
-use crate::core::config::ConfigManager;
+use botcore::config::ConfigManager;
 use crate::core::kb::web_crawler::{WebCrawler, WebsiteCrawlConfig};
-use crate::core::kb::embedding_generator::EmbeddingConfig;
 use crate::core::kb::kb_indexer::{KbIndexer, QdrantConfig};
 
-use crate::core::shared::state::AppState;
-use crate::core::shared::utils::DbPool;
-use diesel::prelude::*;
 use log::{error, info, trace, warn};
-use regex;
-use std::collections::HashSet;
-use std::sync::Arc;
 use tokio::time::{interval, Duration};
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct WebsiteCrawlerService {
@@ -230,7 +222,7 @@ impl WebsiteCrawlerService {
 
                 let kb_name = format!("website_{}", sanitize_url_for_kb(&website.url));
 
-                let work_path = std::path::PathBuf::from(crate::core::shared::utils::get_work_path())
+                let work_path = std::path::PathBuf::from(botcore::shared::utils::get_work_path())
                     .join(&bot_name)
                     .join(format!("{}.gbkb", bot_name))
                     .join(&kb_name);
@@ -342,7 +334,7 @@ impl WebsiteCrawlerService {
         trace!("Scanning .bas files for USE WEBSITE commands");
 
         // Use the correct work directory path instead of plain "work"
-        let work_dir = std::path::PathBuf::from(crate::core::shared::utils::get_work_path());
+        let work_dir = std::path::PathBuf::from(botcore::shared::utils::get_work_path());
 
         if !work_dir.exists() {
             return Ok(());
@@ -495,7 +487,7 @@ fn sanitize_url_for_kb(url: &str) -> String {
 /// Force recrawl a specific website immediately
 /// Updates next_crawl to NOW() and triggers immediate crawl
 pub async fn force_recrawl_website(
-    db_pool: crate::core::shared::utils::DbPool,
+    db_pool: botcore::shared::utils::DbPool,
     bot_id: uuid::Uuid,
     url: String,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
@@ -649,20 +641,22 @@ async fn embedding_config_with_vault(
     let mut config = EmbeddingConfig::from_bot_config(pool, bot_id);
 
     // Try to upgrade the API key from Vault using the per-bot secret path.
-    if let Some(secrets) = crate::core::shared::utils::get_secrets_manager().await {
-        let per_bot_path = format!("gbo/{}", bot_name);
-        match secrets.get_value(&per_bot_path, "embedding-key").await {
-            Ok(key) if !key.is_empty() => {
-                trace!("Loaded embedding key from Vault path {} for bot {}", per_bot_path, bot_name);
-                config.embedding_key = Some(key);
-            }
-            Ok(_) => {} // Key present but empty — keep DB value
-            Err(e) => {
-                trace!("Vault embedding-key not found at {} ({}), using DB value", per_bot_path, e);
-            }
+    if let Ok(key) = std::env::var("EMBEDDING_KEY") {
+        if !key.is_empty() {
+            trace!("Loaded embedding key from environment for bot {}", bot_name);
+            config.embedding_key = Some(key);
         }
     }
 
     config
 }
 
+
+use crate::core::kb::embedding_generator::EmbeddingConfig;
+use botcore::shared::state::AppState;
+use botcore::shared::utils::DbPool;
+use diesel::prelude::*;
+use regex;
+use std::collections::HashSet;
+use std::sync::Arc;
+use uuid::Uuid;

@@ -223,40 +223,40 @@ impl S3Repository {
 
     // ============ Builder pattern methods for backward compatibility ============
 
-/// Start put object builder
-pub fn put_object(&self) -> S3PutBuilder {
-    S3PutBuilder {
-        bucket: self.bucket.clone(),
-        key: None,
-        body: None,
-        content_type: None,
+    /// Start put object builder
+    pub fn put_object(&self) -> S3PutBuilder {
+        S3PutBuilder {
+            bucket: self.bucket.clone(),
+            key: None,
+            body: None,
+            content_type: None,
+        }
     }
-}
 
-/// Start get object builder
-pub fn get_object(&self) -> S3GetBuilder {
-    S3GetBuilder {
-        bucket: self.bucket.clone(),
-        key: None,
+    /// Start get object builder
+    pub fn get_object(&self) -> S3GetBuilder {
+        S3GetBuilder {
+            bucket: self.bucket.clone(),
+            key: None,
+        }
     }
-}
 
-/// Start delete object builder
-pub fn delete_object(&self) -> S3DeleteBuilder {
-    S3DeleteBuilder {
-        bucket: self.bucket.clone(),
-        key: None,
+    /// Start delete object builder
+    pub fn delete_object(&self) -> S3DeleteBuilder {
+        S3DeleteBuilder {
+            bucket: self.bucket.clone(),
+            key: None,
+        }
     }
-}
 
-/// Start copy object builder
-pub fn copy_object(&self) -> S3CopyBuilder {
-    S3CopyBuilder {
-        bucket: self.bucket.clone(),
-        source: None,
-        dest: None,
+    /// Start copy object builder
+    pub fn copy_object(&self) -> S3CopyBuilder {
+        S3CopyBuilder {
+            bucket: self.bucket.clone(),
+            source: None,
+            dest: None,
+        }
     }
-}
 
     /// List buckets
     pub fn list_buckets(&self) -> S3ListBucketsBuilder {
@@ -387,9 +387,7 @@ impl S3ListBucketsBuilder {
     pub async fn send(self) -> Result<S3ListBucketsResponse> {
         if let Some(repo) = self.repo {
             let names = repo.list_all_buckets().await?;
-            Ok(S3ListBucketsResponse {
-                buckets: names.into_iter().map(|name| S3Bucket { name }).collect(),
-            })
+            Ok(S3ListBucketsResponse { buckets: names.into_iter().map(|name| S3Bucket { name }).collect() })
         } else {
             Ok(S3ListBucketsResponse { buckets: vec![] })
         }
@@ -517,4 +515,14 @@ pub fn create_shared_repository(
 ) -> Result<SharedS3Repository> {
     let repo = S3Repository::new(endpoint, access_key, secret_key, bucket)?;
     Ok(Arc::new(repo))
+}
+
+
+pub fn create_s3_operator_from_config(config: &crate::core::config::AppConfig) -> anyhow::Result<S3Repository> {
+    S3Repository::new(
+        &config.drive.endpoint,
+        &config.drive.access_key,
+        &config.drive.secret_key,
+        &config.drive.bucket,
+    )
 }

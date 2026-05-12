@@ -1,9 +1,6 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
-use std::time::Duration;
-use uuid::Uuid;
 
 /// Register the LLM keyword with a deadlock-free execution model.
 ///
@@ -79,7 +76,7 @@ pub async fn execute_llm_generation(
     state: Arc<AppState>,
     prompt: String,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
+    let config_manager = botcore::config::ConfigManager::new(state.conn.clone());
     let model = config_manager
         .get_config(&Uuid::nil(), "llm-model", None)
         .unwrap_or_default();
@@ -90,8 +87,14 @@ pub async fn execute_llm_generation(
     let handler = crate::llm::llm_models::get_handler(&model);
     let raw_response = state
         .llm_provider
+        .as_ref()
+        .ok_or("LLM provider not configured")?
         .generate(&prompt, &serde_json::Value::Null, &model, &key)
         .await?;
     let processed = handler.process_content(&raw_response);
     Ok(processed)
 }
+
+use std::sync::Arc;
+use std::time::Duration;
+use uuid::Uuid;

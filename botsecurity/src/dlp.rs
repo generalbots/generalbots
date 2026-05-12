@@ -658,7 +658,7 @@ impl DlpManager {
     pub fn redact_content(&self, content: &str, matches: &[DlpMatch]) -> String {
         let mut redacted = content.to_string();
         let mut sorted_matches: Vec<&DlpMatch> = matches.iter().collect();
-        sorted_matches.sort_by(|a, b| b.start_position.cmp(&a.start_position));
+        sorted_matches.sort_by_key(|b| std::cmp::Reverse(b.start_position));
 
         for dlp_match in sorted_matches {
             let redaction = dlp_match.data_type.redaction_pattern();
@@ -671,7 +671,7 @@ impl DlpManager {
     pub fn partial_redact_content(&self, content: &str, matches: &[DlpMatch]) -> String {
         let mut redacted = content.to_string();
         let mut sorted_matches: Vec<&DlpMatch> = matches.iter().collect();
-        sorted_matches.sort_by(|a, b| b.start_position.cmp(&a.start_position));
+        sorted_matches.sort_by_key(|b| std::cmp::Reverse(b.start_position));
 
         for dlp_match in sorted_matches {
             let masked = dlp_match.masked_value();

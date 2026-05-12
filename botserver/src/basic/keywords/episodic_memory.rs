@@ -1,8 +1,6 @@
 use chrono::{DateTime, Duration, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
-use tracing::info;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Episode {
@@ -593,3 +591,6 @@ pub mod sql {
         )
     ";
 }
+
+use tracing::info;
+use uuid::Uuid;

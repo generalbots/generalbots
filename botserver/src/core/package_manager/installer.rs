@@ -1,16 +1,11 @@
 use crate::core::package_manager::component::ComponentConfig;
 use crate::core::package_manager::os::detect_os;
 use crate::core::package_manager::{InstallMode, OsType};
-use crate::core::shared::utils::get_stack_path;
-use crate::security::command_guard::SafeCommand;
 use anyhow::{Context, Result};
 use log::{error, info, trace, warn};
-use serde::Deserialize;
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::io::Write;
 
 #[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
 
 #[derive(Deserialize, Debug)]
 struct ComponentEntry {
@@ -1793,7 +1788,7 @@ VAULT_CACERT={}
 
     /// Recover existing Vault installation (already initialized but may be sealed)
     fn recover_existing_vault(&self) -> Result<()> {
-        use std::io::Write;
+
 
         info!("Recovering existing Vault installation...");
 
@@ -1978,3 +1973,10 @@ VAULT_CACERT={}
         Ok(())
     }
 }
+
+use botcore::shared::utils::get_stack_path;
+use crate::security::command_guard::SafeCommand;
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::os::unix::fs::PermissionsExt;

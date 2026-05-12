@@ -19,15 +19,7 @@ pub async fn ensure_vendor_files_in_minio(drive: &crate::drive::s3_repository::S
     let bucket = "default.gbai";
     let key = "default.gblib/vendor/htmx.min.js";
 
-    match drive
-        .put_object()
-        .bucket(bucket)
-        .key(key)
-        .body(content.clone())
-        .content_type("application/javascript")
-        .send()
-        .await
-    {
+    match drive.put_object_direct(bucket, key, content.clone(), Some("application/javascript")).await {
         Ok(_) => info!("Uploaded vendor file to MinIO: s3://{}/{}", bucket, key),
         Err(e) => warn!("Failed to upload vendor file to MinIO: {}", e),
     }

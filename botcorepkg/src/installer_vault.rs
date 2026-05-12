@@ -287,13 +287,12 @@ VAULT_CACERT={}
         }
     }
 
-    installer_vault2::seed_vault_defaults(base_path, &vault_addr, root_token, &ca_cert, &vault_bin)?;
+    installer_vault2::seed_vault_defaults(&vault_addr, root_token, &ca_cert, &vault_bin)?;
 
     Ok(())
 }
 
 pub fn vault_seeds_exist(
-    base_path: &std::path::Path,
     vault_addr: &str,
     root_token: &str,
     ca_cert: &std::path::Path,

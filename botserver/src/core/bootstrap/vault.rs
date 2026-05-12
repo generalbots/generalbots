@@ -2,7 +2,7 @@
 //!
 //! Extracted from mod.rs
 
-use crate::core::shared::utils::get_stack_path;
+use botcore::shared::utils::get_stack_path;
 use anyhow::Result;
 use log::info;
 use std::env;

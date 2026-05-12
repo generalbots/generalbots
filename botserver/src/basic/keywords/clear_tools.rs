@@ -1,9 +1,8 @@
 use crate::basic::keywords::use_tool::clear_session_tools;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
 
 pub fn clear_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -92,3 +91,5 @@ fn clear_all_tools_from_session(state: &AppState, user: &UserSession) -> Result<
         }
     }
 }
+
+use std::sync::Arc;

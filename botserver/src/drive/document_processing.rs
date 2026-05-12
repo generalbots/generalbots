@@ -74,28 +74,18 @@ pub async fn merge_documents(
     let mut merged_content = String::new();
     let format = req.format.as_deref().unwrap_or("txt");
 
-    for (idx, path) in req.source_paths.iter().enumerate() {
-        let result = s3_client
-            .get_object()
-            .bucket(&req.bucket)
-            .key(path)
-            .send()
-            .await
-            .map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": format!("Failed to read document {}: {}", path, e) })),
-                )
-            })?;
+for (idx, path) in req.source_paths.iter().enumerate() {
+let bytes = s3_client
+.get_object(&req.bucket, path)
+.await
+.map_err(|e| {
+(
+StatusCode::INTERNAL_SERVER_ERROR,
+Json(serde_json::json!({ "error": format!("Failed to read document {}: {}", path, e) })),
+)
+})?;
 
-        let bytes = result.body.collect().await.map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": format!("Failed to read document body: {}", e) })),
-            )
-        })?.into_bytes();
-
-        let content = String::from_utf8(bytes.to_vec()).map_err(|e| {
+let content = String::from_utf8(bytes).map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({ "error": format!("Document is not valid UTF-8: {}", e) })),
@@ -112,11 +102,7 @@ pub async fn merge_documents(
     }
 
     s3_client
-        .put_object()
-        .bucket(&req.bucket)
-        .key(&req.output_path)
-        .body(merged_content.into_bytes())
-        .send()
+        .put_object(&req.bucket, &req.output_path, merged_content.into_bytes(), None)
         .await
         .map_err(|e| {
             (
@@ -150,11 +136,8 @@ pub async fn convert_document(
         )
     })?;
 
-    let result = s3_client
-        .get_object()
-        .bucket(&req.bucket)
-        .key(&req.source_path)
-        .send()
+    let bytes = s3_client
+        .get_object(&req.bucket, &req.source_path)
         .await
         .map_err(|e| {
             (
@@ -162,20 +145,6 @@ pub async fn convert_document(
                 Json(serde_json::json!({ "error": format!("Failed to read source document: {}", e) })),
             )
         })?;
-
-    let bytes = result
-        .body
-        .collect()
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    serde_json::json!({ "error": format!("Failed to read document body: {}", e) }),
-                ),
-            )
-        })?
-        .into_bytes();
 
     let source_content = String::from_utf8(bytes.to_vec()).map_err(|e| {
         (
@@ -291,11 +260,7 @@ pub async fn convert_document(
     };
 
     s3_client
-        .put_object()
-        .bucket(&req.bucket)
-        .key(&req.output_path)
-        .body(converted_content.into_bytes())
-        .send()
+        .put_object(&req.bucket, &req.output_path, converted_content.into_bytes(), None)
         .await
         .map_err(|e| {
             (
@@ -329,11 +294,8 @@ pub async fn fill_document(
         )
     })?;
 
-    let result = s3_client
-        .get_object()
-        .bucket(&req.bucket)
-        .key(&req.template_path)
-        .send()
+    let bytes = s3_client
+        .get_object(&req.bucket, &req.template_path)
         .await
         .map_err(|e| {
             (
@@ -341,20 +303,6 @@ pub async fn fill_document(
                 Json(serde_json::json!({ "error": format!("Failed to read template: {}", e) })),
             )
         })?;
-
-    let bytes = result
-        .body
-        .collect()
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    serde_json::json!({ "error": format!("Failed to read template body: {}", e) }),
-                ),
-            )
-        })?
-        .into_bytes();
 
     let mut template = String::from_utf8(bytes.to_vec()).map_err(|e| {
         (
@@ -378,11 +326,7 @@ pub async fn fill_document(
     }
 
     s3_client
-        .put_object()
-        .bucket(&req.bucket)
-        .key(&req.output_path)
-        .body(template.into_bytes())
-        .send()
+        .put_object(&req.bucket, &req.output_path, template.into_bytes(), None)
         .await
         .map_err(|e| {
             (
@@ -413,32 +357,16 @@ pub async fn export_document(
         )
     })?;
 
-    let result = s3_client
-        .get_object()
-        .bucket(&req.bucket)
-        .key(&req.source_path)
-        .send()
+    let bytes = s3_client
+        .get_object(&req.bucket, &req.source_path)
         .await
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({ "error": format!("Failed to read document: {}", e) })),
             )
-        })?;
-
-    let bytes = result
-        .body
-        .collect()
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    serde_json::json!({ "error": format!("Failed to read document body: {}", e) }),
-                ),
-            )
-        })?
-        .into_bytes();
+})?
+    ;
 
     let content = String::from_utf8(bytes.to_vec()).map_err(|e| {
         (
@@ -527,11 +455,7 @@ pub async fn import_document(
     };
 
     s3_client
-        .put_object()
-        .bucket(&req.bucket)
-        .key(&req.output_path)
-        .body(processed_content.into_bytes())
-        .send()
+        .put_object(&req.bucket, &req.output_path, processed_content.into_bytes(), None)
         .await
         .map_err(|e| {
             (

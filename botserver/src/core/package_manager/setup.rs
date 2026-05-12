@@ -1,8 +1,6 @@
 use anyhow::Result;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use reqwest::Client;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectoryConfig {
@@ -115,7 +113,7 @@ impl DirectorySetup {
     /// The steps YAML configures FirstInstance.Org.PatPath which tells Zitadel to
     /// create a machine user with IAM_OWNER role and write its PAT to disk
     fn load_pat_token(&mut self) -> Result<()> {
-        let stack_path = crate::core::shared::utils::get_stack_path();
+        let stack_path = botcore::shared::utils::get_stack_path();
 
         let pat_path = PathBuf::from(&stack_path).join("conf/directory/admin-pat.txt");
 
@@ -138,7 +136,7 @@ impl DirectorySetup {
         }
 
         // Also check the legacy location
-        let stack = crate::core::shared::utils::get_stack_path();
+        let stack = botcore::shared::utils::get_stack_path();
         let legacy_pat_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-pat.txt", stack));
         if legacy_pat_path.exists() {
             let pat_token = std::fs::read_to_string(legacy_pat_path)
@@ -336,3 +334,6 @@ mod tests {
         assert!(json.contains("test_secret"));
     }
 }
+
+use std::path::PathBuf;
+use reqwest::Client;

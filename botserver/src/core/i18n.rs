@@ -7,10 +7,6 @@ use axum::{
     Json, Router,
 };
 use botlib::i18n::{self, Locale as BotlibLocale, MessageArgs as BotlibMessageArgs};
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Locale {
@@ -160,7 +156,7 @@ fn negotiate_locale(requested: &[(String, f32)]) -> Option<Locale> {
     Some(Locale::default())
 }
 
-pub type MessageArgs = HashMap<String, String>;
+pub type MessageArgs = botlib::i18n::MessageArgs;
 
 pub fn init_i18n(locales_path: &str) -> Result<(), String> {
     i18n::init(locales_path).map_err(|e| format!("Failed to initialize i18n: {e}"))
@@ -1013,3 +1009,6 @@ mod tests {
         assert!(!locales.is_empty());
     }
 }
+
+use std::sync::Arc;
+use botcore::shared::state::AppState;

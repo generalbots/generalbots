@@ -1,0 +1,25 @@
+[package]
+name = "botbasic_types"
+version = "6.3.0"
+edition = "2021"
+description = "Shared types and runtime trait for BASIC keyword crates"
+license = "AGPL-3.0"
+
+[features]
+default = []
+database = []
+
+[dependencies]
+botlib = { workspace = true, features = ["database", "http-client"] }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+rhai = { workspace = true, features = ["sync"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+chrono = { workspace = true, features = ["clock", "std"] }
+uuid = { workspace = true, features = ["v4"] }
+log = { workspace = true }
+redis = { workspace = true, features = ["tokio-comp"] }
+tokio = { workspace = true, features = ["sync"] }
+
+[lints]
+workspace = true

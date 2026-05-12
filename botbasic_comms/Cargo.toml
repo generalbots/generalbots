@@ -1,0 +1,42 @@
+[package]
+name = "botbasic_comms"
+version = "6.3.0"
+edition = "2021"
+description = "BASIC communication keywords - messaging, email, SMS, social, chat, webhooks, calendar"
+license = "AGPL-3.0"
+
+[features]
+default = []
+chat = []
+mail = []
+social = []
+automation = []
+meet = []
+calendar = []
+video = []
+
+[dependencies]
+botschema = { workspace = true }
+botlib = { workspace = true, features = ["database", "http-client"] }
+botbasic_types = { path = "../botbasic_types" }
+botbasic_core = { path = "../botbasic_core" }
+botbasic_data = { path = "../botbasic_data" }
+rhai = { workspace = true, features = ["sync"] }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+chrono = { workspace = true, features = ["clock", "std"] }
+uuid = { workspace = true, features = ["v4"] }
+regex = { workspace = true }
+log = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls", "json", "multipart"] }
+icalendar = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
+redis = { workspace = true, features = ["r2d2", "cluster"] }
+base64 = { workspace = true }
+urlencoding = { workspace = true }
+num-format = { workspace = true }
+bigdecimal = { workspace = true }
+
+[lints]
+workspace = true

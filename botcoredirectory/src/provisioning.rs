@@ -73,8 +73,8 @@ impl UserProvisioningService {
         }
     }
 
-    pub fn get_base_url(&self) -> &str {
-        &self.base_url
+    pub fn get_base_url(&self) -> String {
+        self.base_url.clone()
     }
 
     pub fn build_profile_url(&self, username: &str) -> String {

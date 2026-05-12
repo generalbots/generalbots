@@ -1,0 +1,180 @@
+use botbasic_types::UserSession;
+use botbasic_types::BasicRuntime;
+use diesel::prelude::*;
+use log::{error, info};
+use rhai::{Dynamic, Engine};
+use std::sync::Arc;
+use uuid::Uuid;
+
+#[derive(QueryableByName)]
+struct CountResult {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    count: i64,
+}
+
+pub fn register_clear_kb_keyword(
+    state: Arc<dyn BasicRuntime>,
+    user: UserSession,
+    engine: &mut Engine,
+) {
+    let state_clone = state;
+    let session_clone = user;
+    let state_for_all = state_clone.clone();
+
+    engine.register_custom_syntax(["CLEAR", "KB", "$expr$"], true, move |context, inputs| {
+        let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
+
+        info!(
+            "CLEAR KB keyword executed - KB: {}, Session: {}",
+            kb_name, session_clone.id
+        );
+
+        let session_id = session_clone.id;
+        let conn = state_clone.db_pool().clone();
+        let kb_name_clone = kb_name.clone();
+
+        let result =
+            std::thread::spawn(move || clear_specific_kb(conn, session_id, &kb_name_clone)).join();
+
+        match result {
+            Ok(Ok(_)) => {
+                info!(
+                    " KB '{}' removed from session {}",
+                    kb_name, session_clone.id
+                );
+                Ok(Dynamic::UNIT)
+            }
+            Ok(Err(e)) => {
+                error!("Failed to clear KB '{}': {}", kb_name, e);
+                Err(format!("CLEAR KB failed: {}", e).into())
+            }
+            Err(e) => {
+                error!("Thread panic in CLEAR KB: {:?}", e);
+                Err("CLEAR KB failed: thread panic".into())
+            }
+        }
+    })
+    .expect("valid CLEAR KB syntax registration");
+
+    let state_clone2 = state_for_all.clone();
+    let session_clone2 = session_clone.clone();
+
+    engine.register_custom_syntax(["CLEAR", "KB"], true, move |_context, _inputs| {
+        info!(
+            "CLEAR KB (all) keyword executed - Session: {}",
+            session_clone2.id
+        );
+
+        let session_id = session_clone2.id;
+        let conn = state_clone2.db_pool().clone();
+
+        let result = std::thread::spawn(move || clear_all_kbs(conn, session_id)).join();
+
+        match result {
+            Ok(Ok(count)) => {
+                let pool = state_clone2.db_pool().clone();
+                let remaining_count =
+                    get_active_kb_count(&pool, session_clone2.id).unwrap_or(0);
+                info!(
+                    "Successfully cleared {} KB associations for session {}, {} remaining active",
+                    count, session_clone2.id, remaining_count
+                );
+                Ok(Dynamic::UNIT)
+            }
+            Ok(Err(e)) => {
+                error!("Failed to clear all KBs: {}", e);
+                Err(format!("CLEAR KB failed: {}", e).into())
+            }
+            Err(e) => {
+                error!("Thread panic in CLEAR KB: {:?}", e);
+                Err("CLEAR KB failed: thread panic".into())
+            }
+        }
+    })
+    .expect("valid CLEAR KB (all) syntax registration");
+}
+
+fn clear_specific_kb(
+    conn_pool: botbasic_types::types::DbPool,
+    session_id: Uuid,
+    kb_name: &str,
+) -> Result<(), String> {
+    let mut conn = conn_pool
+        .get()
+        .map_err(|e| format!("Failed to get DB connection: {}", e))?;
+
+    let rows_affected = diesel::sql_query(
+        "UPDATE session_kb_associations
+        SET is_active = false
+        WHERE session_id = $1 AND kb_name = $2 AND is_active = true",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(session_id)
+    .bind::<diesel::sql_types::Text, _>(kb_name)
+    .execute(&mut conn)
+    .map_err(|e| format!("Failed to clear KB: {}", e))?;
+
+    let remaining_count = get_active_kb_count(&conn_pool, session_id).unwrap_or(0);
+
+    if rows_affected == 0 {
+        info!(
+            "KB '{}' was not active in session {} or not found",
+            kb_name, session_id
+        );
+    } else {
+        info!(
+            " Cleared KB '{}' from session {}, {} KB(s) remaining active",
+            kb_name, session_id, remaining_count
+        );
+    }
+
+    Ok(())
+}
+
+fn clear_all_kbs(
+    conn_pool: botbasic_types::types::DbPool,
+    session_id: Uuid,
+) -> Result<usize, String> {
+    let mut conn = conn_pool
+        .get()
+        .map_err(|e| format!("Failed to get DB connection: {}", e))?;
+
+    let rows_affected = diesel::sql_query(
+        "UPDATE session_kb_associations
+        SET is_active = false
+        WHERE session_id = $1 AND is_active = true",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(session_id)
+    .execute(&mut conn)
+    .map_err(|e| format!("Failed to clear all KBs: {}", e))?;
+
+    if rows_affected > 0 {
+        info!(
+            " Cleared {} active KBs from session {}",
+            rows_affected, session_id
+        );
+    } else {
+        info!("No active KBs to clear in session {}", session_id);
+    }
+
+    Ok(rows_affected)
+}
+
+pub fn get_active_kb_count(
+    conn_pool: &botbasic_types::types::DbPool,
+    session_id: Uuid,
+) -> Result<i64, String> {
+    let mut conn = conn_pool
+        .get()
+        .map_err(|e| format!("Failed to get DB connection: {}", e))?;
+
+    let result: CountResult = diesel::sql_query(
+        "SELECT COUNT(*) as count
+        FROM session_kb_associations
+        WHERE session_id = $1 AND is_active = true",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(session_id)
+    .get_result(&mut conn)
+    .map_err(|e| format!("Failed to get KB count: {}", e))?;
+
+    Ok(result.count)
+}

@@ -37,29 +37,26 @@ impl FileTree {
         self.items.clear();
         self.current_bucket = None;
         self.current_path.clear();
-        if let Some(drive) = &self.app_state.drive {
-            let result = drive.list_buckets().send().await;
-            match result {
-                Ok(response) => {
-                    let buckets = response.buckets();
-                    for bucket in buckets {
-                        if let Some(name) = bucket.name() {
-                            let icon = if has_extension_ci(name, "gbai") {
-                                ""
-                            } else {
-                                "📦"
-                            };
-                            let display = format!("{} {}", icon, name);
-                            self.items.push((
-                                display,
-                                TreeNode::Bucket {
-                                    name: name.to_string(),
-                                },
-                            ));
-                        }
-                    }
+    if let Some(drive) = &self.app_state.drive {
+        let result = drive.list_all_buckets().await;
+        match result {
+            Ok(buckets) => {
+                for name in &buckets {
+                    let icon = if has_extension_ci(name, "gbai") {
+                        ""
+                    } else {
+                        "📦"
+                    };
+                    let display = format!("{} {}", icon, name);
+                    self.items.push((
+                        display,
+                        TreeNode::Bucket {
+                            name: name.to_string(),
+                        },
+                    ));
                 }
-                Err(e) => {
+            }
+            Err(e) => {
                     self.items.push((
                         format!("x Error: {}", e),
                         TreeNode::Bucket {
@@ -132,33 +129,15 @@ impl FileTree {
         ));
         if let Some(drive) = &self.app_state.drive {
             let normalized_prefix = if prefix.is_empty() {
-                String::new()
+                None
             } else if prefix.ends_with('/') {
-                prefix.to_string()
+                Some(prefix.to_string())
             } else {
-                format!("{}/", prefix)
+                Some(format!("{}/", prefix))
             };
-            let mut continuation_token = None;
-            let mut all_keys = Vec::new();
-            loop {
-                let mut request = drive.list_objects_v2().bucket(bucket);
-                if !normalized_prefix.is_empty() {
-                    request = request.prefix(&normalized_prefix);
-                }
-                if let Some(token) = continuation_token {
-                    request = request.continuation_token(token);
-                }
-                let result = request.send().await?;
-                for obj in result.contents() {
-                    if let Some(key) = obj.key() {
-                        all_keys.push(key.to_string());
-                    }
-                }
-                if !result.is_truncated.unwrap_or(false) {
-                    break;
-                }
-                continuation_token = result.next_continuation_token;
-            }
+            let prefix_ref = normalized_prefix.as_deref();
+            let keys = drive.list_objects(bucket, prefix_ref).await.map_err(|e| anyhow::anyhow!("{e}"))?;
+            let all_keys = keys;
             let mut folders = std::collections::HashSet::new();
             let mut files = Vec::new();
             for key in all_keys {

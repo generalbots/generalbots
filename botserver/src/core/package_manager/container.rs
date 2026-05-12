@@ -1,8 +1,6 @@
 use crate::core::package_manager::PackageManager;
 use crate::security::command_guard::SafeCommand;
 use anyhow::{Context, Result};
-use log::info;
-use std::path::Path;
 
 /// NAT rule configuration for container port forwarding
 #[derive(Debug, Clone)]
@@ -783,3 +781,6 @@ WantedBy=multi-user.target
 }
 // CI trigger
 // CI trigger Fri Apr 17 17:34:16 -03 2026
+
+use log::info;
+use std::path::Path;

@@ -3,9 +3,8 @@
 //! This module contains all type definitions for the Face API keywords including
 //! image sources, face sources, detection options, and attribute types.
 
-use crate::botmodels::DetectedFace;
+use botmodelsbridge::DetectedFace;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 // ============================================================================
 // Keyword Definitions
@@ -248,3 +247,5 @@ pub enum FaceAttributeType {
     Makeup,
     QualityForRecognition,
 }
+
+use uuid::Uuid;

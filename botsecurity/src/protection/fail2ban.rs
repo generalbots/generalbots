@@ -87,7 +87,7 @@ impl Fail2banManager {
             .arg("file")?
             .arg("push")?
             .arg("/tmp/gb-caddy-filter.conf")?
-            .arg(&format!("{PROXY_CONTAINER}/etc/fail2ban/filter.d/caddy.conf"))?
+            .arg(format!("{PROXY_CONTAINER}/etc/fail2ban/filter.d/caddy.conf"))?
             .execute()
             .context("lxc file push caddy filter failed")?;
 
@@ -98,7 +98,7 @@ impl Fail2banManager {
             .arg("file")?
             .arg("push")?
             .arg("/tmp/gb-proxy-defaults.conf")?
-            .arg(&format!("{PROXY_CONTAINER}/etc/fail2ban/jail.d/defaults-debian.conf"))?
+            .arg(format!("{PROXY_CONTAINER}/etc/fail2ban/jail.d/defaults-debian.conf"))?
             .execute()
             .context("lxc file push proxy defaults failed")?;
 
@@ -109,7 +109,7 @@ impl Fail2banManager {
             .arg("file")?
             .arg("push")?
             .arg("/tmp/gb-proxy-jail.local")?
-            .arg(&format!("{PROXY_CONTAINER}/etc/fail2ban/jail.local"))?
+            .arg(format!("{PROXY_CONTAINER}/etc/fail2ban/jail.local"))?
             .execute()
             .context("lxc file push proxy jail.local failed")?;
 

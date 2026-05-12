@@ -54,6 +54,12 @@ pub fn strip_think_tags(content: &str) -> String {
 #[derive(Debug)]
 pub struct MinimaxHandler;
 
+impl Default for MinimaxHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MinimaxHandler {
     pub fn new() -> Self {
         Self

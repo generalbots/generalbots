@@ -1,0 +1,36 @@
+[package]
+name = "botbasic_ai"
+version = "6.3.0"
+edition = "2021"
+description = "BASIC AI/intelligence keywords - LLM, AI tools, MCP, sandbox, orchestration, web scraping"
+license = "AGPL-3.0"
+
+[features]
+default = []
+llm = []
+automation = []
+
+[dependencies]
+botbasic_types = { path = "../botbasic_types" }
+botlib = { workspace = true }
+botschema = { workspace = true }
+rhai = { workspace = true, features = ["sync"] }
+
+base64 = { workspace = true }
+chrono = { workspace = true, features = ["clock", "std"] }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+log = { workspace = true }
+png = { workspace = true }
+qrcode = { workspace = true }
+redis = { workspace = true, features = ["r2d2", "cluster"] }
+reqwest = { workspace = true, features = ["rustls-tls", "json", "multipart"] }
+scraper = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+rss = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,9 +1,6 @@
 use chrono::{DateTime, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use tracing::info;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KgEntity {
@@ -745,3 +742,7 @@ pub mod entity_types {
     pub const SKILL: &str = "skill";
     pub const TECHNOLOGY: &str = "technology";
 }
+
+use std::collections::HashMap;
+use tracing::info;
+use uuid::Uuid;

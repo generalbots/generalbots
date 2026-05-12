@@ -28,14 +28,11 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::core::config::ConfigManager;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::config::ConfigManager;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{error, trace};
 use rhai::{Array, Dynamic, Engine, Map};
-use std::sync::Arc;
-use std::time::Duration;
-use uuid::Uuid;
 
 pub fn register_llm_macros(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_calculate_keyword(state.clone(), user.clone(), engine);
@@ -59,6 +56,8 @@ async fn call_llm(
     let handler = crate::llm::llm_models::get_handler(&model);
     let raw_response = state
         .llm_provider
+        .as_ref()
+        .ok_or("LLM provider not configured")?
         .generate(prompt, &serde_json::Value::Null, &model, &key)
         .await?;
     let processed = handler.process_content(&raw_response);
@@ -423,3 +422,7 @@ fn dynamic_to_json(data: &Dynamic) -> serde_json::Value {
         serde_json::Value::String(data.to_string())
     }
 }
+
+use std::sync::Arc;
+use std::time::Duration;
+use uuid::Uuid;

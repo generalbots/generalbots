@@ -1,11 +1,6 @@
 use crate::core::secrets::{SecretPaths, SecretsManager};
 use crate::core::package_manager::{get_all_components, InstallMode, PackageManager};
-use crate::security::command_guard::SafeCommand;
 use crate::security::protection::{ProtectionInstaller, VerifyResult};
-use anyhow::Result;
-use rand::Rng;
-use std::collections::HashMap;
-use std::env;
 
 fn safe_pkill(args: &[&str]) {
     if let Ok(cmd) = SafeCommand::new("pkill").and_then(|c| c.args(args)) {
@@ -1291,3 +1286,9 @@ async fn vault_health() -> Result<()> {
 
     Ok(())
 }
+
+use crate::security::command_guard::SafeCommand;
+use anyhow::Result;
+use rand::Rng;
+use std::collections::HashMap;
+use std::env;

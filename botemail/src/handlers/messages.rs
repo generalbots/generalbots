@@ -1,21 +1,22 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
-    response::IntoResponse,
     Json,
 };
 use base64::{engine::general_purpose, Engine as _};
 use diesel::prelude::*;
 use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use log::info;
+#[cfg(feature = "mail")]
 use mailparse::{parse_mail, MailHeaderMap};
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::models::{
-    extract_user_from_session, AppState, EmailError, EmailSummary, EmailContent,
-    ImapCredentialsRow, SmtpCredentialsRow,
+    extract_user_from_session, AppState, EmailError,
+    SmtpCredentialsRow,
 };
+#[cfg(feature = "mail")]
+use crate::models::ImapCredentialsRow;
 use crate::types::{
     ApiResponse, EmailResponse, FolderInfo, ListEmailsRequest, SaveDraftRequest,
     SaveDraftResponse, SendEmailRequest, EmailTrackingParams,
@@ -29,6 +30,7 @@ fn decrypt_password(encrypted: &str) -> Result<String, String> {
         .and_then(|bytes| String::from_utf8(bytes).map_err(|e| format!("UTF-8 conversion failed: {e}")))
 }
 
+#[cfg(feature = "mail")]
 fn parse_from_field(from: &str) -> (String, String) {
     if let Some(start) = from.find('<') {
         if let Some(end) = from.find('>') {
@@ -40,6 +42,7 @@ fn parse_from_field(from: &str) -> (String, String) {
     (String::new(), from.to_string())
 }
 
+#[cfg(feature = "mail")]
 fn format_email_time(date_str: &str) -> String {
     if date_str.is_empty() {
         return "Unknown".to_string();
@@ -47,6 +50,7 @@ fn format_email_time(date_str: &str) -> String {
     date_str.split_whitespace().take(4).collect::<Vec<_>>().join(" ")
 }
 
+#[cfg(feature = "mail")]
 pub async fn list_emails(
     State(state): State<Arc<AppState>>,
     Json(request): Json<ListEmailsRequest>,
@@ -54,101 +58,100 @@ pub async fn list_emails(
     let account_uuid = Uuid::parse_str(&request.account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-    let pool = state.pool.clone();
-    let account_info = tokio::task::spawn_blocking(move || {
-        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
+    let (imap_server, imap_port, username, encrypted_password) = {
+        let pool = state.pool.clone();
+        let account_info = tokio::task::spawn_blocking(move || {
+            let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
 
-        let result: ImapCredentialsRow = diesel::sql_query(
-            "SELECT imap_server, imap_port, username, password_encrypted FROM user_email_accounts WHERE id = $1 AND is_active = true"
-        )
+            let result: ImapCredentialsRow = diesel::sql_query(
+                "SELECT imap_server, imap_port, username, password_encrypted FROM user_email_accounts WHERE id = $1 AND is_active = true"
+            )
             .bind::<diesel::sql_types::Uuid, _>(account_uuid)
             .get_result(&mut db_conn)
             .map_err(|e| format!("Account not found: {e}"))?;
 
-        Ok::<_, String>(result)
-    })
-    .await
-    .map_err(|e| EmailError(format!("Task join error: {e}")))?
-    .map_err(EmailError)?;
+            Ok::<_, String>(result)
+        })
+        .await
+        .map_err(|e| EmailError(format!("Task join error: {e}")))?.map_err(EmailError)?;
 
-    let (imap_server, imap_port, username, encrypted_password) = (
-        account_info.imap_server, account_info.imap_port,
-        account_info.username, account_info.password_encrypted,
-    );
+        (account_info.imap_server, account_info.imap_port,
+        account_info.username, account_info.password_encrypted)
+    };
+
     let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
+    let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
+        .connect()
+        .map_err(|e| EmailError(format!("Failed to connect to IMAP: {e:?}")))?;
 
-    #[cfg(feature = "mail")]
-    {
-        let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
-            .connect()
-            .map_err(|e| EmailError(format!("Failed to connect to IMAP: {e:?}")))?;
+    let mut session = client
+        .login(&username, &password)
+        .map_err(|e| EmailError(format!("Login failed: {e:?}")))?;
 
-        let mut session = client
-            .login(&username, &password)
-            .map_err(|e| EmailError(format!("Login failed: {e:?}")))?;
+    let folder = request.folder.unwrap_or_else(|| "INBOX".to_string());
+    session.select(&folder)
+        .map_err(|e| EmailError(format!("Failed to select folder: {e:?}")))?;
 
-        let folder = request.folder.unwrap_or_else(|| "INBOX".to_string());
-        session.select(&folder)
-            .map_err(|e| EmailError(format!("Failed to select folder: {e:?}")))?;
+    let messages = session.search("ALL")
+        .map_err(|e| EmailError(format!("Failed to search emails: {e:?}")))?;
 
-        let messages = session.search("ALL")
-            .map_err(|e| EmailError(format!("Failed to search emails: {e:?}")))?;
+    let mut email_list = Vec::new();
+    let limit = request.limit.unwrap_or(50);
+    let offset = request.offset.unwrap_or(0);
 
-        let mut email_list = Vec::new();
-        let limit = request.limit.unwrap_or(50);
-        let offset = request.offset.unwrap_or(0);
+    let mut recent_messages: Vec<_> = messages.iter().copied().collect();
+    recent_messages.sort_by(|a, b| b.cmp(a));
+    let recent_messages: Vec<_> = recent_messages.into_iter().skip(offset).take(limit).collect();
 
-        let mut recent_messages: Vec<_> = messages.iter().copied().collect();
-        recent_messages.sort_by(|a, b| b.cmp(a));
-        let recent_messages: Vec<_> = recent_messages.into_iter().skip(offset).take(limit).collect();
+    for seq in recent_messages {
+        let fetch_result = session.fetch(seq.to_string(), "RFC822");
+        let msgs = fetch_result.map_err(|e| EmailError(format!("Failed to fetch email: {e:?}")))?;
 
-        for seq in recent_messages {
-            let fetch_result = session.fetch(seq.to_string(), "RFC822");
-            let msgs = fetch_result.map_err(|e| EmailError(format!("Failed to fetch email: {e:?}")))?;
+        for msg in msgs.iter() {
+            let body = msg.body().ok_or_else(|| EmailError("No body found".to_string()))?;
+            let parsed = parse_mail(body).map_err(|e| EmailError(format!("Failed to parse email: {e:?}")))?;
 
-            for msg in msgs.iter() {
-                let body = msg.body().ok_or_else(|| EmailError("No body found".to_string()))?;
-                let parsed = parse_mail(body).map_err(|e| EmailError(format!("Failed to parse email: {e:?}")))?;
+            let headers = parsed.get_headers();
+            let subject = headers.get_first_value("Subject").unwrap_or_default();
+            let from = headers.get_first_value("From").unwrap_or_default();
+            let to = headers.get_first_value("To").unwrap_or_default();
+            let date = headers.get_first_value("Date").unwrap_or_default();
 
-                let headers = parsed.get_headers();
-                let subject = headers.get_first_value("Subject").unwrap_or_default();
-                let from = headers.get_first_value("From").unwrap_or_default();
-                let to = headers.get_first_value("To").unwrap_or_default();
-                let date = headers.get_first_value("Date").unwrap_or_default();
+            let body_text = parsed.subparts.iter()
+                .find(|p| p.ctype.mimetype == "text/plain")
+                .map_or_else(|| parsed.get_body().unwrap_or_default(), |bp| bp.get_body().unwrap_or_default());
+            let body_html = parsed.subparts.iter()
+                .find(|p| p.ctype.mimetype == "text/html")
+                .map_or_else(String::new, |bp| bp.get_body().unwrap_or_default());
 
-                let body_text = parsed.subparts.iter()
-                    .find(|p| p.ctype.mimetype == "text/plain")
-                    .map_or_else(|| parsed.get_body().unwrap_or_default(), |bp| bp.get_body().unwrap_or_default());
-                let body_html = parsed.subparts.iter()
-                    .find(|p| p.ctype.mimetype == "text/html")
-                    .map_or_else(String::new, |bp| bp.get_body().unwrap_or_default());
+            let preview: String = body_text.lines().take(3).collect::<Vec<_>>().join(" ");
+            let preview_truncated = if preview.len() > 150 { format!("{}...", &preview[..150]) } else { preview };
 
-                let preview: String = body_text.lines().take(3).collect::<Vec<_>>().join(" ");
-                let preview_truncated = if preview.len() > 150 { format!("{}...", &preview[..150]) } else { preview };
+            let (from_name, from_email) = parse_from_field(&from);
+            let has_attachments = parsed.subparts.iter().any(|p| {
+                p.get_content_disposition().disposition == mailparse::DispositionType::Attachment
+            });
 
-                let (from_name, from_email) = parse_from_field(&from);
-                let has_attachments = parsed.subparts.iter().any(|p| {
-                    p.get_content_disposition().disposition == mailparse::DispositionType::Attachment
-                });
-
-                email_list.push(EmailResponse {
-                    id: seq.to_string(), from_name, from_email, to, subject,
-                    preview: preview_truncated,
-                    body: if body_html.is_empty() { body_text } else { body_html },
-                    date: format_email_time(&date), time: format_email_time(&date),
-                    read: false, folder: folder.clone(), has_attachments,
-                });
-            }
+            email_list.push(EmailResponse {
+                id: seq.to_string(), from_name, from_email, to, subject,
+                preview: preview_truncated,
+                body: if body_html.is_empty() { body_text } else { body_html },
+                date: format_email_time(&date), time: format_email_time(&date),
+                read: false, folder: folder.clone(), has_attachments,
+            });
         }
-
-        session.logout().ok();
-        Ok(Json(ApiResponse { success: true, data: Some(email_list), message: None }))
     }
 
-    #[cfg(not(feature = "mail"))]
-    {
-        Ok(Json(ApiResponse { success: false, data: Some(Vec::new()), message: Some("Mail feature not enabled".to_string()) }))
-    }
+    session.logout().ok();
+    Ok(Json(ApiResponse { success: true, data: Some(email_list), message: None }))
+}
+
+#[cfg(not(feature = "mail"))]
+pub async fn list_emails(
+    State(_state): State<Arc<AppState>>,
+    Json(_request): Json<ListEmailsRequest>,
+) -> Result<Json<ApiResponse<Vec<EmailResponse>>>, EmailError> {
+    Ok(Json(ApiResponse { success: false, data: Some(Vec::new()), message: Some("Mail feature not enabled".to_string()) }))
 }
 
 pub async fn send_email(
@@ -295,6 +298,7 @@ pub async fn save_draft(
     }))
 }
 
+#[cfg(feature = "mail")]
 pub async fn list_folders(
     State(state): State<Arc<AppState>>,
     Path(account_id): Path<String>,
@@ -302,52 +306,51 @@ pub async fn list_folders(
     let account_uuid = Uuid::parse_str(&account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-    let pool = state.pool.clone();
-    let account_info = tokio::task::spawn_blocking(move || {
-        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
+    let (imap_server, imap_port, username, encrypted_password) = {
+        let pool = state.pool.clone();
+        let account_info = tokio::task::spawn_blocking(move || {
+            let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
 
-        let result: ImapCredentialsRow = diesel::sql_query(
-            "SELECT imap_server, imap_port, username, password_encrypted FROM user_email_accounts WHERE id = $1 AND is_active = true"
-        )
+            let result: ImapCredentialsRow = diesel::sql_query(
+                "SELECT imap_server, imap_port, username, password_encrypted FROM user_email_accounts WHERE id = $1 AND is_active = true"
+            )
             .bind::<diesel::sql_types::Uuid, _>(account_uuid)
             .get_result(&mut db_conn)
             .map_err(|e| format!("Account not found: {e}"))?;
 
-        Ok::<_, String>(result)
-    })
-    .await
-    .map_err(|e| EmailError(format!("Task join error: {e}")))?
-    .map_err(EmailError)?;
+            Ok::<_, String>(result)
+        })
+        .await
+        .map_err(|e| EmailError(format!("Task join error: {e}")))?.map_err(EmailError)?;
 
-    let (imap_server, imap_port, username, encrypted_password) = (
-        account_info.imap_server, account_info.imap_port,
-        account_info.username, account_info.password_encrypted,
-    );
+        (account_info.imap_server, account_info.imap_port,
+        account_info.username, account_info.password_encrypted)
+    };
+
     let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
+    let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
+        .connect().map_err(|e| EmailError(format!("Failed to connect to IMAP: {e:?}")))?;
+    let mut session = client.login(&username, &password)
+        .map_err(|e| EmailError(format!("Login failed: {e:?}")))?;
 
-    #[cfg(feature = "mail")]
-    {
-        let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
-            .connect().map_err(|e| EmailError(format!("Failed to connect to IMAP: {e:?}")))?;
-        let mut session = client.login(&username, &password)
-            .map_err(|e| EmailError(format!("Login failed: {e:?}")))?;
+    let folders = session.list(None, Some("*"))
+        .map_err(|e| EmailError(format!("Failed to list folders: {e:?}")))?;
 
-        let folders = session.list(None, Some("*"))
-            .map_err(|e| EmailError(format!("Failed to list folders: {e:?}")))?;
+    let folder_list: Vec<FolderInfo> = folders.iter()
+        .map(|f| FolderInfo {
+            name: f.name().to_string(), path: f.name().to_string(),
+            unread_count: 0, total_count: 0,
+        })
+        .collect();
 
-        let folder_list: Vec<FolderInfo> = folders.iter()
-            .map(|f| FolderInfo {
-                name: f.name().to_string(), path: f.name().to_string(),
-                unread_count: 0, total_count: 0,
-            })
-            .collect();
+    session.logout().ok();
+    Ok(Json(ApiResponse { success: true, data: Some(folder_list), message: None }))
+}
 
-        session.logout().ok();
-        Ok(Json(ApiResponse { success: true, data: Some(folder_list), message: None }))
-    }
-
-    #[cfg(not(feature = "mail"))]
-    {
-        Ok(Json(ApiResponse { success: false, data: Some(Vec::new()), message: Some("Mail feature not enabled".to_string()) }))
-    }
+#[cfg(not(feature = "mail"))]
+pub async fn list_folders(
+    State(_state): State<Arc<AppState>>,
+    Path(_account_id): Path<String>,
+) -> Result<Json<ApiResponse<Vec<FolderInfo>>>, EmailError> {
+    Ok(Json(ApiResponse { success: false, data: Some(Vec::new()), message: Some("Mail feature not enabled".to_string()) }))
 }

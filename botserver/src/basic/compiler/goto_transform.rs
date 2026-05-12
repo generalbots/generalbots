@@ -1,6 +1,4 @@
 use log::{trace, warn};
-use std::collections::HashSet;
-use std::fmt::Write;
 
 #[derive(Debug, Clone)]
 struct LabeledBlock {
@@ -305,3 +303,6 @@ fn transform_line(line: &str) -> String {
 
     trimmed.to_string()
 }
+
+use std::collections::HashSet;
+use std::fmt::Write;

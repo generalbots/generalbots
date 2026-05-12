@@ -1,12 +1,10 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{info, trace, warn};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[derive(Default)]
@@ -1012,3 +1010,6 @@ fn set_reflection_enabled(state: &AppState, bot_id: Uuid, enabled: bool) -> Resu
         if enabled { "enabled" } else { "disabled" }
     ))
 }
+
+use std::sync::Arc;
+use uuid::Uuid;

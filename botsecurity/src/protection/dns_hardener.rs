@@ -93,7 +93,7 @@ impl DnsHardener {
             .arg("file")?
             .arg("push")?
             .arg(host_tmp)?
-            .arg(&format!("{DNS_CONTAINER}{COREFILE_PATH}"))?
+            .arg(format!("{DNS_CONTAINER}{COREFILE_PATH}"))?
             .execute()
             .context("lxc file push Corefile failed")?;
 
