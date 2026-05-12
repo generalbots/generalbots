@@ -9,6 +9,7 @@ license = "AGPL-3.0"
 default = []
 llm = []
 automation = []
+cache = []
 
 [dependencies]
 botbasic_types = { path = "../botbasic_types" }
@@ -31,6 +32,14 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 rss = { workspace = true }
+
+botcore = { path = "../botcore" }
+botllm = { path = "../botllm" }
+botmultimodal = { path = "../botmultimodal" }
+botsecurity = { path = "../botsecurity" }
+axum = { workspace = true, features = ["ws", "macros"] }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
 
 [lints]
 workspace = true

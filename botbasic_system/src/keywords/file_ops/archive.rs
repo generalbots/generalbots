@@ -31,6 +31,7 @@
 use botbasic_types::schema::bots::dsl::*;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
+use std::sync::Arc;
 use diesel::prelude::*;
 use flate2::read::GzDecoder;
 use log::{error, trace};
@@ -81,7 +82,7 @@ pub async fn execute_compress(
     zip.finish()?;
 
     let archive_content = fs::read(&archive_path)?;
-    let client = state.drive_repository().as_ref().ok_or("S3 client not configured")?;
+    let client = state.drive_repository().ok_or("S3 client not configured")?;
     let bucket_name = format!("{bot_name}.gbai");
     let key = format!("{bot_name}.gbdrive/{archive_name}");
 
@@ -124,7 +125,7 @@ pub async fn execute_extract(
     archive: &str,
     destination: &str,
 ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
-    let client = state.drive_repository().as_ref().ok_or("S3 client not configured")?;
+    let client = state.drive_repository().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
@@ -141,17 +142,9 @@ pub async fn execute_extract(
     let archive_key = format!("{bot_name}.gbdrive/{archive}");
 
     let data = client
-        .get_object()
-        .bucket(&bucket_name)
-        .key(&archive_key)
-        .send()
+        .get_object(&bucket_name, &archive_key)
         .await
-        .map_err(|e| format!("S3 get failed: {e}"))?
-        .body
-        .collect()
-        .await
-        .map_err(|e| format!("Body collect failed: {e}"))?
-        .into_bytes();
+        .map_err(|e| format!("S3 get failed: {e}"))?;
 
     let temp_dir = std::env::temp_dir();
     let archive_path = temp_dir.join(archive);

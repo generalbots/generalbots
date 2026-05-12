@@ -264,9 +264,11 @@ botbasic_data = { path = "../botbasic_data" }
 botbasic_comms = { path = "../botbasic_comms" }
 botbasic_ai = { path = "../botbasic_ai" }
 botbasic_system = { path = "../botbasic_system" }
+botbasic_compiler = { path = "../botbasic_compiler" }
 botapi = { path = "../botapi" }
 botmeet = { path = "../botmeet" }
 botsettings = { path = "../botsettings" }
+botdrive = { path = "../botdrive" }
 
 # === EXTRACTED CRATES (optional - enabled by feature flags) ===
 botbilling = { workspace = true, optional = true }

@@ -1,3 +1,3 @@
-mod multimodal;
+pub mod multimodal;
 
 pub use multimodal::*;

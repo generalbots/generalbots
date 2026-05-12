@@ -2,10 +2,8 @@
 //!
 //! This module contains all result types returned by Face API operations.
 
-use botbasic_system::face_ext::{DetectedFace, FaceAttributes};
+use botmodelsbridge::{DetectedFace, FaceAttributes};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use uuid::Uuid;
 
 // ============================================================================
 // Result Types
@@ -172,3 +170,6 @@ pub struct FaceGroup {
     pub representative_face_id: Option<Uuid>,
     pub confidence: f64,
 }
+
+use std::collections::HashMap;
+use uuid::Uuid;

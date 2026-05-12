@@ -44,7 +44,7 @@ use log::debug;
 use rhai::Engine;
 use std::sync::Arc;
 
-use crate::keywords::social::register_social_media_keywords as register_social_keywords_impl;
+use super::social::register_social_media_keywords as register_social_keywords_impl;
 
 
 

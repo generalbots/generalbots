@@ -3,7 +3,6 @@
 //! This module contains functions to execute Face API keywords from BASIC code.
 
 use super::results::{FaceAnalysisResult, FaceDetectionResult, FaceVerificationResult};
-use super::service::FaceApiService;
 use super::types::{AnalysisOptions, DetectionOptions, FaceAttributeType, VerificationOptions};
 
 // ============================================================================
@@ -103,3 +102,5 @@ pub fn analysis_to_basic_value(result: &FaceAnalysisResult) -> serde_json::Value
         "error": result.error
     })
 }
+
+use super::service::FaceApiService;
