@@ -33,7 +33,7 @@ install_mold() {
     echo "Installing mold..."
     curl -L "https://github.com/rui314/mold/releases/download/v2.4.0/mold-2.4.0-x86_64-linux.tar.gz" -o /tmp/mold.tar.gz
     tar -xzf /tmp/mold.tar.gz -C /tmp
-    cp "/tmp/mold-2.4.0-x86_64-linux/bin/mold" /usr/local/bin/
+    cp "/tmp/mold-2.4.0-x86_64-linux/bin/mold" /usr/bin/
     rm -rf /tmp/mold-2.4.0* /tmp/mold.tar.gz
     ldconfig
     echo "mold installed: $(mold --version)"
@@ -42,8 +42,8 @@ install_mold() {
 
 install_cargo_tools() {
   echo "Installing cargo dev tools..."
-  cargo install cargo-audit cargo-machete cargo-tree --quiet 2>/dev/null || true
-  echo "cargo-audit, cargo-machete, cargo-tree installed"
+  nohup cargo install cargo-audit cargo-machete cargo-tree --quiet > /tmp/cargo_install.log 2>&1 &
+  echo "cargo-audit, cargo-machete, cargo-tree installing in background (nohup /tmp/cargo_install.log)"
 }
 
 setup_cargo_config() {
@@ -56,7 +56,7 @@ jobs = -1
 
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
-rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]
 CARGOCONF
     echo "Created .cargo/config.toml with mold"
   else

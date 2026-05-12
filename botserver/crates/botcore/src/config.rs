@@ -257,12 +257,13 @@ impl Default for DriveConfig {
                     if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                         if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
                             let host = secret_data.get("host").and_then(|v| v.as_str()).unwrap_or("localhost");
+                            let port = secret_data.get("port").and_then(|v| v.as_str()).unwrap_or("9100");
                             let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).unwrap_or("");
                             let secret = secret_data.get("secret").and_then(|v| v.as_str()).unwrap_or("");
                             let bucket = secret_data.get("bucket").and_then(|v| v.as_str()).unwrap_or("default.gbai");
                             
                             return Self {
-                                endpoint: format!("http://{}", host),
+                                endpoint: format!("http://{}:{}", host, port),
                                 bucket: bucket.to_string(),
                                 region: "auto".to_string(),
                                 access_key: accesskey.to_string(),

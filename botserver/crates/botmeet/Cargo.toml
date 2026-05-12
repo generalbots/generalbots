@@ -1,21 +1,16 @@
 [package]
-name = "botdrive"
+name = "botmeet"
 version = "6.3.1"
 edition = "2021"
 
 [features]
 default = []
-vectordb = ["dep:botqdrant"]
-sheet = ["dep:calamine"]
-drive = ["dep:pdf-extract"]
-research = []
-llm = []
 
 [dependencies]
 botcore = { path = "../botcore" }
-botlib = { path = "../botlib" }
-botschema = { path = "../botschema" }
-botqdrant = { path = "../botqdrant", optional = true }
+botsecurity = { path = "../botsecurity" }
+botlib = { path = "../../../botlib" }
+botschema = { path = "../../../botschema", features = ["meet"] }
 axum = { workspace = true, features = ["ws", "macros"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -26,11 +21,10 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 log = { workspace = true }
 anyhow = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }
-rust-s3 = { workspace = true }
-regex = { workspace = true }
-zip = { workspace = true }
-calamine = { workspace = true, optional = true }
-pdf-extract = { workspace = true, optional = true }
+urlencoding = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+png = { workspace = true }
 tracing = { workspace = true }
 
 [lints]

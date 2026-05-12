@@ -257,18 +257,18 @@ botcorebot = { workspace = true }
 botcoredirectory = { workspace = true }
 botcorepkg = { workspace = true }
 botautotask = { workspace = true }
-botbasic_types = { path = "../botbasic_types" }
-botcore = { path = "../botcore" }
-botbasic_core = { path = "../botbasic_core" }
-botbasic_data = { path = "../botbasic_data" }
-botbasic_comms = { path = "../botbasic_comms" }
-botbasic_ai = { path = "../botbasic_ai" }
-botbasic_system = { path = "../botbasic_system" }
-botbasic_compiler = { path = "../botbasic_compiler" }
-botapi = { path = "../botapi" }
-botmeet = { path = "../botmeet" }
-botsettings = { path = "../botsettings" }
-botdrive = { path = "../botdrive" }
+botbasic_types = { path = "crates/botbasic_types" }
+botcore = { path = "crates/botcore" }
+botbasic_core = { path = "crates/botbasic_core" }
+botbasic_data = { path = "crates/botbasic_data" }
+botbasic_comms = { path = "crates/botbasic_comms" }
+botbasic_ai = { path = "crates/botbasic_ai" }
+botbasic_system = { path = "crates/botbasic_system" }
+botbasic_compiler = { path = "crates/botbasic_compiler" }
+botapi = { path = "crates/botapi" }
+botmeet = { path = "crates/botmeet" }
+botsettings = { path = "crates/botsettings" }
+botdrive = { path = "crates/botdrive" }
 
 # === EXTRACTED CRATES (optional - enabled by feature flags) ===
 botbilling = { workspace = true, optional = true }
