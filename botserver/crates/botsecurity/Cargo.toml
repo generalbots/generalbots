@@ -13,7 +13,7 @@ cache = ["dep:redis"]
 directory = []
 
 [dependencies]
-botlib = { path = "../botlib", features = ["http-client"] }
+botlib = { path = "../../../botlib", features = ["http-client"] }
 botcore = { path = "../botcore" }
 aes-gcm = { workspace = true }
 anyhow = { workspace = true }
