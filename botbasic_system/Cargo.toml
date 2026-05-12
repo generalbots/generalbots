@@ -12,6 +12,7 @@ automation = []
 tasks = []
 drive = []
 security = []
+llm = []
 
 [dependencies]
 botbasic_types = { path = "../botbasic_types" }
@@ -28,6 +29,20 @@ tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "ti
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
+
+botcore = { path = "../botcore" }
+botsecurity = { path = "../botsecurity" }
+botmodelsbridge = { path = "../botmodelsbridge" }
+botbasic_core = { path = "../botbasic_core" }
+botbasic_data = { path = "../botbasic_data" }
+axum = { workspace = true, features = ["ws", "macros"] }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+flate2 = { workspace = true }
+tar = { workspace = true }
+urlencoding = { workspace = true }
+zip = { workspace = true }
 
 [lints]
 workspace = true

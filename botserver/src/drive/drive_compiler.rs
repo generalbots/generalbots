@@ -7,7 +7,7 @@
 /// 4. drive_files table controla etag/status
 ///
 /// SEM usar /opt/gbo/data/ como intermediário!
-use crate::basic::compiler::BasicCompiler;
+use crate::basic::compiler::{BasicCompiler, CompilerCallbacks};
 use crate::core::config::DriveConfig;
 use crate::core::shared::state::AppState;
 use crate::core::shared::utils::get_work_path;
@@ -204,7 +204,35 @@ impl DriveCompiler {
         let _content = std::fs::read_to_string(&work_bas_path)?;
 
         // Compilar com BasicCompiler (já está no work dir, então compila in-place)
-        let mut compiler = BasicCompiler::new(self.state.clone(), bot_id);
+        let mut callbacks = CompilerCallbacks::new();
+        #[cfg(feature = "tasks")]
+        {
+            let schedule_fn = crate::basic::keywords::set_schedule::execute_set_schedule;
+            callbacks.execute_set_schedule = Some(Box::new(move |conn, cron, script, bot_id| {
+                schedule_fn(conn, cron, script, bot_id)
+                    .map(|_| ())
+                    .map_err(|e| e.to_string())
+            }));
+        }
+        callbacks.execute_webhook = Some(Box::new(|conn, endpoint, script, bot_id| {
+            crate::basic::keywords::webhook::execute_webhook_registration(conn, endpoint, script, bot_id)
+                .map(|_| ())
+                .map_err(|e| e.to_string())
+        }));
+        callbacks.execute_use_website = Some(Box::new(|conn, url, bot_id, refresh| {
+            crate::basic::keywords::use_website::execute_use_website_preprocessing_with_refresh(conn, url, bot_id, refresh)
+                .map(|_| ())
+                .map_err(|e| e.to_string())
+        }));
+        callbacks.process_table_definitions = Some(Box::new(|runtime, bot_id, content| {
+            crate::basic::keywords::table_definition::process_table_definitions(runtime, bot_id, content)
+                .map(|_| ())
+                .map_err(|e| e.to_string())
+        }));
+        callbacks.create_runtime = Some(Box::new(|state| {
+            Arc::new(crate::basic::AppStateBasicRuntime(state))
+        }));
+        let mut compiler = BasicCompiler::with_callbacks(self.state.clone(), bot_id, callbacks);
         compiler.compile_file(
             work_bas_path.to_str().ok_or("Invalid path")?,
             work_dir.to_str().ok_or("Invalid path")?

@@ -14,9 +14,10 @@ automation = []
 meet = []
 calendar = []
 video = []
+drive = []
 
 [dependencies]
-botschema = { workspace = true }
+botschema = { workspace = true, features = ["calendar"] }
 botlib = { workspace = true, features = ["database", "http-client"] }
 botbasic_types = { path = "../botbasic_types" }
 botbasic_core = { path = "../botbasic_core" }
@@ -37,6 +38,12 @@ base64 = { workspace = true }
 urlencoding = { workspace = true }
 num-format = { workspace = true }
 bigdecimal = { workspace = true }
+
+botcore = { path = "../botcore" }
+botsecurity = { path = "../botsecurity" }
+axum = { workspace = true, features = ["ws", "macros"] }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
 
 [lints]
 workspace = true

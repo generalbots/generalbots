@@ -31,6 +31,7 @@
 use botbasic_types::schema::bots::dsl::*;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
+use std::sync::Arc;
 use diesel::prelude::*;
 use log::{error, trace};
 use std::error::Error;
@@ -40,7 +41,7 @@ pub async fn execute_read(
     user: &UserSession,
     path: &str,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
-    let client = state.drive_repository().as_ref().ok_or("S3 client not configured")?;
+    let client = state.drive_repository().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
@@ -57,20 +58,12 @@ pub async fn execute_read(
     let key = format!("{bot_name}.gbdrive/{path}");
 
     let data = client
-        .get_object()
-        .bucket(&bucket_name)
-        .key(&key)
-        .send()
+        .get_object(&bucket_name, &key)
         .await
-        .map_err(|e| format!("S3 get failed: {e}"))?
-        .body
-        .collect()
-        .await
-        .map_err(|e| format!("Body collect failed: {e}"))?
-        .into_bytes();
+        .map_err(|e| format!("S3 get failed: {e}"))?;
 
-        let content =
-            String::from_utf8(data.to_vec()).map_err(|_| "File content is not valid UTF-8")?;
+    let content =
+        String::from_utf8(data).map_err(|_| "File content is not valid UTF-8")?;
 
     trace!("READ successful: {} bytes", content.len());
     Ok(content)
@@ -82,7 +75,7 @@ pub async fn execute_write(
     path: &str,
     content: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let client = state.drive_repository().as_ref().ok_or("S3 client not configured")?;
+    let client = state.drive_repository().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
@@ -99,11 +92,7 @@ pub async fn execute_write(
     let key = format!("{bot_name}.gbdrive/{path}");
 
     client
-        .put_object()
-        .bucket(&bucket_name)
-        .key(&key)
-        .body(content.as_bytes().to_vec())
-        .send()
+        .put_object(&bucket_name, &key, content.as_bytes().to_vec(), None)
         .await
         .map_err(|e| format!("S3 put failed: {e}"))?;
 
@@ -116,7 +105,7 @@ pub async fn execute_delete_file(
     user: &UserSession,
     path: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let client = state.drive_repository().as_ref().ok_or("S3 client not configured")?;
+    let client = state.drive_repository().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
@@ -145,7 +134,7 @@ pub async fn execute_list(
     user: &UserSession,
     path: &str,
 ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
-    let client = state.drive_repository().as_ref().ok_or("S3 client not configured")?;
+    let client = state.drive_repository().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;

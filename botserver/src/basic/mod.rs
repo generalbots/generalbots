@@ -5,7 +5,7 @@ use botlib::traits::ScriptRunner;
 
 pub use botcore::shared::UserSession;
 
-pub mod compiler;
+pub use botbasic_compiler as compiler;
 pub mod keywords;
 
 #[derive(QueryableByName)]

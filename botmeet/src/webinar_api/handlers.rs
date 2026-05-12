@@ -1,8 +1,12 @@
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
+    routing::{get, post},
     Json,
 };
+use chrono::Utc;
+use diesel::prelude::*;
+use diesel::sql_types;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -41,7 +45,7 @@ async fn start_recording_handler(
 ) -> impl IntoResponse {
     let pool = state.conn.clone();
     let recording_id = Uuid::new_v4();
-    let started_at = chrono::Utc::now();
+    let started_at = Utc::now();
 
     // Create recording record in database
     let result = tokio::task::spawn_blocking(move || {
@@ -52,9 +56,9 @@ async fn start_recording_handler(
              VALUES ($1, $2, 'recording', $3, NOW())
              ON CONFLICT (room_id) WHERE status = 'recording' DO NOTHING"
         )
-        .bind::<diesel::sql_types::Uuid, _>(recording_id)
-        .bind::<diesel::sql_types::Uuid, _>(webinar_id)
-        .bind::<diesel::sql_types::Timestamptz, _>(started_at)
+        .bind::<sql_types::Uuid, _>(recording_id)
+        .bind::<sql_types::Uuid, _>(webinar_id)
+        .bind::<sql_types::Timestamptz, _>(started_at)
         .execute(&mut conn)
         .map_err(|e| format!("Insert error: {}", e))?;
 
@@ -85,7 +89,7 @@ async fn stop_recording_handler(
     Path(webinar_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let pool = state.conn.clone();
-    let stopped_at = chrono::Utc::now();
+    let stopped_at = Utc::now();
 
     // Update recording record to stopped status
     let result = tokio::task::spawn_blocking(move || {
@@ -97,7 +101,7 @@ async fn stop_recording_handler(
              WHERE room_id = $1 AND status = 'recording'
              LIMIT 1"
         )
-        .bind::<diesel::sql_types::Uuid, _>(webinar_id)
+        .bind::<sql_types::Uuid, _>(webinar_id)
         .get_result::<RecordingRow>(&mut conn)
         .map(|r| (r.id, r.started_at));
 
@@ -109,9 +113,9 @@ async fn stop_recording_handler(
                  SET status = 'stopped', stopped_at = $1, duration_seconds = $2, updated_at = NOW()
                  WHERE id = $3"
             )
-            .bind::<diesel::sql_types::Timestamptz, _>(stopped_at)
-            .bind::<diesel::sql_types::BigInt, _>(duration_secs)
-            .bind::<diesel::sql_types::Uuid, _>(recording_id)
+            .bind::<sql_types::Timestamptz, _>(stopped_at)
+            .bind::<sql_types::BigInt, _>(duration_secs)
+            .bind::<sql_types::Uuid, _>(recording_id)
             .execute(&mut conn)
             .map_err(|e| format!("Update error: {}", e))?;
 
@@ -141,12 +145,12 @@ async fn stop_recording_handler(
     }
 }
 
-#[derive(diesel::QueryableByName)]
+#[derive(QueryableByName)]
 struct RecordingRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    #[diesel(sql_type = sql_types::Uuid)]
     id: Uuid,
-    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
-    started_at: chrono::DateTime<chrono::Utc>,
+    #[diesel(sql_type = sql_types::Timestamptz)]
+    started_at: chrono::DateTime<Utc>,
 }
 
 async fn create_webinar_handler(

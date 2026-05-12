@@ -98,39 +98,6 @@ impl From<botbasic_types::UserSession> for UserSession {
     }
 }
 
-impl From<UserSession> for botlib::models::UserSession {
-    fn from(s: UserSession) -> Self {
-        Self {
-            id: s.id,
-            user_id: s.user_id,
-            bot_id: s.bot_id,
-            title: s.title,
-            context_data: s.context_data,
-            current_tool: s.current_tool,
-            created_at: s.created_at,
-            updated_at: s.updated_at,
-        }
-    }
-}
-
-impl From<botlib::models::UserSession> for UserSession {
-    fn from(s: botlib::models::UserSession) -> Self {
-        Self {
-            id: s.id,
-            user_id: s.user_id,
-            bot_id: s.bot_id,
-            title: s.title,
-            context_data: s.context_data,
-            current_tool: s.current_tool,
-            created_at: s.created_at,
-            updated_at: s.updated_at,
-        }
-    }
-}
-
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = bot_memories)]
 pub struct BotMemory {

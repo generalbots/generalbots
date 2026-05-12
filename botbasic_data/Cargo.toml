@@ -30,5 +30,11 @@ reqwest = { workspace = true, features = ["rustls-tls", "json"] }
 
 tokio = { workspace = true, features = ["sync", "rt", "macros"] }
 url = { workspace = true }
+botcore = { path = "../botcore" }
+botsecurity = { path = "../botsecurity" }
+axum = { workspace = true, features = ["ws", "macros"] }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+
 [lints]
 workspace = true

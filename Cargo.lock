@@ -750,10 +750,17 @@ dependencies = [
 name = "botbasic_ai"
 version = "6.3.0"
 dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
  "base64",
  "botbasic_types",
+ "botcore",
  "botlib",
+ "botllm",
+ "botmultimodal",
  "botschema",
+ "botsecurity",
  "chrono",
  "diesel",
  "log",
@@ -775,13 +782,18 @@ dependencies = [
 name = "botbasic_comms"
 version = "6.3.0"
 dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
  "base64",
  "bigdecimal",
  "botbasic_core",
  "botbasic_data",
  "botbasic_types",
+ "botcore",
  "botlib",
  "botschema",
+ "botsecurity",
  "chrono",
  "diesel",
  "icalendar",
@@ -795,6 +807,24 @@ dependencies = [
  "serde_json",
  "tokio",
  "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botbasic_compiler"
+version = "6.3.0"
+dependencies = [
+ "botbasic_types",
+ "botcore",
+ "botlib",
+ "botschema",
+ "chrono",
+ "diesel",
+ "log",
+ "regex",
+ "rhai",
+ "serde",
+ "serde_json",
  "uuid",
 ]
 
@@ -824,9 +854,14 @@ dependencies = [
 name = "botbasic_data"
 version = "6.3.0"
 dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
  "botbasic_core",
  "botbasic_types",
+ "botcore",
  "botlib",
+ "botsecurity",
  "chrono",
  "diesel",
  "log",
@@ -844,19 +879,32 @@ dependencies = [
 name = "botbasic_system"
 version = "6.3.0"
 dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "base64",
+ "botbasic_core",
+ "botbasic_data",
  "botbasic_types",
+ "botcore",
  "botlib",
+ "botmodelsbridge",
  "botschema",
+ "botsecurity",
  "chrono",
  "cron",
  "diesel",
+ "flate2",
  "log",
  "reqwest",
  "rhai",
  "serde",
  "serde_json",
+ "tar",
  "tokio",
+ "urlencoding",
  "uuid",
+ "zip 2.4.2",
 ]
 
 [[package]]
@@ -1005,25 +1053,42 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum",
+ "base64",
  "botbasic_types",
+ "botcoresecrets",
  "botlib",
  "botschema",
+ "calamine",
  "chrono",
+ "cron",
  "diesel",
  "diesel_migrations",
+ "dotenvy",
+ "governor",
+ "hex",
  "indicatif",
+ "jsonwebtoken",
  "lettre",
  "log",
+ "once_cell",
+ "quick-xml 0.37.5",
+ "rand 0.9.4",
  "redis",
+ "regex",
  "reqwest",
  "rhai",
  "serde",
  "serde_json",
+ "sha2",
  "smartstring",
  "sysinfo",
  "tokio",
+ "toml 0.8.23",
+ "tracing",
+ "url",
  "urlencoding",
  "uuid",
+ "zip 2.4.2",
 ]
 
 [[package]]
@@ -1213,6 +1278,32 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "uuid",
+ "zip 2.4.2",
+]
+
+[[package]]
+name = "botdrive"
+version = "6.3.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "botcore",
+ "botlib",
+ "botqdrant",
+ "botschema",
+ "calamine",
+ "chrono",
+ "diesel",
+ "log",
+ "pdf-extract",
+ "regex",
+ "reqwest",
+ "rust-s3",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
  "uuid",
  "zip 2.4.2",
 ]
@@ -1668,6 +1759,7 @@ dependencies = [
  "botautotask",
  "botbasic_ai",
  "botbasic_comms",
+ "botbasic_compiler",
  "botbasic_core",
  "botbasic_data",
  "botbasic_system",
@@ -1690,6 +1782,7 @@ dependencies = [
  "botdeployment",
  "botdesigner",
  "botdocs",
+ "botdrive",
  "botemail",
  "botinstagram",
  "botkb",

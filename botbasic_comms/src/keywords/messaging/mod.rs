@@ -1,10 +1,16 @@
-use std::sync::Arc;
-use botbasic_types::{BasicRuntime, UserSession};
-use rhai::Engine;
+pub mod send_template;
 
-pub fn register_messaging_keywords(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    let _ = state;
-    engine.register_fn("SEND_MESSAGE", |_to: &str, _msg: &str| -> String {
-        "SEND_MESSAGE (stub)".to_string()
-    });
+use botbasic_types::UserSession;
+use botbasic_types::BasicRuntime;
+use log::debug;
+use rhai::Engine;
+use std::sync::Arc;
+
+pub fn register_messaging_keywords(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+    send_template::send_template_keyword(state.clone(), user.clone(), engine);
+    send_template::send_template_to_keyword(state.clone(), user.clone(), engine);
+    send_template::create_template_keyword(state.clone(), user.clone(), engine);
+    send_template::get_template_keyword(state, user, engine);
+
+    debug!("Registered all messaging keywords");
 }

@@ -7,11 +7,7 @@ use super::azure::AzureFaceResponse;
 use super::error::FaceApiError;
 use super::results::{FaceAnalysisResult, FaceDetectionResult, FaceVerificationResult};
 use super::types::{AnalysisOptions, DetectionOptions, FaceAttributeType, FaceSource, ImageSource, VerificationOptions};
-use botbasic_system::face_ext::{BoundingBox, DetectedFace, EmotionScores, FaceApiConfig, FaceApiProvider, FaceAttributes, FaceLandmarks, Gender, GlassesType, Point2D};
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use uuid::Uuid;
+use botmodelsbridge::{BoundingBox, DetectedFace, EmotionScores, FaceApiConfig, FaceApiProvider, FaceAttributes, FaceLandmarks, Gender, GlassesType, Point2D};
 
 /// Calculate cosine similarity between two embedding vectors
 fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
@@ -875,3 +871,8 @@ impl FaceApiService {
         }
     }
 }
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;

@@ -2,7 +2,6 @@ use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use log::{debug, info, trace};
 use rhai::{Array, Dynamic, Engine, Map};
-use std::sync::Arc;
 
 pub fn send_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
@@ -515,3 +514,5 @@ mod tests {
         assert!(id.starts_with("msg_"));
     }
 }
+
+use std::sync::Arc;
