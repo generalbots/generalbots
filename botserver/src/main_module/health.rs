@@ -5,7 +5,7 @@ use axum::http::StatusCode;
 use axum::Json;
 use std::sync::Arc;
 
-use crate::core::shared::state::AppState;
+use botcore::shared::state::AppState;
 
 pub async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
     let db_ok = state.conn.get().is_ok();

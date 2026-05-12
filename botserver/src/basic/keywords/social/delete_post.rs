@@ -1,9 +1,8 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{debug, trace};
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
 
 pub fn delete_post_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -53,3 +52,6 @@ fn delete_social_post(
 
     Ok(result > 0)
 }
+
+use std::sync::Arc;
+use uuid::Uuid;

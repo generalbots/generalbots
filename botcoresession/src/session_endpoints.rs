@@ -1,4 +1,3 @@
-use crate::session_data::UserSession;
 use crate::session_manager::SessionManager;
 use axum::{
     extract::{Extension, Path},
@@ -8,8 +7,6 @@ use axum::{
 use chrono::Utc;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -22,7 +19,7 @@ pub struct SessionState {
 pub async fn create_session(Extension(state): Extension<Arc<SessionState>>) -> impl IntoResponse {
     let temp_session_id = Uuid::new_v4();
 
-    if let Ok(mut conn) = state.conn.get() {
+    if let Ok(conn) = state.conn.get() {
         let user_id =
             Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
         let bot_id = Uuid::nil();

@@ -1,15 +1,10 @@
+use axum::Router;
 #[cfg(feature = "embed-ui")]
 use axum::{
     body::Body,
     http::{header, Request, Response, StatusCode},
     Router,
 };
-#[cfg(not(feature = "embed-ui"))]
-use axum::Router;
-#[cfg(feature = "embed-ui")]
-use rust_embed::RustEmbed;
-#[cfg(feature = "embed-ui")]
-use std::path::Path;
 
 #[cfg(feature = "embed-ui")]
 #[derive(RustEmbed)]
@@ -151,3 +146,10 @@ pub fn list_embedded_files() -> Vec<String> {
 pub fn embedded_ui_router() -> Router {
     Router::new()
 }
+
+#[cfg(feature = "embed-ui")]
+use axum::Router;
+#[cfg(feature = "embed-ui")]
+use rust_embed::RustEmbed;
+#[cfg(feature = "embed-ui")]
+use std::path::Path;

@@ -1,13 +1,10 @@
 use crate::basic::UserSession;
-use crate::core::shared::state::AppState;
+use std::sync::Arc;
+use botcore::shared::state::AppState;
 #[cfg(feature = "llm")]
 use crate::llm::smart_router::{OptimizationGoal, SmartLLMRouter};
-#[cfg(not(feature = "llm"))]
-use rhai::Engine;
-#[cfg(feature = "llm")]
+
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
-use std::time::Duration;
 
 #[cfg(feature = "llm")]
 pub fn register_enhanced_llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -70,3 +67,5 @@ pub fn register_enhanced_llm_keyword(
 ) {
     // No-op when LLM feature is disabled
 }
+
+use std::time::Duration;

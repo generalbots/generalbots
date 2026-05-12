@@ -92,3 +92,4 @@ AGENTS-PROD.md
 *.check
 *.fix
 *.bak
+.backups/

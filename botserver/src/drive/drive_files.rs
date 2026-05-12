@@ -25,20 +25,17 @@ pub mod dsl {
     pub use super::drive_files::*;
 }
 
-#[derive(Queryable, Debug, Clone)]
-pub struct DriveFile {
-    pub id: Uuid,
+pub use botcore::shared::schema::drive::DriveFile;
+
+pub struct FileUpsertParams {
     pub bot_id: Uuid,
     pub file_path: String,
     pub file_type: String,
     pub etag: Option<String>,
     pub last_modified: Option<DateTime<Utc>>,
-    pub file_size: Option<i64>,
     pub indexed: bool,
     pub fail_count: i32,
     pub last_failed_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 pub struct DriveFileRepository {
@@ -84,7 +81,7 @@ impl DriveFileRepository {
 
         let now = Utc::now();
         let etag_clone = etag.clone();
-        let last_modified_clone = last_modified.clone();
+        let last_modified_clone = last_modified;
 
         diesel::insert_into(drive_files::table)
             .values((
@@ -231,49 +228,42 @@ impl DriveFileRepository {
     }
 
     /// Upsert a file with full state (including indexed and fail_count)
-    pub fn upsert_file_full(
-        &self,
-        bot_id: Uuid,
-        file_path: &str,
-        file_type: &str,
-        etag: Option<String>,
-        last_modified: Option<DateTime<Utc>>,
-        indexed: bool,
-        fail_count: i32,
-        last_failed_at: Option<DateTime<Utc>>,
-    ) -> Result<(), String> {
-        let mut conn = self.pool.get().map_err(|e| e.to_string())?;
+pub fn upsert_file_full(
+&self,
+params: FileUpsertParams,
+) -> Result<(), String> {
+let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 
-        let now = Utc::now();
+let now = Utc::now();
 
-        diesel::insert_into(drive_files::table)
-            .values((
-                drive_files::bot_id.eq(bot_id),
-                drive_files::file_path.eq(file_path),
-                drive_files::file_type.eq(file_type),
-                drive_files::etag.eq(&etag),
-                drive_files::last_modified.eq(last_modified),
-                drive_files::indexed.eq(indexed),
-                drive_files::fail_count.eq(fail_count),
-                drive_files::last_failed_at.eq(last_failed_at),
-                drive_files::created_at.eq(now),
-                drive_files::updated_at.eq(now),
-            ))
-            .on_conflict((drive_files::bot_id, drive_files::file_path))
-            .do_update()
-            .set((
-                drive_files::etag.eq(&etag),
-                drive_files::last_modified.eq(last_modified),
-                drive_files::indexed.eq(indexed),
-                drive_files::fail_count.eq(fail_count),
-                drive_files::last_failed_at.eq(last_failed_at),
-                drive_files::updated_at.eq(now),
-            ))
-            .execute(&mut conn)
-            .map_err(|e| e.to_string())?;
+diesel::insert_into(drive_files::table)
+.values((
+drive_files::bot_id.eq(params.bot_id),
+drive_files::file_path.eq(params.file_path),
+drive_files::file_type.eq(params.file_type),
+drive_files::etag.eq(&params.etag),
+drive_files::last_modified.eq(params.last_modified),
+drive_files::indexed.eq(params.indexed),
+drive_files::fail_count.eq(params.fail_count),
+drive_files::last_failed_at.eq(params.last_failed_at),
+drive_files::created_at.eq(now),
+drive_files::updated_at.eq(now),
+))
+.on_conflict((drive_files::bot_id, drive_files::file_path))
+.do_update()
+.set((
+drive_files::etag.eq(&params.etag),
+drive_files::last_modified.eq(params.last_modified),
+drive_files::indexed.eq(params.indexed),
+drive_files::fail_count.eq(params.fail_count),
+drive_files::last_failed_at.eq(params.last_failed_at),
+drive_files::updated_at.eq(now),
+))
+.execute(&mut conn)
+.map_err(|e| e.to_string())?;
 
-        Ok(())
-    }
+Ok(())
+}
 
     /// Mark all files matching a path pattern as indexed (for KB folder indexing)
     pub fn mark_indexed_by_pattern(&self, bot_id: Uuid, pattern: &str) -> Result<(), String> {

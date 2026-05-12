@@ -1,11 +1,8 @@
 use crate::{generate_random_string, InstallMode, PackageManager};
-use botcoresecrets::{SecretPaths, SecretsManager};
 use botlib::security::SafeCommand;
 use anyhow::Result;
-use std::collections::HashMap;
+use rand::Rng;
 use std::env;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct ComponentInfo {
     pub name: &'static str,
@@ -197,7 +194,7 @@ pub async fn run() -> Result<()> {
 
             if component == "protection" {
                 let result = super::cli_ops::verify_protection();
-                result.print();
+                println!("{}", result);
                 return Ok(());
             }
 

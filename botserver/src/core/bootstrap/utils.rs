@@ -1,8 +1,6 @@
 //! Utility functions for bootstrap module
 use crate::security::command_guard::SafeCommand;
 use log::{error, info, warn};
-use std::fs;
-use std::path::Path;
 
 #[derive(diesel::QueryableByName)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -60,7 +58,7 @@ pub fn safe_curl(args: &[&str]) -> Option<std::process::Output> {
 
 /// Check Vault health status
 pub fn vault_health_check() -> bool {
-    let stack_path = crate::core::shared::utils::get_stack_path();
+    let stack_path = botcore::shared::utils::get_stack_path();
     let client_cert = std::path::Path::new(&format!(
         "{}/conf/system/certificates/botserver/client.crt",
         stack_path
@@ -202,3 +200,6 @@ pub fn dump_all_component_logs(log_dir: &Path) {
     error!("END OF LOG DUMP");
     error!("========================================================================");
 }
+
+use std::fs;
+use std::path::Path;

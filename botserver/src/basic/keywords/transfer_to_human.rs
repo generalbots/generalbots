@@ -1,13 +1,10 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::{debug, error, info, warn};
 use rhai::{Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferToHumanRequest {
@@ -340,7 +337,7 @@ pub async fn execute_transfer(
             .get()
             .map_err(|e| format!("DB connection error: {}", e))?;
 
-        use crate::core::shared::models::schema::user_sessions;
+        use botcore::shared::models::schema::user_sessions;
 
         diesel::update(user_sessions::table.filter(user_sessions::id.eq(session_id)))
             .set(user_sessions::context_data.eq(ctx_data))
@@ -835,3 +832,7 @@ pub fn get_tool_definition() -> serde_json::Value {
         }
     })
 }
+
+use std::path::PathBuf;
+use std::sync::Arc;
+use uuid::Uuid;

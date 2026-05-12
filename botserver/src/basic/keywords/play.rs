@@ -1,12 +1,8 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::Path;
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ContentType {
@@ -573,13 +569,13 @@ async fn send_play_to_client(
     let message_str =
         serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {e}"))?;
 
-    let bot_response = crate::core::shared::models::BotResponse {
+    let bot_response = botcore::shared::BotResponse {
         bot_id: String::new(),
         user_id: String::new(),
         session_id: session_id.to_string(),
         channel: "web".to_string(),
         content: message_str,
-        message_type: crate::core::shared::message_types::MessageType::BOT_RESPONSE,
+        message_type: botcore::shared::message_types::MessageType::BOT_RESPONSE,
         stream_token: None,
         is_complete: true,
             suggestions: Vec::new(),
@@ -615,13 +611,13 @@ async fn send_player_command(
         .web_adapter
         .send_message_to_session(
             &session_id.to_string(),
-            crate::core::shared::models::BotResponse {
+            botcore::shared::BotResponse {
                 bot_id: String::new(),
                 user_id: String::new(),
                 session_id: session_id.to_string(),
                 channel: "web".to_string(),
                 content: message_str,
-                message_type: crate::core::shared::message_types::MessageType::BOT_RESPONSE,
+                message_type: botcore::shared::message_types::MessageType::BOT_RESPONSE,
                 stream_token: None,
                 is_complete: true,
                 suggestions: Vec::new(),
@@ -635,3 +631,8 @@ async fn send_player_command(
 
     Ok(())
 }
+
+use std::collections::HashMap;
+use std::path::Path;
+use std::sync::Arc;
+use uuid::Uuid;

@@ -28,14 +28,12 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::core::shared::models::schema::bots::dsl::*;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::models::schema::bots::dsl::*;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, trace};
-use std::error::Error;
 
-use super::basic_io::execute_write;
 
 pub struct FileData {
     pub content: Vec<u8>,
@@ -71,11 +69,7 @@ pub async fn execute_upload(
     );
 
     client
-        .put_object()
-        .bucket(&bucket_name)
-        .key(&key)
-        .body(file_data.content)
-        .send()
+        .put_object(&bucket_name, &key, file_data.content, None)
         .await
         .map_err(|e| format!("S3 put failed: {e}"))?;
 
@@ -107,3 +101,6 @@ pub async fn execute_download(
     trace!("DOWNLOAD successful: {url} -> {local_path}");
     Ok(local_path.to_string())
 }
+
+use std::error::Error;
+use super::basic_io::execute_write;

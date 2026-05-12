@@ -1,169 +1,143 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use diesel::prelude::*;
-use log::{error, info, warn};
+use log::{info, warn};
+#[cfg(feature = "mail")]
+use log::error;
+#[cfg(feature = "mail")]
 use mailparse::MailHeaderMap;
 use std::sync::Arc;
-use uuid::Uuid;
 
-use crate::models::{extract_user_from_session, AppState, EmailAccountRow, EmailError, EmailSummary, EmailContent};
+use crate::models::{AppState, EmailError};
+#[cfg(feature = "mail")]
+use crate::models::extract_user_from_session;
+#[cfg(feature = "mail")]
+use crate::models::{EmailAccountRow, EmailSummary, EmailContent};
+#[cfg(feature = "mail")]
 use crate::types::EmailConfig;
 
+#[cfg(feature = "mail")]
 fn fetch_emails_from_folder(config: &EmailConfig, folder: &str) -> Result<Vec<EmailSummary>, String> {
-    #[cfg(feature = "mail")]
-    {
-        let client = imap::ClientBuilder::new(&config.server, config.port)
-            .connect()
-            .map_err(|e| format!("Connection error: {}", e))?;
+    let client = imap::ClientBuilder::new(&config.server, config.port)
+        .connect()
+        .map_err(|e| format!("Connection error: {}", e))?;
 
-        let mut session = client
-            .login(&config.username, &config.password)
-            .map_err(|e| format!("Login failed: {:?}", e))?;
+    let mut session = client
+        .login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
 
-        let folder_name = match folder {
-            "sent" => "Sent",
-            "drafts" => "Drafts",
-            "trash" => "Trash",
-            _ => "INBOX",
-        };
+    let folder_name = match folder {
+        "sent" => "Sent",
+        "drafts" => "Drafts",
+        "trash" => "Trash",
+        _ => "INBOX",
+    };
 
-        session.select(folder_name).map_err(|e| format!("Select folder failed: {}", e))?;
+    session.select(folder_name).map_err(|e| format!("Select folder failed: {}", e))?;
 
-        let messages = session
-            .fetch("1:20", "(FLAGS RFC822.HEADER)")
-            .map_err(|e| format!("Fetch failed: {}", e))?;
+    let messages = session
+        .fetch("1:20", "(FLAGS RFC822.HEADER)")
+        .map_err(|e| format!("Fetch failed: {}", e))?;
 
-        let mut emails = Vec::new();
-        for message in messages.iter() {
-            if let Some(header) = message.header() {
-                let parsed = parse_mail(header).ok();
-                if let Some(mail) = parsed {
-                    let subject = mail.headers.get_first_value("Subject").unwrap_or_default();
-                    let from = mail.headers.get_first_value("From").unwrap_or_default();
-                    let date = mail.headers.get_first_value("Date").unwrap_or_default();
-                    let flags = message.flags();
-                    let read = flags.iter().any(|f| matches!(f, imap::types::Flag::Seen));
-                    let preview = subject.chars().take(100).collect();
-                    emails.push(EmailSummary {
-                        id: message.message.to_string(),
-                        from_name: from.clone(),
-                        from_email: from,
-                        subject,
-                        preview,
-                        date,
-                        read,
-                    });
-                }
+    let mut emails = Vec::new();
+    for message in messages.iter() {
+        if let Some(header) = message.header() {
+            let parsed = parse_mail(header).ok();
+            if let Some(mail) = parsed {
+                let subject = mail.headers.get_first_value("Subject").unwrap_or_default();
+                let from = mail.headers.get_first_value("From").unwrap_or_default();
+                let date = mail.headers.get_first_value("Date").unwrap_or_default();
+                let flags = message.flags();
+                let read = flags.iter().any(|f| matches!(f, imap::types::Flag::Seen));
+                let preview = subject.chars().take(100).collect();
+                emails.push(EmailSummary {
+                    id: message.message.to_string(),
+                    from_name: from.clone(),
+                    from_email: from,
+                    subject,
+                    preview,
+                    date,
+                    read,
+                });
             }
         }
-
-        session.logout().ok();
-        Ok(emails)
     }
 
-    #[cfg(not(feature = "mail"))]
-    {
-        let _ = (config, folder);
-        Ok(Vec::new())
-    }
+    session.logout().ok();
+    Ok(emails)
 }
 
+#[cfg(feature = "mail")]
 fn get_folder_counts(config: &EmailConfig) -> Result<std::collections::HashMap<String, usize>, String> {
     use std::collections::HashMap;
 
-    #[cfg(feature = "mail")]
-    {
-        let client = imap::ClientBuilder::new(&config.server, config.port)
-            .connect()
-            .map_err(|e| format!("Connection error: {}", e))?;
+    let client = imap::ClientBuilder::new(&config.server, config.port)
+        .connect()
+        .map_err(|e| format!("Connection error: {}", e))?;
 
-        let mut session = client
-            .login(&config.username, &config.password)
-            .map_err(|e| format!("Login failed: {:?}", e))?;
+    let mut session = client
+        .login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
 
-        let mut counts = HashMap::new();
-        for folder in ["INBOX", "Sent", "Drafts", "Trash"] {
-            if let Ok(mailbox) = session.examine(folder) {
-                counts.insert((*folder).to_string(), mailbox.exists as usize);
-            }
+    let mut counts = HashMap::new();
+    for folder in ["INBOX", "Sent", "Drafts", "Trash"] {
+        if let Ok(mailbox) = session.examine(folder) {
+            counts.insert((*folder).to_string(), mailbox.exists as usize);
         }
-
-        session.logout().ok();
-        Ok(counts)
     }
 
-    #[cfg(not(feature = "mail"))]
-    {
-        let _ = config;
-        Ok(HashMap::new())
-    }
+    session.logout().ok();
+    Ok(counts)
 }
 
+#[cfg(feature = "mail")]
 fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailContent, String> {
-    #[cfg(feature = "mail")]
-    {
-        let client = imap::ClientBuilder::new(&config.server, config.port)
-            .connect()
-            .map_err(|e| format!("Connection error: {}", e))?;
+    let client = imap::ClientBuilder::new(&config.server, config.port)
+        .connect()
+        .map_err(|e| format!("Connection error: {}", e))?;
 
-        let mut session = client
-            .login(&config.username, &config.password)
-            .map_err(|e| format!("Login failed: {:?}", e))?;
+    let mut session = client
+        .login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
 
-        session.select("INBOX").map_err(|e| format!("Select failed: {}", e))?;
+    session.select("INBOX").map_err(|e| format!("Select failed: {}", e))?;
 
-        let messages = session.fetch(id, "RFC822").map_err(|e| format!("Fetch failed: {}", e))?;
+    let messages = session.fetch(id, "RFC822").map_err(|e| format!("Fetch failed: {}", e))?;
 
-        if let Some(message) = messages.iter().next() {
-            if let Some(body) = message.body() {
-                let parsed = parse_mail(body).map_err(|e| format!("Parse failed: {}", e))?;
-                let subject = parsed.headers.get_first_value("Subject").unwrap_or_default();
-                let from = parsed.headers.get_first_value("From").unwrap_or_default();
-                let to = parsed.headers.get_first_value("To").unwrap_or_default();
-                let date = parsed.headers.get_first_value("Date").unwrap_or_default();
-                let body_text = parsed.subparts.iter().find_map(|p| p.get_body().ok())
-                    .or_else(|| parsed.get_body().ok()).unwrap_or_default();
-                session.logout().ok();
-                return Ok(EmailContent { id: id.to_string(), from_name: from.clone(), from_email: from, to, subject, body: body_text, date, read: false });
-            }
+    if let Some(message) = messages.iter().next() {
+        if let Some(body) = message.body() {
+            let parsed = parse_mail(body).map_err(|e| format!("Parse failed: {}", e))?;
+            let subject = parsed.headers.get_first_value("Subject").unwrap_or_default();
+            let from = parsed.headers.get_first_value("From").unwrap_or_default();
+            let to = parsed.headers.get_first_value("To").unwrap_or_default();
+            let date = parsed.headers.get_first_value("Date").unwrap_or_default();
+            let body_text = parsed.subparts.iter().find_map(|p| p.get_body().ok())
+                .or_else(|| parsed.get_body().ok()).unwrap_or_default();
+            session.logout().ok();
+            return Ok(EmailContent { id: id.to_string(), from_name: from.clone(), from_email: from, to, subject, body: body_text, date, read: false });
         }
-
-        session.logout().ok();
-        Err("Email not found".to_string())
     }
 
-    #[cfg(not(feature = "mail"))]
-    {
-        let _ = (config, id);
-        Err("Mail feature not enabled".to_string())
-    }
+    session.logout().ok();
+    Err("Email not found".to_string())
 }
 
+#[cfg(feature = "mail")]
 fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), String> {
-    #[cfg(feature = "mail")]
-    {
-        let client = imap::ClientBuilder::new(&config.server, config.port)
-            .connect().map_err(|e| format!("Connection error: {}", e))?;
-        let mut session = client.login(&config.username, &config.password)
-            .map_err(|e| format!("Login failed: {:?}", e))?;
-        session.select("INBOX").map_err(|e| format!("Select failed: {}", e))?;
-        session.store(id, "+FLAGS (\\Deleted)").map_err(|e| format!("Store failed: {}", e))?;
-        session.expunge().map_err(|e| format!("Expunge failed: {}", e))?;
-        session.logout().ok();
-        Ok(())
-    }
-
-    #[cfg(not(feature = "mail"))]
-    {
-        let _ = (config, id);
-        Err("Mail feature not enabled".to_string())
-    }
+    let client = imap::ClientBuilder::new(&config.server, config.port)
+        .connect().map_err(|e| format!("Connection error: {}", e))?;
+    let mut session = client.login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
+    session.select("INBOX").map_err(|e| format!("Select failed: {}", e))?;
+    session.store(id, "+FLAGS (\\Deleted)").map_err(|e| format!("Store failed: {}", e))?;
+    session.expunge().map_err(|e| format!("Expunge failed: {}", e))?;
+session.logout().ok();
+    Ok(())
 }
 
+#[cfg(feature = "mail")]
 fn make_config_from_account(account: &EmailAccountRow) -> EmailConfig {
     EmailConfig {
         username: account.username.clone(),
@@ -176,6 +150,7 @@ fn make_config_from_account(account: &EmailAccountRow) -> EmailConfig {
     }
 }
 
+#[cfg(feature = "mail")]
 pub async fn list_emails_htmx(
     State(state): State<Arc<AppState>>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
@@ -226,6 +201,15 @@ pub async fn list_emails_htmx(
     axum::response::Html(html)
 }
 
+#[cfg(not(feature = "mail"))]
+pub async fn list_emails_htmx(
+    State(_state): State<Arc<AppState>>,
+    axum::extract::Query(_params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> impl IntoResponse {
+    axum::response::Html(r#"<div class="empty-state"><h3>Mail feature not enabled</h3></div>"#.to_string())
+}
+
+#[cfg(feature = "mail")]
 pub async fn list_folders_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let user_id = match extract_user_from_session() {
         Ok(id) => id,
@@ -262,10 +246,16 @@ pub async fn list_folders_htmx(State(state): State<Arc<AppState>>) -> impl IntoR
     axum::response::Html(html)
 }
 
+#[cfg(not(feature = "mail"))]
+pub async fn list_folders_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
+    axum::response::Html(r#"<div class="nav-item">Mail feature not enabled</div>"#.to_string())
+}
+
 pub async fn compose_email_htmx(State(_state): State<Arc<AppState>>) -> Result<impl IntoResponse, EmailError> {
     Ok(axum::response::Html(r##"<div class="mail-content-view"><h2>Compose New Email</h2><form class="compose-form" hx-post="/api/email/send" hx-target="#mail-content" hx-swap="innerHTML"><div class="form-group"><label>To:</label><input type="email" name="to" required></div><div class="form-group"><label>Subject:</label><input type="text" name="subject" required></div><div class="form-group"><label>Message:</label><textarea name="body" rows="10" required></textarea></div><div class="compose-actions"><button type="submit" class="btn-primary">Send</button><button type="button" class="btn-secondary" hx-post="/api/email/draft" hx-include="closest form">Save Draft</button></div></form></div>"##))
 }
 
+#[cfg(feature = "mail")]
 pub async fn get_email_content_htmx(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -290,11 +280,20 @@ pub async fn get_email_content_htmx(
     let email_content = fetch_email_by_id(&config, &id).map_err(|e| EmailError(format!("Failed to fetch email: {}", e)))?;
 
     let html = format!(r##"<div class="mail-content-view"><div class="mail-actions"><button hx-get="/api/email/compose?reply_to={}" hx-target="#mail-content" hx-swap="innerHTML">Reply</button><button hx-get="/api/email/compose?forward={}" hx-target="#mail-content" hx-swap="innerHTML">Forward</button><button hx-delete="/api/email/{}" hx-target="#mail-list" hx-swap="innerHTML" hx-confirm="Delete this email?">Delete</button></div><h2>{}</h2><div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;"><div><div style="font-weight: 600;">{}</div><div class="text-sm text-gray">to: {}</div></div><div style="margin-left: auto;" class="text-sm text-gray">{}</div></div><div class="mail-body">{}</div></div>"##,
-        id, id, id, email_content.subject, email_content.from_name, email_content.to, email_content.date, email_content.body);
+    id, id, id, email_content.subject, email_content.from_name, email_content.to, email_content.date, email_content.body);
 
     Ok(axum::response::Html(html))
 }
 
+#[cfg(not(feature = "mail"))]
+pub async fn get_email_content_htmx(
+    State(_state): State<Arc<AppState>>,
+    Path(_id): Path<String>,
+) -> Result<impl IntoResponse, EmailError> {
+    Ok(axum::response::Html(r#"<div class="mail-content-view"><p>Mail feature not enabled</p></div>"#.to_string()))
+}
+
+#[cfg(feature = "mail")]
 pub async fn delete_email_htmx(State(state): State<Arc<AppState>>, Path(id): Path<String>) -> impl IntoResponse {
     let user_id = match extract_user_from_session() {
         Ok(id) => id,
@@ -324,6 +323,11 @@ pub async fn delete_email_htmx(State(state): State<Arc<AppState>>, Path(id): Pat
 
     info!("Email {} moved to trash", id);
     axum::response::Html(r#"<div class="success-message"><p>Email moved to trash</p></div><script>setTimeout(function() { htmx.trigger('#mail-list', 'load'); }, 100);</script>"#.to_string())
+}
+
+#[cfg(not(feature = "mail"))]
+pub async fn delete_email_htmx(State(_state): State<Arc<AppState>>, Path(_id): Path<String>) -> impl IntoResponse {
+    axum::response::Html(r#"<div class="empty-state"><h3>Mail feature not enabled</h3></div>"#.to_string())
 }
 
 pub async fn list_labels_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {

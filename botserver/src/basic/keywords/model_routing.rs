@@ -1,12 +1,9 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelConfig {
@@ -480,13 +477,14 @@ fn get_session_model_sync(
         }
 
         // 3. Bot has no model configured - fall back to default bot's model
-        let (default_bot_id, _) = crate::core::bot::get_default_bot(conn);
+let default_bot_id = crate::core::bot::get_default_bot().0;
+    let default_bot_uuid: uuid::Uuid = default_bot_id.parse().unwrap_or(uuid::Uuid::nil());
 
-        let default_model: Option<ConfigValue> = diesel::sql_query(
-            "SELECT config_value FROM bot_configuration \
-             WHERE bot_id = $1 AND config_key = 'llm-model' LIMIT 1",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(default_bot_id)
+    let default_model: Option<ConfigValue> = diesel::sql_query(
+        "SELECT config_value FROM bot_configuration \
+         WHERE bot_id = $1 AND config_key = 'llm-model' LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(default_bot_uuid)
         .get_result(conn)
         .optional()
         .map_err(|e| format!("Failed to get default bot model: {}", e))?;
@@ -573,3 +571,7 @@ pub fn get_session_routing_strategy(state: &AppState, session_id: Uuid) -> Routi
         RoutingStrategy::Manual
     }
 }
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use uuid::Uuid;

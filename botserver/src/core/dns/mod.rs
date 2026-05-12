@@ -1,15 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt::Write;
-use std::fs;
-use std::net::IpAddr;
-use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 
-use crate::core::urls::ApiUrls;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnsEntry {
@@ -34,7 +26,7 @@ impl Default for DnsConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            zone_file_path: PathBuf::from(&format!("{}/conf/dns/botserver.local.zone", crate::core::shared::utils::get_stack_path())),
+            zone_file_path: PathBuf::from(&format!("{}/conf/dns/botserver.local.zone", botcore::shared::utils::get_stack_path())),
             domain: "botserver.local".to_string(),
             max_entries_per_ip: 5,
             ttl_seconds: 60,
@@ -324,3 +316,12 @@ pub fn configure_dns_routes(dns_service: Arc<DynamicDnsService>) -> Router {
         .route(ApiUrls::DNS_REMOVE, post(remove_hostname_handler))
         .with_state(dns_service)
 }
+
+use std::collections::HashMap;
+use std::fmt::Write;
+use std::fs;
+use std::net::IpAddr;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use botcore::urls::ApiUrls;

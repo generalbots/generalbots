@@ -6,11 +6,7 @@ pub use types::{ChunkMetadata, DocumentFormat, DocumentMetadata, TextChunk};
 
 use anyhow::Result;
 use log::{debug, info, warn};
-use std::collections::HashMap;
-use std::path::Path;
-use tokio::io::AsyncReadExt;
 
-use crate::security::command_guard::SafeCommand;
 
 #[derive(Debug)]
 pub struct DocumentProcessor {
@@ -345,7 +341,7 @@ Ok(result)
 /// Remove HTML tags from string
 fn strip_html_tags(s: &str) -> String {
     // 1. Remove <style> and <script> blocks entirely
-    let re_style = regex::Regex::new(r"(?is)<(style|script)[^>]*>.*?</\1>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
+    let re_style = regex::Regex::new(r"(?is)<(style)[^>]*>.*?</style>|<(script)[^>]*>.*?</script>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
     let s1 = re_style.replace_all(s, "");
     
     // 2. Remove all other HTML tags
@@ -376,7 +372,6 @@ let mut workbook: Xlsx<_> = open_workbook(&path)
 let mut content = String::new();
 for sheet_name in workbook.sheet_names() {
 if let Ok(range) = workbook.worksheet_range(&sheet_name) {
-use std::fmt::Write;
 let _ = writeln!(&mut content, "=== {} ===", sheet_name);
 
 for row in range.rows() {
@@ -438,7 +433,6 @@ async fn extract_xls_text(&self, file_path: &Path) -> Result<String> {
             let mut content = String::new();
             for sheet_name in workbook.sheet_names() {
                 if let Ok(range) = workbook.worksheet_range(&sheet_name) {
-                    use std::fmt::Write;
                     let _ = writeln!(&mut content, "=== {} ===", sheet_name);
 
                     for row in range.rows() {
@@ -870,7 +864,7 @@ fn extract_text_from_word_document(stream_data: &[u8]) -> String {
                 .collect();
 
             let cleaned: String = raw_text
-                .split(|c: char| c == '\r')
+                .split('\r')
                 .map(|s| s.trim())
                 .filter(|s| !s.is_empty())
                 .collect::<Vec<_>>()
@@ -891,3 +885,9 @@ fn extract_text_from_word_document(stream_data: &[u8]) -> String {
         .join(" ")
 }
 
+
+use std::collections::HashMap;
+use std::path::Path;
+use tokio::io::AsyncReadExt;
+use crate::security::command_guard::SafeCommand;
+use std::fmt::Write;

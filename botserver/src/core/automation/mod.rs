@@ -1,12 +1,6 @@
 use crate::basic::ScriptService;
-use crate::core::shared::models::{Automation, TriggerKind};
-use crate::core::shared::state::AppState;
-use chrono::Utc;
-use cron::Schedule;
-use diesel::prelude::*;
+use botcore::shared::models::{Automation, TriggerKind};
 use log::{error, trace};
-use std::str::FromStr;
-use std::sync::Arc;
 use tokio::time::{interval, Duration};
 
 /// Normalizes a cron schedule by converting 6-field (with seconds) to 5-field format.
@@ -54,7 +48,7 @@ impl AutomationService {
     pub async fn check_scheduled_tasks(
         &self,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        use crate::core::shared::models::system_automations::dsl::{
+        use botcore::shared::schema::system_automations::dsl::{
             id, is_active, kind, last_triggered as lt_column, system_automations,
         };
         let mut conn = self
@@ -114,7 +108,7 @@ impl AutomationService {
         automation: &Automation,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let bot_name: String = {
-            use crate::core::shared::models::schema::bots::dsl::*;
+            use botcore::shared::models::schema::bots::dsl::*;
             let mut conn = self
                 .state
                 .conn
@@ -154,3 +148,10 @@ impl AutomationService {
         Ok(())
     }
 }
+
+use botcore::shared::state::AppState;
+use chrono::Utc;
+use cron::Schedule;
+use diesel::prelude::*;
+use std::str::FromStr;
+use std::sync::Arc;

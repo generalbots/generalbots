@@ -1,12 +1,9 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{info, trace, warn};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum A2AMessageType {
@@ -823,3 +820,7 @@ pub fn respond_to_a2a_message(
         serde_json::json!({ "content": response_content }),
     )
 }
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use uuid::Uuid;

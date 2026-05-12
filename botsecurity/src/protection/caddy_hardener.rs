@@ -115,7 +115,7 @@ impl CaddyHardener {
             .arg("file")?
             .arg("push")?
             .arg("/tmp/gb-caddy-host")?
-            .arg(&format!("{CADDY_CONTAINER}{tmp}"))?
+            .arg(format!("{CADDY_CONTAINER}{tmp}"))?
             .execute()
             .context("lxc file push failed")?;
 

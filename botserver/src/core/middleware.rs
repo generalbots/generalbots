@@ -8,13 +8,9 @@ use axum::{
 };
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use uuid::Uuid;
 
 #[cfg(any(feature = "research", feature = "llm"))]
 use crate::core::kb::permissions::{build_qdrant_permission_filter, UserContext};
-use crate::core::shared::utils::DbPool;
 
 // ============================================================================
 // Organization Context
@@ -1105,3 +1101,8 @@ pub fn default_permissions_for_role(role: &str) -> Vec<&'static str> {
         _ => vec![],
     }
 }
+
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;
+use botcore::shared::utils::DbPool;

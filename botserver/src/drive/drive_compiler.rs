@@ -7,7 +7,6 @@
 /// 4. drive_files table controla etag/status
 ///
 /// SEM usar /opt/gbo/data/ como intermediário!
-
 use crate::basic::compiler::BasicCompiler;
 use crate::core::config::DriveConfig;
 use crate::core::shared::state::AppState;
@@ -36,8 +35,7 @@ pub struct DriveCompiler {
 /// Separated to avoid Send trait issues with tokio::spawn
 async fn download_from_s3(file_path: &str) -> Result<Vec<u8>, Box<dyn Error + Send + Sync>> {
     let config = DriveConfig::default();
-    let s3_repo = crate::core::shared::utils::create_s3_operator(&config)
-        .await
+    let s3_repo = crate::drive::s3_repository::S3Repository::new(&config.endpoint, &config.access_key, &config.secret_key, &config.bucket)
         .map_err(|e| format!("Failed to create S3 operator: {}", e))?;
 
     // file_path format: {bot}.gbai/{bot}.gbdialog/{tool}.bas

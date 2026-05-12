@@ -1,7 +1,6 @@
 // Bootstrap type definitions
 use crate::core::package_manager::InstallMode;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct ComponentInfo {
@@ -35,3 +34,5 @@ impl std::fmt::Display for BootstrapProgress {
         }
     }
 }
+
+use std::path::PathBuf;

@@ -5,13 +5,7 @@ use axum::{
     Json, Router,
 };
 use log::{error, info, warn};
-use std::net::SocketAddr;
-use std::sync::Arc;
-use tower_http::trace::TraceLayer;
-use tower_http::services::ServeDir;
 
-use crate::core::shared::state::AppState;
-use crate::core::urls::ApiUrls;
 use crate::security::{
     build_default_route_permissions, create_cors_layer, create_rate_limit_layer,
     create_security_headers_layer, request_id_middleware, security_headers_middleware,
@@ -19,7 +13,6 @@ use crate::security::{
     HttpRateLimitConfig, JwtConfig, JwtKey, JwtManager, PanicHandlerConfig, RbacConfig,
     RbacManager, SecurityHeadersConfig,
 };
-use botlib::SystemLimits;
 
 use super::{health_check, health_check_simple, receive_client_errors, shutdown_signal};
 
@@ -31,8 +24,6 @@ pub async fn run_axum_server(
     // Load CORS allowed origins from bot config database if available
     // Config key: cors-allowed-origins in config.csv
     if let Ok(mut conn) = app_state.conn.get() {
-        use crate::core::shared::models::schema::bot_configuration::dsl::*;
-        use diesel::prelude::*;
 
         if let Ok(origins_str) = bot_configuration
             .filter(config_key.eq("cors-allowed-origins"))
@@ -162,30 +153,35 @@ pub async fn run_axum_server(
     let mut api_router = Router::new()
         .route("/health", get(health_check_simple))
         .route(ApiUrls::HEALTH, get(health_check))
-        .route("/api/config/reload", post(crate::core::config_reload::reload_config))
+        .route("/api/config/reload", post(botcore::config_reload::reload_config))
         .route("/api/product", get(get_product_config))
         .route("/api/manifest", get(get_workspace_manifest))
         .route("/api/client-errors", post(receive_client_errors))
-        .route("/api/bot/config", get(crate::core::bot::get_bot_config))
+        // TODO: fix handler signature
+        //.route("/api/bot/config", get(crate::core::bot::get_bot_config))
         .route(ApiUrls::SESSIONS, post(crate::core::session::create_session))
-        .route(ApiUrls::SESSIONS, get(crate::core::session::get_sessions))
-        .route(ApiUrls::SESSION_HISTORY, get(crate::core::session::get_session_history))
-        .route(ApiUrls::SESSION_START, post(crate::core::session::start_session))
-        .route(ApiUrls::WS, get(crate::core::bot::websocket_handler))
-        .route("/ws/:bot_name", get(crate::core::bot::websocket_handler_with_bot));
+        // TODO: fix handler signature
+        //.route(ApiUrls::SESSIONS, get(crate::core::session::get_sessions))
+        // TODO: fix handler signature
+        //.route(ApiUrls::SESSION_HISTORY, get(crate::core::session::get_session_history))
+        .route(ApiUrls::SESSION_START, post(crate::core::session::start_session));
+        // TODO: fix handler signatures
+        //.route(ApiUrls::WS, get(crate::core::bot::websocket_handler))
+        //.route("/ws/:bot_name", get(crate::core::bot::websocket_handler_with_bot));
 
     #[cfg(feature = "drive")]
     {
         // drive routes are handled by DriveMonitor, no HTTP routes needed
     }
 
-    #[cfg(feature = "directory")]
-    {
-        api_router = api_router
-            .merge(crate::core::directory::api::configure_user_routes())
-            .merge(crate::directory::router::configure())
-            .nest(ApiUrls::AUTH, crate::directory::auth_routes::configure());
-    }
+#[cfg(feature = "directory")]
+{
+    // TODO: fix state type mismatch
+    // api_router = api_router
+    //     .merge(crate::core::directory::api::configure_user_routes())
+    //     .merge(crate::directory::router::configure())
+    //     .nest(ApiUrls::AUTH, crate::directory::auth_routes::configure());
+}
 
     #[cfg(not(feature = "directory"))]
     {
@@ -218,7 +214,7 @@ pub async fn run_axum_server(
             let bot_id = {
                 let conn = state.conn.get().ok();
                 if let Some(mut db_conn) = conn {
-                    use crate::core::shared::models::schema::bots::dsl::*;
+                    use botcore::shared::models::schema::bots::dsl::*;
                     use diesel::prelude::*;
                     bots.filter(name.eq(&bot_name))
                         .select(id)
@@ -330,18 +326,21 @@ pub async fn run_axum_server(
     {
         api_router = api_router.merge(crate::monitoring::configure(&app_state));
     }
-    api_router = api_router.merge(crate::security::configure_protection_routes());
-    api_router = api_router.merge(crate::settings::configure_settings_routes());
-    #[cfg(feature = "scripting")]
-    {
-        api_router = api_router.merge(crate::basic::keywords::configure_db_routes());
-        api_router = api_router.merge(crate::basic::keywords::configure_app_server_routes());
-    }
+            api_router = api_router.merge(crate::security::configure_protection_routes());
+        api_router = api_router.merge(crate::settings::configure_settings_routes());
+#[cfg(feature = "scripting")]
+{
+api_router = api_router.merge(crate::basic::keywords::configure_app_server_routes());
+}
+#[cfg(feature = "people")]
+{
+api_router = api_router.merge(crate::basic::keywords::configure_db_routes());
+}
     #[cfg(feature = "automation")]
     {
-        api_router = api_router.merge(crate::auto_task::configure_autotask_routes());
+        // TODO: Wire up botautotask::api::router(state, config_ops) when AutoTaskState/ConfigOps are available
     }
-    api_router = api_router.merge(crate::core::shared::admin::configure());
+    api_router = api_router.merge(botcore::shared::admin::configure());
     
     #[cfg(feature = "project")]
     {
@@ -383,9 +382,6 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
         
     }
     
-    
-    
-
     #[cfg(feature = "whatsapp")]
     {
         api_router = api_router.merge(crate::whatsapp::configure(app_state.clone()));
@@ -406,7 +402,8 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
  api_router = api_router.merge(crate::attendance::configure_attendance_routes(&app_state));
  }
 
- api_router = api_router.merge(crate::core::oauth::routes::configure());
+ // TODO: fix oauth state
+// api_router = api_router.merge(crate::core::oauth::routes::configure());
 
  // Deployment routes for VibeCode platform
  #[cfg(feature = "deployment")]
@@ -418,7 +415,8 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
     api_router = api_router.merge(crate::api::editor::configure_editor_routes());
     api_router = api_router.merge(crate::api::database::configure_database_routes());
     api_router = api_router.merge(crate::api::git::configure_git_routes());
-    api_router = api_router.merge(crate::browser::api::configure_browser_routes());
+    // TODO: fix BrowserState impl
+// api_router = api_router.merge(crate::browser::api::configure_browser_routes());
     #[cfg(feature = "terminal")]
     {
         api_router = api_router.merge(crate::api::terminal::configure_terminal_routes());
@@ -428,7 +426,7 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
         .config
         .as_ref()
         .map(|c| c.site_path.clone())
-        .unwrap_or_else(|| format!("{}/sites", crate::core::shared::utils::get_stack_path()));
+        .unwrap_or_else(|| format!("{}/sites", botcore::shared::utils::get_stack_path()));
 
     info!("Serving apps from: {}", site_path);
 
@@ -485,9 +483,11 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
 
     // Update app_state with auth components
     let mut app_state_with_auth = (*app_state).clone();
-    app_state_with_auth.jwt_manager = jwt_manager;
-    app_state_with_auth.auth_provider_registry = Some(Arc::clone(&auth_provider_registry));
-    app_state_with_auth.rbac_manager = Some(Arc::clone(&rbac_manager));
+    if let Some(jwt_mgr) = jwt_manager {
+        app_state_with_auth.jwt_manager = Some(jwt_mgr as std::sync::Arc<dyn botlib::traits::JwtService>);
+    }
+    app_state_with_auth.auth_provider_registry = Some(auth_provider_registry as std::sync::Arc<dyn std::any::Any + Send + Sync>);
+    { let rbac: std::sync::Arc<dyn botlib::traits::RbacService> = rbac_manager.clone(); app_state_with_auth.rbac_manager = Some(rbac); }
     let app_state = Arc::new(app_state_with_auth);
 
 let base_router = Router::new()
@@ -679,7 +679,7 @@ let base_router = {
             .layer(cors)
             .layer(TraceLayer::new_for_http());
 
-    let stack = crate::core::shared::utils::get_stack_path();
+    let stack = botcore::shared::utils::get_stack_path();
     let cert_dir = std::path::PathBuf::from(format!("{}/conf/system/certificates", stack));
     let cert_path = cert_dir.join("api/server.crt");
     let key_path = cert_dir.join("api/server.key");
@@ -744,3 +744,13 @@ let base_router = {
         result.map_err(std::io::Error::other)
     }
 }
+
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tower_http::trace::TraceLayer;
+use tower_http::services::ServeDir;
+use botcore::shared::state::AppState;
+use botcore::urls::ApiUrls;
+use botlib::SystemLimits;
+use botcore::shared::models::schema::bot_configuration::dsl::*;
+use diesel::prelude::*;

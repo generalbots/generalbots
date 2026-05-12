@@ -1,10 +1,6 @@
-use crate::core::shared::models::{bot_memories, bot_shared_memory, BotSharedMemory};
-use crate::core::shared::state::AppState;
-use crate::basic::UserSession;
-use diesel::prelude::*;
+use botcore::shared::schema::{bot_memories, bot_shared_memory};
+use botcore::shared::models::BotSharedMemory;
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn register_bot_share_memory(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -141,7 +137,7 @@ fn find_bot_by_name(
     conn: &mut PgConnection,
     bot_name: &str,
 ) -> Result<Uuid, Box<dyn std::error::Error + Send + Sync>> {
-    use crate::core::shared::models::bots;
+    use botcore::shared::schema::bots;
     
     let bot_id: Uuid = bots::table
         .filter(bots::name.eq(bot_name))
@@ -151,3 +147,9 @@ fn find_bot_by_name(
     
     Ok(bot_id)
 }
+
+use botcore::shared::state::AppState;
+use crate::basic::UserSession;
+use diesel::prelude::*;
+use std::sync::Arc;
+use uuid::Uuid;

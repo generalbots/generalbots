@@ -1,13 +1,7 @@
 use crate::security::command_guard::SafeCommand;
-use crate::core::shared::state::AppState;
+use botcore::shared::state::AppState;
 use chrono::{DateTime, Utc};
-use diesel::prelude::*;
-use log::info;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServer {
@@ -880,3 +874,10 @@ impl McpClient {
         }
     }
 }
+
+use diesel::prelude::*;
+use log::info;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+use uuid::Uuid;

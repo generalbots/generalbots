@@ -1,10 +1,8 @@
 use crate::multimodal::BotModelsClient;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
-use std::time::Duration;
 
 pub fn register_multimodal_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     image_keyword(state.clone(), user.clone(), engine);
@@ -299,3 +297,7 @@ async fn execute_see_caption(
         client.describe_image(&file_path).await
     }
 }
+
+use std::sync::Arc;
+use std::time::Duration;
+use uuid::Uuid;

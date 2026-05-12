@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use log::{info, warn};
-use super::generate_random_string;
-use crate::core::shared::utils::get_stack_path;
 
 pub async fn setup_alm() -> anyhow::Result<()> {
     let stack_path_raw = get_stack_path();
@@ -176,3 +174,6 @@ async fn register_runner(
 
     Ok(())
 }
+
+use super::generate_random_string;
+use botcore::shared::utils::get_stack_path;

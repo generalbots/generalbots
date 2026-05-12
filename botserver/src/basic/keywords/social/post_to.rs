@@ -1,11 +1,9 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn post_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -180,3 +178,6 @@ fn save_social_post(
     trace!("Social post saved: {} to {}", post_id, platform);
     Ok(post_id)
 }
+
+use std::sync::Arc;
+use uuid::Uuid;

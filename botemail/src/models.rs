@@ -8,11 +8,10 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::sql_types::{
     Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid, Varchar,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::schema;
 
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 

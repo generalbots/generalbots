@@ -28,19 +28,14 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::core::shared::models::schema::bots::dsl::*;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::models::schema::bots::dsl::*;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::trace;
 use rhai::{Dynamic, Engine, Map};
-use serde_json::Value;
-use std::error::Error;
-use std::fmt::Write as FmtWrite;
-use std::sync::Arc;
 
 use super::basic_io::{execute_read, execute_write};
-use super::utils::dynamic_to_json;
 
 pub struct PdfResult {
     pub url: String,
@@ -275,3 +270,9 @@ pub async fn execute_merge_pdf(
         local_name: output.to_string(),
     })
 }
+
+use serde_json::Value;
+use std::error::Error;
+use std::fmt::Write as FmtWrite;
+use std::sync::Arc;
+use super::utils::dynamic_to_json;

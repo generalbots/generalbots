@@ -1,13 +1,10 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{error, trace};
 use reqwest::{header::HeaderMap, header::HeaderName, header::HeaderValue, Client, Method};
 use rhai::{Dynamic, Engine, Map};
 use serde_json::{json, Value};
-use std::collections::HashMap;
-use std::error::Error;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 thread_local! {
     static HTTP_HEADERS: std::cell::RefCell<HashMap<String, String>> = std::cell::RefCell::new(HashMap::new());
@@ -734,3 +731,7 @@ fn json_to_dynamic(value: &Value) -> Dynamic {
         }
     }
 }
+
+use std::collections::HashMap;
+use std::error::Error;
+use std::time::Duration;

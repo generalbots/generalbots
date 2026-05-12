@@ -1,9 +1,6 @@
 use chrono::Utc;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::PathBuf;
-use uuid::Uuid;
 
 use super::mcp_client::{
     ConnectionType, HealthStatus, McpAuth, McpCapabilities, McpConnection, McpServer,
@@ -805,3 +802,7 @@ pub fn generate_example_configs() -> Vec<McpServerConfig> {
 pub type McpDirectoryScanner = McpCsvLoader;
 pub type McpDirectoryScanResult = McpLoadResult;
 pub type McpScanError = McpLoadError;
+
+use std::collections::HashMap;
+use std::path::PathBuf;
+use uuid::Uuid;

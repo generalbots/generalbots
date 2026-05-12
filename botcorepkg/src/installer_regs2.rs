@@ -1,7 +1,6 @@
 use crate::component::ComponentConfig;
-use crate::installer::{get_component_url, safe_sh_command};
+use crate::installer::get_component_url;
 use botlib::security::get_stack_path;
-use log::info;
 use std::collections::HashMap;
 
 pub fn register_table_editor(components: &mut HashMap<String, ComponentConfig>) {

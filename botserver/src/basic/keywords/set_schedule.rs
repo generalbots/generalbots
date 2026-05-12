@@ -1,8 +1,7 @@
-use crate::core::shared::models::TriggerKind;
+use botcore::shared::models::TriggerKind;
 use diesel::prelude::*;
 use log::trace;
 use serde_json::{json, Value};
-use uuid::Uuid;
 
 pub fn parse_natural_schedule(input: &str) -> Result<String, String> {
     let input = input.trim().to_lowercase();
@@ -295,9 +294,9 @@ pub fn execute_set_schedule(
         bot_uuid
     );
 
-    use crate::core::shared::models::bots::dsl::bots;
+    use botcore::shared::schema::bots::dsl::bots;
     let bot_exists: bool = diesel::select(diesel::dsl::exists(
-        bots.filter(crate::core::shared::models::bots::dsl::id.eq(bot_uuid)),
+        bots.filter(botcore::shared::schema::bots::dsl::id.eq(bot_uuid)),
     ))
     .get_result(conn)?;
 
@@ -305,7 +304,7 @@ pub fn execute_set_schedule(
         return Err(format!("Bot with id {} does not exist", bot_uuid).into());
     }
 
-    use crate::core::shared::models::system_automations::dsl::*;
+    use botcore::shared::schema::system_automations::dsl::*;
 
     let new_automation = (
         bot_id.eq(bot_uuid),
@@ -343,3 +342,5 @@ pub fn execute_set_schedule(
         "rows_affected": result
     }))
 }
+
+use uuid::Uuid;

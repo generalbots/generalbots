@@ -1,16 +1,9 @@
 use crate::core::package_manager::cache::{CacheResult, DownloadCache};
 use crate::core::package_manager::component::{ComponentConfig, InstallResult};
-use crate::core::package_manager::installer::PackageManager;
-use crate::core::package_manager::InstallMode;
-use crate::core::package_manager::OsType;
-use crate::security::command_guard::SafeCommand;
-use crate::core::shared::utils::{self, get_database_url_sync, parse_database_url};
+use botcore::shared::utils::{self, get_database_url_sync, parse_database_url};
 use anyhow::{Context, Result};
 use log::{error, info, trace, warn};
-use reqwest::Client;
-use std::collections::HashMap;
-use std::fmt::Write as FmtWrite;
-use std::path::PathBuf;
+use std::io::Write;
 
 fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
     SafeCommand::new("lxc")
@@ -663,7 +656,7 @@ impl PackageManager {
                 std::fs::write(&env_file, format!("{}\n{}", updated.trim(), env_content))?;
             } else {
                 let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
-                use std::io::Write;
+
                 file.write_all(env_content.as_bytes())?;
             }
         } else {
@@ -1515,3 +1508,12 @@ Store credentials in Vault:
         Ok(())
     }
 }
+
+use crate::core::package_manager::installer::PackageManager;
+use crate::core::package_manager::InstallMode;
+use crate::core::package_manager::OsType;
+use crate::security::command_guard::SafeCommand;
+use reqwest::Client;
+use std::collections::HashMap;
+use std::fmt::Write as FmtWrite;
+use std::path::PathBuf;

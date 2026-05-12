@@ -1,5 +1,3 @@
-//! Main application modules split from main.rs for better organization
-
 mod bootstrap;
 mod drive_utils;
 mod health;

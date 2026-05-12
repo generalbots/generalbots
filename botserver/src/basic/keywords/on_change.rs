@@ -1,9 +1,7 @@
 use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use uuid::Uuid;
 
-use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FolderProvider {
@@ -275,3 +273,6 @@ mod tests {
         assert!(filtered[0].path.ends_with(".pdf"));
     }
 }
+
+use uuid::Uuid;
+use botcore::shared::state::AppState;

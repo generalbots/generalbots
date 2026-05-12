@@ -1,6 +1,6 @@
-use crate::core::shared::models::TriggerKind;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::models::TriggerKind;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::error;
 use log::trace;
@@ -50,7 +50,7 @@ pub fn execute_on_trigger(
     table: &str,
     param: &str,
 ) -> Result<Value, String> {
-    use crate::core::shared::models::system_automations;
+    use botcore::shared::schema::system_automations;
     let new_automation = (
         system_automations::kind.eq(kind as i32),
         system_automations::target.eq(table),

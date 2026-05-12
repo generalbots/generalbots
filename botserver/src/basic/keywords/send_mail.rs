@@ -1,13 +1,6 @@
 use crate::basic::keywords::use_account::{get_account_credentials, AccountCredentials};
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
-use chrono::Utc;
-use diesel::prelude::*;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
-use serde_json::json;
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -684,3 +677,11 @@ mod tests {
         assert_eq!(subject, Some("Welcome to our service".to_string()));
     }
 }
+
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
+use chrono::Utc;
+use diesel::prelude::*;
+use serde_json::json;
+use std::sync::Arc;
+use uuid::Uuid;

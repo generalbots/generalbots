@@ -1,0 +1,31 @@
+[package]
+name = "botmeet"
+version = "6.3.1"
+edition = "2021"
+
+[features]
+default = []
+
+[dependencies]
+botcore = { path = "../botcore" }
+botsecurity = { path = "../botsecurity" }
+botlib = { path = "../botlib" }
+botschema = { path = "../botschema" }
+axum = { workspace = true, features = ["ws", "macros"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
+chrono = { workspace = true, features = ["clock", "std"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+log = { workspace = true }
+anyhow = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls", "json"] }
+urlencoding = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+png = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true

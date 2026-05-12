@@ -7,12 +7,7 @@ use axum::{
 };
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use uuid::Uuid;
 
-use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InvitationStatus {
@@ -463,7 +458,7 @@ impl InvitationService {
             })
             .collect();
 
-        filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        filtered.sort_by_key(|b| std::cmp::Reverse(b.created_at));
 
         let total = filtered.len() as u32;
         let total_pages = total.div_ceil(per_page);
@@ -969,3 +964,9 @@ mod tests {
         assert!(updated.accepted_at.is_some());
     }
 }
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;
+use botcore::shared::state::AppState;

@@ -3,11 +3,7 @@ use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use uuid::Uuid;
 
-use crate::core::shared::models::TriggerKind;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailMonitor {
@@ -220,7 +216,7 @@ pub fn execute_on_email(
     filter_from: Option<&str>,
     filter_subject: Option<&str>,
 ) -> Result<Value, String> {
-    use crate::core::shared::models::system_automations;
+    use botcore::shared::schema::system_automations;
 
     let new_automation = (
         system_automations::kind.eq(TriggerKind::EmailReceived as i32),
@@ -454,3 +450,8 @@ pub fn sanitize_email_for_filename(email: &str) -> String {
         .collect::<String>()
         .to_lowercase()
 }
+
+use uuid::Uuid;
+use botcore::shared::models::TriggerKind;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;

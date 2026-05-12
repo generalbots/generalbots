@@ -1,17 +1,20 @@
-use crate::core::shared::models::{workflow_executions, WorkflowExecution};
-use crate::core::shared::state::AppState;
-use crate::basic::UserSession;
-use diesel::prelude::*;
+use botcore::shared::schema::workflow_executions;
+use botcore::shared::models::WorkflowExecution;
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorkflowState {
+    #[serde(default)]
     pub current_step: i32,
+    #[serde(default)]
     pub variables: std::collections::HashMap<String, String>,
+    #[serde(default = "default_running")]
     pub status: String,
+}
+
+fn default_running() -> String {
+    "running".to_string()
 }
 
 #[derive(Debug, Clone)]
@@ -67,14 +70,14 @@ async fn create_workflow(
         status: "running".to_string(),
     };
     
-    let state_json = serde_json::to_string(&initial_state)?;
-    
+    let state_json = serde_json::to_value(&initial_state)?;
+
     let new_workflow = WorkflowExecution {
         id: Uuid::new_v4(),
         bot_id: bot_uuid,
         workflow_name: workflow_name.to_string(),
-        current_step: 1,
-        state_json,
+        current_step: Some(1),
+        state_json: Some(state_json),
         status: "running".to_string(),
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
@@ -137,7 +140,10 @@ async fn execute_workflow_step(
         .filter(workflow_executions::status.eq("running"))
         .first(&mut conn)?;
     
-    let mut workflow_state: WorkflowState = serde_json::from_str(&workflow.state_json)?;
+    let mut workflow_state: WorkflowState = match &workflow.state_json {
+        Some(v) => serde_json::from_value(v.clone()).unwrap_or_default(),
+        None => WorkflowState::default(),
+    };
     
     if workflow_state.current_step == step_number {
         workflow_state.current_step = step_number + 1;
@@ -155,12 +161,12 @@ fn save_workflow_state(
     state: &WorkflowState,
     conn: &mut PgConnection,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let state_json = serde_json::to_string(state)?;
-    
+    let state_json: Option<serde_json::Value> = Some(serde_json::to_value(state)?);
+
     diesel::update(workflow_executions::table.filter(workflow_executions::id.eq(workflow_id)))
         .set((
             workflow_executions::state_json.eq(state_json),
-            workflow_executions::current_step.eq(state.current_step),
+            workflow_executions::current_step.eq(Some(state.current_step)),
             workflow_executions::updated_at.eq(chrono::Utc::now()),
         ))
         .execute(conn)?;
@@ -178,7 +184,7 @@ pub async fn resume_workflows_on_startup(
         .load(&mut conn)?;
     
     for workflow in running_workflows {
-        let workflow_state: WorkflowState = serde_json::from_str(&workflow.state_json)?;
+        let workflow_state: WorkflowState = workflow.state_json.as_ref().and_then(|v| serde_json::from_value(v.clone()).ok()).unwrap_or_default();
         
         let state_clone = Arc::clone(&state);
         tokio::spawn(async move {
@@ -199,3 +205,9 @@ async fn resume_workflow_execution(
     log::info!("Resuming workflow {workflow_id}");
     Ok(())
 }
+
+use botcore::shared::state::AppState;
+use crate::basic::UserSession;
+use diesel::prelude::*;
+use std::sync::Arc;
+use uuid::Uuid;

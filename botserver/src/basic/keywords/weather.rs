@@ -1,10 +1,8 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
-use std::fmt::Write;
-use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeatherData {
@@ -386,3 +384,6 @@ pub fn degrees_to_compass(degrees: f64) -> String {
 fn get_weather_api_key(_state: &AppState) -> Result<String, String> {
     Err("Weather API key not configured. Please set 'weather-api-key' in config.csv".to_string())
 }
+
+use std::fmt::Write;
+use std::sync::Arc;

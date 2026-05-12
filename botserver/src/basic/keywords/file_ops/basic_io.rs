@@ -28,12 +28,11 @@
 |                                                                             |
 \*****************************************************************************/
 
-use crate::core::shared::models::schema::bots::dsl::*;
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::models::schema::bots::dsl::*;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, trace};
-use std::error::Error;
 
 pub async fn execute_read(
     state: &AppState,
@@ -57,17 +56,8 @@ pub async fn execute_read(
     let key = format!("{bot_name}.gbdrive/{path}");
 
     let data = client
-        .get_object()
-        .bucket(&bucket_name)
-        .key(&key)
-        .send()
-        .await
-        .map_err(|e| format!("S3 get failed: {e}"))?
-        .body
-        .collect()
-        .await
-        .map_err(|e| format!("Body collect failed: {e}"))?
-        .into_bytes();
+        .get_object(&bucket_name, &key).await
+        .map_err(|e| format!("S3 get failed: {e}"))?;
 
         let content =
             String::from_utf8(data.to_vec()).map_err(|_| "File content is not valid UTF-8")?;
@@ -99,11 +89,7 @@ pub async fn execute_write(
     let key = format!("{bot_name}.gbdrive/{path}");
 
     client
-        .put_object()
-        .bucket(&bucket_name)
-        .key(&key)
-        .body(content.as_bytes().to_vec())
-        .send()
+        .put_object(&bucket_name, &key, content.as_bytes().to_vec(), None)
         .await
         .map_err(|e| format!("S3 put failed: {e}"))?;
 
@@ -133,11 +119,7 @@ pub async fn execute_delete_file(
     let key = format!("{bot_name}.gbdrive/{path}");
 
     client
-        .delete_object()
-        .bucket(&bucket_name)
-        .key(&key)
-        .send()
-        .await
+        .delete_object(&bucket_name, &key).await
         .map_err(|e| format!("S3 delete failed: {e}"))?;
 
     trace!("DELETE_FILE successful: {path}");
@@ -165,18 +147,20 @@ pub async fn execute_list(
     let bucket_name = format!("{bot_name}.gbai");
     let prefix = format!("{bot_name}.gbdrive/{path}");
 
-let files: Vec<String> = client
-            .list_objects(&bucket_name, Some(&prefix))
-            .await
-            .map_err(|e| format!("S3 list failed: {e}"))?
-            .iter()
-            .map(|k| {
-                k.strip_prefix(&format!("{bot_name}.gbdrive/"))
-                    .unwrap_or(k)
-                    .to_string()
-            })
-            .collect();
+    let files: Vec<String> = client
+        .list_objects(&bucket_name, Some(&prefix))
+        .await
+        .map_err(|e| format!("S3 list failed: {e}"))?
+        .iter()
+        .map(|k| {
+            k.strip_prefix(&format!("{bot_name}.gbdrive/"))
+                .unwrap_or(k)
+                .to_string()
+        })
+        .collect();
 
     trace!("LIST successful: {} files", files.len());
     Ok(files)
 }
+
+use std::error::Error;

@@ -1,7 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::Path;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KbPermissions {
@@ -458,3 +455,7 @@ pub fn build_qdrant_permission_filter(user: &UserContext) -> serde_json::Value {
         "min_should": { "conditions": should_conditions.clone(), "min_count": 1 }
     })
 }
+
+use std::collections::HashMap;
+use std::path::Path;
+use uuid::Uuid;

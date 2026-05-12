@@ -1,9 +1,6 @@
 use anyhow::Result;
 use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
-use std::time::Duration;
-use tokio::time::sleep;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebsiteCrawlConfig {
@@ -369,3 +366,7 @@ impl WebCrawler {
         }
     }
 }
+
+use std::collections::HashSet;
+use std::time::Duration;
+use tokio::time::sleep;

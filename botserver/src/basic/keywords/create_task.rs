@@ -1,12 +1,9 @@
-use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use botcore::shared::UserSession;
+use botcore::shared::state::AppState;
 use chrono::{DateTime, Duration, NaiveDate, Utc};
-use diesel::prelude::*;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
 
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn create_task_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -414,3 +411,7 @@ fn send_task_notification(
 
     Ok(())
 }
+
+use diesel::prelude::*;
+use std::sync::Arc;
+use uuid::Uuid;

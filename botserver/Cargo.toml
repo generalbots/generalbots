@@ -10,7 +10,7 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "kb-extraction"]
+default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "kb-extraction", "security"]
 
 # ===== SECURITY MODES =====
 # no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
@@ -250,6 +250,23 @@ ureq = { version = "2", features = ["json"] }
 # === NON-OPTIONAL EXTRACTED CRATES (always linked, no feature gate) ===
 botchannels = { workspace = true }
 botbrowser = { workspace = true }
+botcoresecrets = { workspace = true }
+botcoresession = { workspace = true }
+botcoreoauth = { workspace = true }
+botcorebot = { workspace = true }
+botcoredirectory = { workspace = true }
+botcorepkg = { workspace = true }
+botautotask = { workspace = true }
+botbasic_types = { path = "../botbasic_types" }
+botcore = { path = "../botcore" }
+botbasic_core = { path = "../botbasic_core" }
+botbasic_data = { path = "../botbasic_data" }
+botbasic_comms = { path = "../botbasic_comms" }
+botbasic_ai = { path = "../botbasic_ai" }
+botbasic_system = { path = "../botbasic_system" }
+botapi = { path = "../botapi" }
+botmeet = { path = "../botmeet" }
+botsettings = { path = "../botsettings" }
 
 # === EXTRACTED CRATES (optional - enabled by feature flags) ===
 botbilling = { workspace = true, optional = true }
@@ -297,6 +314,7 @@ botsecurity = { workspace = true, optional = true }
 botplayer = { workspace = true, optional = true }
 botmultimodal = { workspace = true, optional = true }
 botsearch = { workspace = true, optional = true }
+botmodelsbridge = { workspace = true }
 
 [dev-dependencies]
 mockito = { workspace = true }

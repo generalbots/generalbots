@@ -1,12 +1,8 @@
-use crate::core::shared::state::AppState;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
-use std::fmt::Write;
-use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAPISpec {
@@ -665,3 +661,8 @@ impl SyncResult {
         self.errors.is_empty()
     }
 }
+
+use std::collections::HashMap;
+use std::fmt::Write;
+use std::sync::Arc;
+use uuid::Uuid;

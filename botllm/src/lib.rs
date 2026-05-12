@@ -6,6 +6,11 @@ pub mod kimi;
 pub mod llm_models;
 pub mod rate_limiter;
 pub mod vertex;
+pub mod cache;
+pub mod episodic_memory;
+pub mod local;
+pub mod smart_router;
+pub mod observability;
 
 pub use rate_limiter::{ApiRateLimiter, RateLimits};
 pub use hallucination_detector::HallucinationDetector;
@@ -631,9 +636,7 @@ impl From<&str> for LLMProviderType {
             } else {
                 Self::Claude
             }
-        } else if lower.contains("azuregpt5") || lower.contains("gpt5") {
-            Self::AzureGPT5
-        } else if lower.contains("openai.azure.com") && lower.contains("responses") {
+        } else if lower.contains("azuregpt5") || lower.contains("gpt5") || (lower.contains("openai.azure.com") && lower.contains("responses")) {
             Self::AzureGPT5
         } else if lower.contains("z.ai") || lower.contains("glm") {
             Self::GLM

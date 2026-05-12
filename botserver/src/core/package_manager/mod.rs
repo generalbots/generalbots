@@ -11,7 +11,6 @@ pub use installer::PackageManager;
 pub mod cli;
 pub mod facade;
 use serde::{Serialize, Deserialize};
-use rand::Rng;
 
 /// Generate a cryptographically strong random string for passwords, tokens, etc.
 pub fn generate_random_string(length: usize) -> String {
@@ -72,7 +71,7 @@ pub use alm_setup::setup_alm;
 pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::setup::DirectoryConfig> {
     use std::path::PathBuf;
     use std::collections::HashMap;
-    use crate::core::shared::utils::get_stack_path;
+    use botcore::shared::utils::get_stack_path;
 
     let stack_path = get_stack_path();
 
@@ -166,3 +165,5 @@ pub async fn setup_directory() -> anyhow::Result<crate::core::package_manager::s
 
     Ok(config)
 }
+
+use rand::Rng;
