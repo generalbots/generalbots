@@ -19,7 +19,7 @@ members = [
   "botkb",
   "botlearn",
   "botlegal",
-  "botllm",
+
   "botmaintenance",
   "botmarketing",
   "botmonitoring",
@@ -31,10 +31,9 @@ members = [
   "botplayer",
   "botproducts",
   "botproject",
-  "botqdrant",
+
   "botresearch",
   "botsearch",
-  "botsecurity",
   "botserver",
   "botsheet",
   "botslides",
@@ -52,26 +51,8 @@ members = [
   "botworkspaces",
     "botinstagram",
     "botbrowser",
-"botcorebot",
-  "botcorepkg",
-  "botcoresession",
-  "botcoreoauth",
-    "botcoresecrets",
-  "botcoredirectory",
-  "botcore",
-  "botbasic_types",
-    "botbasic_core",
-    "botbasic_data",
-    "botbasic_comms",
-  "botbasic_ai",
-	"botbasic_system",
-	"botbasic_compiler",
+
   "botschema",
-	"botmodelsbridge",
-	"botapi",
-	"botmeet",
-	"botsettings",
-	"botdrive",
 ]
 
 [workspace.lints.rust]
@@ -85,71 +66,75 @@ members = [
 
 [workspace.dependencies]
 # ─── INTERNAL CRATES ───
-botautotask = { path = "botautotask" }
+botautotask = { path = "botserver/crates/botautotask" }
 botlib = { path = "botlib" }
-botanalytics = { path = "botanalytics" }
-botattendance = { path = "botattendance" }
-botattendant = { path = "botattendant" }
-botbilling = { path = "botbilling" }
-botbrowser = { path = "botbrowser" }
-botcalendar = { path = "botcalendar" }
-botcanvas = { path = "botcanvas" }
-botchannels = { path = "botchannels" }
-botcompliance = { path = "botcompliance" }
-botcontacts = { path = "botcontacts" }
-botdashboards = { path = "botdashboards" }
-botdeployment = { path = "botdeployment" }
-botdesigner = { path = "botdesigner" }
-botdocs = { path = "botdocs" }
-botemail = { path = "botemail" }
-botkb = { path = "botkb" }
-botlearn = { path = "botlearn" }
-botlegal = { path = "botlegal" }
-botllm = { path = "botllm" }
-botmaintenance = { path = "botmaintenance" }
-botmarketing = { path = "botmarketing" }
-botmonitoring = { path = "botmonitoring" }
-botmsteams = { path = "botmsteams" }
-botmultimodal = { path = "botmultimodal" }
-botnvidia = { path = "botnvidia" }
-botpaper = { path = "botpaper" }
-botpeople = { path = "botpeople" }
-botplayer = { path = "botplayer" }
-botproducts = { path = "botproducts" }
-botproject = { path = "botproject" }
-botqdrant = { path = "botqdrant" }
-botresearch = { path = "botresearch" }
-botsearch = { path = "botsearch" }
-botsecurity = { path = "botsecurity" }
-botsheet = { path = "botsheet" }
-botslides = { path = "botslides" }
-botsocial = { path = "botsocial" }
-botsources = { path = "botsources" }
-bottasks = { path = "bottasks" }
-bottelegram = { path = "bottelegram" }
-bottickets = { path = "bottickets" }
-bottimeseries = { path = "bottimeseries" }
-botvideo = { path = "botvideo" }
-botweba = { path = "botweba" }
-botwhatsapp = { path = "botwhatsapp" }
-botworkspaces = { path = "botworkspaces" }
-botinstagram = { path = "botinstagram" }
-botcoresession = { path = "botcoresession" }
-botcoreoauth = { path = "botcoreoauth" }
-botcoresecrets = { path = "botcoresecrets" }
-botcoredirectory = { path = "botcoredirectory" }
-botbasic_types = { path = "botbasic_types" }
-botbasic_core = { path = "botbasic_core" }
-botbasic_data = { path = "botbasic_data" }
-botbasic_comms = { path = "botbasic_comms" }
-botbasic_ai = { path = "botbasic_ai" }
-botbasic_system = { path = "botbasic_system" }
-botbasic_compiler = { path = "botbasic_compiler" }
+botanalytics = { path = "botserver/crates/botanalytics" }
+botattendance = { path = "botserver/crates/botattendance" }
+botattendant = { path = "botserver/crates/botattendant" }
+botbilling = { path = "botserver/crates/botbilling" }
+botbrowser = { path = "botserver/crates/botbrowser" }
+botcalendar = { path = "botserver/crates/botcalendar" }
+botcanvas = { path = "botserver/crates/botcanvas" }
+botchannels = { path = "botserver/crates/botchannels" }
+botcompliance = { path = "botserver/crates/botcompliance" }
+botcontacts = { path = "botserver/crates/botcontacts" }
+botdashboards = { path = "botserver/crates/botdashboards" }
+botdeployment = { path = "botserver/crates/botdeployment" }
+botdesigner = { path = "botserver/crates/botdesigner" }
+botdocs = { path = "botserver/crates/botdocs" }
+botemail = { path = "botserver/crates/botemail" }
+botkb = { path = "botserver/crates/botkb" }
+botlearn = { path = "botserver/crates/botlearn" }
+botlegal = { path = "botserver/crates/botlegal" }
+botllm = { path = "botserver/crates/botllm" }
+botmaintenance = { path = "botserver/crates/botmaintenance" }
+botmarketing = { path = "botserver/crates/botmarketing" }
+botmonitoring = { path = "botserver/crates/botmonitoring" }
+botmsteams = { path = "botserver/crates/botmsteams" }
+botmultimodal = { path = "botserver/crates/botmultimodal" }
+botnvidia = { path = "botserver/crates/botnvidia" }
+botpaper = { path = "botserver/crates/botpaper" }
+botpeople = { path = "botserver/crates/botpeople" }
+botplayer = { path = "botserver/crates/botplayer" }
+botproducts = { path = "botserver/crates/botproducts" }
+botproject = { path = "botserver/crates/botproject" }
+botqdrant = { path = "botserver/crates/botqdrant" }
+botresearch = { path = "botserver/crates/botresearch" }
+botsearch = { path = "botserver/crates/botsearch" }
+botsecurity = { path = "botserver/crates/botsecurity" }
+botsheet = { path = "botserver/crates/botsheet" }
+botslides = { path = "botserver/crates/botslides" }
+botsocial = { path = "botserver/crates/botsocial" }
+botsources = { path = "botserver/crates/botsources" }
+bottasks = { path = "botserver/crates/bottasks" }
+bottelegram = { path = "botserver/crates/bottelegram" }
+bottickets = { path = "botserver/crates/bottickets" }
+bottimeseries = { path = "botserver/crates/bottimeseries" }
+botvideo = { path = "botserver/crates/botvideo" }
+botweba = { path = "botserver/crates/botweba" }
+botwhatsapp = { path = "botserver/crates/botwhatsapp" }
+botworkspaces = { path = "botserver/crates/botworkspaces" }
+botinstagram = { path = "botserver/crates/botinstagram" }
+botcoresession = { path = "botserver/crates/botcoresession" }
+botcoreoauth = { path = "botserver/crates/botcoreoauth" }
+botcoresecrets = { path = "botserver/crates/botcoresecrets" }
+botcoredirectory = { path = "botserver/crates/botcoredirectory" }
+botbasic_types = { path = "botserver/crates/botbasic_types" }
+botbasic_core = { path = "botserver/crates/botbasic_core" }
+botbasic_data = { path = "botserver/crates/botbasic_data" }
+botbasic_comms = { path = "botserver/crates/botbasic_comms" }
+botbasic_ai = { path = "botserver/crates/botbasic_ai" }
+botbasic_system = { path = "botserver/crates/botbasic_system" }
+botbasic_compiler = { path = "botserver/crates/botbasic_compiler" }
 botschema = { path = "botschema" }
-botmodelsbridge = { path = "botmodelsbridge" }
-botcore = { path = "botcore" }
-botcorebot = { path = "botcorebot" }
-botcorepkg = { path = "botcorepkg" }
+botmodelsbridge = { path = "botserver/crates/botmodelsbridge" }
+botapi = { path = "botserver/crates/botapi" }
+botcore = { path = "botserver/crates/botcore" }
+botdrive = { path = "botserver/crates/botdrive" }
+botmeet = { path = "botserver/crates/botmeet" }
+botsettings = { path = "botserver/crates/botsettings" }
+botcorebot = { path = "botserver/crates/botcorebot" }
+botcorepkg = { path = "botserver/crates/botcorepkg" }
 
 # ─── CORE / ERROR HANDLING ───
 anyhow = "1.0"
