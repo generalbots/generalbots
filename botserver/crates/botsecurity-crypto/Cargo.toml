@@ -1,0 +1,34 @@
+[package]
+name = "botsecurity-crypto"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots crypto: TLS, CA, encryption, certificates"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+reqwest = { workspace = true, features = ["rustls-tls"] }
+regex = { workspace = true }
+aes-gcm = { workspace = true }
+anyhow = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true, features = ["serde", "clock"] }
+hex = { workspace = true }
+rand = { workspace = true }
+rcgen = { workspace = true, features = ["crypto", "ring", "pem"] }
+ring = { workspace = true }
+rustls = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros", "net"] }
+tokio-rustls = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+x509-parser = { workspace = true }
+
+[lints]
+workspace = true

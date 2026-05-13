@@ -1,5 +1,5 @@
 use base64::Engine;
-use crate::types::{CellStyle, Spreadsheet};
+use botsheet_core::types::{CellStyle, Spreadsheet};
 
 pub fn export_to_xlsx(sheet: &Spreadsheet) -> Result<String, String> {
     let mut workbook = rust_xlsxwriter::Workbook::new();

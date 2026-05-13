@@ -8,7 +8,7 @@ authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 
 [dependencies]
-botlib = { path = "../botlib" }
+botlib = { path = "../../../botlib" }
 anyhow = { workspace = true }
 sysinfo = { workspace = true }
 
