@@ -33,7 +33,7 @@ pub fn seed_vault_defaults(
                 ("accesskey".to_string(), drive_user),
                 ("secret".to_string(), drive_pass),
                 ("host".to_string(), "localhost".to_string()),
-                ("port".to_string(), "9000".to_string()),
+                ("port".to_string(), "9100".to_string()),
                 ("url".to_string(), "".to_string()),
             ],
         ),
@@ -62,7 +62,7 @@ pub fn seed_vault_defaults(
             vec![
                 ("url".to_string(), "".to_string()),
                 ("host".to_string(), "localhost".to_string()),
-                ("port".to_string(), "9000".to_string()),
+                ("port".to_string(), "8300".to_string()),
                 ("project_id".to_string(), "none".to_string()),
                 ("client_id".to_string(), "none".to_string()),
                 ("client_secret".to_string(), "none".to_string()),
@@ -123,7 +123,7 @@ pub fn seed_vault_defaults(
             vec![
                 ("url".to_string(), "".to_string()),
                 ("host".to_string(), "localhost".to_string()),
-                ("port".to_string(), "9000".to_string()),
+                ("port".to_string(), "3000".to_string()),
                 ("token".to_string(), alm_token),
                 ("default_org".to_string(), "none".to_string()),
             ],

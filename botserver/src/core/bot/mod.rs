@@ -1,4 +1,7 @@
 pub use botcorebot::*;
+pub mod ws_handler;
+
+pub use ws_handler::{websocket_handler, websocket_handler_with_bot};
 
 pub mod channels {
     pub use botlib::traits::ChannelAdapter;
@@ -111,5 +114,3 @@ impl BotOrchestrator {
 
 pub fn get_default_bot() -> (String, String) { ("default".to_string(), "Default Bot".to_string()) }
 pub async fn get_bot_config() -> axum::Json<serde_json::Value> { axum::Json(serde_json::json!({})) }
-pub async fn websocket_handler(_ws: axum::extract::WebSocketUpgrade, _state: std::sync::Arc<botcore::shared::state::AppState>) -> axum::response::Response { axum::response::IntoResponse::into_response(()) }
-pub async fn websocket_handler_with_bot(_ws: axum::extract::WebSocketUpgrade, _state: std::sync::Arc<botcore::shared::state::AppState>) -> axum::response::Response { axum::response::IntoResponse::into_response(()) }

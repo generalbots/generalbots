@@ -15,19 +15,22 @@ struct ComponentEntry {
 #[derive(Deserialize, Debug)]
 struct ThirdPartyConfig {
     components: HashMap<String, ComponentEntry>,
+    #[serde(default)]
+    models: HashMap<String, ComponentEntry>,
 }
 
 static THIRDPARTY_CONFIG: std::sync::OnceLock<ThirdPartyConfig> = std::sync::OnceLock::new();
 
 fn get_thirdparty_config() -> &'static ThirdPartyConfig {
     THIRDPARTY_CONFIG.get_or_init(|| {
-        let toml_str = include_str!("../../3rdparty.toml");
+        let toml_str = include_str!("../../../../3rdparty.toml");
         match toml::from_str::<ThirdPartyConfig>(toml_str) {
             Ok(config) => config,
             Err(e) => {
                 error!("CRITICAL: Failed to parse embedded 3rdparty.toml: {e}");
                 ThirdPartyConfig {
                     components: HashMap::new(),
+                    models: HashMap::new(),
                 }
             }
         }
@@ -37,6 +40,13 @@ fn get_thirdparty_config() -> &'static ThirdPartyConfig {
 fn get_component_url(name: &str) -> Option<String> {
     get_thirdparty_config()
         .components
+        .get(name)
+        .map(|c| c.url.clone())
+}
+
+fn get_model_url(name: &str) -> Option<String> {
+    get_thirdparty_config()
+        .models
         .get(name)
         .map(|c| c.url.clone())
 }
@@ -241,7 +251,9 @@ impl PackageManager {
                 download_url: get_component_url("drive"),
                 binary_name: Some("minio".to_string()),
                 pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
+                post_install_cmds_linux: vec![
+                    "cp {{DATA_PATH}}/mc {{BIN_PATH}}/mc && chmod +x {{BIN_PATH}}/mc".to_string(),
+                ],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
@@ -250,7 +262,7 @@ impl PackageManager {
                     ("MINIO_ROOT_USER".to_string(), "$DRIVE_ACCESSKEY".to_string()),
                     ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
                 ]),
-                data_download_list: Vec::new(),
+                data_download_list: get_component_url("mc").map(|url| vec![url]).unwrap_or_default(),
                 exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
                 check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
             container: None,
@@ -375,10 +387,8 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: vec![
-
-                    "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string(),
-
-                    "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf".to_string(),
+                    get_model_url("deepseek_small").unwrap_or_default(),
+                    get_model_url("bge_embedding").unwrap_or_default(),
                 ],
                 exec_cmd: "nohup {{BIN_PATH}}/build/bin/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --ubatch-size 512 > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/build/bin/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embeddings --pooling mean --n-gpu-layers 0 --ctx-size 512 --ubatch-size 512 > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8081/health >/dev/null 2>&1 && curl -f -k --connect-timeout 2 -m 5 https://localhost:8082/health >/dev/null 2>&1".to_string(),
@@ -456,7 +466,7 @@ impl PackageManager {
             "directory".to_string(),
             ComponentConfig {
                 name: "directory".to_string(),
-                ports: vec![9000],
+                ports: vec![8300],
                 dependencies: vec!["tables".to_string()],
                 linux_packages: vec![],
                 macos_packages: vec![],
@@ -513,7 +523,7 @@ impl PackageManager {
                         "> {{LOGS_PATH}}/zitadel.log 2>&1 &",
                     ).to_string(),
                     // Wait for Zitadel to be ready
-                    "for i in $(seq 1 120); do curl -sf /debug/healthz && echo 'Zitadel is ready!' && break || sleep 2; done".to_string(),
+                    "for i in $(seq 1 120); do curl -sf http://localhost:8300/debug/healthz && echo 'Zitadel is ready!' && break || sleep 2; done".to_string(),
                     // Wait for PAT token to be written to logs with retry loop
                     // Zitadel may take several seconds to write the PAT after health check passes
                     "echo 'Waiting for PAT token in logs...'; for i in $(seq 1 30); do sync; if grep -q -E '^[A-Za-z0-9_-]{40,}$' {{LOGS_PATH}}/zitadel.log 2>/dev/null; then echo \"PAT token found in logs after $((i*2)) seconds\"; break; fi; sleep 2; done".to_string(),
@@ -547,12 +557,34 @@ impl PackageManager {
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: concat!(
+                    "if [ -f {{CONF_PATH}}/directory/admin-pat.txt ]; then ",
                     "nohup {{BIN_PATH}}/zitadel start ",
                     "--masterkey MasterkeyNeedsToHave32Characters ",
                     "--tlsMode disabled ",
-                    "> {{LOGS_PATH}}/zitadel.log 2>&1 &",
+                    "> {{LOGS_PATH}}/zitadel.log 2>&1 & ",
+                    "else ",
+                    "ZITADEL_PORT=8300 ",
+                    "ZITADEL_DATABASE_POSTGRES_HOST=localhost ",
+                    "ZITADEL_DATABASE_POSTGRES_PORT=5432 ",
+                    "ZITADEL_DATABASE_POSTGRES_DATABASE=zitadel ",
+                    "ZITADEL_DATABASE_POSTGRES_USER_USERNAME=zitadel ",
+                    "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=zitadel ",
+                    "ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE=disable ",
+                    "ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME=gbuser ",
+                    "ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD={{DB_PASSWORD}} ",
+                    "ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE=disable ",
+                    "ZITADEL_EXTERNALSECURE=false ",
+                    "ZITADEL_EXTERNALDOMAIN=localhost ",
+                    "ZITADEL_EXTERNALPORT=8300 ",
+                    "ZITADEL_TLS_ENABLED=false ",
+                    "nohup {{BIN_PATH}}/zitadel start-from-init ",
+                    "--masterkey MasterkeyNeedsToHave32Characters ",
+                    "--tlsMode disabled ",
+                    "--steps {{CONF_PATH}}/directory/zitadel-init-steps.yaml ",
+                    "> {{LOGS_PATH}}/zitadel.log 2>&1 & ",
+                    "fi",
                 ).to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 /debug/healthz >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/debug/healthz >/dev/null 2>&1".to_string(),
             container: None,
             },
         );
@@ -577,7 +609,7 @@ impl PackageManager {
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::from([
-                    ("USER".to_string(), "alm".to_string()),
+                    ("FORGEJO_RUN_USER".to_string(), "$USER".to_string()),
                     ("HOME".to_string(), "{{DATA_PATH}}".to_string()),
                 ]),
                 data_download_list: Vec::new(),
@@ -1643,7 +1675,7 @@ VAULT_CACERT={}
                     ("accesskey".to_string(), drive_user),
                     ("secret".to_string(), drive_pass),
                     ("host".to_string(), "localhost".to_string()),
-                    ("port".to_string(), "9000".to_string()),
+                    ("port".to_string(), "9100".to_string()),
                     ("url".to_string(), "".to_string()),
                 ],
             ),
@@ -1672,7 +1704,7 @@ VAULT_CACERT={}
                 vec![
                     ("url".to_string(), "".to_string()),
                     ("host".to_string(), "localhost".to_string()),
-                    ("port".to_string(), "9000".to_string()),
+                    ("port".to_string(), "8300".to_string()),
                     ("project_id".to_string(), "none".to_string()),
                     ("client_id".to_string(), "none".to_string()),
                     ("client_secret".to_string(), "none".to_string()),
@@ -1733,7 +1765,7 @@ VAULT_CACERT={}
                 vec![
                     ("url".to_string(), "".to_string()),
                     ("host".to_string(), "localhost".to_string()),
-                    ("port".to_string(), "9000".to_string()),
+                    ("port".to_string(), "3000".to_string()),
                     ("token".to_string(), alm_token),
                     ("default_org".to_string(), "none".to_string()),
                 ],

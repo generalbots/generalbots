@@ -78,6 +78,7 @@ pub use botsecurity_auth::auth::{
     require_permission_middleware, require_role, require_role_middleware, AuthConfig, AuthError,
     AuthenticatedUser, AuthMiddlewareState, BotAccess, Permission, Role,
 };
+#[cfg(feature = "directory")]
 pub use botsecurity_auth::auth_api::*;
 pub use botsecurity_auth::auth_provider::{
     ApiKeyAuthProvider, ApiKeyInfo, AuthProvider, AuthProviderBuilder, AuthProviderRegistry,

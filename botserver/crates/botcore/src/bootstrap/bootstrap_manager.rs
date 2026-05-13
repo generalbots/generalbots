@@ -1,9 +1,13 @@
 // Bootstrap manager implementation
 use crate::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgress};
-use crate::bootstrap::bootstrap_utils::{alm_health_check, cache_health_check, drive_health_check, safe_pkill, tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check};
+use crate::bootstrap::bootstrap_utils::{
+    alm_health_check, cache_health_check, drive_health_check, safe_pkill,
+    tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check,
+};
 use crate::package_manager::{InstallMode, PackageManager};
 use log::{info, warn};
-use tokio::time::{sleep, Duration};
+use std::time::Duration;
+use tokio::time::sleep;
 
 impl BootstrapManager {
     pub fn new(mode: InstallMode, tenant: Option<String>) -> Self {
@@ -50,245 +54,167 @@ impl BootstrapManager {
             && !vault_addr.contains("127.0.0.1");
 
         if is_remote_vault {
-            info!("Remote Vault detected ({}), skipping local service startup", vault_addr);
+            info!(
+                "Remote Vault detected ({}), skipping local service startup",
+                vault_addr
+            );
             info!("All services are assumed to be running in separate containers");
             return Ok(());
         }
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
-        info!("Starting bootstrap process...");
+        info!("Starting bootstrap process (parallel services)...");
 
+        // Phase 1: Start vault first (blocking, ensures credentials available for other services).
+        // Vault init includes unseal + seeding credentials - must finish before services that
+        // need those credentials (drive, cache) can start.
         if pm.is_installed("vault") {
-            let vault_already_running = vault_health_check();
-            if vault_already_running {
-                info!("Vault is already running");
+            if vault_health_check() {
+                info!("vault is already running");
             } else {
-                info!("Starting Vault secrets service...");
-                match pm.start("vault") {
-                    Ok(_child) => {
-                        info!("Vault process started, waiting for initialization...");
-                        // Wait for vault to be ready
-                        for _ in 0..10 {
-                            sleep(Duration::from_secs(1)).await;
-                            if vault_health_check() {
-                                info!("Vault is responding");
-                                break;
-                            }
+                info!("Starting vault...");
+                let vault_pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
+                tokio::task::spawn_blocking(move || {
+                    match vault_pm.start("vault") {
+                        Ok(_) => info!("vault started and initialized"),
+                        Err(e) => warn!("Failed to start vault: {}", e),
+                    }
+                })
+                .await
+                .ok();
+            }
+        }
+
+        // Phase 2: Start all other services IN PARALLEL (vault credentials now available).
+        // Start them all first (fast nohup launches), then wait for readiness concurrently.
+        let other_services: [(&str, fn() -> bool, u32, bool); 6] = [
+            ("vector_db", vector_db_health_check, 45, true),
+            ("tables", tables_health_check, 0, false),
+            ("cache", cache_health_check, 30, true),
+            ("drive", drive_health_check, 0, false),
+            ("directory", zitadel_health_check, 60, true),
+            ("alm", alm_health_check, 0, false),
+        ];
+
+        let mut wait_services: Vec<(&str, fn() -> bool, u32)> = Vec::new();
+
+        for (name, check_fn, max_wait, need_wait) in &other_services {
+            if !pm.is_installed(name) {
+                continue;
+            }
+            let already_running = check_fn();
+            if already_running {
+                info!("{} is already running", name);
+            } else {
+                info!("Starting {}...", name);
+                match pm.start(name) {
+                    Ok(_) => {
+                        info!("{} started", name);
+                        if *need_wait {
+                            wait_services.push((*name, *check_fn, *max_wait));
                         }
                     }
                     Err(e) => {
-                        warn!("Vault might already be running: {}", e);
+                        warn!("Failed to start {}: {}", name, e);
                     }
                 }
             }
         }
 
-        if pm.is_installed("vector_db") {
-            let vector_db_already_running = vector_db_health_check();
-            if vector_db_already_running {
-                info!("Vector database (Qdrant) is already running");
-            } else {
-                info!("Starting Vector database (Qdrant)...");
-                match pm.start("vector_db") {
-                    Ok(_child) => {
-                        info!("Vector database process started, waiting for readiness...");
-                        // Wait for vector_db to be ready (up to 45 seconds)
-                        for i in 0..45 {
-                            sleep(Duration::from_secs(1)).await;
-                            if vector_db_health_check() {
-                                info!("Vector database (Qdrant) is responding");
-                                break;
-                            }
-                            if i == 44 {
-                                warn!("Vector database did not respond after 45 seconds");
-                            }
+        // Phase 2: Wait for all started services CONCURRENTLY using spawn_blocking
+        // Total wait = max of all waits, not sum (since they run in parallel)
+        if !wait_services.is_empty() {
+            info!(
+                "Waiting for {} services to become ready (parallel)...",
+                wait_services.len()
+            );
+            let mut handles = Vec::new();
+            for (name, check_fn, max_wait) in &wait_services {
+                let name = *name;
+                let check_fn = *check_fn;
+                let max_wait = *max_wait;
+                handles.push(tokio::task::spawn_blocking(move || {
+                    let start = std::time::Instant::now();
+                    for _ in 0..max_wait {
+                        if check_fn() {
+                            let elapsed = start.elapsed().as_secs();
+                            info!("{} is responding after {}s", name, elapsed);
+                            return true;
                         }
+                        std::thread::sleep(Duration::from_secs(1));
                     }
-                    Err(e) => {
-                        warn!("Failed to start Vector database: {}", e);
-                    }
-                }
+                    warn!(
+                        "{} did not respond after {} seconds, continuing anyway",
+                        name, max_wait
+                    );
+                    false
+                }));
+            }
+            for h in handles {
+                h.await.ok();
             }
         }
 
-        if pm.is_installed("tables") {
-            let tables_already_running = tables_health_check();
-            if tables_already_running {
-                info!("PostgreSQL is already running");
-            } else {
-                info!("Starting PostgreSQL...");
-                match pm.start("tables") {
-                    Ok(_child) => {
-                        info!("PostgreSQL started");
-                    }
-                    Err(e) => {
-                        warn!("Failed to start PostgreSQL: {}", e);
-                    }
-                }
-            }
-        }
+        // Phase 3: Post-startup setup tasks (depends on services being ready)
 
-        if pm.is_installed("cache") {
-            let cache_already_running = cache_health_check();
-            if cache_already_running {
-                info!("Valkey cache is already running");
-            } else {
-                info!("Starting Valkey cache...");
-                match pm.start("cache") {
-                    Ok(_child) => {
-                        info!("Valkey cache process started, waiting for readiness...");
-                        for i in 0..30 {
-                            sleep(Duration::from_secs(1)).await;
-                            if cache_health_check() {
-                                info!("Valkey cache is responding");
-                                break;
-                            }
-                            if i == 29 {
-                                warn!("Valkey cache did not respond after 30 seconds");
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Failed to start Valkey cache: {}", e);
-                    }
-                }
-            }
-        }
-
-        if pm.is_installed("drive") {
-            let drive_already_running = drive_health_check();
-            if drive_already_running {
-                info!("MinIO is already running");
-            } else {
-                info!("Starting MinIO...");
-                match pm.start("drive") {
-                    Ok(_child) => {
-                        info!("MinIO started");
-                    }
-                    Err(e) => {
-                        warn!("Failed to start MinIO: {}", e);
-                    }
-                }
-            }
-        }
-
+        // Directory OAuth setup (needs Zitadel running)
         if pm.is_installed("directory") {
-            let directory_already_running = zitadel_health_check();
-
-            if directory_already_running {
-                info!("Zitadel/Directory service is already running");
-
-                let config_path = self.stack_dir("conf/system/directory_config.json");
-                if !config_path.exists() {
-                    info!("Creating OAuth client for Directory service...");
-                    #[cfg(feature = "directory")]
-                    match crate::package_manager::setup_directory().await {
-                        Ok(_) => info!("OAuth client created successfully"),
-                        Err(e) => warn!("Failed to create OAuth client: {}", e),
-                    }
-                    #[cfg(not(feature = "directory"))]
-                    info!("Directory feature not enabled, skipping OAuth setup");
-                } else {
-                    info!("Directory config already exists, skipping OAuth setup");
+            let config_path = self.stack_dir("conf/system/directory_config.json");
+            if !config_path.exists() {
+                info!("Creating OAuth client for Directory service...");
+                #[cfg(feature = "directory")]
+                match crate::package_manager::setup_directory().await {
+                    Ok(_) => info!("OAuth client created successfully"),
+                    Err(e) => warn!("Failed to create OAuth client: {}", e),
                 }
+                #[cfg(not(feature = "directory"))]
+                info!("Directory feature not enabled, skipping OAuth setup");
             } else {
-                info!("Starting Zitadel/Directory service...");
-                match pm.start("directory") {
-                    Ok(_child) => {
-                        info!("Directory service started, waiting for readiness...");
-                let mut zitadel_ready = false;
-                for i in 0..30 {
-                    sleep(Duration::from_secs(2)).await;
-                    if zitadel_health_check() {
-                        info!("Zitadel/Directory service is responding after {}s", (i + 1) * 2);
-                        zitadel_ready = true;
+                info!("Directory config already exists, skipping OAuth setup");
+            }
+        }
+
+        // ALM setup (needs Forgejo running)
+        if pm.is_installed("alm") {
+            let already_running = alm_health_check();
+            if !already_running {
+                info!("Waiting for ALM (Forgejo) to be ready...");
+                let mut alm_ready = false;
+                for _ in 0..30 {
+                    sleep(Duration::from_secs(1)).await;
+                    if alm_health_check() {
+                        alm_ready = true;
                         break;
                     }
-                    if i == 14 {
-                        info!("Zitadel health check: 30s elapsed, retrying...");
+                }
+                if alm_ready {
+                    match crate::package_manager::setup_alm().await {
+                        Ok(_) => info!("ALM setup and runner generation successful"),
+                        Err(e) => warn!("ALM setup failed: {}", e),
                     }
                 }
-                if !zitadel_ready {
-                    warn!("Zitadel/Directory service did not respond after 60 seconds, continuing anyway");
-                }
-
-                        if zitadel_ready {
-                            let config_path = self.stack_dir("conf/system/directory_config.json");
-                            if !config_path.exists() {
-                                info!("Creating OAuth client for Directory service...");
-                                #[cfg(feature = "directory")]
-                                match crate::package_manager::setup_directory().await {
-                                    Ok(_) => info!("OAuth client created successfully"),
-                                    Err(e) => warn!("Failed to create OAuth client: {}", e),
-                                }
-                                #[cfg(not(feature = "directory"))]
-                                info!("Directory feature not enabled, skipping OAuth setup");
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Failed to start Directory service: {}", e);
-                    }
-                }
-            }
-        }
-
-        if pm.is_installed("alm") {
-            let alm_already_running = alm_health_check();
-            if alm_already_running {
-                info!("ALM (Forgejo) is already running");
             } else {
-                info!("Starting ALM (Forgejo) service...");
-                match pm.start("alm") {
-                    Ok(_child) => {
-                        info!("ALM service started");
-                        tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
-                        match crate::package_manager::setup_alm().await {
-                            Ok(_) => info!("ALM setup and runner generation successful"),
-                            Err(e) => warn!("ALM setup failed: {}", e),
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Failed to start ALM service: {}", e);
-                    }
+                match crate::package_manager::setup_alm().await {
+                    Ok(_) => info!("ALM setup and runner generation successful"),
+                    Err(e) => warn!("ALM setup failed: {}", e),
                 }
             }
         }
 
-    // TEMP DISABLED: ALM CI startup hangs bootstrap
-    // if pm.is_installed("alm-ci") {
-    //     let alm_ci_already_running = alm_ci_health_check();
-    //     if alm_ci_already_running {
-    //     info!("ALM CI (Forgejo Runner) is already running");
-    //     } else {
-    //     info!("Starting ALM CI (Forgejo Runner) service...");
-    //     match pm.start("alm-ci") {
-    //         Ok(_child) => {
-    //         info!("ALM CI service started");
-    //         }
-    //         Err(e) => {
-    //         warn!("Failed to start ALM CI service: {}", e);
-    //         }
-    //     }
-    //     }
-    // }
-
-        // Caddy is the web server
+        // Caddy configuration validation
         let caddy_cmd = SafeCommand::new("caddy")
             .and_then(|c| c.arg("validate"))
             .and_then(|c| c.arg("--config"))
             .and_then(|c| c.arg("/etc/caddy/Caddyfile"));
-        
+
         match caddy_cmd {
-            Ok(cmd) => {
-                match cmd.execute() {
-                    Ok(_) => info!("Caddy configuration is valid"),
-                    Err(e) => {
-                        warn!("Caddy configuration error: {:?}", e);
-                    }
+            Ok(cmd) => match cmd.execute() {
+                Ok(_) => info!("Caddy configuration is valid"),
+                Err(e) => {
+                    warn!("Caddy configuration error: {:?}", e);
                 }
-            }
+            },
             Err(e) => {
                 warn!("Failed to create caddy command: {:?}", e);
             }

@@ -33,7 +33,7 @@ pub fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
         }
         "drive" | "gbo/drive" | "system/drive" => {
             secrets.insert("host".into(), "localhost".into());
-            secrets.insert("port".into(), "9000".into());
+            secrets.insert("port".into(), "9100".into());
             secrets.insert("accesskey".into(), "minioadmin".into());
             secrets.insert("secret".into(), "minioadmin".into());
         }
