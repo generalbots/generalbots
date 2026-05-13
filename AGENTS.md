@@ -656,6 +656,7 @@ match x {
 - ✅ **CI deploy path**: alm-ci builds at `/opt/gbo/data/botserver/target/debug/botserver` → tar+gzip via SSH → `/opt/gbo/bin/botserver` on system container → restart
 
 **Current Status:** ✅ **0 clippy warnings** (down from 61 - PERFECT SCORE in YOLO mode)
+- ❌ **NEVER** change git branches for any reason without explicit user approval
 - ❌ **NEVER** use `panic!()`, `todo!()`, `unimplemented!()`
 - ❌ **NEVER** use `Command::new()` directly - use `SafeCommand`
 - ❌ **NEVER** return raw error strings to HTTP clients
@@ -862,6 +863,36 @@ To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO envir
 - Use the `10.0.3.x` subnet for container IPs (e.g., `10.0.3.10` for the system container).
 - Route testing via the host gateway at `10.0.0.1` or directly hit container IPs inside the staging host.
 - Do NOT confuse staging IP ranges (`10.0.3.x`) with production ranges.
+
+---
+
+## 🎯 Automatic Bot Testing Workflow
+
+**When user says "test bot" or similar — do this autonomously:**
+
+1. **Ask** "What bot would you like to test today?" (do NOT assume a specific bot name)
+2. **Run restart.sh** — `nohup ./restart.sh > /tmp/restart.log 2>&1 &`
+3. **Wait for bootstrap** — poll `curl -s http://localhost:5858/health` until it responds 200 (up to 5 min)
+4. **Find the bot** — check MinIO drive buckets: `mc ls local/` (each bucket = `{bot}.gbai`)
+5. **If bot not in drive, ask user** — do NOT copy from work dir. Ask: "Where can I get a copy of the .gbai to work on?"
+6. **Verify bot loaded** — check botserver logs for `[drive_monitor]` confirming bot sync
+7. **Open browser** — `mcp__playwright__browser_navigate` to `http://localhost:3000/{bot}`
+8. **Test chat flow** — send messages, verify suggestions, execute tools
+9. **Report results** — screenshot + backend validation
+
+**Key commands:**
+```bash
+# Check health
+curl -s -o /dev/null -w '%{http_code}' http://localhost:5858/health
+
+# Upload bot to MinIO
+/tmp/mc alias set local http://127.0.0.1:9100 minioadmin minioadmin --api s3v4
+/tmp/mc mb local/{bot}.gbai
+/tmp/mc cp --recursive botserver-stack/data/system/work/{bot}.gbai/ local/{bot}.gbai/
+
+# Check botserver logs for errors
+grep -E "ERROR|WARN|drive_monitor" botserver.log | tail -20
+```
 
 ---
 

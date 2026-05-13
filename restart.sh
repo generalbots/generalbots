@@ -1,26 +1,25 @@
 #!/bin/bash
 
-echo "=== Fast Restart: botserver + botmodels only ==="
+echo "=== Fast Restart: botserver + botui + botmodels ==="
 
-# Kill only the app services, keep infra running
-pkill -f "botserver --noconsole" || true
+killall -9 botserver botui uvicorn 2>/dev/null || true
+pkill -f "botserver" || true
+pkill -f "botui" || true
 pkill -f "botmodels" || true
+pkill -f "uvicorn.*src.main" || true
+sleep 1
 
-# Clean logs
-rm -f botserver.log botmodels.log
+rm -f botserver.log botmodels.log botui.log
 
-# Build only botserver (botui likely already built)
 cargo build -p botserver
 cargo build -p botui
 
-# Start botmodels
 cd botmodels
-source venv/bin/activate
-uvicorn src.main:app --host 0.0.0.0 --port 8085 > ../botmodels.log 2>&1 &
+UVICORN=$(which uvicorn 2>/dev/null || echo "$HOME/.local/bin/uvicorn")
+nohup $UVICORN src.main:app --host 0.0.0.0 --port 8085 > ../botmodels.log 2>&1 &
 echo "  botmodels PID: $!"
 cd ..
 
-# Wait for botmodels
 for i in $(seq 1 20); do
   if curl -s http://localhost:8085/api/health > /dev/null 2>&1; then
     echo "  botmodels ready"
@@ -29,24 +28,15 @@ for i in $(seq 1 20); do
   sleep 1
 done
 
-# Start botserver (keep botui running if already up)
-if ! pgrep -f "botui" > /dev/null; then
-  echo "Starting botui..."
-  cargo build -p botui
-  cd botui
-  BOTSERVER_URL="http://localhost:8080" ./target/debug/botui > ../botui.log 2>&1 &
-  echo "  botui PID: $!"
-  cd ..
-fi
-
-# Start botserver
-BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info ./target/debug/botserver --noconsole > botserver.log 2>&1 &
+BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info nohup ./target/debug/botserver --noconsole > botserver.log 2>&1 &
 echo "  botserver PID: $!"
-./target/debug/botui 2>&1 &
 
-
-# Quick health check
 sleep 2
+
+nohup ./target/debug/botui > botui.log 2>&1 &
+echo "  botui PID: $!"
+
+sleep 3
 curl -s http://localhost:8080/health > /dev/null 2>&1 && echo "✅ botserver ready" || echo "❌ botserver failed"
 
-echo "Done. botserver $(pgrep -f 'botserver --noconsole') botui $(pgrep -f botui) botmodels $(pgrep -f botmodels)"
+echo "Done. botserver=$(pgrep -f 'botserver --noconsole') botui=$(pgrep -f botui) botmodels=$(pgrep -f botmodels)"

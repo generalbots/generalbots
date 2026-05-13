@@ -218,6 +218,18 @@ pub enum BotExistsResult {
 
 /// Check if Zitadel directory is healthy
 pub fn zitadel_health_check() -> bool {
+    if let Ok(output) = SafeCommand::new("ss")
+        .and_then(|c| c.args(&["-tln"]))
+        .and_then(|c| c.execute())
+    {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if !stdout.contains(":8300") {
+                return false;
+            }
+        }
+    }
+
     let output = SafeCommand::new("curl")
         .and_then(|c| {
             c.args(&[
@@ -241,18 +253,6 @@ pub fn zitadel_health_check() -> bool {
         }
         Err(e) => {
             debug!("Zitadel health check error: {}", e);
-        }
-    }
-
-    if let Ok(output) = SafeCommand::new("ss")
-        .and_then(|c| c.args(&["-tln"]))
-        .and_then(|c| c.execute())
-    {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if stdout.contains(":8300") {
-                return true;
-            }
         }
     }
 
@@ -327,7 +327,7 @@ pub fn drive_health_check() -> bool {
 
 /// Check if ALM (Forgejo) is healthy
 pub fn alm_health_check() -> bool {
-    let urls = ["", "https://localhost:3000"];
+    let urls = ["https://localhost:3000"];
 
     for url in &urls {
         if let Ok(output) = SafeCommand::new("curl")
