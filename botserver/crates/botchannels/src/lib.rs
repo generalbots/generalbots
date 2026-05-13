@@ -4,13 +4,13 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+pub use botchannels_core::{media_upload, oauth};
+
 pub mod bluesky;
 pub mod discord;
 pub mod facebook;
 pub mod instagram_channel;
 pub mod linkedin;
-pub mod media_upload;
-pub mod oauth;
 pub mod pinterest;
 pub mod reddit;
 pub mod snapchat;

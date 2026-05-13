@@ -8,6 +8,7 @@ authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 
 [dependencies]
+botchannels-core = { path = "../botchannels-core" }
 async-trait = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true, features = ["serde", "clock"] }

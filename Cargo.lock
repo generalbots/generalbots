@@ -992,6 +992,7 @@ version = "6.3.0"
 dependencies = [
  "async-trait",
  "base64",
+ "botchannels-core",
  "chrono",
  "hex",
  "hmac",
@@ -1001,6 +1002,20 @@ dependencies = [
  "serde_json",
  "sha1",
  "sha2",
+ "tokio",
+ "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botchannels-core"
+version = "6.3.0"
+dependencies = [
+ "base64",
+ "chrono",
+ "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
  "urlencoding",
  "uuid",
@@ -1701,14 +1716,26 @@ dependencies = [
 name = "botsecurity"
 version = "6.3.0"
 dependencies = [
- "aes-gcm",
+ "anyhow",
+ "botsecurity-auth",
+ "botsecurity-core",
+ "botsecurity-crypto",
+ "botsecurity-protection",
+ "reqwest",
+ "tracing",
+]
+
+[[package]]
+name = "botsecurity-auth"
+version = "6.3.0"
+dependencies = [
  "anyhow",
  "argon2",
  "async-trait",
  "axum",
  "base64",
- "botcore",
  "botlib",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "futures-util",
@@ -1718,8 +1745,65 @@ dependencies = [
  "jsonwebtoken",
  "log",
  "rand 0.9.4",
- "rcgen",
  "redis",
+ "regex",
+ "reqwest",
+ "ring",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.18",
+ "time",
+ "tokio",
+ "tracing",
+ "url",
+ "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botsecurity-core"
+version = "6.3.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64",
+ "botlib",
+ "chrono",
+ "diesel",
+ "futures-util",
+ "governor",
+ "hex",
+ "hmac",
+ "log",
+ "rand 0.9.4",
+ "regex",
+ "reqwest",
+ "rustls",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.18",
+ "time",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "url",
+ "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botsecurity-crypto"
+version = "6.3.0"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "base64",
+ "chrono",
+ "hex",
+ "rand 0.9.4",
+ "rcgen",
  "regex",
  "reqwest",
  "ring",
@@ -1727,17 +1811,32 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "tempfile",
  "thiserror 2.0.18",
  "time",
  "tokio",
  "tokio-rustls",
- "tower-http",
  "tracing",
- "url",
- "urlencoding",
  "uuid",
  "x509-parser 0.15.1",
+]
+
+[[package]]
+name = "botsecurity-protection"
+version = "6.3.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "botcore",
+ "botsecurity-core",
+ "chrono",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -1926,6 +2025,7 @@ dependencies = [
  "axum",
  "base64",
  "botlib",
+ "botsheet-core",
  "calamine",
  "chrono",
  "futures-util",
@@ -1937,6 +2037,22 @@ dependencies = [
  "serde_json",
  "tokio",
  "umya-spreadsheet",
+ "uuid",
+]
+
+[[package]]
+name = "botsheet-core"
+version = "6.3.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "chrono",
+ "log",
+ "regex",
+ "serde",
+ "serde_json",
+ "tokio",
  "uuid",
 ]
 

@@ -1,0 +1,26 @@
+[package]
+name = "botsecurity-protection"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots protection: firewall, IDS, hardening automation"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+botsecurity-core = { path = "../botsecurity-core" }
+botcore = { path = "../botcore" }
+anyhow = { workspace = true }
+axum = { workspace = true, features = ["ws", "macros"] }
+chrono = { workspace = true, features = ["serde", "clock"] }
+log = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[lints]
+workspace = true
