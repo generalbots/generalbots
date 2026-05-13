@@ -22,19 +22,22 @@ struct ComponentEntry {
 #[derive(Deserialize, Debug)]
 struct ThirdPartyConfig {
     components: HashMap<String, ComponentEntry>,
+    #[serde(default)]
+    models: HashMap<String, ComponentEntry>,
 }
 
 static THIRDPARTY_CONFIG: std::sync::OnceLock<ThirdPartyConfig> = std::sync::OnceLock::new();
 
 fn get_thirdparty_config() -> &'static ThirdPartyConfig {
     THIRDPARTY_CONFIG.get_or_init(|| {
-        let toml_str = include_str!("../3rdparty.toml");
+        let toml_str = include_str!("../../../3rdparty.toml");
         match toml::from_str::<ThirdPartyConfig>(toml_str) {
             Ok(config) => config,
             Err(e) => {
                 error!("CRITICAL: Failed to parse embedded 3rdparty.toml: {e}");
                 ThirdPartyConfig {
                     components: HashMap::new(),
+                    models: HashMap::new(),
                 }
             }
         }
@@ -44,6 +47,13 @@ fn get_thirdparty_config() -> &'static ThirdPartyConfig {
 pub fn get_component_url(name: &str) -> Option<String> {
     get_thirdparty_config()
         .components
+        .get(name)
+        .map(|c| c.url.clone())
+}
+
+pub fn get_model_url(name: &str) -> Option<String> {
+    get_thirdparty_config()
+        .models
         .get(name)
         .map(|c| c.url.clone())
 }

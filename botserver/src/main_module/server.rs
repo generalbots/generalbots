@@ -164,10 +164,9 @@ pub async fn run_axum_server(
         //.route(ApiUrls::SESSIONS, get(crate::core::session::get_sessions))
         // TODO: fix handler signature
         //.route(ApiUrls::SESSION_HISTORY, get(crate::core::session::get_session_history))
-        .route(ApiUrls::SESSION_START, post(crate::core::session::start_session));
-        // TODO: fix handler signatures
-        //.route(ApiUrls::WS, get(crate::core::bot::websocket_handler))
-        //.route("/ws/:bot_name", get(crate::core::bot::websocket_handler_with_bot));
+        .route(ApiUrls::SESSION_START, post(crate::core::session::start_session))
+        .route(ApiUrls::WS, get(crate::core::bot::websocket_handler))
+        .route("/ws/:bot_name", get(crate::core::bot::websocket_handler_with_bot));
 
     #[cfg(feature = "drive")]
     {

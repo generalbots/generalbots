@@ -30,6 +30,12 @@ url = "https://dl.min.io/server/minio/release/linux-amd64/minio"
 filename = "minio"
 sha256 = ""
 
+[components.mc]
+name = "MinIO Client (mc)"
+url = "https://dl.min.io/client/mc/release/linux-amd64/mc"
+filename = "mc"
+sha256 = ""
+
 [components.tables]
 name = "PostgreSQL Database"
 url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"

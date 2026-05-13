@@ -1,10 +1,13 @@
 //! Bootstrap and application initialization logic
 
 use diesel::RunQueryDsl;
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use log::{error, info, trace, warn};
 
 use crate::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
 use botcore::shared::utils::{create_conn, get_stack_path};
+
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 #[cfg(feature = "drive")]
 #[cfg(feature = "llm")]
 /// Initialize logging and i18n
@@ -13,14 +16,10 @@ pub fn init_logging_and_i18n(no_console: bool, no_ui: bool) {
     if no_console || no_ui {
         botlib::logging::init_compact_logger_with_style("info");
         println!(r#"
-   ____  ____      _   _           _       ____                _ 
-  / ___||  _ \    | | | | ___  ___| | __  | __ )  ___  _ __ __| |
- | |  _ | |_) |   | |_| |/ _ \/ __| |/ / |  _ \ / _ \| '__/ _` |
- | |_| ||  _ <    |  _  | (_) \__ \   <  | |_) | (_) | | | (_| |
-  \____||_| \_\___|_| |_|\___/|___/_|\_\ |____/ \___/|_|  \__,_|
-                                           |_|
-"#);
-    println!("General Bots {} starting...", env!("CARGO_PKG_VERSION"));
+  ╔═══════════════════════════════════════╗
+  ║         General Bots v{}          ║
+  ╚═══════════════════════════════════════╝
+"#, env!("CARGO_PKG_VERSION"));
     }
 
     let locales_path = if std::path::Path::new("./locales").exists() {
@@ -216,8 +215,6 @@ pub async fn run_bootstrap(
 pub async fn init_database(
     progress_tx: &tokio::sync::mpsc::UnboundedSender<BootstrapProgress>,
 ) -> Result<botcore::shared::utils::DbPool, std::io::Error> {
-    use botcore::shared::utils;
-
     trace!("Creating database pool again...");
     progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
 
@@ -239,7 +236,7 @@ pub async fn init_database(
             info!("Running database migrations...");
             if let Err(e) = {
     let mut conn = pool.get().map_err(|e| std::io::Error::other(format!("Pool error: {e}")))?;
-    utils::run_migrations(&mut conn)
+    run_diesel_migrations(&mut conn)
     } {
                 error!("Failed to run migrations: {}", e);
 
@@ -1300,3 +1297,10 @@ use crate::drive::s3_repository::S3Repository;
 use super::BootstrapProgress;
 use crate::llm::local::ensure_llama_servers_running;
 use crate::core::i18n;
+
+pub fn run_diesel_migrations(
+    conn: &mut impl MigrationHarness<diesel::pg::Pg>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    conn.run_pending_migrations(MIGRATIONS)?;
+    Ok(())
+}

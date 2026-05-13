@@ -102,7 +102,7 @@ impl DownloadCache {
                 CONFIG_FILE,
                 config_path.display()
             );
-            let content = include_str!("../3rdparty.toml");
+            let content = include_str!("../../../3rdparty.toml");
             let config: ThirdPartyConfig =
                 toml::from_str(content).with_context(|| "Failed to parse embedded config file")?;
             return Ok(config);

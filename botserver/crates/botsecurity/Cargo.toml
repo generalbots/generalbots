@@ -10,7 +10,7 @@ repository = "https://github.com/GeneralBots/BotServer"
 [features]
 default = []
 cache = ["botsecurity-auth/cache"]
-directory = []
+directory = ["botsecurity-auth/directory"]
 
 [dependencies]
 botsecurity-core = { path = "../botsecurity-core" }

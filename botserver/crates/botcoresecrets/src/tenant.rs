@@ -222,7 +222,7 @@ impl SecretsManager {
         if let Ok(s) = self.get_secret(&format!("{}/drive", tenant_path)).await {
             return Ok((
                 s.get("host").cloned().unwrap_or_else(|| "localhost".into()),
-                s.get("port").cloned().unwrap_or_else(|| "9000".into()),
+                s.get("port").cloned().unwrap_or_else(|| "9100".into()),
                 s.get("accesskey").cloned().unwrap_or_default(),
                 s.get("secret").cloned().unwrap_or_default(),
             ));
@@ -230,7 +230,7 @@ impl SecretsManager {
         let s = self.get_secret(SecretPaths::DRIVE).await?;
         Ok((
             s.get("host").cloned().unwrap_or_else(|| "localhost".into()),
-            s.get("port").cloned().unwrap_or_else(|| "9000".into()),
+            s.get("port").cloned().unwrap_or_else(|| "9100".into()),
             s.get("accesskey").cloned().unwrap_or_default(),
             s.get("secret").cloned().unwrap_or_default(),
         ))

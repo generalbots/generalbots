@@ -10,6 +10,7 @@ repository = "https://github.com/GeneralBots/BotServer"
 [features]
 default = []
 cache = ["dep:redis"]
+directory = []
 
 [dependencies]
 botlib = { path = "../../../botlib", features = ["http-client"] }
