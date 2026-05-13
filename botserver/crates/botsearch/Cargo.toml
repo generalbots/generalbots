@@ -8,7 +8,7 @@ authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 
 [dependencies]
-botlib = { path = "../botlib", features = ["database"] }
+botlib = { path = "../../../botlib", features = ["database"] }
 chrono = { workspace = true, features = ["serde", "clock"] }
 diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json", "numeric"] }
 log = { workspace = true }

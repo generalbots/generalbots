@@ -2,56 +2,24 @@
 name = "botsecurity"
 version = "6.3.0"
 edition = "2021"
-description = "General Bots security infrastructure"
+description = "General Bots security infrastructure (facade crate)"
 license = "AGPL-3.0"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
 default = []
-cache = ["dep:redis"]
+cache = ["botsecurity-auth/cache"]
 directory = []
 
 [dependencies]
-botlib = { path = "../../../botlib", features = ["http-client"] }
-botcore = { path = "../botcore" }
-aes-gcm = { workspace = true }
+botsecurity-core = { path = "../botsecurity-core" }
+botsecurity-crypto = { path = "../botsecurity-crypto" }
+botsecurity-auth = { path = "../botsecurity-auth" }
+botsecurity-protection = { path = "../botsecurity-protection" }
 anyhow = { workspace = true }
-argon2 = { workspace = true }
-async-trait = { workspace = true }
-axum = { workspace = true, features = ["ws", "macros"] }
-base64 = { workspace = true }
-chrono = { workspace = true, features = ["serde", "clock"] }
-diesel = { workspace = true, features = ["postgres", "r2d2"] }
-futures-util = { workspace = true }
-governor = { workspace = true }
-hex = { workspace = true }
-hmac = { workspace = true }
-jsonwebtoken = { workspace = true }
-log = { workspace = true }
-rand = { workspace = true }
-rcgen = { workspace = true, features = ["crypto", "ring", "pem"] }
-redis = { workspace = true, optional = true }
-regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls"] }
-ring = { workspace = true }
-rustls = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-sha2 = { workspace = true }
-thiserror = { workspace = true }
-time = { workspace = true }
-tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
-tokio-rustls = { workspace = true }
-tower-http = { workspace = true, features = ["cors"] }
 tracing = { workspace = true }
-url = { workspace = true }
-urlencoding = { workspace = true }
-uuid = { workspace = true, features = ["serde", "v4"] }
-x509-parser = { workspace = true }
-
-[dev-dependencies]
-tempfile = "3"
 
 [lints]
 workspace = true

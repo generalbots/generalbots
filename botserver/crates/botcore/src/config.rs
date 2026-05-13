@@ -261,6 +261,7 @@ impl Default for DriveConfig {
                             let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).unwrap_or("");
                             let secret = secret_data.get("secret").and_then(|v| v.as_str()).unwrap_or("");
                             let bucket = secret_data.get("bucket").and_then(|v| v.as_str()).unwrap_or("default.gbai");
+                            let server = format!("{}:{}", host, port);
                             
                             return Self {
                                 endpoint: format!("http://{}:{}", host, port),
@@ -268,7 +269,7 @@ impl Default for DriveConfig {
                                 region: "auto".to_string(),
                                 access_key: accesskey.to_string(),
                                 secret_key: secret.to_string(),
-                                server: host.to_string(),
+                                server,
                             };
                         }
                     }

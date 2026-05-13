@@ -2,57 +2,84 @@
 [workspace]
 resolver = "2"
 members = [
-  "botautotask",
   "botlib",
-  "botattendance",
-  "botbilling",
-  "botcanvas",
-  "botcalendar",
-  "botchannels",
-  "botcompliance",
-  "botcontacts",
-  "botdashboards",
-  "botdeployment",
-  "botdesigner",
-  "botdocs",
-  "botemail",
-  "botkb",
-  "botlearn",
-  "botlegal",
-
-  "botmaintenance",
-  "botmarketing",
-  "botmonitoring",
-  "botmsteams",
-  "botmultimodal",
-  "botnvidia",
-  "botpaper",
-  "botpeople",
-  "botplayer",
-  "botproducts",
-  "botproject",
-
-  "botresearch",
-  "botsearch",
   "botserver",
-  "botsheet",
-  "botslides",
-  "botsocial",
-  "botsources",
-  "bottasks",
-  "bottelegram",
   "bottest",
-  "bottickets",
-  "bottimeseries",
   "botui",
-  "botvideo",
-  "botweba",
-  "botwhatsapp",
-  "botworkspaces",
-    "botinstagram",
-    "botbrowser",
-
   "botschema",
+  "botserver/crates/botanalytics",
+  "botserver/crates/botapi",
+  "botserver/crates/botattendance",
+  "botserver/crates/botattendant",
+  "botserver/crates/botautotask",
+  "botserver/crates/botbasic_ai",
+  "botserver/crates/botbasic_comms",
+  "botserver/crates/botbasic_compiler",
+  "botserver/crates/botbasic_core",
+  "botserver/crates/botbasic_data",
+  "botserver/crates/botbasic_system",
+  "botserver/crates/botbasic_types",
+  "botserver/crates/botbilling",
+  "botserver/crates/botbrowser",
+  "botserver/crates/botcalendar",
+  "botserver/crates/botcanvas",
+  "botserver/crates/botchannels",
+  "botserver/crates/botchannels-core",
+  "botserver/crates/botcompliance",
+  "botserver/crates/botcontacts",
+  "botserver/crates/botcore",
+  "botserver/crates/botcorebot",
+  "botserver/crates/botcoredirectory",
+  "botserver/crates/botcoreoauth",
+  "botserver/crates/botcorepkg",
+  "botserver/crates/botcoresecrets",
+  "botserver/crates/botcoresession",
+  "botserver/crates/botdashboards",
+  "botserver/crates/botdeployment",
+  "botserver/crates/botdesigner",
+  "botserver/crates/botdocs",
+  "botserver/crates/botdrive",
+  "botserver/crates/botemail",
+  "botserver/crates/botinstagram",
+  "botserver/crates/botkb",
+  "botserver/crates/botlearn",
+  "botserver/crates/botlegal",
+  "botserver/crates/botllm",
+  "botserver/crates/botmaintenance",
+  "botserver/crates/botmarketing",
+  "botserver/crates/botmeet",
+  "botserver/crates/botmodelsbridge",
+  "botserver/crates/botmonitoring",
+  "botserver/crates/botmsteams",
+  "botserver/crates/botmultimodal",
+  "botserver/crates/botnvidia",
+  "botserver/crates/botpaper",
+  "botserver/crates/botpeople",
+  "botserver/crates/botplayer",
+  "botserver/crates/botproducts",
+  "botserver/crates/botproject",
+  "botserver/crates/botqdrant",
+  "botserver/crates/botresearch",
+  "botserver/crates/botsearch",
+  "botserver/crates/botsecurity",
+  "botserver/crates/botsecurity-auth",
+  "botserver/crates/botsecurity-core",
+  "botserver/crates/botsecurity-crypto",
+  "botserver/crates/botsecurity-protection",
+  "botserver/crates/botsettings",
+  "botserver/crates/botsheet",
+ "botserver/crates/botsheet-core",
+  "botserver/crates/botslides",
+  "botserver/crates/botsocial",
+  "botserver/crates/botsources",
+  "botserver/crates/bottasks",
+  "botserver/crates/bottelegram",
+  "botserver/crates/bottickets",
+  "botserver/crates/bottimeseries",
+  "botserver/crates/botvideo",
+  "botserver/crates/botweba",
+  "botserver/crates/botwhatsapp",
+  "botserver/crates/botworkspaces",
 ]
 
 [workspace.lints.rust]
@@ -76,6 +103,7 @@ botbrowser = { path = "botserver/crates/botbrowser" }
 botcalendar = { path = "botserver/crates/botcalendar" }
 botcanvas = { path = "botserver/crates/botcanvas" }
 botchannels = { path = "botserver/crates/botchannels" }
+botchannels-core = { path = "botserver/crates/botchannels-core" }
 botcompliance = { path = "botserver/crates/botcompliance" }
 botcontacts = { path = "botserver/crates/botcontacts" }
 botdashboards = { path = "botserver/crates/botdashboards" }
@@ -102,7 +130,12 @@ botqdrant = { path = "botserver/crates/botqdrant" }
 botresearch = { path = "botserver/crates/botresearch" }
 botsearch = { path = "botserver/crates/botsearch" }
 botsecurity = { path = "botserver/crates/botsecurity" }
+botsecurity-auth = { path = "botserver/crates/botsecurity-auth" }
+botsecurity-core = { path = "botserver/crates/botsecurity-core" }
+botsecurity-crypto = { path = "botserver/crates/botsecurity-crypto" }
+botsecurity-protection = { path = "botserver/crates/botsecurity-protection" }
 botsheet = { path = "botserver/crates/botsheet" }
+botsheet-core = { path = "botserver/crates/botsheet-core" }
 botslides = { path = "botserver/crates/botslides" }
 botsocial = { path = "botserver/crates/botsocial" }
 botsources = { path = "botserver/crates/botsources" }

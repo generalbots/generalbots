@@ -8,7 +8,7 @@ authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 
 [dependencies]
-botlib = { path = "../botlib", features = ["http-client"] }
+botlib = { path = "../../../botlib", features = ["http-client"] }
 chrono = { workspace = true, features = ["serde", "clock"] }
 log = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls"] }

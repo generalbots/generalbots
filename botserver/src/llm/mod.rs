@@ -18,16 +18,14 @@ impl botlib::traits::LLMProvider for BotlibLLMProviderWrapper {
         let key = key.to_string();
         let inner = self.0.clone();
         Box::pin(async move {
-            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
-            rt.block_on(async { inner.generate(&prompt, &config, &model, &key).await.map_err(|e| Box::new(std::io::Error::other(e.to_string())) as Box<dyn std::error::Error + Send + Sync>) })
+            inner.generate(&prompt, &config, &model, &key).await.map_err(|e| Box::new(std::io::Error::other(e.to_string())) as Box<dyn std::error::Error + Send + Sync>)
         })
     }
     fn generate_simple(&self, prompt: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>> {
         let prompt = prompt.to_string();
         let inner = self.0.clone();
         Box::pin(async move {
-            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| e.to_string())?;
-            rt.block_on(async { inner.generate(&prompt, &serde_json::Value::Null, "", "").await.map_err(|e| e.to_string()) })
+            inner.generate(&prompt, &serde_json::Value::Null, "", "").await.map_err(|e| e.to_string())
         })
     }
     fn generate_with_context(&self, prompt: &str, _context: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>> {

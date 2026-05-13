@@ -221,10 +221,17 @@ pub async fn init_database(
     trace!("Creating database pool again...");
     progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
 
-    // Ensure secrets manager is initialized before creating database connection
-    botcore::shared::utils::init_secrets_manager()
-        .await
-        .expect("Failed to initialize secrets manager");
+    // Get database URL from Vault
+    if let Ok(secrets) = crate::core::secrets::SecretsManager::get() {
+        if let Ok(db_url) = secrets.get_database_url().await {
+            std::env::set_var("DATABASE_URL", &db_url);
+            info!("Database URL obtained from Vault");
+        } else {
+            warn!("Failed to get database URL from Vault, trying DATABASE_URL env var");
+        }
+    } else {
+        info!("SecretsManager not available, trying DATABASE_URL env var");
+    }
 
     let pool = match create_conn() {
         Ok(pool) => {
@@ -920,6 +927,7 @@ pub async fn start_background_services(
     let drive_monitor_state = app_state.clone();
     let pool_clone = _pool.clone();
     let state_for_scan = app_state.clone();
+    let scan_pool = _pool.clone();
 
     tokio::spawn(async move {
         register_thread("drive-monitor", "drive");
@@ -999,16 +1007,19 @@ pub async fn start_background_services(
         }
 
         // Step 2: Start DriveMonitor for each active bot
-        let bots_to_monitor = tokio::task::spawn_blocking(move || {
-            use uuid::Uuid;
-            let mut conn = match pool_clone.get() {
-                Ok(conn) => conn,
-                Err(_) => return Vec::new(),
-            };
-            bots::dsl::bots.filter(bots::dsl::is_active.eq(true))
-                .select((bots::dsl::id, bots::dsl::name))
-                .load::<(Uuid, String)>(&mut conn)
-                .unwrap_or_default()
+        let bots_to_monitor = tokio::task::spawn_blocking({
+            let pool_clone = pool_clone.clone();
+            move || {
+                use uuid::Uuid;
+                let mut conn = match pool_clone.get() {
+                    Ok(conn) => conn,
+                    Err(_) => return Vec::new(),
+                };
+                bots::dsl::bots.filter(bots::dsl::is_active.eq(true))
+                    .select((bots::dsl::id, bots::dsl::name))
+                    .load::<(Uuid, String)>(&mut conn)
+                    .unwrap_or_default()
+            }
         })
         .await
         .unwrap_or_default();
@@ -1021,12 +1032,17 @@ pub async fn start_background_services(
             .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
             .unwrap_or_default();
 
+        // Track actively monitored bot names for periodic scan
+        let mut monitored_bots: std::collections::HashSet<String> = std::collections::HashSet::new();
+
         for (bot_id, bot_name) in bots_to_monitor {
             // Filter by LOAD_ONLY if specified
             if !load_only_for_monitor.is_empty() && !load_only_for_monitor.contains(&bot_name) {
                 trace!("Skipping monitoring for bot '{}' (not in LOAD_ONLY)", bot_name);
                 continue;
             }
+
+            monitored_bots.insert(bot_name.clone());
 
             let bucket_name = format!("{}.gbai", bot_name);
             let monitor_state = drive_monitor_state.clone();
@@ -1056,6 +1072,116 @@ pub async fn start_background_services(
                 );
             });
         }
+
+        // Step 3: Periodic bucket re-scan to discover new bots
+        let scan_state = app_state.clone();
+        tokio::spawn(async move {
+            register_thread("drive-scan", "drive");
+            let scan_interval = std::env::var("DRIVE_SCAN_INTERVAL")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(5u64);
+
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(scan_interval)).await;
+
+                if let Some(s3_client) = &scan_state.drive {
+                    match s3_client.list_all_buckets().await {
+                        Ok(buckets) => {
+                            for bucket in buckets {
+                                if !bucket.ends_with(".gbai") {
+                                    continue;
+                                }
+                                let bot_name = bucket.strip_suffix(".gbai").unwrap_or(&bucket).to_string();
+
+                                if monitored_bots.contains(&bot_name) {
+                                    continue;
+                                }
+
+                                let exists = {
+                                    let pool_check = scan_pool.clone();
+                                    let bn = bot_name.clone();
+                                    tokio::task::spawn_blocking(move || {
+                                        use diesel::prelude::*;
+                                        use botcore::shared::models::schema::bots;
+                                        let mut conn = match pool_check.get() {
+                                            Ok(c) => c,
+                                            Err(_) => return false,
+                                        };
+                                        bots::dsl::bots
+                                            .filter(bots::dsl::name.eq(&bn))
+                                            .select(bots::dsl::id)
+                                            .first::<uuid::Uuid>(&mut conn)
+                                            .is_ok()
+                                    })
+                                    .await
+                                    .unwrap_or(false)
+                                };
+
+                                if exists {
+                                    monitored_bots.insert(bot_name);
+                                    continue;
+                                }
+
+                                info!("Periodic scan: auto-creating bot '{}' from S3 bucket '{}'", bot_name, bucket);
+                                let create_state = scan_state.clone();
+                                let bn = bot_name.clone();
+                                let pool_create = scan_pool.clone();
+                                let created = match tokio::task::spawn_blocking(move || {
+                                    create_bot_from_drive(&create_state, &pool_create, &bn)
+                                }).await {
+                                    Ok(Ok(())) => true,
+                                    Ok(Err(e)) => {
+                                        error!("Periodic scan: failed to create bot '{}': {}", bot_name, e);
+                                        false
+                                    }
+                                    Err(e) => {
+                                        error!("Periodic scan: task failed for bot '{}': {}", bot_name, e);
+                                        false
+                                    }
+                                };
+
+                                if created {
+                                    info!("Bot '{}' auto-created via periodic scan", bot_name);
+                                    monitored_bots.insert(bot_name.clone());
+
+                                    // Start DriveMonitor for the new bot
+                                    let mon_pool = scan_pool.clone();
+                                    let mn = bot_name.clone();
+                                    tokio::task::spawn_blocking(move || {
+                                        use uuid::Uuid;
+                                        use diesel::prelude::*;
+                                        use botcore::shared::models::schema::bots;
+                                        let mut conn = match mon_pool.get() {
+                                            Ok(c) => c,
+                                            Err(_) => return None,
+                                        };
+                                        bots::dsl::bots
+                                            .filter(bots::dsl::name.eq(&mn))
+                                            .select(bots::dsl::id)
+                                            .first::<Uuid>(&mut conn)
+                                            .ok()
+                                    }).await.ok().flatten().map(|new_bot_id| {
+                                        let bucket_name = format!("{}.gbai", bot_name);
+                                        let mon_state = scan_state.clone();
+                                        tokio::spawn(async move {
+                                            use crate::drive::drive_monitor::DriveMonitor;
+                                            register_thread(&format!("drive-monitor-{}", bot_name), "drive");
+                                            let monitor = DriveMonitor::new(mon_state, bucket_name, new_bot_id);
+                                            info!("Starting DriveMonitor for newly discovered bot: {}", bot_name);
+                                            if let Err(e) = monitor.start_monitoring().await {
+                                                error!("DriveMonitor failed for new bot {}: {}", bot_name, e);
+                                            }
+                                        });
+                                    });
+                                }
+                            }
+                        }
+                        Err(e) => warn!("Periodic bucket re-scan failed: {}", e),
+                    }
+                }
+            }
+        });
     });
 }
 
