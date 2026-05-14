@@ -173,16 +173,7 @@ pub async fn run_axum_server(
         // drive routes are handled by DriveMonitor, no HTTP routes needed
     }
 
-#[cfg(feature = "directory")]
-{
-    // TODO: fix state type mismatch
-    // api_router = api_router
-    //     .merge(crate::core::directory::api::configure_user_routes())
-    //     .merge(crate::directory::router::configure())
-    //     .nest(ApiUrls::AUTH, crate::directory::auth_routes::configure());
-}
-
-    #[cfg(not(feature = "directory"))]
+    // Anonymous auth fallback — available regardless of directory feature
     {
         use axum::extract::State;
         use axum::response::IntoResponse;
@@ -199,7 +190,6 @@ pub async fn run_axum_server(
             let user_id = existing_user_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
             let session_id = existing_session_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
-            // Create session in DB if it doesn't exist
             let session_uuid = match uuid::Uuid::parse_str(&session_id) {
                 Ok(uuid) => uuid,
                 Err(_) => uuid::Uuid::new_v4(),
@@ -209,8 +199,7 @@ pub async fn run_axum_server(
                 Err(_) => uuid::Uuid::new_v4(),
             };
 
-            // Get bot_id from bot_name
-            let bot_id = {
+            let found_bot_id = {
                 let conn = state.conn.get().ok();
                 if let Some(mut db_conn) = conn {
                     use botcore::shared::models::schema::bots::dsl::*;
@@ -225,20 +214,13 @@ pub async fn run_axum_server(
                 }
             };
 
-            // Check if session already exists and reuse it
             let mut final_session_id = session_id.clone();
             {
                 let mut sm = state.session_manager.lock().await;
                 sm.get_or_create_anonymous_user(Some(user_uuid)).ok();
-
-                // Get or create session with the specified ID
                 let session = sm.get_or_create_session_by_id(
-                    session_uuid,
-                    user_uuid,
-                    bot_id,
-                    "Anonymous Chat"
+                    session_uuid, user_uuid, found_bot_id, "Anonymous Chat"
                 );
-
                 if let Ok(sess) = session {
                     final_session_id = sess.id.to_string();
                 }
@@ -259,6 +241,9 @@ pub async fn run_axum_server(
 
         api_router = api_router.route(ApiUrls::AUTH, get(anonymous_auth_handler));
     }
+    // Directory routes (commented out — use anonymous auth fallback above)
+    // #[cfg(feature = "directory")]
+    // { ... }
 
     #[cfg(feature = "meet")]
     {
