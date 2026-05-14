@@ -1,9 +1,11 @@
 /// S3 Repository - Simple facade for S3 operations using rust-s3
 /// No AWS SDK - uses rust-s3 crate only
-use log::{debug, info};
+use log::{debug, info, warn};
 use std::sync::Arc;
 use anyhow::{Result, Context};
 use s3::{Bucket, Region, creds::Credentials};
+use hmac::{Hmac, Mac};
+use sha2::{Digest, Sha256};
 
 /// S3 Repository for basic operations
 #[derive(Debug, Clone)]
@@ -199,8 +201,119 @@ impl S3Repository {
 
     /// Create bucket if not exists
     pub async fn create_bucket_if_not_exists(&self, bucket: &str) -> Result<()> {
-        let _target_bucket = self.bucket_for(bucket)?;
-        Ok(())
+        let target_bucket = self.bucket_for(bucket)?;
+
+        match target_bucket.exists().await {
+            Ok(true) => {
+                debug!("Bucket already exists: {}", bucket);
+                return Ok(());
+            }
+            Ok(false) => {}
+            Err(e) => {
+                warn!("Failed to check if bucket {} exists: {}. Attempting to create.", bucket, e);
+            }
+        }
+
+        self.create_bucket_signed(bucket).await
+    }
+
+    /// Create bucket via manually signed AWS SigV4 PUT request.
+    /// Uses path-style addressing and no XML body (MinIO compatible).
+    async fn create_bucket_signed(&self, bucket: &str) -> Result<()> {
+        let region = self.bucket.region().clone();
+        let endpoint = region.host();
+        let scheme = region.scheme();
+        let url_str = format!("{}://{}/{}", scheme, endpoint, bucket);
+
+        let now = time::OffsetDateTime::now_utc();
+        let short_date = now.format(&time::macros::format_description!("[year][month][day]"))
+            .map_err(|e| anyhow::anyhow!("short date: {}", e))?;
+        let long_date = now.format(&time::macros::format_description!("[year][month][day]T[hour][minute][second]Z"))
+            .map_err(|e| anyhow::anyhow!("long date: {}", e))?;
+
+        let mut headers = http::HeaderMap::new();
+        headers.insert("host", endpoint.parse().unwrap());
+        headers.insert("x-amz-date", long_date.parse().unwrap());
+        headers.insert("x-amz-content-sha256", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".parse().unwrap());
+        headers.insert("x-amz-acl", "private".parse().unwrap());
+
+        let url = url::Url::parse(&url_str)
+            .map_err(|e| anyhow::anyhow!("bad url: {}", e))?;
+
+        let canonical_uri = s3::signing::canonical_uri_string(&url);
+        let canonical_qs = s3::signing::canonical_query_string(&url);
+        let canonical_hdrs = s3::signing::canonical_header_string(&headers)
+            .map_err(|e| anyhow::anyhow!("canonical headers: {}", e))?;
+        let signed_hdrs = s3::signing::signed_header_string(&headers);
+
+        let payload_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+        let canonical_req = format!(
+            "PUT\n{uri}\n{qs}\n{hdrs}\n\n{signed}\n{payload}",
+            uri = canonical_uri,
+            qs = canonical_qs,
+            hdrs = canonical_hdrs,
+            signed = signed_hdrs,
+            payload = payload_hash,
+        );
+
+        let scope = format!("{date}/{region}/s3/aws4_request",
+            date = short_date,
+            region = region,
+        );
+
+        let mut hasher = Sha256::default();
+        hasher.update(canonical_req.as_bytes());
+        let canonical_hash = hex::encode(hasher.finalize());
+        let sts = format!("AWS4-HMAC-SHA256\n{date}\n{scope}\n{hash}",
+            date = long_date,
+            scope = scope,
+            hash = canonical_hash,
+        );
+
+        let secret = format!("AWS4{}", self.secret_key);
+        let mut date_hmac = Hmac::<Sha256>::new_from_slice(secret.as_bytes())
+            .map_err(|e| anyhow::anyhow!("hmac key: {}", e))?;
+        date_hmac.update(short_date.as_bytes());
+        let mut region_hmac = Hmac::<Sha256>::new_from_slice(&date_hmac.finalize().into_bytes())
+            .map_err(|e| anyhow::anyhow!("hmac region: {}", e))?;
+        region_hmac.update(region.to_string().as_bytes());
+        let mut service_hmac = Hmac::<Sha256>::new_from_slice(&region_hmac.finalize().into_bytes())
+            .map_err(|e| anyhow::anyhow!("hmac service: {}", e))?;
+        service_hmac.update(b"s3");
+        let mut signing_hmac = Hmac::<Sha256>::new_from_slice(&service_hmac.finalize().into_bytes())
+            .map_err(|e| anyhow::anyhow!("hmac signing: {}", e))?;
+        signing_hmac.update(b"aws4_request");
+        let signing_key = signing_hmac.finalize().into_bytes();
+
+        let mut sig_hmac = Hmac::<Sha256>::new_from_slice(&signing_key)
+            .map_err(|e| anyhow::anyhow!("hmac sig: {}", e))?;
+        sig_hmac.update(sts.as_bytes());
+        let signature = hex::encode(sig_hmac.finalize().into_bytes());
+
+        let auth = format!(
+            "AWS4-HMAC-SHA256 Credential={ak}/{scope},SignedHeaders={sh},Signature={sig}",
+            ak = self.access_key,
+            scope = scope,
+            sh = signed_hdrs,
+            sig = signature,
+        );
+        headers.insert("authorization", auth.parse().unwrap());
+
+        let client = reqwest::Client::new();
+        let resp = client.put(&url_str)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("HTTP request failed: {}", e))?;
+
+        if resp.status().is_success() {
+            info!("Created bucket: {}", bucket);
+            Ok(())
+        } else {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            Err(anyhow::anyhow!("Failed to create bucket {}: HTTP {} - {}", bucket, status, body))
+        }
     }
 
     /// Get object metadata

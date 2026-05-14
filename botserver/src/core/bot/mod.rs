@@ -107,7 +107,7 @@ pub struct BotOrchestrator;
 impl BotOrchestrator {
     pub fn new(_state: std::sync::Arc<botcore::shared::state::AppState>) -> Self { Self }
     pub fn mount_all_bots(&self) -> Result<(), String> { 
-        log::warn!("BotOrchestrator::mount_all_bots stub"); 
+        log::info!("BotOrchestrator::mount_all_bots stub"); 
         Ok(()) 
     }
 }

@@ -33,24 +33,30 @@ pub fn get_database_url_sync() -> anyhow::Result<String> {
 pub fn get_secrets_manager() -> Option<()> { None }
 
 pub fn get_work_path() -> String {
-get_work_path_default()
-
+    get_work_path_default()
 }
 
 /// Returns the work directory path.
 /// In production (system container with .env but no botserver-stack): /opt/gbo/work
 /// In development (with botserver-stack directory): ./botserver-stack/data/system/work
 fn get_work_path_default() -> String {
-    let has_env = std::path::Path::new("./.env").exists()
-        || std::path::Path::new("/opt/gbo/bin/.env").exists();
-    let stack_work = std::path::Path::new("./botserver-stack/data/system/work");
-    let production_work = std::path::Path::new("/opt/gbo/work");
-    if stack_work.exists() {
-        stack_work.to_str().unwrap_or("./botserver-stack/data/system/work").to_string()
-    } else if has_env || production_work.exists() {
-        "/opt/gbo/work".to_string()
+    if let Ok(path) = std::env::var("GBO_WORK_PATH") {
+        if !path.is_empty() {
+            return path;
+        }
+    }
+
+    let stack_work = "./botserver-stack/data/system/work";
+    let stack_root = std::path::Path::new("./botserver-stack");
+    let prod_env = std::path::Path::new("/opt/gbo/bin/.env").exists();
+    let prod_exe = std::env::current_exe()
+        .ok()
+        .is_some_and(|p| p.starts_with("/opt/gbo/bin"));
+
+    if stack_root.exists() || !(prod_env || prod_exe) {
+        stack_work.to_string()
     } else {
-        "./botserver-stack/data/system/work".to_string()
+        "/opt/gbo/work".to_string()
     }
 }
 
@@ -645,4 +651,3 @@ pub fn get_vectordb_config_from_value(value: &serde_json::Value) -> (String, Str
         .and_then(|v| v.as_str()).unwrap_or("default").to_string();
     (url, api_key, collection)
 }
-

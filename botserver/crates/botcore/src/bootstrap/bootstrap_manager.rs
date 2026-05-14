@@ -212,11 +212,11 @@ impl BootstrapManager {
             Ok(cmd) => match cmd.execute() {
                 Ok(_) => info!("Caddy configuration is valid"),
                 Err(e) => {
-                    warn!("Caddy configuration error: {:?}", e);
+                    info!("Caddy configuration not validated: {:?}", e);
                 }
             },
             Err(e) => {
-                warn!("Failed to create caddy command: {:?}", e);
+                info!("Caddy command unavailable: {:?}", e);
             }
         }
 
@@ -261,7 +261,7 @@ impl BootstrapManager {
             info!("Installing Vault...");
             match pm.install("vault").await {
                 Ok(Some(_)) => info!("Vault installed successfully"),
-                Ok(None) => warn!("Vault installation returned no result"),
+                Ok(None) => info!("Vault installation returned no result"),
                 Err(e) => warn!("Failed to install Vault: {}", e),
             }
         } else {
@@ -275,7 +275,7 @@ impl BootstrapManager {
                 info!("Installing {}...", component);
                 match pm.install(component).await {
                     Ok(Some(_)) => info!("{} installed successfully", component),
-                    Ok(None) => warn!("{} installation returned no result", component),
+                    Ok(None) => info!("{} installation returned no result", component),
                     Err(e) => warn!("Failed to install {}: {}", component, e),
                 }
             }

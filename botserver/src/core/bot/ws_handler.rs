@@ -3,7 +3,6 @@ use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use botcore::shared::state::AppState;
-use diesel::prelude::*;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info, warn};
 use serde::Deserialize;
@@ -42,19 +41,31 @@ pub async fn websocket_handler_with_bot(
     websocket_handler(ws, State(state), Query(params)).await
 }
 
-fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
-    let mut conn = match state.conn.get() {
+fn lookup_bot_id(_state: &Arc<AppState>, _bot_name: &str) -> Uuid {
+    let mut conn = match _state.conn.get() {
         Ok(c) => c,
-        Err(e) => { warn!("DB conn: {}", e); return Uuid::nil(); }
+        Err(e) => {
+            warn!("DB conn: {}", e);
+            return Uuid::nil();
+        }
     };
-    use botcorebot::schema::bots::dsl::*;
-    if let Ok(uuid) = Uuid::parse_str(bot_name) {
-        bots.filter(id.eq(uuid)).select(id).first::<Uuid>(&mut conn).unwrap_or(Uuid::nil())
+
+    use botcorebot::schema::bots::dsl::{bots, id, name};
+    use diesel::prelude::*;
+
+    if let Ok(uuid) = Uuid::parse_str(_bot_name) {
+        bots.filter(id.eq(uuid))
+            .select(id)
+            .first::<Uuid>(&mut conn)
+            .unwrap_or(Uuid::nil())
     } else {
-        bots.filter(name.eq(bot_name)).select(id).first::<Uuid>(&mut conn).unwrap_or_else(|_| {
-            warn!("Bot not found: {}", bot_name);
-            Uuid::nil()
-        })
+        bots.filter(name.eq(_bot_name))
+            .select(id)
+            .first::<Uuid>(&mut conn)
+            .unwrap_or_else(|_| {
+                warn!("Bot not found: {}", _bot_name);
+                Uuid::nil()
+            })
     }
 }
 
@@ -86,18 +97,12 @@ async fn handle_ws(
         let sid = session_id;
         let uid = user_id;
         let bid = bot_uuid;
+        let bn = bot_name.clone();
         tokio::task::spawn_blocking(move || {
-            let mut conn = match s.conn.get() { Ok(c) => c, Err(_) => return };
-            use botcorebot::schema::basic_tools::dsl::*;
-            let bid_str = bid.to_string();
-            let ast: Option<String> = basic_tools
-                .filter(bot_id.eq(&bid_str))
-                .filter(tool_name.eq("start"))
-                .select(ast_path)
-                .first::<String>(&mut conn)
-                .ok();
-            if let Some(p) = ast {
-                if let Ok(content) = std::fs::read_to_string(&p) {
+            let work_path = botcore::shared::utils::get_work_path();
+            let ast_path = format!("{}/{}.gbai/{}.gbdialog/start.ast", work_path, bn, bn);
+            match std::fs::read_to_string(&ast_path) {
+                Ok(content) => {
                     let session = botlib::models::UserSession {
                         id: sid, user_id: uid, bot_id: bid,
                         title: String::new(),
@@ -112,10 +117,10 @@ async fn handle_ws(
                         Err(e) => error!("start.bas error: {}", e),
                     }
                 }
+                Err(e) => warn!("start.bas AST not found at {}: {}", ast_path, e),
             }
         });
     }
-
     // Message loop
     loop {
         tokio::select! {
@@ -123,20 +128,35 @@ async fn handle_ws(
                 match msg {
                     Some(Ok(Message::Text(text))) => {
                         info!("WS msg: {}", text);
-                        let resp = serde_json::json!({
-                            "bot_id": bot_uuid.to_string(),
-                            "user_id": user_id.to_string(),
-                            "session_id": session_id.to_string(),
-                            "channel": "web",
-                            "content": format!("Echo: {}", text),
-                            "message_type": 2,
-                            "is_complete": true,
-                            "suggestions": [],
-                            "switchers": [],
-                            "context_length": 0,
-                            "context_max_length": 0,
-                        });
-                        let _ = ws_sender.send(Message::Text(resp.to_string().into())).await;
+                        let parsed: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
+                        let user_text = parsed.get("text").and_then(|v| v.as_str()).unwrap_or("");
+
+                        // Try to deliver to a waiting HEAR keyword first
+                        let runtime: Arc<dyn botbasic_types::BasicRuntime> =
+                            Arc::new(crate::basic::AppStateBasicRuntime(state.clone()));
+                        let delivered = crate::basic::keywords::hearing::deliver_hear_input(
+                            &runtime,
+                            session_id,
+                            user_text.to_string(),
+                        );
+
+                        if !delivered {
+                            // No HEAR waiting — send a basic acknowledgment
+                            let resp = serde_json::json!({
+                                "bot_id": bot_uuid.to_string(),
+                                "user_id": user_id.to_string(),
+                                "session_id": session_id.to_string(),
+                                "channel": "web",
+                                "content": user_text,
+                                "message_type": 2,
+                                "is_complete": true,
+                                "suggestions": [],
+                                "switchers": [],
+                                "context_length": 0,
+                                "context_max_length": 0,
+                            });
+                            let _ = ws_sender.send(Message::Text(resp.to_string().into())).await;
+                        }
                     }
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Err(e)) => { error!("WS err: {}", e); break; }
