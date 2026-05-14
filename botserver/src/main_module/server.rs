@@ -158,7 +158,7 @@ pub async fn run_axum_server(
         .route("/api/manifest", get(get_workspace_manifest))
         .route("/api/client-errors", post(receive_client_errors))
         // TODO: fix handler signature
-        //.route("/api/bot/config", get(crate::core::bot::get_bot_config))
+        .route("/api/bot/config", get(crate::core::bot::get_bot_config))
         .route(ApiUrls::SESSIONS, post(crate::core::session::create_session))
         // TODO: fix handler signature
         //.route(ApiUrls::SESSIONS, get(crate::core::session::get_sessions))
@@ -322,7 +322,7 @@ api_router = api_router.merge(crate::basic::keywords::configure_db_routes());
 }
     #[cfg(feature = "automation")]
     {
-        // TODO: Wire up botautotask::api::router(state, config_ops) when AutoTaskState/ConfigOps are available
+        api_router = api_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     }
     api_router = api_router.merge(botcore::shared::admin::configure());
     
