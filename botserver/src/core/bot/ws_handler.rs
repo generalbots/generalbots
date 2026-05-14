@@ -144,13 +144,7 @@ async fn handle_ws(
                             // Try LLM first, fallback to suggestions
                             let reply = match state.llm_provider {
                                 Some(ref llm) => {
-                                    let prompt = format!(
-                                        "Você é o assistente virtual Salesianos. "\
-                                        "O usuário disse: \"{}\". "\
-                                        "Responda de forma breve e útil, "\
-                                        "oferecendo as opções: Cartas, Procedimentos, Ramais ou Todos.",
-                                        user_text
-                                    );
+                                    let prompt = format!("Você é o assistente virtual Salesianos. O usuário disse: \"{}\". Responda de forma breve e útil, oferecendo as opções: Cartas, Procedimentos, Ramais ou Todos.", user_text);
                                     match llm.generate_simple(&prompt).await {
                                         Ok(resp) => resp,
                                         Err(e) => {
