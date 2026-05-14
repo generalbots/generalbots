@@ -196,8 +196,8 @@ impl BasicRuntime for AppStateBasicRuntime {
         tokio::task::block_in_place(move || {
             let rt = tokio::runtime::Handle::current();
             rt.block_on(async move {
-                let guard = channels.lock().await;
-                if let Some(tx) = guard.get(&sid).cloned() {
+                let mut guard = channels.lock().await;
+                if let Some(tx) = guard.remove(&sid) {
                     let _ = tx.send(resp).await;
                 } else {
                     warn!("send_message: no channel for session {}", sid);
