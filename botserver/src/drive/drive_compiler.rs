@@ -131,12 +131,12 @@ impl DriveCompiler {
     }
 
     /// Compilar arquivo .bas → .ast DIRETAMENTE em work/{bot}.gbai/{bot}.gbdialog/
-    async fn compile_file(&self, bot_id: Uuid, file_path: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
-        // file_path formats:
+    async fn compile_file(&self, bot_id: Uuid, fp: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+        // fp formats:
         // - {bot}.gbai/{bot}.gbdialog/{tool}.bas (full path with bucket prefix)
         // - {bot}.gbdialog/{tool}.bas (without bucket prefix)
         // - {bot}.gbkb/{doc}.txt (KB files - skip compilation)
-        let parts: Vec<&str> = file_path.split('/').collect();
+        let parts: Vec<&str> = fp.split('/').collect();
         if parts.len() < 2 {
             return Err("Invalid file path format".into());
         }
@@ -154,10 +154,10 @@ impl DriveCompiler {
         (bot_name, work_dir)
     } else if parts.len() >= 2 && parts[0].ends_with(".gbkb") {
         // KB file: {bot}.gbkb/{doc}.txt - skip compilation
-        debug!("Skipping KB file: {}", file_path);
+        debug!("Skipping KB file: {}", fp);
         return Ok(());
     } else {
-        warn!("Unknown file path format: {}", file_path);
+        warn!("Unknown file path format: {}", fp);
         return Err("Invalid file path format".into());
     };
 
@@ -177,7 +177,7 @@ impl DriveCompiler {
             warn!("File {} not found in work dir, attempting to download from S3", work_bas_path.display());
             
             // Download in separate task to avoid Send issues
-            let download_result = download_from_s3(file_path).await;
+            let download_result = download_from_s3(fp).await;
             
             match download_result {
                 Ok(content) => {
@@ -185,11 +185,11 @@ impl DriveCompiler {
                         warn!("Failed to write {} to work dir: {}", work_bas_path.display(), e);
                         return Err(format!("Failed to write file: {}", e).into());
                     }
-                    info!("Downloaded {} to {}", file_path, work_bas_path.display());
+                    info!("Downloaded {} to {}", fp, work_bas_path.display());
                 }
                 Err(e) => {
-                    warn!("Failed to download {} from S3: {}", file_path, e);
-                    return Err(format!("File not found in S3: {}", file_path).into());
+                    warn!("Failed to download {} from S3: {}", fp, e);
+                    return Err(format!("File not found in S3: {}", fp).into());
                 }
             }
         }
@@ -238,7 +238,29 @@ impl DriveCompiler {
             work_dir.to_str().ok_or("Invalid path")?
         )?;
 
-        info!("Compiled {} to {}.ast", file_path, tool_name);
+        let work_ast_path = work_dir.join(format!("{}.ast", tool_name));
+        let ast_path_str = work_ast_path.to_str().unwrap_or("").to_string();
+
+        let bot_id_str = bot_id.to_string();
+        let upsert_sql = diesel::sql_query(
+            "INSERT INTO basic_tools (bot_id, tool_name, file_path, ast_path, compiled_at, is_active) \
+             VALUES ($1::uuid, $2, $3, $4, $5, true) \
+             ON CONFLICT (bot_id, tool_name) DO UPDATE SET \
+             file_path = EXCLUDED.file_path, ast_path = EXCLUDED.ast_path, \
+             compiled_at = EXCLUDED.compiled_at, is_active = true"
+        )
+        .bind::<diesel::sql_types::Text, _>(&bot_id_str)
+        .bind::<diesel::sql_types::Text, _>(tool_name)
+        .bind::<diesel::sql_types::Text, _>(fp)
+        .bind::<diesel::sql_types::Text, _>(&ast_path_str)
+        .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now());
+        match upsert_sql.execute(&mut *self.state.conn.get()?)
+        {
+            Ok(_) => info!("Registered tool '{}' in database", tool_name),
+            Err(e) => warn!("Failed to register tool '{}' in database: {}", tool_name, e),
+        }
+
+        info!("Compiled {} to {}.ast", fp, tool_name);
         Ok(())
     }
 }

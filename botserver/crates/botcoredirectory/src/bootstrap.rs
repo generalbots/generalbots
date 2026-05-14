@@ -55,8 +55,8 @@ pub async fn check_and_bootstrap_admin(client: &ZitadelClient) -> Result<Option<
             }
         }
         Err(e) => {
-            warn!(
-                "Could not check existing users (may be first run): {}",
+            info!(
+                "Could not check existing users yet (may be first run): {}",
                 e
             );
         }

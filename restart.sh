@@ -36,7 +36,19 @@ sleep 2
 nohup ./target/debug/botui > botui.log 2>&1 &
 echo "  botui PID: $!"
 
-sleep 3
-curl -s http://localhost:8080/health > /dev/null 2>&1 && echo "✅ botserver ready" || echo "❌ botserver failed"
+echo "  waiting for botserver bootstrap..."
+BOTSERVER_READY=0
+for i in $(seq 1 150); do
+  if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+    echo "✅ botserver ready after ${i}s"
+    BOTSERVER_READY=1
+    break
+  fi
+  sleep 2
+done
+
+if [ "$BOTSERVER_READY" != "1" ]; then
+  echo "❌ botserver failed to become ready within 300s"
+fi
 
 echo "Done. botserver=$(pgrep -f 'botserver --noconsole') botui=$(pgrep -f botui) botmodels=$(pgrep -f botmodels)"

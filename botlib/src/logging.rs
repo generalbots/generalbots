@@ -2,7 +2,7 @@ use env_logger::fmt::Formatter;
 use log::Record;
 use std::io::Write;
 
-pub fn compact_format(buf: &mut Formatter, record: &Record) -> std::io::Result<()> {
+fn format_compact_to(record: &Record, w: &mut dyn Write) -> std::io::Result<()> {
     let level_str = match record.level() {
         log::Level::Error => "error",
         log::Level::Warn => "warn",
@@ -21,60 +21,53 @@ pub fn compact_format(buf: &mut Formatter, record: &Record) -> std::io::Result<(
         target
     };
 
-    // Format: "YYYYMMDDHHMMSS.mmm level module:"
-    // Length: 18 + 1 + 5 (error) + 1 + module.len() + 1 = 26 + module.len()
     let prefix = format!("{} {} {}:", timestamp, level_str, module);
-
-    // Max width 100
-    // Indent for wrapping: 18 timestamp + 1 space + 5 (longest level "error") + 1 space = 25 spaces
     let message = record.args().to_string();
-    let indent = "                         "; // 25 spaces
+    let indent = "                         ";
 
     if prefix.len() + message.len() <= 100 {
-        writeln!(buf, "{}{}", prefix, message)
+        writeln!(w, "{}{}", prefix, message)
     } else {
-        let available_first_line = if prefix.len() < 100 {
-            100 - prefix.len()
-        } else {
-            0
-        };
-        let available_other_lines = 100 - 25; // 75 chars
+        let available_first = 100usize.saturating_sub(prefix.len());
+        let available_other = 75usize;
 
-        let mut current_pos = 0;
+        write!(w, "{}", prefix)?;
         let chars: Vec<char> = message.chars().collect();
-        let total_chars = chars.len();
+        let total = chars.len();
+        let first_take = available_first.min(total);
+        let first: String = chars[..first_take].iter().collect();
+        writeln!(w, "{}", first)?;
 
-        // First line
-        write!(buf, "{}", prefix)?;
-
-        // If prefix is already >= 100, we force a newline immediately?
-        // Or we just print a bit and wrap?
-        // Let's assume typical usage where module name isn't huge.
-
-        let take = std::cmp::min(available_first_line, total_chars);
-        let first_chunk: String = chars[0..take].iter().collect();
-        writeln!(buf, "{}", first_chunk)?;
-        current_pos += take;
-
-        while current_pos < total_chars {
-            write!(buf, "{}", indent)?;
-            let remaining = total_chars - current_pos;
-            let take = std::cmp::min(remaining, available_other_lines);
-            let chunk: String = chars[current_pos..current_pos + take].iter().collect();
-            writeln!(buf, "{}", chunk)?;
-            current_pos += take;
+        let mut pos = first_take;
+        while pos < total {
+            write!(w, "{}", indent)?;
+            let take = available_other.min(total - pos);
+            let chunk: String = chars[pos..pos + take].iter().collect();
+            writeln!(w, "{}", chunk)?;
+            pos += take;
         }
         Ok(())
     }
 }
 
+/// env_logger formatter: info to stdout, warn/error/debug/trace to stderr.
+pub fn compact_format(buf: &mut Formatter, record: &Record) -> std::io::Result<()> {
+    match record.level() {
+        log::Level::Info => {
+            let mut w = buf;
+            format_compact_to(record, &mut w)
+        }
+        _ => format_compact_to(record, &mut std::io::stderr().lock()),
+    }
+}
+
 pub fn init_compact_logger(default_filter: &str) {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(default_filter))
+        .target(env_logger::Target::Stdout)
         .format(compact_format)
         .init();
 }
 
 pub fn init_compact_logger_with_style(default_filter: &str) {
-    // Style ignored to strictly follow text format spec
     init_compact_logger(default_filter);
 }

@@ -1,5 +1,6 @@
 use botcore::shared::state::AppState;
 use diesel::prelude::*;
+use log::warn;
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
 use botlib::traits::ScriptRunner;
 
@@ -189,9 +190,20 @@ impl BasicRuntime for AppStateBasicRuntime {
     }
 
     fn send_message(&self, response: &botlib::models::BotResponse) -> Result<(), String> {
-        if let Some(tx) = self.0.response_channels.try_lock().ok().and_then(|mut guard| guard.remove(&response.session_id)) {
-            let _ = tx.blocking_send(response.clone());
-        }
+        let sid = response.session_id.clone();
+        let resp = response.clone();
+        let channels = self.0.response_channels.clone();
+        tokio::task::block_in_place(move || {
+            let rt = tokio::runtime::Handle::current();
+            rt.block_on(async move {
+                let guard = channels.lock().await;
+                if let Some(tx) = guard.get(&sid).cloned() {
+                    let _ = tx.send(resp).await;
+                } else {
+                    warn!("send_message: no channel for session {}", sid);
+                }
+            });
+        });
         Ok(())
     }
 

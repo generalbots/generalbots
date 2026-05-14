@@ -417,6 +417,11 @@ pub async fn create_app_state(
     };
 
     #[cfg(feature = "drive")]
+    if let Err(e) = drive.create_bucket_if_not_exists("default.gbai").await {
+        warn!("Failed to create default.gbai bucket: {}", e);
+    }
+
+    #[cfg(feature = "drive")]
     super::ensure_vendor_files_in_minio(&drive).await;
 
     let session_manager_inner = crate::core::session::LocalSessionManager(botcoresession::SessionManager::new(
@@ -695,11 +700,11 @@ fn init_directory_service() -> Result<(Arc<Mutex<crate::directory::AuthService>>
                     service_account_key: None,
                 }
             } else {
-                warn!("Failed to parse directory_config.json, using defaults");
+                info!("Failed to parse directory_config.json, using defaults");
                 default_zitadel_config()
             }
         } else {
-            warn!("directory_config.json not found, using default Zitadel config");
+            info!("directory_config.json not found, using default Zitadel config");
             default_zitadel_config()
         }
     };
@@ -778,7 +783,7 @@ async fn bootstrap_directory_admin(zitadel_config: &crate::directory::ZitadelCon
             info!("Admin user exists, bootstrap skipped");
         }
         Err(e) => {
-            warn!("Bootstrap check failed (Zitadel may not be ready): {}", e);
+            info!("Bootstrap check skipped until Zitadel is ready: {}", e);
         }
     }
 }
@@ -939,7 +944,7 @@ pub async fn start_background_services(
         }
 
 // Step 1: Discover bots from S3 buckets (*.gbai) and auto-create missing
-    log::error!("Drive client status: {:?}", state_for_scan.drive.is_some());
+    log::info!("Drive client status: {:?}", state_for_scan.drive.is_some());
     if let Some(s3_client) = &state_for_scan.drive {
         match s3_client.list_all_buckets().await {
             Ok(buckets) => {

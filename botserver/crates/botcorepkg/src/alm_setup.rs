@@ -74,8 +74,8 @@ INSTALL_LOCK = true
     let runner_token = match try_alm_api_setup(alm_url, username, &password, data_path.to_str().unwrap_or(".")).await {
         Ok(token) => token,
         Err(e) => {
-            warn!("ALM automated setup unavailable via API: {}", e);
-            warn!("ALM will need manual configuration. Create admin user and runner token via web UI.");
+            info!("ALM automated setup unavailable via API: {}", e);
+            info!("ALM will need manual configuration. Create admin user and runner token via web UI.");
             // Store placeholder credentials
             generate_random_string(40)
         }
@@ -88,10 +88,10 @@ INSTALL_LOCK = true
     if runner_bin.exists() {
         match register_runner(&runner_bin, &runner_token, config_path.to_str().unwrap_or("config.yaml"), alm_url).await {
             Ok(_) => info!("ALM CI Runner successfully registered!"),
-            Err(e) => warn!("Failed to register ALM runner: {}", e),
+            Err(e) => info!("ALM runner not registered automatically: {}", e),
         }
     } else {
-        warn!("Forgejo runner binary not found at {}", runner_bin.display());
+        info!("Forgejo runner binary not found at {}", runner_bin.display());
     }
 
     // Store in Vault
