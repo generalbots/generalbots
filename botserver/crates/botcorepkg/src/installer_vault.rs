@@ -26,7 +26,7 @@ pub fn fetch_vault_credentials() -> HashMap<String, String> {
     let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
 
     if vault_token.is_empty() {
-        warn!("VAULT_TOKEN not set, cannot fetch credentials from Vault");
+        info!("VAULT_TOKEN not set yet, using bootstrap defaults");
         return credentials;
     }
 

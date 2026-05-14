@@ -32,6 +32,12 @@ zip = { workspace = true }
 calamine = { workspace = true, optional = true }
 pdf-extract = { workspace = true, optional = true }
 tracing = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+http = "1.4"
+url = "2.5"
+time = { version = "0.3", default-features = false, features = ["formatting", "macros", "parsing"] }
 
 [lints]
 workspace = true

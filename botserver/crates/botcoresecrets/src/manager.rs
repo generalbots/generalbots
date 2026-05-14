@@ -57,7 +57,7 @@ impl SecretsManager {
         let enabled = !token.is_empty() && !addr.is_empty();
 
         if !enabled {
-            warn!("Vault not configured. Using environment variables directly.");
+            info!("Vault not configured yet. Using environment variables directly.");
             return Ok(Self {
                 client: None,
                 cache: Arc::new(StdRwLock::new(HashMap::new())),

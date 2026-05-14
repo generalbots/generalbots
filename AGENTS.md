@@ -896,6 +896,60 @@ grep -E "ERROR|WARN|drive_monitor" botserver.log | tail -20
 
 ---
 
+## 🔧 Dev Dependencies (Hot Testing)
+
+### wscat for WebSocket Testing
+```bash
+npm install -g wscat
+# Or locally:
+cd /tmp && npm install wscat
+```
+
+### Quick Bot Chat Test (from terminal)
+```bash
+# Test greeting + send a message, wait 5s for response
+NODE_PATH=/tmp/node_modules timeout 10 node -e "
+const ws = new (require('ws'))('ws://localhost:8080/ws?bot_name=default');
+let c=0;
+ws.on('message', m => { c++; const d=JSON.parse(m.toString()); console.log('MSG'+c+':', d.content||'(type:'+d.type+')');
+  if (c===1) setTimeout(() => ws.send(JSON.stringify({text:'hi',message_type:1})), 2000);
+});
+ws.on('close', () => process.exit());
+setTimeout(() => process.exit(), 8000);
+" 2>&1
+```
+
+Expected output:
+```
+MSG1: (type:connected)
+MSG2: Hello from default bot
+MSG3: hi
+```
+
+### Test start.bas Content
+```bash
+# start.bas must use double quotes (BASIC syntax)
+cat /opt/gbo/data/default.gbai/default.gbdialog/start.bas
+# Should show: TALK "Hello from default bot"
+```
+
+### Verify Tool Registration
+```bash
+grep -E "Registered tool|Compiled.*start" botserver.log
+```
+Expected: `Registered tool 'start' in database`
+
+### Clean Reset from Scratch
+```bash
+killall -9 botserver vault postgres valkey minio qdrant zitadel 2>/dev/null
+sleep 2
+rm -rf botserver-stack/ botserver/botserver-stack/ .env botserver/.env botserver.log 2>/dev/null
+BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info \
+  nohup ./target/debug/botserver --noconsole > botserver.log 2>&1 &
+```
+
+---
+
 ## 🎭 Playwright Browser Testing - YOLO Mode
 
 **When user requests to start YOLO mode with Playwright:**

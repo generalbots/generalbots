@@ -71,7 +71,7 @@ pub async fn run_axum_server(
     );
 
     let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
-        warn!("JWT_SECRET not set, using default development secret - DO NOT USE IN PRODUCTION");
+        info!("JWT_SECRET not set, using default development secret");
         "dev-secret-key-change-in-production-minimum-32-chars".to_string()
     });
 
@@ -718,7 +718,7 @@ let base_router = {
         if disable_tls {
             info!("TLS disabled via BOTSERVER_DISABLE_TLS environment variable");
         } else {
-            warn!("TLS certificates not found, using HTTP");
+            info!("TLS certificates not found, using HTTP");
         }
 
         let listener = match tokio::net::TcpListener::bind(addr).await {
