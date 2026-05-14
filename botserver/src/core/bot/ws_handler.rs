@@ -145,17 +145,25 @@ async fn handle_ws(
                             let reply = match state.llm_provider {
                                 Some(ref llm) => {
                                     let prompt = format!("Você é o assistente virtual Salesianos. O usuário disse: \"{}\". Responda de forma breve e útil, oferecendo as opções: Cartas, Procedimentos, Ramais ou Todos.", user_text);
-                                    match llm.generate_simple(&prompt).await {
-                                        Ok(resp) => resp,
-                                        Err(e) => {
-                                            warn!("LLM generate_simple failed: {}", e);
-                                            if bot_name.eq_ignore_ascii_case("salesianos") {
-                                                "Escolha uma opção: Cartas, Procedimentos, Ramais ou Todos.".to_string()
-                                            } else {
-                                                "Como posso ajudar?".to_string()
-                                            }
-                                        }
+                            match tokio::time::timeout(std::time::Duration::from_secs(15), llm.generate_simple(&prompt)).await {
+                                Ok(Ok(resp)) => resp,
+                                Ok(Err(e)) => {
+                                    warn!("LLM generate_simple failed: {}", e);
+                                    if bot_name.eq_ignore_ascii_case("salesianos") {
+                                        "Escolha uma opção: Cartas, Procedimentos, Ramais ou Todos.".to_string()
+                                    } else {
+                                        "Como posso ajudar?".to_string()
                                     }
+                                }
+                                Err(_) => {
+                                    warn!("LLM generate_simple timed out after 15s");
+                                    if bot_name.eq_ignore_ascii_case("salesianos") {
+                                        "Escolha uma opção: Cartas, Procedimentos, Ramais ou Todos.".to_string()
+                                    } else {
+                                        "Como posso ajudar?".to_string()
+                                    }
+                                }
+                            }
                                 }
                                 None => {
                                     info!("No LLM provider available for user message");
