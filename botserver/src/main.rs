@@ -21,6 +21,8 @@ pub mod analytics;
 pub mod attendant;
 #[cfg(feature = "automation")]
 pub use botautotask as auto_task;
+#[cfg(feature = "vibe")]
+pub mod vibe;
 #[cfg(feature = "scripting")]
 pub mod basic;
 #[cfg(feature = "billing")]

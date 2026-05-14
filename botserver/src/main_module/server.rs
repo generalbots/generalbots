@@ -320,11 +320,10 @@ api_router = api_router.merge(crate::basic::keywords::configure_app_server_route
 {
 api_router = api_router.merge(crate::basic::keywords::configure_db_routes());
 }
-    #[cfg(feature = "automation")]
-    {
-        #[cfg(feature = "vibe")]
-        api_router = api_router.merge(crate::vibe::configure_vibe_routes(&app_state));
-    }
+#[cfg(feature = "vibe")]
+{
+api_router = api_router.merge(crate::vibe::configure_vibe_routes(&app_state));
+}
     api_router = api_router.merge(botcore::shared::admin::configure());
     
     #[cfg(feature = "project")]
