@@ -102,6 +102,7 @@ legal = ["automation", "drive", "cache", "dep:botlegal"]
 attendance = ["automation", "drive", "cache", "dep:botattendance"]
 maintenance = ["automation", "drive", "cache", "dep:botmaintenance"]
 deployment = ["automation", "drive", "cache", "dep:botdeployment"]
+vibe = ["automation", "dep:botvibe"]
 kb = ["automation", "drive", "cache", "dep:botkb"]
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
 search = ["automation", "drive", "cache", "dep:botsearch"]
@@ -257,6 +258,7 @@ botcorebot = { workspace = true }
 botcoredirectory = { workspace = true }
 botcorepkg = { workspace = true }
 botautotask = { workspace = true }
+botvibe = { workspace = true, optional = true }
 botbasic_types = { path = "crates/botbasic_types" }
 botcore = { path = "crates/botcore" }
 botbasic_core = { path = "crates/botbasic_core" }

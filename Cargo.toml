@@ -76,7 +76,8 @@ members = [
   "botserver/crates/bottelegram",
   "botserver/crates/bottickets",
   "botserver/crates/bottimeseries",
-  "botserver/crates/botvideo",
+  "botserver/crates/botvibe",
+"botserver/crates/botvideo",
   "botserver/crates/botweba",
   "botserver/crates/botwhatsapp",
   "botserver/crates/botworkspaces",
@@ -144,6 +145,7 @@ bottelegram = { path = "botserver/crates/bottelegram" }
 bottickets = { path = "botserver/crates/bottickets" }
 bottimeseries = { path = "botserver/crates/bottimeseries" }
 botvideo = { path = "botserver/crates/botvideo" }
+botvibe = { path = "botserver/crates/botvibe" }
 botweba = { path = "botserver/crates/botweba" }
 botwhatsapp = { path = "botserver/crates/botwhatsapp" }
 botworkspaces = { path = "botserver/crates/botworkspaces" }

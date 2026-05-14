@@ -1921,6 +1921,7 @@ dependencies = [
  "bottelegram",
  "bottickets",
  "bottimeseries",
+ "botvibe",
  "botvideo",
  "botweba",
  "botwhatsapp",
@@ -2220,6 +2221,24 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tower-http",
+]
+
+[[package]]
+name = "botvibe"
+version = "6.3.0"
+dependencies = [
+ "axum",
+ "botlib",
+ "chrono",
+ "diesel",
+ "futures",
+ "log",
+ "r2d2",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
