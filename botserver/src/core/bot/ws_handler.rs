@@ -141,17 +141,43 @@ async fn handle_ws(
                         );
 
                         if !delivered {
-                            let suggestion_hint = if bot_name.eq_ignore_ascii_case("salesianos") {
-                                "Escolha uma opção: Cartas, Procedimentos, Ramais ou Todos."
-                            } else {
-                                "Como posso ajudar?"
+                            // Try LLM first, fallback to suggestions
+                            let reply = match state.llm_provider {
+                                Some(ref llm) => {
+                                    let prompt = format!(
+                                        "Você é o assistente virtual Salesianos. "\
+                                        "O usuário disse: \"{}\". "\
+                                        "Responda de forma breve e útil, "\
+                                        "oferecendo as opções: Cartas, Procedimentos, Ramais ou Todos.",
+                                        user_text
+                                    );
+                                    match llm.generate_simple(&prompt).await {
+                                        Ok(resp) => resp,
+                                        Err(e) => {
+                                            warn!("LLM generate_simple failed: {}", e);
+                                            if bot_name.eq_ignore_ascii_case("salesianos") {
+                                                "Escolha uma opção: Cartas, Procedimentos, Ramais ou Todos.".to_string()
+                                            } else {
+                                                "Como posso ajudar?".to_string()
+                                            }
+                                        }
+                                    }
+                                }
+                                None => {
+                                    info!("No LLM provider available for user message");
+                                    if bot_name.eq_ignore_ascii_case("salesianos") {
+                                        "Escolha uma opção: Cartas, Procedimentos, Ramais ou Todos.".to_string()
+                                    } else {
+                                        "Como posso ajudar?".to_string()
+                                    }
+                                }
                             };
                             let resp = serde_json::json!({
                                 "bot_id": bot_uuid.to_string(),
                                 "user_id": user_id.to_string(),
                                 "session_id": session_id.to_string(),
                                 "channel": "web",
-                                "content": suggestion_hint,
+                                "content": reply,
                                 "message_type": 2,
                                 "is_complete": true,
                                 "suggestions": [],
