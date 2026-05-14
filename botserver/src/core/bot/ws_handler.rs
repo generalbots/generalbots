@@ -141,13 +141,19 @@ async fn handle_ws(
                         );
 
                         if !delivered {
-                            // No HEAR waiting — send a basic acknowledgment
+                            // No HEAR waiting — try LLM, or fallback to suggestions prompt
+                            let reply = if let Some(ref llm) = state.llm_provider {
+                                let prompt = format!("O usuário disse: \"{}\"\nResponda de forma útil e amigável como assistente virtual Salesianos.", user_text);
+                                llm.generate_simple(&prompt).await.unwrap_or_else(|_| user_text.to_string())
+                            } else {
+                                user_text.to_string()
+                            };
                             let resp = serde_json::json!({
                                 "bot_id": bot_uuid.to_string(),
                                 "user_id": user_id.to_string(),
                                 "session_id": session_id.to_string(),
                                 "channel": "web",
-                                "content": user_text,
+                                "content": reply,
                                 "message_type": 2,
                                 "is_complete": true,
                                 "suggestions": [],
