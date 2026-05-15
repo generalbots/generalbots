@@ -10,126 +10,140 @@ Pre-built bot packages for common business use cases. Templates are organized by
 |---|----------|----------|--------|--------------|
 | 1 | Default | Core | `core/default.gbai` | Minimal starter bot |
 | 2 | Template | Core | `core/template.gbai` | Reference implementation |
-| 3 | AI Search | Search | `search/ai-search.gbai` | QR codes, document search |
-| 4 | Announcements | Communications | `communications/announcements.gbai` | Company news, multiple KB |
-| 5 | Analytics Dashboard | Platform | `platform/analytics-dashboard.gbai` | Metrics, Reports |
-| 6 | Backup | Platform | `platform/backup.gbai` | Server backup scripts |
-| 7 | Bank | Finance | `finance/bank.gbai` | Banking services |
-| 8 | BI | Platform | `platform/bi.gbai` | Dashboards, role separation |
-| 9 | Bling | Integration | `integration/bling.gbai` | Bling ERP integration |
-| 10 | Broadcast | Communications | `communications/broadcast.gbai` | Mass messaging |
-| 11 | Crawler | Search | `search/crawler.gbai` | Web indexing |
-| 12 | CRM | Sales | `sales/crm.gbai` | Customer management |
-| 13 | Attendance CRM | Sales | `sales/attendance-crm.gbai` | Event attendance tracking |
-| 14 | Marketing | Sales | `sales/marketing.gbai` | Campaign tools |
-| 15 | Education | Education | `edu/edu.gbai` | Course management |
-| 16 | ERP | Operations | `operations/erp.gbai` | Process automation |
-| 17 | HIPAA Medical | Compliance | `compliance/hipaa-medical.gbai` | HIPAA, HITECH |
-| 18 | Privacy | Compliance | `compliance/privacy.gbai` | LGPD, GDPR, CCPA |
-| 19 | Law | Legal | `legal/law.gbai` | Document templates |
-| 20 | LLM Server | AI | `ai/llm-server.gbai` | Model hosting |
-| 21 | LLM Tools | AI | `ai/llm-tools.gbai` | TOOL-based LLM examples |
-| 22 | Store | E-commerce | `ecommerce/store.gbai` | Product catalog |
-| 23 | Talk to Data | Platform | `platform/talk-to-data.gbai` | Natural language SQL |
-| 24 | WhatsApp | Communications | `communications/whatsapp.gbai` | WhatsApp Business |
+| 3 | AI Search | Core | `core/ai-search.gbai` | QR codes, document search |
+| 4 | Analytics Dashboard | Core | `core/analytics-dashboard.gbai` | Metrics, Reports |
+| 5 | Analytics | Core | `core/analytics.gbai` | Metrics, Reports |
+| 6 | API Client | Core | `core/api-client.gbai` | Generic API client |
+| 7 | Backup | Core | `core/backup.gbai` | Server backup scripts |
+| 8 | BI | Core | `core/bi.gbai` | Dashboards, role separation |
+| 9 | Bling | Core | `core/bling.gbai` | Bling ERP integration |
+| 10 | Crawler | Core | `core/crawler.gbai` | Web indexing |
+| 11 | Public APIs | Core | `core/public-apis.gbai` | Public API examples |
+| 12 | Store Server | Core | `core/store-server.gbai` | Store management |
+| 13 | Talk to Data | Core | `core/talk-to-data.gbai` | Natural language SQL |
+| 14 | VectorDB Stats | Core | `core/vectordb-statistics.gbai` | VectorDB monitoring |
+| 15 | Content Moderation | AI | `ai/content-moderation.gbai` | Moderation workflows |
+| 16 | Customer Support | AI | `ai/customer-support-workflow.gbai` | Support multiagent |
+| 17 | LLM Server | AI | `ai/llm-server.gbai` | Model hosting |
+| 18 | LLM Tools | AI | `ai/llm-tools.gbai` | TOOL-based LLM examples |
+| 19 | Marketing Campaign | AI | `ai/marketing-campaign.gbai` | Campaign multiagent |
+| 20 | Order Processing | AI | `ai/order-processing.gbai` | Order workflows |
+| 21 | Announcements | Communications | `communications/announcements.gbai` | Company news, multiple KB |
+| 22 | Broadcast | Communications | `communications/broadcast.gbai` | Mass messaging |
+| 23 | Quick Broadcast | Communications | `communications/quick-broadcast.gbai` | Simple messaging |
+| 24 | Office | Communications | `communications/office.gbai` | Office automation |
+| 25 | Reminder | Communications | `communications/reminder.gbai` | Scheduled alerts |
+| 26 | WhatsApp | Communications | `communications/whatsapp.gbai` | WhatsApp Business |
+| 27 | Education | HR | `hr/edu.gbai` | Course management |
+| 28 | Employee Engage | HR | `hr/employee-engage.gbai` | Engagement surveys |
+| 29 | Employees | HR | `hr/employees.gbai` | Employee management |
+| 30 | Team Feedback | HR | `hr/team-feedback.gbai` | Feedback collection |
+| 31 | HIPAA Medical | Legal | `legal/hipaa-medical.gbai` | HIPAA, HITECH |
+| 32 | Law | Legal | `legal/law.gbai` | Document templates |
+| 33 | Privacy | Legal | `legal/privacy.gbai` | LGPD, GDPR, CCPA |
+| 34 | Bank | Operations | `operations/bank.gbai` | Banking services |
+| 35 | ERP | Operations | `operations/erp.gbai` | Process automation |
+| 36 | Helpdesk | Operations | `operations/helpdesk.gbai` | IT helpdesk ticketing |
+| 37 | Attendance CRM | Sales | `sales/attendance-crm.gbai` | Event attendance tracking |
+| 38 | Attendance | Sales | `sales/attendance.gbai` | Simple attendance |
+| 39 | Campaign Manager | Sales | `sales/campaign-manager.gbai` | Campaign tools |
+| 40 | Contacts | Sales | `sales/contacts.gbai` | Contact management |
+| 41 | CRM | Sales | `sales/crm.gbai` | Customer management |
+| 42 | Marketing | Sales | `sales/marketing.gbai` | Marketing automation |
+| 43 | Sales Deals | Sales | `sales/sales-deals.gbai` | Deals CRM |
+| 44 | Sales Pipeline | Sales | `sales/sales-pipeline.gbai` | Sales workflow |
+| 45 | Store | Sales | `sales/store.gbai` | Product catalog |
 
 ---
 
 ## Categories
 
-### `/sales`
-Customer relationship and marketing templates.
-
-| Template | Description | Features |
-|----------|-------------|----------|
-| `crm.gbai` | Full CRM system | Leads, Contacts, Accounts, Opportunities |
-| `marketing.gbai` | Marketing automation | Campaigns, Lead capture, Email sequences |
-| `attendance-crm.gbai` | Event attendance | Check-ins, Tracking |
-| `sales-pipeline.gbai` | Sales workflow | Pipeline management |
-
-### `/compliance`
-Privacy and regulatory compliance templates.
-
-| Template | Description | Regulations |
-|----------|-------------|-------------|
-| `privacy.gbai` | Data subject rights portal | LGPD, GDPR, CCPA |
-| `hipaa-medical.gbai` | Healthcare privacy management | HIPAA, HITECH |
-
-### `/platform`
-Platform administration and analytics templates.
-
-| Template | Description | Features |
-|----------|-------------|----------|
-| `analytics-dashboard.gbai` | Platform analytics bot | Metrics, Reports, AI insights |
-| `bi.gbai` | Business intelligence | Dashboards, role separation |
-| `backup.gbai` | Backup automation | Server backup scripts |
-| `talk-to-data.gbai` | Data queries | Natural language SQL |
-| `store-server.gbai` | Store management | Server-side store logic |
-
-### `/finance`
-Financial services templates.
-
-| Template | Description | Features |
-|----------|-------------|----------|
-| `bank.gbai` | Banking services | Account management |
-
-### `/integration`
-External API and service integrations.
-
-| Template | Description | APIs |
-|----------|-------------|------|
-| `bling.gbai` | Bling ERP | Brazilian ERP integration |
-| `api-client.gbai` | Generic API client | REST integration |
-| `public-apis.gbai` | Public API examples | Weather, News, etc. |
-
-### `/productivity`
-Office and personal productivity templates.
-
-| Template | Description | Features |
-|----------|-------------|----------|
-| `office.gbai` | Office automation | Document management, Scheduling |
-| `reminder.gbai` | Reminder system | Scheduled alerts, Follow-ups |
-| `broadcast.gbai` | Message broadcasting | Notifications |
-| `broadcast-v2.gbai` | Broadcast tools (v2) | Alternative implementation |
-
-### `/hr`
-Human resources templates.
-
-| Template | Description | Features |
-|----------|-------------|----------|
-| `employees.gbai` | Employee management | Directory, Onboarding |
-| `employee-engage.gbai` | Engagement surveys | Feedback collection |
-
-### `/it`
-IT service management templates.
-
-| Template | Description | Features |
-|----------|-------------|----------|
-| `helpdesk.gbai` | IT helpdesk ticketing | Tickets, Knowledge base |
-
-### `/ai`
-Artificial Intelligence and LLM server templates.
-
-| Template | Description | Features |
-|----------|-------------|----------|
-| `llm-server.gbai` | Model hosting | Server management |
-| `llm-tools.gbai` | LLM tools | Function calling examples |
-
-### `/search`
-AI-powered search and crawling templates.
-
-| Template | Description | Features |
-|----------|-------------|----------|
-| `ai-search.gbai` | Document search | RAG, Semantic search |
-| `crawler.gbai` | Web crawler | Indexing, Scraping |
-
 ### `/core`
-Base templates and references.
+Platform administration, integrations, and core references.
 
 | Template | Description |
 |----------|-------------|
 | `default.gbai` | Starter template |
 | `template.gbai` | Reference for new templates |
+| `ai-search.gbai` | Document search (RAG, Semantic) |
+| `analytics-dashboard.gbai` | Platform analytics bot |
+| `analytics.gbai` | Platform analytics |
+| `api-client.gbai` | Generic API client |
+| `backup.gbai` | Server backup scripts |
+| `bi.gbai` | Business intelligence |
+| `bling.gbai` | Bling ERP integration |
+| `crawler.gbai` | Web crawler (Indexing, Scraping) |
+| `public-apis.gbai` | Public API examples |
+| `store-server.gbai` | Store server logic |
+| `talk-to-data.gbai` | Data queries (Natural language SQL) |
+| `vectordb-statistics.gbai` | VectorDB metrics |
+
+### `/ai`
+Artificial Intelligence, multiagent workflows, and LLM servers.
+
+| Template | Description |
+|----------|-------------|
+| `llm-server.gbai` | Model hosting |
+| `llm-tools.gbai` | LLM tools / Function calling examples |
+| `content-moderation.gbai` | Multiagent content moderation |
+| `customer-support-workflow.gbai` | Support workflow automation |
+| `marketing-campaign.gbai` | Automated marketing campaigns |
+| `order-processing.gbai` | Order processing workflow |
+
+### `/communications`
+Messaging, productivity, and office automation tools.
+
+| Template | Description |
+|----------|-------------|
+| `whatsapp.gbai` | WhatsApp Business |
+| `announcements.gbai` | Company announcements |
+| `broadcast.gbai` | Message broadcasting |
+| `quick-broadcast.gbai` | Simple broadcasting alternative |
+| `office.gbai` | Office automation |
+| `reminder.gbai` | Reminder system |
+
+### `/hr`
+Human resources, team feedback, and education.
+
+| Template | Description |
+|----------|-------------|
+| `employees.gbai` | Employee management |
+| `employee-engage.gbai` | Engagement surveys |
+| `team-feedback.gbai` | Team feedback collection |
+| `edu.gbai` | Education and training management |
+
+### `/legal`
+Privacy, legal processing, and regulatory compliance.
+
+| Template | Description |
+|----------|-------------|
+| `law.gbai` | Legal document processing |
+| `privacy.gbai` | Data subject rights portal (LGPD, GDPR) |
+| `hipaa-medical.gbai` | Healthcare privacy management |
+
+### `/operations`
+Operations, IT service management, and finance.
+
+| Template | Description |
+|----------|-------------|
+| `erp.gbai` | ERP integration |
+| `bank.gbai` | Banking and financial services |
+| `helpdesk.gbai` | IT helpdesk ticketing |
+
+### `/sales`
+Customer relationship, marketing, and e-commerce templates.
+
+| Template | Description |
+|----------|-------------|
+| `crm.gbai` | Full CRM system |
+| `sales-deals.gbai` | Deals-focused CRM |
+| `marketing.gbai` | Marketing automation |
+| `campaign-manager.gbai` | Campaign manager tools |
+| `attendance-crm.gbai` | Event attendance tracking |
+| `attendance.gbai` | Simple attendance |
+| `sales-pipeline.gbai` | Sales workflow |
+| `contacts.gbai` | Contact management |
+| `store.gbai` | E-commerce product catalog |
 
 ---
 
@@ -234,18 +248,6 @@ cp -r templates/sales/crm.gbai /path/to/your/bot/packages/
 5. Create dialog scripts in the `.gbdialog` folder
 6. Use **ON** triggers instead of polling loops
 7. Add `PARAM` and `DESCRIPTION` to make scripts LLM-invokable
-8. Add documentation in `README.md`
-
----
-
-## License
-
-All templates are licensed under AGPL-3.0 as part of General Bots.
-
----
-
-**Pragmatismo** - General Bots Open Source Platform
-nvokable
 8. Add documentation in `README.md`
 
 ---
