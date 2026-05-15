@@ -377,13 +377,14 @@ async fn handle_ws(
                         // Inject KB and website context via Qdrant search
                         let user_query = user_text.clone();
                         let mut messages_val = serde_json::Value::Array(messages.clone());
-                        crate::core::bot::kb_context::inject_kb_context(
-                            &state.conn,
-                            session_id,
-                            &user_query,
-                            &mut messages_val,
-                            4000, // max context tokens
-                        ).await;
+    crate::core::bot::kb_context::inject_kb_context(
+        &state.conn,
+        session_id,
+        bot_uuid,
+        &user_query,
+        &mut messages_val,
+        4000,
+    ).await;
                         if let Some(arr) = messages_val.as_array() {
                             messages = arr.clone();
                         }

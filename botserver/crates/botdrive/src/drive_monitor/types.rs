@@ -6,6 +6,10 @@ use botcore::kb::KnowledgeBaseManager;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
+#[cfg(any(feature = "research", feature = "llm"))]
+use std::collections::HashSet;
+#[cfg(any(feature = "research", feature = "llm"))]
+use tokio::sync::RwLock as TokioRwLock;
 
 pub fn normalize_etag(etag: &str) -> String {
     etag.trim_matches('"').to_string()
@@ -93,12 +97,19 @@ impl DriveMonitor {
             log::trace!("{} unchanged, skipping upsert", full_key);
         }
 
-        if needs_reindex && file_type == "kb" {
-            #[cfg(any(feature = "research", feature = "llm"))]
-            {
-                self.index_kb_file(bot_name, &full_key, &obj.key).await;
+            if needs_reindex && file_type == "kb" {
+                #[cfg(any(feature = "research", feature = "llm"))]
+                {
+                    if let Some(parsed) = parse_kb_path(&obj.key) {
+                        let folder_key = format!("kb_{}", parsed.kb_name);
+                        let already_indexed = self.kb_indexed_folders.read().await.contains(&folder_key);
+                        if !already_indexed {
+                            self.pending_kb_index.write().await.insert(folder_key);
+                        }
+                    }
+                    self.index_kb_file(bot_name, &full_key, &obj.key).await;
+                }
             }
-        }
 
         if file_type == "config" && needs_reindex {
             self.sync_bot_config(bot_name, &obj.key).await;
@@ -191,14 +202,17 @@ impl DriveMonitor {
 
         log::info!("Indexing KB file {}/{} -> temp {}", bot_name, parsed.kb_name, temp_path.display());
 
-        match self.kb_manager.index_single_file_with_id(
-            self.bot_id,
-            bot_name,
-            &parsed.kb_name,
-            &temp_path,
-            Some(full_key),
-        ).await {
-            Ok(result) => {
+        let index_result =
+            tokio::time::timeout(std::time::Duration::from_secs(120), self.kb_manager.index_single_file_with_id(
+                self.bot_id,
+                bot_name,
+                &parsed.kb_name,
+                &temp_path,
+                Some(full_key),
+            )).await;
+
+        match index_result {
+            Ok(Ok(result)) => {
                 log::info!(
                     "Indexed {} chunks from {} into collection {}",
                     result.chunks_indexed,
@@ -208,8 +222,12 @@ impl DriveMonitor {
                 let _ = self.file_repo.mark_indexed(self.bot_id, full_key);
                 self.upsert_kb_collection(bot_name, &parsed.kb_name, &result.collection_name, result.documents_processed);
             }
-            Err(e) => {
+            Ok(Err(e)) => {
                 log::error!("KB indexing failed for {}: {}", full_key, e);
+                let _ = self.file_repo.mark_failed(self.bot_id, full_key);
+            }
+            Err(_) => {
+                log::error!("KB indexing timed out after 120s for {}", full_key);
                 let _ = self.file_repo.mark_failed(self.bot_id, full_key);
             }
         }
@@ -381,12 +399,12 @@ impl DriveMonitor {
             let folder_path = format!("{}.gbai/{}.gbkb/{}", bot_name, bot_name, kb_name);
             diesel::sql_query(
                 "INSERT INTO kb_collections (id, bot_id, name, folder_path, qdrant_collection, document_count)
-                 VALUES ($1, $2, $3, $4, $5, $6)
-                 ON CONFLICT (bot_id, name) DO UPDATE SET
-                 folder_path = EXCLUDED.folder_path,
-                 qdrant_collection = EXCLUDED.qdrant_collection,
-                 document_count = EXCLUDED.document_count,
-                 updated_at = NOW()"
+                VALUES ($1, $2, $3, $4, $5, $6)
+                ON CONFLICT (bot_id, name) DO UPDATE SET
+                folder_path = EXCLUDED.folder_path,
+                qdrant_collection = EXCLUDED.qdrant_collection,
+                document_count = EXCLUDED.document_count,
+                updated_at = NOW()"
             )
             .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
             .bind::<diesel::sql_types::Uuid, _>(self.bot_id)
@@ -400,6 +418,105 @@ impl DriveMonitor {
                 0
             });
         }
+    }
+
+    #[cfg(any(feature = "research", feature = "llm"))]
+    pub fn start_kb_processor(&self) {
+        let kb_manager = self.kb_manager.clone();
+        let bot_id = self.bot_id;
+        let bucket_name = self.bucket_name.clone();
+        let work_root = self.work_root.clone();
+        let pending_kb_index = self.pending_kb_index.clone();
+        let files_being_indexed = self.files_being_indexed.clone();
+        let kb_indexed_folders = self.kb_indexed_folders.clone();
+        let file_repo = self.file_repo.clone();
+        let is_processing = self.is_processing.clone();
+
+        tokio::spawn(async move {
+            let bot_name = bucket_name.strip_suffix(".gbai").unwrap_or(&bucket_name).to_string();
+
+            while is_processing.load(Ordering::SeqCst) {
+                let kb_key = {
+                    let pending = pending_kb_index.write().await;
+                    pending.iter().next().cloned()
+                };
+
+                let Some(kb_key) = kb_key else {
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                    continue;
+                };
+
+                let parts: Vec<&str> = kb_key.splitn(2, '_').collect();
+                if parts.len() < 2 {
+                    let mut pending = pending_kb_index.write().await;
+                    pending.remove(&kb_key);
+                    continue;
+                }
+
+                let kb_folder_name = parts[1];
+                let kb_folder_path =
+                    work_root.join(&bot_name).join(format!("{}.gbkb/", bot_name)).join(kb_folder_name);
+
+                {
+                    let indexing = files_being_indexed.read().await;
+                    if indexing.contains(&kb_key) {
+                        let mut pending = pending_kb_index.write().await;
+                        pending.remove(&kb_key);
+                        continue;
+                    }
+                }
+
+                {
+                    let mut indexing = files_being_indexed.write().await;
+                    indexing.insert(kb_key.clone());
+                }
+
+                log::trace!("Indexing KB: {} for bot: {}", kb_key, bot_name);
+
+                let result =
+                    tokio::time::timeout(std::time::Duration::from_secs(120), kb_manager.handle_gbkb_change(bot_id, &bot_name, kb_folder_path.as_path())).await;
+
+                {
+                    let mut indexing = files_being_indexed.write().await;
+                    indexing.remove(&kb_key);
+                }
+
+                {
+                    let mut pending = pending_kb_index.write().await;
+                    pending.remove(&kb_key);
+                }
+
+                match result {
+                    Ok(Ok(_)) => {
+                        log::info!("Successfully indexed KB: {}", kb_key);
+                        {
+                            let mut indexed = kb_indexed_folders.write().await;
+                            indexed.insert(kb_key.clone());
+                        }
+                        let pattern = format!("{}/", kb_folder_name);
+                        if let Err(e) = file_repo.mark_indexed_by_pattern(bot_id, &pattern) {
+                            log::warn!("Failed to mark files indexed for {}: {}", kb_key, e);
+                        }
+                    }
+                    Ok(Err(e)) => {
+                        log::warn!("Failed to index KB {}: {}", kb_key, e);
+                        let pattern = format!("{}/", kb_folder_name);
+                        if let Err(e) = file_repo.mark_failed_by_pattern(bot_id, &pattern) {
+                            log::warn!("Failed to mark files failed for {}: {}", kb_key, e);
+                        }
+                    }
+                    Err(_) => {
+                        log::error!("KB indexing timed out after 120s for {}", kb_key);
+                        let pattern = format!("{}/", kb_folder_name);
+                        if let Err(e) = file_repo.mark_failed_by_pattern(bot_id, &pattern) {
+                            log::warn!("Failed to mark files failed for {}: {}", kb_key, e);
+                        }
+                    }
+                }
+            }
+
+            log::trace!("KB processor stopping for bot {}", bot_name);
+        });
     }
 }
 
@@ -467,13 +584,13 @@ fn is_kb_extension(key: &str) -> bool {
     || lower.ends_with(".proto")
 }
 
-struct KbPathParts {
-    kb_name: String,
-    file_name: String,
-    relative_path: String,
+pub struct KbPathParts {
+    pub kb_name: String,
+    pub file_name: String,
+    pub relative_path: String,
 }
 
-fn parse_kb_path(s3_key: &str) -> Option<KbPathParts> {
+pub fn parse_kb_path(s3_key: &str) -> Option<KbPathParts> {
     let parts: Vec<&str> = s3_key.splitn(4, '/').collect();
     if parts.len() < 3 || !parts[0].ends_with(".gbkb") {
         return None;
@@ -500,7 +617,11 @@ pub struct DriveMonitor {
     pub scanning: Arc<AtomicBool>,
     pub consecutive_failures: Arc<AtomicU32>,
     #[cfg(any(feature = "research", feature = "llm"))]
-    pub files_being_indexed: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
+    pub files_being_indexed: Arc<TokioRwLock<HashSet<String>>>,
+    #[cfg(any(feature = "research", feature = "llm"))]
+    pub pending_kb_index: Arc<TokioRwLock<HashSet<String>>>,
+    #[cfg(any(feature = "research", feature = "llm"))]
+    pub kb_indexed_folders: Arc<TokioRwLock<HashSet<String>>>,
     #[cfg(not(any(feature = "research", feature = "llm")))]
     pub _pending_kb_index: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
     pub file_repo: Arc<DriveFileRepository>,
@@ -529,7 +650,11 @@ impl DriveMonitor {
             scanning: Arc::new(AtomicBool::new(false)),
             consecutive_failures: Arc::new(AtomicU32::new(0)),
             #[cfg(any(feature = "research", feature = "llm"))]
-            files_being_indexed: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
+            files_being_indexed: Arc::new(TokioRwLock::new(HashSet::new())),
+            #[cfg(any(feature = "research", feature = "llm"))]
+            pending_kb_index: Arc::new(TokioRwLock::new(HashSet::new())),
+            #[cfg(any(feature = "research", feature = "llm"))]
+            kb_indexed_folders: Arc::new(TokioRwLock::new(HashSet::new())),
             #[cfg(not(any(feature = "research", feature = "llm")))]
             _pending_kb_index: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
             file_repo,
