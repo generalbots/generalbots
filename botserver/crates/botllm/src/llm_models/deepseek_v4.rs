@@ -22,9 +22,9 @@ pub fn strip_think_tags(content: &str) -> String {
 }
 
 #[derive(Debug)]
-pub struct DeepseekR3Handler;
+pub struct DeepseekV4Handler;
 
-impl ModelHandler for DeepseekR3Handler {
+impl ModelHandler for DeepseekV4Handler {
     fn is_analysis_complete(&self, buffer: &str) -> bool {
         buffer.contains("</think>")
     }
@@ -71,5 +71,29 @@ impl ModelHandler for DeepseekR3Handler {
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {
         buffer.contains("<think>")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_strip_think_tags() {
+        assert_eq!(strip_think_tags("Hello <think>thinking...</think> World"), "Hello  World");
+        assert_eq!(strip_think_tags("<think>hmm</think>Ans"), "Ans");
+        assert_eq!(strip_think_tags("Start <think>thinking..."), "Start ");
+    }
+
+    #[test]
+    fn test_process_content_streaming() {
+        let handler = DeepseekV4Handler;
+        let mut state = String::new();
+        
+        assert_eq!(handler.process_content_streaming("He", &mut state), "He");
+        assert_eq!(handler.process_content_streaming("llo <th", &mut state), "llo <th");
+        
+        let mut state = String::new();
+        assert_eq!(handler.process_content_streaming("<think>thinking</think>Result", &mut state), "Result");
     }
 }

@@ -1,4 +1,4 @@
-pub mod deepseek_r3;
+pub mod deepseek_v4;
 pub mod gpt_oss_120b;
 pub mod gpt_oss_20b;
 pub mod minimax;
@@ -33,7 +33,7 @@ impl ModelHandler for PassthroughHandler {
 pub fn get_handler(model_path: &str) -> Box<dyn ModelHandler> {
     let path = model_path.to_lowercase();
     if path.contains("deepseek") {
-        Box::new(deepseek_r3::DeepseekR3Handler)
+        Box::new(deepseek_v4::DeepseekV4Handler)
     } else if path.contains("120b") {
         Box::new(gpt_oss_120b::GptOss120bHandler::new())
     } else if path.contains("20b") {
