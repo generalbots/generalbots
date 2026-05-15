@@ -523,12 +523,14 @@ TALK response
 
         {
             let mut cache = self.bots_cache.write().await;
-            cache.remove(&bot_id);
-        }
-
-        info!("Bot deleted: {}", bot_id);
-        Ok(())
+        cache.remove(&bot_id);
     }
+
+    info!("Bot deleted: {}", bot_id);
+    Ok(())
+    }
+}
+}
 }
    info!("Bot deleted: {}", bot_id);
         Ok(())

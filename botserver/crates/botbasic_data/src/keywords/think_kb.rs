@@ -145,8 +145,6 @@ struct ConsolidationRow {
     #[diesel(sql_type = diesel::sql_types::Text)]
     summary: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
-    source_ids: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
     created_at: String,
 }
 
@@ -159,22 +157,16 @@ fn get_accessible_kb_collections(
         return Ok(Vec::new());
     }
 
-    let placeholders: Vec<String> = accessible_ids.iter().enumerate().map(|(i, _)| format!("${}", i + 2)).collect();
-    let placeholder_str = placeholders.join(", ");
+    let id_str: String = accessible_ids.iter().map(|id| format!("'{}'", id)).collect::<Vec<_>>().join(",");
 
     let query_str = format!(
         "SELECT name, qdrant_collection, document_count FROM kb_collections WHERE bot_id = $1 AND id IN ({})",
-        placeholder_str
+        id_str
     );
 
-    let mut query = diesel::sql_query(&query_str)
-        .bind::<diesel::sql_types::Uuid, _>(bot_id);
-
-    for id in accessible_ids {
-        query = query.bind::<diesel::sql_types::Uuid, _>(*id);
-    }
-
-    query.load::<KbCollectionRow>(conn)
+    diesel::sql_query(&query_str)
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .load::<KbCollectionRow>(conn)
         .map_err(|e| format!("Failed to query KB collections: {e}"))
 }
 
