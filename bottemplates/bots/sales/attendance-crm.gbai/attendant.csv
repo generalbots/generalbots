@@ -1,6 +1,0 @@
-id,name,channel,preferences,department,aliases,phone,email,teams,google
-att-001,João Silva,all,sales,commercial,joao;js;silva,+5511999990001,joao.silva@company.com,joao.silva@company.onmicrosoft.com,joao.silva@company.com
-att-002,Maria Santos,whatsapp,support,customer-service,maria;ms,+5511999990002,maria.santos@company.com,maria.santos@company.onmicrosoft.com,maria.santos@gmail.com
-att-003,Pedro Costa,web,technical,engineering,pedro;pc;tech,+5511999990003,pedro.costa@company.com,pedro.costa@company.onmicrosoft.com,pedro.costa@company.com
-att-004,Ana Oliveira,all,collections,finance,ana;ao;cobranca,+5511999990004,ana.oliveira@company.com,ana.oliveira@company.onmicrosoft.com,ana.oliveira@company.com
-att-005,Carlos Souza,whatsapp,sales,commercial,carlos;cs,+5511999990005,carlos.souza@company.com,carlos.souza@company.onmicrosoft.com,carlos.souza@gmail.com

@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use botcore::shared::utils::DbPool;
+#[cfg(any(feature = "research", feature = "llm"))]
+use botcore::kb::{KnowledgeBaseManager, EmbeddingConfig, KbEmbeddingGenerator};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KbSearchResult {
@@ -55,8 +57,8 @@ pub fn get_active_kbs(db_pool: &DbPool, session_id: Uuid) -> Vec<SessionKbAssoci
 
     let query = diesel::sql_query(
         "SELECT kb_name, qdrant_collection, is_active
-         FROM session_kb_associations
-         WHERE session_id = $1 AND is_active = true",
+        FROM session_kb_associations
+        WHERE session_id = $1 AND is_active = true",
     )
     .bind::<diesel::sql_types::Uuid, _>(session_id);
 
@@ -97,8 +99,8 @@ pub fn get_active_websites(db_pool: &DbPool, session_id: Uuid) -> Vec<SessionWeb
 
     let query = diesel::sql_query(
         "SELECT website_url, collection_name, is_active
-         FROM session_website_associations
-         WHERE session_id = $1 AND is_active = true",
+        FROM session_website_associations
+        WHERE session_id = $1 AND is_active = true",
     )
     .bind::<diesel::sql_types::Uuid, _>(session_id);
 
@@ -128,6 +130,29 @@ fn get_vectordb_api_key() -> String {
         .unwrap_or_else(|_| std::env::var("VECTORDB_API_KEY").unwrap_or_default())
 }
 
+#[cfg(any(feature = "research", feature = "llm"))]
+async fn generate_query_embedding(query: &str, bot_id: Uuid, db_pool: &DbPool) -> Option<Vec<f32>> {
+    let config = EmbeddingConfig::from_bot_config(db_pool, &bot_id);
+
+    if config.embedding_url.is_empty() {
+        debug!("No embedding URL configured for bot {}, using Qdrant with hash fallback", bot_id);
+        return None;
+    }
+
+    let generator = KbEmbeddingGenerator::new(config);
+    match generator.generate_single_embedding(query).await {
+        Ok(embedding) => {
+            info!("Generated real embedding for query ({} dims)", embedding.vector.len());
+            Some(embedding.vector)
+        }
+        Err(e) => {
+            warn!("Failed to generate real embedding for query: {}, using hash fallback", e);
+            None
+        }
+    }
+}
+
+#[cfg(any(feature = "research", feature = "llm"))]
 fn generate_hash_embedding(text: &str, dimensions: usize) -> Vec<f32> {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -143,10 +168,13 @@ fn generate_hash_embedding(text: &str, dimensions: usize) -> Vec<f32> {
     embedding
 }
 
+#[cfg(any(feature = "research", feature = "llm"))]
 async fn search_qdrant(
     collection_name: &str,
     query: &str,
     limit: usize,
+    bot_id: Uuid,
+    db_pool: &DbPool,
 ) -> Result<Vec<KbSearchResult>> {
     let qdrant_url = get_vectordb_url();
     let api_key = get_vectordb_api_key();
@@ -157,7 +185,6 @@ async fn search_qdrant(
         .danger_accept_invalid_certs(true)
         .build()?;
 
-    // Try to get collection info to determine vector dimension
     let check_url = format!("{}/collections/{}", qdrant_url.trim_end_matches('/'), collection_name);
     let dim = {
         let resp = client.get(&check_url)
@@ -173,7 +200,15 @@ async fn search_qdrant(
     };
 
     let dimensions = dim.unwrap_or(384);
-    let vector = generate_hash_embedding(query, dimensions);
+
+    let vector = match generate_query_embedding(query, bot_id, db_pool).await {
+        Some(v) if v.len() == dimensions => v,
+        Some(v) => {
+            warn!("Embedding dims {} != collection dims {}, using hash fallback", v.len(), dimensions);
+            generate_hash_embedding(query, dimensions)
+        }
+        _ => generate_hash_embedding(query, dimensions),
+    };
 
     let mut request = client
         .post(&search_url)
@@ -252,6 +287,17 @@ async fn search_qdrant(
     Ok(search_results)
 }
 
+#[cfg(not(any(feature = "research", feature = "llm")))]
+async fn search_qdrant(
+    _collection_name: &str,
+    _query: &str,
+    _limit: usize,
+    _bot_id: Uuid,
+    _db_pool: &DbPool,
+) -> Result<Vec<KbSearchResult>> {
+    Ok(Vec::new())
+}
+
 fn build_context_string(kb_contexts: &[KbContext]) -> String {
     if kb_contexts.is_empty() {
         return String::new();
@@ -302,12 +348,10 @@ fn truncate_text(text: &str, max_tokens: usize) -> String {
     result
 }
 
-/// Inject KB and website context into messages array for LLM
-/// Searches active KBs and websites associated with the session,
-/// then injects the results as a system message.
 pub async fn inject_kb_context(
     db_pool: &DbPool,
     session_id: Uuid,
+    bot_id: Uuid,
     user_query: &str,
     messages: &mut serde_json::Value,
     max_context_tokens: usize,
@@ -330,7 +374,7 @@ pub async fn inject_kb_context(
     let mut all_contexts = Vec::new();
 
     for kb in &active_kbs {
-        match search_qdrant(&kb.qdrant_collection, user_query, 10).await {
+        match search_qdrant(&kb.qdrant_collection, user_query, 10, bot_id, db_pool).await {
             Ok(results) if !results.is_empty() => {
                 let total_tokens: usize = results.iter().map(|r| estimate_tokens(&r.content)).sum();
                 info!("Found {} results from KB '{}' ({} tokens)", results.len(), kb.kb_name, total_tokens);
@@ -346,7 +390,7 @@ pub async fn inject_kb_context(
     }
 
     for website in &active_websites {
-        match search_qdrant(&website.collection_name, user_query, 10).await {
+        match search_qdrant(&website.collection_name, user_query, 10, bot_id, db_pool).await {
             Ok(results) if !results.is_empty() => {
                 let total_tokens: usize = results.iter().map(|r| estimate_tokens(&r.content)).sum();
                 info!("Found {} results from website '{}' ({} tokens)", results.len(), website.website_url, total_tokens);

@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+use walkdir::WalkDir;
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -526,6 +527,10 @@ TALK response
         }
 
         info!("Bot deleted: {}", bot_id);
+        Ok(())
+    }
+}
+   info!("Bot deleted: {}", bot_id);
         Ok(())
     }
 }
