@@ -1,4 +1,4 @@
-use super::deepseek_r3::strip_think_tags;
+use super::deepseek_v4::strip_think_tags;
 use super::ModelHandler;
 use regex::Regex;
 use std::sync::LazyLock;
