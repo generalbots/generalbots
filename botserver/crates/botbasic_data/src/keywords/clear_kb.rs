@@ -92,6 +92,19 @@ pub fn register_clear_kb_keyword(
         }
     })
     .expect("valid CLEAR KB (all) syntax registration");
+
+    let state_fn = state_for_all;
+    let user_fn = session_clone;
+    engine.register_fn("CLEAR_KB", move || {
+        info!("CLEAR_KB function called - Session: {}", user_fn.id);
+        let session_id = user_fn.id;
+        let conn = state_fn.db_pool().clone();
+        if let Ok(result) = std::thread::spawn(move || clear_all_kbs(conn, session_id)).join() {
+            if let Ok(_) = result {
+                info!("CLEAR_KB completed for session {}", session_id);
+            }
+        }
+    });
 }
 
 fn clear_specific_kb(

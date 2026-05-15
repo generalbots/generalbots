@@ -270,7 +270,7 @@ botbasic_compiler = { path = "crates/botbasic_compiler" }
 botapi = { path = "crates/botapi" }
 botmeet = { path = "crates/botmeet" }
 botsettings = { path = "crates/botsettings" }
-botdrive = { path = "crates/botdrive" }
+botdrive = { path = "crates/botdrive", features = ["llm", "vectordb", "drive"] }
 
 # === EXTRACTED CRATES (optional - enabled by feature flags) ===
 botbilling = { workspace = true, optional = true }

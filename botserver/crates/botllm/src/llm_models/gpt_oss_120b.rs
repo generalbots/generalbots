@@ -27,41 +27,39 @@ fn strip_think_tags(content: &str) -> String {
     let mut result = String::new();
     let mut in_thinking = false;
     let mut thinking_content = String::new();
+    let chars: Vec<char> = content.chars().collect();
     let mut pos = 0;
 
-    while pos < content.len() {
-        let remaining = &content[pos..];
+    while pos < chars.len() {
         if !in_thinking {
-            if remaining.starts_with("<thinking>") {
+            if pos + 10 <= chars.len() && chars[pos..pos+10].iter().collect::<String>() == "<thinking>" {
+                in_thinking = true;
+                thinking_content.clear();
+                pos += 10;
+                continue;
+            } else if pos + 9 <= chars.len() && chars[pos..pos+9].iter().collect::<String>() == "**start**" {
                 in_thinking = true;
                 thinking_content.clear();
                 pos += 9;
                 continue;
-            } else if remaining.starts_with("**start**") {
-                in_thinking = true;
-                thinking_content.clear();
-                pos += 8;
-                continue;
             }
         } else {
-            if remaining.starts_with("</thinking>") {
+            if pos + 12 <= chars.len() && chars[pos..pos+12].iter().collect::<String>() == "</thinking>" {
                 in_thinking = false;
-                pos += 11;
+                pos += 12;
                 continue;
-            } else if remaining.starts_with("**end**") {
+            } else if pos + 7 <= chars.len() && chars[pos..pos+7].iter().collect::<String>() == "**end**" {
                 in_thinking = false;
-                pos += 6;
+                pos += 7;
                 continue;
             } else {
-                thinking_content.push(content.chars().nth(pos).unwrap());
+                thinking_content.push(chars[pos]);
                 pos += 1;
                 continue;
             }
         }
 
-        if !in_thinking {
-            result.push(content.chars().nth(pos).unwrap());
-        }
+        result.push(chars[pos]);
         pos += 1;
     }
 

@@ -30,6 +30,7 @@ pub struct CreateRunResponse {
     pub run_id: Uuid,
     pub state: String,
     pub use_case: String,
+    pub system_prompt: String,
     pub error: Option<String>,
 }
 
@@ -81,7 +82,6 @@ pub struct CancelRunRequest {
 
 struct VibeApiInner {
     state: Arc<dyn VibeState>,
-    #[allow(dead_code)]
     prompt_manager: Arc<VibePromptManager>,
     tool_executor: Arc<VibeToolExecutor>,
     telemetry: Arc<VibeTelemetry>,
@@ -129,6 +129,7 @@ pub fn router(
         .route("/api/vibe/metrics", axum::routing::get(get_global_metrics))
         .route("/api/vibe/metrics/{run_id}", axum::routing::get(get_run_metrics))
         .route("/api/vibe/events/{run_id}", axum::routing::get(get_run_events))
+        .route("/api/vibe/run/{run_id}/execute", axum::routing::post(execute_run))
         .layer(axum::Extension(api))
 }
 
@@ -157,6 +158,13 @@ async fn create_run(
     let state_str = run.state.to_string();
     let uc_str = run.use_case.to_string();
 
+    let ctx = api.inner.prompt_manager.build_context(
+        run.use_case,
+        &run.intent,
+        &[],
+    );
+    let system_prompt = ctx.system_prompt.clone();
+
     api.inner.telemetry.record_run_start(&run).await;
 
     {
@@ -173,6 +181,7 @@ async fn create_run(
         run_id,
         state: state_str,
         use_case: uc_str,
+        system_prompt,
         error: None,
     })
 }
@@ -348,6 +357,58 @@ async fn get_run_events(
 ) -> impl IntoResponse {
     let events = api.inner.telemetry.get_events_for_run(run_id, 100).await;
     Json(events)
+}
+
+
+async fn execute_run(
+    Extension(api): Extension<Arc<VibeApi>>,
+    Path(run_id): Path<Uuid>,
+) -> impl IntoResponse {
+    let runs = api.inner.runs.read().await;
+    let run = runs.get(&run_id);
+    
+    if run.is_none() {
+        return Json(ActionResponse {
+            success: false,
+            message: None,
+            error: Some("Run not found".to_string()),
+        });
+    }
+    
+    let run = run.unwrap();
+    let state_clone = api.inner.state.clone();
+    
+    // Execute pending tool calls
+    for tool_call in &run.tool_calls.clone() {
+        if !tool_call.approved && tool_call.requires_approval {
+            return Json(ActionResponse {
+                success: false,
+                message: Some("Approval required".to_string()),
+                error: None,
+            });
+        }
+        
+        let result = api.inner.tool_executor.execute(
+            &mut tool_call.clone(),
+            run.use_case,
+            state_clone.as_ref(),
+        ).await;
+        
+        match result {
+            Ok(_) => info!("Tool executed successfully"),
+            Err(e) => return Json(ActionResponse {
+                success: false,
+                message: None,
+                error: Some(format!("Execution error: {}", e)),
+            }),
+        }
+    }
+    
+    Json(ActionResponse {
+        success: true,
+        message: Some("Run executed".to_string()),
+        error: None,
+    })
 }
 
 fn parse_use_case(s: &str) -> Option<VibeUseCase> {

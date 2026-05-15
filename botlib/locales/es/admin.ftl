@@ -363,3 +363,313 @@ admin-billing-payment-methods = Métodos de Pago
 admin-billing-upgrade = Mejorar Plan
 admin-billing-downgrade = Reducir Plan
 admin-billing-cancel = Cancelar Suscripción
+
+# -----------------------------------------------------------------------------
+# Gestión de Bots (continuación - Detalles)
+# -----------------------------------------------------------------------------
+admin-bot-details = Detalles del Bot
+admin-bot-name = Nombre del Bot
+admin-bot-description = Descripción
+admin-bot-avatar = Avatar del Bot
+admin-bot-language = Idioma
+admin-bot-timezone = Zona Horaria
+admin-bot-greeting = Mensaje de Saludo
+admin-bot-fallback = Mensaje de Respaldo
+admin-bot-channels = Canales
+admin-bot-channel-web = Chat Web
+admin-bot-channel-whatsapp = WhatsApp
+admin-bot-channel-telegram = Telegram
+admin-bot-channel-slack = Slack
+admin-bot-channel-teams = Microsoft Teams
+admin-bot-channel-email = Correo Electrónico
+admin-bot-model = Modelo de IA
+admin-bot-temperature = Temperatura
+admin-bot-max-tokens = Máx Tokens
+admin-bot-system-prompt = Prompt del Sistema
+
+# -----------------------------------------------------------------------------
+# Gestión de Inquilinos (continuación - Detalles)
+# -----------------------------------------------------------------------------
+admin-tenants-title = Gestión de Inquilinos
+admin-tenants-list = Lista de Inquilinos
+admin-tenants-add = Agregar Inquilino
+admin-tenants-edit = Editar Inquilino
+admin-tenants-delete = Eliminar Inquilino
+admin-tenants-search = Buscar inquilinos...
+admin-tenants-total = Total de Inquilinos
+admin-tenants-active = Inquilinos Activos
+admin-tenants-suspended = Inquilinos Suspendidos
+admin-tenants-trial = Inquilinos de Prueba
+admin-tenants-no-tenants = No se encontraron inquilinos
+admin-tenants-confirm-delete = ¿Estás seguro de que deseas eliminar este inquilino?
+admin-tenants-deleted = Inquilino eliminado exitosamente
+admin-tenants-saved = Inquilino guardado exitosamente
+
+# Detalles del Inquilino
+admin-tenant-details = Detalles del Inquilino
+admin-tenant-name = Nombre del Inquilino
+admin-tenant-domain = Dominio
+admin-tenant-plan = Plan
+admin-tenant-plan-free = Gratuito
+admin-tenant-plan-starter = Inicial
+admin-tenant-plan-professional = Profesional
+admin-tenant-plan-enterprise = Empresarial
+admin-tenant-users = Usuarios
+admin-tenant-bots = Bots
+admin-tenant-storage = Almacenamiento Usado
+admin-tenant-api-calls = Llamadas API
+admin-tenant-limits = Límites de Uso
+admin-tenant-billing = Información de Facturación
+
+# -----------------------------------------------------------------------------
+# Configuración del Sistema (continuación)
+# -----------------------------------------------------------------------------
+admin-settings-title = Configuración del Sistema
+admin-settings-general = Configuración General
+admin-settings-security = Configuración de Seguridad
+admin-settings-email = Configuración de Correo
+admin-settings-storage = Configuración de Almacenamiento
+admin-settings-integrations = Integraciones
+admin-settings-api = Configuración de API
+admin-settings-appearance = Apariencia
+admin-settings-localization = Localización
+admin-settings-notifications = Notificaciones
+admin-settings-backup = Respaldo y Restauración
+admin-settings-maintenance = Modo Mantenimiento
+admin-settings-saved = Configuración guardada exitosamente
+admin-settings-reset = Restablecer a Predeterminados
+admin-settings-confirm-reset = ¿Estás seguro de que deseas restablecer toda la configuración a los valores predeterminados?
+
+# Configuración General
+admin-settings-site-name = Nombre del Sitio
+admin-settings-site-url = URL del Sitio
+admin-settings-admin-email = Correo del Administrador
+admin-settings-support-email = Correo de Soporte
+admin-settings-default-language = Idioma Predeterminado
+admin-settings-default-timezone = Zona Horaria Predeterminada
+admin-settings-date-format = Formato de Fecha
+admin-settings-time-format = Formato de Hora
+admin-settings-currency = Moneda
+
+# Configuración de Correo
+admin-settings-smtp-host = Servidor SMTP
+admin-settings-smtp-port = Puerto SMTP
+admin-settings-smtp-user = Usuario SMTP
+admin-settings-smtp-password = Contraseña SMTP
+admin-settings-smtp-encryption = Encriptación
+admin-settings-smtp-from-name = Nombre de Remitente
+admin-settings-smtp-from-email = Correo de Remitente
+admin-settings-smtp-test = Enviar Correo de Prueba
+admin-settings-smtp-test-success = Correo de prueba enviado exitosamente
+admin-settings-smtp-test-failed = Error al enviar correo de prueba
+
+# Configuración de Almacenamiento
+admin-settings-storage-provider = Proveedor de Almacenamiento
+admin-settings-storage-local = Almacenamiento Local
+admin-settings-storage-s3 = Amazon S3
+admin-settings-storage-minio = MinIO
+admin-settings-storage-gcs = Google Cloud Storage
+admin-settings-storage-azure = Azure Blob Storage
+admin-settings-storage-bucket = Nombre del Bucket
+admin-settings-storage-region = Región
+admin-settings-storage-access-key = Clave de Acceso
+admin-settings-storage-secret-key = Clave Secreta
+admin-settings-storage-endpoint = URL del Endpoint
+
+# -----------------------------------------------------------------------------
+# Registros del Sistema
+# -----------------------------------------------------------------------------
+admin-logs-title = Registros del Sistema
+admin-logs-search = Buscar registros...
+admin-logs-filter-level = Filtrar por Nivel
+admin-logs-filter-source = Filtrar por Fuente
+admin-logs-filter-date = Filtrar por Fecha
+admin-logs-level-all = Todos los Niveles
+admin-logs-level-debug = Depuración
+admin-logs-level-info = Información
+admin-logs-level-warning = Advertencia
+admin-logs-level-error = Error
+admin-logs-level-critical = Crítico
+admin-logs-export = Exportar Registros
+admin-logs-clear = Limpiar Registros
+admin-logs-confirm-clear = ¿Estás seguro de que deseas limpiar todos los registros?
+admin-logs-cleared = Registros limpiados exitosamente
+admin-logs-no-logs = No se encontraron registros
+admin-logs-refresh = Actualizar
+admin-logs-auto-refresh = Auto Actualizar
+admin-logs-timestamp = Marca de Tiempo
+admin-logs-level = Nivel
+admin-logs-source = Fuente
+admin-logs-message = Mensaje
+admin-logs-details = Detalles
+
+# -----------------------------------------------------------------------------
+# Analíticas
+# -----------------------------------------------------------------------------
+admin-analytics-title = Analíticas
+admin-analytics-overview = Resumen
+admin-analytics-users = Analíticas de Usuarios
+admin-analytics-bots = Analíticas de Bots
+admin-analytics-conversations = Analíticas de Conversaciones
+admin-analytics-performance = Rendimiento
+admin-analytics-period = Período de Tiempo
+admin-analytics-period-today = Hoy
+admin-analytics-period-week = Esta Semana
+admin-analytics-period-month = Este Mes
+admin-analytics-period-quarter = Este Trimestre
+admin-analytics-period-year = Este Año
+admin-analytics-period-custom = Rango Personalizado
+admin-analytics-export = Exportar Reporte
+admin-analytics-total-users = Total de Usuarios
+admin-analytics-new-users = Nuevos Usuarios
+admin-analytics-active-users = Usuarios Activos
+admin-analytics-total-bots = Total de Bots
+admin-analytics-active-bots = Bots Activos
+admin-analytics-total-conversations = Total de Conversaciones
+admin-analytics-avg-response-time = Tiempo Promedio de Respuesta
+admin-analytics-satisfaction-rate = Tasa de Satisfacción
+admin-analytics-resolution-rate = Tasa de Resolución
+
+# -----------------------------------------------------------------------------
+# Seguridad
+# -----------------------------------------------------------------------------
+admin-security-title = Seguridad
+admin-security-overview = Resumen de Seguridad
+admin-security-audit-log = Registro de Auditoría
+admin-security-login-attempts = Intentos de Inicio de Sesión
+admin-security-blocked-ips = IPs Bloqueadas
+admin-security-api-keys = Claves API
+admin-security-webhooks = Webhooks
+admin-security-cors = Configuración CORS
+admin-security-rate-limiting = Limitación de Tasa
+admin-security-encryption = Encriptación
+admin-security-2fa = Autenticación de Dos Factores
+admin-security-sso = Inicio de Sesión Único
+admin-security-password-policy = Política de Contraseñas
+
+# Claves API
+admin-api-keys-title = Claves API
+admin-api-keys-add = Crear Clave API
+admin-api-keys-name = Nombre de la Clave
+admin-api-keys-key = Clave API
+admin-api-keys-secret = Clave Secreta
+admin-api-keys-created = Creada
+admin-api-keys-last-used = Última Vez Usada
+admin-api-keys-expires = Expira
+admin-api-keys-never = Nunca
+admin-api-keys-revoke = Revocar
+admin-api-keys-confirm-revoke = ¿Estás seguro de que deseas revocar esta clave API?
+admin-api-keys-revoked = Clave API revocada exitosamente
+admin-api-keys-created-success = Clave API creada exitosamente
+admin-api-keys-copy = Copiar al Portapapeles
+admin-api-keys-copied = ¡Copiado!
+admin-api-keys-warning = ¡Asegúrate de copiar tu clave API ahora. No podrás verla de nuevo!
+
+# -----------------------------------------------------------------------------
+# Facturación (continuación)
+# -----------------------------------------------------------------------------
+admin-billing-title = Facturación
+admin-billing-overview = Resumen de Facturación
+admin-billing-current-plan = Plan Actual
+admin-billing-usage = Uso
+admin-billing-invoices = Facturas
+admin-billing-payment-methods = Métodos de Pago
+admin-billing-upgrade = Mejorar Plan
+admin-billing-downgrade = Reducir Plan
+admin-billing-cancel = Cancelar Suscripción
+admin-billing-invoice-date = Fecha de Factura
+admin-billing-invoice-amount = Monto
+admin-billing-invoice-status = Estado
+admin-billing-invoice-paid = Pagado
+admin-billing-invoice-pending = Pendiente
+admin-billing-invoice-overdue = Vencido
+admin-billing-invoice-download = Descargar Factura
+
+# -----------------------------------------------------------------------------
+# Respaldo y Restauración
+# -----------------------------------------------------------------------------
+admin-backup-title = Respaldo y Restauración
+admin-backup-create = Crear Respaldo
+admin-backup-restore = Restaurar Respaldo
+admin-backup-schedule = Programar Respaldos
+admin-backup-list = Historial de Respaldos
+admin-backup-name = Nombre del Respaldo
+admin-backup-size = Tamaño
+admin-backup-created = Creado
+admin-backup-download = Descargar
+admin-backup-delete = Eliminar
+admin-backup-confirm-restore = ¿Estás seguro de que deseas restaurar este respaldo? Esto sobrescribirá los datos actuales.
+admin-backup-confirm-delete = ¿Estás seguro de que deseas eliminar este respaldo?
+admin-backup-in-progress = Respaldo en progreso...
+admin-backup-completed = Respaldo completado exitosamente
+admin-backup-failed = Respaldo fallido
+admin-backup-restore-in-progress = Restauración en progreso...
+admin-backup-restore-completed = Restauración completada exitosamente
+admin-backup-restore-failed = Restauración fallida
+
+# -----------------------------------------------------------------------------
+# Modo Mantenimiento
+# -----------------------------------------------------------------------------
+admin-maintenance-title = Modo Mantenimiento
+admin-maintenance-enable = Habilitar Modo Mantenimiento
+admin-maintenance-disable = Deshabilitar Modo Mantenimiento
+admin-maintenance-status = Estado Actual
+admin-maintenance-active = Modo mantenimiento activo
+admin-maintenance-inactive = Modo mantenimiento inactivo
+admin-maintenance-message = Mensaje de Mantenimiento
+admin-maintenance-default-message = Estamos realizando mantenimiento programado. Por favor regresa pronto.
+admin-maintenance-allowed-ips = Direcciones IP Permitidas
+admin-maintenance-confirm-enable = ¿Estás seguro de que deseas habilitar el modo mantenimiento? Los usuarios no podrán acceder al sistema.
+
+# -----------------------------------------------------------------------------
+# Elementos Comunes de la UI de Admin
+# -----------------------------------------------------------------------------
+admin-required = Requerido
+admin-optional = Opcional
+admin-loading = Cargando...
+admin-saving = Guardando...
+admin-deleting = Eliminando...
+admin-confirm = Confirmar
+admin-cancel = Cancelar
+admin-save = Guardar
+admin-create = Crear
+admin-update = Actualizar
+admin-delete = Eliminar
+admin-edit = Editar
+admin-view = Ver
+admin-close = Cerrar
+admin-back = Atrás
+admin-next = Siguiente
+admin-previous = Anterior
+admin-refresh = Actualizar
+admin-export = Exportar
+admin-import = Importar
+admin-search = Buscar
+admin-filter = Filtrar
+admin-clear = Limpiar
+admin-select = Seleccionar
+admin-select-all = Seleccionar Todo
+admin-deselect-all = Deseleccionar Todo
+admin-actions = Acciones
+admin-more-actions = Más Acciones
+admin-no-data = No hay datos disponibles
+admin-error = Ocurrió un error
+admin-success = Éxito
+admin-warning = Advertencia
+admin-info = Información
+
+# Paginación de Tabla
+admin-showing = Mostrando { $from } a { $to } de { $total } resultados
+admin-page = Página { $current } de { $total }
+admin-items-per-page = Elementos por página
+admin-go-to-page = Ir a la página
+
+# Acciones Masivas
+admin-bulk-delete = Eliminar Seleccionados
+admin-bulk-export = Exportar Seleccionados
+admin-bulk-activate = Activar Seleccionados
+admin-bulk-deactivate = Desactivar Seleccionados
+admin-selected-count = { $count ->
+[one] { $count } elemento seleccionado
+*[other] { $count } elementos seleccionados
+}

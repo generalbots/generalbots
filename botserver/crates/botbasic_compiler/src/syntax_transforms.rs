@@ -460,6 +460,7 @@ pub fn convert_multiword_keywords(script: &str) -> String {
 
         (r#"GET\s+BOT\s+MEMORY"#, 1, 1, vec!["key"]),
 
+        (r#"CLEAR\s+KB"#, 0, 0, vec![]),
         (r#"CLEAR\s+SUGGESTIONS"#, 0, 0, vec![]),
         (r#"CLEAR\s+SWITCHERS"#, 0, 0, vec![]),
         (r#"CLEAR\s+TOOLS"#, 0, 0, vec![]),
@@ -509,7 +510,7 @@ pub fn convert_multiword_keywords(script: &str) -> String {
 
         for (pattern, min_params, max_params, _param_names) in &multiword_patterns {
             let regex_str = format!(
-                r#"(?i)^\s*{}\s+(.*?)(?:\s*)$"#,
+                r#"(?i)^\s*{}\s*(.*?)(?:\s*)$"#,
                 pattern
             );
 
