@@ -11,6 +11,9 @@ default = []
 
 [dependencies]
 botlib = { workspace = true }
+botautotask = { workspace = true }
+botcontacts = { workspace = true }
+botdeployment = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
 r2d2 = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }

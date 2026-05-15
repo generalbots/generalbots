@@ -31,5 +31,24 @@ impl botlib::traits::LLMProvider for BotlibLLMProviderWrapper {
     fn generate_with_context(&self, prompt: &str, _context: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>> {
         self.generate_simple(prompt)
     }
+    fn generate_stream(
+        &self,
+        prompt: &str,
+        config: &serde_json::Value,
+        tx: tokio::sync::mpsc::Sender<String>,
+        model: &str,
+        key: &str,
+        tools: Option<&Vec<serde_json::Value>>,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>> {
+        let prompt = prompt.to_string();
+        let config = config.clone();
+        let model = model.to_string();
+        let key = key.to_string();
+        let tools = tools.map(|t| t.clone());
+        let inner = self.0.clone();
+        Box::pin(async move {
+            inner.generate_stream(&prompt, &config, tx, &model, &key, tools.as_ref()).await.map_err(|e| e.to_string())
+        })
+    }
 }
 

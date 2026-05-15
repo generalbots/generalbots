@@ -1,0 +1,110 @@
+use botcore::shared::schema::bots;
+use botcore::shared::schema::session_tool_associations;
+use botcore::shared::utils::DbPool;
+use diesel::prelude::*;
+use log::{debug, info, warn};
+use serde_json::{json, Value};
+use uuid::Uuid;
+
+pub fn get_session_tools(
+    db_pool: &DbPool,
+    bot_name: &str,
+    session_id: &Uuid,
+) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = db_pool.get()?;
+    let _bot_id: Uuid = bots::table
+        .filter(bots::name.eq(bot_name))
+        .select(bots::id)
+        .first(&mut *conn)
+        .map_err(|e| format!("Failed to get bot_id for bot '{}': {}", bot_name, e))?;
+
+    let tool_names: Vec<String> = session_tool_associations::table
+        .filter(session_tool_associations::session_id.eq(&session_id.to_string()))
+        .select(session_tool_associations::tool_name)
+        .load::<String>(&mut *conn)
+        .map_err(|e| format!("Failed to get tools for session: {}", e))?;
+
+    if tool_names.is_empty() {
+        debug!("No tools associated with session {}", session_id);
+        return Ok(vec![]);
+    }
+
+    let work_root = std::path::PathBuf::from(crate::core::shared::utils::get_work_path());
+
+    if !work_root.exists() {
+        std::fs::create_dir_all(&work_root)
+            .map_err(|e| format!("Failed to create work directory {:?}: {}", work_root, e))?;
+        info!("Created work directory at: {:?}", work_root);
+    }
+
+    let work_path = work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+
+    info!(
+        "Loading {} tools for session {} from {:?}",
+        tool_names.len(),
+        session_id,
+        work_path
+    );
+
+    let mut tools = Vec::new();
+
+    for tool_name in &tool_names {
+        let mcp_path = work_path.join(format!("{}.mcp.json", tool_name));
+
+        if !mcp_path.exists() {
+            warn!("Tool JSON file not found: {:?}", mcp_path);
+            continue;
+        }
+
+        let mcp_content = std::fs::read_to_string(&mcp_path)
+            .map_err(|e| format!("Failed to read tool file {:?}: {}", mcp_path, e))?;
+
+        let mcp_json: Value = serde_json::from_str(&mcp_content)
+            .map_err(|e| format!("Failed to parse tool JSON from {:?}: {}", mcp_path, e))?;
+
+        if let Some(tool) = format_tool_for_openai(&mcp_json, tool_name) {
+            tools.push(tool);
+        }
+    }
+
+    info!("Loaded {} tools for session {}", tools.len(), session_id);
+    Ok(tools)
+}
+
+fn format_tool_for_openai(mcp_json: &Value, tool_name: &str) -> Option<Value> {
+    let _name = mcp_json.get("name")?.as_str()?;
+    let description = mcp_json.get("description")?.as_str()?;
+    let input_schema = mcp_json.get("input_schema")?;
+
+    let parameters = input_schema.get("properties")?.as_object()?;
+    let required = input_schema.get("required")?.as_array()?;
+
+    let mut openai_params = serde_json::Map::new();
+
+    for (param_name, param_info) in parameters {
+        let param_obj = param_info.as_object()?;
+        let param_desc = param_obj.get("description")?.as_str().unwrap_or("");
+        let param_type = param_obj.get("type")?.as_str().unwrap_or("string");
+
+        openai_params.insert(
+            param_name.clone(),
+            json!({
+                "type": param_type,
+                "description": param_desc
+            }),
+        );
+    }
+
+    Some(json!({
+        "type": "function",
+        "function": {
+            "name": tool_name,
+            "description": description,
+            "parameters": {
+                "type": "object",
+                "properties": openai_params,
+                "required": required
+            }
+        }
+    }))
+}

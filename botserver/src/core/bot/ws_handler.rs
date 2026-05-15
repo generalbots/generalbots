@@ -41,8 +41,8 @@ pub async fn websocket_handler_with_bot(
     websocket_handler(ws, State(state), Query(params)).await
 }
 
-fn lookup_bot_id(_state: &Arc<AppState>, _bot_name: &str) -> Uuid {
-    let mut conn = match _state.conn.get() {
+fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
+    let mut conn = match state.conn.get() {
         Ok(c) => c,
         Err(e) => {
             warn!("DB conn: {}", e);
@@ -53,20 +53,36 @@ fn lookup_bot_id(_state: &Arc<AppState>, _bot_name: &str) -> Uuid {
     use botcorebot::schema::bots::dsl::{bots, id, name};
     use diesel::prelude::*;
 
-    if let Ok(uuid) = Uuid::parse_str(_bot_name) {
+    if let Ok(uuid) = Uuid::parse_str(bot_name) {
         bots.filter(id.eq(uuid))
             .select(id)
             .first::<Uuid>(&mut conn)
             .unwrap_or(Uuid::nil())
     } else {
-        bots.filter(name.eq(_bot_name))
+        bots.filter(name.eq(bot_name))
             .select(id)
             .first::<Uuid>(&mut conn)
             .unwrap_or_else(|_| {
-                warn!("Bot not found: {}", _bot_name);
+                warn!("Bot not found: {}", bot_name);
                 Uuid::nil()
             })
     }
+}
+
+fn load_system_prompt(bot_name: &str) -> String {
+    let work_dir = botcore::shared::utils::get_work_path();
+    let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
+
+    let prompt_from_file = std::fs::read_to_string(format!("{}PROMPT.md", gbot_dir))
+        .or_else(|_| std::fs::read_to_string(format!("{}prompt.md", gbot_dir)))
+        .or_else(|_| std::fs::read_to_string(format!("{}PROMPT.txt", gbot_dir)))
+        .or_else(|_| std::fs::read_to_string(format!("{}prompt.txt", gbot_dir)));
+
+    if let Ok(p) = prompt_from_file {
+        return p;
+    }
+
+    "You are a helpful assistant. Responda APENAS com fragmentos HTML válidos. Não use markdown. Não use blocos de código. Use apenas: <p>, <h3>, <ul>, <li>, <strong>, <em>. Cada tag que você abrir DEVE ser fechada corretamente. Comece sua resposta diretamente com uma tag HTML, nunca com texto puro.".to_string()
 }
 
 async fn handle_ws(
@@ -91,36 +107,6 @@ async fn handle_ws(
     });
     let _ = ws_sender.send(Message::Text(welcome.to_string().into())).await;
 
-    // Run start.bas
-    {
-        let s = state.clone();
-        let sid = session_id;
-        let uid = user_id;
-        let bid = bot_uuid;
-        let bn = bot_name.clone();
-        tokio::task::spawn_blocking(move || {
-            let work_path = botcore::shared::utils::get_work_path();
-            let ast_path = format!("{}/{}.gbai/{}.gbdialog/start.ast", work_path, bn, bn);
-            match std::fs::read_to_string(&ast_path) {
-                Ok(content) => {
-                    let session = botlib::models::UserSession {
-                        id: sid, user_id: uid, bot_id: bid,
-                        title: String::new(),
-                        context_data: serde_json::Value::Null,
-                        current_tool: None,
-                        created_at: chrono::Utc::now(),
-                        updated_at: chrono::Utc::now(),
-                    };
-                    let mut svc = crate::basic::ScriptService::new(Arc::clone(&s), session);
-                    match svc.run(&content) {
-                        Ok(_) => info!("start.bas OK"),
-                        Err(e) => error!("start.bas error: {}", e),
-                    }
-                }
-                Err(e) => warn!("start.bas AST not found at {}: {}", ast_path, e),
-            }
-        });
-    }
     // Message loop
     loop {
         tokio::select! {
@@ -129,34 +115,420 @@ async fn handle_ws(
                     Some(Ok(Message::Text(text))) => {
                         info!("WS msg: {}", text);
                         let parsed: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
-                        let user_text = parsed.get("text").and_then(|v| v.as_str()).unwrap_or("");
+                        let mut user_text = parsed.get("text")
+                            .and_then(|v| v.as_str())
+                            .or_else(|| parsed.get("content").and_then(|v| v.as_str()))
+                            .unwrap_or("").to_string();
+                        let mut msg_type = parsed.get("message_type").and_then(|v| v.as_i64()).unwrap_or(1);
+                        let active_switchers: Vec<String> = parsed.get("active_switchers")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                            .unwrap_or_default();
+
+                        // Ensure session exists in DB for FK constraints (KB, etc.)
+                        {
+                            let mut sm = state.session_manager.lock().await;
+                            let _ = sm.get_or_create_session_by_id(session_id, user_id, bot_uuid, "");
+                        }
+
+                        // Handle SYSTEM messages (type 7) - deprecated, just acknowledge
+                        if msg_type == 7 {
+                            continue;
+                        }
+
+                        // Handle SWITCHER_TOGGLE (type 8) - re-process last message with switcher active
+                        let mut is_switcher_replay = false;
+                        if msg_type == 8 {
+                            let last_user_msg = {
+                                let mut sm = state.session_manager.lock().await;
+                                let history = sm.get_conversation_history(session_id, user_id, Some(1)).ok();
+                                history.and_then(|h| h.into_iter().find(|(role, _)| role == "user").map(|(_, c)| c))
+                            };
+                            if let Some(last_content) = last_user_msg {
+                                user_text = last_content;
+                                is_switcher_replay = true;
+                                msg_type = 1;
+                            } else {
+                                continue;
+                            }
+                        }
+
+                        // Legacy: Direct tool invocation via __TOOL__: prefix
+                        if user_text.starts_with("__TOOL__:") {
+                            let tool_name = user_text.trim_start_matches("__TOOL__:").trim().to_string();
+                            if !tool_name.is_empty() {
+                                let resp = serde_json::json!({
+                                    "bot_id": bot_uuid.to_string(),
+                                    "user_id": user_id.to_string(),
+                                    "session_id": session_id.to_string(),
+                                    "channel": "web",
+                                    "content": format!("Tool '{}' not implemented via legacy path", tool_name),
+                                    "message_type": 2, "is_complete": true,
+                                    "suggestions": [], "switchers": [],
+                                    "context_length": 0, "context_max_length": 0,
+                                });
+                                let _ = ws_sender.send(Message::Text(resp.to_string().into())).await;
+                            }
+                            continue;
+                        }
+
+                        // Handle TOOL_EXEC (type 6) - bypass LLM
+                        if msg_type == 6 {
+                            let tool_name = user_text.trim().to_string();
+                            if !tool_name.is_empty() {
+                                info!("TOOL_EXEC: Direct tool execution: {}", tool_name);
+                                let work_path = botcore::shared::utils::get_work_path();
+                                let ast_path = format!("{}/{}.gbai/{}.gbdialog/{}.ast", work_path, bot_name, bot_name, tool_name);
+                                let ast_content = match tokio::fs::read_to_string(&ast_path).await {
+                                    Ok(c) if !c.is_empty() => c,
+                                    _ => {
+                                        let bas_path = ast_path.replace(".ast", ".bas");
+                                        tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
+                                    }
+                                };
+
+                                if !ast_content.is_empty() {
+                                    let state_for_tool = state.clone();
+                                    let tool_name_clone = tool_name.clone();
+                                    let session_for_tool = botlib::models::UserSession {
+                                        id: session_id, user_id, bot_id: bot_uuid,
+                                        title: String::new(),
+                                        context_data: serde_json::Value::Null,
+                                        current_tool: None,
+                                        created_at: chrono::Utc::now(),
+                                        updated_at: chrono::Utc::now(),
+                                    };
+                                    let _ = tokio::task::spawn_blocking(move || {
+                                        let mut svc = crate::basic::ScriptService::new(
+                                            state_for_tool.clone(), session_for_tool,
+                                        );
+                                        svc.load_bot_config_params(&state_for_tool, bot_uuid);
+                                        if let Err(e) = svc.run(&ast_content) {
+                                            warn!("Tool '{}' execution error: {}", tool_name_clone, e);
+                                        }
+                                    }).await;
+                                }
+
+                                // Drain any TALK responses from tool execution
+                                for _ in 0..20 {
+                                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                                    match rx.try_recv() {
+                                        Ok(response) => {
+                                            if let Ok(json) = serde_json::to_string(&response) {
+                                                let _ = ws_sender.send(Message::Text(json.into())).await;
+                                            }
+                                        }
+                                        Err(tokio::sync::mpsc::error::TryRecvError::Empty) => continue,
+                                        Err(_) => break,
+                                    }
+                                }
+                            }
+                            continue;
+                        }
 
                         // Try to deliver to a waiting HEAR keyword first
                         let runtime: Arc<dyn botbasic_types::BasicRuntime> =
                             Arc::new(crate::basic::AppStateBasicRuntime(state.clone()));
                         let delivered = crate::basic::keywords::hearing::deliver_hear_input(
-                            &runtime,
-                            session_id,
-                            user_text.to_string(),
+                            &runtime, session_id, user_text.clone(),
                         );
 
                         info!("ws_handler: delivered={}, user_text='{}'", delivered, user_text);
-                        if !delivered {
-                            let resp = serde_json::json!({
-                                "bot_id": bot_uuid.to_string(),
-                                "user_id": user_id.to_string(),
-                                "session_id": session_id.to_string(),
-                                "channel": "web",
-                                "content": user_text,
-                                "message_type": 2,
-                                "is_complete": true,
-                                "suggestions": [],
-                                "switchers": [],
-                                "context_length": 0,
-                                "context_max_length": 0,
-                            });
-                            let _ = ws_sender.send(Message::Text(resp.to_string().into())).await;
+                        if delivered {
+                            continue;
                         }
+
+                        // Execute start.bas on first user message
+                        let session_init_key = format!("start_bas_executed:{}:{}", bot_uuid, session_id);
+                        let already_executed = {
+                            let guards = state.start_bas_guards.lock().await;
+                            guards.get(&session_id).copied().unwrap_or(false)
+                        };
+                        let should_execute = if already_executed {
+                            false
+                        } else if let Some(ref cache) = state.cache {
+                            use redis::AsyncCommands;
+                            if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+                                let was_set: Option<String> = redis::cmd("SET")
+                                    .arg(&session_init_key).arg("1").arg("NX").arg("EX").arg(86400)
+                                    .query_async(&mut conn).await.ok();
+                                was_set.is_some()
+                            } else {
+                                false
+                            }
+                        } else {
+                            true
+                        };
+
+                        if should_execute {
+                            let work_path = botcore::shared::utils::get_work_path();
+                            let ast_path = format!("{}/{}.gbai/{}.gbdialog/start.ast", work_path, bot_name, bot_name);
+                            let ast_content = match tokio::fs::read_to_string(&ast_path).await {
+                                Ok(c) if !c.is_empty() => c,
+                                _ => {
+                                    let bas_path = ast_path.replace(".ast", ".bas");
+                                    tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
+                                }
+                            };
+
+                            if !ast_content.is_empty() {
+                                let state_for_bas = state.clone();
+                                let bot_id_for_bas = bot_uuid;
+                                tokio::task::spawn_blocking(move || {
+                                    let session_for_bas = botlib::models::UserSession {
+                                        id: session_id, user_id, bot_id: bot_id_for_bas,
+                                        title: String::new(),
+                                        context_data: serde_json::Value::Null,
+                                        current_tool: None,
+                                        created_at: chrono::Utc::now(),
+                                        updated_at: chrono::Utc::now(),
+                                    };
+                                    let mut svc = crate::basic::ScriptService::new(
+                                        state_for_bas.clone(), session_for_bas,
+                                    );
+                                    svc.load_bot_config_params(&state_for_bas, bot_id_for_bas);
+                                    if let Err(e) = svc.run(&ast_content) {
+                                        warn!("start.bas execution error: {}", e);
+                                    }
+                                }).await;
+                            }
+                            // Wait briefly for TALK's tokio::spawn task to deliver the response
+                            for i in 0..20 {
+                                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                                match rx.try_recv() {
+                                    Ok(response) => {
+                                        info!("start.bas: drained BotResponse: content={}", response.content.chars().take(80).collect::<String>());
+                                        if let Ok(json) = serde_json::to_string(&response) {
+                                            let _ = ws_sender.send(Message::Text(json.into())).await;
+                                        }
+                                    }
+                                    Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
+                                        if i == 0 { info!("start.bas: rx empty, waiting..."); }
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        info!("start.bas: rx done: {:?}", e);
+                                        break;
+                                    }
+                                }
+                            }
+                            let mut guards = state.start_bas_guards.lock().await;
+                            guards.insert(session_id, true);
+                        }
+
+                        // Build messages array: system prompt + KB context + history + user message
+                        let base_system_prompt = load_system_prompt(&bot_name);
+                        let system_prompt = if !active_switchers.is_empty() {
+                            let switcher_prompts = crate::basic::keywords::switcher::resolve_active_switchers(
+                                state.cache.as_ref(),
+                                &bot_uuid.to_string(),
+                                &session_id.to_string(),
+                                &active_switchers,
+                            );
+                            if switcher_prompts.is_empty() {
+                                base_system_prompt
+                            } else {
+                                format!("{}\n\n{}", base_system_prompt, switcher_prompts)
+                            }
+                        } else {
+                            base_system_prompt
+                        };
+                        // Inject session context data (bot memory)
+                        let session_context = {
+                            let mut sm = state.session_manager.lock().await;
+                            sm.get_session_context_data(&session_id, &user_id).ok().unwrap_or_default()
+                        };
+
+                        let mut messages = vec![
+                            serde_json::json!({"role": "system", "content": system_prompt.clone()})
+                        ];
+
+                        // Add session context as system message if non-empty
+                        if !session_context.is_empty() {
+                            messages.push(serde_json::json!({
+                                "role": "system", "content": format!("Contexto da conversa:\n{}", session_context)
+                            }));
+                        }
+
+                        // Load recent conversation history (limit from bot config)
+                        let history_limit: i64 = {
+                            use botcore::config::ConfigManager;
+                            let cfg = ConfigManager::new(state.conn.clone());
+                            cfg.get_config(&bot_uuid, "history-limit", Some("10"))
+                                .ok().and_then(|v| v.parse().ok()).unwrap_or(10)
+                        };
+                        {
+                            let mut sm = state.session_manager.lock().await;
+                            if let Ok(history) = sm.get_conversation_history(session_id, user_id, Some(history_limit)) {
+                                for (role, content) in history.iter() {
+                                    let api_role = match role.as_str() {
+                                        "user" => "user",
+                                        "assistant" | "bot" => "assistant",
+                                        _ => "system",
+                                    };
+                                    messages.push(serde_json::json!({
+                                        "role": api_role,
+                                        "content": content
+                                    }));
+                                }
+                            }
+                        }
+
+                        // Inject KB and website context via Qdrant search
+                        let user_query = user_text.clone();
+                        let mut messages_val = serde_json::Value::Array(messages.clone());
+                        crate::core::bot::kb_context::inject_kb_context(
+                            &state.conn,
+                            session_id,
+                            &user_query,
+                            &mut messages_val,
+                            4000, // max context tokens
+                        ).await;
+                        if let Some(arr) = messages_val.as_array() {
+                            messages = arr.clone();
+                        }
+
+                        // Save user message to history (skip for switcher replays)
+                        if !is_switcher_replay {
+                            let mut sm = state.session_manager.lock().await;
+                            let _ = sm.save_message(session_id, user_id, 1, &user_text, 1);
+                        }
+
+                        // Build flat prompt from messages for streaming
+                        let mut full_prompt = String::new();
+                        for msg in &messages {
+                            let role = msg["role"].as_str().unwrap_or("user");
+                            let content = msg["content"].as_str().unwrap_or("");
+                            match role {
+                                "system" => full_prompt.push_str(&format!("System: {}\n\n", content)),
+                                "user" => full_prompt.push_str(&format!("User: {}\n", content)),
+                                "assistant" => full_prompt.push_str(&format!("Assistant: {}\n", content)),
+                                _ => full_prompt.push_str(&format!("{}: {}\n", role, content)),
+                            }
+                        }
+                        full_prompt.push_str(&format!("\nUser: {}", user_text));
+                        full_prompt.push_str("\nAssistant: ");
+
+                        // Stream LLM response chunk by chunk
+                        let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
+                        let suggestions;
+                        let switchers;
+                        let mut full_response = String::new();
+
+                        // Look up bot-specific LLM config and create provider
+                        let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> = {
+                            use botcore::config::ConfigManager;
+                            let cfg = ConfigManager::new(state.conn.clone());
+                            let llm_url = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
+                            let llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
+                            let llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
+                            if !llm_url.is_empty() {
+                                let provider = crate::llm::create_llm_provider_from_url(&llm_url, if llm_model.is_empty() { None } else { Some(llm_model.clone()) }, None, None);
+                                Some((Arc::new(crate::llm::BotlibLLMProviderWrapper(provider)) as Arc<dyn botlib::traits::LLMProvider>, llm_key, llm_model))
+                            } else {
+                                None
+                            }
+                        };
+
+                        match bot_llm_provider.or_else(|| state.llm_provider.clone().map(|p| (p, String::new(), String::new()))) {
+                            Some((ref llm, ref llm_key, ref llm_model)) => {
+                                let state_clone = state.clone();
+                                let prompt_clone = full_prompt.clone();
+                                let llm = llm.clone();
+                                let llm_key_clone = llm_key.clone();
+                                let llm_model_clone = llm_model.clone();
+                                let bot_uuid_s = bot_uuid.to_string();
+                                let session_id_s = session_id.to_string();
+
+                                // Spawn LLM streaming task
+                                let _stream_handle = tokio::spawn(async move {
+                                    if let Err(e) = llm.generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx, &llm_model_clone, &llm_key_clone, None).await {
+                                        warn!("LLM stream error: {}", e);
+                                    }
+                                });
+
+                                // Stream chunks to WebSocket immediately (skip thinking/reasoning)
+                                while let Some(chunk) = stream_rx.recv().await {
+                                    // Skip thinking/reasoning internal messages
+
+                                    full_response.push_str(&chunk);
+                                    let chunk_resp = serde_json::json!({
+                                        "bot_id": bot_uuid_s,
+                                        "user_id": user_id.to_string(),
+                                        "session_id": session_id_s,
+                                        "channel": "web",
+                                        "content": chunk,
+                                        "message_type": 2,
+                                        "is_complete": false,
+                                        "suggestions": [],
+                                        "switchers": [],
+                                        "context_length": 0,
+                                        "context_max_length": 0,
+                                    });
+                                    if ws_sender.send(Message::Text(chunk_resp.to_string().into())).await.is_err() {
+                                        break;
+                                    }
+                                }
+
+                                // Load suggestions and switchers from cache
+                                suggestions = {
+                                    #[cfg(feature = "chat")]
+                                    {
+                                        crate::basic::keywords::add_suggestion::get_suggestions(
+                                            state_clone.cache.as_ref(),
+                                            &bot_uuid.to_string(),
+                                            &session_id.to_string(),
+                                        )
+                                    }
+                                    #[cfg(not(feature = "chat"))]
+                                    Vec::new()
+                                };
+                                switchers = {
+                                    #[cfg(feature = "chat")]
+                                    {
+                                        crate::basic::keywords::switcher::get_switchers(
+                                            state_clone.cache.as_ref(),
+                                            &bot_uuid.to_string(),
+                                            &session_id.to_string(),
+                                        )
+                                    }
+                                    #[cfg(not(feature = "chat"))]
+                                    Vec::new()
+                                };
+
+                                // Save assistant response to history
+                                {
+                                    let mut sm = state_clone.session_manager.lock().await;
+                                    let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                                }
+                            }
+                            None => {
+                                info!("No LLM provider");
+                                let fallback = format!("Recebi: \"{}\"", user_text);
+                                suggestions = Vec::new();
+                                switchers = Vec::new();
+                                {
+                                    let mut sm = state.session_manager.lock().await;
+                                    let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
+                                }
+                            }
+                        };
+
+                        // Send final is_complete message
+                        let final_resp = serde_json::json!({
+                            "bot_id": bot_uuid.to_string(),
+                            "user_id": user_id.to_string(),
+                            "session_id": session_id.to_string(),
+                            "channel": "web",
+                            "content": full_response,
+                            "message_type": 2,
+                            "is_complete": true,
+                            "suggestions": suggestions,
+                            "switchers": switchers,
+                            "context_length": 0,
+                            "context_max_length": 0,
+                        });
+                        let _ = ws_sender.send(Message::Text(final_resp.to_string().into())).await;
                     }
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Err(e)) => { error!("WS err: {}", e); break; }

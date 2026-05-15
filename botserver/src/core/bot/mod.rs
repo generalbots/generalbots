@@ -1,5 +1,8 @@
 pub use botcorebot::*;
 pub mod ws_handler;
+pub mod manager;
+pub mod tool_context;
+pub mod multimedia;
 
 pub use ws_handler::{websocket_handler, websocket_handler_with_bot};
 use std::collections::HashMap;
@@ -91,19 +94,7 @@ impl TeamsAdapter {
     }
 }
 
-pub mod kb_context {
-    pub struct KbContextManager;
-    impl Default for KbContextManager {
-    fn default() -> Self { Self::new() }
-}
-
-impl KbContextManager {
-        pub fn new() -> Self { Self }
-        pub fn search_active_kbs(&self, _session_id: &str, _bot_id: uuid::Uuid, _bot_name: &str, _query: &str, _limit: usize, _max_len: usize) -> Vec<String> {
-            Vec::new()
-        }
-    }
-}
+pub mod kb_context;
 
 pub struct BotOrchestrator;
 

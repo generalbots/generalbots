@@ -1,9 +1,8 @@
 use botcore::shared::state::AppState;
 use crate::drive_files::DriveFileRepository;
 use crate::drive_monitor::monitor::CHECK_INTERVAL_SECS;
-// KnowledgeBase trait from botlib used when research/llm features enabled
 #[cfg(any(feature = "research", feature = "llm"))]
-use botlib::traits::KnowledgeBase;
+use botcore::kb::KnowledgeBaseManager;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
@@ -219,6 +218,26 @@ impl DriveMonitor {
         self.files_being_indexed.write().await.remove(full_key);
     }
 
+    #[cfg(any(feature = "research", feature = "llm"))]
+    fn delete_kb_file_vectors(&self, bot_name: &str, _full_key: &str, s3_key: &str) {
+        let parsed = match parse_kb_path(s3_key) {
+            Some(p) => p,
+            None => return,
+        };
+
+        let kb_manager = self.kb_manager.clone();
+        let bot_id = self.bot_id;
+        let bot_name = bot_name.to_string();
+        let relative_path = parsed.relative_path.clone();
+
+        tokio::spawn(async move {
+            match kb_manager.delete_file_from_kb(bot_id, &bot_name, &parsed.kb_name, &relative_path).await {
+                Ok(_) => log::info!("Deleted vectors for {} from {}/{}", relative_path, bot_name, parsed.kb_name),
+                Err(e) => log::error!("Failed to delete vectors for {} from {}/{}: {}", relative_path, bot_name, parsed.kb_name, e),
+            }
+        });
+    }
+
     async fn sync_bot_config(&self, bot_name: &str, s3_key: &str) {
         let s3 = match &self.state.drive {
             Some(s3) => s3,
@@ -257,11 +276,11 @@ impl DriveMonitor {
                 if key.is_empty() {
                     continue;
                 }
-if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
-                log::error!("Failed to set config {}={} for bot {}: {}", key, value, bot_name, e);
-            } else {
-                log::trace!("Synced config {}={} for bot {}", key, value, bot_name);
-            }
+                if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
+                    log::error!("Failed to set config {}={} for bot {}: {}", key, value, bot_name, e);
+                } else {
+                    log::trace!("Synced config {}={} for bot {}", key, value, bot_name);
+                }
             }
         }
 
@@ -295,16 +314,16 @@ if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
         let file_name = s3_key.split('/').next_back().unwrap_or(s3_key);
         let work_path = work_dir.join(file_name);
 
-    match String::from_utf8(data) {
-        Ok(content) => {
-            if let Err(e) = std::fs::write(&work_path, &content) {
-                log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
-            } else {
-                log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
-                let full_key = format!("{}.gbai/{}", bot_name, s3_key);
-                let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
+        match String::from_utf8(data) {
+            Ok(content) => {
+                if let Err(e) = std::fs::write(&work_path, &content) {
+                    log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
+                } else {
+                    log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
+                    let full_key = format!("{}.gbai/{}", bot_name, s3_key);
+                    let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
+                }
             }
-        }
             Err(e) => {
                 log::error!("Failed to parse .bas as UTF-8: {}", e);
             }
@@ -351,26 +370,6 @@ if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
                 log::error!("Failed to parse gbot file as UTF-8: {}", e);
             }
         }
-    }
-
-    #[cfg(any(feature = "research", feature = "llm"))]
-    fn delete_kb_file_vectors(&self, bot_name: &str, _full_key: &str, s3_key: &str) {
-        let parsed = match parse_kb_path(s3_key) {
-            Some(p) => p,
-            None => return,
-        };
-
-        let kb_manager = self.kb_manager.clone();
-        let bot_id = self.bot_id;
-        let bot_name = bot_name.to_string();
-        let relative_path = parsed.relative_path.clone();
-
-        tokio::spawn(async move {
-            match kb_manager.delete_file_from_kb(bot_id, &bot_name, &parsed.kb_name, &relative_path).await {
-                Ok(_) => log::info!("Deleted vectors for {} from {}/{}", relative_path, bot_name, parsed.kb_name),
-                Err(e) => log::error!("Failed to delete vectors for {} from {}/{}: {}", relative_path, bot_name, parsed.kb_name, e),
-            }
-        });
     }
 
     #[cfg(any(feature = "research", feature = "llm"))]
@@ -468,13 +467,34 @@ fn is_kb_extension(key: &str) -> bool {
     || lower.ends_with(".proto")
 }
 
+struct KbPathParts {
+    kb_name: String,
+    file_name: String,
+    relative_path: String,
+}
+
+fn parse_kb_path(s3_key: &str) -> Option<KbPathParts> {
+    let parts: Vec<&str> = s3_key.splitn(4, '/').collect();
+    if parts.len() < 3 || !parts[0].ends_with(".gbkb") {
+        return None;
+    }
+    let kb_name = parts[1].to_string();
+    let file_name = parts[2..].join("/");
+    let relative_path = format!("{}/{}", kb_name, file_name);
+    Some(KbPathParts {
+        kb_name,
+        file_name,
+        relative_path,
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct DriveMonitor {
     pub state: Arc<AppState>,
     pub bucket_name: String,
     pub bot_id: uuid::Uuid,
     #[cfg(any(feature = "research", feature = "llm"))]
-    pub kb_manager: Option<Arc<dyn KnowledgeBase>>,
+    pub kb_manager: Arc<KnowledgeBaseManager>,
     pub work_root: PathBuf,
     pub is_processing: Arc<AtomicBool>,
     pub scanning: Arc<AtomicBool>,
@@ -489,9 +509,12 @@ pub struct DriveMonitor {
 impl DriveMonitor {
     pub fn new(state: Arc<AppState>, bucket_name: String, bot_id: uuid::Uuid) -> Self {
         let work_root = PathBuf::from(botcore::shared::utils::get_work_path());
-        // KB manager is injected externally when research/llm features enabled
         #[cfg(any(feature = "research", feature = "llm"))]
-        let kb_manager: Option<Arc<dyn KnowledgeBase>> = None;
+        let kb_manager = Arc::new(KnowledgeBaseManager::with_bot_config(
+            work_root.clone(),
+            state.conn.clone(),
+            bot_id,
+        ));
 
         let file_repo = Arc::new(DriveFileRepository::new(state.conn.clone()));
 
