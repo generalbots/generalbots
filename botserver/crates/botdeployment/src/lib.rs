@@ -1,7 +1,12 @@
-//! Deployment module for VibeCode platform - Phase 2.5
+//! Deployment module for General Bots platform
 //!
-//! All apps are deployed to Forgejo repositories using org/app_name format.
-//! Two app types: GB Native (optimized for GB platform) and Custom (any framework).
+//! Three project types under the ALM (Forgejo) model:
+//! - **bots**: GB Native scripts in .gbdialog/ — no ALM, runs in chat mode
+//! - **apps**: Custom full-stack apps — ALM repo → alm-ci builds → own Incus container
+//! - **sites**: Static HTML/CSS/JS — ALM repo → alm-ci builds → Caddy serves from proxy container
+//!
+//! Security: Deploy Gateway uses scoped deploy keys so alm-ci never exposes
+//! Forgejo internals or server access to users.
 //!
 //! # Architecture
 //!
@@ -9,19 +14,23 @@
 //! - `router` - Deployment router that manages the deployment process
 //! - `handlers` - HTTP API handlers for deployment endpoints
 //! - `forgejo` - Forgejo client for repository management
+//! - `gateway` - Deploy Gateway API for secure alm-ci → host operations
 
 pub mod forgejo;
+pub mod gateway;
 pub mod handlers;
 pub mod router;
 pub mod types;
 
 pub use forgejo::{ForgejoClient, ForgejoError, ForgejoRepo};
+pub use gateway::{DeployGateway, DeployGatewayConfig};
 pub use handlers::configure_deployment_routes;
 pub use router::DeploymentRouter;
 pub use types::{
-    AppType, AppTypeInfo, AppTypesResponse, DeploymentApiError, DeploymentConfig,
-    DeploymentEnvironment, DeploymentError, DeploymentRequest, DeploymentResponse,
-    DeploymentResult, DeploymentStatus, GeneratedApp, GeneratedFile,
+    DeployGatewayRequest, DeployGatewayResponse, DeployKey, DeployTarget, DeploymentApiError,
+    DeploymentConfig, DeploymentEnvironment, DeploymentError, DeploymentRequest,
+    DeploymentResponse, DeploymentResult, DeploymentStatus, GeneratedApp, GeneratedFile,
+    ProjectTypeInfo, ProjectType, ProjectTypesResponse,
 };
 
 use std::fmt;

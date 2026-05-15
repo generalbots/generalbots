@@ -3,7 +3,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-use super::types::{AppType, DeploymentEnvironment, DeploymentError, GeneratedApp, GeneratedFile};
+use super::types::{DeploymentEnvironment, DeploymentError, DeployTarget, GeneratedApp, GeneratedFile, ProjectType};
 
 pub struct ForgejoClient {
     base_url: String,
@@ -22,11 +22,12 @@ impl ForgejoClient {
 
     pub async fn create_repository(
         &self,
+        org: &str,
         name: &str,
         description: &str,
         private: bool,
     ) -> Result<ForgejoRepo, ForgejoError> {
-        let url = format!("{}/api/v1/user/repos", self.base_url);
+        let url = format!("{}/api/v1/org/{org}/repos", self.base_url);
 
         let payload = CreateRepoRequest {
             name: name.to_string(),
@@ -122,14 +123,14 @@ impl ForgejoClient {
     pub async fn create_cicd_workflow(
         &self,
         repo_url: &str,
-        app_type: &AppType,
+        project_type: &ProjectType,
+        deploy_target: &DeployTarget,
         environment: &DeploymentEnvironment,
     ) -> Result<(), DeploymentError> {
-        let workflow = match app_type {
-            AppType::GbNative { .. } => self.generate_gb_native_workflow(environment),
-            AppType::Custom { framework, node_version, build_command, output_directory } => {
-                self.generate_custom_workflow(framework, node_version.as_deref().unwrap_or("20"), build_command.as_deref().unwrap_or("npm run build"), output_directory.as_deref().unwrap_or("dist"), environment)
-            }
+        let workflow = match deploy_target {
+            DeployTarget::None => return Ok(()),
+            DeployTarget::IncusContainer => self.generate_app_workflow(project_type, deploy_target, environment),
+            DeployTarget::CaddyStatic => self.generate_site_workflow(environment),
         };
 
         let workflow_file = GeneratedFile {
@@ -180,9 +181,19 @@ impl ForgejoClient {
         }
     }
 
-    fn generate_gb_native_workflow(&self, environment: &DeploymentEnvironment) -> String {
+    fn generate_app_workflow(&self, project_type: &ProjectType, _deploy_target: &DeployTarget, environment: &DeploymentEnvironment) -> String {
         let env_name = environment.to_string();
-        format!(r#"name: Deploy GB Native App
+        let (framework, node_version, build_command, output_dir) = match project_type {
+            ProjectType::App { framework, node_version, build_command, output_directory } => (
+                framework.clone(),
+                node_version.clone().unwrap_or_else(|| "20".to_string()),
+                build_command.clone().unwrap_or_else(|| "npm run build".to_string()),
+                output_directory.clone().unwrap_or_else(|| "dist".to_string()),
+            ),
+            _ => ("htmx".to_string(), "20".to_string(), "npm run build".to_string(), "dist".to_string()),
+        };
+
+        format!(r#"name: Deploy {framework} App
 
 on:
   push:
@@ -192,28 +203,88 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '{node_version}'
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Build app
-      run: npm run build
-      env:
-        NODE_ENV: production
-        GB_ENV: {env_name}
+      - name: Build {framework} app
+        run: {build_command}
+        env:
+          NODE_ENV: production
 
-    - name: Deploy to GB Platform
-      run: |
-        echo "Deploying to GB Platform ({env_name})"
-        # GB Platform deployment logic here
-      env:
-        GB_DEPLOYMENT_TOKEN: ${{{{ secrets.GB_DEPLOYMENT_TOKEN }}}}
+      - name: Package artifacts
+        run: tar -czf /tmp/artifact.tar.gz -C ./{output_dir} .
+
+      - name: Deploy via Gateway
+        run: |
+          curl -X POST ${{{{ DEPLOY_GATEWAY_URL }}}}/deploy \
+            -H "X-Deploy-Key: ${{{{ DEPLOY_KEY }}}}" \
+            -H "Content-Type: application/json" \
+            -d '{{
+              "app_name": "${{{{ gitea.repository_name }}}}",
+              "org": "${{{{ gitea.repository_owner }}}}",
+              "project_type": "app",
+              "artifact_url": "file:///tmp/artifact.tar.gz",
+              "environment": "{env_name}"
+            }}'
+        env:
+          DEPLOY_GATEWAY_URL: ${{{{ secrets.DEPLOY_GATEWAY_URL }}}}
+          DEPLOY_KEY: ${{{{ secrets.DEPLOY_KEY }}}}
+"#)
+    }
+
+    fn generate_site_workflow(&self, environment: &DeploymentEnvironment) -> String {
+        let env_name = environment.to_string();
+
+        format!(r#"name: Deploy Static Site
+
+on:
+  push:
+    branches: [ main, {env_name} ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Package artifacts
+        run: tar -czf /tmp/artifact.tar.gz -C ./dist .
+
+      - name: Deploy via Gateway
+        run: |
+          curl -X POST ${{{{ DEPLOY_GATEWAY_URL }}}}/deploy \
+            -H "X-Deploy-Key: ${{{{ DEPLOY_KEY }}}}" \
+            -H "Content-Type: application/json" \
+            -d '{{
+              "app_name": "${{{{ gitea.repository_name }}}}",
+              "org": "${{{{ gitea.repository_owner }}}}",
+              "project_type": "site",
+              "artifact_url": "file:///tmp/artifact.tar.gz",
+              "environment": "{env_name}"
+            }}'
+        env:
+          DEPLOY_GATEWAY_URL: ${{{{ secrets.DEPLOY_GATEWAY_URL }}}}
+          DEPLOY_KEY: ${{{{ secrets.DEPLOY_KEY }}}}
 "#)
     }
 
