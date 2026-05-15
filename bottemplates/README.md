@@ -8,30 +8,30 @@ Pre-built bot packages for common business use cases. Templates are organized by
 
 | # | Template | Category | Folder | Key Features |
 |---|----------|----------|--------|--------------|
-| 1 | Default | Core | `default.gbai` | Minimal starter bot |
-| 2 | Template | Core | `template.gbai` | Reference implementation |
-| 3 | AI Search | Search | `ai-search.gbai` | QR codes, document search |
-| 4 | Announcements | Communications | `announcements.gbai` | Company news, multiple KB |
-| 5 | Analytics Dashboard | Platform | `analytics-dashboard.gbai` | Metrics, Reports |
-| 6 | Backup | Platform | `backup.gbai` | Server backup scripts |
-| 7 | Bank | Finance | `bank.gbai` | Banking services |
-| 8 | BI | Platform | `bi.gbai` | Dashboards, role separation |
-| 9 | Bling | Integration | `bling.gbai` | Bling ERP integration |
-| 10 | Broadcast | Communications | `broadcast.gbai` | Mass messaging |
-| 11 | Crawler | Search | `crawler.gbai` | Web indexing |
+| 1 | Default | Core | `core/default.gbai` | Minimal starter bot |
+| 2 | Template | Core | `core/template.gbai` | Reference implementation |
+| 3 | AI Search | Search | `search/ai-search.gbai` | QR codes, document search |
+| 4 | Announcements | Communications | `communications/announcements.gbai` | Company news, multiple KB |
+| 5 | Analytics Dashboard | Platform | `platform/analytics-dashboard.gbai` | Metrics, Reports |
+| 6 | Backup | Platform | `platform/backup.gbai` | Server backup scripts |
+| 7 | Bank | Finance | `finance/bank.gbai` | Banking services |
+| 8 | BI | Platform | `platform/bi.gbai` | Dashboards, role separation |
+| 9 | Bling | Integration | `integration/bling.gbai` | Bling ERP integration |
+| 10 | Broadcast | Communications | `communications/broadcast.gbai` | Mass messaging |
+| 11 | Crawler | Search | `search/crawler.gbai` | Web indexing |
 | 12 | CRM | Sales | `sales/crm.gbai` | Customer management |
 | 13 | Attendance CRM | Sales | `sales/attendance-crm.gbai` | Event attendance tracking |
 | 14 | Marketing | Sales | `sales/marketing.gbai` | Campaign tools |
-| 15 | Education | Education | `edu.gbai` | Course management |
-| 16 | ERP | Operations | `erp.gbai` | Process automation |
+| 15 | Education | Education | `edu/edu.gbai` | Course management |
+| 16 | ERP | Operations | `operations/erp.gbai` | Process automation |
 | 17 | HIPAA Medical | Compliance | `compliance/hipaa-medical.gbai` | HIPAA, HITECH |
 | 18 | Privacy | Compliance | `compliance/privacy.gbai` | LGPD, GDPR, CCPA |
-| 19 | Law | Legal | `law.gbai` | Document templates |
-| 20 | LLM Server | AI | `llm-server.gbai` | Model hosting |
-| 21 | LLM Tools | AI | `llm-tools.gbai` | TOOL-based LLM examples |
-| 22 | Store | E-commerce | `store.gbai` | Product catalog |
-| 23 | Talk to Data | Platform | `talk-to-data.gbai` | Natural language SQL |
-| 24 | WhatsApp | Messaging | `whatsapp.gbai` | WhatsApp Business |
+| 19 | Law | Legal | `legal/law.gbai` | Document templates |
+| 20 | LLM Server | AI | `ai/llm-server.gbai` | Model hosting |
+| 21 | LLM Tools | AI | `ai/llm-tools.gbai` | TOOL-based LLM examples |
+| 22 | Store | E-commerce | `ecommerce/store.gbai` | Product catalog |
+| 23 | Talk to Data | Platform | `platform/talk-to-data.gbai` | Natural language SQL |
+| 24 | WhatsApp | Communications | `communications/whatsapp.gbai` | WhatsApp Business |
 
 ---
 
@@ -45,6 +45,7 @@ Customer relationship and marketing templates.
 | `crm.gbai` | Full CRM system | Leads, Contacts, Accounts, Opportunities |
 | `marketing.gbai` | Marketing automation | Campaigns, Lead capture, Email sequences |
 | `attendance-crm.gbai` | Event attendance | Check-ins, Tracking |
+| `sales-pipeline.gbai` | Sales workflow | Pipeline management |
 
 ### `/compliance`
 Privacy and regulatory compliance templates.
@@ -63,6 +64,7 @@ Platform administration and analytics templates.
 | `bi.gbai` | Business intelligence | Dashboards, role separation |
 | `backup.gbai` | Backup automation | Server backup scripts |
 | `talk-to-data.gbai` | Data queries | Natural language SQL |
+| `store-server.gbai` | Store management | Server-side store logic |
 
 ### `/finance`
 Financial services templates.
@@ -77,6 +79,8 @@ External API and service integrations.
 | Template | Description | APIs |
 |----------|-------------|------|
 | `bling.gbai` | Bling ERP | Brazilian ERP integration |
+| `api-client.gbai` | Generic API client | REST integration |
+| `public-apis.gbai` | Public API examples | Weather, News, etc. |
 
 ### `/productivity`
 Office and personal productivity templates.
@@ -85,6 +89,8 @@ Office and personal productivity templates.
 |----------|-------------|----------|
 | `office.gbai` | Office automation | Document management, Scheduling |
 | `reminder.gbai` | Reminder system | Scheduled alerts, Follow-ups |
+| `broadcast.gbai` | Message broadcasting | Notifications |
+| `broadcast-v2.gbai` | Broadcast tools (v2) | Alternative implementation |
 
 ### `/hr`
 Human resources templates.
@@ -92,6 +98,7 @@ Human resources templates.
 | Template | Description | Features |
 |----------|-------------|----------|
 | `employees.gbai` | Employee management | Directory, Onboarding |
+| `employee-engage.gbai` | Engagement surveys | Feedback collection |
 
 ### `/it`
 IT service management templates.
@@ -100,39 +107,29 @@ IT service management templates.
 |----------|-------------|----------|
 | `helpdesk.gbai` | IT helpdesk ticketing | Tickets, Knowledge base |
 
-### `/healthcare`
-Healthcare-specific templates.
+### `/ai`
+Artificial Intelligence and LLM server templates.
 
 | Template | Description | Features |
 |----------|-------------|----------|
-| `patient-comm.gbai` | Patient communication | Appointments, Reminders |
+| `llm-server.gbai` | Model hosting | Server management |
+| `llm-tools.gbai` | LLM tools | Function calling examples |
 
-### `/nonprofit`
-Nonprofit organization templates.
+### `/search`
+AI-powered search and crawling templates.
 
 | Template | Description | Features |
 |----------|-------------|----------|
-| `donor-mgmt.gbai` | Donor management | Donations, Communications |
+| `ai-search.gbai` | Document search | RAG, Semantic search |
+| `crawler.gbai` | Web crawler | Indexing, Scraping |
 
-### Root Level
-Core and utility templates.
+### `/core`
+Base templates and references.
 
 | Template | Description |
 |----------|-------------|
 | `default.gbai` | Starter template |
-| `template.gbai` | Template for creating templates |
-| `ai-search.gbai` | AI-powered document search |
-| `announcements.gbai` | Company announcements |
-| `backup.gbai` | Backup automation |
-| `broadcast.gbai` | Message broadcasting |
-| `crawler.gbai` | Web crawling |
-| `edu.gbai` | Education/training |
-| `erp.gbai` | ERP integration |
-| `law.gbai` | Legal document processing |
-| `llm-server.gbai` | LLM server management |
-| `llm-tools.gbai` | LLM tool definitions |
-| `store.gbai` | E-commerce |
-| `whatsapp.gbai` | WhatsApp-specific features |
+| `template.gbai` | Reference for new templates |
 
 ---
 
@@ -209,13 +206,13 @@ TALK "Lead scored: " + score.score + "/100"
 ### From Console
 
 ```bash
-botserver --install-template crm
+botserver --install-template sales/crm
 ```
 
 ### From BASIC
 
 ```basic
-INSTALL TEMPLATE "crm"
+INSTALL TEMPLATE "sales/crm"
 ```
 
 ### Manual
@@ -230,7 +227,7 @@ cp -r templates/sales/crm.gbai /path/to/your/bot/packages/
 
 ## Creating Custom Templates
 
-1. Copy `template.gbai` as a starting point
+1. Copy `core/template.gbai` as a starting point
 2. Rename the folder to `your-template.gbai`
 3. Update internal folder names to match
 4. Edit `config.csv` with your bot settings
@@ -239,28 +236,17 @@ cp -r templates/sales/crm.gbai /path/to/your/bot/packages/
 7. Add `PARAM` and `DESCRIPTION` to make scripts LLM-invokable
 8. Add documentation in `README.md`
 
-### Template Best Practices
+---
 
-- Use `ON` for event-driven automation
-- Use `TALK TO` for multi-channel notifications
-- Use `LLM` for intelligent decision-making
-- Use `SCORE LEAD` / `AI SCORE LEAD` for lead qualification
-- Create `.bas` files with `DESCRIPTION` for LLM tool discovery
-- Log activities for audit trails
-- Include error handling
-- Document all configuration options
+## License
+
+All templates are licensed under AGPL-3.0 as part of General Bots.
 
 ---
 
-## Contributing Templates
-
-1. Create your template following the structure above
-2. Test thoroughly with different inputs
-3. Document all features and configuration
-4. Submit a pull request with:
-   - Template files
-   - Updated category README
-   - Entry in this document
+**Pragmatismo** - General Bots Open Source Platform
+nvokable
+8. Add documentation in `README.md`
 
 ---
 
