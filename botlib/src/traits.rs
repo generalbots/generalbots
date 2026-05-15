@@ -22,6 +22,15 @@ fn generate_with_context(
 prompt: &str,
 context: &str,
 ) -> BoxFutureString;
+fn generate_stream(
+&self,
+prompt: &str,
+config: &serde_json::Value,
+tx: tokio::sync::mpsc::Sender<String>,
+model: &str,
+key: &str,
+tools: Option<&Vec<serde_json::Value>>,
+) -> BoxFutureUnit;
 }
 
 pub trait ChannelAdapter: Send + Sync + Debug {

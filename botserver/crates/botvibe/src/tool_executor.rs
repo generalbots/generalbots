@@ -1,4 +1,4 @@
-use crate::types::{VibeToolCall, VibeToolResult, VibeUseCase};
+use crate::types::{VibeState, VibeToolCall, VibeToolResult, VibeUseCase};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -60,7 +60,7 @@ pub enum ToolCategory {
     Analysis,
 }
 
-pub type ToolHandler = Arc<dyn Fn(serde_json::Value) -> ToolFuture + Send + Sync>;
+pub type ToolHandler = Arc<dyn Fn(serde_json::Value, &dyn VibeState) -> ToolFuture + Send + Sync>;
 type ToolFuture = std::pin::Pin<Box<dyn std::future::Future<Output = VibeToolResult> + Send>>;
 
 pub struct ToolRegistry {
@@ -225,8 +225,8 @@ impl ToolSchemaExt for ToolSchema {
     }
 }
 
-fn stub_tool_handler(name: &'static str) -> impl Fn(serde_json::Value) -> ToolFuture + Send + Sync + 'static {
-    move |_args: serde_json::Value| {
+fn stub_tool_handler(name: &'static str) -> impl Fn(serde_json::Value, &dyn VibeState) -> ToolFuture + Send + Sync + 'static {
+    move |_args: serde_json::Value, _state: &dyn VibeState| {
         let name = name.to_string();
         Box::pin(async move {
             VibeToolResult {
@@ -252,6 +252,7 @@ impl VibeToolExecutor {
         &self,
         tool_call: &mut VibeToolCall,
         use_case: VibeUseCase,
+    state: &dyn VibeState,
     ) -> Result<(), String> {
         let descriptor = self.registry.get_descriptor(&tool_call.tool_name).await
             .ok_or_else(|| format!("Ferramenta '{}' não registrada", tool_call.tool_name))?;
@@ -273,7 +274,7 @@ impl VibeToolExecutor {
         let result = if let Some(registered) = tools.get(&tool_call.tool_name) {
             let handler = registered.handler.clone();
             drop(tools);
-            (handler)(tool_call.arguments.clone()).await
+            (handler)(tool_call.arguments.clone(), state).await
         } else {
             drop(tools);
             VibeToolResult {

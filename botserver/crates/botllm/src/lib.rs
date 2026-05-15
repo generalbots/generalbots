@@ -11,6 +11,7 @@ pub mod episodic_memory;
 pub mod local;
 pub mod smart_router;
 pub mod observability;
+pub mod pipeline;
 
 pub use rate_limiter::{ApiRateLimiter, RateLimits};
 pub use hallucination_detector::HallucinationDetector;
@@ -19,6 +20,7 @@ pub use claude::ClaudeClient;
 pub use glm::GLMClient;
 pub use vertex::VertexTokenManager;
 pub use bedrock::BedrockClient;
+pub use pipeline::{PipelineConfig, LlmPipeline, MessageBuilder, KbContextManager, PromptManager};
 
 use async_trait::async_trait;
 use futures::StreamExt;
@@ -180,11 +182,11 @@ impl LLMProvider for AzureGPT5Client {
 }
 
 impl OpenAIClient {
-    fn estimate_tokens(text: &str) -> usize {
+    pub fn estimate_tokens(text: &str) -> usize {
         text.len().div_ceil(4)
     }
 
-    fn estimate_messages_tokens(messages: &Value) -> usize {
+    pub fn estimate_messages_tokens(messages: &Value) -> usize {
         if let Some(msg_array) = messages.as_array() {
             msg_array
                 .iter()
@@ -201,7 +203,7 @@ impl OpenAIClient {
         }
     }
 
-    fn truncate_messages(messages: &Value, max_tokens: usize) -> Value {
+    pub fn truncate_messages(messages: &Value, max_tokens: usize) -> Value {
         let mut result = Vec::new();
         let mut token_count = 0;
 
@@ -252,7 +254,7 @@ impl OpenAIClient {
         serde_json::Value::Array(result)
     }
 
-    fn ensure_token_limit(messages: &Value, model_context_limit: usize) -> Value {
+    pub fn ensure_token_limit(messages: &Value, model_context_limit: usize) -> Value {
         let estimated_tokens = Self::estimate_messages_tokens(messages);
         let safe_limit = (model_context_limit as f64 * 0.9) as usize;
 
@@ -307,7 +309,7 @@ impl OpenAIClient {
         }
     }
 
-    fn sanitize_utf8(input: &str) -> String {
+    pub fn sanitize_utf8(input: &str) -> String {
         input.chars()
             .filter(|c| {
                 let cp = *c as u32;
@@ -537,7 +539,6 @@ impl LLMProvider for OpenAIClient {
 
         info!("LLM stream starting for model: {}", model);
 
-        let mut in_reasoning = false;
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result?;
             total_size += chunk.len();
@@ -560,26 +561,22 @@ impl LLMProvider for OpenAIClient {
                             }
                         }
 
-                        if let Some(reasoning) = data["choices"][0]["delta"]["reasoning_content"].as_str() {
-                            if !reasoning.is_empty() {
-                                if !in_reasoning {
-                                    in_reasoning = true;
+                        let reasoning_text = data["choices"][0]["delta"]["reasoning_content"].as_str().map(|s| s.to_string());
+                        let content_text = data["choices"][0]["delta"]["content"].as_str().map(|s| s.to_string());
+
+                        // Send reasoning_content only if there's no content delta (thinking-only chunks)
+                        if let Some(ref reasoning) = reasoning_text {
+                            if !reasoning.is_empty() && content_text.as_ref().map_or(true, |c| c.is_empty()) {
+                                let processed = handler.process_content_streaming(reasoning, &mut stream_state);
+                                if !processed.is_empty() {
+                                    content_sent += processed.len();
+                                    let _ = tx.send(processed).await;
                                 }
-                                let thinking_msg = serde_json::json!({
-                                    "type": "thinking",
-                                    "content": reasoning
-                                }).to_string();
-                                let _ = tx.send(thinking_msg).await;
                             }
                         }
 
-                        if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
+                        if let Some(ref content) = content_text {
                             if !content.is_empty() {
-                                if in_reasoning {
-                                    in_reasoning = false;
-                                    let clear_msg = serde_json::json!({"type": "thinking_clear"}).to_string();
-                                    let _ = tx.send(clear_msg).await;
-                                }
                                 let processed = handler.process_content_streaming(content, &mut stream_state);
                                 if !processed.is_empty() {
                                     content_sent += processed.len();

@@ -2228,6 +2228,9 @@ name = "botvibe"
 version = "6.3.0"
 dependencies = [
  "axum",
+ "botautotask",
+ "botcontacts",
+ "botdeployment",
  "botlib",
  "chrono",
  "diesel",
