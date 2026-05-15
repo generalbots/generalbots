@@ -34,16 +34,16 @@ Pre-built bot packages for common business use cases. Templates are organized by
 | 24 | Office | Communications | `communications/office.gbai` | Office automation |
 | 25 | Reminder | Communications | `communications/reminder.gbai` | Scheduled alerts |
 | 26 | WhatsApp | Communications | `communications/whatsapp.gbai` | WhatsApp Business |
-| 27 | Education | HR | `hr/edu.gbai` | Course management |
-| 28 | Employee Engage | HR | `hr/employee-engage.gbai` | Engagement surveys |
-| 29 | Employees | HR | `hr/employees.gbai` | Employee management |
-| 30 | Team Feedback | HR | `hr/team-feedback.gbai` | Feedback collection |
-| 31 | HIPAA Medical | Legal | `legal/hipaa-medical.gbai` | HIPAA, HITECH |
-| 32 | Law | Legal | `legal/law.gbai` | Document templates |
-| 33 | Privacy | Legal | `legal/privacy.gbai` | LGPD, GDPR, CCPA |
-| 34 | Bank | Operations | `operations/bank.gbai` | Banking services |
-| 35 | ERP | Operations | `operations/erp.gbai` | Process automation |
-| 36 | Helpdesk | Operations | `operations/helpdesk.gbai` | IT helpdesk ticketing |
+| 27 | Education | Education | `education/edu.gbai` | Course management |
+| 28 | Bank | Finance | `finance/bank.gbai` | Banking services |
+| 29 | Helpdesk | IT | `it/helpdesk.gbai` | IT helpdesk ticketing |
+| 30 | Employee Engage | HR | `hr/employee-engage.gbai` | Engagement surveys |
+| 31 | Employees | HR | `hr/employees.gbai` | Employee management |
+| 32 | Team Feedback | HR | `hr/team-feedback.gbai` | Feedback collection |
+| 33 | HIPAA Medical | Legal | `legal/hipaa-medical.gbai` | HIPAA, HITECH |
+| 34 | Law | Legal | `legal/law.gbai` | Document templates |
+| 35 | Privacy | Legal | `legal/privacy.gbai` | LGPD, GDPR, CCPA |
+| 36 | ERP | Operations | `operations/erp.gbai` | Process automation |
 | 37 | Attendance CRM | Sales | `sales/attendance-crm.gbai` | Event attendance tracking |
 | 38 | Attendance | Sales | `sales/attendance.gbai` | Simple attendance |
 | 39 | Campaign Manager | Sales | `sales/campaign-manager.gbai` | Campaign tools |
@@ -102,15 +102,35 @@ Messaging, productivity, and office automation tools.
 | `office.gbai` | Office automation |
 | `reminder.gbai` | Reminder system |
 
+### `/education`
+Education and training management.
+
+| Template | Description |
+|----------|-------------|
+| `edu.gbai` | Course management |
+
+### `/finance`
+Banking and financial services.
+
+| Template | Description |
+|----------|-------------|
+| `bank.gbai` | Banking services |
+
 ### `/hr`
-Human resources, team feedback, and education.
+Human resources, team feedback, and surveys.
 
 | Template | Description |
 |----------|-------------|
 | `employees.gbai` | Employee management |
 | `employee-engage.gbai` | Engagement surveys |
 | `team-feedback.gbai` | Team feedback collection |
-| `edu.gbai` | Education and training management |
+
+### `/it`
+IT service management and helpdesk.
+
+| Template | Description |
+|----------|-------------|
+| `helpdesk.gbai` | IT helpdesk ticketing |
 
 ### `/legal`
 Privacy, legal processing, and regulatory compliance.
@@ -122,13 +142,11 @@ Privacy, legal processing, and regulatory compliance.
 | `hipaa-medical.gbai` | Healthcare privacy management |
 
 ### `/operations`
-Operations, IT service management, and finance.
+Operational automation and ERP.
 
 | Template | Description |
 |----------|-------------|
 | `erp.gbai` | ERP integration |
-| `bank.gbai` | Banking and financial services |
-| `helpdesk.gbai` | IT helpdesk ticketing |
 
 ### `/sales`
 Customer relationship, marketing, and e-commerce templates.
