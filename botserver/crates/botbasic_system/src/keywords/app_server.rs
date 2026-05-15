@@ -207,17 +207,21 @@ fn rewrite_cdn_urls(html: &str) -> String {
 }
 
 pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
-    Router::new()
-        // Serve shared vendor files from MinIO: /js/vendor/*
-        .route("/js/vendor/*file_path", get(serve_vendor_file))
-        // Serve suite JS files (i18n.js, theme-manager.js, etc.)
-        .route("/js/*file_path", get(serve_suite_js_file))
-        // Serve app files: /apps/{app_name}/* (clean URLs)
+    let router = Router::new()
+    // Serve shared vendor files from MinIO: /js/vendor/*
+    .route("/js/vendor/*file_path", get(serve_vendor_file))
+    // Serve suite JS files (i18n.js, theme-manager.js, etc.)
+    .route("/js/*file_path", get(serve_suite_js_file));
+
+    #[cfg(not(feature = "vibe"))]
+    let router = router
+        // Legacy app serving (removed under vibe feature — apps/sites served by Caddy/Incus)
         .route("/apps/:app_name", get(serve_app_index))
         .route("/apps/:app_name/", get(serve_app_index))
         .route("/apps/:app_name/*file_path", get(serve_app_file))
-        // List all available apps
-        .route("/apps", get(list_all_apps))
+        .route("/apps", get(list_all_apps));
+
+    router
 }
 
 #[derive(Debug, serde::Deserialize)]

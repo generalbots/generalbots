@@ -1,4 +1,9 @@
-//! Type definitions for VibeCode deployment module - Phase 2.5
+//! Type definitions for deployment module
+//!
+//! Three project types under the ALM (Forgejo) model:
+//! - **bots**: GB Native scripts in .gbdialog/ — no ALM, runs in chat mode
+//! - **apps**: Custom full-stack apps — ALM repo → alm-ci builds → own Incus container
+//! - **sites**: Static HTML/CSS/JS — ALM repo → alm-ci builds → Caddy serves from proxy container
 
 use axum::{
     http::StatusCode,
@@ -11,44 +16,92 @@ use super::forgejo::ForgejoError;
 use super::{log_and_sanitize, StringError};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum AppType {
-    GbNative {
-        shared_database: bool,
-        shared_auth: bool,
-        shared_cache: bool,
-    },
-    Custom {
+pub enum ProjectType {
+    Bot,
+    App {
         framework: String,
         node_version: Option<String>,
         build_command: Option<String>,
         output_directory: Option<String>,
     },
+    Site,
 }
 
-impl Default for AppType {
+impl Default for ProjectType {
     fn default() -> Self {
-        AppType::GbNative {
-            shared_database: true,
-            shared_auth: true,
-            shared_cache: true,
-        }
+        ProjectType::Bot
     }
 }
 
-impl std::fmt::Display for AppType {
+impl std::fmt::Display for ProjectType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AppType::GbNative { .. } => write!(f, "gb-native"),
-            AppType::Custom { framework, .. } => write!(f, "custom-{}", framework),
+            ProjectType::Bot => write!(f, "bot"),
+            ProjectType::App { framework, .. } => write!(f, "app-{}", framework),
+            ProjectType::Site => write!(f, "site"),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum DeployTarget {
+    None,
+    IncusContainer,
+    CaddyStatic,
+}
+
+impl From<&ProjectType> for DeployTarget {
+    fn from(pt: &ProjectType) -> Self {
+        match pt {
+            ProjectType::Bot => DeployTarget::None,
+            ProjectType::App { .. } => DeployTarget::IncusContainer,
+            ProjectType::Site => DeployTarget::CaddyStatic,
+        }
+    }
+}
+
+impl std::fmt::Display for DeployTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DeployTarget::None => write!(f, "none"),
+            DeployTarget::IncusContainer => write!(f, "incus-container"),
+            DeployTarget::CaddyStatic => write!(f, "caddy-static"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeployKey {
+    pub key_id: String,
+    pub key_hash: String,
+    pub org: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeployGatewayRequest {
+    pub app_name: String,
+    pub org: String,
+    pub project_type: ProjectType,
+    pub artifact_url: String,
+    pub environment: DeploymentEnvironment,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeployGatewayResponse {
+    pub success: bool,
+    pub url: Option<String>,
+    pub container: Option<String>,
+    pub status: Option<String>,
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeploymentConfig {
     pub organization: String,
     pub app_name: String,
-    pub app_type: AppType,
+    pub project_type: ProjectType,
+    pub deploy_target: DeployTarget,
     pub environment: DeploymentEnvironment,
     pub custom_domain: Option<String>,
     pub ci_cd_enabled: bool,
@@ -76,7 +129,8 @@ impl std::fmt::Display for DeploymentEnvironment {
 pub struct DeploymentResult {
     pub url: String,
     pub repository: String,
-    pub app_type: String,
+    pub project_type: String,
+    pub deploy_target: String,
     pub environment: String,
     pub status: DeploymentStatus,
     pub metadata: serde_json::Value,
@@ -161,14 +215,14 @@ impl GeneratedApp {
 pub struct DeploymentRequest {
     pub organization: Option<String>,
     pub app_name: String,
-    pub app_type: String,
+    pub project_type: String,
     pub framework: Option<String>,
     pub environment: String,
     pub custom_domain: Option<String>,
     pub ci_cd_enabled: Option<bool>,
-    pub shared_database: Option<bool>,
-    pub shared_auth: Option<bool>,
-    pub shared_cache: Option<bool>,
+    pub node_version: Option<String>,
+    pub build_command: Option<String>,
+    pub output_directory: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -176,21 +230,23 @@ pub struct DeploymentResponse {
     pub success: bool,
     pub url: Option<String>,
     pub repository: Option<String>,
-    pub app_type: Option<String>,
+    pub project_type: Option<String>,
+    pub deploy_target: Option<String>,
     pub status: Option<String>,
     pub error: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
-pub struct AppTypesResponse {
-    pub app_types: Vec<AppTypeInfo>,
+pub struct ProjectTypesResponse {
+    pub project_types: Vec<ProjectTypeInfo>,
 }
 
 #[derive(Debug, Serialize)]
-pub struct AppTypeInfo {
+pub struct ProjectTypeInfo {
     pub id: String,
     pub name: String,
     pub description: String,
+    pub deploy_target: String,
     pub features: Vec<String>,
 }
 
