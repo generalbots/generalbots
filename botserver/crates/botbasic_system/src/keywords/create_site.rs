@@ -1,6 +1,3 @@
-#[cfg(feature = "llm")]
-use log::{debug, info};
-
 pub fn register_create_site_keywords(
     _state: std::sync::Arc<dyn botbasic_types::BasicRuntime>,
     _user: botbasic_types::UserSession,
@@ -12,7 +9,7 @@ pub fn register_create_site_keywords(
 mod llm_impl {
     use botcore::shared::state::AppState;
     use botcore::shared::UserSession;
-    use log::warn;
+    use log::{debug, info, warn};
     use rhai::{Dynamic, Engine};
     use serde_json::json;
     use std::error::Error;
@@ -47,7 +44,6 @@ mod llm_impl {
                         }
                     };
 
-                    let bucket = state_clone.bucket_name.clone();
                     let bot_id = user_clone.bot_id.to_string();
 
                     let params = SiteCreationParams {
@@ -63,14 +59,20 @@ mod llm_impl {
                             .build();
                         let result = match rt {
                             Ok(rt) => rt.block_on(async {
-                                create_site(config, state_for_thread.drive.clone(), bucket, bot_id, state_for_thread.llm_provider.clone(), params).await
+                                create_site(
+                                    config,
+                                    state_for_thread.drive.clone(),
+                                    state_for_thread.llm_provider.clone(),
+                                    bot_id,
+                                    params,
+                                ).await
                             }),
-                            Err(e) => Err(format!("Runtime creation failed: {}", e).into()),
+                            Err(e) => Err(format!("Runtime creation failed: {e}").into()),
                         };
                         let _ = tx.send(result);
                     });
                     let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))
-                        .map_err(|e| format!("Site creation failed: {}", e))?;
+                        .map_err(|e| format!("Site creation failed: {e}"))?;
                     Ok(Dynamic::from(result))
                 },
             )
@@ -83,62 +85,114 @@ mod llm_impl {
         prompt: Dynamic,
     }
 
+    #[cfg(feature = "vibe")]
+    async fn create_site(
+        config: botcore::config::AppConfig,
+        #[cfg(feature = "drive")] _s3: Option<Arc<dyn botlib::traits::DriveRepository>>,
+        #[cfg(not(feature = "drive"))] _s3: Option<()>,
+        llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
+        _bot_id: String,
+        params: SiteCreationParams,
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let alias_str = params.alias.to_string();
+        let template_dir_str = params.template_dir.to_string();
+        let prompt_str = params.prompt.to_string();
+
+        info!("CREATE SITE (vibe): {} from template {}", alias_str, template_dir_str);
+
+        let base_path = PathBuf::from(&config.site_path);
+        let template_path = base_path.join(&template_dir_str);
+
+        let combined_content = load_templates(&template_path)?;
+        let generated_html = generate_html_from_prompt(llm, &combined_content, &prompt_str).await?;
+
+        let forgejo_url = std::env::var("FORGEJO_URL")
+            .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+        let forgejo_token = std::env::var("FORGEJO_TOKEN")
+            .map_err(|e| format!("FORGEJO_TOKEN not set: {e}"))?;
+        let org = std::env::var("FORGEJO_DEFAULT_ORG")
+            .unwrap_or_else(|_| "generalbots".to_string());
+
+        let client = botdeployment::ForgejoClient::new(forgejo_url, forgejo_token);
+        let repo = client.create_repository(&org, &alias_str, &prompt_str, false).await
+            .map_err(|e| format!("Failed to create ALM repo: {e}"))?;
+
+        let mut app = botdeployment::GeneratedApp::new(
+            alias_str.clone(),
+            prompt_str.clone(),
+        );
+        app.add_text_file("index.html".to_string(), generated_html);
+
+        let schema = r#"{"tables": {}, "version": 1}"#;
+        app.add_text_file("schema.json".to_string(), schema.to_string());
+
+        client.push_app(&repo.clone_url, &app, "main").await
+            .map_err(|e| format!("Failed to push to ALM: {e}"))?;
+
+        let ci_cd = std::env::var("CI_CD_ENABLED")
+            .unwrap_or_else(|_| "true".to_string());
+        if ci_cd == "true" {
+            client.create_cicd_workflow(
+                &repo.clone_url,
+                &botdeployment::ProjectType::Site,
+                &botdeployment::DeployTarget::CaddyStatic,
+                &botdeployment::DeploymentEnvironment::Production,
+            ).await.map_err(|e| format!("Failed to create CI/CD: {e}"))?;
+        }
+
+        let domain = std::env::var("SITE_DOMAIN")
+            .unwrap_or_else(|_| "gb.solutions".to_string());
+        let url = format!("https://{alias_str}.{domain}/");
+
+        info!("CREATE SITE (vibe): {} completed at {} (ALM: {})", alias_str, url, repo.html_url);
+        Ok(url)
+    }
+
+    #[cfg(not(feature = "vibe"))]
     #[cfg(feature = "drive")]
     async fn create_site(
         config: botcore::config::AppConfig,
         s3: Option<Arc<dyn botlib::traits::DriveRepository>>,
-        bucket: String,
-        bot_id: String,
         llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
+        bot_id: String,
         params: SiteCreationParams,
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
         let alias_str = params.alias.to_string();
         let template_dir_str = params.template_dir.to_string();
         let prompt_str = params.prompt.to_string();
 
-        info!(
-            "CREATE SITE: {} from template {}",
-            alias_str, template_dir_str
-        );
+        info!("CREATE SITE: {} from template {}", alias_str, template_dir_str);
 
         let base_path = PathBuf::from(&config.site_path);
         let template_path = base_path.join(&template_dir_str);
 
         let combined_content = load_templates(&template_path)?;
-
         let generated_html = generate_html_from_prompt(llm, &combined_content, &prompt_str).await?;
 
-        let drive_path = format!("apps/{}", alias_str);
-        store_to_drive(s3.as_ref(), &bucket, &bot_id, &drive_path, &generated_html).await?;
+        let drive_path = format!("apps/{alias_str}");
+        store_to_drive(s3.as_ref(), &config.site_path, &bot_id, &drive_path, &generated_html).await?;
 
         let serve_path = base_path.join(&alias_str);
         sync_to_serve_path(&serve_path, &generated_html, &template_path)?;
 
-        info!(
-            "CREATE SITE: {} completed, available at /apps/{}",
-            alias_str, alias_str
-        );
-
-        Ok(format!("/apps/{}", alias_str))
+        info!("CREATE SITE: {} completed, available at /apps/{}", alias_str, alias_str);
+        Ok(format!("/apps/{alias_str}"))
     }
 
+    #[cfg(not(feature = "vibe"))]
     #[cfg(not(feature = "drive"))]
     async fn create_site(
         config: botcore::config::AppConfig,
         _s3: Option<()>,
-        bucket: String,
-        bot_id: String,
         llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
+        bot_id: String,
         params: SiteCreationParams,
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
         let alias_str = params.alias.to_string();
         let template_dir_str = params.template_dir.to_string();
         let prompt_str = params.prompt.to_string();
 
-        info!(
-            "CREATE SITE: {} from template {}",
-            alias_str, template_dir_str
-        );
+        info!("CREATE SITE: {} from template {}", alias_str, template_dir_str);
 
         let base_path = PathBuf::from(&config.site_path);
         let template_path = base_path.join(&template_dir_str);
@@ -149,12 +203,9 @@ mod llm_impl {
         let serve_path = base_path.join(&alias_str);
         sync_to_serve_path(&serve_path, &generated_html, &template_path)?;
 
-        info!(
-            "CREATE SITE: {} completed, available at /apps/{}",
-            alias_str, alias_str
-        );
-
-        Ok(format!("/apps/{}", alias_str))
+        let _ = bot_id;
+        info!("CREATE SITE: {} completed, available at /apps/{}", alias_str, alias_str);
+        Ok(format!("/apps/{alias_str}"))
     }
 
     fn load_templates(template_path: &std::path::Path) -> Result<String, Box<dyn Error + Send + Sync>> {
@@ -324,7 +375,7 @@ Loading...
         )
     }
 
-    #[cfg(feature = "drive")]
+    #[cfg(all(not(feature = "vibe"), feature = "drive"))]
     async fn store_to_drive(
         s3: Option<&Arc<dyn botlib::traits::DriveRepository>>,
         bucket: &str,
@@ -336,48 +387,37 @@ Loading...
             debug!("S3 not configured, skipping drive storage");
             return Ok(());
         };
-        let key = format!("{}.gbdrive/{}/index.html", bot_id, drive_path);
+        let key = format!("{bot_id}.gbdrive/{drive_path}/index.html");
 
-        info!("Storing to drive: s3://{}/{}", bucket, key);
+        info!("Storing to drive: s3://{bucket}/{key}");
 
         s3_client
             .put_object(bucket, &key, html_content.as_bytes().to_vec(), None)
             .await
-            .map_err(|e| format!("Failed to store to drive: {}", e))?;
+            .map_err(|e| format!("Failed to store to drive: {e}"))?;
 
-        let schema_key = format!("{}.gbdrive/{}/schema.json", bot_id, drive_path);
+        let schema_key = format!("{bot_id}.gbdrive/{drive_path}/schema.json");
         let schema = r#"{"tables": {}, "version": 1}"#;
 
         s3_client
             .put_object(bucket, &schema_key, schema.as_bytes().to_vec(), None)
             .await
-            .map_err(|e| format!("Failed to store schema: {}", e))?;
+            .map_err(|e| format!("Failed to store schema: {e}"))?;
 
         Ok(())
     }
 
-    #[cfg(not(feature = "drive"))]
-    async fn store_to_drive(
-        _s3: Option<&()>,
-        _bucket: &str,
-        _bot_id: &str,
-        _drive_path: &str,
-        _html_content: &str,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        debug!("Drive feature not enabled, skipping storage");
-        Ok(())
-    }
-
+    #[cfg(not(feature = "vibe"))]
     fn sync_to_serve_path(
         serve_path: &std::path::Path,
         html_content: &str,
         template_path: &std::path::Path,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        fs::create_dir_all(serve_path).map_err(|e| format!("Failed to create serve path: {}", e))?;
+        fs::create_dir_all(serve_path).map_err(|e| format!("Failed to create serve path: {e}"))?;
 
         let index_path = serve_path.join("index.html");
         fs::write(&index_path, html_content)
-            .map_err(|e| format!("Failed to write index.html: {}", e))?;
+            .map_err(|e| format!("Failed to write index.html: {e}"))?;
 
         info!("Written: {}", index_path.display());
 
@@ -389,34 +429,35 @@ Loading...
             info!("Copied assets to: {}", serve_assets.display());
         } else {
             fs::create_dir_all(&serve_assets)
-                .map_err(|e| format!("Failed to create assets dir: {}", e))?;
+                .map_err(|e| format!("Failed to create assets dir: {e}"))?;
 
             let htmx_path = serve_assets.join("htmx.min.js");
             if !htmx_path.exists() {
                 fs::write(&htmx_path, "/* HTMX - include from CDN or bundle */")
-                    .map_err(|e| format!("Failed to write htmx: {}", e))?;
+                    .map_err(|e| format!("Failed to write htmx: {e}"))?;
             }
 
             let styles_path = serve_assets.join("styles.css");
             if !styles_path.exists() {
                 fs::write(&styles_path, DEFAULT_STYLES)
-                    .map_err(|e| format!("Failed to write styles: {}", e))?;
+                    .map_err(|e| format!("Failed to write styles: {e}"))?;
             }
 
             let app_js_path = serve_assets.join("app.js");
             if !app_js_path.exists() {
                 fs::write(&app_js_path, DEFAULT_APP_JS)
-                    .map_err(|e| format!("Failed to write app.js: {}", e))?;
+                    .map_err(|e| format!("Failed to write app.js: {e}"))?;
             }
         }
 
         let schema_path = serve_path.join("schema.json");
         fs::write(&schema_path, r#"{"tables": {}, "version": 1}"#)
-            .map_err(|e| format!("Failed to write schema.json: {}", e))?;
+            .map_err(|e| format!("Failed to write schema.json: {e}"))?;
 
         Ok(())
     }
 
+    #[cfg(not(feature = "vibe"))]
     fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<(), Box<dyn Error + Send + Sync>> {
         fs::create_dir_all(dst)
             .map_err(|e| format!("Failed to create dir {}: {}", dst.display(), e))?;
@@ -437,6 +478,7 @@ Loading...
         Ok(())
     }
 
+    #[cfg(not(feature = "vibe"))]
     const DEFAULT_STYLES: &str = r"
 :root {
   --primary: #0ea5e9;
@@ -459,79 +501,33 @@ Loading...
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.5;
-}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
 
-header {
-  padding: 1rem 2rem;
-  border-bottom: 1px solid var(--border);
-}
+header { padding: 1rem 2rem; border-bottom: 1px solid var(--border); }
 
-main {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
+main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
 
 h1, h2, h3 { margin-bottom: 1rem; }
 
-input, select, textarea {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 1rem;
-}
+input, select, textarea { padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 1rem; }
 
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--primary);
-}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
 
-button {
-  padding: 0.5rem 1rem;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 1rem;
-}
+button { padding: 0.5rem 1rem; background: var(--primary); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-size: 1rem; }
 
 button:hover { opacity: 0.9; }
 
-form {
-  display: flex;
-  gap: 0.5rem;
-  margin: 1rem 0;
-}
+form { display: flex; gap: 0.5rem; margin: 1rem 0; }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+table { width: 100%; border-collapse: collapse; }
 
-th, td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
+th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
 
-.htmx-indicator {
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.htmx-request .htmx-indicator {
-  opacity: 1;
-}
+.htmx-indicator { opacity: 0; transition: opacity 0.2s; }
+.htmx-request .htmx-indicator { opacity: 1; }
 ";
 
+    #[cfg(not(feature = "vibe"))]
     const DEFAULT_APP_JS: &str = r"
 
 function toast(message, type = 'info') {
@@ -563,6 +559,7 @@ function closeModal(id) {
 ";
 
     #[cfg(feature = "llm")]
+    #[cfg(not(feature = "vibe"))]
     pub fn reexport_create_site_keyword() -> Option<fn(Arc<AppState>, UserSession, &mut Engine)> {
         Some(create_site_keyword)
     }

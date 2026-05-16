@@ -105,14 +105,10 @@ impl ModelHandler for GptOss120bHandler {
     }
 
     fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
+        // For streaming, we only receive actual content (reasoning is skipped by the caller).
+        // Just pass through the chunk — no thinking tags in content field.
         state.push_str(chunk);
-
-        // Process accumulated state and return new content since last call
-        let processed = strip_think_tags(state);
-
-        // For streaming, we return the entire processed content
-        // The caller should handle deduplication if needed
-        processed
+        chunk.to_string()
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {

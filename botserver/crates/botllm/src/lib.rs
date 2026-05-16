@@ -561,16 +561,24 @@ impl LLMProvider for OpenAIClient {
                             }
                         }
 
-                        let reasoning_text = data["choices"][0]["delta"]["reasoning_content"].as_str().map(|s| s.to_string());
+                        // NVIDIA API uses "reasoning" field in streaming, not "reasoning_content"
+                        let reasoning_text = data["choices"][0]["delta"]["reasoning"].as_str()
+                            .or_else(|| data["choices"][0]["delta"]["reasoning_content"].as_str())
+                            .map(|s| s.to_string());
                         let content_text = data["choices"][0]["delta"]["content"].as_str().map(|s| s.to_string());
 
-                        // Send reasoning_content only if there's no content delta (thinking-only chunks)
-                        if let Some(ref reasoning) = reasoning_text {
-                            if !reasoning.is_empty() && content_text.as_ref().map_or(true, |c| c.is_empty()) {
-                                let processed = handler.process_content_streaming(reasoning, &mut stream_state);
-                                if !processed.is_empty() {
-                                    content_sent += processed.len();
-                                    let _ = tx.send(processed).await;
+                        // For reasoning models (gpt-oss), skip reasoning entirely
+                        let is_reasoning_model = model.contains("gpt-oss");
+
+                        if !is_reasoning_model {
+                            // Send reasoning_content only if there's no content delta (thinking-only chunks)
+                            if let Some(ref reasoning) = reasoning_text {
+                                if !reasoning.is_empty() && content_text.as_ref().map_or(true, |c| c.is_empty()) {
+                                    let processed = handler.process_content_streaming(reasoning, &mut stream_state);
+                                    if !processed.is_empty() {
+                                        content_sent += processed.len();
+                                        let _ = tx.send(processed).await;
+                                    }
                                 }
                             }
                         }

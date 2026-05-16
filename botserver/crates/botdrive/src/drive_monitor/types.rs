@@ -584,13 +584,15 @@ fn is_kb_extension(key: &str) -> bool {
     || lower.ends_with(".proto")
 }
 
-pub struct KbPathParts {
-    pub kb_name: String,
-    pub file_name: String,
-    pub relative_path: String,
+#[cfg(any(feature = "research", feature = "llm"))]
+struct KbPathParts {
+    kb_name: String,
+    file_name: String,
+    relative_path: String,
 }
 
-pub fn parse_kb_path(s3_key: &str) -> Option<KbPathParts> {
+#[cfg(any(feature = "research", feature = "llm"))]
+fn parse_kb_path(s3_key: &str) -> Option<KbPathParts> {
     let parts: Vec<&str> = s3_key.splitn(4, '/').collect();
     if parts.len() < 3 || !parts[0].ends_with(".gbkb") {
         return None;

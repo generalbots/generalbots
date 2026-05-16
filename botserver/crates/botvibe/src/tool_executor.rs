@@ -107,11 +107,24 @@ impl ToolRegistry {
 
         for (name, desc, approval) in deploy_tools {
             let schema = ToolSchema::new(name, desc)
+                .with_parameters(serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "app_name": {"type": "string", "description": "Name of the project/app"},
+                        "org": {"type": "string", "description": "ALM organization name"},
+                        "project_type": {"type": "string", "enum": ["bot", "app-htmx", "app-react", "app-vue", "site"], "description": "Project type: bot, app-*, or site"},
+                        "environment": {"type": "string", "enum": ["development", "staging", "production"], "description": "Deployment environment"},
+                        "framework": {"type": "string", "description": "Framework for apps (htmx, react, vue)"},
+                        "custom_domain": {"type": "string", "description": "Optional custom domain"},
+                        "files": {"type": "object", "description": "Files to deploy {path: content}"}
+                    },
+                    "required": ["app_name", "org", "project_type"]
+                }))
                 .with_approval_if(approval)
                 .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]);
             tools.insert(name.to_string(), RegisteredTool {
                 descriptor: ToolDescriptor { schema, category: ToolCategory::Deployment },
-                handler: Arc::new(stub_tool_handler(name)),
+                handler: Arc::new(deploy_app_handler()),
             });
         }
 
@@ -222,6 +235,108 @@ impl ToolSchemaExt for ToolSchema {
     fn with_approval_if(mut self, needs_approval: bool) -> Self {
         self.requires_approval = needs_approval;
         self
+    }
+}
+
+fn deploy_app_handler() -> impl Fn(serde_json::Value, &dyn VibeState) -> ToolFuture + Send + Sync + 'static {
+    move |args: serde_json::Value, _state: &dyn VibeState| {
+        let args = args.clone();
+        Box::pin(async move {
+            let app_name = args.get("app_name")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string();
+            let org = args.get("org")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string();
+            let project_type = args.get("project_type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("bot")
+                .to_string();
+            let environment = args.get("environment")
+                .and_then(|v| v.as_str())
+                .unwrap_or("development")
+                .to_string();
+            let framework = args.get("framework")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let custom_domain = args.get("custom_domain")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            let forgejo_url = std::env::var("FORGEJO_URL")
+                .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+            let forgejo_token = std::env::var("FORGEJO_TOKEN").ok();
+
+            let (pt, dt) = match project_type.as_str() {
+                "bot" => (botdeployment::ProjectType::Bot, botdeployment::DeployTarget::None),
+                "site" => (botdeployment::ProjectType::Site, botdeployment::DeployTarget::CaddyStatic),
+                app_pt if app_pt.starts_with("app-") => {
+                    let fw = framework.clone()
+                        .unwrap_or_else(|| app_pt.strip_prefix("app-").unwrap_or("unknown").to_string());
+                    let pt = botdeployment::ProjectType::App {
+                        framework: fw,
+                        node_version: None,
+                        build_command: None,
+                        output_directory: None,
+                    };
+                    let dt = botdeployment::DeployTarget::from(&pt);
+                    (pt, dt)
+                }
+                _ => {
+                    return VibeToolResult {
+                        success: false,
+                        data: serde_json::Value::Null,
+                        error: Some(format!("Unknown project type: {project_type}")),
+                        latency_ms: 0,
+                    };
+                }
+            };
+
+            let env = match environment.as_str() {
+                "staging" => botdeployment::DeploymentEnvironment::Staging,
+                "production" => botdeployment::DeploymentEnvironment::Production,
+                _ => botdeployment::DeploymentEnvironment::Development,
+            };
+
+            let config = botdeployment::DeploymentConfig {
+                organization: if org.is_empty() { "generalbots".to_string() } else { org },
+                app_name,
+                project_type: pt,
+                deploy_target: dt,
+                environment: env,
+                custom_domain,
+                ci_cd_enabled: true,
+            };
+
+            let router = botdeployment::DeploymentRouter::new(forgejo_url, forgejo_token);
+            let generated_app = botdeployment::GeneratedApp::new(
+                config.app_name.clone(),
+                format!("{} project", config.project_type),
+            );
+
+            match router.deploy(config, generated_app).await {
+                Ok(result) => VibeToolResult {
+                    success: true,
+                    data: serde_json::json!({
+                        "url": result.url,
+                        "repository": result.repository,
+                        "project_type": result.project_type,
+                        "deploy_target": result.deploy_target,
+                        "status": format!("{:?}", result.status),
+                    }),
+                    error: None,
+                    latency_ms: 0,
+                },
+                Err(e) => VibeToolResult {
+                    success: false,
+                    data: serde_json::Value::Null,
+                    error: Some(e.to_string()),
+                    latency_ms: 0,
+                },
+            }
+        })
     }
 }
 

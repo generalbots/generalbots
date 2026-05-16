@@ -13,6 +13,7 @@ tasks = []
 drive = []
 security = []
 llm = []
+vibe = ["dep:botdeployment"]
 
 [dependencies]
 botbasic_types = { path = "../botbasic_types" }
@@ -43,6 +44,7 @@ flate2 = { workspace = true }
 tar = { workspace = true }
 urlencoding = { workspace = true }
 zip = { workspace = true }
+botdeployment = { workspace = true, optional = true }
 
 [lints]
 workspace = true

@@ -17,7 +17,7 @@ I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! 
 > - ❌ **NEVER** write internal IPs to logs or output
 > - When debugging network issues, mask IPs (e.g., "10.x.x.x" instead of "10.16.164.222")
 > - Use hostnames instead of IPs in configs and documentation
-See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from MinIO drive buckets (`.gbai` format).
+See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from MinIO drive buckets (`.gbai` format). Bots are sourced exclusively from Drive (MinIO buckets), not from local filesystem paths.
 - ❌ **NEVER** use `cargo clean` - causes 30min rebuilds, use `./reset.sh` for database issues
 
 >
@@ -225,6 +225,141 @@ result = DETECT "folha_salarios"
 
 ' Calls BotModels API at /api/anomaly/detect
 ```
+
+---
+
+## 🗄️ Bot File Operations - MANDATORY RULES
+
+### All Bot Files Come From Drive (MinIO)
+
+**❌ NEVER manipulate bot files on the local filesystem directly.** ALL bot files (`.bas`, `.gbkb`, `.gbdrive`, config, etc.) live exclusively in MinIO Drive buckets (`{bot}.gbai`). To read, modify, or test any bot file, you MUST use `mc` (MinIO Client) to interact with Drive.
+
+**Workflow for ANY bot file operation:**
+1. **Get credentials from Vault** — load `VAULT_*` variables from `botserver/.env`, then use the Vault binary to retrieve drive credentials from `secret/gbo/drive`
+2. **Configure mc** — `/tmp/mc alias set local http://127.0.0.1:${DRIVE_PORT} ${DRIVE_ACCESSKEY} ${DRIVE_SECRET} --api s3v4`
+3. **Pull files from Drive** — `/tmp/mc cp local/{bot}.gbai/{bot}.gbdialog/{file}.bas /tmp/`
+4. **Edit locally in /tmp** — make changes to the pulled file
+5. **Push back to Drive** — `/tmp/mc cp /tmp/{file}.bas local/{bot}.gbai/{bot}.gbdialog/{file}.bas`
+6. **Verify** — botserver drive_monitor will auto-detect changes and reload
+
+**Vault credential retrieval pattern:**
+```bash
+# Load ONLY VAULT_* variables from .env — NO other variables allowed
+source <(grep -E '^VAULT_' ${WORKSPACE}/botserver/.env)
+export VAULT_ADDR=$VAULT_ADDR
+export VAULT_CACERT=${WORKSPACE}/botserver-stack/conf/system/certificates/ca/ca.crt
+export VAULT_TOKEN=$(cat /tmp/vault-token-gb 2>/dev/null || echo $VAULT_TOKEN)
+
+# Get drive credentials from Vault
+VAULT_BIN=${WORKSPACE}/botserver-stack/bin/vault/vault
+DRIVE_ACCESSKEY=$($VAULT_BIN kv get -field=accesskey secret/gbo/drive)
+DRIVE_SECRET=$($VAULT_BIN kv get -field=secret secret/gbo/drive)
+DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
+
+# Configure mc
+/tmp/mc alias set local http://127.0.0.1:${DRIVE_PORT} ${DRIVE_ACCESSKEY} ${DRIVE_SECRET} --api s3v4
+```
+
+**Common mc operations for bot testing:**
+```bash
+# List all bots
+/tmp/mc ls local/
+
+# Inspect a bot's dialog files
+/tmp/mc ls local/{bot}.gbai/{bot}.gbdialog/
+
+# Read a bot's start.bas
+/tmp/mc cp local/{bot}.gbai/{bot}.gbdialog/start.bas /tmp/start.bas && cat /tmp/start.bas
+
+# Update a bot's start.bas after editing
+/tmp/mc cp /tmp/start.bas local/{bot}.gbai/{bot}.gbdialog/start.bas
+
+# List KB documents
+/tmp/mc ls local/{bot}.gbai/{bot}.gbkb/docs/
+
+# Upload a new KB document
+/tmp/mc cp /tmp/document.pdf local/{bot}.gbai/{bot}.gbkb/docs/
+
+# Remove a file from bot
+/tmp/mc rm local/{bot}.gbai/{bot}.gbdialog/old_tool.bas
+```
+
+### 🔧 LLM Configuration — config.csv
+
+Each bot has a `config.csv` file in `{bot}.gbai/{bot}.gbot/config.csv` that controls LLM settings.
+
+**Location:** `local/{bot}.gbai/{bot}.gbot/config.csv`
+
+**Key fields:**
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `llm-url` | Full URL for chat completions | `https://integrate.api.nvidia.com/v1/chat/completions` |
+| `llm-server` | Base server URL | `https://integrate.api.nvidia.com/v1` |
+| `llm-key` | API key for the LLM provider | `nvapi-...` or `sk-...` |
+| `llm-model` | Model identifier | `openai/gpt-oss-120b` |
+| `llm-provider` | Provider type | `openai` |
+| `system-prompt` | Bot personality/instructions | `Você é o assistente virtual...` |
+| `history-limit` | Conversation history turns | `6` |
+
+**How it works:**
+1. BotServer reads `config.csv` from Drive via `drive_monitor` on startup/change
+2. LLM config is loaded per-bot from `ConfigManager::get_config()`
+3. Falls back to env vars `LLM_URL`, `LLM_MODEL`, `LLM_KEY` if not in config
+4. Provider is auto-detected from URL pattern (OpenAI-compatible, Anthropic, etc.)
+
+**Working models on NVIDIA API (tested May 2026):**
+
+| Model | Status | Notes |
+|-------|--------|-------|
+| `openai/gpt-oss-120b` | ✅ OK | Recommended, reasoning model, needs max_tokens >= 512 |
+| `openai/gpt-oss-20b` | ✅ OK | Faster, smaller reasoning model |
+| `meta/llama-3.3-70b-instruct` | ✅ OK | Reliable, fast |
+| `meta/llama-3.1-70b-instruct` | ✅ OK | Reliable |
+| `meta/llama-3.1-8b-instruct` | ✅ OK | Fast, lightweight |
+| `meta/llama-4-maverick-17b-128e-instruct` | ✅ OK | Newer Llama 4 |
+| `mistralai/mistral-large-3-675b-instruct-2512` | ✅ OK | Large Mistral model |
+| `mistralai/mixtral-8x22b-instruct-v0.1` | ✅ OK | MoE architecture |
+| `qwen/qwen3-coder-480b-a35b-instruct` | ✅ OK | Code-specialized |
+| `qwen/qwen3-next-80b-a3b-instruct` | ✅ OK | General purpose |
+| `microsoft/phi-4-mini-instruct` | ✅ OK | Compact model |
+| `upstage/solar-10.7b-instruct` | ✅ OK | Small, fast |
+| `deepseek-ai/deepseek-v4-flash` | ❌ TIMEOUT | Often times out |
+| `nvidia/gpt-oss-120b` | ❌ 404 | Wrong prefix — use `openai/gpt-oss-120b` |
+
+**⚠️ Important notes:**
+- Reasoning models (gpt-oss, deepseek-r1) need `max_tokens >= 512` to have budget for both reasoning and content
+- Many NVIDIA catalog models return 404 — only the ones marked ✅ above are confirmed working
+- Use `curl` to test models: `POST https://integrate.api.nvidia.com/v1/chat/completions` with `{"model": "...", "messages": [...]}`
+- To list all available models: `GET https://integrate.api.nvidia.com/v1/models`
+
+**Updating bot LLM model:**
+```bash
+# 1. Pull config.csv from Drive
+/tmp/mc cp local/{bot}.gbai/{bot}.gbot/config.csv /tmp/config.csv
+
+# 2. Edit the llm-model field in /tmp/config.csv
+sed -i 's/llm-model,.*/llm-model,openai\/gpt-oss-120b/' /tmp/config.csv
+
+# 3. Push back to Drive (drive_monitor auto-reloads)
+/tmp/mc cp /tmp/config.csv local/{bot}.gbai/{bot}.gbot/config.csv
+```
+
+### Use Playwright MCP to Talk to the Bot
+
+**✅ ALWAYS use Playwright MCP to interact with bots for testing.** Do not rely on curl, wscat, or manual WebSocket calls for bot conversation testing. Playwright provides the full browser context matching real user experience.
+
+**Pattern:**
+1. Navigate to `http://localhost:3000/{bot}` via `mcp__playwright__browser_navigate`
+2. Take snapshot to see current state via `mcp__playwright__browser_snapshot`
+3. Type messages in chat input and send
+4. Verify bot responses, suggestion buttons, and tool execution results
+5. Take screenshots for evidence via `mcp__playwright__browser_take_screenshot`
+
+**Summary — the three pillars for bot testing:**
+- **Drive (mc)** — all bot files come from MinIO, manipulated via `mc` with Vault credentials
+- **Vault (.env)** — credentials are ALWAYS retrieved from Vault; only `VAULT_*` variables may be loaded from `.env`, nothing else
+- **Playwright** — bot conversation testing is ALWAYS done via Playwright MCP at `http://localhost:3000/{bot}`
 
 ---
 
@@ -796,7 +931,7 @@ The LLM agent writes a Python script that:
 """Batch fix script: <description>"""
 import re, os, sys
 
-WORKSPACE = "/home/ubuntu/src/generalbots"
+WORKSPACE = os.getenv("WORKSPACE", os.getcwd())
 
 def fix_file(filepath, fixes):
     with open(filepath, 'r') as f:
@@ -871,22 +1006,35 @@ To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO envir
 **When user says "test bot" or similar — do this autonomously:**
 
 1. **Ask** "What bot would you like to test today?" (do NOT assume a specific bot name)
-2. **Run restart.sh** — `nohup ./restart.sh > /tmp/restart.log 2>&1 &`
-3. **Wait for bootstrap** — poll `curl -s http://localhost:5858/health` until it responds 200 (up to 5 min)
-4. **Find the bot** — check MinIO drive buckets: `mc ls local/` (each bucket = `{bot}.gbai`)
-5. **If bot not in drive, ask user** — do NOT copy from work dir. Ask: "Where can I get a copy of the .gbai to work on?"
-6. **Verify bot loaded** — check botserver logs for `[drive_monitor]` confirming bot sync
-7. **Open browser** — `mcp__playwright__browser_navigate` to `http://localhost:3000/{bot}`
-8. **Test chat flow** — send messages, verify suggestions, execute tools
-9. **Report results** — screenshot + backend validation
+2. **Get Drive credentials from Vault** — follow the pattern in [Bot File Operations - MANDATORY RULES](#-bot-file-operations---mandatory-rules). Load ONLY `VAULT_*` from `.env`, retrieve credentials from `secret/gbo/drive`
+3. **Run restart.sh** — `nohup ./restart.sh > /tmp/restart.log 2>&1 &`
+4. **Wait for bootstrap** — poll `curl -s http://localhost:5858/health` until it responds 200 (up to 5 min)
+5. **Find the bot** — check MinIO drive buckets via `mc`: `/tmp/mc ls local/` (each bucket = `{bot}.gbai`)
+6. **If bot not in drive, ask user** — do NOT copy from work dir. Ask: "Where can I get a copy of the .gbai to work on?"
+7. **Verify bot loaded** — check botserver logs for `[drive_monitor]` confirming bot sync
+8. **Open browser via Playwright MCP** — `mcp__playwright__browser_navigate` to `http://localhost:5859/{bot}` (NOT localhost:3000)
+9. **Test chat flow via Playwright** — send messages, verify suggestions, execute tools
+10. **Report results** — screenshot + backend validation
 
 **Key commands:**
 ```bash
 # Check health
 curl -s -o /dev/null -w '%{http_code}' http://localhost:5858/health
 
+# Get Drive credentials from Vault (ALWAYS do this first)
+source <(grep -E '^VAULT_' ${WORKSPACE}/botserver/.env)
+export VAULT_ADDR=$VAULT_ADDR
+export VAULT_CACERT=${WORKSPACE}/botserver-stack/conf/system/certificates/ca/ca.crt
+export VAULT_TOKEN=$(cat /tmp/vault-token-gb 2>/dev/null || echo $VAULT_TOKEN)
+VAULT_BIN=${WORKSPACE}/botserver-stack/bin/vault/vault
+DRIVE_ACCESSKEY=$($VAULT_BIN kv get -field=accesskey secret/gbo/drive)
+DRIVE_SECRET=$($VAULT_BIN kv get -field=secret secret/gbo/drive)
+DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
+
+# Configure mc with Vault credentials (NEVER hardcode)
+/tmp/mc alias set local http://127.0.0.1:${DRIVE_PORT} ${DRIVE_ACCESSKEY} ${DRIVE_SECRET} --api s3v4
+
 # Upload bot to MinIO
-/tmp/mc alias set local http://127.0.0.1:9100 minioadmin minioadmin --api s3v4
 /tmp/mc mb local/{bot}.gbai
 /tmp/mc cp --recursive botserver-stack/data/system/work/{bot}.gbai/ local/{bot}.gbai/
 
@@ -1779,13 +1927,13 @@ sudo incus file push /tmp/config.toml email/opt/gbo/conf/config.toml
 **Getting Drive credentials from Vault:**
 ```bash
 export VAULT_ADDR=https://localhost:8200
-export VAULT_CACERT=/home/ubuntu/src/generalbots/botserver-stack/conf/system/certificates/ca/ca.crt
+export VAULT_CACERT=${WORKSPACE}/botserver-stack/conf/system/certificates/ca/ca.crt
 
-# Read token from /tmp (preferred) or botserver/.env
-export VAULT_TOKEN=$(cat /tmp/vault-token-gb 2>/dev/null || grep VAULT_TOKEN /home/ubuntu/src/generalbots/botserver/.env | cut -d= -f2)
+# Read token from /tmp (preferred) or VAULT_* from .env
+export VAULT_TOKEN=$(cat /tmp/vault-token-gb 2>/dev/null || grep VAULT_TOKEN ${WORKSPACE}/botserver/.env | cut -d= -f2)
 
 # Retrieve drive credentials
-VAULT_BIN=/home/ubuntu/src/generalbots/botserver-stack/bin/vault/vault
+VAULT_BIN=${WORKSPACE}/botserver-stack/bin/vault/vault
 DRIVE_ACCESSKEY=$($VAULT_BIN kv get -field=accesskey secret/gbo/drive)
 DRIVE_SECRET=$($VAULT_BIN kv get -field=secret secret/gbo/drive)
 DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
