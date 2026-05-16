@@ -83,9 +83,10 @@ ChatState.ws.onopen = function () {
       }
 
       if (data.message_type === MessageType.BOT_RESPONSE) {
+        console.log("[WS] processMessage: is_complete=" + data.is_complete + " sugg=" + (data.suggestions ? data.suggestions.length : 0) + " len=" + (data.content ? data.content.length : 0));
         processMessage(data);
       }
-    } catch (e) {}
+    } catch (e) { console.error("[WS] onmessage error:", e); }
   };
 
   ChatState.ws.onclose = function () {

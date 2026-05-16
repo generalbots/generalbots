@@ -2,6 +2,7 @@ pub mod deepseek_v4;
 pub mod gpt_oss_120b;
 pub mod gpt_oss_20b;
 pub mod minimax;
+pub mod stepfun;
 
 pub trait ModelHandler: Send + Sync {
     fn is_analysis_complete(&self, buffer: &str) -> bool;
@@ -40,6 +41,8 @@ pub fn get_handler(model_path: &str) -> Box<dyn ModelHandler> {
         Box::new(gpt_oss_20b::GptOss20bHandler)
     } else if path.contains("minimax") || path.contains("minimax-m") || path.contains("kimi") {
         Box::new(minimax::MinimaxHandler::new())
+    } else if path.contains("stepfun") || path.contains("step-") {
+        Box::new(stepfun::StepfunHandler::new())
     } else {
         Box::new(PassthroughHandler)
     }

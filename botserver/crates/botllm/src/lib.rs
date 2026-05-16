@@ -302,7 +302,11 @@ impl OpenAIClient {
         };
 
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(180))
+                .connect_timeout(std::time::Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
             base_url: final_base,
             endpoint_path: final_endpoint,
             rate_limiter: Arc::new(rate_limiter),
@@ -567,8 +571,8 @@ impl LLMProvider for OpenAIClient {
                             .map(|s| s.to_string());
                         let content_text = data["choices"][0]["delta"]["content"].as_str().map(|s| s.to_string());
 
-                        // For reasoning models (gpt-oss), skip reasoning entirely
-                        let is_reasoning_model = model.contains("gpt-oss");
+                        // For reasoning models (gpt-oss, stepfun), skip reasoning entirely
+                        let is_reasoning_model = model.contains("gpt-oss") || model.contains("stepfun");
 
                         if !is_reasoning_model {
                             // Send reasoning_content only if there's no content delta (thinking-only chunks)
