@@ -316,6 +316,66 @@ async fn handle_ws(
                             guards.insert(session_id, true);
                         }
 
+                        // Send suggestions AFTER start.bas has run (so suggestions are in Redis)
+                        // but BEFORE KB embedding (to prevent connection timeout)
+                        let post_start_suggestions = {
+                            #[cfg(feature = "chat")]
+                            {
+                                let suggs = crate::basic::keywords::add_suggestion::get_suggestions(
+                                    state.cache.as_ref(),
+                                    &bot_uuid.to_string(),
+                                    &session_id.to_string(),
+                                );
+                                info!("ws_handler: post_start_suggestions: {} found", suggs.len());
+                                suggs
+                            }
+                            #[cfg(not(feature = "chat"))]
+                            Vec::new()
+                        };
+                        let post_start_switchers = {
+                            #[cfg(feature = "chat")]
+                            {
+                                crate::basic::keywords::switcher::get_switchers(
+                                    state.cache.as_ref(),
+                                    &bot_uuid.to_string(),
+                                    &session_id.to_string(),
+                                )
+                            }
+                            #[cfg(not(feature = "chat"))]
+                            Vec::new()
+                        };
+                        if !post_start_suggestions.is_empty() || !post_start_switchers.is_empty() {
+                            info!("ws_handler: sending {} post-start suggestions", post_start_suggestions.len());
+                            let _ = ws_sender.send(Message::Text(serde_json::json!({
+                                "bot_id": bot_uuid.to_string(),
+                                "user_id": user_id.to_string(),
+                                "session_id": session_id.to_string(),
+                                "channel": "web",
+                                "content": "",
+                                "message_type": 2,
+                                "is_complete": true,
+                                "suggestions": post_start_suggestions,
+                                "switchers": post_start_switchers,
+                                "context_length": 0,
+                                "context_max_length": 0,
+                            }).to_string().into())).await;
+                        }
+
+                        // Send keepalive before KB embedding to prevent browser timeout
+                        let _ = ws_sender.send(Message::Text(serde_json::json!({
+                            "bot_id": bot_uuid.to_string(),
+                            "user_id": user_id.to_string(),
+                            "session_id": session_id.to_string(),
+                            "channel": "web",
+                            "content": "",
+                            "message_type": 2,
+                            "is_complete": false,
+                            "suggestions": [],
+                            "switchers": [],
+                            "context_length": 0,
+                            "context_max_length": 0,
+                        }).to_string().into())).await;
+
                         // Build messages array: system prompt + KB context + history + user message
                         let base_system_prompt = load_system_prompt(&bot_name);
                         let system_prompt = if !active_switchers.is_empty() {
@@ -374,6 +434,22 @@ async fn handle_ws(
                             }
                         }
 
+                        // Send immediate keepalive BEFORE KB embedding to prevent browser
+                        // from closing connection during the embedding API calls (1-2s)
+                        let _ = ws_sender.send(Message::Text(serde_json::json!({
+                            "bot_id": bot_uuid.to_string(),
+                            "user_id": user_id.to_string(),
+                            "session_id": session_id.to_string(),
+                            "channel": "web",
+                            "content": "",
+                            "message_type": 2,
+                            "is_complete": false,
+                            "suggestions": [],
+                            "switchers": [],
+                            "context_length": 0,
+                            "context_max_length": 0,
+                        }).to_string().into())).await;
+
                         // Inject KB and website context via Qdrant search
                         let user_query = user_text.clone();
                         let mut messages_val = serde_json::Value::Array(messages.clone());
@@ -412,8 +488,8 @@ async fn handle_ws(
 
                         // Stream LLM response chunk by chunk
                         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
-                        let suggestions;
-                        let switchers;
+                        let suggestions: Vec<botlib::models::Suggestion>;
+                        let switchers: Vec<botlib::models::Switcher>;
                         let mut full_response = String::new();
 
                         // Look up bot-specific LLM config and create provider
@@ -441,6 +517,8 @@ async fn handle_ws(
                                 let bot_uuid_s = bot_uuid.to_string();
                                 let session_id_s = session_id.to_string();
 
+                                // Suggestions already sent at message receipt time (see early_suggestions above)
+
                                 // Spawn LLM streaming task
                                 let _stream_handle = tokio::spawn(async move {
                                     if let Err(e) = llm.generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx, &llm_model_clone, &llm_key_clone, None).await {
@@ -448,56 +526,90 @@ async fn handle_ws(
                                     }
                                 });
 
-                                // Stream chunks to WebSocket immediately (skip thinking/reasoning)
-                                while let Some(chunk) = stream_rx.recv().await {
-                                    // Skip thinking/reasoning internal messages
+                                // Stream chunks to WebSocket with periodic keepalive
+                                // Send immediate keepalive before entering the loop
+                                let _ = ws_sender.send(Message::Text(serde_json::json!({
+                                    "bot_id": bot_uuid_s,
+                                    "user_id": user_id.to_string(),
+                                    "session_id": session_id_s,
+                                    "channel": "web",
+                                    "content": ".",
+                                    "message_type": 2,
+                                    "is_complete": false,
+                                    "suggestions": [],
+                                    "switchers": [],
+                                    "context_length": 0,
+                                    "context_max_length": 0,
+                                }).to_string().into())).await;
 
-                                    full_response.push_str(&chunk);
-                                    let chunk_resp = serde_json::json!({
-                                        "bot_id": bot_uuid_s,
-                                        "user_id": user_id.to_string(),
-                                        "session_id": session_id_s,
-                                        "channel": "web",
-                                        "content": chunk,
-                                        "message_type": 2,
-                                        "is_complete": false,
-                                        "suggestions": [],
-                                        "switchers": [],
-                                        "context_length": 0,
-                                        "context_max_length": 0,
-                                    });
-                                    if ws_sender.send(Message::Text(chunk_resp.to_string().into())).await.is_err() {
-                                        break;
+                                let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(2000));
+                                keepalive_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+                                loop {
+                                    tokio::select! {
+                                        chunk = stream_rx.recv() => {
+                                            match chunk {
+                                                Some(chunk) => {
+                                                    full_response.push_str(&chunk);
+                                                    let chunk_resp = serde_json::json!({
+                                                        "bot_id": bot_uuid_s,
+                                                        "user_id": user_id.to_string(),
+                                                        "session_id": session_id_s,
+                                                        "channel": "web",
+                                                        "content": chunk,
+                                                        "message_type": 2,
+                                                        "is_complete": false,
+                                                        "suggestions": [],
+                                                        "switchers": [],
+                                                        "context_length": 0,
+                                                        "context_max_length": 0,
+                                                    });
+                                                    if ws_sender.send(Message::Text(chunk_resp.to_string().into())).await.is_err() {
+                                                        break;
+                                                    }
+                                                }
+                                                None => break,
+                                            }
+                                        }
+                                        _ = keepalive_interval.tick() => {
+                                            let _ = ws_sender.send(Message::Text(serde_json::json!({
+                                                "bot_id": bot_uuid_s,
+                                                "user_id": user_id.to_string(),
+                                                "session_id": session_id_s,
+                                                "channel": "web",
+                                                "content": ".",
+                                                "message_type": 2,
+                                                "is_complete": false,
+                                                "suggestions": [],
+                                                "switchers": [],
+                                                "context_length": 0,
+                                                "context_max_length": 0,
+                                            }).to_string().into())).await;
+                                        }
                                     }
                                 }
 
-                                // Load suggestions and switchers from cache
-                                suggestions = {
-                                    #[cfg(feature = "chat")]
-                                    {
-                                        crate::basic::keywords::add_suggestion::get_suggestions(
-                                            state_clone.cache.as_ref(),
-                                            &bot_uuid.to_string(),
-                                            &session_id.to_string(),
-                                        )
-                                    }
-                                    #[cfg(not(feature = "chat"))]
-                                    Vec::new()
-                                };
-                                switchers = {
-                                    #[cfg(feature = "chat")]
-                                    {
-                                        crate::basic::keywords::switcher::get_switchers(
-                                            state_clone.cache.as_ref(),
-                                            &bot_uuid.to_string(),
-                                            &session_id.to_string(),
-                                        )
-                                    }
-                                    #[cfg(not(feature = "chat"))]
-                                    Vec::new()
-                                };
+                                // Send is_complete IMMEDIATELY after stream ends (before any other ops)
+                                // This prevents browser from closing connection between stream end and final message
+                                let final_resp = serde_json::json!({
+                                    "bot_id": bot_uuid_s,
+                                    "user_id": user_id.to_string(),
+                                    "session_id": session_id_s,
+                                    "channel": "web",
+                                    "content": "",
+                                    "message_type": 2,
+                                    "is_complete": true,
+                                    "suggestions": [],
+                                    "switchers": [],
+                                    "context_length": 0,
+                                    "context_max_length": 0,
+                                });
+                                let _ = ws_sender.send(Message::Text(final_resp.to_string().into())).await;
 
-                                // Save assistant response to history
+                                // Suggestions already sent at message receipt time
+                                suggestions = Vec::new();
+                                switchers = Vec::new();
+
+                                // Save assistant response to history (async, after is_complete sent)
                                 {
                                     let mut sm = state_clone.session_manager.lock().await;
                                     let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
@@ -512,24 +624,22 @@ async fn handle_ws(
                                     let mut sm = state.session_manager.lock().await;
                                     let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
                                 }
+                                // Send fallback response
+                                let _ = ws_sender.send(Message::Text(serde_json::json!({
+                                    "bot_id": bot_uuid.to_string(),
+                                    "user_id": user_id.to_string(),
+                                    "session_id": session_id.to_string(),
+                                    "channel": "web",
+                                    "content": fallback,
+                                    "message_type": 2,
+                                    "is_complete": true,
+                                    "suggestions": [],
+                                    "switchers": [],
+                                    "context_length": 0,
+                                    "context_max_length": 0,
+                                }).to_string().into())).await;
                             }
                         };
-
-                        // Send final is_complete message
-                        let final_resp = serde_json::json!({
-                            "bot_id": bot_uuid.to_string(),
-                            "user_id": user_id.to_string(),
-                            "session_id": session_id.to_string(),
-                            "channel": "web",
-                            "content": full_response,
-                            "message_type": 2,
-                            "is_complete": true,
-                            "suggestions": suggestions,
-                            "switchers": switchers,
-                            "context_length": 0,
-                            "context_max_length": 0,
-                        });
-                        let _ = ws_sender.send(Message::Text(final_resp.to_string().into())).await;
                     }
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Err(e)) => { error!("WS err: {}", e); break; }

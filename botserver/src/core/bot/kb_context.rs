@@ -201,14 +201,16 @@ async fn search_qdrant(
 
     let dimensions = dim.unwrap_or(384);
 
-    let vector = match generate_query_embedding(query, bot_id, db_pool).await {
-        Some(v) if v.len() == dimensions => v,
-        Some(v) => {
-            warn!("Embedding dims {} != collection dims {}, using hash fallback", v.len(), dimensions);
-            generate_hash_embedding(query, dimensions)
-        }
-        _ => generate_hash_embedding(query, dimensions),
-    };
+    let use_real_embedding = matches!(generate_query_embedding(query, bot_id, db_pool).await, Some(ref v) if v.len() == dimensions);
+
+    // When no real embedding model is configured, use keyword search instead of hash vectors
+    if !use_real_embedding {
+        info!("No embedding model configured for KB '{}', using keyword search fallback", collection_name);
+        return search_qdrant_by_keyword(&client, &qdrant_url, collection_name, query, limit, &api_key).await;
+    }
+
+    let vector = generate_query_embedding(query, bot_id, db_pool).await
+        .unwrap_or_else(|| generate_hash_embedding(query, dimensions));
 
     let mut request = client
         .post(&search_url)
@@ -285,6 +287,107 @@ async fn search_qdrant(
     }
 
     Ok(search_results)
+}
+
+/// Fallback keyword search when no embedding model is configured.
+/// Scrolls all points and matches query terms against content.
+#[cfg(any(feature = "research", feature = "llm"))]
+async fn search_qdrant_by_keyword(
+    client: &reqwest::Client,
+    qdrant_url: &str,
+    collection_name: &str,
+    query: &str,
+    limit: usize,
+    api_key: &str,
+) -> Result<Vec<KbSearchResult>> {
+    let scroll_url = format!("{}/collections/{}/points/scroll", qdrant_url.trim_end_matches('/'), collection_name);
+
+    let query_lower = query.to_lowercase();
+    let query_terms: Vec<&str> = query_lower.split_whitespace()
+        .filter(|t| t.len() > 2)
+        .collect();
+
+    if query_terms.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut all_points = Vec::new();
+    let mut offset: Option<serde_json::Value> = None;
+
+    loop {
+        let body = if let Some(ref off) = offset {
+            serde_json::json!({
+                "limit": 100,
+                "with_vector": false,
+                "with_payload": true,
+                "offset": off
+            })
+        } else {
+            serde_json::json!({
+                "limit": 100,
+                "with_vector": false,
+                "with_payload": true
+            })
+        };
+
+        let mut request = client.post(&scroll_url).json(&body);
+        if !api_key.is_empty() {
+            request = request.header("api-key", api_key);
+        }
+
+        let response = request.send().await?;
+        if !response.status().is_success() {
+            warn!("Qdrant scroll failed for '{}': status={}", collection_name, response.status());
+            break;
+        }
+
+        let result: serde_json::Value = response.json().await?;
+        let points = result["result"]["points"].as_array().cloned().unwrap_or_default();
+        let next_offset = result["result"]["next_page_offset"].clone();
+
+        for point in points {
+            let payload = point.get("payload").cloned().unwrap_or_default();
+            let content = payload
+                .get("content").or_else(|| payload.get("text")).or_else(|| payload.get("data"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+
+            if content.is_empty() || content.len() < 20 {
+                continue;
+            }
+
+            let content_lower = content.to_lowercase();
+            let match_score = query_terms.iter()
+                .filter(|&&term| content_lower.contains(term))
+                .count() as f32 / query_terms.len() as f32;
+
+            if match_score > 0.0 {
+                let document_path = payload
+                    .get("document_path").or_else(|| payload.get("source")).or_else(|| payload.get("file"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+
+                all_points.push(KbSearchResult {
+                    content: content.to_string(),
+                    document_path,
+                    score: match_score,
+                });
+            }
+        }
+
+        if next_offset.is_null() || all_points.len() >= limit * 3 {
+            break;
+        }
+        offset = Some(next_offset);
+    }
+
+    // Sort by match score descending and take top results
+    all_points.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    all_points.truncate(limit);
+
+    info!("Keyword search for '{}' in '{}': {} results", query, collection_name, all_points.len());
+    Ok(all_points)
 }
 
 #[cfg(not(any(feature = "research", feature = "llm")))]
