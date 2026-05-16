@@ -412,6 +412,7 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
         .map(|c| c.site_path.clone())
         .unwrap_or_else(|| format!("{}/sites", botcore::shared::utils::get_stack_path()));
 
+    #[cfg(not(feature = "vibe"))]
     info!("Serving apps from: {}", site_path);
 
     // Create rate limiter integrating with botlib's RateLimiter
@@ -474,10 +475,13 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
     { let rbac: std::sync::Arc<dyn botlib::traits::RbacService> = rbac_manager.clone(); app_state_with_auth.rbac_manager = Some(rbac); }
     let app_state = Arc::new(app_state_with_auth);
 
-let base_router = Router::new()
-    .merge(api_router.with_state(app_state.clone()))
-    // Static files fallback for legacy /apps/* paths
-    .nest_service("/static", ServeDir::new(&site_path));
+    let base_router = Router::new()
+        .merge(api_router.with_state(app_state.clone()));
+
+    #[cfg(not(feature = "vibe"))]
+    let base_router = base_router
+        // Static files fallback for legacy /apps/* paths
+        .nest_service("/static", ServeDir::new(&site_path));
 
     let base_router = {
         let r = base_router;

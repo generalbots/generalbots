@@ -287,47 +287,6 @@ jobs:
           DEPLOY_KEY: ${{{{ secrets.DEPLOY_KEY }}}}
 "#)
     }
-
-    fn generate_custom_workflow(&self, framework: &str, node_version: &str,
-        build_command: &str, output_dir: &str, environment: &DeploymentEnvironment) -> String {
-        let env_name = environment.to_string();
-        format!(r#"name: Deploy Custom {framework} App
-
-on:
-  push:
-    branches: [ main, {env_name} ]
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '{node_version}'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Build {framework} app
-      run: {build_command}
-      env:
-        NODE_ENV: production
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: build-output
-        path: {output_dir}
-
-    - name: Deploy to custom hosting
-      run: |
-        echo "Deploying {framework} app to {env_name}"
-        # Custom deployment logic here
-"#)
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

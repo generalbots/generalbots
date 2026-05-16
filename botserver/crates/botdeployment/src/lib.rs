@@ -18,12 +18,14 @@
 
 pub mod forgejo;
 pub mod gateway;
+pub mod gateway_server;
 pub mod handlers;
 pub mod router;
 pub mod types;
 
 pub use forgejo::{ForgejoClient, ForgejoError, ForgejoRepo};
 pub use gateway::{DeployGateway, DeployGatewayConfig};
+pub use gateway_server::{configure_gateway_routes, ContainerInfo, ContainerRegistry, GatewayState};
 pub use handlers::configure_deployment_routes;
 pub use router::DeploymentRouter;
 pub use types::{

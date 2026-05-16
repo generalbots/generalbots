@@ -9,7 +9,9 @@ use axum::{
     routing::get,
     Router,
 };
-use log::{error, info, trace, warn};
+use log::{error, trace, warn};
+#[cfg(not(feature = "vibe"))]
+use log::info;
 
 /// Rewrite CDN URLs to local paths for HTMX and other vendor libraries
 /// This ensures old apps with CDN references still work with local files
@@ -160,6 +162,7 @@ pub async fn serve_vendor_file(
 (StatusCode::NOT_FOUND, "Vendor file not found").into_response()
 }
 
+#[cfg(not(feature = "vibe"))]
 fn rewrite_cdn_urls(html: &str) -> String {
     html
         // HTMX from various CDNs
@@ -224,17 +227,20 @@ pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
     router
 }
 
+#[cfg(not(feature = "vibe"))]
 #[derive(Debug, serde::Deserialize)]
 pub struct AppPath {
     pub app_name: String,
 }
 
+#[cfg(not(feature = "vibe"))]
 #[derive(Debug, serde::Deserialize)]
 pub struct AppFilePath {
     pub app_name: String,
     pub file_path: String,
 }
 
+#[cfg(not(feature = "vibe"))]
 pub async fn serve_app_index(
     State(state): State<Arc<AppState>>,
     Path(params): Path<AppPath>,
@@ -249,6 +255,7 @@ pub async fn serve_app_index(
     serve_app_file_internal(&state, &params.app_name, "index.html").await
 }
 
+#[cfg(not(feature = "vibe"))]
 pub async fn serve_app_file(
     State(state): State<Arc<AppState>>,
     Path(params): Path<AppFilePath>,
@@ -257,6 +264,7 @@ pub async fn serve_app_file(
 }
 
 /// Sanitize app name - only alphanumeric, underscore, hyphen allowed
+#[cfg(not(feature = "vibe"))]
 fn sanitize_app_name(name: &str) -> String {
     name.chars()
         .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
@@ -278,6 +286,7 @@ fn sanitize_file_path(path: &str) -> String {
         .join("/")
 }
 
+#[cfg(not(feature = "vibe"))]
 async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &str) -> Response {
     let sanitized_app_name = sanitize_app_name(app_name);
     let sanitized_file_path = sanitize_file_path(file_path);
@@ -388,6 +397,7 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
     }
 }
 
+#[cfg(not(feature = "vibe"))]
 pub async fn list_all_apps(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let site_path = state
         .config
