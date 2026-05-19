@@ -9,6 +9,24 @@ function scrollToBottom(animate) {
   }
 }
 
+function showThinkingIndicator() {
+  var existing = document.getElementById("thinking-indicator");
+  if (existing) return;
+  var messages = document.getElementById("messages");
+  if (!messages) return;
+  var div = document.createElement("div");
+  div.id = "thinking-indicator";
+  div.className = "message bot";
+  div.innerHTML = '<div class="message-content bot-message"><div class="thinking-indicator"><div class="thinking-dots"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div></div></div>';
+  messages.appendChild(div);
+  scrollToBottom(true);
+}
+
+function hideThinkingIndicator() {
+  var el = document.getElementById("thinking-indicator");
+  if (el) el.remove();
+}
+
 function updateScrollButton() {
   var messages = document.getElementById("messages");
   var scrollBtn = document.getElementById("scrollToBottom");
@@ -37,6 +55,26 @@ function renderMentionInMessage(content) {
 function stripThinkTags(content) {
   // R6: Remove <think>...</think> but do NOT trim — preserves leading '<' in HTML chunks
   return content.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, "");
+}
+
+function stripReasoningPrefix(content) {
+  // Nemotron and reasoning models output chain-of-thought before actual response
+  // Strip everything before the first HTML tag (<div, <p, <h, etc.)
+  var htmlStart = content.search(/<[a-zA-Z]/);
+  if (htmlStart > 0) {
+    return content.substring(htmlStart);
+  }
+  return content;
+}
+
+function stripMarkdownBlocks(content) {
+  var cleanContent = stripThinkTags(content);
+  cleanContent = stripReasoningPrefix(cleanContent);
+  var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
+  if (hasHtmlTags) return cleanContent;
+  var htmlMatch = cleanContent.match(/^```(?:html|xml)?\s*\n([\s\S]+?)\n?```$/i);
+  if (htmlMatch) return htmlMatch[1];
+  return cleanContent;
 }
 
 function stripMarkdownBlocks(content) {
@@ -144,6 +182,11 @@ function finalizeStreaming() {
 }
 
 function processMessage(data) {
+  if (data.thinking) {
+    showThinkingIndicator();
+    return;
+  }
+  hideThinkingIndicator();
   if (data.is_complete) {
     if (ChatState.isStreaming) {
       finalizeStreaming();
@@ -157,15 +200,15 @@ function processMessage(data) {
     if (data.switchers && Array.isArray(data.switchers) && data.switchers.length > 0) {
       renderBotSwitchers(data.switchers);
     }
-  } else {
+  } else if (data.content && data.content.trim() !== "") {
     if (!ChatState.isStreaming) {
       ChatState.isStreaming = true;
       ChatState.streamingMessageId = "streaming-" + Date.now();
-      ChatState.currentStreamingContent = data.content || "";
+      ChatState.currentStreamingContent = data.content;
       addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId);
       ChatState.lastRenderTime = Date.now();
     } else {
-      ChatState.currentStreamingContent += data.content || "";
+      ChatState.currentStreamingContent += data.content;
       var now = Date.now();
       if (now - ChatState.lastRenderTime > ChatState.renderInterval) {
         updateStreaming(ChatState.currentStreamingContent);

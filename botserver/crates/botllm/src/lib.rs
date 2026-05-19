@@ -571,8 +571,8 @@ impl LLMProvider for OpenAIClient {
                             .map(|s| s.to_string());
                         let content_text = data["choices"][0]["delta"]["content"].as_str().map(|s| s.to_string());
 
-                        // For reasoning models (gpt-oss, stepfun), skip reasoning entirely
-                        let is_reasoning_model = model.contains("gpt-oss") || model.contains("stepfun");
+                        // For reasoning models (gpt-oss), skip reasoning entirely
+                        let is_reasoning_model = model.contains("gpt-oss");
 
                         if !is_reasoning_model {
                             // Send reasoning_content only if there's no content delta (thinking-only chunks)

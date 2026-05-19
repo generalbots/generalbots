@@ -58,6 +58,19 @@ impl DriveMonitor {
                         let etag = obj.etag.as_deref().map(normalize_etag);
 
             let existing = self.file_repo.get_file_state(self.bot_id, &full_key);
+
+            // Skip re-indexing files that have failed too many times (prevent infinite loops)
+            const MAX_FAIL_COUNT: i32 = 5;
+            if let Some(prev) = &existing {
+                if prev.fail_count >= MAX_FAIL_COUNT {
+                    log::warn!(
+                        "Skipping {} — failed {} times (max {}). Remove from Drive or fix the file to retry.",
+                        full_key, prev.fail_count, MAX_FAIL_COUNT
+                    );
+                    continue;
+                }
+            }
+
             let needs_reindex = match &existing {
                 Some(prev) if prev.indexed && prev.etag.as_deref() == etag.as_deref() => false,
                 Some(prev) if prev.indexed && prev.etag.as_deref() != etag.as_deref() => {
@@ -79,7 +92,7 @@ impl DriveMonitor {
                 self.bot_id,
                 &full_key,
                 file_type,
-                etag,
+                etag.clone(),
                 None,
             ) {
                 Ok(_) => log::info!("DriveMonitor: Added/updated drive_files for: {} ({})", full_key, file_type),
@@ -87,11 +100,11 @@ impl DriveMonitor {
             }
 
             if file_type == "bas" {
-                self.sync_bas_to_work(bot_name, &obj.key).await;
+                self.sync_bas_to_work(bot_name, &obj.key, etag.clone()).await;
             } else if file_type == "prompt" {
-                self.sync_gbot_to_work(bot_name, &obj.key).await;
+                self.sync_gbot_to_work(bot_name, &obj.key, etag.clone()).await;
             } else if file_type != "kb" && file_type != "config" {
-                let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
+                let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag.clone());
             }
         } else {
             log::trace!("{} unchanged, skipping upsert", full_key);
@@ -107,12 +120,12 @@ impl DriveMonitor {
                             self.pending_kb_index.write().await.insert(folder_key);
                         }
                     }
-                    self.index_kb_file(bot_name, &full_key, &obj.key).await;
+                    self.index_kb_file(bot_name, &full_key, &obj.key, etag.clone()).await;
                 }
             }
 
         if file_type == "config" && needs_reindex {
-            self.sync_bot_config(bot_name, &obj.key).await;
+            self.sync_bot_config(bot_name, &obj.key, etag.clone()).await;
         }
                     }
 
@@ -156,7 +169,7 @@ impl DriveMonitor {
     }
 
     #[cfg(any(feature = "research", feature = "llm"))]
-    async fn index_kb_file(&self, bot_name: &str, full_key: &str, s3_key: &str) {
+    async fn index_kb_file(&self, bot_name: &str, full_key: &str, s3_key: &str, etag: Option<String>) {
         let parsed = match parse_kb_path(s3_key) {
             Some(p) => p,
             None => {
@@ -219,7 +232,7 @@ impl DriveMonitor {
                     full_key,
                     result.collection_name
                 );
-                let _ = self.file_repo.mark_indexed(self.bot_id, full_key);
+                let _ = self.file_repo.mark_indexed(self.bot_id, full_key, etag);
                 self.upsert_kb_collection(bot_name, &parsed.kb_name, &result.collection_name, result.documents_processed);
             }
             Ok(Err(e)) => {
@@ -256,7 +269,7 @@ impl DriveMonitor {
         });
     }
 
-    async fn sync_bot_config(&self, bot_name: &str, s3_key: &str) {
+    async fn sync_bot_config(&self, bot_name: &str, s3_key: &str, etag: Option<String>) {
         let s3 = match &self.state.drive {
             Some(s3) => s3,
             None => {
@@ -303,10 +316,10 @@ impl DriveMonitor {
         }
 
         let full_key = format!("{}.gbai/{}", bot_name, s3_key);
-        let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
+        let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag);
     }
 
-    async fn sync_bas_to_work(&self, bot_name: &str, s3_key: &str) {
+    async fn sync_bas_to_work(&self, bot_name: &str, s3_key: &str, etag: Option<String>) {
         let s3 = match &self.state.drive {
             Some(s3) => s3,
             None => {
@@ -339,7 +352,7 @@ impl DriveMonitor {
                 } else {
                     log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
                     let full_key = format!("{}.gbai/{}", bot_name, s3_key);
-                    let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
+                    let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag);
                 }
             }
             Err(e) => {
@@ -348,7 +361,7 @@ impl DriveMonitor {
         }
     }
 
-    async fn sync_gbot_to_work(&self, bot_name: &str, s3_key: &str) {
+    async fn sync_gbot_to_work(&self, bot_name: &str, s3_key: &str, etag: Option<String>) {
         let s3 = match &self.state.drive {
             Some(s3) => s3,
             None => {
@@ -381,7 +394,7 @@ impl DriveMonitor {
                 } else {
                     log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
                     let full_key = format!("{}.gbai/{}", bot_name, s3_key);
-                    let _ = self.file_repo.mark_indexed(self.bot_id, &full_key);
+                    let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag);
                 }
             }
             Err(e) => {

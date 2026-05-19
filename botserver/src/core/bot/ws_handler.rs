@@ -527,15 +527,16 @@ async fn handle_ws(
                                 });
 
                                 // Stream chunks to WebSocket with periodic keepalive
-                                // Send immediate keepalive before entering the loop
+                                // Send immediate thinking indicator before entering the loop
                                 let _ = ws_sender.send(Message::Text(serde_json::json!({
                                     "bot_id": bot_uuid_s,
                                     "user_id": user_id.to_string(),
                                     "session_id": session_id_s,
                                     "channel": "web",
-                                    "content": ".",
+                                    "content": "",
                                     "message_type": 2,
                                     "is_complete": false,
+                                    "thinking": true,
                                     "suggestions": [],
                                     "switchers": [],
                                     "context_length": 0,
@@ -576,9 +577,10 @@ async fn handle_ws(
                                                 "user_id": user_id.to_string(),
                                                 "session_id": session_id_s,
                                                 "channel": "web",
-                                                "content": ".",
+                                                "content": "",
                                                 "message_type": 2,
                                                 "is_complete": false,
+                                                "thinking": true,
                                                 "suggestions": [],
                                                 "switchers": [],
                                                 "context_length": 0,
