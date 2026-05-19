@@ -9,6 +9,10 @@ Always manage services with systemctl inside the system container. Never run bin
 
 Never push secrets (API keys, passwords, tokens) to git. Never commit `init.json` (it contains Vault unseal keys). All secrets must come from Vault — only `VAULT_*` variables are allowed in `.env`. Never deploy manually via scp or ssh; always use CI/CD. Always push all submodules (botserver, botui, botlib) before or alongside the main repo. Always ask before pushing to ALM.
 
+**NEVER restart botserver for config.csv changes** — DriveMonitor auto-reloads on ETag change (~10s). Upload edited config.csv with `mc put`, wait 10s, config is live.
+
+**Credentials cache:** Agent reads `/home/a404010/.gbo-credentials` for production IPs, container names, Vault tokens, MinIO keys, LLM keys, and domain mappings. This file is auto-populated during session setup — no need to re-fetch credentials each time.
+
 ---
 
 ## ENVIRONMENT CONTEXT
@@ -537,13 +541,13 @@ DriveMonitor is a background service inside botserver that watches MinIO buckets
 
 Bot configuration is stored in two PostgreSQL tables inside the `botserver` database. The `bot_configuration` table holds key-value pairs with columns `bot_id`, `config_key`, `config_value`, `config_type`, `is_encrypted`, and `updated_at`. The `gbot_config_sync` table tracks sync state with columns `bot_id`, `config_file_path`, `last_sync_at`, `file_hash`, and `sync_count`.
 
-The `config.csv` format is a plain CSV with no header: each line is `key,value`, for example `llm-provider,groq` or `theme-color1,#cc0000`. DriveMonitor syncs it when the file ETag changes in MinIO, on botserver startup, or after a restart.
+The `config.csv` format is a plain CSV with no header: each line is `key,value`, for example `llm-provider,groq` or `theme-color1,#cc0000`. DriveMonitor syncs it when the file ETag changes in MinIO (~10s). **NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change.**
 
 **Check config status:** Query `bot_configuration` via `sudo incus exec tables -- psql -h localhost -U postgres -d botserver -c "SELECT config_key, config_value FROM bot_configuration WHERE bot_id = (SELECT id FROM bots WHERE name = '<botname>') ORDER BY config_key;"`. Check sync state via the `gbot_config_sync` table. Inspect the bucket directly with `sudo incus exec drive -- /opt/gbo/bin/mc cat local/<botname>.gbai/<botname>.gbot/config.csv`.
 
 **Debug DriveMonitor:** Monitor live logs with `sudo incus exec system -- tail -f /opt/gbo/logs/out.log | grep -E "(DRIVE_MONITOR|check_gbot|config)"`. An empty `gbot_config_sync` table means DriveMonitor has not synced yet. If no new log entries appear after 30 seconds, the loop may be stuck — restart botserver with systemctl to clear the state.
 
-**Common config issues:** If config.csv is missing from the bucket, create and upload it with `mc cp`. If the database shows stale values, restart botserver to force a fresh sync, or as a temporary fix update the database directly with `UPDATE bot_configuration SET config_value = 'groq', updated_at = NOW() WHERE ...`. To force a re-sync without restarting, copy config.csv over itself with `mc cp local/... local/...` to change the ETag.
+**Common config issues:** If config.csv is missing from the bucket, create and upload it with `mc cp`. To force a re-sync, copy config.csv over itself with `mc cp local/... local/...` to change the ETag — DriveMonitor picks it up in ~10s. No restart needed.
 
 ---
 

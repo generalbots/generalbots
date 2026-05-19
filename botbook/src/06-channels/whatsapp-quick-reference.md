@@ -9,11 +9,11 @@ Essential commands, configurations, and code snippets for WhatsApp Business API 
 ```csv
 # Core Configuration
 whatsapp-enabled,true
-whatsapp-api-key,EAAQdlso6aM8BOwlhc3yM6bbJkGyibQPGJd87zFDHtfaFoJDJPohMl2c5nXs4yYuuHwoXJWx0rQKo0VXgTwThPYzqLEZArOZBhCWPBUpq7YlkEJXFAgB6ZAb3eoUzZAMgNZCZA1sg11rT2G8e1ZAgzpRVRffU4jmMChc7ybcyIwbtGOPKZAXKcNoMRfUwssoLhDWr
-whatsapp-phone-number-id,1158433381968079
-whatsapp-business-account-id,390727550789228
+whatsapp-api-key,EAAQyour_api_key_here
+whatsapp-phone-number-id,YOUR_PHONE_NUMBER_ID
+whatsapp-business-account-id,YOUR_WABA_ID
 whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
-whatsapp-application-id,323250907549153
+whatsapp-application-id,YOUR_APP_ID
 
 # Optional: Advanced Settings
 whatsapp-webhook-url,https://your-domain.com/webhooks/whatsapp
@@ -27,11 +27,11 @@ whatsapp-from-number,+553322980098
 
 ```bash
 # Meta WhatsApp Configuration
-export WHATSAPP_API_KEY="EAAQdlso6aM8BOwl..."
-export WHATSAPP_PHONE_NUMBER_ID="1158433381968079"
-export WHATSAPP_WABA_ID="390727550789228"
+export WHATSAPP_API_KEY="EAAQyour_api_key_here"
+export WHATSAPP_PHONE_NUMBER_ID="YOUR_PHONE_NUMBER_ID"
+export WHATSAPP_WABA_ID="YOUR_WABA_ID"
 export WHATSAPP_VERIFY_TOKEN="4qIogZadggQ.BEoMeci..."
-export WHATSAPP_APPLICATION_ID="323250907549153"
+export WHATSAPP_APPLICATION_ID="YOUR_APP_ID"
 export WHATSAPP_APP_SECRET="your_app_secret_here"
 
 # Twilio Configuration
@@ -90,8 +90,8 @@ GET /Accounts/{AccountSid}/Calls.json
 
 ```bash
 curl -X POST \
-  'https://graph.facebook.com/v18.0/1158433381968079/messages' \
-  -H 'Authorization: Bearer EAAQdlso6aM8BOwl...' \
+  'https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages' \
+  -H 'Authorization: Bearer EAAQyour_api_key_here' \
   -H 'Content-Type: application/json' \
   -d '{
     "messaging_product": "whatsapp",
@@ -107,8 +107,8 @@ curl -X POST \
 
 ```bash
 curl -X POST \
-  'https://graph.facebook.com/v18.0/1158433381968079/messages' \
-  -H 'Authorization: Bearer EAAQdlso6aM8BOwl...' \
+  'https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages' \
+  -H 'Authorization: Bearer EAAQyour_api_key_here' \
   -H 'Content-Type: application/json' \
   -d '{
     "messaging_product": "whatsapp",
@@ -125,8 +125,8 @@ curl -X POST \
 
 ```bash
 curl -X POST \
-  'https://graph.facebook.com/v18.0/1158433381968079/messages' \
-  -H 'Authorization: Bearer EAAQdlso6aM8BOwl...' \
+  'https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages' \
+  -H 'Authorization: Bearer EAAQyour_api_key_here' \
   -H 'Content-Type: application/json' \
   -d '{
     "messaging_product": "whatsapp",
@@ -146,7 +146,7 @@ curl -X POST \
 ```bash
 curl -X POST \
   'https://graph.facebook.com/v18.0/wamid.HBgLNTE1OTk5OTk5OTk5FQIAERgSMzg1QTlCNkE2RTlFRTdFNDdF' \
-  -H 'Authorization: Bearer EAAQdlso6aM8BOwl...' \
+  -H 'Authorization: Bearer EAAQyour_api_key_here' \
   -H 'Content-Type: application/json' \
   -d '{
     "messaging_product": "whatsapp",
@@ -268,13 +268,13 @@ Output: 5511999999999
 {
   "object": "whatsapp_business_account",
   "entry": [{
-    "id": "390727550789228",
+    "id": "YOUR_WABA_ID",
     "changes": [{
       "value": {
         "messaging_product": "whatsapp",
         "metadata": {
           "display_phone_number": "+553322980098",
-          "phone_number_id": "1158433381968079"
+          "phone_number_id": "YOUR_PHONE_NUMBER_ID"
         },
         "contacts": [{
           "profile": {
@@ -304,7 +304,7 @@ Output: 5511999999999
 {
   "object": "whatsapp_business_account",
   "entry": [{
-    "id": "390727550789228",
+    "id": "YOUR_WABA_ID",
     "changes": [{
       "value": {
         "status": "sent",
@@ -362,8 +362,8 @@ curl -X POST https://your-domain.com/webhooks/whatsapp \
   -d '{"test": true}'
 
 # Test Meta API
-curl -X GET "https://graph.facebook.com/v18.0/1158433381968079" \
-  -H "Authorization: Bearer EAAQdlso6aM8BOwl..."
+curl -X GET "https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID" \
+  -H "Authorization: Bearer EAAQyour_api_key_here"
 
 # Test Twilio webhook
 curl -X POST https://your-domain.com/twilio/voice \
@@ -536,7 +536,7 @@ curl -X GET "https://graph.facebook.com/v18.0/me" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Check phone number ID
-curl -X GET "https://graph.facebook.com/v18.0/1158433381968079" \
+curl -X GET "https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Test message format
@@ -658,16 +658,16 @@ Replace with your IDs:
 
 ```
 WhatsApp Settings:
-https://business.facebook.com/latest/settings/whatsapp_account/?business_id=312254061496740&selected_asset_id=303621682831134&selected_asset_type=whatsapp-business-account
+https://business.facebook.com/latest/settings/whatsapp_account/?business_id=YOUR_BUSINESS_ID&selected_asset_id=YOUR_WABA_ID&selected_asset_type=whatsapp-business-account
 
 Webhook Configuration:
-https://developers.facebook.com/apps/323250907549153/webhooks/
+https://developers.facebook.com/apps/YOUR_APP_ID/webhooks/
 
 Message Templates:
-https://business.facebook.com/latest/wa/manage/message-templates/?waba_id=390727550789228
+https://business.facebook.com/latest/wa/manage/message-templates/?waba_id=YOUR_WABA_ID
 
 API Usage:
-https://developers.facebook.com/apps/323250907549153/usage/
+https://developers.facebook.com/apps/YOUR_APP_ID/usage/
 ```
 
 ---
