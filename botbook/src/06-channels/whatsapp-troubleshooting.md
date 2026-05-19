@@ -32,8 +32,8 @@ curl https://developers.facebook.com/status/
 twilio phone-numbers:list +553322980098
 
 # Test Meta API connectivity
-curl -X GET "https://graph.facebook.com/v18.0/1158433381968079" \
-  -H "Authorization: Bearer EAAQdlso6aM8BOwl..."
+curl -X GET "https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID" \
+  -H "Authorization: Bearer EAAQyour_api_key_here"
 ```
 
 ### Log Locations
@@ -240,7 +240,7 @@ curl "https://your-domain.com/webhooks/whatsapp?hub.verify_token=YOUR_TOKEN&hub.
 
 # Verify webhook field subscription
 curl -X GET "https://graph.facebook.com/v18.0/YOUR_APP_ID/subscriptions" \
-  -H "Authorization: Bearer EAAQdlso6aM8BOwl..."
+  -H "Authorization: Bearer EAAQyour_api_key_here"
 ```
 
 **Solutions:**
@@ -315,7 +315,7 @@ curl -X GET "https://graph.facebook.com/v18.0/me" \
    ```csv
    # config.csv
    # Token must start with EAAQ...
-   whatsapp-api-key,EAAQdlso6aM8BOwlhc3yM6bbJkGyibQPGJd87zFDHtfaFoJDJPohMl2c5nXs4yYuuHwoXJWx0rQKo0VXgTwThPYzqLEZArOZBhCWPBUpq7YlkEJXFAgB6ZAb3eoUzZAMgNZCZA1sg11rT2G8e1ZAgzpRVRffU4jmMChc7ybcyIwbtGOPKZAXKcNoMRfUwssoLhDWr
+   whatsapp-api-key,EAAQyour_api_key_here
    ```
 
 3. **Verify Token Permissions**
@@ -981,8 +981,8 @@ grep "identical token repeated" botserver.log
 1. **Use Environment Variables**
    ```bash
    # .env file (add to .gitignore)
-   WHATSAPP_API_KEY=EAAQdlso6aM8BOwl...
-   WHATSAPP_PHONE_NUMBER_ID=1158433381968079
+   WHATSAPP_API_KEY=EAAQyour_api_key_here
+   WHATSAPP_PHONE_NUMBER_ID=YOUR_PHONE_NUMBER_ID
    ```
 
    ```javascript

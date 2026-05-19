@@ -5,6 +5,7 @@
 - **❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation**
 - **❌ NEVER use `scp`, direct SSH binary copy, or manual deployment to system container**
 - **✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically**
+- **✅ NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change (~10s)**
 5858 is server 5859 is client ui 
 if you are in trouble with some tool, please go to the ofiical website to get proper install or instructions
 To test web is http://localhost:5859 (botui!)

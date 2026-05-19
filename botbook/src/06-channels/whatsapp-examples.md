@@ -108,9 +108,9 @@ SEND WHATSAPP TO "+5511999999999" WITH LIST "Choose an option" WITH HEADER "Main
 // config.js
 module.exports = {
   whatsapp: {
-    apiKey: process.env.WHATSAPP_API_KEY || 'EAAQdlso6aM8BOwlhc3yM6bbJkGyibQPGJd87zFDHtfaFoJDJPohMl2c5nXs4yYuuHwoXJWx0rQKo0VXgTwThPYzqLEZArOZBhCWPBUpq7YlkEJXFAgB6ZAb3eoUzZAMgNZCZA1sg11rT2G8e1ZAgzpRVRffU4jmMChc7ybcyIwbtGOPKZAXKcNoMRfUwssoLhDWr',
-    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '1158433381968079',
-    wabaId: process.env.WHATSAPP_WABA_ID || '390727550789228',
+    apiKey: process.env.WHATSAPP_API_KEY || 'EAAQyour_api_key_here',
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || 'YOUR_PHONE_NUMBER_ID',
+    wabaId: process.env.WHATSAPP_WABA_ID || 'YOUR_WABA_ID',
     verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || '4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY',
     apiVersion: 'v18.0'
   }
@@ -510,9 +510,9 @@ from dataclasses import dataclass
 
 @dataclass
 class WhatsAppConfig:
-    api_key: str = os.getenv('WHATSAPP_API_KEY', 'EAAQdlso6aM8BOwlhc3yM6bbJkGyibQPGJd87zFDHtfaFoJDJPohMl2c5nXs4yYuuHwoXJWx0rQKo0VXgTwThPYzqLEZArOZBhCWPBUpq7YlkEJXFAgB6ZAb3eoUzZAMgNZCZA1sg11rT2G8e1ZAgzpRVRffU4jmMChc7ybcyIwbtGOPKZAXKcNoMRfUwssoLhDWr')
-    phone_number_id: str = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '1158433381968079')
-    waba_id: str = os.getenv('WHATSAPP_WABA_ID', '390727550789228')
+    api_key: str = os.getenv('WHATSAPP_API_KEY', 'EAAQyour_api_key_here')
+    phone_number_id: str = os.getenv('WHATSAPP_PHONE_NUMBER_ID', 'YOUR_PHONE_NUMBER_ID')
+    waba_id: str = os.getenv('WHATSAPP_WABA_ID', 'YOUR_WABA_ID')
     verify_token: str = os.getenv('WHATSAPP_VERIFY_TOKEN', '4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY')
     api_version: str = 'v18.0'
 
@@ -1326,7 +1326,7 @@ describe('WhatsAppClient', () => {
 
   test('sendText should send message successfully', async () => {
     nock('https://graph.facebook.com')
-      .post('/v18.0/1158433381968079/messages')
+      .post('/v18.0/YOUR_PHONE_NUMBER_ID/messages')
       .reply(200, {
         messaging_product: 'whatsapp',
         contacts: [{ input: '5511999999999', wa_id: '5511999999999' }],
@@ -1341,7 +1341,7 @@ describe('WhatsAppClient', () => {
 
   test('sendText should handle errors', async () => {
     nock('https://graph.facebook.com')
-      .post('/v18.0/1158433381968079/messages')
+      .post('/v18.0/YOUR_PHONE_NUMBER_ID/messages')
       .reply(400, {
         error: {
           message: 'Invalid phone number',
