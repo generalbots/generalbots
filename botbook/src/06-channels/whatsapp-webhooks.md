@@ -311,13 +311,13 @@ Meta sends JSON payloads with message data:
 {
   "object": "whatsapp_business_account",
   "entry": [{
-    "id": "390727550789228",
+    "id": "YOUR_WABA_ID",
     "changes": [{
       "value": {
         "messaging_product": "whatsapp",
         "metadata": {
           "display_phone_number": "+553322980098",
-          "phone_number_id": "1158433381968079"
+          "phone_number_id": "YOUR_PHONE_NUMBER_ID"
         },
         "contacts": [{
           "profile": {
@@ -551,7 +551,7 @@ curl -X POST \
   -d '{
     "object": "whatsapp_business_account",
     "entry": [{
-      "id": "390727550789228",
+      "id": "YOUR_WABA_ID",
       "changes": [{
         "value": {
           "messaging_product": "whatsapp",

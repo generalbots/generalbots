@@ -37,11 +37,11 @@ The most popular channel for business messaging. Complete integration guide: [Wh
 3. **Configure credentials in `config.csv`**
    ```csv
    whatsapp-enabled,true
-   whatsapp-api-key,EAAQdlso6aM8BOwlhc3yM6bbJkGyibQPGJd87zFDHtfaFoJDJPohMl2c5nXs4yYuuHwoXJWx0rQKo0VXgTwThPYzqLEZArOZBhCWPBUpq7YlkEJXFAgB6ZAb3eoUzZAMgNZCZA1sg11rT2G8e1ZAgzpRVRffU4jmMChc7ybcyIwbtGOPKZAXKcNoMRfUwssoLhDWr
-   whatsapp-phone-number-id,1158433381968079
-   whatsapp-business-account-id,390727550789228
+   whatsapp-api-key,EAAQyour_api_key_here
+   whatsapp-phone-number-id,YOUR_PHONE_NUMBER_ID
+   whatsapp-business-account-id,YOUR_WABA_ID
    whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
-   whatsapp-application-id,323250907549153
+   whatsapp-application-id,YOUR_APP_ID
    ```
 
 ### BASIC Keywords for WhatsApp
@@ -64,11 +64,11 @@ END ON
 
 | Credential | Format | Example | Purpose |
 |------------|--------|---------|---------|
-| Access Token | `EAAQ...` | `EAAQdlso6aM8BOwl...` | API authentication |
-| Phone Number ID | 16 digits | `1158433381968079` | Message sending endpoint |
-| WABA ID | 15 digits | `390727550789228` | Business account identifier |
+| Access Token | `EAAQ...` | `EAAQyour_api_key_here` | API authentication |
+| Phone Number ID | 16 digits | `YOUR_PHONE_NUMBER_ID` | Message sending endpoint |
+| WABA ID | 15 digits | `YOUR_WABA_ID` | Business account identifier |
 | Verify Token | Custom string | `4qIogZadggQ.BEoMeci...` | Webhook security |
-| Application ID | 15 digits | `323250907549153` | App identifier |
+| Application ID | 15 digits | `YOUR_APP_ID` | App identifier |
 
 ### Phone Number Verification
 
@@ -99,7 +99,7 @@ For business-initiated messages outside the 24-hour window:
 
 ```javascript
 // Send template message
-POST https://graph.facebook.com/v18.0/1158433381968079/messages
+POST https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages
 {
   "messaging_product": "whatsapp",
   "to": "5511999999999",
@@ -209,9 +209,9 @@ Complete channel configuration example:
 
 # WhatsApp Business (Primary channel)
 whatsapp-enabled,true
-whatsapp-api-key,EAAQdlso6aM8BOwlhc3yM6bbJkGyibQPGJd87zFDHtfaFoJDJPohMl2c5nXs4yYuuHwoXJWx0rQKo0VXgTwThPYzqLEZArOZBhCWPBUpq7YlkEJXFAgB6ZAb3eoUzZAMgNZCZA1sg11rT2G8e1ZAgzpRVRffU4jmMChc7ybcyIwbtGOPKZAXKcNoMRfUwssoLhDWr
-whatsapp-phone-number-id,1158433381968079
-whatsapp-business-account-id,390727550789228
+whatsapp-api-key,EAAQyour_api_key_here
+whatsapp-phone-number-id,YOUR_PHONE_NUMBER_ID
+whatsapp-business-account-id,YOUR_WABA_ID
 whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
 
 # Twilio SMS (Backup channel)

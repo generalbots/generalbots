@@ -40,8 +40,8 @@ Get your WhatsApp Business bot up and running in 30 minutes with this streamline
 
 **Save these values:**
 ```
-WABA ID:          390727550789228
-Application ID:   323250907549153
+WABA ID:          YOUR_WABA_ID
+Application ID:   YOUR_APP_ID
 Phone Number ID:  (after verification)
 ```
 
@@ -121,11 +121,11 @@ ngrok http 3000
 
 **Required credentials:**
 ```csv
-whatsapp-api-key,EAAQdlso6aM8BOwlhc3yM6bbJkGyibQPGJd87zFDHtfaFoJDJPohMl2c5nXs4yYuuHwoXJWx0rQKo0VXgTwThPYzqLEZArOZBhCWPBUpq7YlkEJXFAgB6ZAb3eoUzZAMgNZCZA1sg11rT2G8e1ZAgzpRVRffU4jmMChc7ybcyIwbtGOPKZAXKcNoMRfUwssoLhDWr
-whatsapp-phone-number-id,1158433381968079
-whatsapp-business-account-id,390727550789228
+whatsapp-api-key,EAAQyour_api_key_here
+whatsapp-phone-number-id,YOUR_PHONE_NUMBER_ID
+whatsapp-business-account-id,YOUR_WABA_ID
 whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
-whatsapp-application-id,323250907549153
+whatsapp-application-id,YOUR_APP_ID
 whatsapp-enabled,true
 ```
 
@@ -152,11 +152,11 @@ node server.js
 ```csv
 key,value
 whatsapp-enabled,true
-whatsapp-api-key,EAAQdlso6aM8BOwlhc3yM6bbJkGyibQPGJd87zFDHtfaFoJDJPohMl2c5nXs4yYuuHwoXJWx0rQKo0VXgTwThPYzqLEZArOZBhCWPBUpq7YlkEJXFAgB6ZAb3eoUzZAMgNZCZA1sg11rT2G8e1ZAgzpRVRffU4jmMChc7ybcyIwbtGOPKZAXKcNoMRfUwssoLhDWr
-whatsapp-phone-number-id,1158433381968079
-whatsapp-business-account-id,390727550789228
+whatsapp-api-key,EAAQyour_api_key_here
+whatsapp-phone-number-id,YOUR_PHONE_NUMBER_ID
+whatsapp-business-account-id,YOUR_WABA_ID
 whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
-whatsapp-application-id,323250907549153
+whatsapp-application-id,YOUR_APP_ID
 ```
 
 ### Step 8: Test Your Bot (5 minutes)
@@ -164,8 +164,8 @@ whatsapp-application-id,323250907549153
 ```bash
 # Send test message via API
 curl -X POST \
-  'https://graph.facebook.com/v18.0/1158433381968079/messages' \
-  -H 'Authorization: Bearer EAAQdlso6aM8BOwl...' \
+  'https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages' \
+  -H 'Authorization: Bearer EAAQyour_api_key_here' \
   -H 'Content-Type: application/json' \
   -d '{
     "messaging_product": "whatsapp",
