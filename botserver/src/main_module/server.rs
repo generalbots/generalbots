@@ -233,6 +233,7 @@ pub async fn run_axum_server(
                 Json(serde_json::json!({
                     "user_id": user_id,
                     "session_id": final_session_id,
+                    "bot_id": found_bot_id,
                     "bot_name": bot_name,
                     "status": "anonymous"
                 })),

@@ -109,7 +109,7 @@ impl DriveFileRepository {
         Ok(())
     }
 
-    pub fn mark_indexed(&self, bot_id: Uuid, file_path: &str) -> Result<(), String> {
+    pub fn mark_indexed(&self, bot_id: Uuid, file_path: &str, etag: Option<String>) -> Result<(), String> {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 
         diesel::update(drive_files::table)
@@ -120,7 +120,9 @@ impl DriveFileRepository {
             )
             .set((
                 drive_files::indexed.eq(true),
+                drive_files::etag.eq(etag),
                 drive_files::fail_count.eq(0),
+                drive_files::last_failed_at.eq(None::<DateTime<Utc>>),
                 drive_files::updated_at.eq(Utc::now()),
             ))
             .execute(&mut conn)
@@ -266,6 +268,7 @@ Ok(())
 }
 
     /// Mark all files matching a path pattern as indexed (for KB folder indexing)
+    /// Does NOT update ETag — individual file ETags are already set by upsert_file during scan
     pub fn mark_indexed_by_pattern(&self, bot_id: Uuid, pattern: &str) -> Result<(), String> {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 

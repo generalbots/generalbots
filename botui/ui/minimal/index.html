@@ -6,9 +6,9 @@
     <title>General Bots</title>
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <script>
-        // BotServer URL - configurable via window.BOTSERVER_URL or defaults to same origin port 9000
+        // BotServer URL - configurable via window.BOTSERVER_URL or defaults to same origin
         const BOTSERVER_URL =
-            window.BOTSERVER_URL || "http://localhost:9000";
+            window.BOTSERVER_URL || "";
         const BOTSERVER_WS_URL = BOTSERVER_URL.replace(
             "https://",
             "wss://",
