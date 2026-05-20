@@ -85,6 +85,102 @@ fn load_system_prompt(bot_name: &str) -> String {
     "You are a helpful assistant. Responda APENAS com fragmentos HTML válidos. Não use markdown. Não use blocos de código. Use apenas: <p>, <h3>, <ul>, <li>, <strong>, <em>. Cada tag que você abrir DEVE ser fechada corretamente. Comece sua resposta diretamente com uma tag HTML, nunca com texto puro.".to_string()
 }
 
+fn load_bot_styles_css(bot_name: &str) -> String {
+    let work_dir = botcore::shared::utils::get_work_path();
+    let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
+
+    std::fs::read_to_string(format!("{}styles.css", gbot_dir))
+        .or_else(|_| std::fs::read_to_string(format!("{}style.css", gbot_dir)))
+        .unwrap_or_default()
+}
+
+async fn run_start_bas_on_connect(
+    state: &Arc<AppState>,
+    ws_sender: &mut futures_util::stream::SplitSink<WebSocket, Message>,
+    rx: &mut mpsc::Receiver<botlib::models::BotResponse>,
+    bot_uuid: Uuid,
+    session_id: Uuid,
+    user_id: Uuid,
+    bot_name: &str,
+) {
+    let session_init_key = format!("start_bas_executed:{}:{}", bot_uuid, session_id);
+    let should_execute = if let Some(ref cache) = state.cache {
+        use redis::AsyncCommands;
+        if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+            let was_set: Option<String> = redis::cmd("SET")
+                .arg(&session_init_key).arg("1").arg("NX").arg("EX").arg(86400)
+                .query_async(&mut conn).await.ok();
+            was_set.is_some()
+        } else {
+            false
+        }
+    } else {
+        true
+    };
+
+    if !should_execute {
+        return;
+    }
+
+    let work_path = botcore::shared::utils::get_work_path();
+    let ast_path = format!("{}/{}.gbai/{}.gbdialog/start.ast", work_path, bot_name, bot_name);
+    let ast_content = match tokio::fs::read_to_string(&ast_path).await {
+        Ok(c) if !c.is_empty() => c,
+        _ => {
+            let bas_path = ast_path.replace(".ast", ".bas");
+            tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
+        }
+    };
+
+    if ast_content.is_empty() {
+        return;
+    }
+
+    let state_for_bas = state.clone();
+    let bot_id_for_bas = bot_uuid;
+    let bot_name_owned = bot_name.to_string();
+    tokio::task::spawn_blocking(move || {
+        let session_for_bas = botlib::models::UserSession {
+            id: session_id, user_id, bot_id: bot_id_for_bas,
+            title: String::new(),
+            context_data: serde_json::Value::Null,
+            current_tool: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        let mut svc = crate::basic::ScriptService::new(
+            state_for_bas.clone(), session_for_bas,
+        );
+        svc.load_bot_config_params(&state_for_bas, bot_id_for_bas);
+        if let Err(e) = svc.run(&ast_content) {
+            warn!("start.bas execution error: {}", e);
+        }
+    }).await;
+
+    for i in 0..20 {
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        match rx.try_recv() {
+            Ok(response) => {
+                info!("start.bas: drained BotResponse: content={}", response.content.chars().take(80).collect::<String>());
+                if let Ok(json) = serde_json::to_string(&response) {
+                    let _ = ws_sender.send(Message::Text(json.into())).await;
+                }
+            }
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
+                if i == 0 { info!("start.bas: rx empty, waiting..."); }
+                continue;
+            }
+            Err(e) => {
+                info!("start.bas: rx done: {:?}", e);
+                break;
+            }
+        }
+    }
+
+    let mut guards = state.start_bas_guards.lock().await;
+    guards.insert(session_id, true);
+}
+
 async fn handle_ws(
     socket: WebSocket,
     state: Arc<AppState>,
@@ -106,6 +202,9 @@ async fn handle_ws(
         "bot_id": bot_uuid, "message": "Connected to bot server", "tools": []
     });
     let _ = ws_sender.send(Message::Text(welcome.to_string().into())).await;
+
+    // Run start.bas immediately on connect (not waiting for first user message)
+    run_start_bas_on_connect(&state, &mut ws_sender, &mut rx, bot_uuid, session_id, user_id, &bot_name).await;
 
     // Message loop
     loop {
@@ -238,83 +337,9 @@ async fn handle_ws(
                             continue;
                         }
 
-                        // Execute start.bas on first user message
-                        let session_init_key = format!("start_bas_executed:{}:{}", bot_uuid, session_id);
-                        let already_executed = {
-                            let guards = state.start_bas_guards.lock().await;
-                            guards.get(&session_id).copied().unwrap_or(false)
-                        };
-                        let should_execute = if already_executed {
-                            false
-                        } else if let Some(ref cache) = state.cache {
-                            use redis::AsyncCommands;
-                            if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-                                let was_set: Option<String> = redis::cmd("SET")
-                                    .arg(&session_init_key).arg("1").arg("NX").arg("EX").arg(86400)
-                                    .query_async(&mut conn).await.ok();
-                                was_set.is_some()
-                            } else {
-                                false
-                            }
-                        } else {
-                            true
-                        };
-
-                        if should_execute {
-                            let work_path = botcore::shared::utils::get_work_path();
-                            let ast_path = format!("{}/{}.gbai/{}.gbdialog/start.ast", work_path, bot_name, bot_name);
-                            let ast_content = match tokio::fs::read_to_string(&ast_path).await {
-                                Ok(c) if !c.is_empty() => c,
-                                _ => {
-                                    let bas_path = ast_path.replace(".ast", ".bas");
-                                    tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
-                                }
-                            };
-
-                            if !ast_content.is_empty() {
-                                let state_for_bas = state.clone();
-                                let bot_id_for_bas = bot_uuid;
-                                tokio::task::spawn_blocking(move || {
-                                    let session_for_bas = botlib::models::UserSession {
-                                        id: session_id, user_id, bot_id: bot_id_for_bas,
-                                        title: String::new(),
-                                        context_data: serde_json::Value::Null,
-                                        current_tool: None,
-                                        created_at: chrono::Utc::now(),
-                                        updated_at: chrono::Utc::now(),
-                                    };
-                                    let mut svc = crate::basic::ScriptService::new(
-                                        state_for_bas.clone(), session_for_bas,
-                                    );
-                                    svc.load_bot_config_params(&state_for_bas, bot_id_for_bas);
-                                    if let Err(e) = svc.run(&ast_content) {
-                                        warn!("start.bas execution error: {}", e);
-                                    }
-                                }).await;
-                            }
-                            // Wait briefly for TALK's tokio::spawn task to deliver the response
-                            for i in 0..20 {
-                                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                                match rx.try_recv() {
-                                    Ok(response) => {
-                                        info!("start.bas: drained BotResponse: content={}", response.content.chars().take(80).collect::<String>());
-                                        if let Ok(json) = serde_json::to_string(&response) {
-                                            let _ = ws_sender.send(Message::Text(json.into())).await;
-                                        }
-                                    }
-                                    Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
-                                        if i == 0 { info!("start.bas: rx empty, waiting..."); }
-                                        continue;
-                                    }
-                                    Err(e) => {
-                                        info!("start.bas: rx done: {:?}", e);
-                                        break;
-                                    }
-                                }
-                            }
-                            let mut guards = state.start_bas_guards.lock().await;
-                            guards.insert(session_id, true);
-                        }
+                        // start.bas already executed on connect - just update guard for idempotency
+                        let mut guards = state.start_bas_guards.lock().await;
+                        guards.entry(session_id).or_insert(true);
 
                         // Send suggestions AFTER start.bas has run (so suggestions are in Redis)
                         // but BEFORE KB embedding (to prevent connection timeout)
@@ -516,6 +541,7 @@ async fn handle_ws(
                                 let llm_model_clone = llm_model.clone();
                                 let bot_uuid_s = bot_uuid.to_string();
                                 let session_id_s = session_id.to_string();
+                                let bot_name_clone = bot_name.clone();
 
                                 // Suggestions already sent at message receipt time (see early_suggestions above)
 
@@ -528,6 +554,27 @@ async fn handle_ws(
                                         info!("LLM spawn task completed successfully");
                                     }
                                 });
+
+                                // Inject bot styles.css as first chunk (so LLM doesn't need to output CSS)
+                                let bot_styles_css = load_bot_styles_css(&bot_name_clone);
+                                if !bot_styles_css.is_empty() {
+                                    let style_tag = format!("<style>\n{}</style>\n", bot_styles_css);
+                                    full_response.push_str(&style_tag);
+                                    let css_resp = serde_json::json!({
+                                        "bot_id": bot_uuid_s,
+                                        "user_id": user_id.to_string(),
+                                        "session_id": session_id_s,
+                                        "channel": "web",
+                                        "content": style_tag,
+                                        "message_type": 2,
+                                        "is_complete": false,
+                                        "suggestions": [],
+                                        "switchers": [],
+                                        "context_length": 0,
+                                        "context_max_length": 0,
+                                    });
+                                    let _ = ws_sender.send(Message::Text(css_resp.to_string().into())).await;
+                                }
 
                                 // Stream chunks to WebSocket with periodic keepalive
                                 // Send immediate thinking indicator before entering the loop
@@ -551,11 +598,11 @@ async fn handle_ws(
                                 loop {
                                     tokio::select! {
                                         chunk = stream_rx.recv() => {
-                                            match chunk {
-                                                Some(chunk) => {
-                                                    full_response.push_str(&chunk);
-                                                    let chunk_resp = serde_json::json!({
-                                                        "bot_id": bot_uuid_s,
+                                             match chunk {
+                                                  Some(chunk) => {
+                                                      full_response.push_str(&chunk);
+                                                     let chunk_resp = serde_json::json!({
+                                                         "bot_id": bot_uuid_s,
                                                         "user_id": user_id.to_string(),
                                                         "session_id": session_id_s,
                                                         "channel": "web",
