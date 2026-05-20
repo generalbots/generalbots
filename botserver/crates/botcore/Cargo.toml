@@ -22,6 +22,7 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true }
 calamine = { workspace = true }
+ole = { version = "0.1", optional = true }
 chrono = { workspace = true }
 cron = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
@@ -93,7 +94,7 @@ player = []
 sources = []
 designer = []
 editor = []
-kb-extraction = []
+kb-extraction = ["dep:ole"]
 vectordb = []
 [lints]
 workspace = true

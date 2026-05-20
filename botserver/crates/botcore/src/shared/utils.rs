@@ -639,7 +639,44 @@ pub fn convert_date_to_iso_format(value: &str) -> String {
 }
 
 pub fn get_secrets_manager_sync() -> Result<serde_json::Value, String> {
-    Err("get_secrets_manager_sync: not available in botcore".to_string())
+    let secrets = std::thread::spawn(|| {
+        let sm = match botcoresecrets::SecretsManager::get() {
+            Ok(s) => s,
+            Err(e) => return Err(format!("SecretsManager not available: {}", e)),
+        };
+        let rt = match tokio::runtime::Runtime::new() {
+            Ok(r) => r,
+            Err(e) => return Err(format!("Failed to create runtime: {}", e)),
+        };
+        rt.block_on(sm.get_secret("gbo/vectordb"))
+            .map_err(|e| format!("Failed to read vectordb secrets: {}", e))
+    })
+    .join()
+    .map_err(|_| "Thread panic in get_secrets_manager_sync".to_string())?
+    .map_err(|e| format!("Secrets fetch failed: {}", e))?;
+
+    let mut map = serde_json::Map::new();
+    if let Some(url) = secrets.get("url").or(secrets.get("QDRANT_URL")).or(secrets.get("vectordb-url")) {
+        if !url.is_empty() {
+            map.insert("QDRANT_URL".to_string(), serde_json::Value::String(url.clone()));
+        }
+    }
+    if let Some(api_key) = secrets.get("api_key").or(secrets.get("QDRANT_API_KEY")).or(secrets.get("vectordb-api-key")) {
+        if !api_key.is_empty() {
+            map.insert("QDRANT_API_KEY".to_string(), serde_json::Value::String(api_key.clone()));
+        }
+    }
+    if let Some(collection) = secrets.get("collection").or(secrets.get("QDRANT_COLLECTION")).or(secrets.get("vectordb-collection")) {
+        if !collection.is_empty() {
+            map.insert("QDRANT_COLLECTION".to_string(), serde_json::Value::String(collection.clone()));
+        }
+    }
+
+    if map.is_empty() {
+        Err("No vectordb secrets available in Vault".to_string())
+    } else {
+        Ok(serde_json::Value::Object(map))
+    }
 }
 
 pub fn get_vectordb_config_from_value(value: &serde_json::Value) -> (String, String, String) {

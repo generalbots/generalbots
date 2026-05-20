@@ -1086,6 +1086,7 @@ dependencies = [
  "jsonwebtoken",
  "lettre",
  "log",
+ "ole",
  "once_cell",
  "quick-xml 0.37.5",
  "rand 0.9.4",

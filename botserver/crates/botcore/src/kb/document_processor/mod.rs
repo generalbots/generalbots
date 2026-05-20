@@ -365,6 +365,7 @@ impl DocumentProcessor {
         let path = file_path.to_path_buf();
         let result = tokio::task::spawn_blocking(move || -> Result<String> {
             use calamine::{open_workbook, Reader, Xlsx};
+            use std::fmt::Write;
 
             let mut workbook: Xlsx<_> = open_workbook(&path)
                 .map_err(|e| anyhow::anyhow!("Failed to open XLSX: {e}"))?;
@@ -425,6 +426,7 @@ impl DocumentProcessor {
         let path = file_path.to_path_buf();
         let result = tokio::task::spawn_blocking(move || -> Result<String> {
             use calamine::{open_workbook, Reader, Xls};
+            use std::fmt::Write;
 
             let mut workbook: Xls<_> = open_workbook(&path)
                 .map_err(|e| anyhow::anyhow!("Failed to open XLS: {e}"))?;

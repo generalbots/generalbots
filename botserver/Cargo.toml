@@ -49,7 +49,7 @@ tickets = ["automation", "drive", "cache", "dep:bottickets"]
 billing = ["automation", "drive", "cache", "dep:botbilling"]
 
 # Document Processing (lightweight - KB extraction without heavy OOXML SDKs)
-kb-extraction = ["drive", "dep:calamine", "dep:ole"]
+kb-extraction = ["drive", "dep:calamine", "dep:ole", "botcore/kb-extraction"]
 
 # Documents (full editing UI - opt-in, adds ~4min compile time from ooxmlsdk)
 docs = ["automation", "drive", "cache", "dep:docx-rs", "dep:ooxmlsdk", "kb-extraction", "dep:botdocs"]
