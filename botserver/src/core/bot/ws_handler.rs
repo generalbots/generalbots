@@ -521,8 +521,11 @@ async fn handle_ws(
 
                                 // Spawn LLM streaming task
                                 let _stream_handle = tokio::spawn(async move {
+                                    info!("LLM spawn task starting: model={}, key_len={}", llm_model_clone, llm_key_clone.len());
                                     if let Err(e) = llm.generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx, &llm_model_clone, &llm_key_clone, None).await {
-                                        warn!("LLM stream error: {}", e);
+                                        error!("LLM stream error: {}", e);
+                                    } else {
+                                        info!("LLM spawn task completed successfully");
                                     }
                                 });
 

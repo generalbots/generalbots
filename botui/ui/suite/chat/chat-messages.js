@@ -67,16 +67,8 @@ function stripReasoningPrefix(content) {
   return content;
 }
 
-function fixRamalSpacing(content) {
-  // Fix "Ramal506" -> "Ramal 506" (LLM ignores spacing instruction)
-  return content.replace(/([Rr]amal)(\d)/g, "$1 $2");
-}
-
 function stripSectorInfo(content) {
-  // Remove sector/dept info from ramal responses
-  // Pattern: " - Setor XXXX" at end of line or before period
-  var clean = content.replace(/[-–—]\s*(Setor|Departamento|Cargo|Se[cç]ão|Enfermaria|Administra[çc][aã]o)\s*[^.<>]*/gi, "");
-  return fixRamalSpacing(clean);
+  return content.replace(/[-–—]\s*(Setor|Departamento|Cargo|Se[cç]ão|Enfermaria|Administra[çc][aã]o)\s*[^.<>]*/gi, "");
 }
 
 function stripMarkdownBlocks(content) {
@@ -85,7 +77,6 @@ function stripMarkdownBlocks(content) {
   cleanContent = stripSectorInfo(cleanContent);
   var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
   if (hasHtmlTags) {
-    // Even with HTML tags, strip sector info from text content
     cleanContent = stripSectorInfo(cleanContent);
     return cleanContent;
   }
@@ -107,7 +98,6 @@ if (msgId) div.id = msgId;
     div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
   } else {
     var cleanContent = stripMarkdownBlocks(content);
-    cleanContent = stripSectorInfo(cleanContent);
     var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
     var parsed;
     if (hasHtmlTags) {
