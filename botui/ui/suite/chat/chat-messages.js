@@ -68,7 +68,8 @@ function stripReasoningPrefix(content) {
 }
 
 function stripSectorInfo(content) {
-  return content.replace(/[-–—]\s*(Setor|Departamento|Cargo|Se[cç]ão|Enfermaria|Administra[çc][aã]o)\s*[^.<>]*/gi, "");
+  var c = content.replace(/[-–—]\s*(Setor|Departamento|Cargo|Se[cç]ão|Enfermaria|Administra[çc][aã]o)\s*[^.<>]*/gi, "");
+  return c.replace(/Ramal(\d)/g, "Ramal $1");
 }
 
 function stripMarkdownBlocks(content) {
