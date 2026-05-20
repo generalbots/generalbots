@@ -49,7 +49,7 @@
                     wget \
                     libclang1 \
                     pkg-config \
-                    snapd
+                    poppler-utils
 
 
         }
@@ -67,7 +67,8 @@
                 clang-libs \
                 pkgconf-pkg-config \
                 lxc \
-                lxc-templates
+                lxc-templates \
+                poppler-utils
         }
 
         install_arch() {
@@ -82,7 +83,8 @@
                 abseil-cpp \
                 clang \
                 pkgconf \
-                lxc
+                lxc \
+                poppler
         }
 
         install_alpine() {
@@ -97,7 +99,8 @@
                 abseil-cpp \
                 clang \
                 pkgconf \
-                lxc
+                lxc \
+                poppler-utils
         }
 
         case $OS in

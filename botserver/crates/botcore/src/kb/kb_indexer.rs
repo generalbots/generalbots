@@ -36,7 +36,15 @@ impl QdrantConfig {
             let url = config_manager
                 .get_config(bot_id, "vectordb-url", Some(""))
                 .unwrap_or_else(|_| "".to_string());
-            (url, "".to_string(), "default".to_string())
+            let url = if url.is_empty() {
+                std::env::var("VECTORDB_URL").unwrap_or_else(|_| "http://localhost:6333".to_string())
+            } else {
+                url
+            };
+            let api_key = config_manager
+                .get_config(bot_id, "vectordb-api-key", Some(""))
+                .unwrap_or_default();
+            (url, api_key, "default".to_string())
         };
         Self {
             url,
@@ -951,7 +959,12 @@ impl KbFolderMonitor {
                     timeout_secs: 30,
                 }
         } else {
-            QdrantConfig::default()
+            let url = std::env::var("VECTORDB_URL").unwrap_or_else(|_| "http://localhost:6333".to_string());
+            QdrantConfig {
+                url,
+                api_key: None,
+                timeout_secs: 30,
+            }
         };
         let indexer = KbIndexer::new(embedding_config, qdrant_config);
 
