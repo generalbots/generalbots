@@ -309,38 +309,13 @@ Each bot has a `config.csv` file in `{bot}.gbai/{bot}.gbot/config.csv` that cont
 3. Falls back to env vars `LLM_URL`, `LLM_MODEL`, `LLM_KEY` if not in config
 4. Provider is auto-detected from URL pattern (OpenAI-compatible, Anthropic, etc.)
 
-**Working models on NVIDIA API (tested May 2026):**
-
-| Model | Status | Notes |
-|-------|--------|-------|
-| `openai/gpt-oss-120b` | ✅ OK | Recommended, reasoning model, needs max_tokens >= 512 |
-| `openai/gpt-oss-20b` | ✅ OK | Faster, smaller reasoning model |
-| `meta/llama-3.3-70b-instruct` | ✅ OK | Reliable, fast |
-| `meta/llama-3.1-70b-instruct` | ✅ OK | Reliable |
-| `meta/llama-3.1-8b-instruct` | ✅ OK | Fast, lightweight |
-| `meta/llama-4-maverick-17b-128e-instruct` | ✅ OK | Newer Llama 4 |
-| `mistralai/mistral-large-3-675b-instruct-2512` | ✅ OK | Large Mistral model |
-| `mistralai/mixtral-8x22b-instruct-v0.1` | ✅ OK | MoE architecture |
-| `qwen/qwen3-coder-480b-a35b-instruct` | ✅ OK | Code-specialized |
-| `qwen/qwen3-next-80b-a3b-instruct` | ✅ OK | General purpose |
-| `microsoft/phi-4-mini-instruct` | ✅ OK | Compact model |
-| `upstage/solar-10.7b-instruct` | ✅ OK | Small, fast |
-| `deepseek-ai/deepseek-v4-flash` | ❌ TIMEOUT | Often times out |
-| `nvidia/gpt-oss-120b` | ❌ 404 | Wrong prefix — use `openai/gpt-oss-120b` |
-
-**⚠️ Important notes:**
-- Reasoning models (gpt-oss, deepseek-r1) need `max_tokens >= 512` to have budget for both reasoning and content
-- Many NVIDIA catalog models return 404 — only the ones marked ✅ above are confirmed working
-- Use `curl` to test models: `POST https://integrate.api.nvidia.com/v1/chat/completions` with `{"model": "...", "messages": [...]}`
-- To list all available models: `GET https://integrate.api.nvidia.com/v1/models`
-
 **Updating bot LLM model:**
 ```bash
 # 1. Pull config.csv from Drive
 /tmp/mc cp local/{bot}.gbai/{bot}.gbot/config.csv /tmp/config.csv
 
 # 2. Edit the llm-model field in /tmp/config.csv
-sed -i 's/llm-model,.*/llm-model,openai\/gpt-oss-120b/' /tmp/config.csv
+sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
 
 # 3. Push back to Drive (drive_monitor auto-reloads)
 /tmp/mc cp /tmp/config.csv local/{bot}.gbai/{bot}.gbot/config.csv
@@ -782,10 +757,6 @@ match x {
 - ❌ **NEVER** run `cargo check` synchronously - always `nohup cargo check > /tmp/<crate>_check.log 2>&1 &`
 - ❌ **NEVER** compile directly for production - ALWAYS use push + CI/CD pipeline
 - ❌ **NEVER** use `scp` or manual transfer to deploy - ONLY CI/CD ensures correct deployment
-- ❌ **NEVER** manually copy binaries to production system container - ALWAYS push to ALM and let CI/CD build and deploy
-- ❌ **NEVER** SSH into system container to deploy binaries - CI workflow handles build, transfer, and restart via alm-ci SSH
-- ✅ **ALWAYS** push code to ALM → CI builds on alm-ci → CI deploys to system container via SSH from alm-ci
-- ✅ **CI deploy path**: alm-ci builds at `/opt/gbo/data/botserver/target/debug/botserver` → tar+gzip via SSH → `/opt/gbo/bin/botserver` on system container → restart
 - ❌ **NEVER** manually copy binaries to production system container - ALWAYS push to ALM and let CI/CD build and deploy
 - ❌ **NEVER** SSH into system container to deploy binaries - CI workflow handles build, transfer, and restart via alm-ci SSH
 - ✅ **ALWAYS** push code to ALM → CI builds on alm-ci → CI deploys to system container via SSH from alm-ci

@@ -88,10 +88,76 @@ fn load_system_prompt(bot_name: &str) -> String {
 fn load_bot_styles_css(bot_name: &str) -> String {
     let work_dir = botcore::shared::utils::get_work_path();
     let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
+    let css_path = format!("{}styles.css", gbot_dir);
 
-    std::fs::read_to_string(format!("{}styles.css", gbot_dir))
-        .or_else(|_| std::fs::read_to_string(format!("{}style.css", gbot_dir)))
-        .unwrap_or_default()
+    match std::fs::read_to_string(&css_path) {
+        Ok(c) => {
+            info!("styles.css loaded from {} ({} bytes)", css_path, c.len());
+            c
+        }
+        Err(e1) => {
+            let alt_path = format!("{}style.css", gbot_dir);
+            match std::fs::read_to_string(&alt_path) {
+                Ok(c) => {
+                    info!("style.css loaded from {} ({} bytes)", alt_path, c.len());
+                    c
+                }
+                Err(e2) => {
+                    warn!("No styles.css/ style.css found at {} or {}: {}, {}", css_path, alt_path, e1, e2);
+                    String::new()
+                }
+            }
+        }
+    }
+}
+
+async fn send_start_suggestions(
+    state: &Arc<AppState>,
+    ws_sender: &mut futures_util::stream::SplitSink<WebSocket, Message>,
+    bot_uuid: Uuid,
+    session_id: Uuid,
+    user_id: Uuid,
+) {
+    let suggestions = {
+        #[cfg(feature = "chat")]
+        {
+            crate::basic::keywords::add_suggestion::get_suggestions(
+                state.cache.as_ref(),
+                &bot_uuid.to_string(),
+                &session_id.to_string(),
+            )
+        }
+        #[cfg(not(feature = "chat"))]
+        Vec::new()
+    };
+    let switchers = {
+        #[cfg(feature = "chat")]
+        {
+            crate::basic::keywords::switcher::get_switchers(
+                state.cache.as_ref(),
+                &bot_uuid.to_string(),
+                &session_id.to_string(),
+            )
+        }
+        #[cfg(not(feature = "chat"))]
+        Vec::new()
+    };
+    if !suggestions.is_empty() || !switchers.is_empty() {
+        info!("ws_handler: sending {} suggestions and {} switchers on reconnect", suggestions.len(), switchers.len());
+        let _ = ws_sender.send(Message::Text(serde_json::json!({
+            "bot_id": bot_uuid.to_string(),
+            "user_id": user_id.to_string(),
+            "session_id": session_id.to_string(),
+            "channel": "web",
+            "content": "",
+            "message_type": 2,
+            "is_complete": true,
+            "suggestions": suggestions,
+            "switchers": switchers,
+            "context_length": 0,
+            "context_max_length": 0,
+        }).to_string().into())).await;
+    }
 }
 
 async fn run_start_bas_on_connect(
@@ -102,26 +168,27 @@ async fn run_start_bas_on_connect(
     session_id: Uuid,
     user_id: Uuid,
     bot_name: &str,
-) {
-    let session_init_key = format!("start_bas_executed:{}:{}", bot_uuid, session_id);
-    let should_execute = if let Some(ref cache) = state.cache {
-        use redis::AsyncCommands;
-        if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-            let was_set: Option<String> = redis::cmd("SET")
-                .arg(&session_init_key).arg("1").arg("NX").arg("EX").arg(86400)
-                .query_async(&mut conn).await.ok();
-            was_set.is_some()
-        } else {
-            false
+) -> bool {
+    // Check in-memory guard first (fast path)
+    {
+        let guards = state.start_bas_guards.lock().await;
+        if guards.contains_key(&session_id) {
+            // Session already initialized - send stored suggestions/switchers for reconnect
+            send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
+            return false;
         }
-    } else {
-        true
-    };
-
-    if !should_execute {
-        return;
     }
 
+    // Clean any stale Redis key (from previous botserver instance that set it before file check)
+    let session_init_key = format!("start_bas_executed:{}:{}", bot_uuid, session_id);
+    if let Some(ref cache) = state.cache {
+        use redis::AsyncCommands;
+        if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
+            let _: Result<(), _> = redis::cmd("DEL").arg(&session_init_key).query_async(&mut conn).await;
+        }
+    }
+
+    // Try to read start.bas/start.ast files
     let work_path = botcore::shared::utils::get_work_path();
     let ast_path = format!("{}/{}.gbai/{}.gbdialog/start.ast", work_path, bot_name, bot_name);
     let ast_content = match tokio::fs::read_to_string(&ast_path).await {
@@ -133,7 +200,14 @@ async fn run_start_bas_on_connect(
     };
 
     if ast_content.is_empty() {
-        return;
+        // Files not ready yet (DriveMonitor still syncing) - caller retries on first message
+        return false;
+    }
+
+    // Mark as executed in memory (prevents re-execution within same process)
+    {
+        let mut guards = state.start_bas_guards.lock().await;
+        guards.insert(session_id, true);
     }
 
     let state_for_bas = state.clone();
@@ -177,8 +251,8 @@ async fn run_start_bas_on_connect(
         }
     }
 
-    let mut guards = state.start_bas_guards.lock().await;
-    guards.insert(session_id, true);
+    send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
+    true
 }
 
 async fn handle_ws(
@@ -204,7 +278,7 @@ async fn handle_ws(
     let _ = ws_sender.send(Message::Text(welcome.to_string().into())).await;
 
     // Run start.bas immediately on connect (not waiting for first user message)
-    run_start_bas_on_connect(&state, &mut ws_sender, &mut rx, bot_uuid, session_id, user_id, &bot_name).await;
+    let start_bas_ran = run_start_bas_on_connect(&state, &mut ws_sender, &mut rx, bot_uuid, session_id, user_id, &bot_name).await;
 
     // Message loop
     loop {
@@ -337,7 +411,17 @@ async fn handle_ws(
                             continue;
                         }
 
-                        // start.bas already executed on connect - just update guard for idempotency
+                        // Fallback: run start.bas now if it didn't run on connect (DriveMonitor wasn't ready)
+                        if !start_bas_ran {
+                            let mut guards = state.start_bas_guards.lock().await;
+                            if !guards.contains_key(&session_id) {
+                                drop(guards);
+                                run_start_bas_on_connect(
+                                    &state, &mut ws_sender, &mut rx, bot_uuid,
+                                    session_id, user_id, &bot_name,
+                                ).await;
+                            }
+                        }
                         let mut guards = state.start_bas_guards.lock().await;
                         guards.entry(session_id).or_insert(true);
 
@@ -545,20 +629,10 @@ async fn handle_ws(
 
                                 // Suggestions already sent at message receipt time (see early_suggestions above)
 
-                                // Spawn LLM streaming task
-                                let _stream_handle = tokio::spawn(async move {
-                                    info!("LLM spawn task starting: model={}, key_len={}", llm_model_clone, llm_key_clone.len());
-                                    if let Err(e) = llm.generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx, &llm_model_clone, &llm_key_clone, None).await {
-                                        error!("LLM stream error: {}", e);
-                                    } else {
-                                        info!("LLM spawn task completed successfully");
-                                    }
-                                });
-
-                                // Inject bot styles.css as first chunk (so LLM doesn't need to output CSS)
-                                let bot_styles_css = load_bot_styles_css(&bot_name_clone);
-                                if !bot_styles_css.is_empty() {
-                                    let style_tag = format!("<style>\n{}</style>\n", bot_styles_css);
+                                // Inject bot styles.css BEFORE LLM spawn (so CSS is applied before streaming starts)
+                                let style_css = load_bot_styles_css(&bot_name_clone);
+                                if !style_css.is_empty() {
+                                    let style_tag = format!("<style>\n{}</style>\n", style_css);
                                     full_response.push_str(&style_tag);
                                     let css_resp = serde_json::json!({
                                         "bot_id": bot_uuid_s,
@@ -575,6 +649,16 @@ async fn handle_ws(
                                     });
                                     let _ = ws_sender.send(Message::Text(css_resp.to_string().into())).await;
                                 }
+
+                                // Spawn LLM streaming task
+                                let _stream_handle = tokio::spawn(async move {
+                                    info!("LLM spawn task starting: model={}, key_len={}", llm_model_clone, llm_key_clone.len());
+                                    if let Err(e) = llm.generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx, &llm_model_clone, &llm_key_clone, None).await {
+                                        error!("LLM stream error: {}", e);
+                                    } else {
+                                        info!("LLM spawn task completed successfully");
+                                    }
+                                });
 
                                 // Stream chunks to WebSocket with periodic keepalive
                                 // Send immediate thinking indicator before entering the loop

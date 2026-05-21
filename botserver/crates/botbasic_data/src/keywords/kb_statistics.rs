@@ -231,7 +231,7 @@ async fn get_kb_statistics(
     user: &UserSession,
 ) -> Result<KBStatistics, Box<dyn std::error::Error + Send + Sync>> {
 let qdrant_url = state.config_value("vectordb-url")
-            .unwrap_or_else(|| "https://localhost:6333".to_string());
+            .unwrap_or_else(|| "http://127.0.0.1:6333".to_string());
         let client = create_tls_client(Some(30));
 
     let collections_response = client
@@ -284,7 +284,7 @@ async fn get_collection_statistics(
     collection_name: &str,
 ) -> Result<CollectionStats, Box<dyn std::error::Error + Send + Sync>> {
 let qdrant_url = state.config_value("vectordb-url")
-            .unwrap_or_else(|| "https://localhost:6333".to_string());
+            .unwrap_or_else(|| "http://127.0.0.1:6333".to_string());
         let client = create_tls_client(Some(30));
 
     let response = client
@@ -367,7 +367,7 @@ async fn list_collections(
     user: &UserSession,
 ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
 let qdrant_url = state.config_value("vectordb-url")
-            .unwrap_or_else(|| "https://localhost:6333".to_string());
+            .unwrap_or_else(|| "http://127.0.0.1:6333".to_string());
         let client = create_tls_client(Some(30));
 
     let response = client

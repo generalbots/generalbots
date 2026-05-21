@@ -6,6 +6,8 @@ use diesel::{
     PgConnection,
 };
 
+#[cfg(feature = "drive")]
+use crate::config::DriveConfig;
 #[cfg(feature = "progress-bars")]
 use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, warn};
@@ -79,73 +81,9 @@ pub fn get_stack_path() -> String {
 
 #[cfg(feature = "drive")]
 pub async fn create_s3_operator(
-    config: &DriveConfig,
-) -> Result<S3Repository, Box<dyn std::error::Error>> {
-    let endpoint = {
-        // Fallback to localhost:9100 if config.server is empty
-        let server = if config.server.is_empty() {
-            "localhost:9100".to_string()
-        } else {
-            config.server.clone()
-        };
-        let base = if server.starts_with("http://") || server.starts_with("https://") {
-            server
-        } else {
-            format!("http://{}", server)
-        };
-        let with_port = if base.contains("://") {
-            let without_scheme = base.split("://").nth(1).unwrap_or("");
-            let has_port = without_scheme.contains(':');
-            if has_port || without_scheme.is_empty() {
-                base
-            } else {
-                format!("{}:9100", base.trim_end_matches('/'))
-            }
-        } else {
-            format!("http://{}:9100", base)
-        };
-        if with_port.ends_with('/') {
-            with_port
-        } else {
-            format!("{}/", with_port)
-        }
-    };
-    log::info!("Creating S3 operator with endpoint: {}, access_key: {}", endpoint, config.access_key);
-
-    let (access_key, secret_key) = if config.access_key.is_empty() || config.secret_key.is_empty() {
-        let (manager, is_vault_enabled) = {
-// REMOVED: // REMOVED:             let guard = SECRETS_MANAGER.read().map_err(|e| format!("Lock poisoned: {}", e))?;
-            if let Some(ref manager) = *guard {
-                (Some(manager.clone()), manager.is_enabled())
-            } else {
-                (None, false)
-            }
-        };
-
-        match (manager, is_vault_enabled) {
-            (Some(manager), true) => {
-                match manager.get_drive_credentials().await {
-                    Ok((ak, sk)) => (ak, sk),
-                    Err(e) => {
-                        log::warn!("Failed to get drive credentials from Vault: {}", e);
-                        (config.access_key.clone(), config.secret_key.clone())
-                    }
-                }
-            }
-            _ => (config.access_key.clone(), config.secret_key.clone())
-        }
-    } else {
-        (config.access_key.clone(), config.secret_key.clone())
-    };
-
-    let ca_cert = ca_cert_path();
-    if std::path::Path::new(&ca_cert).exists() {
-        std::env::set_var("SSL_CERT_FILE", &ca_cert);
-        debug!("Set SSL_CERT_FILE to {} for S3 client", ca_cert);
-    }
-
-    S3Repository::new(&endpoint, &access_key, &secret_key, &config.bucket)
-        .map_err(|e| format!("Failed to create S3 repository: {}", e).into())
+    _config: &DriveConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
+    Err("S3 operator is not available in botcore — use botdrive instead".into())
 }
 
 pub fn json_value_to_dynamic(value: &Value) -> Dynamic {
@@ -681,7 +619,7 @@ pub fn get_secrets_manager_sync() -> Result<serde_json::Value, String> {
 
 pub fn get_vectordb_config_from_value(value: &serde_json::Value) -> (String, String, String) {
     let url = value.get("QDRANT_URL").or(value.get("vectordb-url"))
-        .and_then(|v| v.as_str()).unwrap_or("https://localhost:6333").to_string();
+        .and_then(|v| v.as_str()).unwrap_or("http://127.0.0.1:6333").to_string();
     let api_key = value.get("QDRANT_API_KEY").or(value.get("vectordb-api-key"))
         .and_then(|v| v.as_str()).unwrap_or("").to_string();
     let collection = value.get("QDRANT_COLLECTION").or(value.get("vectordb-collection"))

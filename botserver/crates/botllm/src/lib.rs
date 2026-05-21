@@ -24,7 +24,7 @@ pub use pipeline::{PipelineConfig, LlmPipeline, MessageBuilder, KbContextManager
 
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{error, info, trace};
+use log::{error, info, trace, warn};
 use serde_json::Value;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -402,24 +402,48 @@ impl LLMProvider for OpenAIClient {
         trace!(" API Key First 8 chars: '{}...'", &key.chars().take(8).collect::<String>());
         trace!(" API Key Last 8 chars: '...{}'", &key.chars().rev().take(8).collect::<String>());
 
-        let response = self
-            .client
-            .post(&full_url)
-            .header("Authorization", &auth_header)
-            .json(&serde_json::json!({
-                "model": model,
-                "messages": messages,
-                "stream": false
-            }))
-            .send()
-            .await?;
-
-        let status = response.status();
-        if status != reqwest::StatusCode::OK {
-            let error_text = response.text().await.unwrap_or_default();
-            error!("LLM generate error: {}", error_text);
-            return Err(format!("LLM request failed with status: {}", status).into());
+        let max_retries = 2;
+        let mut response = None;
+        for attempt in 0..=max_retries {
+            match self
+                .client
+                .post(&full_url)
+                .header("Authorization", &auth_header)
+                .json(&serde_json::json!({
+                    "model": model,
+                    "messages": messages,
+                    "stream": false
+                }))
+                .send()
+                .await
+            {
+                Ok(resp) => {
+                    let status = resp.status();
+                    if status == reqwest::StatusCode::OK {
+                        response = Some(resp);
+                        break;
+                    }
+                    let error_text = resp.text().await.unwrap_or_default();
+                    if attempt < max_retries {
+                        warn!("LLM generate attempt {} failed (status {}): {}, retrying...", attempt + 1, status, error_text);
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    } else {
+                        error!("LLM generate error after {} retries: {}", max_retries, error_text);
+                        return Err(format!("LLM request failed with status: {}: {}", status, error_text).into());
+                    }
+                }
+                Err(e) => {
+                    if attempt < max_retries {
+                        warn!("LLM generate attempt {} failed (connection): {}, retrying...", attempt + 1, e);
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    } else {
+                        error!("LLM generate connection error after {} retries: {}", max_retries, e);
+                        return Err(Box::new(e));
+                    }
+                }
+            }
         }
+        let response = response.unwrap();
 
         let result: Value = response.json().await?;
         let raw_content = result["choices"][0]["message"]["content"]
@@ -518,20 +542,44 @@ impl LLMProvider for OpenAIClient {
             }
         }
 
-        let response = self
-            .client
-            .post(&full_url)
-            .header("Authorization", &auth_header)
-            .json(&request_body)
-            .send()
-            .await?;
-
-        let status = response.status();
-        if status != reqwest::StatusCode::OK {
-            let error_text = response.text().await.unwrap_or_default();
-            error!("LLM generate_stream error: {}", error_text);
-            return Err(format!("LLM request failed with status: {}", status).into());
+        let max_retries = 2;
+        let mut response = None;
+        for attempt in 0..=max_retries {
+            match self
+                .client
+                .post(&full_url)
+                .header("Authorization", &auth_header)
+                .json(&request_body)
+                .send()
+                .await
+            {
+                Ok(resp) => {
+                    let status = resp.status();
+                    if status == reqwest::StatusCode::OK {
+                        response = Some(resp);
+                        break;
+                    }
+                    let error_text = resp.text().await.unwrap_or_default();
+                    if attempt < max_retries {
+                        warn!("LLM generate_stream attempt {} failed (status {}): {}, retrying...", attempt + 1, status, error_text);
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    } else {
+                        error!("LLM generate_stream error after {} retries: {}", max_retries, error_text);
+                        return Err(format!("LLM request failed with status: {}: {}", status, error_text).into());
+                    }
+                }
+                Err(e) => {
+                    if attempt < max_retries {
+                        warn!("LLM generate_stream attempt {} failed (connection): {}, retrying...", attempt + 1, e);
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    } else {
+                        error!("LLM generate_stream connection error after {} retries: {}", max_retries, e);
+                        return Err(Box::new(e));
+                    }
+                }
+            }
         }
+        let response = response.unwrap();
 
         let handler = get_handler(model);
         let mut stream_state = String::new();
@@ -543,7 +591,16 @@ impl LLMProvider for OpenAIClient {
 
         info!("LLM stream starting for model: {}", model);
 
-        while let Some(chunk_result) = stream.next().await {
+        let idle_timeout = std::time::Duration::from_secs(5);
+        loop {
+            let chunk_result = match tokio::time::timeout(idle_timeout, stream.next()).await {
+                Ok(Some(r)) => r,
+                Ok(None) => break,
+                Err(_) => {
+                    error!("LLM stream idle timeout after 5s (no data received)");
+                    return Err("LLM stream idle timeout after 5s".into());
+                }
+            };
             let chunk = chunk_result?;
             total_size += chunk.len();
             let chunk_str = String::from_utf8_lossy(&chunk);

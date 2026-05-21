@@ -23,6 +23,7 @@ async-trait = { workspace = true }
 axum = { workspace = true }
 calamine = { workspace = true }
 ole = { version = "0.1", optional = true }
+pdf-extract = { version = "0.10", optional = true }
 chrono = { workspace = true }
 cron = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
@@ -71,7 +72,7 @@ rbac = []
 learn = []
 project = []
 dashboards = []
-drive = []
+drive = ["dep:pdf-extract"]
 progress-bars = ["dep:indicatif"]
 monitoring = ["dep:sysinfo"]
 jemalloc = []
