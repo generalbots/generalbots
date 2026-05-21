@@ -19,7 +19,7 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_default(),
+                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
                 secrets.get("project_id").cloned().unwrap_or_default(),
                 secrets.get("client_id").cloned().unwrap_or_default(),
                 secrets.get("client_secret").cloned().unwrap_or_default(),
@@ -62,7 +62,7 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_default(),
+                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
                 secrets.get("model").cloned().unwrap_or_else(|| "gpt-4".into()),
                 secrets.get("openai_key").cloned(),
                 secrets.get("anthropic_key").cloned(),
@@ -84,7 +84,7 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_default(),
+                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
                 secrets.get("app_id").cloned().unwrap_or_default(),
                 secrets.get("app_secret").cloned().unwrap_or_default(),
             );
@@ -103,7 +103,7 @@ impl SecretsManager {
             let _ = tx.send(result);
         });
         if let Ok(Some(secrets)) = rx.recv() {
-            return (secrets.get("url").cloned().unwrap_or_default(), secrets.get("api_key").cloned());
+            return (secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"), secrets.get("api_key").cloned());
         }
         ("".to_string(), None)
     }
@@ -120,7 +120,7 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_default(),
+                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
                 secrets.get("org").cloned().unwrap_or_else(|| "system".into()),
                 secrets.get("bucket").cloned().unwrap_or_else(|| "metrics".into()),
                 secrets.get("token").cloned().unwrap_or_default(),
@@ -141,7 +141,7 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_default(),
+                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
                 secrets.get("token").cloned().unwrap_or_default(),
                 secrets.get("default_org").cloned().unwrap_or_default(),
             );

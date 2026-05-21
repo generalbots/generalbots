@@ -1753,8 +1753,8 @@ VAULT_CACERT={}
             (
                 "secret/gbo/vectordb",
                 vec![
-                    ("url".to_string(), "http://localhost:6333".to_string()),
-                    ("host".to_string(), "localhost".to_string()),
+                    ("url".to_string(), "http://127.0.0.1:6333".to_string()),
+                    ("host".to_string(), "127.0.0.1".to_string()),
                     ("port".to_string(), "6333".to_string()),
                     ("grpc_port".to_string(), "6334".to_string()),
                     ("api_key".to_string(), "none".to_string()),

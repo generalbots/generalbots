@@ -582,30 +582,33 @@ footer {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 7px 14px;
     border-radius: 20px;
-    border: 2px solid transparent;
+    border: 2px solid var(--switcher-color, #888);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: rgba(0, 0, 0, 0.04);
-    color: #666;
+    background: color-mix(in srgb, var(--switcher-color, #888) 10%, transparent);
+    color: var(--switcher-color, #555);
     user-select: none;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    opacity: 0.7;
 }
 
 .switcher-chip:hover {
-    background: rgba(0, 0, 0, 0.08);
+    opacity: 1;
     transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .switcher-chip.active {
+    opacity: 1;
     border-color: var(--switcher-color, currentColor);
     background: var(--switcher-color, currentColor);
     color: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 12px var(--switcher-color, currentColor);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 0 12px var(--switcher-color, currentColor);
+    transform: translateY(-1px);
 }
 
 .switcher-chip-icon {

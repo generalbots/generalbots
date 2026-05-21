@@ -676,11 +676,23 @@ impl DocumentProcessor {
 
             let mut chunk_end = end;
             if end < total_chars {
-                let search_start = std::cmp::max(start, end.saturating_sub(100));
+                let search_start = std::cmp::max(start, end.saturating_sub(200));
+                // Prefer newline boundary to keep lines intact
+                let mut found_newline = false;
                 for i in (search_start..end).rev() {
-                    if chars[i].is_whitespace() {
+                    if chars[i] == '\n' {
                         chunk_end = i + 1;
+                        found_newline = true;
                         break;
+                    }
+                }
+                if !found_newline {
+                    // Fall back to any whitespace
+                    for i in (search_start..end).rev() {
+                        if chars[i].is_whitespace() {
+                            chunk_end = i + 1;
+                            break;
+                        }
                     }
                 }
             }
@@ -715,6 +727,17 @@ impl DocumentProcessor {
             } else {
                 chunk_end
             };
+
+            // Align to line boundary: advance to the next newline to avoid splitting lines
+            if start < total_chars && start > 0 {
+                // Find the next newline after the overlap-adjusted start
+                for i in start..std::cmp::min(start + 200, total_chars) {
+                    if chars[i] == '\n' {
+                        start = i + 1;
+                        break;
+                    }
+                }
+            }
 
             if start >= total_chars {
                 break;
