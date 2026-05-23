@@ -332,6 +332,7 @@ pub async fn search(
 
     while let Some(entry) = entries.next_entry().await? {
         if entry.path().extension().and_then(|s| s.to_str()) == Some("json") {
+            // TODO(#493): Use stream_processor for large files
             let content = fs::read_to_string(entry.path()).await?;
             if let Ok(file) = serde_json::from_str::<FileDocument>(&content) {
                 if let Some(bucket) = &query.bucket {
@@ -481,6 +482,7 @@ pub async fn update_file_metadata(&self, file_id: &str, tags: Vec<String>) -> Re
     {
         let file_path = self.db_path.join(format!("{}.json", file_id));
         if file_path.exists() {
+            // TODO(#493): Use stream_processor for large files
             let content = fs::read_to_string(&file_path).await?;
             let mut file: FileDocument = serde_json::from_str(&content)?;
             file.tags = tags;
@@ -531,12 +533,14 @@ impl FileContentExtractor {
 pub async fn extract_text(file_path: &PathBuf, mime_type: &str) -> Result<String> {
 match mime_type {
 "text/plain" | "text/markdown" | "text/csv" => {
+// TODO(#493): Use stream_processor for large files
 let content = fs::read_to_string(file_path).await?;
 Ok(content)
 }
 
 
         t if t.starts_with("text/") => {
+            // TODO(#493): Use stream_processor for large files
             let content = fs::read_to_string(file_path).await?;
             Ok(content)
         }
@@ -574,6 +578,7 @@ Ok(content)
         }
 
         "application/json" => {
+            // TODO(#493): Use stream_processor for large files
             let content = fs::read_to_string(file_path).await?;
 
             match serde_json::from_str::<serde_json::Value>(&content) {
@@ -583,6 +588,7 @@ Ok(content)
         }
 
         "text/xml" | "application/xml" | "text/html" => {
+            // TODO(#493): Use stream_processor for large files
             let content = fs::read_to_string(file_path).await?;
 
             let tag_regex = regex::Regex::new(r"<[^>]+>").map_err(|e| anyhow::anyhow!("Invalid regex: {}", e))?;
@@ -591,6 +597,7 @@ Ok(content)
         }
 
         "text/rtf" | "application/rtf" => {
+            // TODO(#493): Use stream_processor for large files
             let content = fs::read_to_string(file_path).await?;
 
             let control_regex = regex::Regex::new(r"\\[a-z]+[\-0-9]*[ ]?").map_err(|e| anyhow::anyhow!("Invalid regex: {}", e))?;
@@ -641,6 +648,7 @@ async fn extract_docx_text(file_path: &Path) -> Result<String> {
 
         if let Ok(mut document) = archive.by_name("word/document.xml") {
             let mut xml_content = String::new();
+            // TODO(#493): Use stream_processor for large files
             std::io::Read::read_to_string(&mut document, &mut xml_content)?;
 
             let text_regex = regex::Regex::new(r"<w:t[^>]*>([^<]*)</w:t>").map_err(|e| anyhow::anyhow!("Invalid regex: {}", e))?;

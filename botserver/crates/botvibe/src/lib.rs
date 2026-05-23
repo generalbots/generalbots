@@ -3,6 +3,7 @@ pub mod prompt_manager;
 pub mod tool_executor;
 pub mod telemetry;
 pub mod api;
+pub mod knowledge_graph;
 
 pub use types::{
     VibeRun, VibeRunState, VibeContext, VibeToolCall, VibeToolResult,

@@ -88,13 +88,11 @@ pub async fn handle_webhook(
                                 if !response.content.is_empty() {
                                     accumulated.push_str(&response.content);
                                 }
-                                if response.is_complete {
-                                    if !accumulated.is_empty() {
-                                        let _ = adapter
-                                            .send_instagram_message(&recipient, &accumulated)
-                                            .await;
-                                        accumulated.clear();
-                                    }
+                                if response.is_complete && !accumulated.is_empty() {
+                                    let _ = adapter
+                                        .send_instagram_message(&recipient, &accumulated)
+                                        .await;
+                                    accumulated.clear();
                                 }
                             }
                             if !accumulated.is_empty() {

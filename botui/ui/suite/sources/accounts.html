@@ -21,6 +21,49 @@
     </div>
 </div>
 
+<!-- Skills Library Card (Issue #481) -->
+<div class="skills-section" style="margin-bottom: 1.5rem;">
+    <div class="section-header">
+        <h2>Skills Library</h2>
+    </div>
+    <button class="skills-card" onclick="openSkillsLibrary()" style="
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        width: 100%;
+        color: var(--text-primary);
+    ">
+        <div class="skills-icon" style="
+            width: 48px;
+            height: 48px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-light, rgba(212, 245, 5, 0.1));
+            flex-shrink: 0;
+        ">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+        </div>
+        <div class="skills-info" style="flex: 1; min-width: 0;">
+            <div style="font-weight: 600; font-size: 16px;">Skills Library</div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary);">Discover and add AI skills from skills.sh</div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; color: var(--text-secondary);">
+            <path d="M7 17l9.2-9.2M17 17V7H7"/>
+        </svg>
+    </button>
+</div>
+
 <!-- Add Account Modal -->
 <div id="add-account-modal" class="modal" style="display: none;">
     <div class="modal-backdrop" onclick="hideAddAccountModal()"></div>

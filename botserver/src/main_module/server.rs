@@ -390,11 +390,11 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
  // TODO: fix oauth state
 // api_router = api_router.merge(crate::core::oauth::routes::configure());
 
- // Deployment routes for VibeCode platform
- #[cfg(feature = "deployment")]
- {
- api_router = api_router.merge(crate::deployment::configure_deployment_routes());
- }
+    // Deployment routes for VibeCode platform
+    #[cfg(feature = "deployment")]
+    {
+    api_router = api_router.merge(crate::deployment::configure_deployment_routes());
+    }
 
  // BotCoder IDE APIs
     api_router = api_router.merge(crate::api::editor::configure_editor_routes());

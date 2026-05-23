@@ -721,7 +721,7 @@
    * Open an app in new tab
    */
   function openApp(appId) {
-    window.open(`/apps/${appId}`, "_blank");
+    window.open(`https://${appId}.gb.solutions`, "_blank");
   }
 
   /**
@@ -872,4 +872,11 @@
   // Expose globally for inline onclick handlers
   window.filterMcpCategory = filterMcpCategory;
   window.addCatalogServer = addCatalogServer;
+
+  /**
+   * Open Skills Library in a new tab (Issue #481)
+   */
+  window.openSkillsLibrary = function () {
+    window.open("https://skills.sh", "_blank");
+  };
 })();

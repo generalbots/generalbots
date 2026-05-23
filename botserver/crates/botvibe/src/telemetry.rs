@@ -1,7 +1,38 @@
+//! Telemetry module for Vibe run instrumentation.
+//!
+//! Records events, aggregates metrics per run and globally, and provides
+//! query endpoints for dashboards. Uses in-memory storage with a cap of
+//! 50 000 events.
+
 use crate::types::{VibeRun, VibeTelemetryEvent, VibeTelemetryEventType, VibeUseCase};
+use serde::Deserialize;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+
+/// Structured record for logging a tool call execution.
+///
+/// Replaces the previous 8-parameter signature to keep the call site
+/// readable and to support optional fields cleanly.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ToolCallRecord {
+    /// ID of the Vibe run this tool call belongs to.
+    pub run_id: Uuid,
+    /// Use case context (SoftwareDevelopment, CustomerSupport, etc.).
+    pub use_case: VibeUseCase,
+    /// Name of the tool that was invoked.
+    pub tool_name: String,
+    /// Execution latency in milliseconds.
+    pub latency_ms: u64,
+    /// Token count if available (LLM tools only).
+    pub tokens: Option<u32>,
+    /// Estimated cost in USD for the tool call.
+    pub cost: f64,
+    /// Whether the tool call completed without error.
+    pub success: bool,
+    /// Error message if the tool call failed.
+    pub error: Option<String>,
+}
 
 const MAX_EVENTS: usize = 50000;
 
@@ -149,32 +180,22 @@ impl VibeTelemetry {
         self.record(event).await;
     }
 
-    pub async fn record_tool_call(
-        &self,
-        run_id: Uuid,
-        use_case: VibeUseCase,
-        tool_name: &str,
-        latency_ms: u64,
-        tokens: Option<u32>,
-        cost: f64,
-        success: bool,
-        error: Option<String>,
-    ) {
+    pub async fn record_tool_call(&self, record: ToolCallRecord) {
         let event = VibeTelemetryEvent {
             event_id: Uuid::new_v4(),
-            run_id,
-            event_type: if success {
+            run_id: record.run_id,
+            event_type: if record.success {
                 VibeTelemetryEventType::ToolCallCompleted
             } else {
                 VibeTelemetryEventType::ToolCallFailed
             },
-            tool_name: Some(tool_name.to_string()),
-            use_case,
-            latency_ms,
-            tokens_used: tokens,
-            estimated_cost: cost,
-            success,
-            error,
+            tool_name: Some(record.tool_name),
+            use_case: record.use_case,
+            latency_ms: record.latency_ms,
+            tokens_used: record.tokens,
+            estimated_cost: record.cost,
+            success: record.success,
+            error: record.error,
             timestamp: chrono::Utc::now(),
             metadata: HashMap::new(),
         };

@@ -54,7 +54,6 @@ function proceedWithChatInit() {
 
   var authUrl = "/api/auth?bot_name=" + encodeURIComponent(botName);
   if (stored.user_id) authUrl += "&user_id=" + encodeURIComponent(stored.user_id);
-  if (stored.session_id) authUrl += "&session_id=" + encodeURIComponent(stored.session_id);
 
   fetch(authUrl)
     .then(function (response) { return response.json(); })
@@ -64,7 +63,7 @@ function proceedWithChatInit() {
       ChatState.currentBotId = auth.bot_id || "default";
       ChatState.currentBotName = botName;
       try {
-        localStorage.setItem(storageKey, JSON.stringify({ user_id: auth.user_id, session_id: auth.session_id }));
+        localStorage.setItem(storageKey, JSON.stringify({ user_id: auth.user_id }));
       } catch (e) {}
       connectWebSocket();
     })
@@ -72,6 +71,13 @@ function proceedWithChatInit() {
       notify("Failed to connect to chat server", "error");
       setTimeout(proceedWithChatInit, 3000);
     });
+}
+
+function autoFocusInput() {
+  setTimeout(function() {
+    var input = document.getElementById("messageInput");
+    if (input) input.focus();
+  }, 500);
 }
 
 function setupEventHandlers() {
@@ -137,6 +143,7 @@ if (typeof loadBotConfig === 'function') {
 loadBotConfig();
 }
 proceedWithChatInit();
+autoFocusInput();
 }
 
 function showChatApp() {

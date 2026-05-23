@@ -943,7 +943,7 @@ pub async fn start_background_services(
             info!("LOAD_ONLY filter active: {:?}", load_only);
         }
 
-// Step 1: Discover bots from S3 buckets (*.gbai) and auto-create missing
+        // Step 1: Discover bots from S3 buckets (*.gbai) and auto-create missing
     log::info!("Drive client status: {:?}", state_for_scan.drive.is_some());
     if let Some(s3_client) = &state_for_scan.drive {
         match s3_client.list_all_buckets().await {

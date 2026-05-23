@@ -286,6 +286,65 @@
                 display: none !important;
             }
 
+            /* Setup Wizard Styles */
+            .setup-wizard-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(4px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+            }
+            .setup-wizard-modal {
+                width: 520px;
+                max-width: 90vw;
+                background: var(--surface, #1a1a24);
+                border: 1px solid var(--border, #2a2a2a);
+                border-radius: 16px;
+                padding: 32px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            }
+            .setup-wizard-header { text-align: center; margin-bottom: 24px; }
+            .setup-wizard-header h2 { font-size: 24px; font-weight: 700; margin: 0 0 8px; color: var(--text, #e5e5e5); }
+            .setup-wizard-header p { margin: 0; color: var(--text-secondary, #888); font-size: 14px; }
+            .setup-progress { margin-bottom: 32px; }
+            .setup-progress-bar { height: 4px; background: var(--border, #2a2a2a); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
+            .setup-progress-fill { height: 100%; background: var(--primary, #84d669); border-radius: 2px; transition: width 0.3s ease; }
+            .setup-progress-steps { display: flex; justify-content: space-between; }
+            .setup-step { font-size: 12px; color: var(--text-secondary, #888); transition: color 0.3s ease; }
+            .setup-step.active { color: var(--primary, #84d669); font-weight: 600; }
+            .setup-step-content { display: none; }
+            .setup-step-content.active { display: block; }
+            .setup-step-content h3 { font-size: 18px; font-weight: 600; margin: 0 0 8px; color: var(--text, #e5e5e5); }
+            .setup-step-content p { margin: 0 0 20px; color: var(--text-secondary, #888); font-size: 14px; }
+            .setup-options { display: flex; flex-direction: column; gap: 12px; }
+            .setup-option { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--surface-hover, rgba(255, 255, 255, 0.03)); border: 2px solid var(--border, #2a2a2a); border-radius: 12px; cursor: pointer; transition: all 0.2s ease; }
+            .setup-option:hover { border-color: var(--primary, #84d669); background: rgba(132, 214, 105, 0.05); }
+            .setup-option.selected { border-color: var(--primary, #84d669); background: rgba(132, 214, 105, 0.1); }
+            .setup-option-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: rgba(132, 214, 105, 0.1); border-radius: 12px; color: var(--primary, #84d669); flex-shrink: 0; }
+            .setup-option-info { flex: 1; }
+            .setup-option-title { display: block; font-size: 15px; font-weight: 600; color: var(--text, #e5e5e5); margin-bottom: 4px; }
+            .setup-option-desc { font-size: 13px; color: var(--text-secondary, #888); }
+            .setup-form { display: flex; flex-direction: column; gap: 16px; }
+            .setup-form-group { display: flex; flex-direction: column; gap: 6px; }
+            .setup-form-group label { font-size: 13px; font-weight: 600; color: var(--text, #e5e5e5); }
+            .setup-input { padding: 12px 16px; background: var(--surface-hover, rgba(255, 255, 255, 0.05)); border: 1px solid var(--border, #2a2a2a); border-radius: 8px; color: var(--text, #e5e5e5); font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s ease; }
+            .setup-input:focus { border-color: var(--primary, #84d669); }
+            .setup-input::placeholder { color: var(--text-secondary, #555); }
+            textarea.setup-input { resize: vertical; min-height: 80px; }
+            .setup-wizard-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border, #2a2a2a); }
+            .setup-btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
+            .setup-btn-primary { background: var(--primary, #84d669); color: #000; }
+            .setup-btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+            .setup-btn-secondary { background: var(--surface-hover, rgba(255, 255, 255, 0.1)); color: var(--text, #e5e5e5); border: 1px solid var(--border, #2a2a2a); }
+            .setup-btn-secondary:hover { background: var(--surface-active, rgba(255, 255, 255, 0.15)); }
+            .setup-btn-text { background: none; color: var(--text-secondary, #888); margin-right: auto; }
+            .setup-btn-text:hover { color: var(--text, #e5e5e5); }
         </style>
 
     </head>
@@ -726,6 +785,29 @@
                                 </div>
                                 <span class="desktop-icon-label">Browser</span>
                             </div>
+
+                            <div
+                                class="desktop-icon"
+                                data-app-id="versions"
+                                data-app-title="Versions"
+                                hx-get="/suite/partials/versions-panel.html"
+                                hx-swap="none"
+                            >
+                                <div class="app-icon">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                </div>
+                                <span class="desktop-icon-label">Versions</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -880,5 +962,142 @@
                     now.toLocaleDateString();
             }, 1000);
         </script>
+
+        <!-- Setup Wizard Overlay (hidden by default) -->
+        <div id="setupWizardOverlay" class="setup-wizard-overlay" style="display: none;">
+          <div class="setup-wizard-modal">
+            <div class="setup-wizard-header">
+              <h2>Welcome to General Bots</h2>
+              <p>Let's get you set up in a few quick steps</p>
+            </div>
+
+            <div class="setup-progress">
+              <div class="setup-progress-bar">
+                <div class="setup-progress-fill" id="setupProgressFill" style="width: 33%"></div>
+              </div>
+              <div class="setup-progress-steps">
+                <span class="setup-step active" data-step="1">LLM Provider</span>
+                <span class="setup-step" data-step="2">User Profile</span>
+                <span class="setup-step" data-step="3">Bot Config</span>
+              </div>
+            </div>
+
+            <div class="setup-step-content active" id="setupStep1">
+              <h3>Choose your LLM Provider</h3>
+              <p>Select the AI model provider for your bot</p>
+              <div class="setup-options">
+                <div class="setup-option" data-value="openai" onclick="window.selectSetupOption(this, 'llm_provider')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">OpenAI</span>
+                    <span class="setup-option-desc">GPT-4, GPT-3.5 models</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="nvidia" onclick="window.selectSetupOption(this, 'llm_provider')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">NVIDIA</span>
+                    <span class="setup-option-desc">NVIDIA NIM inference</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="anthropic" onclick="window.selectSetupOption(this, 'llm_provider')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Anthropic</span>
+                    <span class="setup-option-desc">Claude 3, Claude 3.5 models</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="local" onclick="window.selectSetupOption(this, 'llm_provider')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Local</span>
+                    <span class="setup-option-desc">llama.cpp, Ollama, etc.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="setup-step-content" id="setupStep2">
+              <h3>What describes you best?</h3>
+              <p>Select your profile type for personalized defaults</p>
+              <div class="setup-options">
+                <div class="setup-option" data-value="developer" onclick="window.selectSetupOption(this, 'user_profile')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Developer</span>
+                    <span class="setup-option-desc">Build and deploy bots, write BASIC scripts</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="business" onclick="window.selectSetupOption(this, 'user_profile')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Business</span>
+                    <span class="setup-option-desc">Automate workflows, manage CRM</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="support" onclick="window.selectSetupOption(this, 'user_profile')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Support</span>
+                    <span class="setup-option-desc">Customer service, ticket management</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="setup-step-content" id="setupStep3">
+              <h3>Configure your Bot</h3>
+              <p>Give your bot a name and describe its purpose</p>
+              <div class="setup-form">
+                <div class="setup-form-group">
+                  <label for="wizardBotName">Bot Name</label>
+                  <input type="text" id="wizardBotName" placeholder="My Assistant" class="setup-input" />
+                </div>
+                <div class="setup-form-group">
+                  <label for="wizardBotPurpose">Bot Purpose</label>
+                  <textarea id="wizardBotPurpose" rows="3" placeholder="Describe what your bot should do..." class="setup-input"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="setup-wizard-footer">
+              <button class="setup-btn setup-btn-secondary" id="setupBackBtn" onclick="window.setupWizardBack()" style="display: none;">Back</button>
+              <button class="setup-btn setup-btn-primary" id="setupNextBtn" onclick="window.setupWizardNext()">Next</button>
+              <button class="setup-btn setup-btn-primary" id="setupFinishBtn" onclick="window.setupWizardFinish()" style="display: none;">Finish</button>
+              <button class="setup-btn setup-btn-text" onclick="window.setupWizardSkip()">Skip Setup</button>
+            </div>
+          </div>
+        </div>
+
+        <script src="/suite/js/setup-wizard.js"></script>
     </body>
 </html>

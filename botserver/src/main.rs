@@ -2,6 +2,8 @@
 
 // Module declarations
 pub mod main_module; // ci-timing
+pub mod session_pool;
+pub mod soon_features;
 
 // Re-export commonly used items from main_module
 pub use main_module::{BootstrapProgress, health_check, health_check_simple, receive_client_errors};
@@ -34,6 +36,8 @@ pub mod canvas;
 pub mod channels;
 #[cfg(feature = "people")]
 pub mod contacts;
+#[cfg(feature = "people")]
+pub mod crm;
 pub mod core;
 #[cfg(feature = "designer")]
 pub mod designer;

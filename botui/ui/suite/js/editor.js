@@ -205,10 +205,63 @@ const botCoderEditor = {
         // if (ws && ws.readyState === WebSocket.OPEN) { ... }
     },
 
-    publishFile: function() {
-        if (confirm('Commit and publish your changes?')) {
-            alert('File published successfully! (Mock implementation)');
+    /**
+     * Publishes the current file as a new deployment project (Issue #525).
+     *
+     * Prompts the user for a project name and type, then sends a POST
+     * request to /api/deployment/deploy. Replaces the previous mock
+     * alert() implementation.
+     */
+    publishFile: async function() {
+        if (!this.currentFile) {
+            alert('No file open to publish.');
+            return;
         }
+
+        const projectName = prompt('Enter project name for deployment:', this.currentFile.split('/').pop() || 'my-app');
+        if (!projectName) return;
+
+        const projectType = prompt('Project type (bot / app-htmx / app-react / app-vue / site):', 'app-htmx');
+        if (!projectType) return;
+
+        document.getElementById('botcoderFileStatus').textContent = 'Publishing...';
+
+        try {
+            const response = await fetch('/api/deployment/deploy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    app_name: projectName,
+                    project_type: projectType,
+                    organization: null,
+                    framework: projectType.startsWith('app-') ? projectType.replace('app-', '') : null,
+                    environment: 'development',
+                    custom_domain: null,
+                    ci_cd_enabled: true,
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success || result.status) {
+                document.getElementById('botcoderFileStatus').textContent = 'Published!';
+                alert('Project published successfully!\nURL: ' + (result.url || 'pending') + '\nRepo: ' + (result.repository || 'N/A'));
+            } else {
+                document.getElementById('botcoderFileStatus').textContent = 'Publish failed';
+                alert('Publish failed: ' + (result.error || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error('Publish error:', err);
+            document.getElementById('botcoderFileStatus').textContent = 'Error publishing';
+            alert('Failed to publish: ' + err.message);
+        }
+
+        setTimeout(() => {
+            const status = document.getElementById('botcoderFileStatus');
+            if (status && (status.textContent === 'Publishing...' || status.textContent === 'Published!')) {
+                status.textContent = '';
+            }
+        }, 3000);
     },
 
     refreshFiles: async function() {

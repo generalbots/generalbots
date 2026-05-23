@@ -3,6 +3,7 @@ use crate::drive_files::DriveFileRepository;
 use crate::drive_monitor::monitor::CHECK_INTERVAL_SECS;
 #[cfg(any(feature = "research", feature = "llm"))]
 use botcore::kb::KnowledgeBaseManager;
+use chrono::Utc;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
@@ -60,14 +61,27 @@ impl DriveMonitor {
             let existing = self.file_repo.get_file_state(self.bot_id, &full_key);
 
             // Skip re-indexing files that have failed too many times (prevent infinite loops)
+            // Automatically retry after FAIL_RETRY_COOLDOWN hours so transient issues (e.g., disk full) self-heal.
             const MAX_FAIL_COUNT: i32 = 5;
+            const FAIL_RETRY_COOLDOWN_HOURS: i64 = 1;
             if let Some(prev) = &existing {
                 if prev.fail_count >= MAX_FAIL_COUNT {
-                    log::warn!(
-                        "Skipping {} — failed {} times (max {}). Remove from Drive or fix the file to retry.",
-                        full_key, prev.fail_count, MAX_FAIL_COUNT
-                    );
-                    continue;
+                    if let Some(last_failed) = prev.last_failed_at {
+                        let elapsed = Utc::now() - last_failed;
+                        if elapsed < chrono::Duration::hours(FAIL_RETRY_COOLDOWN_HOURS) {
+                            log::debug!(
+                                "Skipping {} — failed {} times, last retry in {} min.",
+                                full_key, prev.fail_count,
+                                (chrono::Duration::hours(FAIL_RETRY_COOLDOWN_HOURS) - elapsed).num_minutes()
+                            );
+                            continue;
+                        }
+                        log::info!(
+                            "Retrying {} after cooldown (last failed {} min ago).",
+                            full_key, elapsed.num_minutes()
+                        );
+                        let _ = self.file_repo.reset_file_fail_count(self.bot_id, &full_key);
+                    }
                 }
             }
 

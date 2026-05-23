@@ -21,6 +21,7 @@ pub fn set_context_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, eng
                     context_value
                 );
 
+                // TODO(#477): Use build_key(&org, &["context", &user.user_id.to_string(), &user.id.to_string(), &context_name])
                 let redis_key = format!("context:{}:{}:{}", user.user_id, user.id, context_name);
 
                 trace!(

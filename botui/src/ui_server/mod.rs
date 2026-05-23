@@ -657,6 +657,14 @@ fn extract_app_context(headers: &axum::http::HeaderMap, path: &str) -> Option<St
                     return Some(after_apps.to_string());
                 }
             }
+            if let Some(start) = referer_str.find(".gb.solutions") {
+                if let Some(host_start) = referer_str.find("://") {
+                    let host_part = &referer_str[host_start + 3..];
+                    if let Some(dot) = host_part.find('.') {
+                        return Some(host_part[..dot].to_string());
+                    }
+                }
+            }
         }
     }
 

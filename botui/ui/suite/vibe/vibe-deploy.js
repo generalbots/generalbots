@@ -56,25 +56,27 @@ environment: "production",
 manifest: {}
 };
 
-if (selectedDeploymentTarget === 'external') {
-payload.target = {
-External: {
-repo_url: "https://alm.pragmatismo.com.br/" + payload.app_name,
-custom_domain: document.getElementById('deployCustomDomain')?.value || null,
-ci_cd_enabled: document.getElementById('deployCiCd')?.checked ?? true
-}
-};
-payload.app_type = document.getElementById('deployAppType')?.value || "htmx";
-} else {
-let route = document.getElementById('deployRoute')?.value || "my-app";
-payload.target = {
-Internal: {
-route: "/apps/" + route,
-shared_resources: document.getElementById('deploySharedResources')?.checked ?? true
-}
-};
-payload.app_type = "gb-native";
-}
+var projectType = document.getElementById('deployAppType')?.value || "app-htmx";
+  payload.project_type = projectType;
+
+  if (selectedDeploymentTarget === 'external') {
+    payload.target = {
+      External: {
+        repo_url: "https://alm.pragmatismo.com.br/" + payload.app_name,
+        custom_domain: document.getElementById('deployCustomDomain')?.value || null,
+        ci_cd_enabled: document.getElementById('deployCiCd')?.checked ?? true
+      }
+    };
+  } else {
+    let route = document.getElementById('deployRoute')?.value || "my-app";
+    let deployUrl = route + ".gb.solutions";
+    payload.target = {
+      Internal: {
+        route: deployUrl,
+        shared_resources: document.getElementById('deploySharedResources')?.checked ?? true
+      }
+    };
+  }
 
 try {
 vibeAddMsg("system", "🚀 Initiating deployment API call...");

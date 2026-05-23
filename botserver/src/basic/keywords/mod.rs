@@ -1,3 +1,7 @@
+// ===== LOCAL KEYWORDS =====
+pub mod mention_config;
+pub mod preview;
+
 // ===== RE-EXPORTED FROM botbasic_core =====
 pub use botbasic_core::keywords::arrays;
 pub use botbasic_core::keywords::core_functions;

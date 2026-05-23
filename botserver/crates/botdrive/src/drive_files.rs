@@ -346,4 +346,57 @@ Ok(())
     pub fn has_files_with_prefix(&self, bot_id: Uuid, prefix: &str) -> bool {
         !self.get_files_by_prefix(bot_id, prefix).is_empty()
     }
+
+    /// Reset fail_count to 0 for files that failed >= max_fail_count times
+    /// and whose last_failed_at is older than the given cooldown duration.
+    /// Returns the number of files reset.
+    pub fn reset_failed_files(
+        &self,
+        bot_id: Uuid,
+        max_fail_count: i32,
+        cooldown: chrono::Duration,
+    ) -> Result<usize, String> {
+        let mut conn = self.pool.get().map_err(|e| e.to_string())?;
+
+        let cutoff = Utc::now() - cooldown;
+
+        diesel::update(drive_files::table)
+            .filter(
+                drive_files::bot_id
+                    .eq(bot_id)
+                    .and(drive_files::fail_count.ge(max_fail_count))
+                    .and(drive_files::last_failed_at.is_not_null())
+                    .and(drive_files::last_failed_at.lt(cutoff)),
+            )
+            .set((
+                drive_files::fail_count.eq(0),
+                drive_files::indexed.eq(false),
+                drive_files::last_failed_at.eq(None::<DateTime<Utc>>),
+                drive_files::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| e.to_string())
+    }
+
+    /// Reset fail_count to 0 for a specific file path.
+    pub fn reset_file_fail_count(&self, bot_id: Uuid, file_path: &str) -> Result<(), String> {
+        let mut conn = self.pool.get().map_err(|e| e.to_string())?;
+
+        diesel::update(drive_files::table)
+            .filter(
+                drive_files::bot_id
+                    .eq(bot_id)
+                    .and(drive_files::file_path.eq(file_path)),
+            )
+            .set((
+                drive_files::fail_count.eq(0),
+                drive_files::indexed.eq(false),
+                drive_files::last_failed_at.eq(None::<DateTime<Utc>>),
+                drive_files::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
 }

@@ -230,6 +230,7 @@ impl SessionManager {
         #[cfg(feature = "cache")]
         {
             use redis::Commands;
+            // TODO(#477): Use build_key(&org, &["context", &user_id.to_string(), &session_id.to_string()])
             let redis_key = format!("context:{}:{}", user_id, session_id);
             if let Some(redis_client) = &self.redis {
                 let mut conn = redis_client.get_connection()?;
@@ -249,6 +250,7 @@ impl SessionManager {
         #[cfg(feature = "cache")]
         {
             use redis::Commands;
+            // TODO(#477): Use build_key(&org, &["context", &user_id.to_string(), &session_id.to_string()])
             let base_key = format!("context:{}:{}", user_id, session_id);
             if let Some(redis_client) = &self.redis {
                 let conn_option = redis_client
@@ -261,6 +263,7 @@ impl SessionManager {
                 if let Some(mut connection) = conn_option {
                     match connection.get::<_, Option<String>>(&base_key) {
                         Ok(Some(context_name)) => {
+                            // TODO(#477): Use build_key(&org, &["context", &user_id.to_string(), &session_id.to_string(), &context_name])
                             let full_key = format!("context:{}:{}:{}", user_id, session_id, context_name);
                             match connection.get::<_, Option<String>>(&full_key) {
                                 Ok(Some(context_value)) => {

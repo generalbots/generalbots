@@ -8,6 +8,7 @@ pub use ws_handler::{websocket_handler, websocket_handler_with_bot};
 use std::collections::HashMap;
 use std::sync::Arc;
 use axum::response::IntoResponse;
+use uuid::Uuid;
 
 pub mod channels {
     pub use botlib::traits::ChannelAdapter;
@@ -109,7 +110,7 @@ impl BotOrchestrator {
 pub fn get_default_bot() -> (String, String) { ("default".to_string(), "Default Bot".to_string()) }
 pub async fn get_bot_config(
     axum::extract::State(state): axum::extract::State<Arc<botcore::shared::state::AppState>>,
-    axum::extract::Query(_params): axum::extract::Query<HashMap<String, String>>,
+    axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     use diesel::prelude::*;
     let mut conn = match state.conn.get() {
@@ -117,13 +118,30 @@ pub async fn get_bot_config(
         Err(_) => return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "db error".to_string()),
     };
     use botcore::shared::models::schema::bot_configuration::dsl::*;
-    let rows: Vec<(String, String)> = match bot_configuration
-        .select((config_key, config_value))
-        .load(&mut conn)
-    {
-        Ok(r) => r,
-        Err(_) => vec![],
+    use botcore::shared::models::schema::bots;
+
+    let bot_uuid = if let Some(name) = params.get("bot_name") {
+        bots::table
+            .filter(bots::name.eq(name))
+            .select(bots::id)
+            .first::<Uuid>(&mut conn)
+            .ok()
+    } else {
+        None
     };
+
+    let rows: Vec<(String, String)> = if let Some(bid) = bot_uuid {
+        bot_configuration
+            .select((config_key, config_value))
+            .filter(bot_id.eq(bid))
+            .load(&mut conn)
+    } else {
+        bot_configuration
+            .select((config_key, config_value))
+            .load(&mut conn)
+    }
+    .unwrap_or_default();
+
     let map: HashMap<String, String> = rows.into_iter().collect();
     (axum::http::StatusCode::OK, serde_json::to_string(&map).unwrap_or_default())
 }

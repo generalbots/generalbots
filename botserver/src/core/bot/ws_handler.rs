@@ -70,9 +70,11 @@ fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
 }
 
 fn load_system_prompt(bot_name: &str) -> String {
+    // TODO(#500): sanitize bot_name to prevent path traversal
     let work_dir = botcore::shared::utils::get_work_path();
     let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
 
+    // TODO(#500): bot_name comes from user-controlled query param — sanitize before filesystem access
     let prompt_from_file = std::fs::read_to_string(format!("{}PROMPT.md", gbot_dir))
         .or_else(|_| std::fs::read_to_string(format!("{}prompt.md", gbot_dir)))
         .or_else(|_| std::fs::read_to_string(format!("{}PROMPT.txt", gbot_dir)))
@@ -86,10 +88,12 @@ fn load_system_prompt(bot_name: &str) -> String {
 }
 
 fn load_bot_styles_css(bot_name: &str) -> String {
+    // TODO(#500): sanitize bot_name to prevent path traversal
     let work_dir = botcore::shared::utils::get_work_path();
     let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
     let css_path = format!("{}styles.css", gbot_dir);
 
+    // TODO(#500): bot_name comes from user-controlled query param — sanitize before filesystem access
     match std::fs::read_to_string(&css_path) {
         Ok(c) => {
             info!("styles.css loaded from {} ({} bytes)", css_path, c.len());
@@ -180,6 +184,7 @@ async fn run_start_bas_on_connect(
     }
 
     // Clean any stale Redis key (from previous botserver instance that set it before file check)
+    // TODO(#477): Use build_key(&org, &["start_bas_executed", &bot_uuid.to_string(), &session_id.to_string()])
     let session_init_key = format!("start_bas_executed:{}:{}", bot_uuid, session_id);
     if let Some(ref cache) = state.cache {
         use redis::AsyncCommands;
@@ -188,9 +193,10 @@ async fn run_start_bas_on_connect(
         }
     }
 
-    // Try to read start.bas/start.ast files
+    // TODO(#500): sanitize bot_name to prevent path traversal
     let work_path = botcore::shared::utils::get_work_path();
     let ast_path = format!("{}/{}.gbai/{}.gbdialog/start.ast", work_path, bot_name, bot_name);
+    // TODO(#500): bot_name is user-controlled — use sanitize_filename before building path
     let ast_content = match tokio::fs::read_to_string(&ast_path).await {
         Ok(c) if !c.is_empty() => c,
         _ => {
@@ -350,6 +356,7 @@ async fn handle_ws(
                             let tool_name = user_text.trim().to_string();
                             if !tool_name.is_empty() {
                                 info!("TOOL_EXEC: Direct tool execution: {}", tool_name);
+                                // TODO(#500): both bot_name and tool_name are user-controlled — sanitize before fs access
                                 let work_path = botcore::shared::utils::get_work_path();
                                 let ast_path = format!("{}/{}.gbai/{}.gbdialog/{}.ast", work_path, bot_name, bot_name, tool_name);
                                 let ast_content = match tokio::fs::read_to_string(&ast_path).await {
@@ -629,25 +636,11 @@ async fn handle_ws(
 
                                 // Suggestions already sent at message receipt time (see early_suggestions above)
 
-                                // Inject bot styles.css BEFORE LLM spawn (so CSS is applied before streaming starts)
+                                // Inject bot styles.css into full_response (sent with first streaming chunk)
                                 let style_css = load_bot_styles_css(&bot_name_clone);
                                 if !style_css.is_empty() {
                                     let style_tag = format!("<style>\n{}</style>\n", style_css);
                                     full_response.push_str(&style_tag);
-                                    let css_resp = serde_json::json!({
-                                        "bot_id": bot_uuid_s,
-                                        "user_id": user_id.to_string(),
-                                        "session_id": session_id_s,
-                                        "channel": "web",
-                                        "content": style_tag,
-                                        "message_type": 2,
-                                        "is_complete": false,
-                                        "suggestions": [],
-                                        "switchers": [],
-                                        "context_length": 0,
-                                        "context_max_length": 0,
-                                    });
-                                    let _ = ws_sender.send(Message::Text(css_resp.to_string().into())).await;
                                 }
 
                                 // Spawn LLM streaming task
@@ -679,11 +672,13 @@ async fn handle_ws(
 
                                 let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(2000));
                                 keepalive_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+                                let mut stream_started = false;
                                 loop {
                                     tokio::select! {
                                         chunk = stream_rx.recv() => {
                                              match chunk {
                                                   Some(chunk) => {
+                                                      stream_started = true;
                                                       full_response.push_str(&chunk);
                                                      let chunk_resp = serde_json::json!({
                                                          "bot_id": bot_uuid_s,
@@ -706,20 +701,22 @@ async fn handle_ws(
                                             }
                                         }
                                         _ = keepalive_interval.tick() => {
-                                            let _ = ws_sender.send(Message::Text(serde_json::json!({
-                                                "bot_id": bot_uuid_s,
-                                                "user_id": user_id.to_string(),
-                                                "session_id": session_id_s,
-                                                "channel": "web",
-                                                "content": "",
-                                                "message_type": 2,
-                                                "is_complete": false,
-                                                "thinking": true,
-                                                "suggestions": [],
-                                                "switchers": [],
-                                                "context_length": 0,
-                                                "context_max_length": 0,
-                                            }).to_string().into())).await;
+                                            if !stream_started {
+                                                let _ = ws_sender.send(Message::Text(serde_json::json!({
+                                                    "bot_id": bot_uuid_s,
+                                                    "user_id": user_id.to_string(),
+                                                    "session_id": session_id_s,
+                                                    "channel": "web",
+                                                    "content": "",
+                                                    "message_type": 2,
+                                                    "is_complete": false,
+                                                    "thinking": true,
+                                                    "suggestions": [],
+                                                    "switchers": [],
+                                                    "context_length": 0,
+                                                    "context_max_length": 0,
+                                                }).to_string().into())).await;
+                                            }
                                         }
                                     }
                                 }
@@ -794,6 +791,10 @@ async fn handle_ws(
     {
         let mut channels = state.response_channels.lock().await;
         channels.remove(&session_id.to_string());
+    }
+    {
+        let mut guards = state.start_bas_guards.lock().await;
+        guards.remove(&session_id);
     }
     info!("WS disconnected: session={}", session_id);
 }
