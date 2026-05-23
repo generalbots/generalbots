@@ -78,7 +78,8 @@
             <form id="internalConfigForm">
                 <div class="form-group">
                     <label>App Route</label>
-                    <input type="text" id="appRoute" placeholder="/apps/my-crm" required />
+                    <input type="text" id="appRoute" placeholder="my-app" required />
+              <span style="font-size:0.85em;color:#666;margin-left:4px;">.gb.solutions</span>
                 </div>
                 <div class="form-group">
                     <label>
@@ -358,7 +359,7 @@ async function confirmDeployment() {
     const manifest = typeof getCurrentManifest === 'function' ? getCurrentManifest() : {}; // Get from Vibe canvas
 
     let payload = {
-        app_name: document.getElementById('repoName')?.value || document.getElementById('appRoute')?.value?.replace('/apps/', ''),
+        app_name: document.getElementById('repoName')?.value || document.getElementById('appRoute')?.value,
         target: {},
         environment: document.getElementById('buildEnv')?.value || 'production',
         manifest: manifest
@@ -375,7 +376,7 @@ async function confirmDeployment() {
     } else {
         payload.target = {
             Internal: {
-                route: document.getElementById('appRoute')?.value || `/apps/${payload.app_name}`,
+                route: (document.getElementById('appRoute')?.value || payload.app_name) + '.gb.solutions',
                 shared_resources: true
             }
         };

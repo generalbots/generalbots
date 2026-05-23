@@ -38,7 +38,7 @@ impl VibeState for BotServerVibeState {
     }
 }
 
-pub fn configure_vibe_routes(_app_state: &Arc<AppState>) -> axum::Router {
+pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     let (vibe_sender, _) = broadcast::channel(256);
     let vibe_state: Arc<dyn VibeState> = Arc::new(BotServerVibeState {
         app_state: app_state.clone(),

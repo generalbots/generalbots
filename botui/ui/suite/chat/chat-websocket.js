@@ -59,6 +59,11 @@ ChatState.ws.onopen = function () {
 
       if (data.type === "connected") {
         ChatState.reconnectAttempts = 0;
+        ChatState.currentUserId = data.user_id || ChatState.currentUserId;
+        if (!ChatState.greetingShown) {
+          showGreeting();
+          ChatState.greetingShown = true;
+        }
         return;
       }
 

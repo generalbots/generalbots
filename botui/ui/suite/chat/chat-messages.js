@@ -76,6 +76,7 @@ function stripMarkdownBlocks(content) {
   var cleanContent = stripThinkTags(content);
   cleanContent = stripReasoningPrefix(cleanContent);
   cleanContent = stripSectorInfo(cleanContent);
+  cleanContent = cleanContent.replace(/^```(?:html|xml)?\s*/gi, "").replace(/\s*```$/gi, "");
   var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
   if (hasHtmlTags) {
     cleanContent = stripSectorInfo(cleanContent);
@@ -181,9 +182,16 @@ function finalizeStreaming() {
   ChatState.streamingBuffer = "";
 }
 
+function showGreeting() {
+  var userId = ChatState.currentUserId || "there";
+  addMessage("bot", "Hi, there " + userId + "!");
+}
+
 function processMessage(data) {
   if (data.thinking) {
-    showThinkingIndicator();
+    if (!ChatState.isStreaming) {
+      showThinkingIndicator();
+    }
     return;
   }
   hideThinkingIndicator();

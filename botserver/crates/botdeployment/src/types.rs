@@ -15,8 +15,9 @@ use serde::{Deserialize, Serialize};
 use super::forgejo::ForgejoError;
 use super::{log_and_sanitize, StringError};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum ProjectType {
+    #[default]
     Bot,
     App {
         framework: String,
@@ -25,12 +26,6 @@ pub enum ProjectType {
         output_directory: Option<String>,
     },
     Site,
-}
-
-impl Default for ProjectType {
-    fn default() -> Self {
-        ProjectType::Bot
-    }
 }
 
 impl std::fmt::Display for ProjectType {

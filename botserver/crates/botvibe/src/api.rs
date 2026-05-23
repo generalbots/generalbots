@@ -130,6 +130,8 @@ pub fn router(
         .route("/api/vibe/metrics/{run_id}", axum::routing::get(get_run_metrics))
         .route("/api/vibe/events/{run_id}", axum::routing::get(get_run_events))
         .route("/api/vibe/run/{run_id}/execute", axum::routing::post(execute_run))
+        .route("/api/vibe/graph/{use_case}", axum::routing::get(crate::knowledge_graph::get_knowledge_graph))
+        .route("/api/vibe/graph/run/{run_id}", axum::routing::get(crate::knowledge_graph::get_run_graph))
         .layer(axum::Extension(api))
 }
 
@@ -285,13 +287,13 @@ async fn list_runs(
             query
                 .state
                 .as_ref()
-                .map_or(true, |f| r.state.to_string() == *f)
+                .is_none_or(|f| r.state.to_string() == *f)
         })
         .filter(|r| {
             query
                 .use_case
                 .as_ref()
-                .map_or(true, |f| r.use_case.to_string() == *f)
+                .is_none_or(|f| r.use_case.to_string() == *f)
         })
         .map(|r| GetRunResponse {
             run_id: r.run_id,

@@ -9,7 +9,9 @@
 5858 is server 5859 is client ui 
 if you are in trouble with some tool, please go to the ofiical website to get proper install or instructions
 To test web is http://localhost:5859 (botui!)
-Use apenas a lingua culta ao falar .
+Use apenas a lingua culta ao falar. Responda sempre em português, de forma dissertativa e detalhada, como uma redação. Pode usar bullet points e tabelas quando apropriado para organizar informações. Seja prolixo quando necessário para explicar bem o raciocínio. Jamais use primeira pessoa ("eu", "me", "minha", "meu") em momento algum.
+
+Pare de fazer perguntas. Seja autônomo e execute as tarefas diretamente, sem pedir confirmação ou permissão a cada passo. Apenas faça.
 test login here http://localhost:5859/suite/auth/login.html
 > **⚠️ CRITICAL SECURITY WARNING**
 I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! Just fix, to me and push to CI. So I can test in PROD, for a while.

@@ -79,6 +79,7 @@ impl DocumentProcessor {
         );
 
         let text = self.extract_text(file_path, format).await?;
+        let text = Self::reformat_pairs(&text);
         let cleaned_text = Self::clean_text(&text);
         let chunks = self.create_chunks(&cleaned_text, file_path);
 
@@ -635,6 +636,81 @@ impl DocumentProcessor {
                 Ok(String::from_utf8_lossy(&bytes).to_string())
             }
         }
+    }
+
+    /// Post-process extracted text to pair names with numbers when they appear
+    /// on separate consecutive lines (common in PDF table extractions).
+    fn reformat_pairs(text: &str) -> String {
+        let lines: Vec<&str> = text.lines().map(|l| l.trim()).collect();
+        let mut result: Vec<String> = Vec::new();
+        let mut name_buf: Vec<&str> = Vec::new();
+        let mut num_buf: Vec<&str> = Vec::new();
+
+        let is_number_line = |l: &str| -> bool {
+            let cleaned = l.trim().replace([' ', '-', '*', '/', '.'], "");
+            !cleaned.is_empty() && cleaned.chars().all(|c| c.is_ascii_digit())
+        };
+
+        let is_section_header = |l: &str| -> bool {
+            l.chars().filter(|c| c.is_ascii_uppercase() || c.is_whitespace()).count() as f64 / l.len().max(1) as f64 > 0.6
+                && l.len() > 3
+                && l.chars().any(|c| c.is_ascii_uppercase())
+                && !l.contains(':')
+        };
+
+        let flush = |names: &[&str], nums: &[&str], out: &mut Vec<String>| {
+            if names.is_empty() && nums.is_empty() {
+                return;
+            }
+            if names.is_empty() || nums.is_empty() {
+                for l in names.iter().chain(nums.iter()) {
+                    out.push(l.to_string());
+                }
+                return;
+            }
+            let count = names.len().max(nums.len());
+            for i in 0..count {
+                let name = names.get(i).unwrap_or(&"");
+                let num = nums.get(i).unwrap_or(&"");
+                if !name.is_empty() && !num.is_empty() {
+                    out.push(format!("{}: {}", name, num));
+                } else {
+                    if !name.is_empty() { out.push(name.to_string()); }
+                    if !num.is_empty() { out.push(num.to_string()); }
+                }
+            }
+        };
+
+        for line in &lines {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            if is_section_header(trimmed) {
+                flush(&name_buf, &num_buf, &mut result);
+                name_buf.clear();
+                num_buf.clear();
+                result.push(trimmed.to_string());
+                continue;
+            }
+            if is_number_line(trimmed) {
+                if !name_buf.is_empty() {
+                    num_buf.push(trimmed);
+                } else {
+                    result.push(trimmed.to_string());
+                }
+            } else {
+                if !num_buf.is_empty() {
+                    flush(&name_buf, &num_buf, &mut result);
+                    name_buf.clear();
+                    num_buf.clear();
+                }
+                name_buf.push(trimmed);
+            }
+        }
+        flush(&name_buf, &num_buf, &mut result);
+
+        result.join("\n")
     }
 
     fn clean_text(text: &str) -> String {
