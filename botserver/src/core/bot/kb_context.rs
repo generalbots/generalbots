@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use botcore::shared::utils::DbPool;
 #[cfg(any(feature = "research", feature = "llm"))]
-use botcore::kb::{KnowledgeBaseManager, EmbeddingConfig, KbEmbeddingGenerator};
+use botcore::kb::embedding_generator::{EmbeddingConfig, KbEmbeddingGenerator};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KbSearchResult {
@@ -459,8 +459,15 @@ pub async fn inject_kb_context(
     messages: &mut serde_json::Value,
     max_context_tokens: usize,
 ) {
-    let active_kbs = get_active_kbs(db_pool, session_id);
-    let active_websites = get_active_websites(db_pool, session_id);
+    use botcore::config::ConfigManager;
+    let cfg = ConfigManager::new(db_pool.clone());
+    let mentions_kb = cfg.get_config(&bot_id, "mentions-kb", Some("true"))
+        .unwrap_or_else(|_| "true".to_string()) == "true";
+    let mentions_website = cfg.get_config(&bot_id, "mentions-website", Some("true"))
+        .unwrap_or_else(|_| "true".to_string()) == "true";
+
+    let active_kbs = if mentions_kb { get_active_kbs(db_pool, session_id) } else { Vec::new() };
+    let active_websites = if mentions_website { get_active_websites(db_pool, session_id) } else { Vec::new() };
 
     if active_kbs.is_empty() && active_websites.is_empty() {
         debug!("No active KBs or websites for session {}", session_id);

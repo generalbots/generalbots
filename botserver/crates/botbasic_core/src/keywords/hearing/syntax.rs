@@ -35,8 +35,8 @@ fn hear_block(state: &Arc<dyn BasicRuntime>, session_id: uuid::Uuid, variable_na
                 drop(sm_lock);
                 if let Some(redis) = state_clone.cache_client().as_ref() {
                     if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-                        // TODO(#477): Use build_key(&org, &["hear", &session_id.to_string(), &var])
-                        let key = format!("hear:{session_id}:{var}");
+                        // TODO(#477): Pass org when available (UserSession does not carry org yet)
+                        let key = botlib::key_utils::build_key("", &["hear", &session_id.to_string(), &var]);
                         let _: Result<(), _> = redis::cmd("SET")
                             .arg(&key)
                             .arg(wait_data.to_string())
@@ -218,8 +218,8 @@ fn register_hear_as_menu(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
                         rt.block_on(async move {
                             if let Some(redis) = state_for_suggestions.cache_client().as_ref() {
                                 if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-                                    // TODO(#477): Use build_key(&org, &["suggestions", &bot_id_clone.to_string(), &session_id.to_string()])
-                                    let key = format!("suggestions:{}:{}", bot_id_clone, session_id);
+                                    // TODO(#477): Pass org when available (UserSession does not carry org yet)
+                                    let key = botlib::key_utils::build_key("", &["suggestions", &bot_id_clone.to_string(), &session_id.to_string()]);
                                     for opt in &opts_clone {
                                         let _: Result<(), _> = redis::cmd("RPUSH")
                                             .arg(&key)

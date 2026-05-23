@@ -21,8 +21,8 @@ pub fn set_context_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, eng
                     context_value
                 );
 
-                // TODO(#477): Use build_key(&org, &["context", &user.user_id.to_string(), &user.id.to_string(), &context_name])
-                let redis_key = format!("context:{}:{}:{}", user.user_id, user.id, context_name);
+                // TODO(#477): Pass org when available (UserSession does not carry org yet)
+                let redis_key = botlib::key_utils::build_key("", &["context", &user.user_id.to_string(), &user.id.to_string(), &context_name]);
 
                 trace!(
                     "Constructed Redis key: {} for user {}, session {}, context {}",

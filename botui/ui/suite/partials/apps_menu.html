@@ -1,6 +1,7 @@
 <div class="apps-menu" id="apps-menu">
-    <div class="apps-menu-header">
-        <h3>Apps</h3>
+    <div class="apps-menu-header" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+        <h3 style="margin: 0;">Apps</h3>
+        <button class="btn btn-sm btn-primary" onclick="if(window.newProject) { window.newProject.open(); } else { alert('Project Wizard not loaded'); }" style="font-family: inherit; font-size: 11px; padding: 4px 8px; border: 1px solid var(--primary); background: var(--primary); color: white; border-radius: 6px; cursor: pointer; transition: all 0.15s; font-weight: 600;">+ New Project</button>
     </div>
     <div class="apps-grid">
         {% for app in apps %}

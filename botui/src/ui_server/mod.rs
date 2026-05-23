@@ -132,7 +132,7 @@ const ROOT_FILES: &[&str] = &[
     "single.gbui",
 ];
 
-pub async fn index(OriginalUri(uri): OriginalUri) -> Response {
+pub async fn index(OriginalUri(uri): OriginalUri, headers: axum::http::HeaderMap) -> Response {
     let path = uri.path();
 
     // Check if path contains static asset directories - serve them directly
@@ -249,7 +249,7 @@ pub async fn index(OriginalUri(uri): OriginalUri) -> Response {
         bot_name,
         path
     );
-    serve_suite(bot_name).await.into_response()
+    serve_suite_impl(bot_name, headers.clone()).await
 }
 
 pub fn get_ui_root() -> PathBuf {
@@ -321,7 +321,37 @@ pub async fn serve_minimal() -> impl IntoResponse {
     }
 }
 
-pub async fn serve_suite(bot_name: Option<String>) -> impl IntoResponse {
+#[derive(Deserialize)]
+pub struct SuiteQueryParams {
+    pub bot_name: Option<String>,
+}
+
+pub async fn serve_suite(
+    Query(params): Query<SuiteQueryParams>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
+    serve_suite_impl(params.bot_name, headers).await
+}
+
+pub async fn serve_suite_impl(bot_name: Option<String>, headers: axum::http::HeaderMap) -> Response {
+    let is_auth = bot_name.as_ref()
+        .map(|n| n.ends_with(".html") || n == "login" || n == "register" || n == "forgot-password" || n == "reset-password")
+        .unwrap_or(false);
+
+    if !is_auth && bot_name.is_some() {
+        let mut has_token = false;
+        if let Some(cookie_header) = headers.get(axum::http::header::COOKIE) {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                if cookie_str.contains("gb-access-token") {
+                    has_token = true;
+                }
+            }
+        }
+        if !has_token {
+            info!("serve_suite: Access denied, redirecting to login");
+            return axum::response::Redirect::to("/auth/login.html").into_response();
+        }
+    }
     let raw_html_res = {
         #[cfg(feature = "embed-ui")]
         {
@@ -550,7 +580,7 @@ pub async fn serve_suite(bot_name: Option<String>) -> impl IntoResponse {
                 html = remove_section(&html, "settings");
             }
 
-            (StatusCode::OK, [("content-type", "text/html; charset=utf-8")], Html(html))
+            (StatusCode::OK, [("content-type", "text/html; charset=utf-8")], Html(html)).into_response()
         }
         Err(e) => {
             error!("Failed to load suite UI: {e}");
@@ -558,7 +588,7 @@ pub async fn serve_suite(bot_name: Option<String>) -> impl IntoResponse {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 [("content-type", "text/plain")],
                 Html("Failed to load suite interface".to_string()),
-            )
+            ).into_response()
         }
     }
 }

@@ -681,11 +681,13 @@ dependencies = [
  "axum",
  "botcore",
  "botsecurity",
+ "diesel",
  "futures-util",
  "log",
  "serde",
  "serde_json",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -1222,6 +1224,7 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "axum",
+ "botlib",
  "chrono",
  "diesel",
  "log",
@@ -1373,6 +1376,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "urlencoding",
  "uuid",
 ]
 

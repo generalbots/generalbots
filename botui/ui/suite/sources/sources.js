@@ -872,11 +872,247 @@
   // Expose globally for inline onclick handlers
   window.filterMcpCategory = filterMcpCategory;
   window.addCatalogServer = addCatalogServer;
+  window.installSkill = installSkill;
 
   /**
-   * Open Skills Library in a new tab (Issue #481)
+   * Featured skills for the Skills Library modal (Issue #481)
+   */
+  const FEATURED_SKILLS = [
+    {
+      id: "email-campaigner",
+      name: "Email Campaigner",
+      description:
+        "Create and manage email marketing campaigns with automated follow-ups and analytics.",
+      icon: "✉️",
+    },
+    {
+      id: "whatsapp-broadcaster",
+      name: "WhatsApp Broadcaster",
+      description:
+        "Send broadcast messages, manage templates, and track delivery via WhatsApp Business API.",
+      icon: "💬",
+    },
+    {
+      id: "report-generator",
+      name: "Report Generator",
+      description:
+        "Generate rich PDF and Excel reports from database queries with scheduling support.",
+      icon: "📊",
+    },
+    {
+      id: "crm-assistant",
+      name: "CRM Assistant",
+      description:
+        "Manage leads, contacts, and deals with AI-powered follow-up suggestions and pipeline tracking.",
+      icon: "👥",
+    },
+    {
+      id: "analytics-dashboard",
+      name: "Analytics Dashboard",
+      description:
+        "Visual dashboards with real-time metrics, custom widgets, and data export capabilities.",
+      icon: "📈",
+    },
+    {
+      id: "social-media-poster",
+      name: "Social Media Poster",
+      description:
+        "Schedule and publish content across multiple social platforms with media management.",
+      icon: "📱",
+    },
+  ];
+
+  /**
+   * Install a skill via the backend API
+   */
+  async function installSkill(skillId, skillName) {
+    const botId =
+      (typeof ChatState !== "undefined" && ChatState.currentBotId) ||
+      document.body.dataset.botId ||
+      "default";
+
+    const installBtn = document.querySelector(
+      `[data-skill-id="${skillId}"] .btn-install`,
+    );
+    if (installBtn) {
+      installBtn.disabled = true;
+      installBtn.textContent = "Installing...";
+    }
+
+    try {
+      const response = await fetch("/api/skills/install", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: skillId, bot_id: botId }),
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(err || `HTTP ${response.status}`);
+      }
+
+      showToast(`"${skillName}" installed successfully!`, "success");
+    } catch (err) {
+      console.error("Skill install failed:", err);
+      showToast(
+        `Failed to install "${skillName}": ${err.message}`,
+        "error",
+      );
+    } finally {
+      if (installBtn) {
+        installBtn.disabled = false;
+        installBtn.textContent = "Install";
+      }
+    }
+  }
+
+  /**
+   * Filter skills grid by search query
+   */
+  window.filterSkills = function () {
+    const input = document.getElementById("skills-search-input");
+    if (!input) return;
+    const q = input.value.toLowerCase();
+    document.querySelectorAll(".skill-card").forEach((card) => {
+      const name = card.dataset.name?.toLowerCase() || "";
+      const desc = card.dataset.description?.toLowerCase() || "";
+      card.style.display =
+        !q || name.includes(q) || desc.includes(q) ? "" : "none";
+    });
+  };
+
+  /**
+   * Open Skills Library modal (Issue #481)
    */
   window.openSkillsLibrary = function () {
-    window.open("https://skills.sh", "_blank");
+    let modal = document.getElementById("skills-library-modal");
+
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "skills-library-modal";
+      modal.className = "modal";
+      modal.style.display = "none";
+
+      modal.innerHTML = `
+        <div class="modal-backdrop" onclick="hideSkillsLibrary()"></div>
+        <div class="modal-content modal-content--wide">
+          <div class="modal-header">
+            <h3>Skills Library</h3>
+            <div class="modal-header-actions">
+              <span class="skills-count">${FEATURED_SKILLS.length} skills</span>
+              <button class="modal-close" onclick="hideSkillsLibrary()">&times;</button>
+            </div>
+          </div>
+          <div class="modal-body">
+            <div class="skills-search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                id="skills-search-input"
+                placeholder="Search skills..."
+                oninput="filterSkills()"
+              />
+            </div>
+            <div class="skills-grid" id="skills-grid">
+              ${FEATURED_SKILLS.map(
+                (s) => `
+                <div class="skill-card" data-skill-id="${s.id}" data-name="${s.name}" data-description="${s.description}">
+                  <div class="skill-card-icon">${s.icon}</div>
+                  <div class="skill-card-body">
+                    <div class="skill-card-name">${s.name}</div>
+                    <div class="skill-card-description">${s.description}</div>
+                  </div>
+                  <div class="skill-card-action">
+                    <button class="btn-install" onclick="installSkill('${s.id}', '${s.name}')">Install</button>
+                  </div>
+                </div>
+              `,
+              ).join("")}
+            </div>
+            <p class="skills-footer-note">
+              More skills available at <a href="https://skills.sh" target="_blank" rel="noopener">skills.sh</a>
+            </p>
+          </div>
+        </div>
+      `;
+
+      // Inject supporting styles
+      const style = document.createElement("style");
+      style.textContent = `
+        .modal-content--wide { max-width: 640px; }
+        .modal-header-actions { display: flex; align-items: center; gap: 0.75rem; }
+        .skills-count { font-size: 0.75rem; color: var(--text-secondary); background: var(--bg-secondary); padding: 0.2rem 0.6rem; border-radius: 1rem; }
+        .skills-search { position: relative; margin-bottom: 1.25rem; }
+        .skills-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .skills-search input {
+          width: 100%; padding: 0.65rem 0.75rem 0.65rem 2.25rem;
+          border: 1px solid var(--border); border-radius: 0.5rem;
+          background: var(--bg-secondary); color: var(--text-primary);
+          font-size: 0.875rem; outline: none; transition: border-color 0.2s;
+        }
+        .skills-search input:focus { border-color: var(--primary); }
+        .skills-search input::placeholder { color: var(--text-secondary); }
+        .skills-grid { display: flex; flex-direction: column; gap: 0.75rem; max-height: 50vh; overflow-y: auto; }
+        .skill-card {
+          display: flex; align-items: center; gap: 1rem;
+          padding: 1rem; background: var(--bg-secondary);
+          border: 1px solid var(--border); border-radius: 0.75rem;
+          transition: all 0.2s;
+        }
+        .skill-card:hover { border-color: var(--primary); }
+        .skill-card-icon {
+          width: 44px; height: 44px; border-radius: 0.5rem;
+          display: flex; align-items: center; justify-content: center;
+          background: var(--primary-light, rgba(212,245,5,0.1));
+          font-size: 1.35rem; flex-shrink: 0;
+        }
+        .skill-card-body { flex: 1; min-width: 0; }
+        .skill-card-name { font-weight: 600; font-size: 0.9375rem; color: var(--text-primary); }
+        .skill-card-description { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem; }
+        .skill-card-action { flex-shrink: 0; }
+        .btn-install {
+          padding: 0.45rem 1rem; border: none; border-radius: 0.375rem;
+          background: var(--primary); color: var(--primary-text, #000);
+          font-size: 0.8125rem; font-weight: 500; cursor: pointer;
+          transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-install:hover { opacity: 0.85; }
+        .btn-install:disabled { opacity: 0.5; cursor: not-allowed; }
+        .skills-footer-note { margin-top: 1rem; font-size: 0.75rem; color: var(--text-secondary); text-align: center; }
+        .skills-footer-note a { color: var(--primary); text-decoration: none; }
+        .skills-footer-note a:hover { text-decoration: underline; }
+        .toast-error { background: #dc3545; color: white; }
+      `;
+      document.head.appendChild(style);
+      document.body.appendChild(modal);
+    }
+
+    modal.style.display = "flex";
+    const input = document.getElementById("skills-search-input");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    filterSkills();
   };
+
+  /**
+   * Hide the Skills Library modal
+   */
+  window.hideSkillsLibrary = function () {
+    const modal = document.getElementById("skills-library-modal");
+    if (modal) modal.style.display = "none";
+  };
+
+  /**
+   * Close skills modal on Escape
+   */
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      hideSkillsLibrary();
+    }
+  });
 })();

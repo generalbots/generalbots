@@ -14,6 +14,7 @@ The Marketing template provides marketing automation capabilities including camp
 - **Content Ideation** - AI-assisted content idea generation
 - **Image Generation** - AI-powered marketing visuals
 - **Social Media Posting** - Direct posting to Instagram and other platforms
+- **Instagram Campaign Creator `[SOON]`** - Auto-generate campaign images using AI models and schedule publishing directly via integrated S3/MinIO bucket assets
 - **WhatsApp Broadcasts** - Mass messaging with template support
 - **Contact Segmentation** - Target specific audience segments
 - **Template Compliance** - META-approved template validation
@@ -394,6 +395,21 @@ TALK "Post scheduled for " + schedule_time + " on " + platform
 6. **Timing** - Schedule broadcasts for optimal engagement times
 7. **Tracking** - Monitor delivery and engagement metrics
 8. **Opt-out handling** - Honor unsubscribe requests immediately
+
+---
+
+## Instagram Campaign Creator `[SOON]`
+
+> [!NOTE]
+> This is a planned feature scheduled for a future platform release (Hermes-Vibe track).
+
+The Instagram Campaign Creator integrates AI-powered campaign generation directly with digital asset publishing. It provides an automated, multi-step pipeline for creators:
+
+1. **Drive HTTP API Integration**: Decoupled, presigned asset URLs generated on the fly via private S3/MinIO drive buckets.
+2. **AI-Powered Generation**: Dynamic multi-modal endpoints under `/api/crm/campaigns/generate` utilizing Stable Diffusion for automated post visuals and LLMs for localized copywriting.
+3. **Instagram Integration**: Publishing engine leveraging the `campaign_posts` database schema to track channel deliveries and post success.
+4. **Interactive Dashboard**: Modal and designer dashboard in BotUI to configure campaigns, choose target personas, and preview generated visuals before scheduling.
+5. **Engagement Analytics**: Background workers aggregating likes, comments, and reach metrics to assess campaign performance.
 
 ---
 

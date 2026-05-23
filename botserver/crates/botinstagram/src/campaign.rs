@@ -6,16 +6,18 @@
 //! campaign for publishing via the Instagram Graph API.
 //!
 //! # Endpoints
-//! - `GET  /api/instagram/campaigns` — list all campaigns
+//! - `GET /api/instagram/campaigns` — list all campaigns
 //! - `POST /api/instagram/campaigns/create` — create a new campaign
-//! - `GET  /api/instagram/campaigns/{id}/images/{img}` — get campaign media
+//! - `GET /api/instagram/campaigns/{id}/images/{img}` — get campaign media
+//! - `POST /api/instagram/campaigns/{id}/publish` — publish campaign to Instagram
 
+use crate::adapter::InstagramAdapter;
 use crate::state::ChannelState;
 use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
+ extract::State,
+ http::StatusCode,
+ response::IntoResponse,
+ Json,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -64,31 +66,93 @@ pub struct CampaignImage {
 /// this endpoint calls botmodels for Stable Diffusion image generation
 /// and the configured LLM for caption creation.
 pub async fn create_campaign(
-    State(_state): State<Arc<ChannelState>>,
-    Json(_req): Json<CreateCampaignRequest>,
+ state: State<Arc<ChannelState>>,
+ Json(req): Json<CreateCampaignRequest>,
 ) -> impl IntoResponse {
-    let campaign_id = uuid::Uuid::new_v4().to_string();
+ let campaign_id = uuid::Uuid::new_v4().to_string();
+ let bot_id = req.bot_id.unwrap_or_else(|| "default".to_string());
 
-    let images = vec![CampaignImage {
-        url: format!("/api/instagram/campaigns/{}/images/1", campaign_id),
-        description: format!("Generated image for: {}", &_req.prompt[.._req.prompt.len().min(60)]),
-    }];
+ // Get config to access Instagram
+ let _get_config = state.get_config.clone();
+ let _adapter = InstagramAdapter::with_config(&_get_config, &bot_id);
 
-    let caption = format!(
-        "{} #generalbots #instagram #campaign",
-        _req.prompt.chars().take(120).collect::<String>()
-    );
+ // Generate image URL (placeholder - in production this would call Stable Diffusion)
+ let image_url = format!("https://via.placeholder.com/1080x1080.png?text={}", urlencoding::encode(&req.prompt[..req.prompt.len().min(30)]));
+ 
+ let images = vec![CampaignImage {
+ url: image_url.clone(),
+ description: format!("Generated image for: {}", &req.prompt[..req.prompt.len().min(60)]),
+ }];
 
-    (
-        StatusCode::OK,
-        Json(CampaignResponse {
-            success: true,
-            campaign_id: Some(campaign_id),
-            images,
-            caption: Some(caption),
-            error: None,
-        }),
-    )
+ // Generate caption with LLM (placeholder)
+ let caption = format!("{} #generalbots #instagram #campaign", req.prompt.chars().take(120).collect::<String>());
+
+ // If schedule is provided, store for later publishing
+ // Otherwise, publish immediately if num_images > 0
+ if req.num_images.unwrap_or(0) > 0 {
+ // In production: call Stable Diffusion API via botmodels
+ // For now, just log the intent
+ log::info!("Campaign {} created with prompt: {}", campaign_id, req.prompt);
+ }
+
+ (
+ StatusCode::OK,
+ Json(CampaignResponse {
+ success: true,
+ campaign_id: Some(campaign_id),
+ images,
+ caption: Some(caption),
+ error: None,
+ }),
+ )
+}
+
+/// Publishes a campaign to Instagram.
+pub async fn publish_campaign(
+ state: State<Arc<ChannelState>>,
+ axum::extract::Path(campaign_id): axum::extract::Path<String>,
+ Json(req): Json<PublishRequest>,
+) -> impl IntoResponse {
+ let bot_id = req.bot_id.unwrap_or_else(|| "default".to_string());
+ let get_config = state.get_config.clone();
+ let adapter = InstagramAdapter::with_config(&get_config, &bot_id);
+
+ // Post to Instagram
+ match adapter.post_to_instagram(&req.image_url, &req.caption).await {
+ Ok(media_id) => (
+ StatusCode::OK,
+ Json(PublishResponse {
+ success: true,
+ media_id: Some(media_id),
+ campaign_id: Some(campaign_id),
+ error: None,
+ }),
+ ),
+ Err(e) => (
+ StatusCode::BAD_REQUEST,
+ Json(PublishResponse {
+ success: false,
+ media_id: None,
+ campaign_id: Some(campaign_id),
+ error: Some(e.to_string()),
+ }),
+ ),
+ }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PublishRequest {
+ pub image_url: String,
+ pub caption: String,
+ pub bot_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PublishResponse {
+ pub success: bool,
+ pub media_id: Option<String>,
+ pub campaign_id: Option<String>,
+ pub error: Option<String>,
 }
 
 /// Lists all campaigns for the current Instagram account.
@@ -129,10 +193,11 @@ pub async fn get_campaign_media(
 
 /// Registers the campaign routes on an Axum router.
 pub fn configure_campaign_routes() -> axum::Router<Arc<ChannelState>> {
-    use axum::routing::{get, post};
+ use axum::routing::{get, post};
 
-    axum::Router::new()
-        .route("/api/instagram/campaigns", get(list_campaigns))
-        .route("/api/instagram/campaigns/create", post(create_campaign))
-        .route("/api/instagram/campaigns/{campaign_id}/images/{image_id}", get(get_campaign_media))
+ axum::Router::new()
+ .route("/api/instagram/campaigns", get(list_campaigns))
+ .route("/api/instagram/campaigns/create", post(create_campaign))
+ .route("/api/instagram/campaigns/{campaign_id}/images/{image_id}", get(get_campaign_media))
+ .route("/api/instagram/campaigns/{campaign_id}/publish", post(publish_campaign))
 }

@@ -5,4 +5,5 @@
 pub mod csv;
 pub mod docx;
 pub mod pdf;
+pub mod qdrant_ingestor;
 pub mod xlsx;

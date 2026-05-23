@@ -18,28 +18,25 @@ pub struct SessionState {
 
 pub async fn create_session(Extension(state): Extension<Arc<SessionState>>) -> impl IntoResponse {
     let temp_session_id = Uuid::new_v4();
+    let user_id =
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
+    let bot_id = Uuid::nil();
 
-    if let Ok(conn) = state.conn.get() {
-        let user_id =
-            Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
-        let bot_id = Uuid::nil();
+    let mut sm = SessionManager::new(
+        state.conn.clone(),
+        #[cfg(feature = "cache")]
+        None,
+    );
 
-        let mut sm = SessionManager::new(
-            conn,
-            #[cfg(feature = "cache")]
-            None,
+    if let Ok(Some(session)) = sm.get_or_create_user_session(user_id, bot_id, "New Conversation") {
+        return (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "session_id": session.id,
+                "title": "New Conversation",
+                "created_at": Utc::now()
+            })),
         );
-
-        if let Ok(Some(session)) = sm.get_or_create_user_session(user_id, bot_id, "New Conversation") {
-            return (
-                StatusCode::OK,
-                Json(serde_json::json!({
-                    "session_id": session.id,
-                    "title": "New Conversation",
-                    "created_at": Utc::now()
-                })),
-            );
-        }
     }
 
     (
@@ -57,13 +54,8 @@ pub async fn get_sessions(Extension(state): Extension<Arc<SessionState>>) -> imp
     let user_id =
         Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
 
-    let conn_result = state.conn.get();
-    if conn_result.is_err() {
-        return (StatusCode::OK, Json(serde_json::json!([])));
-    }
-
     let mut sm = SessionManager::new(
-        conn_result.unwrap(),
+        state.conn.clone(),
         #[cfg(feature = "cache")]
         None,
     );
@@ -80,16 +72,8 @@ pub async fn start_session(
 ) -> impl IntoResponse {
     match Uuid::parse_str(&session_id) {
         Ok(session_uuid) => {
-            let conn_result = state.conn.get();
-            if conn_result.is_err() {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({"error": "Database connection failed"})),
-                );
-            }
-
             let mut sm = SessionManager::new(
-                conn_result.unwrap(),
+                state.conn.clone(),
                 #[cfg(feature = "cache")]
                 None,
             );
@@ -128,16 +112,8 @@ pub async fn get_session_history(
 
     match Uuid::parse_str(&session_id) {
         Ok(session_uuid) => {
-            let conn_result = state.conn.get();
-            if conn_result.is_err() {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({"error": "Database connection failed"})),
-                );
-            }
-
             let mut sm = SessionManager::new(
-                conn_result.unwrap(),
+                state.conn.clone(),
                 #[cfg(feature = "cache")]
                 None,
             );

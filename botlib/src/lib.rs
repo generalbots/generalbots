@@ -1,6 +1,7 @@
 pub mod branding;
 pub mod db_pool;
 pub mod error;
+pub mod key_utils;
 #[cfg(feature = "http-client")]
 pub mod http_client;
 #[cfg(feature = "i18n")]

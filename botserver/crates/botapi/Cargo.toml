@@ -17,6 +17,8 @@ tokio = { workspace = true, features = ["full"] }
 futures-util = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
+diesel = { workspace = true, features = ["postgres", "r2d2", "uuid"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
 
 [lints]
 workspace = true

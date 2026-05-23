@@ -345,6 +345,41 @@
             .setup-btn-secondary:hover { background: var(--surface-active, rgba(255, 255, 255, 0.15)); }
             .setup-btn-text { background: none; color: var(--text-secondary, #888); margin-right: auto; }
             .setup-btn-text:hover { color: var(--text, #e5e5e5); }
+
+            .setup-drop-zone {
+              border: 2px dashed var(--border, #2a2a2a);
+              border-radius: 12px;
+              padding: 32px;
+              text-align: center;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              background: var(--surface-hover, rgba(255,255,255,0.02));
+            }
+            .setup-drop-zone:hover,
+            .setup-drop-zone.dragover {
+              border-color: var(--primary, #84d669);
+              background: rgba(132, 214, 105, 0.05);
+            }
+            .setup-drop-zone.dragover .setup-drop-icon svg {
+              stroke: var(--primary, #84d669);
+            }
+            .setup-drop-icon { margin-bottom: 12px; }
+            .setup-drop-icon svg { stroke: var(--text-secondary, #888); transition: stroke 0.2s; }
+            .setup-drop-text { font-size: 14px; color: var(--text, #e5e5e5); margin: 0 0 4px; }
+            .setup-drop-hint { font-size: 12px; color: var(--text-secondary, #888); margin: 0 0 16px; }
+            .setup-file-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+            .setup-file-item {
+              display: flex; align-items: center; gap: 8px;
+              padding: 8px 12px; background: var(--surface-hover, rgba(255,255,255,0.03));
+              border: 1px solid var(--border, #2a2a2a); border-radius: 6px;
+              font-size: 13px; color: var(--text, #e5e5e5);
+            }
+            .setup-file-item .file-name { flex: 1; }
+            .setup-file-item .file-size { font-size: 11px; color: var(--text-secondary, #888); }
+            .setup-file-item .file-status { font-size: 11px; font-weight: 600; }
+            .setup-file-item .file-status.uploaded { color: #22c55e; }
+            .setup-file-item .file-status.uploading { color: #f59e0b; }
+            .setup-file-item .file-status.error { color: #ef4444; }
         </style>
 
     </head>
@@ -358,7 +393,7 @@
                 <div
                     class="sidebar-item active"
                     title="Home"
-                    onclick="if(window.wm) window.wm.open('home', 'Home', '<div style=\'padding:20px;text-align:center;\'><h2>Welcome to General Bots Desktop</h2></div>');"
+                    onclick="if(window.openHomeWindow) window.openHomeWindow();"
                 >
                     <svg
                         class="sidebar-icon"
@@ -947,6 +982,37 @@
                 }
             }
 
+            function getActiveUsername() {
+                try {
+                    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
+                    if (token) {
+                        var parts = token.split('.');
+                        if (parts.length === 3) {
+                            var payload = JSON.parse(atob(parts[1]));
+                            if (payload.username) return payload.username;
+                            if (payload.name) return payload.name;
+                            if (payload.sub) return payload.sub;
+                        }
+                    }
+                } catch(e) {
+                    console.warn("Failed to parse access token for username:", e);
+                }
+                return "Username";
+            }
+
+            function openHomeWindow() {
+                if (!window.wm) return;
+                var name = getActiveUsername();
+                window.wm.open('home', 'Home', 
+                    '<div style="padding:24px;text-align:center;background:var(--bg-secondary);border-radius:12px;margin:20px;">' +
+                    '<h1 style="font-size: 32px; font-weight: 700; margin-bottom: 12px; color: var(--primary, #84d669);">Hi, there ' + name + '!</h1>' +
+                    '<p style="font-size: 15px; color: var(--text-secondary, #888);">Welcome to your General Bots Desktop workspace.</p>' +
+                    '</div>'
+                );
+            }
+
+            window.openHomeWindow = openHomeWindow;
+
             // Check login state on load
             setTimeout(updateLoginButton, 500);
 
@@ -973,12 +1039,13 @@
 
             <div class="setup-progress">
               <div class="setup-progress-bar">
-                <div class="setup-progress-fill" id="setupProgressFill" style="width: 33%"></div>
+                <div class="setup-progress-fill" id="setupProgressFill" style="width: 25%"></div>
               </div>
               <div class="setup-progress-steps">
                 <span class="setup-step active" data-step="1">LLM Provider</span>
                 <span class="setup-step" data-step="2">User Profile</span>
                 <span class="setup-step" data-step="3">Bot Config</span>
+                <span class="setup-step" data-step="4">Training</span>
               </div>
             </div>
 
@@ -1080,11 +1147,32 @@
               <div class="setup-form">
                 <div class="setup-form-group">
                   <label for="wizardBotName">Bot Name</label>
-                  <input type="text" id="wizardBotName" placeholder="My Assistant" class="setup-input" />
+                  <input type="text" id="setupBotName" placeholder="My Assistant" class="setup-input" />
                 </div>
                 <div class="setup-form-group">
-                  <label for="wizardBotPurpose">Bot Purpose</label>
-                  <textarea id="wizardBotPurpose" rows="3" placeholder="Describe what your bot should do..." class="setup-input"></textarea>
+                  <label for="setupBotPurpose">Bot Purpose</label>
+                  <textarea id="setupBotPurpose" rows="3" placeholder="Describe what your bot should do..." class="setup-input"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="setup-step-content" id="setupStep4">
+              <h3>Treinar seu Bot</h3>
+              <p>Arraste arquivos .pdf, .xls, .doc para o treinamento inicial. Você terá acesso ao Drive e poderá mudar depois.</p>
+              <div class="setup-form">
+                <div class="setup-form-group">
+                  <div id="setupDropZone" class="setup-drop-zone" ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="window.handleSetupFileDrop(event)">
+                    <div class="setup-drop-icon">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                    </div>
+                    <p class="setup-drop-text">Solte arquivos aqui ou clique para selecionar</p>
+                    <p class="setup-drop-hint">.pdf, .xls, .doc — até 10MB cada</p>
+                    <input type="file" id="setupFileInput" multiple accept=".pdf,.xls,.xlsx,.doc,.docx" style="display:none" onchange="window.handleSetupFileSelect(event)" />
+                    <button type="button" class="setup-btn setup-btn-secondary" onclick="document.getElementById('setupFileInput').click()">Selecionar Arquivos</button>
+                  </div>
+                  <div id="setupFileList" class="setup-file-list"></div>
                 </div>
               </div>
             </div>
@@ -1099,5 +1187,27 @@
         </div>
 
         <script src="/suite/js/setup-wizard.js"></script>
+        <script src="/suite/js/versions.js"></script>
+        <script src="/suite/js/preview.js"></script>
+        <script src="/suite/js/campaigns.js"></script>
+        <script>
+            // Carregar o modal New Project dinamicamente (Issue #524)
+            fetch('/suite/partials/new-project.html')
+                .then(response => response.text())
+                .then(html => {
+                    const div = document.createElement('div');
+                    div.innerHTML = html;
+                    document.body.appendChild(div);
+                    
+                    // Executar scripts embutidos no modal carregado
+                    const scripts = div.querySelectorAll('script');
+                    scripts.forEach(script => {
+                        const newScript = document.createElement('script');
+                        newScript.textContent = script.textContent;
+                        document.body.appendChild(newScript);
+                    });
+                })
+                .catch(err => console.error('Failed to load new-project wizard:', err));
+        </script>
     </body>
 </html>

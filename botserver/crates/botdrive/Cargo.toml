@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = []
-vectordb = ["dep:botqdrant"]
+vectordb = []
 sheet = ["dep:calamine"]
 drive = ["dep:pdf-extract"]
 research = []
@@ -15,7 +15,7 @@ llm = []
 botcore = { path = "../botcore" }
 botlib = { path = "../../../botlib" }
 botschema = { path = "../../../botschema" }
-botqdrant = { path = "../botqdrant", optional = true }
+botqdrant = { path = "../botqdrant" }
 axum = { workspace = true, features = ["ws", "macros"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

@@ -7,9 +7,16 @@ use crate::stream_processor::StreamProcessor;
 pub struct XlsxStreamProcessor;
 
 impl StreamProcessor for XlsxStreamProcessor {
-    fn process_stream(&mut self, _path: &Path) -> Result<u64, String> {
-        // TODO(#493): Implement row-by-row XLSX extraction.
-        // Use calamine with worksheet/sheet iteration.
-        Ok(0)
+    fn process_stream(&mut self, path: &Path) -> Result<String, String> {
+        #[cfg(feature = "sheet")]
+        {
+            crate::vectordb::extract_xlsx_text_sync(path)
+                .map_err(|e| format!("XLSX extraction error: {}", e))
+        }
+        #[cfg(not(feature = "sheet"))]
+        {
+            let _ = path;
+            Err("XLSX extraction requires 'sheet' feature".to_string())
+        }
     }
 }

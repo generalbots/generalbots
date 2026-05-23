@@ -1,0 +1,10 @@
+/opt/gbo/logs/stderr.log {
+  daily
+  rotate 7
+  compress
+  delaycompress
+  missingok
+  notifempty
+  copytruncate
+  maxsize 500M
+}

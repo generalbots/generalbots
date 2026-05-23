@@ -2,7 +2,7 @@ use crate::schema::{message_history, user_sessions, users};
 use crate::session_data::{SessionData, UserSession};
 use chrono::Utc;
 use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, PooledConnection};
+use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use log::{error, trace, warn};
 #[cfg(feature = "cache")]
@@ -13,7 +13,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct SessionManager {
-    conn: PooledConnection<ConnectionManager<PgConnection>>,
+    pool: Pool<ConnectionManager<PgConnection>>,
     sessions: HashMap<Uuid, SessionData>,
     waiting_for_input: HashSet<Uuid>,
     #[cfg(feature = "cache")]
@@ -23,7 +23,7 @@ pub struct SessionManager {
 impl std::fmt::Debug for SessionManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SessionManager")
-            .field("conn", &"PooledConnection<PgConnection>")
+            .field("pool", &"Pool<PgConnection>")
             .field("sessions", &self.sessions)
             .field("waiting_for_input", &self.waiting_for_input)
             .field("redis", &self.redis.is_some())
@@ -33,12 +33,12 @@ impl std::fmt::Debug for SessionManager {
 
 impl SessionManager {
     pub fn new(
-        conn: PooledConnection<ConnectionManager<PgConnection>>,
+        pool: Pool<ConnectionManager<PgConnection>>,
         #[cfg(feature = "cache")]
         redis_client: Option<Arc<Client>>,
     ) -> Self {
         Self {
-            conn,
+            pool,
             sessions: HashMap::new(),
             waiting_for_input: HashSet::new(),
             #[cfg(feature = "cache")]
@@ -76,9 +76,10 @@ impl SessionManager {
         &mut self,
         session_id: Uuid,
     ) -> Result<Option<UserSession>, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
         let result = user_sessions::table
             .filter(user_sessions::id.eq(session_id))
-            .first::<UserSession>(&mut self.conn)
+            .first::<UserSession>(&mut conn)
             .optional()?;
         Ok(result)
     }
@@ -88,11 +89,12 @@ impl SessionManager {
         uid: Uuid,
         bid: Uuid,
     ) -> Result<Option<UserSession>, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
         let result = user_sessions::table
             .filter(user_sessions::user_id.eq(uid))
             .filter(user_sessions::bot_id.eq(bid))
             .order(user_sessions::created_at.desc())
-            .first::<UserSession>(&mut self.conn)
+            .first::<UserSession>(&mut conn)
             .optional()?;
         Ok(result)
     }
@@ -113,11 +115,12 @@ impl SessionManager {
         &mut self,
         uid: Option<Uuid>,
     ) -> Result<Uuid, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
         let user_id = uid.unwrap_or_else(Uuid::new_v4);
         let user_exists: Option<Uuid> = users::table
             .filter(users::id.eq(user_id))
             .select(users::id)
-            .first(&mut self.conn)
+            .first(&mut conn)
             .optional()?;
         if user_exists.is_none() {
             let now = Utc::now();
@@ -134,7 +137,7 @@ impl SessionManager {
                     users::created_at.eq(now),
                     users::updated_at.eq(now),
                 ))
-                .execute(&mut self.conn)?;
+                .execute(&mut conn)?;
         }
         Ok(user_id)
     }
@@ -156,6 +159,7 @@ impl SessionManager {
         session_title: &str,
     ) -> Result<UserSession, Box<dyn Error + Send + Sync>> {
         let verified_uid = self.get_or_create_anonymous_user(Some(uid))?;
+        let mut conn = self.pool.get()?;
         let now = Utc::now();
         let inserted: UserSession = diesel::insert_into(user_sessions::table)
             .values((
@@ -169,7 +173,7 @@ impl SessionManager {
                 user_sessions::updated_at.eq(now),
             ))
             .returning(UserSession::as_returning())
-            .get_result(&mut self.conn)
+            .get_result(&mut conn)
             .map_err(|e| {
                 error!("Failed to create session in database: {}", e);
                 e
@@ -200,10 +204,11 @@ impl SessionManager {
         content: &str,
         msg_type: i32,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
         let next_index: i32 = message_history::table
             .filter(message_history::session_id.eq(sess_id))
             .count()
-            .get_result::<i64>(&mut self.conn)
+            .get_result::<i64>(&mut conn)
             .unwrap_or(0) as i32;
         diesel::insert_into(message_history::table)
             .values((
@@ -216,7 +221,7 @@ impl SessionManager {
                 message_history::message_index.eq(next_index),
                 message_history::created_at.eq(chrono::Utc::now()),
             ))
-            .execute(&mut self.conn)?;
+            .execute(&mut conn)?;
         trace!("Message saved for session {} with index {}", sess_id, next_index);
         Ok(())
     }
@@ -230,8 +235,8 @@ impl SessionManager {
         #[cfg(feature = "cache")]
         {
             use redis::Commands;
-            // TODO(#477): Use build_key(&org, &["context", &user_id.to_string(), &session_id.to_string()])
-            let redis_key = format!("context:{}:{}", user_id, session_id);
+            // TODO(#477): Pass org when available
+            let redis_key = botlib::key_utils::build_key("", &["context", &user_id.to_string(), &session_id.to_string()]);
             if let Some(redis_client) = &self.redis {
                 let mut conn = redis_client.get_connection()?;
                 conn.set::<_, _, ()>(&redis_key, &context_data)?;
@@ -250,8 +255,8 @@ impl SessionManager {
         #[cfg(feature = "cache")]
         {
             use redis::Commands;
-            // TODO(#477): Use build_key(&org, &["context", &user_id.to_string(), &session_id.to_string()])
-            let base_key = format!("context:{}:{}", user_id, session_id);
+            // TODO(#477): Pass org when available
+            let base_key = botlib::key_utils::build_key("", &["context", &user_id.to_string(), &session_id.to_string()]);
             if let Some(redis_client) = &self.redis {
                 let conn_option = redis_client
                     .get_connection()
@@ -260,11 +265,12 @@ impl SessionManager {
                         e
                     })
                     .ok();
+
                 if let Some(mut connection) = conn_option {
                     match connection.get::<_, Option<String>>(&base_key) {
                         Ok(Some(context_name)) => {
-                            // TODO(#477): Use build_key(&org, &["context", &user_id.to_string(), &session_id.to_string(), &context_name])
-                            let full_key = format!("context:{}:{}:{}", user_id, session_id, context_name);
+                            // TODO(#477): Pass org when available
+                            let full_key = botlib::key_utils::build_key("", &["context", &user_id.to_string(), &session_id.to_string(), &context_name]);
                             match connection.get::<_, Option<String>>(&full_key) {
                                 Ok(Some(context_value)) => {
                                     trace!("Retrieved context value from Cache for key {}: {} chars", full_key, context_value.len());
@@ -297,12 +303,13 @@ impl SessionManager {
         _uid: Uuid,
         history_limit: Option<i64>,
     ) -> Result<Vec<(String, String)>, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
         let limit_val = history_limit.unwrap_or(50);
         let messages = message_history::table
             .filter(message_history::session_id.eq(sess_id))
             .order(message_history::message_index.asc())
             .select((message_history::role, message_history::content_encrypted, message_history::message_index))
-            .load::<(i32, String, i32)>(&mut self.conn)?;
+            .load::<(i32, String, i32)>(&mut conn)?;
         let total_messages_needed = (limit_val * 2) as usize;
         let start_idx = messages.len().saturating_sub(total_messages_needed);
         let recent_messages: Vec<_> = messages.into_iter().skip(start_idx).collect();
@@ -324,16 +331,17 @@ impl SessionManager {
         &mut self,
         uid: Uuid,
     ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
         let sessions = if uid == Uuid::nil() {
             user_sessions::table
                 .order(user_sessions::created_at.desc())
-                .load::<UserSession>(&mut self.conn)
+                .load::<UserSession>(&mut conn)
                 .unwrap_or_else(|_| Vec::new())
         } else {
             user_sessions::table
                 .filter(user_sessions::user_id.eq(uid))
                 .order(user_sessions::created_at.desc())
-                .load::<UserSession>(&mut self.conn)
+                .load::<UserSession>(&mut conn)
                 .unwrap_or_else(|_| Vec::new())
         };
         Ok(sessions)
@@ -344,9 +352,10 @@ impl SessionManager {
         session_id: Uuid,
         new_user_id: Uuid,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
         let updated_count = diesel::update(user_sessions::table.filter(user_sessions::id.eq(session_id)))
             .set((user_sessions::user_id.eq(new_user_id), user_sessions::updated_at.eq(chrono::Utc::now())))
-            .execute(&mut self.conn)?;
+            .execute(&mut conn)?;
         if updated_count == 0 {
             warn!("No session found with ID: {}", session_id);
         } else {
@@ -360,26 +369,32 @@ impl SessionManager {
     }
 
     pub fn total_count(&mut self) -> usize {
-        user_sessions::table
-            .count()
-            .first::<i64>(&mut self.conn)
-            .unwrap_or(0) as usize
+        if let Ok(mut conn) = self.pool.get() {
+            user_sessions::table
+                .count()
+                .first::<i64>(&mut conn)
+                .unwrap_or(0) as usize
+        } else {
+            0
+        }
     }
 
     pub fn recent_sessions(
         &mut self,
         hours: i64,
     ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
         let since = chrono::Utc::now() - chrono::Duration::hours(hours);
         let sessions = user_sessions::table
             .filter(user_sessions::created_at.gt(since))
             .order(user_sessions::created_at.desc())
-            .load::<UserSession>(&mut self.conn)?;
+            .load::<UserSession>(&mut conn)?;
         Ok(sessions)
     }
 
     pub fn get_statistics(&mut self) -> Result<serde_json::Value, Box<dyn Error + Send + Sync>> {
-        let total = user_sessions::table.count().first::<i64>(&mut self.conn)?;
+        let mut conn = self.pool.get()?;
+        let total = user_sessions::table.count().first::<i64>(&mut conn)?;
         let active = self.sessions.len() as i64;
         let today = chrono::Utc::now().date_naive();
         let today_start = today
@@ -389,7 +404,7 @@ impl SessionManager {
         let today_count = user_sessions::table
             .filter(user_sessions::created_at.ge(today_start))
             .count()
-            .first::<i64>(&mut self.conn)?;
+            .first::<i64>(&mut conn)?;
         Ok(serde_json::json!({
             "total_sessions": total,
             "active_sessions": active,

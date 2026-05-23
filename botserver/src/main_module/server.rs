@@ -393,13 +393,31 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
     // Deployment routes for VibeCode platform
     #[cfg(feature = "deployment")]
     {
-    api_router = api_router.merge(crate::deployment::configure_deployment_routes());
+        api_router = api_router.merge(crate::deployment::configure_deployment_routes());
+
+        tokio::spawn(async {
+            let gateway_state = std::sync::Arc::new(crate::deployment::GatewayState::default());
+            let gateway_router = crate::deployment::configure_gateway_routes(gateway_state);
+            let gateway_addr = SocketAddr::from(([0, 0, 0, 0], 5860));
+            match tokio::net::TcpListener::bind(gateway_addr).await {
+                Ok(listener) => {
+                    log::info!("Deploy Gateway Server listening on http://0.0.0.0:5860");
+                    if let Err(e) = axum::serve(listener, gateway_router.into_make_service()).await {
+                        log::error!("Deploy Gateway Server execution failed: {}", e);
+                    }
+                }
+                Err(e) => {
+                    log::error!("Failed to bind Deploy Gateway Server to port 5860: {}", e);
+                }
+            }
+        });
     }
 
  // BotCoder IDE APIs
     api_router = api_router.merge(crate::api::editor::configure_editor_routes());
     api_router = api_router.merge(crate::api::database::configure_database_routes());
     api_router = api_router.merge(crate::api::git::configure_git_routes());
+    api_router = api_router.merge(crate::api::system::configure_system_routes());
     // TODO: fix BrowserState impl
 // api_router = api_router.merge(crate::browser::api::configure_browser_routes());
     #[cfg(feature = "terminal")]
@@ -740,6 +758,13 @@ use tower_http::trace::TraceLayer;
 use tower_http::services::ServeDir;
 use botcore::shared::state::AppState;
 use botcore::urls::ApiUrls;
+use diesel::prelude::*;
 use botlib::SystemLimits;
 use botcore::shared::models::schema::bot_configuration::dsl::*;
-use diesel::prelude::*;
+
+#[cfg(feature = "deployment")]
+impl crate::deployment::DeploymentState for botcore::shared::state::AppState {
+    fn db_pool(&self) -> &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>> {
+        &self.conn
+    }
+}
