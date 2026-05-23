@@ -22,11 +22,14 @@ pub mod gateway_server;
 pub mod handlers;
 pub mod router;
 pub mod types;
+pub mod schema;
+pub mod models;
 
 pub use forgejo::{ForgejoClient, ForgejoError, ForgejoRepo};
 pub use gateway::{DeployGateway, DeployGatewayConfig};
 pub use gateway_server::{configure_gateway_routes, ContainerInfo, ContainerRegistry, GatewayState};
 pub use handlers::configure_deployment_routes;
+pub use models::Project;
 pub use router::DeploymentRouter;
 pub use types::{
     DeployGatewayRequest, DeployGatewayResponse, DeployKey, DeployTarget, DeploymentApiError,

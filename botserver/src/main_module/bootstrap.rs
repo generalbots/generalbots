@@ -425,9 +425,7 @@ pub async fn create_app_state(
     super::ensure_vendor_files_in_minio(&drive).await;
 
     let session_manager_inner = crate::core::session::LocalSessionManager(botcoresession::SessionManager::new(
-        pool.get().map_err(|e| {
-            std::io::Error::other(format!("Failed to get database connection: {}", e))
-        })?,
+        pool.clone(),
         #[cfg(feature = "cache")]
         redis_client.clone(),
     ));

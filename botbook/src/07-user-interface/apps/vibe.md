@@ -4,6 +4,11 @@
 
 <img src="../../assets/suite/vibe-screen.svg" alt="Vibe Interface Screen" style="max-width: 100%; height: auto;">
 
+> [!NOTE]
+> **Planned Features & Future Scope [SOON]**
+> * **Hermes Agent Harness [SOON]**: An advanced cognitive loop system following formal harness engineering patterns for autonomous multi-step software construction.
+> * **Advanced Vibe Knowledge Graphs [SOON]**: Formal deep semantic mapping of project use cases and code logic databases using advanced graph engines.
+
 ---
 
 ## Overview

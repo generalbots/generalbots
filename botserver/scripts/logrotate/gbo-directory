@@ -1,0 +1,10 @@
+/opt/gbo/logs/zitadel.log {
+  daily
+  rotate 7
+  compress
+  delaycompress
+  missingok
+  notifempty
+  copytruncate
+  maxsize 100M
+}

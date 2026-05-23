@@ -8,12 +8,14 @@ use axum::{
 };
 use std::sync::Arc;
 
+use diesel::prelude::*;
+use crate::models::Project;
 use super::router::DeploymentRouter;
 use super::types::*;
 
-pub trait DeploymentState: Send + Sync + 'static {}
-
-impl<T: Send + Sync + 'static> DeploymentState for T {}
+pub trait DeploymentState: Send + Sync + 'static {
+    fn db_pool(&self) -> &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+}
 
 pub fn configure_deployment_routes<S: DeploymentState>() -> axum::Router<Arc<S>> {
     axum::Router::new()
@@ -22,6 +24,7 @@ pub fn configure_deployment_routes<S: DeploymentState>() -> axum::Router<Arc<S>>
         .route("/api/deployment/stop", axum::routing::post(stop_project::<S>))
         .route("/api/deployment/start", axum::routing::post(start_project::<S>))
         .route("/api/deployment/status/{org}/{app_name}", axum::routing::get(get_project_status::<S>))
+        .route("/api/deployment/projects", axum::routing::get(get_projects::<S>))
 }
 
 pub async fn get_project_types<S: DeploymentState>(
@@ -94,7 +97,7 @@ pub async fn get_project_types<S: DeploymentState>(
 }
 
 pub async fn deploy_project<S: DeploymentState>(
-    State(_state): State<Arc<S>>,
+    State(state): State<Arc<S>>,
     Json(request): Json<DeploymentRequest>,
 ) -> Result<Json<DeploymentResponse>, DeploymentApiError> {
     log::info!(
@@ -173,6 +176,42 @@ pub async fn deploy_project<S: DeploymentState>(
         result.status
     );
 
+    // Save project metadata to database (Issue #526)
+    if let Ok(mut conn) = state.db_pool().get() {
+        let now = chrono::Utc::now();
+        let new_project = Project {
+            id: uuid::Uuid::new_v4(),
+            org: organization.clone(),
+            name: request.app_name.clone(),
+            project_type: request.project_type.clone(),
+            deploy_target: format!("{:?}", deploy_target).to_lowercase(),
+            repo_url: Some(result.repository.clone()),
+            deploy_url: Some(result.url.clone()),
+            container_name: if let DeployTarget::IncusContainer = deploy_target {
+                Some(format!("{}-{}", organization, request.app_name))
+            } else {
+                None
+            },
+            custom_domain: request.custom_domain.clone(),
+            environment: request.environment.clone(),
+            status: "deployed".to_string(),
+            framework: request.framework.clone(),
+            description: request.description.clone(),
+            created_at: now,
+            updated_at: now,
+        };
+
+        use crate::schema::projects::dsl::*;
+        if let Err(e) = diesel::insert_into(projects)
+            .values(&new_project)
+            .execute(&mut conn)
+        {
+            log::error!("Failed to persist project metadata in database: {}", e);
+        }
+    } else {
+        log::error!("Failed to obtain database connection to persist project metadata");
+    }
+
     Ok(Json(DeploymentResponse {
         success: true,
         url: Some(result.url),
@@ -239,4 +278,17 @@ pub async fn get_project_status<S: DeploymentState>(
     router.status(&app_name, &org).await
         .map_err(|e| DeploymentApiError::DeploymentFailed(e.to_string()))
         .map(Json)
+}
+
+pub async fn get_projects<S: DeploymentState>(
+    State(state): State<Arc<S>>,
+) -> Result<Json<Vec<Project>>, DeploymentApiError> {
+    let mut conn = state.db_pool().get()
+        .map_err(|e| DeploymentApiError::DeploymentFailed(format!("Database connection failed: {}", e)))?;
+
+    use crate::schema::projects::dsl::*;
+    let list = projects.load::<Project>(&mut conn)
+        .map_err(|e| DeploymentApiError::DeploymentFailed(format!("Failed to load projects: {}", e)))?;
+
+    Ok(Json(list))
 }

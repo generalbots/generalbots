@@ -19,9 +19,9 @@ impl StepfunHandler {
 }
 
 impl ModelHandler for StepfunHandler {
-    fn is_analysis_complete(&self, buffer: &str) -> bool {
-        true
-    }
+fn is_analysis_complete(&self, _buffer: &str) -> bool {
+true
+}
 
     fn process_content(&self, content: &str) -> String {
         content.to_string()

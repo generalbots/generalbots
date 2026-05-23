@@ -12,6 +12,7 @@ cache = ["dep:redis"]
 
 [dependencies]
 anyhow = { workspace = true }
+botlib = { workspace = true }
 axum = { workspace = true }
 chrono = { workspace = true, features = ["clock", "std", "serde"] }
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }

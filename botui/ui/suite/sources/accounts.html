@@ -56,7 +56,7 @@
         </div>
         <div class="skills-info" style="flex: 1; min-width: 0;">
             <div style="font-weight: 600; font-size: 16px;">Skills Library</div>
-            <div style="font-size: 0.75rem; color: var(--text-secondary);">Discover and add AI skills from skills.sh</div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary);">Browse and install AI-powered skills for your bot</div>
         </div>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; color: var(--text-secondary);">
             <path d="M7 17l9.2-9.2M17 17V7H7"/>
@@ -113,6 +113,33 @@
                     <span class="provider-services">Custom email server</span>
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Skills Library Modal (Issue #481) -->
+<div id="skills-library-modal" class="modal" style="display: none;">
+    <div class="modal-backdrop" onclick="hideSkillsLibrary()"></div>
+    <div class="modal-content modal-content--wide">
+        <div class="modal-header">
+            <h3>Skills Library</h3>
+            <div class="modal-header-actions">
+                <span class="skills-count" id="skills-count">0 skills</span>
+                <button class="modal-close" onclick="hideSkillsLibrary()">&times;</button>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="skills-search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="skills-search-input" placeholder="Search skills..." oninput="filterSkills()" />
+            </div>
+            <div class="skills-grid" id="skills-grid"></div>
+            <p class="skills-footer-note">
+                More skills available at <a href="https://skills.sh" target="_blank" rel="noopener">skills.sh</a>
+            </p>
         </div>
     </div>
 </div>
@@ -405,6 +432,158 @@
     display: block;
 }
 
+/* Skills Library Modal (Issue #481) */
+.modal-content--wide {
+    max-width: 640px;
+}
+
+.modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.skills-count {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+}
+
+.skills-search {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+
+.skills-search svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.skills-search input {
+    width: 100%;
+    padding: 0.65rem 0.75rem 0.65rem 2.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.skills-search input:focus {
+    border-color: var(--primary);
+}
+
+.skills-search input::placeholder {
+    color: var(--text-secondary);
+}
+
+.skills-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.skill-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    transition: all 0.2s;
+}
+
+.skill-card:hover {
+    border-color: var(--primary);
+}
+
+.skill-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-light, rgba(212, 245, 5, 0.1));
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+
+.skill-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.skill-card-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.skill-card-description {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.15rem;
+}
+
+.skill-card-action {
+    flex-shrink: 0;
+}
+
+.btn-install {
+    padding: 0.45rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    background: var(--primary);
+    color: var(--primary-text, #000);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-install:hover {
+    opacity: 0.85;
+}
+
+.btn-install:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.skills-footer-note {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.skills-footer-note a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.skills-footer-note a:hover {
+    text-decoration: underline;
+}
+
+.toast-error {
+    background: #dc3545;
+    color: white;
+}
+
 .empty-state {
     text-align: center;
     padding: 3rem;
@@ -460,4 +639,165 @@ function removeAccount(accountId) {
         });
     }
 }
+
+// ── Skills Library (Issue #481) ──────────────────────────────────────
+
+const FEATURED_SKILLS = [
+    {
+        id: 'email-campaigner',
+        name: 'Email Campaigner',
+        description: 'Create and manage email marketing campaigns with automated follow-ups and analytics.',
+        icon: '✉️'
+    },
+    {
+        id: 'whatsapp-broadcaster',
+        name: 'WhatsApp Broadcaster',
+        description: 'Send broadcast messages, manage templates, and track delivery via WhatsApp Business API.',
+        icon: '💬'
+    },
+    {
+        id: 'report-generator',
+        name: 'Report Generator',
+        description: 'Generate rich PDF and Excel reports from database queries with scheduling support.',
+        icon: '📊'
+    },
+    {
+        id: 'crm-assistant',
+        name: 'CRM Assistant',
+        description: 'Manage leads, contacts, and deals with AI-powered follow-up suggestions and pipeline tracking.',
+        icon: '👥'
+    },
+    {
+        id: 'analytics-dashboard',
+        name: 'Analytics Dashboard',
+        description: 'Visual dashboards with real-time metrics, custom widgets, and data export capabilities.',
+        icon: '📈'
+    },
+    {
+        id: 'social-media-poster',
+        name: 'Social Media Poster',
+        description: 'Schedule and publish content across multiple social platforms with media management.',
+        icon: '📱'
+    }
+];
+
+function renderSkillsGrid() {
+    const grid = document.getElementById('skills-grid');
+    if (!grid) return;
+    grid.innerHTML = FEATURED_SKILLS.map(function(s) {
+        return '<div class="skill-card" data-skill-id="' + s.id + '" data-name="' + s.name + '" data-description="' + s.description + '">' +
+            '<div class="skill-card-icon">' + s.icon + '</div>' +
+            '<div class="skill-card-body">' +
+                '<div class="skill-card-name">' + s.name + '</div>' +
+                '<div class="skill-card-description">' + s.description + '</div>' +
+            '</div>' +
+            '<div class="skill-card-action">' +
+                '<button class="btn-install" onclick="installSkill(\'' + s.id + '\', \'' + s.name.replace(/'/g, "\\'") + '\')">Install</button>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+    var count = document.getElementById('skills-count');
+    if (count) count.textContent = FEATURED_SKILLS.length + ' skills';
+}
+
+function getBotId() {
+    if (typeof ChatState !== 'undefined' && ChatState.currentBotId) {
+        return ChatState.currentBotId;
+    }
+    if (document.body && document.body.dataset.botId) {
+        return document.body.dataset.botId;
+    }
+    return 'default';
+}
+
+async function installSkill(skillId, skillName) {
+    var btn = document.querySelector('[data-skill-id="' + skillId + '"] .btn-install');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Installing...';
+    }
+
+    try {
+        var response = await fetch('/api/skills/install', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: skillId, bot_id: getBotId() })
+        });
+
+        if (!response.ok) {
+            var errText = await response.text();
+            throw new Error(errText || 'HTTP ' + response.status);
+        }
+
+        showToast('"' + skillName + '" installed successfully!', 'success');
+    } catch (err) {
+        console.error('Skill install failed:', err);
+        showToast('Failed to install "' + skillName + '": ' + err.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Install';
+        }
+    }
+}
+
+function openSkillsLibrary() {
+    var modal = document.getElementById('skills-library-modal');
+    if (modal) {
+        renderSkillsGrid();
+        modal.style.display = 'flex';
+        var input = document.getElementById('skills-search-input');
+        if (input) {
+            input.value = '';
+            setTimeout(function() { input.focus(); }, 100);
+        }
+        filterSkills();
+    }
+}
+
+function hideSkillsLibrary() {
+    var modal = document.getElementById('skills-library-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function filterSkills() {
+    var input = document.getElementById('skills-search-input');
+    if (!input) return;
+    var q = input.value.toLowerCase();
+    document.querySelectorAll('.skill-card').forEach(function(card) {
+        var name = (card.dataset.name || '').toLowerCase();
+        var desc = (card.dataset.description || '').toLowerCase();
+        card.style.display = (!q || name.indexOf(q) !== -1 || desc.indexOf(q) !== -1) ? '' : 'none';
+    });
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        var modal = document.getElementById('skills-library-modal');
+        if (modal && modal.style.display === 'flex') {
+            hideSkillsLibrary();
+        }
+    }
+});
+
+function showToast(message, type) {
+    if (type === undefined) type = 'success';
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.textContent = message;
+    if (type === 'error') toast.style.background = '#dc3545';
+    toast.style.cssText = 'position: fixed; bottom: 24px; right: 24px; padding: 0.75rem 1.25rem; border-radius: 0.5rem; color: white; font-size: 0.875rem; z-index: 9999; opacity: 0; transition: opacity 0.3s; ' + (type === 'error' ? 'background: #dc3545;' : 'background: var(--primary, #22c55e); color: var(--primary-text, #000);');
+    document.body.appendChild(toast);
+    requestAnimationFrame(function() { toast.style.opacity = '1'; });
+    setTimeout(function() {
+        toast.style.opacity = '0';
+        setTimeout(function() { toast.remove(); }, 300);
+    }, 3500);
+}
+
+// expose for inline onclick
+window.openSkillsLibrary = openSkillsLibrary;
+window.hideSkillsLibrary = hideSkillsLibrary;
+window.filterSkills = filterSkills;
+window.installSkill = installSkill;
 </script>

@@ -196,7 +196,7 @@ impl BasicRuntime for AppStateBasicRuntime {
         tokio::task::block_in_place(move || {
             let rt = tokio::runtime::Handle::current();
             rt.block_on(async move {
-                let mut guard = channels.lock().await;
+                let guard = channels.lock().await;
                 if let Some(tx) = guard.get(&sid).cloned() {
                     let _ = tx.send(resp).await;
                 } else {

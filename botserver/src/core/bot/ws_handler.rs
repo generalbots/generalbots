@@ -91,10 +91,21 @@ fn load_bot_styles_css(bot_name: &str) -> String {
     // TODO(#500): sanitize bot_name to prevent path traversal
     let work_dir = botcore::shared::utils::get_work_path();
     let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
+
+    // Load global.css (Issue #508)
+    let global_css_path = format!("{}global.css", gbot_dir);
+    let mut combined_css = match std::fs::read_to_string(&global_css_path) {
+        Ok(c) => {
+            info!("global.css loaded from {} ({} bytes)", global_css_path, c.len());
+            c
+        }
+        Err(_) => String::new(),
+    };
+
     let css_path = format!("{}styles.css", gbot_dir);
 
     // TODO(#500): bot_name comes from user-controlled query param — sanitize before filesystem access
-    match std::fs::read_to_string(&css_path) {
+    let local_css = match std::fs::read_to_string(&css_path) {
         Ok(c) => {
             info!("styles.css loaded from {} ({} bytes)", css_path, c.len());
             c
@@ -112,7 +123,16 @@ fn load_bot_styles_css(bot_name: &str) -> String {
                 }
             }
         }
+    };
+
+    if !local_css.is_empty() {
+        if !combined_css.is_empty() {
+            combined_css.push_str("\n");
+        }
+        combined_css.push_str(&local_css);
     }
+
+    combined_css
 }
 
 async fn send_start_suggestions(
@@ -184,10 +204,9 @@ async fn run_start_bas_on_connect(
     }
 
     // Clean any stale Redis key (from previous botserver instance that set it before file check)
-    // TODO(#477): Use build_key(&org, &["start_bas_executed", &bot_uuid.to_string(), &session_id.to_string()])
-    let session_init_key = format!("start_bas_executed:{}:{}", bot_uuid, session_id);
+    // TODO(#477): Pass org when available (UserSession does not carry org yet)
+    let session_init_key = botlib::key_utils::build_key("", &["start_bas_executed", &bot_uuid.to_string(), &session_id.to_string()]);
     if let Some(ref cache) = state.cache {
-        use redis::AsyncCommands;
         if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
             let _: Result<(), _> = redis::cmd("DEL").arg(&session_init_key).query_async(&mut conn).await;
         }
@@ -218,7 +237,7 @@ async fn run_start_bas_on_connect(
 
     let state_for_bas = state.clone();
     let bot_id_for_bas = bot_uuid;
-    let bot_name_owned = bot_name.to_string();
+    let _bot_name_owned = bot_name.to_string();
     tokio::task::spawn_blocking(move || {
         let session_for_bas = botlib::models::UserSession {
             id: session_id, user_id, bot_id: bot_id_for_bas,
@@ -420,7 +439,7 @@ async fn handle_ws(
 
                         // Fallback: run start.bas now if it didn't run on connect (DriveMonitor wasn't ready)
                         if !start_bas_ran {
-                            let mut guards = state.start_bas_guards.lock().await;
+                            let guards = state.start_bas_guards.lock().await;
                             if !guards.contains_key(&session_id) {
                                 drop(guards);
                                 run_start_bas_on_connect(
@@ -604,8 +623,6 @@ async fn handle_ws(
 
                         // Stream LLM response chunk by chunk
                         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
-                        let suggestions: Vec<botlib::models::Suggestion>;
-                        let switchers: Vec<botlib::models::Switcher>;
                         let mut full_response = String::new();
 
                         // Look up bot-specific LLM config and create provider
@@ -738,21 +755,15 @@ async fn handle_ws(
                                 });
                                 let _ = ws_sender.send(Message::Text(final_resp.to_string().into())).await;
 
-                                // Suggestions already sent at message receipt time
-                                suggestions = Vec::new();
-                                switchers = Vec::new();
-
-                                // Save assistant response to history (async, after is_complete sent)
-                                {
-                                    let mut sm = state_clone.session_manager.lock().await;
-                                    let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
-                                }
+                                 // Save assistant response to history (async, after is_complete sent)
+                                 {
+                                     let mut sm = state_clone.session_manager.lock().await;
+                                     let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                                 }
                             }
                             None => {
                                 info!("No LLM provider");
                                 let fallback = format!("Recebi: \"{}\"", user_text);
-                                suggestions = Vec::new();
-                                switchers = Vec::new();
                                 {
                                     let mut sm = state.session_manager.lock().await;
                                     let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);

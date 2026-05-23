@@ -184,7 +184,10 @@ function finalizeStreaming() {
 
 function showGreeting() {
   var userId = ChatState.currentUserId || "there";
-  addMessage("bot", "Hi, there " + userId + "!");
+  var greeting = typeof t === 'function'
+    ? t('greeting-hello', { name: userId })
+    : 'Hi, there ' + userId + '!';
+  addMessage("bot", greeting);
 }
 
 function processMessage(data) {

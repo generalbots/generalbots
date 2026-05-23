@@ -61,8 +61,14 @@ ChatState.ws.onopen = function () {
         ChatState.reconnectAttempts = 0;
         ChatState.currentUserId = data.user_id || ChatState.currentUserId;
         if (!ChatState.greetingShown) {
-          showGreeting();
           ChatState.greetingShown = true;
+          // Delay greeting to let start.bas messages arrive first
+          setTimeout(function() {
+            var msgs = document.getElementById('messages');
+            if (msgs && msgs.querySelectorAll('.message.bot').length === 0) {
+              showGreeting();
+            }
+          }, 2000);
         }
         return;
       }

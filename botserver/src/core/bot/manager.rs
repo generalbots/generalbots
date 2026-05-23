@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use walkdir::WalkDir;
+// walkdir import removed
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

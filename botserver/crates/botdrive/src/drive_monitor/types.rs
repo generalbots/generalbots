@@ -39,12 +39,32 @@ impl DriveMonitor {
         log::trace!("DriveMonitor: Starting scan of bucket {}", self.bucket_name);
         let start = std::time::Instant::now();
 
+        // TODO(#506): Auto-create bot here — se o bucket {bot}.gbai existe no MinIO
+        // mas não há registro na tabela `bots`, criar automaticamente.
+        // Usar: ensure_bot_exists(bot_name) → INSERT INTO bots (id, name, ...)
+        // Isto garante que bots criados via upload direto ao MinIO são auto-registrados.
+
         if let Some(s3) = &self.state.drive {
             match s3.list_objects_with_metadata(&self.bucket_name, None).await {
                 Ok(objects) => {
                     log::trace!("Found {} objects in bucket {}", objects.len(), self.bucket_name);
 
                     let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
+
+                    // Auto-create bot in database if not exists (Issue #506)
+                    if let Ok(mut conn) = self.state.conn.get() {
+                        use diesel::RunQueryDsl;
+                        if let Err(e) = diesel::sql_query(
+                            "INSERT INTO bots (id, name, created_at, updated_at) VALUES ($1, $2, NOW(), NOW()) ON CONFLICT (id) DO NOTHING"
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(self.bot_id)
+                        .bind::<diesel::sql_types::Text, _>(bot_name)
+                        .execute(&mut conn) {
+                            log::error!("Failed to auto-create bot {} in database: {}", bot_name, e);
+                        } else {
+                            log::trace!("DriveMonitor checked/created bot {} (id: {})", bot_name, self.bot_id);
+                        }
+                    }
 
                     let current_keys: Vec<String> = objects.iter().map(|o| o.key.clone()).collect();
 

@@ -31,8 +31,8 @@ pub fn clear_suggestions_keyword(
     engine
         .register_custom_syntax(["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
-                // TODO(#477): Use build_key(&org, &["suggestions", &user_session.bot_id.to_string(), &user_session.id.to_string()])
-                let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
+                // TODO(#477): Pass org when available (UserSession does not carry org yet)
+                let redis_key = botlib::key_utils::build_key("", &["suggestions", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
                 let mut conn = match get_redis_connection(cache_client) {
                     Some(conn) => conn,
                     None => {
@@ -166,8 +166,8 @@ fn add_context_suggestion(
     button_text: &str,
 ) -> Result<(), Box<rhai::EvalAltResult>> {
     if let Some(cache_client) = cache {
-        // TODO(#477): Use build_key(&org, &["suggestions", &user_session.bot_id.to_string(), &user_session.id.to_string()])
-        let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
+        // TODO(#477): Pass org when available (UserSession does not carry org yet)
+        let redis_key = botlib::key_utils::build_key("", &["suggestions", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
 
         let suggestion = json!({
             "type": "context",
@@ -198,8 +198,8 @@ fn add_context_suggestion(
             user_session.id
         );
 
-        // TODO(#477): Use build_key(&org, &["active_context", &user_session.bot_id.to_string(), &user_session.id.to_string()])
-        let active_key = format!("active_context:{}:{}", user_session.bot_id, user_session.id);
+        // TODO(#477): Pass org when available (UserSession does not carry org yet)
+        let active_key = botlib::key_utils::build_key("", &["active_context", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
 
         let _: Result<i64, redis::RedisError> = redis::cmd("HSET")
             .arg(&active_key)
@@ -220,8 +220,8 @@ fn add_text_suggestion(
     button_text: &str,
 ) -> Result<(), Box<rhai::EvalAltResult>> {
     if let Some(cache_client) = cache {
-        // TODO(#477): Use build_key(&org, &["suggestions", &user_session.bot_id.to_string(), &user_session.id.to_string()])
-        let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
+        // TODO(#477): Pass org when available (UserSession does not carry org yet)
+        let redis_key = botlib::key_utils::build_key("", &["suggestions", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
 
         let suggestion = json!({
             "type": "text_value",
@@ -270,8 +270,8 @@ fn add_tool_suggestion(
         tool_name, button_text
     );
     if let Some(cache_client) = cache {
-        // TODO(#477): Use build_key(&org, &["suggestions", &user_session.bot_id.to_string(), &user_session.id.to_string()])
-        let redis_key = format!("suggestions:{}:{}", user_session.bot_id, user_session.id);
+        // TODO(#477): Pass org when available (UserSession does not carry org yet)
+        let redis_key = botlib::key_utils::build_key("", &["suggestions", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
         info!("Adding suggestion to Redis key: {}", redis_key);
 
         let prompt_for_params = params.is_some() && !params.as_ref().unwrap().is_empty();
@@ -324,8 +324,8 @@ pub fn get_suggestions(
     let mut suggestions = Vec::new();
 
     if let Some(cache_client) = cache {
-        // TODO(#477): Use build_key(&org, &["suggestions", bot_id, session_id])
-        let redis_key = format!("suggestions:{}:{}", bot_id, session_id);
+        // TODO(#477): Pass org when available
+        let redis_key = botlib::key_utils::build_key("", &["suggestions", bot_id, session_id]);
 
         let mut conn = match get_redis_connection(cache_client) {
             Some(conn) => conn,

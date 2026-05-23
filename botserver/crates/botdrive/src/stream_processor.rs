@@ -9,9 +9,9 @@ const CHUNK_SIZE: usize = 16 * 1024 * 1024;
 
 /// Trait for format-specific streaming processors.
 pub trait StreamProcessor {
-    /// Process the file using a streaming iterator pattern.
-    /// Returns the number of chunks processed.
-    fn process_stream(&mut self, path: &Path) -> Result<u64, String>;
+    /// Process the file and return extracted text content.
+    /// Returns the full extracted text for downstream chunking and indexing.
+    fn process_stream(&mut self, path: &Path) -> Result<String, String>;
 }
 
 /// Reads a file in chunks, calling a callback for each chunk.
