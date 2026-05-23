@@ -259,7 +259,17 @@ impl BotDatabaseManager {
         let bots = self.get_all_bots()?;
         let mut result = SyncResult::default();
 
+        // Check LOAD_ONLY env var to filter which bots get databases
+        let load_only: Vec<String> = std::env::var("LOAD_ONLY")
+            .ok()
+            .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
+            .unwrap_or_default();
+
         for bot in bots {
+            if !load_only.is_empty() && !load_only.contains(&bot.name) {
+                result.databases_skipped += 1;
+                continue;
+            }
             match self.ensure_bot_has_database(bot.id, &bot.name) {
                 Ok(db_name) => {
                     if bot.database_name.is_none() {
@@ -277,9 +287,10 @@ impl BotDatabaseManager {
         }
 
         info!(
-            "Bot database sync complete: {} created, {} verified, {} errors",
+            "Bot database sync complete: {} created, {} verified, {} skipped, {} errors",
             result.databases_created,
             result.databases_verified,
+            result.databases_skipped,
             result.errors.len()
         );
 
@@ -320,6 +331,7 @@ impl BotDatabaseManager {
 pub struct SyncResult {
     pub databases_created: usize,
     pub databases_verified: usize,
+    pub databases_skipped: usize,
     pub errors: Vec<String>,
 }
 
