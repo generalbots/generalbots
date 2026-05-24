@@ -171,6 +171,7 @@ impl Default for InvitationService {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct CreateInvitationParams<'a> {
     pub organization_id: Uuid,
     pub organization_name: &'a str,
@@ -888,13 +889,12 @@ mod tests {
     async fn test_create_invitation() {
         let service = InvitationService::new();
         let org_id = Uuid::new_v4();
-        let invited_by = Uuid::new_v4();
-
+ 
         let params = crate::organization_invitations::CreateInvitationParams {
             organization_id: org_id,
             organization_name: "Test Org",
-            email: "test@example.com".to_string(),
-            role: "Member".to_string(),
+            email: "test@example.com",
+            role: InvitationRole::Member,
             groups: vec![],
             ..Default::default()
         };
@@ -911,13 +911,12 @@ mod tests {
     async fn test_duplicate_invitation() {
         let service = InvitationService::new();
         let org_id = Uuid::new_v4();
-        let invited_by = Uuid::new_v4();
-
+ 
         let params = crate::organization_invitations::CreateInvitationParams {
             organization_id: org_id,
             organization_name: "Test Org",
-            email: "test@example.com".to_string(),
-            role: "Member".to_string(),
+            email: "test@example.com",
+            role: InvitationRole::Member,
             groups: vec![],
             ..Default::default()
         };
@@ -941,17 +940,17 @@ mod tests {
         let org_id = Uuid::new_v4();
         let invited_by = Uuid::new_v4();
         let user_id = Uuid::new_v4();
-
+ 
         let params = crate::organization_invitations::CreateInvitationParams {
             organization_id: org_id,
             organization_name: "Test Org",
-            email: "test@example.com".to_string(),
-            role: "Member".to_string(),
+            email: "test@example.com",
+            role: InvitationRole::Member,
             groups: vec![],
             invited_by,
-            invited_by_name: Some("Admin".to_string()),
+            invited_by_name: "Admin",
             message: None,
-            expires_in_days: Some(7),
+            expires_in_days: 7,
         };
         let invitation = service.create_invitation(params).await.unwrap();
 

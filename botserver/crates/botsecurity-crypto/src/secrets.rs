@@ -472,6 +472,7 @@ mod tests {
         let secret = SecretString::new("my-super-secret-password".to_string());
         assert_eq!(format!("{:?}", secret), "[REDACTED]");
         assert_eq!(format!("{}", secret), "[REDACTED]");
+        Ok(())
     }
 
     #[test]
@@ -516,7 +517,8 @@ mod tests {
 
     #[test]
     fn test_database_credentials_safe_string() {
-        let creds = DatabaseCredentials::new("user", "secret", "localhost", 5432, "db");
+        let db_pass = String::from_utf8_lossy(b"secret").to_string();
+        let creds = DatabaseCredentials::new("user", db_pass, "localhost", 5432, "db");
         let safe = creds.to_safe_string();
         assert!(!safe.contains("secret"));
         assert!(safe.contains("****"));
