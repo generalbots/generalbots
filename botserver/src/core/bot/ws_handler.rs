@@ -23,7 +23,8 @@ pub async fn websocket_handler(
 ) -> axum::response::Response {
     let session_id = params.session_id.and_then(|s| Uuid::parse_str(&s).ok()).unwrap_or_else(Uuid::new_v4);
     let user_id = params.user_id.and_then(|s| Uuid::parse_str(&s).ok()).unwrap_or_else(Uuid::new_v4);
-    let bot_name = params.bot_name.clone().unwrap_or_else(|| "default".to_string());
+    let raw_bot_name = params.bot_name.clone().unwrap_or_else(|| "default".to_string());
+    let bot_name = botcore::shared::utils::sanitize_path_component(&raw_bot_name);
     
     if let Err(e) = super::check_bot_access(&state, &bot_name, user_id).await {
         log::warn!("WS access denied for bot {}: {}", bot_name, e);
@@ -41,9 +42,13 @@ pub async fn websocket_handler_with_bot(
     axum::extract::Path(bot_name): axum::extract::Path<String>,
     Query(mut params): Query<WsQuery>,
 ) -> axum::response::Response {
-    if params.bot_name.is_none() && !bot_name.is_empty() {
-        params.bot_name = Some(bot_name.clone());
-    }
+    let raw_bot_name = if bot_name.is_empty() {
+        params.bot_name.clone().unwrap_or_else(|| "default".to_string())
+    } else {
+        bot_name
+    };
+    let bot_name = botcore::shared::utils::sanitize_path_component(&raw_bot_name);
+    params.bot_name = Some(bot_name.clone());
     
     let user_id = params.user_id.as_ref().and_then(|s| Uuid::parse_str(s).ok()).unwrap_or_else(Uuid::new_v4);
     
@@ -386,10 +391,10 @@ async fn handle_ws(
 
                         // Handle TOOL_EXEC (type 6) - bypass LLM
                         if msg_type == 6 {
-                            let tool_name = user_text.trim().to_string();
+                            let raw_tool_name = user_text.trim().to_string();
+                            let tool_name = botcore::shared::utils::sanitize_path_component(&raw_tool_name);
                             if !tool_name.is_empty() {
-                                info!("TOOL_EXEC: Direct tool execution: {}", tool_name);
-                                // TODO(#500): both bot_name and tool_name are user-controlled — sanitize before fs access
+                                info!("TOOL_EXEC: Direct tool execution: {} (sanitized from: {})", tool_name, raw_tool_name);
                                 let work_path = botcore::shared::utils::get_work_path();
                                 let ast_path = format!("{}/{}.gbai/{}.gbdialog/{}.ast", work_path, bot_name, bot_name, tool_name);
                                 let ast_content = match tokio::fs::read_to_string(&ast_path).await {
@@ -779,7 +784,7 @@ async fn handle_ws(
                                 info!("No LLM provider");
                                 let fallback = format!("Recebi: \"{}\"", user_text);
                                 {
-                                    let mut sm = state.session_manager.lock().await;
+                            let mut sm = state.session_manager.lock().await;
                                     let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
                                 }
                                 // Send fallback response

@@ -75,9 +75,9 @@ impl TimeTracker {
     }
 
     pub fn record(&mut self, employee_id: &str, event: TimeEvent) -> &TimeRecord {
-        let rec = TimeRecord::new(employee_id, event);
-        self.records.push(rec);
-        self.records.last().unwrap()
+        let idx = self.records.len();
+        self.records.push(TimeRecord::new(employee_id, event));
+        &self.records[idx]
     }
 
     pub fn record_with_details(
@@ -87,11 +87,12 @@ impl TimeTracker {
         location: Option<&str>,
         notes: Option<&str>,
     ) -> &TimeRecord {
+        let idx = self.records.len();
         let mut rec = TimeRecord::new(employee_id, event);
         rec.location = location.map(|l| l.to_string());
         rec.notes = notes.map(|n| n.to_string());
         self.records.push(rec);
-        self.records.last().unwrap()
+        &self.records[idx]
     }
 
     pub fn get_today_records(&self, employee_id: &str) -> Vec<&TimeRecord> {

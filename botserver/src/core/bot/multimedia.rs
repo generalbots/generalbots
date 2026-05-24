@@ -217,9 +217,6 @@ impl MultimediaHandler for DefaultMultimediaHandler {
         if url.starts_with("http://") || url.starts_with("https://") {
             let response = reqwest::get(url).await?;
             Ok(response.bytes().await?.to_vec())
-        } else if url.starts_with("file://") {
-            let path = url.strip_prefix("file://").unwrap_or_default();
-            Ok(std::fs::read(path)?)
         } else {
             Err(anyhow::anyhow!("Unsupported URL scheme: {}", url))
         }

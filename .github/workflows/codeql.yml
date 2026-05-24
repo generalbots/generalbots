@@ -1,0 +1,46 @@
+name: "CodeQL Analysis"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 0 * * 0' # Executa todo domingo à meia-noite
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Define-se explicitamente os ecossistemas suportados e ativos na análise estática.
+        # Evita-se a falha de detecção do ecossistema Python sob a infraestrutura padrão do GitHub.
+        language: [ 'javascript-typescript', 'rust' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Configurações adicionais de queries, caso necessário
+        queries: security-extended,security-and-quality
+
+    # Como o Rust exige compilação, o CodeQL tentará compilar automaticamente.
+    # Pode-se usar o autobuild padrão da action do CodeQL para Rust.
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
