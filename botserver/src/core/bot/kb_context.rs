@@ -460,14 +460,17 @@ pub async fn inject_kb_context(
     max_context_tokens: usize,
 ) {
     use botcore::config::ConfigManager;
-    let cfg = ConfigManager::new(db_pool.clone());
-    let mentions_kb = cfg.get_config(&bot_id, "mentions-kb", Some("true"))
-        .unwrap_or_else(|_| "true".to_string()) == "true";
-    let mentions_website = cfg.get_config(&bot_id, "mentions-website", Some("true"))
-        .unwrap_or_else(|_| "true".to_string()) == "true";
+    use crate::basic::keywords::mention_config::MentionConfig;
 
-    let active_kbs = if mentions_kb { get_active_kbs(db_pool, session_id) } else { Vec::new() };
-    let active_websites = if mentions_website { get_active_websites(db_pool, session_id) } else { Vec::new() };
+    let cfg = ConfigManager::new(db_pool.clone());
+
+    let mention_class_str = cfg.get_config(&bot_id, "mention-class", Some("all"))
+        .unwrap_or_else(|_| "all".to_string());
+
+    let mention_config = MentionConfig::from_string(&mention_class_str);
+
+    let active_kbs = if mention_config.kbs { get_active_kbs(db_pool, session_id) } else { Vec::new() };
+    let active_websites = if mention_config.websites { get_active_websites(db_pool, session_id) } else { Vec::new() };
 
     if active_kbs.is_empty() && active_websites.is_empty() {
         debug!("No active KBs or websites for session {}", session_id);

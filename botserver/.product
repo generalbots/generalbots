@@ -12,18 +12,18 @@ name=General Bots
 # Available apps: chat, mail, calendar, drive, tasks, docs, paper, sheet, slides,
 #                 meet, research, sources, analytics, admin, monitoring, settings
 # Only listed apps will be visible in the UI and have their APIs enabled.
-apps=chat,people,drive,tasks,sources,settings,mail,crm,campaigns,meet,attendance
+apps=chat,mail,calendar,drive,tasks,docs,paper,sheet,slides,meet,research,sources,analytics,admin,monitoring,settings,crm,campaigns,attendance,people,billing,products,editor,tickets,vibe,video,learn,social,dashboards,designer,project,goals,workspace,canvas,player
 
 # Search mechanism enabled
 # Controls whether the omnibox/search toolbar is displayed in the suite
 # Set to false to disable the search mechanism
-search_enabled=false
+search_enabled=true
 
 # Menu launcher enabled
 # Controls whether the apps menu launcher is displayed in the suite
 # Set to false to hide the menu launcher button
 # When the menu is empty (no apps to show), it will be automatically hidden
-menu_launcher_enabled=false
+menu_launcher_enabled=true
 
 # Default theme
 # Available themes: dark, light, blue, purple, green, orange, sentient, cyberpunk,

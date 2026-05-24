@@ -2,34 +2,29 @@
 //!
 //! Three project types: bots (gbdialog), apps (Incus container), sites (Caddy static).
 
-use axum::{
-    extract::State,
-    Json,
-};
-use std::sync::Arc;
-
+use axum::{Json, Extension};
 use diesel::prelude::*;
+use diesel::PgConnection;
+use diesel::r2d2::{ConnectionManager, Pool};
 use crate::models::Project;
 use super::router::DeploymentRouter;
 use super::types::*;
 
-pub trait DeploymentState: Send + Sync + 'static {
-    fn db_pool(&self) -> &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
-}
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
-pub fn configure_deployment_routes<S: DeploymentState>() -> axum::Router<Arc<S>> {
+pub fn configure_deployment_routes(pool: DbPool) -> axum::Router<()> {
+    let pool_ext = Extension(pool);
     axum::Router::new()
-        .route("/api/deployment/types", axum::routing::get(get_project_types::<S>))
-        .route("/api/deployment/deploy", axum::routing::post(deploy_project::<S>))
-        .route("/api/deployment/stop", axum::routing::post(stop_project::<S>))
-        .route("/api/deployment/start", axum::routing::post(start_project::<S>))
-        .route("/api/deployment/status/{org}/{app_name}", axum::routing::get(get_project_status::<S>))
-        .route("/api/deployment/projects", axum::routing::get(get_projects::<S>))
+        .layer(pool_ext)
+        .route("/api/deployment/types", axum::routing::get(get_project_types))
+        .route("/api/deployment/deploy", axum::routing::post(deploy_project))
+        .route("/api/deployment/stop", axum::routing::post(stop_project))
+        .route("/api/deployment/start", axum::routing::post(start_project))
+        .route("/api/deployment/status/{org}/{app_name}", axum::routing::get(get_project_status))
+        .route("/api/deployment/projects", axum::routing::get(get_projects))
 }
 
-pub async fn get_project_types<S: DeploymentState>(
-    State(_state): State<Arc<S>>,
-) -> Result<Json<ProjectTypesResponse>, DeploymentApiError> {
+pub async fn get_project_types() -> Result<Json<ProjectTypesResponse>, DeploymentApiError> {
     let project_types = vec![
         ProjectTypeInfo {
             id: "bot".to_string(),
@@ -96,8 +91,8 @@ pub async fn get_project_types<S: DeploymentState>(
     Ok(Json(ProjectTypesResponse { project_types }))
 }
 
-pub async fn deploy_project<S: DeploymentState>(
-    State(state): State<Arc<S>>,
+pub async fn deploy_project(
+    Extension(pool): Extension<DbPool>,
     Json(request): Json<DeploymentRequest>,
 ) -> Result<Json<DeploymentResponse>, DeploymentApiError> {
     log::info!(
@@ -108,7 +103,7 @@ pub async fn deploy_project<S: DeploymentState>(
         request.environment
     );
 
-    let (project_type, deploy_target) = match request.project_type.as_str() {
+    let (project_type, dt_target) = match request.project_type.as_str() {
         "bot" => (ProjectType::Bot, DeployTarget::None),
         "site" => (ProjectType::Site, DeployTarget::CaddyStatic),
         app_type if app_type.starts_with("app-") => {
@@ -150,12 +145,12 @@ pub async fn deploy_project<S: DeploymentState>(
     let ci_cd_enabled = request.ci_cd_enabled.unwrap_or(true);
 
     let config = DeploymentConfig {
-        organization,
+        organization: organization.clone(),
         app_name: request.app_name.clone(),
         project_type,
-        deploy_target,
+        deploy_target: dt_target.clone(),
         environment,
-        custom_domain: request.custom_domain,
+        custom_domain: request.custom_domain.clone(),
         ci_cd_enabled,
     };
 
@@ -177,17 +172,17 @@ pub async fn deploy_project<S: DeploymentState>(
     );
 
     // Save project metadata to database (Issue #526)
-    if let Ok(mut conn) = state.db_pool().get() {
+    if let Ok(mut conn) = pool.get() {
         let now = chrono::Utc::now();
         let new_project = Project {
             id: uuid::Uuid::new_v4(),
             org: organization.clone(),
             name: request.app_name.clone(),
             project_type: request.project_type.clone(),
-            deploy_target: format!("{:?}", deploy_target).to_lowercase(),
+            deploy_target: format!("{:?}", dt_target).to_lowercase(),
             repo_url: Some(result.repository.clone()),
             deploy_url: Some(result.url.clone()),
-            container_name: if let DeployTarget::IncusContainer = deploy_target {
+            container_name: if let DeployTarget::IncusContainer = dt_target {
                 Some(format!("{}-{}", organization, request.app_name))
             } else {
                 None
@@ -223,8 +218,7 @@ pub async fn deploy_project<S: DeploymentState>(
     }))
 }
 
-pub async fn stop_project<S: DeploymentState>(
-    State(_state): State<Arc<S>>,
+pub async fn stop_project(
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<DeployGatewayResponse>, DeploymentApiError> {
     let app_name = body.get("app_name")
@@ -245,8 +239,7 @@ pub async fn stop_project<S: DeploymentState>(
         .map(Json)
 }
 
-pub async fn start_project<S: DeploymentState>(
-    State(_state): State<Arc<S>>,
+pub async fn start_project(
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<DeployGatewayResponse>, DeploymentApiError> {
     let app_name = body.get("app_name")
@@ -267,8 +260,7 @@ pub async fn start_project<S: DeploymentState>(
         .map(Json)
 }
 
-pub async fn get_project_status<S: DeploymentState>(
-    State(_state): State<Arc<S>>,
+pub async fn get_project_status(
     axum::extract::Path((org, app_name)): axum::extract::Path<(String, String)>,
 ) -> Result<Json<DeployGatewayResponse>, DeploymentApiError> {
     let forgejo_url = std::env::var("FORGEJO_URL")
@@ -280,10 +272,10 @@ pub async fn get_project_status<S: DeploymentState>(
         .map(Json)
 }
 
-pub async fn get_projects<S: DeploymentState>(
-    State(state): State<Arc<S>>,
+pub async fn get_projects(
+    Extension(pool): Extension<DbPool>,
 ) -> Result<Json<Vec<Project>>, DeploymentApiError> {
-    let mut conn = state.db_pool().get()
+    let mut conn = pool.get()
         .map_err(|e| DeploymentApiError::DeploymentFailed(format!("Database connection failed: {}", e)))?;
 
     use crate::schema::projects::dsl::*;

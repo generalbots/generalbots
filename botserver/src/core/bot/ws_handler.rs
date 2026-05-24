@@ -20,13 +20,19 @@ pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
     Query(params): Query<WsQuery>,
-) -> impl IntoResponse {
+) -> axum::response::Response {
     let session_id = params.session_id.and_then(|s| Uuid::parse_str(&s).ok()).unwrap_or_else(Uuid::new_v4);
     let user_id = params.user_id.and_then(|s| Uuid::parse_str(&s).ok()).unwrap_or_else(Uuid::new_v4);
-    let bot_name = params.bot_name.unwrap_or_else(|| "default".to_string());
+    let bot_name = params.bot_name.clone().unwrap_or_else(|| "default".to_string());
+    
+    if let Err(e) = super::check_bot_access(&state, &bot_name, user_id).await {
+        log::warn!("WS access denied for bot {}: {}", bot_name, e);
+        return axum::http::StatusCode::FORBIDDEN.into_response();
+    }
+
     let bot_uuid = lookup_bot_id(&state, &bot_name);
     info!("WebSocket: bot={}, session={}, user={}", bot_name, session_id, user_id);
-    ws.on_upgrade(move |socket| handle_ws(socket, state, session_id, user_id, bot_uuid, bot_name))
+    ws.on_upgrade(move |socket| handle_ws(socket, state, session_id, user_id, bot_uuid, bot_name)).into_response()
 }
 
 pub async fn websocket_handler_with_bot(
@@ -34,10 +40,18 @@ pub async fn websocket_handler_with_bot(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(bot_name): axum::extract::Path<String>,
     Query(mut params): Query<WsQuery>,
-) -> impl IntoResponse {
+) -> axum::response::Response {
     if params.bot_name.is_none() && !bot_name.is_empty() {
-        params.bot_name = Some(bot_name);
+        params.bot_name = Some(bot_name.clone());
     }
+    
+    let user_id = params.user_id.as_ref().and_then(|s| Uuid::parse_str(s).ok()).unwrap_or_else(Uuid::new_v4);
+    
+    if let Err(e) = super::check_bot_access(&state, &bot_name, user_id).await {
+        log::warn!("WS access denied for bot {}: {}", bot_name, e);
+        return axum::http::StatusCode::FORBIDDEN.into_response();
+    }
+    
     websocket_handler(ws, State(state), Query(params)).await
 }
 
@@ -238,7 +252,7 @@ async fn run_start_bas_on_connect(
     let state_for_bas = state.clone();
     let bot_id_for_bas = bot_uuid;
     let _bot_name_owned = bot_name.to_string();
-    tokio::task::spawn_blocking(move || {
+    let _ = tokio::task::spawn_blocking(move || {
         let session_for_bas = botlib::models::UserSession {
             id: session_id, user_id, bot_id: bot_id_for_bas,
             title: String::new(),

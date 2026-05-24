@@ -132,8 +132,63 @@ const ROOT_FILES: &[&str] = &[
     "single.gbui",
 ];
 
-pub async fn index(OriginalUri(uri): OriginalUri, headers: axum::http::HeaderMap) -> Response {
+pub async fn index(
+    State(state): State<AppState>,
+    OriginalUri(uri): OriginalUri,
+    headers: axum::http::HeaderMap,
+) -> Response {
     let path = uri.path();
+    let path_parts: Vec<&str> = path.split('/').collect();
+    let bot_name = path_parts
+        .iter()
+        .rev()
+        .find(|part| {
+            !part.is_empty()
+                && **part != "chat"
+                && **part != "app"
+                && **part != "ws"
+                && **part != "ui"
+                && **part != "api"
+                && **part != "auth"
+                && **part != "suite"
+                && !part.ends_with(".js")
+                && !part.ends_with(".css")
+        })
+        .map(|s| s.to_string());
+
+    if let Some(ref bot) = bot_name {
+        // Access Check
+        let mut has_token = false;
+        if let Some(cookie_header) = headers.get(axum::http::header::COOKIE) {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                if cookie_str.contains("gb-access-token") {
+                    has_token = true;
+                }
+            }
+        }
+        
+        if has_token && bot != "default" {
+            let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), bot);
+            let client = reqwest::Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new());
+                
+            let mut req = client.get(&target_url);
+            for (k, v) in headers.iter() {
+                if k != axum::http::header::HOST {
+                    req = req.header(k, v);
+                }
+            }
+            
+            if let Ok(resp) = req.send().await {
+                if resp.status() == axum::http::StatusCode::FORBIDDEN || resp.status() == axum::http::StatusCode::UNAUTHORIZED {
+                    info!("index: Access denied for bot {}", bot);
+                    return axum::response::Redirect::to("/auth/login.html").into_response();
+                }
+            }
+        }
+    }
 
     // Check if path contains static asset directories - serve them directly
     let path_lower = path.to_lowercase();
@@ -249,7 +304,7 @@ pub async fn index(OriginalUri(uri): OriginalUri, headers: axum::http::HeaderMap
         bot_name,
         path
     );
-    serve_suite_impl(bot_name, headers.clone()).await
+    serve_suite_impl(&state, bot_name, headers.clone()).await
 }
 
 pub fn get_ui_root() -> PathBuf {
@@ -327,13 +382,14 @@ pub struct SuiteQueryParams {
 }
 
 pub async fn serve_suite(
+    State(state): State<AppState>,
     Query(params): Query<SuiteQueryParams>,
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    serve_suite_impl(params.bot_name, headers).await
+    serve_suite_impl(&state, params.bot_name, headers).await
 }
 
-pub async fn serve_suite_impl(bot_name: Option<String>, headers: axum::http::HeaderMap) -> Response {
+pub async fn serve_suite_impl(state: &AppState, bot_name: Option<String>, headers: axum::http::HeaderMap) -> Response {
     let is_auth = bot_name.as_ref()
         .map(|n| n.ends_with(".html") || n == "login" || n == "register" || n == "forgot-password" || n == "reset-password")
         .unwrap_or(false);
@@ -342,14 +398,41 @@ pub async fn serve_suite_impl(bot_name: Option<String>, headers: axum::http::Hea
         let mut has_token = false;
         if let Some(cookie_header) = headers.get(axum::http::header::COOKIE) {
             if let Ok(cookie_str) = cookie_header.to_str() {
-                if cookie_str.contains("gb-access-token") {
+                if let Some(_pos) = cookie_str.find("gb-access-token=") {
                     has_token = true;
                 }
             }
         }
-        if !has_token {
-            info!("serve_suite: Access denied, redirecting to login");
+        
+        let target_bot = bot_name.as_ref().unwrap();
+        if !has_token && target_bot != "default" {
+            // For now, if no token, just redirect to login unless it's default
+            info!("serve_suite: No token found, redirecting to login");
             return axum::response::Redirect::to("/auth/login.html").into_response();
+        }
+
+        if has_token {
+            let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), target_bot);
+            let client = reqwest::Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new());
+                
+            let mut req = client.get(&target_url);
+            for (k, v) in headers.iter() {
+                if k != axum::http::header::HOST {
+                    req = req.header(k, v);
+                }
+            }
+            
+            if let Ok(resp) = req.send().await {
+                if resp.status() == axum::http::StatusCode::FORBIDDEN || resp.status() == axum::http::StatusCode::UNAUTHORIZED {
+                    info!("serve_suite: Access denied for bot {}", target_bot);
+                    return axum::response::Redirect::to("/auth/login.html").into_response();
+                }
+            } else {
+                warn!("serve_suite: Failed to verify bot access for {}", target_bot);
+            }
         }
     }
     let raw_html_res = {
@@ -687,7 +770,7 @@ fn extract_app_context(headers: &axum::http::HeaderMap, path: &str) -> Option<St
                     return Some(after_apps.to_string());
                 }
             }
-            if let Some(start) = referer_str.find(".gb.solutions") {
+            if let Some(_start) = referer_str.find(".gb.solutions") {
                 if let Some(host_start) = referer_str.find("://") {
                     let host_part = &referer_str[host_start + 3..];
                     if let Some(dot) = host_part.find('.') {
