@@ -132,7 +132,10 @@ pub async fn run_axum_server(
     {
         let config = PRODUCT_CONFIG
             .read()
-            .expect("Failed to read product config");
+            .unwrap_or_else(|e| {
+                error!("Product config RwLock poisoned: {}", e);
+                e.into_inner()
+            });
         info!(
             "Product: {} | Theme: {} | Apps: {:?}",
             config.name,
@@ -389,9 +392,6 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
  api_router = api_router.merge(crate::attendance::configure_attendance_routes(&app_state));
  }
 
- // TODO: fix oauth state
-// api_router = api_router.merge(crate::core::oauth::routes::configure());
-
     #[cfg(feature = "deployment")]
     {
         tokio::spawn(async {
@@ -493,6 +493,11 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
     { let rbac: std::sync::Arc<dyn botlib::traits::RbacService> = rbac_manager.clone(); app_state_with_auth.rbac_manager = Some(rbac); }
     let app_state = Arc::new(app_state_with_auth);
 
+    let oauth_state = std::sync::Arc::new(botcoreoauth::routes::OAuthState_ {
+        conn: app_state.conn.clone(),
+        base_url: format!("http://localhost:{}", port),
+    });
+
     #[cfg(feature = "deployment")]
     let base_router = {
         let dep_pool = app_state.conn.clone();
@@ -500,10 +505,12 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
         Router::new()
             .merge(api_router.with_state(app_state.clone()))
             .merge(dep_router)
+            .merge(botcoreoauth::routes::configure(oauth_state))
     };
     #[cfg(not(feature = "deployment"))]
     let base_router = Router::new()
-        .merge(api_router.with_state(app_state.clone()));
+        .merge(api_router.with_state(app_state.clone()))
+        .merge(botcoreoauth::routes::configure(oauth_state));
 
     #[cfg(not(feature = "vibe"))]
     let base_router = base_router

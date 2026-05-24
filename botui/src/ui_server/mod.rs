@@ -394,7 +394,8 @@ pub async fn serve_suite_impl(state: &AppState, bot_name: Option<String>, header
         .map(|n| n.ends_with(".html") || n == "login" || n == "register" || n == "forgot-password" || n == "reset-password")
         .unwrap_or(false);
 
-    if !is_auth && bot_name.is_some() {
+    if !is_auth {
+        if let Some(ref target_bot) = bot_name {
         let mut has_token = false;
         if let Some(cookie_header) = headers.get(axum::http::header::COOKIE) {
             if let Ok(cookie_str) = cookie_header.to_str() {
@@ -403,8 +404,6 @@ pub async fn serve_suite_impl(state: &AppState, bot_name: Option<String>, header
                 }
             }
         }
-        
-        let target_bot = bot_name.as_ref().unwrap();
         if !has_token && target_bot != "default" {
             // For now, if no token, just redirect to login unless it's default
             info!("serve_suite: No token found, redirecting to login");
@@ -434,6 +433,7 @@ pub async fn serve_suite_impl(state: &AppState, bot_name: Option<String>, header
                 warn!("serve_suite: Failed to verify bot access for {}", target_bot);
             }
         }
+    }
     }
     let raw_html_res = {
         #[cfg(feature = "embed-ui")]

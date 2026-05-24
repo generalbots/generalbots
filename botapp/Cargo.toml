@@ -14,8 +14,7 @@ botlib = { workspace = true, features = ["http-client"] }
 
 
 # ─── TAURI (Desktop/Mobile) ───
-tauri = { version = "2",  features = ["tray-icon", "image"] }
-tauri = { features = ["unstable"] }
+tauri = { version = "2",  features = ["tray-icon", "image", "unstable"] }
 tauri-build = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
@@ -46,7 +45,7 @@ desktop = ["desktop-tray"]
 desktop-tray = []
 
 [build-dependencies]
-tauri-build = { workspace = true }
+tauri-build = "2"
 
 [lints]
 workspace = true
