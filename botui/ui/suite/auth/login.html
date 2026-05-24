@@ -599,8 +599,8 @@
         <div class="login-container">
             <div class="login-header">
                 <div class="login-logo" id="login-logo">
-                    <img id="login-logo-img" src="" alt="Logo" style="display:none; width:100%; height:100%; object-fit:contain;">
-                    <span id="login-logo-default"><img src="/suite/assets/icons/gb-bot.svg" alt="General Bots" width="48" height="48"></span>
+                    <img id="login-logo-img" src="https://generalbots.org/gb-logo.png" alt="General Bots" style="width:100%; height:100%; object-fit:contain;">
+                    <span id="login-logo-default" style="display:none;"><img src="/suite/assets/icons/gb-bot.svg" alt="General Bots" width="48" height="48"></span>
                 </div>
                 <h1 class="login-title" id="login-title">Welcome Back</h1>
                 <p class="login-subtitle" id="login-subtitle">
@@ -1046,19 +1046,12 @@
                     if (response.ok) {
                         const config = await response.json();
 
-                        // Apply logo if provided
+                        // Apply logo if provided (overrides default generalbots.org logo)
                         const logo = config.theme_logo || config["theme-logo"] || "";
                         if (logo) {
                             const logoImg = document.getElementById("login-logo-img");
-                            const logoDefault = document.getElementById("login-logo-default");
-                            const logoContainer = document.getElementById("login-logo");
-
                             if (logoImg) {
                                 logoImg.src = logo;
-                                logoImg.style.display = "block";
-                            }
-                            if (logoDefault) {
-                                logoDefault.style.display = "none";
                             }
                         }
 
