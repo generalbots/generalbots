@@ -1,13 +1,13 @@
 use axum::{
-    extract::{Path, Request},
+    extract::Request,
     http::StatusCode,
     middleware::Next,
     response::Response,
 };
 use uuid::Uuid;
-
-use crate::core::bot::manager::BotManager;
-use crate::core::session::SessionManager;
+use std::sync::Arc;
+use botcore::shared::state::AppState;
+use crate::core::bot::check_bot_access;
 
 /// Middleware that restricts bot URL access based on organization
 /// membership and bot visibility settings.
@@ -32,8 +32,13 @@ pub async fn bot_access_middleware(
             .copied()
             .ok_or(StatusCode::UNAUTHORIZED)?;
 
+        let state = req
+            .extensions()
+            .get::<Arc<AppState>>()
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
         // Check bot access permissions
-        check_bot_access(&bot_name, user_id)
+        check_bot_access(&state, &bot_name, user_id)
             .await
             .map_err(|_| StatusCode::FORBIDDEN)?;
     }
@@ -48,12 +53,4 @@ fn extract_bot_name(path: &str) -> Option<String> {
     } else {
         None
     }
-}
-
-async fn check_bot_access(bot_name: &str, user_id: Uuid) -> Result<(), String> {
-    // TODO: Implement actual bot access check
-    // 1. Load bot config from drive
-    // 2. Check if bot is public
-    // 3. If private, verify user is in allowed org/users
-    Ok(())
 }

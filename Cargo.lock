@@ -1256,12 +1256,15 @@ name = "botdeployment"
 version = "6.3.0"
 dependencies = [
  "axum",
+ "chrono",
+ "diesel",
  "git2",
  "log",
  "reqwest",
  "serde",
  "serde_json",
  "tokio",
+ "uuid",
 ]
 
 [[package]]

@@ -211,6 +211,7 @@ pub struct DeploymentRequest {
     pub organization: Option<String>,
     pub app_name: String,
     pub project_type: String,
+    pub description: Option<String>,
     pub framework: Option<String>,
     pub environment: String,
     pub custom_domain: Option<String>,

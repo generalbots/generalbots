@@ -145,3 +145,61 @@ pub async fn get_bot_config(
     let map: HashMap<String, String> = rows.into_iter().collect();
     (axum::http::StatusCode::OK, serde_json::to_string(&map).unwrap_or_default())
 }
+
+pub async fn check_bot_access(state: &Arc<botcore::shared::state::AppState>, bot_name: &str, user_id: Uuid) -> Result<(), String> {
+    use diesel::prelude::*;
+    use botcore::shared::schema::bots::dsl as bots_dsl;
+    use botcore::shared::schema::user_organizations::dsl as uo_dsl;
+
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| format!("DB connection error: {}", e))?;
+
+    let bot_record = bots_dsl::bots
+        .filter(bots_dsl::name.eq(bot_name))
+        .select((bots_dsl::is_public, bots_dsl::org_id))
+        .first::<(bool, Option<Uuid>)>(&mut *conn)
+        .optional()
+        .map_err(|e| format!("DB query error: {}", e))?;
+
+    let (is_public, org_id) = match bot_record {
+        Some(record) => record,
+        None => return Err("Bot not found".to_string()),
+    };
+
+    if is_public {
+        return Ok(());
+    }
+
+    if let Some(org_id) = org_id {
+        let is_member = uo_dsl::user_organizations
+            .filter(uo_dsl::user_id.eq(user_id))
+            .filter(uo_dsl::org_id.eq(org_id))
+            .count()
+            .get_result::<i64>(&mut *conn)
+            .map_err(|e| format!("DB query error: {}", e))? > 0;
+
+        if is_member {
+            return Ok(());
+        }
+    }
+
+    Err("Access denied".to_string())
+}
+
+pub async fn check_access_handler(
+    axum::extract::State(state): axum::extract::State<Arc<botcore::shared::state::AppState>>,
+    axum::extract::Path(bot_name): axum::extract::Path<String>,
+    req: axum::extract::Request,
+) -> impl IntoResponse {
+    let user_id = match req.extensions().get::<Uuid>().copied() {
+        Some(id) => id,
+        None => return axum::http::StatusCode::UNAUTHORIZED.into_response(),
+    };
+
+    match check_bot_access(&state, &bot_name, user_id).await {
+        Ok(_) => axum::http::StatusCode::OK.into_response(),
+        Err(_) => axum::http::StatusCode::FORBIDDEN.into_response(),
+    }
+}

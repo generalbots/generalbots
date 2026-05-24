@@ -28,7 +28,7 @@ pub mod models;
 pub use forgejo::{ForgejoClient, ForgejoError, ForgejoRepo};
 pub use gateway::{DeployGateway, DeployGatewayConfig};
 pub use gateway_server::{configure_gateway_routes, ContainerInfo, ContainerRegistry, GatewayState};
-pub use handlers::configure_deployment_routes;
+pub use handlers::{configure_deployment_routes, DbPool};
 pub use models::Project;
 pub use router::DeploymentRouter;
 pub use types::{
