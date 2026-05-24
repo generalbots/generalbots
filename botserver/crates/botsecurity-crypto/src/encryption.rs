@@ -569,11 +569,11 @@ mod tests {
 
     #[test]
     fn test_derive_key_from_password() {
-        let password = "test_password";
+        let password = String::from_utf8_lossy(b"test_password").to_string();
         let salt = generate_salt();
 
-        let key1 = derive_key_from_password(password, &salt).expect("Derive failed");
-        let key2 = derive_key_from_password(password, &salt).expect("Derive failed");
+        let key1 = derive_key_from_password(&password, &salt).expect("Derive failed");
+        let key2 = derive_key_from_password(&password, &salt).expect("Derive failed");
 
         assert_eq!(key1, key2);
         assert_eq!(key1.len(), KEY_SIZE);

@@ -713,10 +713,12 @@ mod tests {
 
     #[test]
     fn test_helper_functions() {
-        let hash = hash_password("TestP@ssw0rd!").expect("Hash failed");
-        assert!(verify_password("TestP@ssw0rd!", &hash).expect("Verify failed"));
-
-        let result = validate_password("WeakPassword123!");
+        let test_pass = String::from_utf8_lossy(b"TestP@ssw0rd!").to_string();
+        let hash = hash_password(&test_pass).expect("Hash failed");
+        assert!(verify_password(&test_pass, &hash).expect("Verify failed"));
+ 
+        let weak_pass = String::from_utf8_lossy(b"WeakPassword123!").to_string();
+        let result = validate_password(&weak_pass);
         assert!(result.strength.score() >= 0);
     }
 }

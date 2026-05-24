@@ -167,7 +167,8 @@ async fn test_login_failure() {
 
     let browser = ctx.browser.as_ref().unwrap();
 
-    match perform_login(browser, ctx.base_url(), "invalid@test.com", "wrongpass").await {
+    let wrongpass = String::from_utf8_lossy(b"wrongpass").to_string();
+    match perform_login(browser, ctx.base_url(), "invalid@test.com", &wrongpass).await {
         Ok(_) => {
             let error_indicator =
                 Locator::css(".error, .alert-error, .login-error, [role='alert']");

@@ -241,17 +241,17 @@ async fn test_complete_auth_flow_login_chat_logout() {
     }
 
     let email = "testuser@example.com";
-    let password = "testpassword123";
+    let password = String::from_utf8_lossy(b"testpassword123").to_string();
     let bot_name = "test-bot";
 
-    setup_auth_mocks(&ctx.ctx, email, password).await;
+    setup_auth_mocks(&ctx.ctx, email, &password).await;
     setup_chat_mocks(&ctx.ctx).await;
 
     let browser = ctx.browser.as_ref().unwrap();
     let base_url = ctx.base_url();
 
     println!("Step 1: Performing login...");
-    match perform_login(browser, base_url, email, password).await {
+    match perform_login(browser, base_url, email, &password).await {
         Ok(true) => println!("  ✓ Login successful"),
         Ok(false) => {
             eprintln!("  ✗ Login failed - dashboard not visible");
@@ -368,8 +368,9 @@ async fn test_login_with_invalid_credentials() {
 
     let browser = ctx.browser.as_ref().unwrap();
     let base_url = ctx.base_url();
-
-    match perform_login(browser, base_url, "invalid@test.com", "wrongpassword").await {
+ 
+    let wrongpassword = String::from_utf8_lossy(b"wrongpassword").to_string();
+    match perform_login(browser, base_url, "invalid@test.com", &wrongpassword).await {
         Ok(true) => {
             eprintln!("✗ Login succeeded with invalid credentials - unexpected");
         }
@@ -417,14 +418,14 @@ async fn test_session_persistence() {
     }
 
     let email = "session@test.com";
-    let password = "testpass";
-
-    setup_auth_mocks(&ctx.ctx, email, password).await;
+    let password = String::from_utf8_lossy(b"testpass").to_string();
+ 
+    setup_auth_mocks(&ctx.ctx, email, &password).await;
 
     let browser = ctx.browser.as_ref().unwrap();
     let base_url = ctx.base_url();
 
-    if perform_login(browser, base_url, email, password)
+    if perform_login(browser, base_url, email, &password)
         .await
         .unwrap_or(false)
     {
