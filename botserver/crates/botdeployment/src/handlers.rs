@@ -20,7 +20,7 @@ pub fn configure_deployment_routes(pool: DbPool) -> axum::Router<()> {
         .route("/api/deployment/deploy", axum::routing::post(deploy_project))
         .route("/api/deployment/stop", axum::routing::post(stop_project))
         .route("/api/deployment/start", axum::routing::post(start_project))
-        .route("/api/deployment/status/{org}/{app_name}", axum::routing::get(get_project_status))
+        .route("/api/deployment/status/:org/:app_name", axum::routing::get(get_project_status))
         .route("/api/deployment/projects", axum::routing::get(get_projects))
 }
 
