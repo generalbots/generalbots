@@ -7,7 +7,7 @@ use crate::installer_vault;
 use crate::installer_vault2;
 use botlib::security::SafeCommand;
 use anyhow::Result;
-use log::{error, info, trace, warn};
+use log::{info, trace, warn};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -17,6 +17,18 @@ use std::path::PathBuf;
 #[derive(Deserialize, Debug)]
 struct ComponentEntry {
     url: String,
+    #[serde(default)]
+    url_win: Option<String>,
+}
+
+impl ComponentEntry {
+    fn effective_url(&self) -> &str {
+        if cfg!(target_os = "windows") {
+            self.url_win.as_deref().unwrap_or(&self.url)
+        } else {
+            &self.url
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -48,14 +60,14 @@ pub fn get_component_url(name: &str) -> Option<String> {
     get_thirdparty_config()
         .components
         .get(name)
-        .map(|c| c.url.clone())
+        .map(|c| c.effective_url().to_string())
 }
 
 pub fn get_model_url(name: &str) -> Option<String> {
     get_thirdparty_config()
         .models
         .get(name)
-        .map(|c| c.url.clone())
+        .map(|c| c.effective_url().to_string())
 }
 
 #[cfg(target_os = "windows")]
@@ -278,7 +290,7 @@ impl PackageManager {
             let logs_path = self.base_path.join("logs").join(&component.name);
 
             let check_cmd = component
-                .check_cmd
+                .effective_check_cmd()
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
                 .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
@@ -318,7 +330,7 @@ impl PackageManager {
             }
 
             let rendered_cmd = component
-                .exec_cmd
+                .effective_exec_cmd()
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
                 .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
