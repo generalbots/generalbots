@@ -43,7 +43,13 @@ install_system_deps() {
     fi
     # Wine for testing
     if ! command -v wine &>/dev/null; then
-        pkgs+=(wine wine32 wine64)
+        pkgs+=(wine)
+        # Enable 32-bit architecture for wine32 if needed
+        if ! dpkg --print-foreign-architectures | grep -q i386; then
+            info "Enabling i386 architecture for Wine 32-bit support..."
+            sudo dpkg --add-architecture i386
+            NEED_APT_UPDATE=true
+        fi
     fi
     # Build essentials
     if ! command -v make &>/dev/null; then
@@ -67,7 +73,9 @@ install_system_deps() {
 
     if [ ${#pkgs[@]} -gt 0 ]; then
         info "Installing: ${pkgs[*]}"
-        sudo apt-get update -qq
+        if [ "${NEED_APT_UPDATE:-false}" = "true" ] || ! command -v lld &>/dev/null; then
+            sudo apt-get update -qq
+        fi
         sudo apt-get install -y -qq "${pkgs[@]}"
         info "System deps installed."
     else
