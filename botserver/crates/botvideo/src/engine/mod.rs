@@ -46,7 +46,7 @@ impl VideoEngine {
         diesel::result::Error,
     > {
         self.db.get().map_err(|e| {
-            error!("DB connection error: {e}");
+            log::error!("DB connection error: {e}");
             diesel::result::Error::DatabaseError(
                 diesel::result::DatabaseErrorKind::Unknown,
                 Box::new(e.to_string()),

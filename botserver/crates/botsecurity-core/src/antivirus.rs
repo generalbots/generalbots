@@ -6,6 +6,9 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 use super::command_guard::SafeCommand;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -225,7 +228,7 @@ impl AntivirusManager {
             Ok(true)
         } else {
             let error = String::from_utf8_lossy(&output.stderr);
-            error!("Failed to disable Windows Defender: {}", error);
+            log::error!("Failed to disable Windows Defender: {}", error);
             Err(anyhow::anyhow!(
                 "Failed to disable Windows Defender: {}",
                 error
@@ -267,7 +270,7 @@ impl AntivirusManager {
             Ok(true)
         } else {
             let error = String::from_utf8_lossy(&output.stderr);
-            error!("Failed to enable Windows Defender: {}", error);
+            log::error!("Failed to enable Windows Defender: {}", error);
             Err(anyhow::anyhow!(
                 "Failed to enable Windows Defender: {}",
                 error
@@ -613,7 +616,7 @@ impl AntivirusManager {
 
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt;
+            
 
             let sensitive_paths = vec!["/etc/passwd", "/etc/shadow", "/etc/ssh/sshd_config"];
 

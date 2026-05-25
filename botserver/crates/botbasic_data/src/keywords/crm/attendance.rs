@@ -2,7 +2,7 @@ use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{debug, error, info};
+use log::{debug, info};
 use rhai::{Array, Dynamic, Engine, Map};
 
 use std::sync::Arc;
@@ -69,7 +69,7 @@ pub fn get_queue_impl(state: &Arc<dyn BasicRuntime>, filter: Option<String>) -> 
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                error!("DB connection error: {e}");
+                log::error!("DB connection error: {e}");
                 return create_error_result(&format!("DB error: {e}"));
             }
         };
@@ -98,7 +98,7 @@ pub fn get_queue_impl(state: &Arc<dyn BasicRuntime>, filter: Option<String>) -> 
         let sessions: Vec<UserSession> = match query.load(&mut db_conn) {
             Ok(s) => s,
             Err(e) => {
-                error!("Query error: {}", e);
+                log::error!("Query error: {}", e);
                 return create_error_result(&format!("Query error: {}", e));
             }
         };

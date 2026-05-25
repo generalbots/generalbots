@@ -222,8 +222,8 @@ pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
     std::fs::write(&unseal_keys_file, &unseal_content)?;
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&unseal_keys_file, std::fs::Permissions::from_mode(0o600))?;
+        
+        let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&unseal_keys_file);
     }
     info!("Created {}", unseal_keys_file.display());
     let env_file = PathBuf::from(".env");

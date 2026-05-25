@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
-use log::{error, info};
+use log::info;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -45,11 +45,11 @@ pub fn register_clear_kb_keyword(
                 Ok(Dynamic::UNIT)
             }
             Ok(Err(e)) => {
-                error!("Failed to clear KB '{}': {}", kb_name, e);
+                log::error!("Failed to clear KB '{}': {}", kb_name, e);
                 Err(format!("CLEAR KB failed: {}", e).into())
             }
             Err(e) => {
-                error!("Thread panic in CLEAR KB: {:?}", e);
+                log::error!("Thread panic in CLEAR KB: {:?}", e);
                 Err("CLEAR KB failed: thread panic".into())
             }
         }
@@ -82,11 +82,11 @@ pub fn register_clear_kb_keyword(
                 Ok(Dynamic::UNIT)
             }
             Ok(Err(e)) => {
-                error!("Failed to clear all KBs: {}", e);
+                log::error!("Failed to clear all KBs: {}", e);
                 Err(format!("CLEAR KB failed: {}", e).into())
             }
             Err(e) => {
-                error!("Thread panic in CLEAR KB: {:?}", e);
+                log::error!("Thread panic in CLEAR KB: {:?}", e);
                 Err("CLEAR KB failed: thread panic".into())
             }
         }

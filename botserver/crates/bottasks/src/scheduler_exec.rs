@@ -33,7 +33,7 @@ pub async fn execute_task(state: &Arc<TasksState>, task_id: Uuid, manifest: &mut
                 Err(e) => {
                     manifest.fail_step(item_name, step_name, &e);
                     manifest.add_terminal_output(&format!("Error: {}", e), Some("error"));
-                    error!("Step {} failed: {}", step_name, e);
+                    log::error!("Step {} failed: {}", step_name, e);
                     return Err(format!("Step {} failed: {}", step_name, e));
                 }
             }

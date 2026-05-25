@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use botbasic_core::utils::get_work_path;
-use log::{error, trace};
+use log::trace;
 use rhai::{Array, Dynamic, Engine, Map};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -42,7 +42,7 @@ pub fn register_import_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 };
 
                 if send_err.is_some() {
-                    error!("Failed to send IMPORT result from thread");
+                    log::error!("Failed to send IMPORT result from thread");
                 }
             });
 
@@ -106,7 +106,7 @@ let result = execute_export_json(
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send EXPORT result from thread");
+                        log::error!("Failed to send EXPORT result from thread");
                     }
                 });
 

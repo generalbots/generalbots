@@ -104,7 +104,7 @@ pub async fn create_user(
     {
         Ok(id) => id,
         Err(e) => {
-            error!("Failed to create user in Zitadel: {}", e);
+            log::error!("Failed to create user in Zitadel: {}", e);
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -177,7 +177,7 @@ pub async fn update_user(
                 info!("User {} profile updated successfully", user_id);
             }
             Err(e) => {
-                error!("Failed to update user profile: {}", e);
+                log::error!("Failed to update user profile: {}", e);
             }
         }
     }
@@ -226,7 +226,7 @@ pub async fn delete_user(
             }))
         }
         Err(e) => {
-            error!("Failed to delete user: {}", e);
+            log::error!("Failed to delete user: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -339,7 +339,7 @@ pub async fn list_users(
             }))
         }
         Err(e) => {
-            error!("Failed to list users: {}", e);
+            log::error!("Failed to list users: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -426,7 +426,7 @@ pub async fn get_user_profile(
             Ok(Json(user))
         }
         Err(e) => {
-            error!("Failed to get user profile: {}", e);
+            log::error!("Failed to get user profile: {}", e);
             Err((
                 StatusCode::NOT_FOUND,
                 Json(ErrorResponse {
@@ -471,7 +471,7 @@ pub async fn assign_organization(
             }))
         }
         Err(e) => {
-            error!("Failed to assign user to organization: {}", e);
+            log::error!("Failed to assign user to organization: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -501,7 +501,7 @@ pub async fn remove_from_organization(
             }))
         }
         Err(e) => {
-            error!("Failed to remove user from organization: {}", e);
+            log::error!("Failed to remove user from organization: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -527,7 +527,7 @@ pub async fn get_user_memberships(
             Ok(Json(memberships))
         }
         Err(e) => {
-            error!("Failed to get user memberships: {}", e);
+            log::error!("Failed to get user memberships: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -552,7 +552,7 @@ pub async fn update_user_roles(
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
     if let Err(e) = auth_service.remove_org_member(&org_id, &user_id).await {
-        error!("Failed to remove existing membership: {}", e);
+        log::error!("Failed to remove existing membership: {}", e);
     }
 
     match auth_service
@@ -571,7 +571,7 @@ pub async fn update_user_roles(
             }))
         }
         Err(e) => {
-            error!("Failed to update user roles: {}", e);
+            log::error!("Failed to update user roles: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {

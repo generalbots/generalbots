@@ -31,7 +31,7 @@
 use botcore::config::ConfigManager;
 use botcore::shared::UserSession;
 use botcore::shared::state::AppState;
-use log::{error, trace};
+use log::trace;
 use rhai::{Array, Dynamic, Engine, Map};
 
 pub fn register_llm_macros(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -85,7 +85,7 @@ fn run_llm_with_timeout(
         };
 
         if send_err.is_some() {
-            error!("Failed to send LLM result from thread");
+            log::error!("Failed to send LLM result from thread");
         }
     });
 

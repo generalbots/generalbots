@@ -10,6 +10,7 @@ pub mod limits;
 pub mod logging;
 pub mod message_types;
 pub mod models;
+pub mod os;
 pub mod resilience;
 pub mod security;
 pub mod traits;

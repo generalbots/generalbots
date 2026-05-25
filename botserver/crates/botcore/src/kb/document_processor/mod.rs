@@ -232,7 +232,7 @@ impl DocumentProcessor {
             }
 
             #[cfg(feature = "docs")]
-            match crate::docs::ooxml::load_docx_preserving(&bytes) {
+            match crate::kb::document_processor::ooxml_extract::load_docx_preserving(&bytes) {
                 Ok(doc) => {
                     let text: String = doc.paragraphs.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("\n");
                     if !text.trim().is_empty() {
@@ -316,7 +316,7 @@ impl DocumentProcessor {
             }
 
             #[cfg(feature = "slides")]
-            match crate::slides::ooxml::load_pptx_preserving(&bytes) {
+            match crate::kb::document_processor::ooxml_extract::load_pptx_preserving(&bytes) {
                 Ok(pptx) => {
                     let mut text = String::new();
                     for slide in &pptx.slides {

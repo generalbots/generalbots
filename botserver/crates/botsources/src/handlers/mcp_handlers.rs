@@ -94,7 +94,7 @@ pub async fn handle_add_mcp_server(
             .into_response()
         }
         Err(e) => {
-            error!("Failed to create MCP server: {}", e);
+            log::error!("Failed to create MCP server: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiResponse::<String>::error(&format!(

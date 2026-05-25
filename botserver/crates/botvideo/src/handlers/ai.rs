@@ -25,7 +25,7 @@ pub async fn transcribe_handler(
             axum::Json(serde_json::json!(transcription)),
         ),
         Err(e) => {
-            error!("Failed to transcribe: {e}");
+            log::error!("Failed to transcribe: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -44,7 +44,7 @@ pub async fn generate_captions_handler(
     let transcription = match engine.transcribe_audio(project_id, None, None).await {
         Ok(t) => t,
         Err(e) => {
-            error!("Transcription failed: {e}");
+            log::error!("Transcription failed: {e}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
@@ -72,7 +72,7 @@ pub async fn generate_captions_handler(
             })),
         ),
         Err(e) => {
-            error!("Failed to generate captions: {e}");
+            log::error!("Failed to generate captions: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -90,7 +90,7 @@ pub async fn detect_scenes_handler(
         std::env::var("VIDEO_THUMBNAILS_DIR").unwrap_or_else(|_| "./thumbnails/video".to_string());
 
     if let Err(e) = std::fs::create_dir_all(&output_dir) {
-        error!("Failed to create thumbnails directory: {e}");
+        log::error!("Failed to create thumbnails directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
@@ -100,7 +100,7 @@ pub async fn detect_scenes_handler(
     match engine.detect_scenes(project_id, 0.3, &output_dir).await {
         Ok(response) => (StatusCode::OK, axum::Json(serde_json::json!(response))),
         Err(e) => {
-            error!("Scene detection failed: {e}");
+            log::error!("Scene detection failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -138,7 +138,7 @@ pub async fn auto_reframe_handler(
     let output_dir =
         std::env::var("VIDEO_REFRAME_DIR").unwrap_or_else(|_| "./reframed/video".to_string());
     if let Err(e) = std::fs::create_dir_all(&output_dir) {
-        error!("Failed to create reframe directory: {e}");
+        log::error!("Failed to create reframe directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
@@ -154,7 +154,7 @@ pub async fn auto_reframe_handler(
             axum::Json(serde_json::json!({ "reframed_url": url })),
         ),
         Err(e) => {
-            error!("Auto-reframe failed: {e}");
+            log::error!("Auto-reframe failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -175,7 +175,7 @@ pub async fn remove_background_handler(
     {
         Ok(response) => (StatusCode::OK, axum::Json(serde_json::json!(response))),
         Err(e) => {
-            error!("Background removal failed: {e}");
+            log::error!("Background removal failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -193,7 +193,7 @@ pub async fn enhance_video_handler(
     match engine.enhance_video(project_id, req).await {
         Ok(response) => (StatusCode::OK, axum::Json(serde_json::json!(response))),
         Err(e) => {
-            error!("Video enhancement failed: {e}");
+            log::error!("Video enhancement failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -214,7 +214,7 @@ pub async fn beat_sync_handler(
     {
         Ok(response) => (StatusCode::OK, axum::Json(serde_json::json!(response))),
         Err(e) => {
-            error!("Beat sync failed: {e}");
+            log::error!("Beat sync failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -235,7 +235,7 @@ pub async fn generate_waveform_handler(
     {
         Ok(response) => (StatusCode::OK, axum::Json(serde_json::json!(response))),
         Err(e) => {
-            error!("Waveform generation failed: {e}");
+            log::error!("Waveform generation failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),

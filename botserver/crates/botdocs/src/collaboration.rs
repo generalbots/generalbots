@@ -206,7 +206,7 @@ async fn handle_docs_connection(socket: WebSocket, doc_id: String) {
     };
 
     if let Err(e) = broadcast_tx.send(join_msg) {
-        error!("Failed to broadcast join: {}", e);
+        log::error!("Failed to broadcast join: {}", e);
     }
 
     let broadcast_tx_clone = broadcast_tx.clone();
@@ -318,13 +318,13 @@ async fn handle_docs_connection(socket: WebSocket, doc_id: String) {
                         }
 
                         if let Err(e) = broadcast_tx_clone.send(collab_msg) {
-                            error!("Failed to broadcast message: {}", e);
+                            log::error!("Failed to broadcast message: {}", e);
                         }
                     }
                 }
                 Ok(Message::Close(_)) => break,
                 Err(e) => {
-                    error!("WebSocket error: {}", e);
+                    log::error!("WebSocket error: {}", e);
                     break;
                 }
                 _ => {}

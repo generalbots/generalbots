@@ -3,7 +3,7 @@ use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{debug, error, info, trace};
+use log::{debug, info, trace};
 use rhai::{Dynamic, Engine, Map};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -498,7 +498,7 @@ fn get_lead_score_from_db(state: &Arc<dyn BasicRuntime>, lead_id: &str) -> Optio
     let mut conn = match state.db_pool().get() {
         Ok(c) => c,
         Err(e) => {
-            error!("Failed to get database connection for lead score lookup: {e}");
+            log::error!("Failed to get database connection for lead score lookup: {e}");
             return None;
         }
     };
@@ -516,7 +516,7 @@ fn get_lead_score_from_db(state: &Arc<dyn BasicRuntime>, lead_id: &str) -> Optio
                 Some(score)
             }
             Err(e) => {
-                error!("Failed to parse lead score '{value}' for lead {lead_id}: {e}");
+                log::error!("Failed to parse lead score '{value}' for lead {lead_id}: {e}");
                 None
             }
         },
@@ -525,7 +525,7 @@ fn get_lead_score_from_db(state: &Arc<dyn BasicRuntime>, lead_id: &str) -> Optio
             None
         }
         Err(e) => {
-            error!("Database error retrieving lead score for {lead_id}: {e}");
+            log::error!("Database error retrieving lead score for {lead_id}: {e}");
             None
         }
     }
@@ -539,7 +539,7 @@ fn update_lead_score_in_db(state: &Arc<dyn BasicRuntime>, lead_id: &str, score: 
     let mut conn = match state.db_pool().get() {
         Ok(c) => c,
         Err(e) => {
-            error!("Failed to get database connection for lead score update: {e}");
+            log::error!("Failed to get database connection for lead score update: {e}");
             return;
         }
     };
@@ -564,7 +564,7 @@ fn update_lead_score_in_db(state: &Arc<dyn BasicRuntime>, lead_id: &str, score: 
                     info!("Updated lead score to {score} for lead {lead_id}");
                 }
                 Err(e) => {
-                    error!("Failed to update lead score for {lead_id}: {e}");
+                    log::error!("Failed to update lead score for {lead_id}: {e}");
                 }
             }
         }
@@ -588,12 +588,12 @@ fn update_lead_score_in_db(state: &Arc<dyn BasicRuntime>, lead_id: &str, score: 
                     info!("Inserted new lead score {score} for lead {lead_id}");
                 }
                 Err(e) => {
-                    error!("Failed to insert lead score for {lead_id}: {e}");
+                    log::error!("Failed to insert lead score for {lead_id}: {e}");
                 }
             }
         }
         Err(e) => {
-            error!("Database error checking existing lead score for {lead_id}: {e}");
+            log::error!("Database error checking existing lead score for {lead_id}: {e}");
         }
     }
 }

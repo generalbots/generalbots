@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -37,7 +37,7 @@ pub fn set_user_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                         &value_clone,
                         "preference",
                     ) {
-                        error!("Failed to set user memory: {e}");
+                        log::error!("Failed to set user memory: {e}");
                     } else {
                         trace!(
                             "Set user memory for key: {key_clone} with value length: {}",
@@ -83,7 +83,7 @@ pub fn remember_user_fact_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
 
                 tokio::spawn(async move {
                     if let Err(e) = add_user_fact(state_for_spawn, user_id, &fact_clone) {
-                        error!("Failed to remember user fact: {e}");
+                        log::error!("Failed to remember user fact: {e}");
                     } else {
                         trace!("Remembered user fact: {fact_clone}");
                     }
@@ -128,7 +128,7 @@ pub fn clear_user_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
 
                 tokio::spawn(async move {
                     if let Err(e) = clear_user_memory(state_for_spawn, user_id) {
-                        error!("Failed to clear user memory: {e}");
+                        log::error!("Failed to clear user memory: {e}");
                     } else {
                         trace!("Cleared all user memory for user: {user_id}");
                     }

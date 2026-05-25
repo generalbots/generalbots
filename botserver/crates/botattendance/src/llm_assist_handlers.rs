@@ -41,7 +41,7 @@ pub async fn generate_tips(
             (StatusCode::OK, Json(TipResponse { success: true, tips, error: None }))
         }
         Err(e) => {
-            error!("LLM error generating tips: {}", e);
+            log::error!("LLM error generating tips: {}", e);
             (StatusCode::OK, Json(TipResponse { success: true, tips: generate_fallback_tips(&request.customer_message), error: Some(format!("LLM unavailable, using fallback: {}", e)) }))
         }
     }
@@ -74,7 +74,7 @@ pub async fn polish_message(
             (StatusCode::OK, Json(PolishResponse { success: true, original: request.message.clone(), polished, changes, error: None }))
         }
         Err(e) => {
-            error!("LLM error polishing message: {}", e);
+            log::error!("LLM error polishing message: {}", e);
             (StatusCode::OK, Json(PolishResponse { success: false, original: request.message.clone(), polished: request.message.clone(), changes: vec![], error: Some(format!("LLM error: {}", e)) }))
         }
     }
@@ -108,7 +108,7 @@ pub async fn generate_smart_replies(
             (StatusCode::OK, Json(SmartRepliesResponse { success: true, replies, error: None }))
         }
         Err(e) => {
-            error!("LLM error generating smart replies: {}", e);
+            log::error!("LLM error generating smart replies: {}", e);
             (StatusCode::OK, Json(SmartRepliesResponse { success: true, replies: generate_fallback_replies(), error: Some(format!("LLM unavailable, using fallback: {}", e)) }))
         }
     }
@@ -152,7 +152,7 @@ pub async fn generate_summary(
             (StatusCode::OK, Json(SummaryResponse { success: true, summary, error: None }))
         }
         Err(e) => {
-            error!("LLM error generating summary: {}", e);
+            log::error!("LLM error generating summary: {}", e);
             (StatusCode::OK, Json(SummaryResponse { success: false, summary: ConversationSummary { brief: format!("Conversation with {} messages", history.len()), message_count: history.len() as i32, ..Default::default() }, error: Some(format!("LLM error: {}", e)) }))
         }
     }
@@ -183,7 +183,7 @@ pub async fn analyze_sentiment(
             (StatusCode::OK, Json(SentimentResponse { success: true, sentiment, error: None }))
         }
         Err(e) => {
-            error!("LLM error analyzing sentiment: {}", e);
+            log::error!("LLM error analyzing sentiment: {}", e);
             let sentiment = analyze_sentiment_keywords(&request.message);
             (StatusCode::OK, Json(SentimentResponse { success: true, sentiment, error: Some(format!("LLM unavailable, using fallback: {}", e)) }))
         }

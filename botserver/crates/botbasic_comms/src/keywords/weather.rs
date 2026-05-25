@@ -1,6 +1,6 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 
@@ -65,7 +65,7 @@ pub fn weather_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
                 };
 
                 if send_err.is_some() {
-                    error!("Failed to send WEATHER result from thread");
+                    log::error!("Failed to send WEATHER result from thread");
                 }
             });
 
@@ -127,7 +127,7 @@ pub fn weather_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send FORECAST result from thread");
+                        log::error!("Failed to send FORECAST result from thread");
                     }
                 });
 
@@ -160,7 +160,7 @@ async fn get_weather(
             Ok(format_weather_response(&weather))
         }
         Err(e) => {
-            error!("OpenWeatherMap API failed: {}", e);
+            log::error!("OpenWeatherMap API failed: {}", e);
 
             fetch_fallback_weather(location)
         }
@@ -181,7 +181,7 @@ async fn get_forecast(
             Ok(format_forecast_response(&forecast))
         }
         Err(e) => {
-            error!("Forecast API failed: {}", e);
+            log::error!("Forecast API failed: {}", e);
             Err(format!("Could not get forecast for {}: {}", location, e))
         }
     }

@@ -357,7 +357,7 @@ async fn handle_ws(
                         let mut is_switcher_replay = false;
                         if msg_type == 8 {
                             let last_user_msg = {
-                                let mut sm = state.session_manager.lock().await;
+                            let mut sm = state.session_manager.lock().await;
                                 let history = sm.get_conversation_history(session_id, user_id, Some(1)).ok();
                                 history.and_then(|h| h.into_iter().find(|(role, _)| role == "user").map(|(_, c)| c))
                             };
@@ -549,7 +549,7 @@ async fn handle_ws(
                         };
                         // Inject session context data (bot memory)
                         let session_context = {
-                            let mut sm = state.session_manager.lock().await;
+                            let sm = state.session_manager.lock().await;
                             sm.get_session_context_data(&session_id, &user_id).ok().unwrap_or_default()
                         };
 

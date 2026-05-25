@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use log::{error, info, warn};
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use botcore::shared::utils::get_stack_path;
@@ -135,7 +135,7 @@ pub async fn login(
         .timeout(std::time::Duration::from_secs(30))
         .build()
         .map_err(|e| {
-            error!("Failed to create HTTP client: {}", e);
+            log::error!("Failed to create HTTP client: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -157,7 +157,7 @@ pub async fn login(
         match get_oauth_token(&http_client, &*auth_service).await {
             Ok(token) => token,
             Err(e) => {
-                error!("Failed to get OAuth token: {}", e);
+                log::error!("Failed to get OAuth token: {}", e);
                 return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
@@ -188,7 +188,7 @@ pub async fn login(
         .send()
         .await
         .map_err(|e| {
-            error!("Failed to search user: {}", e);
+            log::error!("Failed to search user: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -200,7 +200,7 @@ pub async fn login(
 
     if !user_response.status().is_success() {
         let error_text = user_response.text().await.unwrap_or_default();
-        error!("User search failed: {}", error_text);
+        log::error!("User search failed: {}", error_text);
         return Err((
             StatusCode::UNAUTHORIZED,
             Json(ErrorResponse {
@@ -211,7 +211,7 @@ pub async fn login(
     }
 
     let user_data: serde_json::Value = user_response.json().await.map_err(|e| {
-        error!("Failed to parse user response: {}", e);
+        log::error!("Failed to parse user response: {}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -232,7 +232,7 @@ pub async fn login(
     let user_id_str = match user_id_str {
         Some(id) => id,
         None => {
-            error!("User not found: {}", req.email);
+            log::error!("User not found: {}", req.email);
             return Err((
                 StatusCode::UNAUTHORIZED,
                 Json(ErrorResponse {
@@ -262,7 +262,7 @@ pub async fn login(
         .send()
         .await
         .map_err(|e| {
-            error!("Failed to create session: {}", e);
+            log::error!("Failed to create session: {}", e);
             (
                 StatusCode::UNAUTHORIZED,
                 Json(ErrorResponse {
@@ -275,7 +275,7 @@ pub async fn login(
     if !session_response.status().is_success() {
         let status = session_response.status();
         let error_text = session_response.text().await.unwrap_or_default();
-        error!("Session creation failed: {} - {}", status, error_text);
+        log::error!("Session creation failed: {} - {}", status, error_text);
 
         if error_text.contains("password") || error_text.contains("invalid") {
             return Err((
@@ -297,7 +297,7 @@ pub async fn login(
     }
 
     let session_data: serde_json::Value = session_response.json().await.map_err(|e| {
-        error!("Failed to parse session response: {}", e);
+        log::error!("Failed to parse session response: {}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -472,7 +472,7 @@ pub async fn refresh_token(
         .timeout(std::time::Duration::from_secs(30))
         .build()
         .map_err(|e| {
-            error!("Failed to create HTTP client: {}", e);
+            log::error!("Failed to create HTTP client: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -494,7 +494,7 @@ pub async fn refresh_token(
         .send()
         .await
         .map_err(|e| {
-            error!("Failed to refresh token: {}", e);
+            log::error!("Failed to refresh token: {}", e);
             (
                 StatusCode::UNAUTHORIZED,
                 Json(ErrorResponse {
@@ -515,7 +515,7 @@ pub async fn refresh_token(
     }
 
     let token_data: serde_json::Value = response.json().await.map_err(|e| {
-        error!("Failed to parse token response: {}", e);
+        log::error!("Failed to parse token response: {}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -651,7 +651,7 @@ pub async fn bootstrap_admin(
             id
         }
         Err(e) => {
-            error!("Failed to create bootstrap admin: {}", e);
+            log::error!("Failed to create bootstrap admin: {}", e);
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -663,7 +663,7 @@ pub async fn bootstrap_admin(
     };
 
     if let Err(e) = set_user_password(&*auth_service, &new_user_id, &req.password).await {
-        error!("Failed to set admin password: {}", e);
+        log::error!("Failed to set admin password: {}", e);
     }
 
     let org_name = req.organization_name.unwrap_or_else(|| "Default Organization".to_string());
@@ -685,7 +685,7 @@ pub async fn bootstrap_admin(
             "user_manager".to_string(),
         ];
         if let Err(e) = auth_service.add_org_member(oid, &new_user_id, admin_roles).await {
-            error!("Failed to add admin to organization: {}", e);
+            log::error!("Failed to add admin to organization: {}", e);
         } else {
             info!("Admin user added to organization with admin roles");
         }

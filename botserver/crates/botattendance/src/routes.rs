@@ -102,7 +102,7 @@ pub async fn attendant_respond(
     };
 
     if let Err(e) = save_message_to_history(&config, &session, &request.message, "attendant").await {
-        error!("Failed to save attendant message: {}", e);
+        log::error!("Failed to save attendant message: {}", e);
     }
 
     if let Some(ref send_response) = config.send_bot_response {
@@ -204,7 +204,7 @@ async fn handle_attendant_websocket(socket: WebSocket, _config: Arc<AttendanceCo
     });
     if let Ok(welcome_str) = serde_json::to_string(&welcome) {
         if sender.send(Message::Text(welcome_str)).await.is_err() {
-            error!("Failed to send welcome message to attendant");
+            log::error!("Failed to send welcome message to attendant");
             return;
         }
     }

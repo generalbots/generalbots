@@ -21,7 +21,7 @@ pub async fn list_projects(
             axum::Json(serde_json::json!({ "projects": projects })),
         ),
         Err(e) => {
-            error!("Failed to list video projects: {e}");
+            log::error!("Failed to list video projects: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -41,7 +41,7 @@ pub async fn create_project(
             axum::Json(serde_json::json!({ "project": project })),
         ),
         Err(e) => {
-            error!("Failed to create video project: {e}");
+            log::error!("Failed to create video project: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -62,7 +62,7 @@ pub async fn get_project(
             axum::Json(serde_json::json!({ "error": "Project not found" })),
         ),
         Err(e) => {
-            error!("Failed to get video project: {e}");
+            log::error!("Failed to get video project: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -87,7 +87,7 @@ pub async fn update_project(
             axum::Json(serde_json::json!({ "error": "Project not found" })),
         ),
         Err(e) => {
-            error!("Failed to update video project: {e}");
+            log::error!("Failed to update video project: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -107,7 +107,7 @@ pub async fn delete_project(
             axum::Json(serde_json::json!({})),
         ),
         Err(e) => {
-            error!("Failed to delete video project: {e}");
+            log::error!("Failed to delete video project: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),

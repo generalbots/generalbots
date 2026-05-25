@@ -141,7 +141,7 @@ impl AppLogStore {
             LogLevel::Debug => debug!("[{}] {}: {}", app_name, source, message),
             LogLevel::Info => info!("[{}] {}: {}", app_name, source, message),
             LogLevel::Warn => warn!("[{}] {}: {}", app_name, source, message),
-            LogLevel::Error | LogLevel::Critical => error!("[{}] {}: {}", app_name, source, message),
+            LogLevel::Error | LogLevel::Critical => log::error!("[{}] {}: {}", app_name, source, message),
         }
     }
 

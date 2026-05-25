@@ -1,5 +1,5 @@
 use botbasic_data::keywords::use_account::{get_account_credentials, AccountCredentials};
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 
 pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -67,7 +67,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SEND MAIL result from thread");
+                        log::error!("Failed to send SEND MAIL result from thread");
                     }
                 });
 
@@ -143,7 +143,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SEND MAIL USING result from thread");
+                        log::error!("Failed to send SEND MAIL USING result from thread");
                     }
                 });
 
@@ -232,7 +232,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SEND_TEMPLATE result from thread");
+                        log::error!("Failed to send SEND_TEMPLATE result from thread");
                     }
                 });
 
@@ -366,7 +366,7 @@ async fn execute_send_mail(
                 return Ok(format!("Email sent: {}", message_id));
             }
             Err(e) => {
-                error!("EmailService::send_email failed: {}", e);
+                log::error!("EmailService::send_email failed: {}", e);
             }
         }
     }
@@ -550,7 +550,7 @@ fn track_email(
     .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to track email: {}", e);
+        log::error!("Failed to track email: {}", e);
         format!("Failed to track email: {}", e)
     })?;
 
@@ -589,7 +589,7 @@ fn save_email_draft(
         .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to save draft: {}", e);
+        log::error!("Failed to save draft: {}", e);
         format!("Failed to save draft: {}", e)
     })?;
 

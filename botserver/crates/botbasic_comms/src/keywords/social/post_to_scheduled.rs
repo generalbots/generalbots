@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use log::{debug, error, trace};
+use log::{debug, trace};
 use rhai::{Dynamic, Engine};
 
 pub fn post_to_at_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -152,7 +152,7 @@ fn save_scheduled_post(
     .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to save scheduled post: {}", e);
+        log::error!("Failed to save scheduled post: {}", e);
         format!("Failed to save scheduled post: {}", e)
     })?;
 

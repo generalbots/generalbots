@@ -115,10 +115,6 @@ pub struct CreateBotRequest {
 
 
 pub struct BotManager {
-    minio_endpoint: String,
-    minio_access_key: String,
-    minio_secret_key: String,
-    database_url: String,
     templates_dir: PathBuf,
     bots_cache: Arc<RwLock<HashMap<Uuid, BotConfig>>>,
     templates: Arc<RwLock<HashMap<String, BotTemplate>>>,
@@ -126,17 +122,13 @@ pub struct BotManager {
 
 impl BotManager {
     pub fn new(
-        minio_endpoint: &str,
-        minio_access_key: &str,
-        minio_secret_key: &str,
-        database_url: &str,
+        _minio_endpoint: &str,
+        _minio_access_key: &str,
+        _minio_secret_key: &str,
+        _database_url: &str,
         templates_dir: PathBuf,
     ) -> Self {
         Self {
-            minio_endpoint: minio_endpoint.to_string(),
-            minio_access_key: minio_access_key.to_string(),
-            minio_secret_key: minio_secret_key.to_string(),
-            database_url: database_url.to_string(),
             templates_dir,
             bots_cache: Arc::new(RwLock::new(HashMap::new())),
             templates: Arc::new(RwLock::new(HashMap::new())),

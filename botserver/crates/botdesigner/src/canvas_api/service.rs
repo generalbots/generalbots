@@ -32,7 +32,7 @@ impl CanvasService {
         request: CreateCanvasRequest,
     ) -> Result<Canvas, CanvasError> {
         let mut conn = self.pool.get().map_err(|e| {
-            error!("Failed to get database connection: {e}");
+            log::error!("Failed to get database connection: {e}");
             CanvasError::DatabaseConnection
         })?;
 
@@ -79,7 +79,7 @@ impl CanvasService {
             .bind::<DieselUuid, _>(user_id)
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to create canvas: {e}");
+                log::error!("Failed to create canvas: {e}");
                 CanvasError::CreateFailed
             })?;
 
@@ -122,7 +122,7 @@ impl CanvasService {
             .bind::<DieselUuid, _>(canvas_id)
             .load(&mut conn)
             .map_err(|e| {
-                error!("Failed to get canvas: {e}");
+                log::error!("Failed to get canvas: {e}");
                 CanvasError::DatabaseConnection
             })?;
 
@@ -620,7 +620,7 @@ impl CanvasService {
         .bind::<DieselUuid, _>(canvas_id)
         .execute(&mut conn)
         .map_err(|e| {
-            error!("Failed to save elements: {e}");
+            log::error!("Failed to save elements: {e}");
             CanvasError::UpdateFailed
         })?;
 
@@ -646,7 +646,7 @@ impl CanvasService {
         .bind::<DieselUuid, _>(canvas_id)
         .execute(&mut conn)
         .map_err(|e| {
-            error!("Failed to save layers: {e}");
+            log::error!("Failed to save layers: {e}");
             CanvasError::UpdateFailed
         })?;
 

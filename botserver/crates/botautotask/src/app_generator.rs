@@ -5,7 +5,7 @@ use crate::task_manifest::{
 use crate::app_logs::log_generator_info;
 use chrono::{DateTime, Utc};
 use diesel::RunQueryDsl;
-use log::{error, info};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -253,11 +253,11 @@ impl AppGenerator {
                 match self.state.db_pool().get() {
                     Ok(mut conn) => {
                         if let Err(e) = diesel::sql_query(&sql).execute(&mut conn) {
-                            error!("Failed to create table {}: {e}", table.name);
+                            log::error!("Failed to create table {}: {e}", table.name);
                         }
                     }
                     Err(e) => {
-                        error!("Failed to get DB connection for table creation: {e}");
+                        log::error!("Failed to get DB connection for table creation: {e}");
                     }
                 }
             }

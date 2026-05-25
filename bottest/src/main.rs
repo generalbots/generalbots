@@ -337,7 +337,7 @@ fn extract_zip(zip_path: &PathBuf, dest_dir: &PathBuf) -> Result<()> {
 
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt;
+            
             if let Some(mode) = file.unix_mode() {
                 std::fs::set_permissions(&outpath, std::fs::Permissions::from_mode(mode))?;
             }
@@ -400,7 +400,7 @@ async fn setup_chromedriver(browser_path: &str) -> Result<PathBuf> {
 
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt;
+            
             std::fs::set_permissions(&final_path, std::fs::Permissions::from_mode(0o755))?;
         }
     }
@@ -447,7 +447,7 @@ async fn setup_chrome_for_testing() -> Result<PathBuf> {
     if chrome_path.exists() {
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt;
+            
             std::fs::set_permissions(&chrome_path, std::fs::Permissions::from_mode(0o755))?;
         }
         info!("Chrome installed: {:?}", chrome_path);

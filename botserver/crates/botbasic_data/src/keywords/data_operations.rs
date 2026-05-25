@@ -6,7 +6,7 @@ use botbasic_core::utils::{convert_date_to_iso_format, json_value_to_dynamic, to
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::Text;
-use log::{error, trace, warn};
+use log::{trace, warn};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -576,7 +576,7 @@ fn execute_save(
     trace!("Executing SAVE query: {}", query);
 
     let result = sql_query(&query).execute(conn).map_err(|e| {
-        error!("SAVE SQL error: {}", e);
+        log::error!("SAVE SQL error: {}", e);
         e.to_string()
     })?;
 
@@ -633,7 +633,7 @@ fn execute_insert(
             }))
         }
         Err(e) => {
-            error!("INSERT SQL error: {}", e);
+            log::error!("INSERT SQL error: {}", e);
             Ok(json!({
                 "command": "insert",
                 "table": table,
@@ -674,7 +674,7 @@ fn execute_update(
     trace!("Executing UPDATE query: {}", query);
 
     let result = sql_query(&query).execute(conn).map_err(|e| {
-        error!("UPDATE SQL error: {}", e);
+        log::error!("UPDATE SQL error: {}", e);
         e.to_string()
     })?;
 
@@ -697,7 +697,7 @@ fn execute_delete(
     trace!("Executing DELETE query: {}", query);
 
     let result = sql_query(&query).execute(conn).map_err(|e| {
-        error!("DELETE SQL error: {}", e);
+        log::error!("DELETE SQL error: {}", e);
         e.to_string()
     })?;
 

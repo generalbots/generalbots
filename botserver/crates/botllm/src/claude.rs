@@ -430,7 +430,7 @@ impl ClaudeClient {
 
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Claude API error response: {}", error_text);
+            log::error!("Claude API error response: {}", error_text);
             return Err(format!("HTTP {}: {}", status, error_text).into());
         }
 
@@ -488,7 +488,7 @@ impl ClaudeClient {
                     bytes
                 }
                 Ok(Some(Err(e))) => {
-                    error!("CLAUDE Stream read error: {}", e);
+                    log::error!("CLAUDE Stream read error: {}", e);
                     if text_chunks_sent > 0 {
                         warn!(
                             "CLAUDE Had {} chunks before error, treating as partial success",
@@ -513,7 +513,7 @@ impl ClaudeClient {
                         );
                         break;
                     }
-                    error!("CLAUDE Timeout waiting for stream data");
+                    log::error!("CLAUDE Timeout waiting for stream data");
                     return Err("Timeout waiting for stream data".into());
                 }
             };
@@ -769,7 +769,7 @@ impl LLMProvider for ClaudeClient {
                 }
                 Err(e) => {
                     let err_msg = e.to_string();
-                    error!("CLAUDE Attempt {} failed: {}", attempt + 1, err_msg);
+                    log::error!("CLAUDE Attempt {} failed: {}", attempt + 1, err_msg);
 
                     if attempt < MAX_RETRIES && Self::is_retryable_error(&err_msg, None) {
                         last_error = Some(e);

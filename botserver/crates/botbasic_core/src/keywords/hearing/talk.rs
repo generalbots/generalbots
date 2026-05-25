@@ -2,7 +2,7 @@ use botlib::message_types::MessageType;
 use botlib::models::BotResponse;
 use botbasic_types::BasicRuntime;
 use botbasic_types::UserSession;
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 
@@ -48,7 +48,7 @@ pub async fn execute_talk(
     };
 
     if let Err(e) = state.send_message(&response) {
-        error!("Failed to send TALK message: {}", e);
+        log::error!("Failed to send TALK message: {}", e);
     } else {
         trace!("TALK message sent via runtime adapter");
     }
@@ -93,7 +93,7 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
                 };
 
                 if let Err(e) = state_for_send.send_message(&response) {
-                    error!("Failed to send TALK TO message: {}", e);
+                    log::error!("Failed to send TALK TO message: {}", e);
                 }
 
                 Ok(Dynamic::UNIT)
@@ -109,7 +109,7 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
 
             tokio::spawn(async move {
                 if let Err(e) = execute_talk(&state_for_talk, user_for_talk, message).await {
-                    error!("Error executing TALK command: {}", e);
+                    log::error!("Error executing TALK command: {}", e);
                 }
             });
 

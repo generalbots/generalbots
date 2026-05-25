@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use botlib::security::create_tls_client;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -63,12 +63,12 @@ pub fn register_kb_statistics_keyword(state: Arc<dyn BasicRuntime>, user: UserSe
             Ok(stats) => match serde_json::to_value(&stats) {
                 Ok(json) => Dynamic::from(json.to_string()),
                 Err(e) => {
-                    error!("Failed to serialize KB statistics: {}", e);
+                    log::error!("Failed to serialize KB statistics: {}", e);
                     Dynamic::UNIT
                 }
             },
             Err(e) => {
-                error!("Failed to get KB statistics: {}", e);
+                log::error!("Failed to get KB statistics: {}", e);
                 Dynamic::UNIT
             }
         }
@@ -110,12 +110,12 @@ pub fn register_kb_statistics_keyword(state: Arc<dyn BasicRuntime>, user: UserSe
                 Ok(stats) => match serde_json::to_value(&stats) {
                     Ok(json) => Dynamic::from(json.to_string()),
                     Err(e) => {
-                        error!("Failed to serialize collection statistics: {}", e);
+                        log::error!("Failed to serialize collection statistics: {}", e);
                         Dynamic::UNIT
                     }
                 },
                 Err(e) => {
-                    error!("Failed to get collection statistics: {}", e);
+                    log::error!("Failed to get collection statistics: {}", e);
                     Dynamic::UNIT
                 }
             }
@@ -189,7 +189,7 @@ pub fn register_kb_statistics_keyword(state: Arc<dyn BasicRuntime>, user: UserSe
                 Dynamic::from(arr)
             }
             Err(e) => {
-                error!("Failed to list collections: {}", e);
+                log::error!("Failed to list collections: {}", e);
                 Dynamic::UNIT
             }
         }

@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::{DateTime, Duration, NaiveDate, Utc};
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 
 
@@ -71,7 +71,7 @@ pub fn create_task_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send CREATE_TASK result from thread");
+                        log::error!("Failed to send CREATE_TASK result from thread");
                     }
                 });
 
@@ -155,7 +155,7 @@ pub fn create_task_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send ASSIGN_SMART result from thread");
+                        log::error!("Failed to send ASSIGN_SMART result from thread");
                     }
                 });
 
@@ -215,7 +215,7 @@ fn execute_create_task(
         .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to create task: {}", e);
+        log::error!("Failed to create task: {}", e);
         format!("Failed to create task: {}", e)
     })?;
 
@@ -277,7 +277,7 @@ fn smart_assign_task(
         .bind::<diesel::sql_types::Text, _>(task_id);
 
     update_query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to update task assignment: {}", e);
+        log::error!("Failed to update task assignment: {}", e);
         format!("Failed to update task assignment: {}", e)
     })?;
 

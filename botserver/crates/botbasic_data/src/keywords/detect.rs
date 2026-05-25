@@ -2,7 +2,7 @@ use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
 use diesel::sql_types::*;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 use serde_json::Value;
 use std::sync::Arc;
@@ -48,7 +48,7 @@ pub fn register_detect_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 };
 
                 if send_err.is_some() {
-                    error!("Failed to send DETECT thread result");
+                    log::error!("Failed to send DETECT thread result");
                 }
             });
 

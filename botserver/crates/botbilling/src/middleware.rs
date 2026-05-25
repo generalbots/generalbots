@@ -286,7 +286,7 @@ pub async fn storage_check_middleware(
             response
         }
         Err(e) => {
-            tracing::error!("Failed to check storage quota for org {}: {}", org_id, e);
+            tracing::log::error!("Failed to check storage quota for org {}: {}", org_id, e);
             next.run(request).await
         }
     }

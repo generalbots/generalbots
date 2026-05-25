@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
-use log::{debug, error, info, trace};
+use log::{debug, info, trace};
 use rhai::{Dynamic, Engine};
 
 /// Parse refresh interval string (e.g., "1d", "1w", "1m", "1y") into days
@@ -104,7 +104,7 @@ pub fn use_website_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send result from thread");
+                        log::error!("Failed to send result from thread");
                     }
                 });
 
@@ -170,7 +170,7 @@ pub fn use_website_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send result from thread");
+                        log::error!("Failed to send result from thread");
                     }
                 });
 
@@ -763,11 +763,11 @@ pub fn clear_websites_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                     )))
                 }
                 Ok(Err(e)) => {
-                    error!("Failed to clear websites: {}", e);
+                    log::error!("Failed to clear websites: {}", e);
                     Err(format!("CLEAR_WEBSITES failed: {}", e).into())
                 }
                 Err(e) => {
-                    error!("Thread panic in CLEAR_WEBSITES: {:?}", e);
+                    log::error!("Thread panic in CLEAR_WEBSITES: {:?}", e);
                     Err("CLEAR_WEBSITES failed: thread panic".into())
                 }
             }

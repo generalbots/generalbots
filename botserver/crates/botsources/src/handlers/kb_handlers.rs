@@ -56,7 +56,7 @@ pub async fn handle_upload_document(
     let content = match extract_text_content(&file_data, &source_type) {
         Ok(text) => text,
         Err(e) => {
-            error!("Failed to extract text from {}: {}", file_name, e);
+            log::error!("Failed to extract text from {}: {}", file_name, e);
             return Json(UploadResponse {
                 success: false,
                 source_id: None,
@@ -84,7 +84,7 @@ pub async fn handle_upload_document(
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                error!("DB connection error: {}", e);
+                log::error!("DB connection error: {}", e);
                 return Err(format!("Database connection error: {}", e));
             }
         };
@@ -103,7 +103,7 @@ pub async fn handle_upload_document(
         .execute(&mut db_conn);
 
         if let Err(e) = insert_result {
-            error!("Failed to insert source: {}", e);
+            log::error!("Failed to insert source: {}", e);
             return Err(format!("Failed to insert source: {}", e));
         }
 
@@ -184,7 +184,7 @@ pub async fn handle_list_sources(
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                error!("DB connection error: {}", e);
+                log::error!("DB connection error: {}", e);
                 return Vec::new();
             }
         };
@@ -322,7 +322,7 @@ pub async fn handle_query_knowledge_base(
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                error!("DB connection error: {}", e);
+                log::error!("DB connection error: {}", e);
                 return Vec::new();
             }
         };
@@ -401,7 +401,7 @@ pub async fn handle_get_source(
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                error!("DB connection error: {}", e);
+                log::error!("DB connection error: {}", e);
                 return None;
             }
         };
@@ -468,7 +468,7 @@ pub async fn handle_delete_source(
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                error!("DB connection error: {}", e);
+                log::error!("DB connection error: {}", e);
                 return false;
             }
         };
@@ -504,7 +504,7 @@ pub async fn handle_reindex_sources(
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                error!("DB connection error: {}", e);
+                log::error!("DB connection error: {}", e);
                 return 0;
             }
         };
@@ -543,7 +543,7 @@ pub async fn handle_get_stats(State(state): State<Arc<AppState>>) -> impl IntoRe
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                error!("DB connection error: {}", e);
+                log::error!("DB connection error: {}", e);
                 return serde_json::json!({
                     "total_sources": 0,
                     "total_chunks": 0,

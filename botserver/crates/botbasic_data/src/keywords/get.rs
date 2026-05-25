@@ -47,7 +47,7 @@ pub fn register_get_keyword(state: Arc<dyn BasicRuntime>, user_session: UserSess
                     tx.send(Err("failed to build tokio runtime".into())).err()
                 };
                 if send_err.is_some() {
-                    error!("Failed to send result from thread");
+                    log::error!("Failed to send result from thread");
                 }
             });
             match rx.recv_timeout(std::time::Duration::from_secs(40)) {
@@ -116,11 +116,11 @@ pub async fn execute_get(url: &str) -> Result<String, Box<dyn Error + Send + Syn
         .tcp_keepalive(Duration::from_secs(30))
         .build()
         .map_err(|e| {
-            error!("Failed to build HTTP client: {}", e);
+            log::error!("Failed to build HTTP client: {}", e);
             e
         })?;
     let response = client.get(url).send().await.map_err(|e| {
-        error!("HTTP request failed for URL {}: {}", url, e);
+        log::error!("HTTP request failed for URL {}: {}", url, e);
         e
     })?;
     if !response.status().is_success() {
@@ -137,7 +137,7 @@ pub async fn execute_get(url: &str) -> Result<String, Box<dyn Error + Send + Syn
         .into());
     }
     let content = response.text().await.map_err(|e| {
-        error!("Failed to read response text for URL {}: {}", url, e);
+        log::error!("Failed to read response text for URL {}: {}", url, e);
         e
     })?;
     trace!(
@@ -155,7 +155,7 @@ pub async fn get_from_bucket(
     bot_id: uuid::Uuid,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
     if !is_safe_path(file_path) {
-        error!("Unsafe file path detected: {}", file_path);
+        log::error!("Unsafe file path detected: {}", file_path);
         return Err("Invalid file path".into());
     }
     let client = state.drive_repository().as_ref().ok_or("S3 client not configured")?;
@@ -166,7 +166,7 @@ pub async fn get_from_bucket(
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name for {}: {}", bot_id, e);
+                log::error!("Failed to query bot name for {}: {}", bot_id, e);
                 e
             })?
     };
@@ -192,11 +192,11 @@ pub async fn get_from_bucket(
     {
         Ok(Ok(data)) => data,
         Ok(Err(e)) => {
-            error!("drive read failed: {}", e);
+            log::error!("drive read failed: {}", e);
             return Err(format!("S3 operation failed: {}", e).into());
         }
         Err(_) => {
-            error!("drive read timed out");
+            log::error!("drive read timed out");
             return Err("drive operation timed out".into());
         }
     };
@@ -205,7 +205,7 @@ pub async fn get_from_bucket(
         match pdf_extract::extract_text_from_mem(&bytes) {
             Ok(text) => text,
             Err(e) => {
-                error!("PDF extraction failed: {}", e);
+                log::error!("PDF extraction failed: {}", e);
                 return Err(format!("PDF extraction failed: {}", e).into());
             }
         }
@@ -217,7 +217,7 @@ pub async fn get_from_bucket(
         match String::from_utf8(bytes) {
             Ok(text) => text,
             Err(_) => {
-                error!("File content is not valid UTF-8 text");
+                log::error!("File content is not valid UTF-8 text");
                 return Err("File content is not valid UTF-8 text".into());
             }
         }

@@ -45,7 +45,7 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                     let bot_uuid = match Uuid::parse_str(&user_clone_spawn.bot_id.to_string()) {
                         Ok(uuid) => uuid,
                         Err(e) => {
-                            error!("Invalid bot ID format: {}", e);
+                            log::error!("Invalid bot ID format: {}", e);
                             return;
                         }
                     };
@@ -79,7 +79,7 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                                 );
                             }
                             Err(e) => {
-                                error!("Failed to update bot memory: {}", e);
+                                log::error!("Failed to update bot memory: {}", e);
                             }
                         }
                     } else {
@@ -112,7 +112,7 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                                 );
                             }
                             Err(e) => {
-                                error!("Failed to insert bot memory: {}", e);
+                                log::error!("Failed to insert bot memory: {}", e);
                             }
                         }
                     }
@@ -149,7 +149,7 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
             let bot_uuid = match Uuid::parse_str(&user_clone_spawn.bot_id.to_string()) {
                 Ok(uuid) => uuid,
                 Err(e) => {
-                    error!("Invalid bot ID format: {}", e);
+                    log::error!("Invalid bot ID format: {}", e);
                     return;
                 }
             };
@@ -183,7 +183,7 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                         );
                     }
                     Err(e) => {
-                        error!("Failed to update bot memory: {}", e);
+                        log::error!("Failed to update bot memory: {}", e);
                     }
                 }
             } else {
@@ -207,7 +207,7 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                         );
                     }
                     Err(e) => {
-                        error!("Failed to insert bot memory: {}", e);
+                        log::error!("Failed to insert bot memory: {}", e);
                     }
                 }
             }

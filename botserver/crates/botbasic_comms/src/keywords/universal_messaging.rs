@@ -2,7 +2,7 @@
 // use botinstagram::InstagramAdapter;
 // use botmsteams::TeamsAdapter;
 // use botwhatsapp::WhatsAppAdapter;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 
 // Stub adapter types - real implementations require botserver-layer registration
@@ -323,7 +323,7 @@ pub async fn send_message_to_recipient(
             send_email(state.clone(), user.bot_id, &recipient_id, message)?;
         }
         _ => {
-            error!("Unknown channel: {}", channel);
+            log::error!("Unknown channel: {}", channel);
             return Err(format!("Unknown channel: {}", channel).into());
         }
     }
@@ -692,7 +692,7 @@ fn send_email(
     #[cfg(not(feature = "mail"))]
     {
         let _ = (state, bot_id, email, message);
-        error!("Email feature not enabled");
+        log::error!("Email feature not enabled");
         Err("Email feature not enabled".into())
     }
 }
@@ -723,7 +723,7 @@ fn send_email_attachment(
     #[cfg(not(feature = "mail"))]
     {
         let _ = (state, bot_id, email, file_data, caption);
-        error!("Email feature not enabled for attachments");
+        log::error!("Email feature not enabled for attachments");
         Err("Email feature not enabled".into())
     }
 }

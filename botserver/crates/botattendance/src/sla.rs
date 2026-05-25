@@ -31,7 +31,7 @@ pub async fn start_sla_breach_monitor(config: Arc<AttendanceConfig>) {
     loop {
         interval_timer.tick().await;
         if let Err(e) = check_sla_breaches(&config).await {
-            error!("SLA breach check failed: {}", e);
+            log::error!("SLA breach check failed: {}", e);
         }
     }
 }
@@ -77,7 +77,7 @@ async fn check_sla_breaches(config: &Arc<AttendanceConfig>) -> Result<(), String
         .await;
 
         if let Err(e) = update_result {
-            error!("SLA breach update failed for event {}: {:?}", event_id, e);
+            log::error!("SLA breach update failed for event {}: {:?}", event_id, e);
         }
 
         let pool = config.pool.clone();

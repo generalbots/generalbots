@@ -21,7 +21,7 @@ pub async fn get_clips(
             axum::Json(serde_json::json!({ "clips": clips })),
         ),
         Err(e) => {
-            error!("Failed to get clips: {e}");
+            log::error!("Failed to get clips: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -42,7 +42,7 @@ pub async fn add_clip(
             axum::Json(serde_json::json!({ "clip": clip })),
         ),
         Err(e) => {
-            error!("Failed to add clip: {e}");
+            log::error!("Failed to add clip: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -67,7 +67,7 @@ pub async fn update_clip(
             axum::Json(serde_json::json!({ "error": "Clip not found" })),
         ),
         Err(e) => {
-            error!("Failed to update clip: {e}");
+            log::error!("Failed to update clip: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -87,7 +87,7 @@ pub async fn delete_clip(
             axum::Json(serde_json::json!({})),
         ),
         Err(e) => {
-            error!("Failed to delete clip: {e}");
+            log::error!("Failed to delete clip: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -115,7 +115,7 @@ pub async fn split_clip_handler(
             axum::Json(serde_json::json!({ "error": "Invalid split position or clip not found" })),
         ),
         Err(e) => {
-            error!("Failed to split clip: {e}");
+            log::error!("Failed to split clip: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),

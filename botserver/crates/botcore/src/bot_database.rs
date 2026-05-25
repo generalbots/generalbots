@@ -8,7 +8,7 @@
 
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use log::{error, info};
+use log::info;
 use std::sync::{Arc, RwLock};
 
 
@@ -280,7 +280,7 @@ impl BotDatabaseManager {
                     }
                 }
                 Err(e) => {
-                    error!("Failed to ensure database for bot {}: {}", bot.name, e);
+                    log::error!("Failed to ensure database for bot {}: {}", bot.name, e);
                     result.errors.push(format!("Bot {}: {}", bot.name, e));
                 }
             }

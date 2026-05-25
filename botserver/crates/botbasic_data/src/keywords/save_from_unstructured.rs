@@ -3,7 +3,7 @@ use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{error, trace, warn};
+use log::{trace, warn};
 use rhai::{Dynamic, Engine};
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -60,7 +60,7 @@ execute_save_from_unstructured(
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SAVE FROM UNSTRUCTURED result from thread");
+                        log::error!("Failed to send SAVE FROM UNSTRUCTURED result from thread");
                     }
                 });
 
@@ -144,7 +144,7 @@ fn get_table_schema(state: Arc<dyn BasicRuntime>, table_name: &str) -> Result<Va
     }
 
     let columns: Vec<ColumnInfo> = query.load(&mut *conn).map_err(|e| {
-        error!("Failed to get table schema: {}", e);
+        log::error!("Failed to get table schema: {}", e);
         format!("Table '{}' not found or error: {}", table_name, e)
     })?;
 
@@ -433,7 +433,7 @@ pub fn save_to_table(
     diesel::sql_query(&insert_query)
         .execute(&mut *conn)
         .map_err(|e| {
-            error!("Failed to save to table '{}': {}", table_name, e);
+            log::error!("Failed to save to table '{}': {}", table_name, e);
             format!("Failed to save record: {}", e)
         })?;
 

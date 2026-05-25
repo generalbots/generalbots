@@ -21,7 +21,7 @@ pub async fn get_keyframes(
             axum::Json(serde_json::json!({ "keyframes": keyframes })),
         ),
         Err(e) => {
-            error!("Failed to get keyframes: {e}");
+            log::error!("Failed to get keyframes: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -42,7 +42,7 @@ pub async fn add_keyframe(
             axum::Json(serde_json::json!({ "keyframe": keyframe })),
         ),
         Err(e) => {
-            error!("Failed to add keyframe: {e}");
+            log::error!("Failed to add keyframe: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -62,7 +62,7 @@ pub async fn delete_keyframe(
             axum::Json(serde_json::json!({})),
         ),
         Err(e) => {
-            error!("Failed to delete keyframe: {e}");
+            log::error!("Failed to delete keyframe: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),

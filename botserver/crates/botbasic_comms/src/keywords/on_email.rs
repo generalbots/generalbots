@@ -4,7 +4,7 @@ use botlib::models::TriggerKind;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -234,7 +234,7 @@ pub fn execute_on_email(
         .values(&new_automation)
         .execute(conn)
         .map_err(|e| {
-            error!("SQL execution error: {}", e);
+            log::error!("SQL execution error: {}", e);
             e.to_string()
         })?;
 
@@ -257,7 +257,7 @@ pub fn execute_on_email(
     );
 
     diesel::sql_query(&insert_sql).execute(conn).map_err(|e| {
-        error!("Failed to insert email monitor: {}", e);
+        log::error!("Failed to insert email monitor: {}", e);
         e.to_string()
     })?;
 

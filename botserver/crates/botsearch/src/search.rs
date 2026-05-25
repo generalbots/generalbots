@@ -183,7 +183,7 @@ impl SearchService {
         let offset = query.offset.unwrap_or(0);
 
         let mut conn = self.pool.get().map_err(|e| {
-            error!("Failed to get database connection: {e}");
+            log::error!("Failed to get database connection: {e}");
             SearchError::DatabaseConnection
         })?;
 
@@ -224,7 +224,7 @@ impl SearchService {
             .bind::<Integer, _>(offset)
             .load(&mut conn)
             .map_err(|e| {
-                error!("Search query failed: {e}");
+                log::error!("Search query failed: {e}");
                 SearchError::QueryFailed(e.to_string())
             })?;
 
@@ -246,7 +246,7 @@ impl SearchService {
             .bind::<Text, _>(&sanitized_query)
             .load(&mut conn)
             .map_err(|e| {
-                error!("Count query failed: {e}");
+                log::error!("Count query failed: {e}");
                 SearchError::QueryFailed(e.to_string())
             })?;
 
@@ -293,7 +293,7 @@ impl SearchService {
 
     pub async fn index_document(&self, doc: DocumentToIndex) -> Result<(), SearchError> {
         let mut conn = self.pool.get().map_err(|e| {
-            error!("Failed to get database connection: {e}");
+            log::error!("Failed to get database connection: {e}");
             SearchError::DatabaseConnection
         })?;
 
@@ -325,7 +325,7 @@ impl SearchService {
             .bind::<Timestamptz, _>(doc.created_at)
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to index document {}: {e}", doc.id);
+                log::error!("Failed to index document {}: {e}", doc.id);
                 SearchError::IndexFailed(e.to_string())
             })?;
 
@@ -357,7 +357,7 @@ impl SearchService {
 
     pub async fn delete_document(&self, id: &str, source: SearchSource) -> Result<(), SearchError> {
         let mut conn = self.pool.get().map_err(|e| {
-            error!("Failed to get database connection: {e}");
+            log::error!("Failed to get database connection: {e}");
             SearchError::DatabaseConnection
         })?;
 
@@ -366,7 +366,7 @@ impl SearchService {
             .bind::<Text, _>(source.to_string())
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to delete document {}: {e}", id);
+                log::error!("Failed to delete document {}: {e}", id);
                 SearchError::DeleteFailed(e.to_string())
             })?;
 
@@ -376,7 +376,7 @@ impl SearchService {
 
     pub async fn get_index_stats(&self, organization_id: Uuid) -> Result<Vec<IndexStats>, SearchError> {
         let mut conn = self.pool.get().map_err(|e| {
-            error!("Failed to get database connection: {e}");
+            log::error!("Failed to get database connection: {e}");
             SearchError::DatabaseConnection
         })?;
 
@@ -396,7 +396,7 @@ impl SearchService {
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .load(&mut conn)
             .map_err(|e| {
-                error!("Failed to get index stats: {e}");
+                log::error!("Failed to get index stats: {e}");
                 SearchError::QueryFailed(e.to_string())
             })?;
 
@@ -445,7 +445,7 @@ impl SearchService {
 
     pub async fn cleanup_old_index_entries(&self, before_date: DateTime<Utc>) -> Result<i64, SearchError> {
         let mut conn = self.pool.get().map_err(|e| {
-            error!("Failed to get database connection: {e}");
+            log::error!("Failed to get database connection: {e}");
             SearchError::DatabaseConnection
         })?;
 
@@ -453,7 +453,7 @@ impl SearchService {
             .bind::<Timestamptz, _>(before_date)
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to cleanup old index entries: {e}");
+                log::error!("Failed to cleanup old index entries: {e}");
                 SearchError::DeleteFailed(e.to_string())
             })?;
 

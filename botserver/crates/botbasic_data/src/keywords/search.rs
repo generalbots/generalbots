@@ -15,7 +15,7 @@ use botbasic_core::utils;
 use botbasic_core::utils::to_array;
 use diesel::prelude::*;
 use diesel::sql_types::{Integer, Text};
-use log::{error, trace, warn};
+use log::{trace, warn};
 use rhai::{Dynamic, Engine};
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -319,7 +319,7 @@ fn execute_simple_search(
         .bind::<Integer, _>(limit)
         .load(conn)
         .map_err(|e| {
-            error!("Simple search error: {e}");
+            log::error!("Simple search error: {e}");
             e.to_string()
         })?;
 
@@ -375,7 +375,7 @@ pub fn execute_autocomplete(
         .bind::<Integer, _>(limit)
         .load(conn)
         .map_err(|e| {
-            error!("Autocomplete error: {e}");
+            log::error!("Autocomplete error: {e}");
             e.to_string()
         })?;
 

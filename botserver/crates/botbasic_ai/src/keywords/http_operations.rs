@@ -1,6 +1,6 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{error, trace};
+use log::trace;
 use reqwest::{header::HeaderMap, header::HeaderName, header::HeaderValue, Client, Method};
 use rhai::{Dynamic, Engine, Map};
 use serde_json::{json, Value};
@@ -55,7 +55,7 @@ pub fn register_post_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, e
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send POST result from thread");
+                        log::error!("Failed to send POST result from thread");
                     }
                 });
 
@@ -115,7 +115,7 @@ pub fn register_put_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, en
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send PUT result from thread");
+                        log::error!("Failed to send PUT result from thread");
                     }
                 });
 
@@ -175,7 +175,7 @@ pub fn register_patch_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, 
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send PATCH result from thread");
+                        log::error!("Failed to send PATCH result from thread");
                     }
                 });
 
@@ -234,7 +234,7 @@ pub fn register_delete_http_keyword(
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send DELETE result from thread");
+                        log::error!("Failed to send DELETE result from thread");
                     }
                 });
 
@@ -377,7 +377,7 @@ pub fn register_graphql_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send GRAPHQL result from thread");
+                        log::error!("Failed to send GRAPHQL result from thread");
                     }
                 });
 
@@ -438,7 +438,7 @@ pub fn register_soap_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, e
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SOAP result from thread");
+                        log::error!("Failed to send SOAP result from thread");
                     }
                 });
 
@@ -475,7 +475,7 @@ async fn execute_http_request(
         .connect_timeout(Duration::from_secs(10))
         .build()
         .map_err(|e| {
-            error!("Failed to build HTTP client: {e}");
+            log::error!("Failed to build HTTP client: {e}");
             e
         })?;
 
@@ -517,7 +517,7 @@ async fn execute_http_request(
     }
 
     let response = request.send().await.map_err(|e| {
-        error!("HTTP {method} request failed for URL {url}: {e}");
+        log::error!("HTTP {method} request failed for URL {url}: {e}");
         e
     })?;
 
@@ -578,7 +578,7 @@ async fn execute_soap(
         .connect_timeout(Duration::from_secs(10))
         .build()
         .map_err(|e| {
-            error!("Failed to build HTTP client: {e}");
+            log::error!("Failed to build HTTP client: {e}");
             e
         })?;
 
@@ -599,7 +599,7 @@ async fn execute_soap(
         .send()
         .await
         .map_err(|e| {
-            error!("SOAP request failed for endpoint {endpoint}: {e}");
+            log::error!("SOAP request failed for endpoint {endpoint}: {e}");
             e
         })?;
 

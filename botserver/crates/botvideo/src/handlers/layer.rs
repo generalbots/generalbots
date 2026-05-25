@@ -21,7 +21,7 @@ pub async fn get_layers(
             axum::Json(serde_json::json!({ "layers": layers })),
         ),
         Err(e) => {
-            error!("Failed to get layers: {e}");
+            log::error!("Failed to get layers: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -42,7 +42,7 @@ pub async fn add_layer(
             axum::Json(serde_json::json!({ "layer": layer })),
         ),
         Err(e) => {
-            error!("Failed to add layer: {e}");
+            log::error!("Failed to add layer: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -67,7 +67,7 @@ pub async fn update_layer(
             axum::Json(serde_json::json!({ "error": "Layer not found" })),
         ),
         Err(e) => {
-            error!("Failed to update layer: {e}");
+            log::error!("Failed to update layer: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -87,7 +87,7 @@ pub async fn delete_layer(
             axum::Json(serde_json::json!({})),
         ),
         Err(e) => {
-            error!("Failed to delete layer: {e}");
+            log::error!("Failed to delete layer: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),

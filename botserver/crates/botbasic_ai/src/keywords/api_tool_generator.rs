@@ -1,6 +1,6 @@
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
-use log::{error, info, trace, warn};
+use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -144,7 +144,7 @@ impl ApiToolGenerator {
                 }
                 Err(e) => {
                     result.errors.push(format!("{}: {}", api_name, e));
-                    error!("Failed to sync API {}: {}", api_name, e);
+                    log::error!("Failed to sync API {}: {}", api_name, e);
                 }
             }
         }

@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
-use log::{error, info};
+use log::info;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -71,11 +71,11 @@ pub fn register_use_kb_keyword(
                 Ok(Dynamic::UNIT)
             }
             Ok(Err(e)) => {
-                error!("Failed to add KB '{}': {}", kb_name, e);
+                log::error!("Failed to add KB '{}': {}", kb_name, e);
                 Err(format!("USE_KB failed: {}", e).into())
             }
             Err(e) => {
-                error!("Thread panic in USE_KB: {:?}", e);
+                log::error!("Thread panic in USE_KB: {:?}", e);
                 Err("USE_KB failed: thread panic".into())
             }
         }
@@ -108,11 +108,11 @@ pub fn register_use_kb_keyword(
                 Dynamic::UNIT
             }
             Ok(Err(e)) => {
-                error!("Failed to add KB '{}': {}", kb_name, e);
+                log::error!("Failed to add KB '{}': {}", kb_name, e);
                 Dynamic::from(format!("USE_KB failed: {}", e))
             }
             Err(e) => {
-                error!("Thread panic in USE_KB: {:?}", e);
+                log::error!("Thread panic in USE_KB: {:?}", e);
                 Dynamic::from("USE_KB failed: thread panic")
             }
         }
@@ -141,11 +141,11 @@ pub fn register_use_kb_keyword(
                 Dynamic::UNIT
             }
             Ok(Err(e)) => {
-                error!("Failed to add KB '{}': {}", kb_name, e);
+                log::error!("Failed to add KB '{}': {}", kb_name, e);
                 Dynamic::from(format!("USE_KB failed: {}", e))
             }
             Err(e) => {
-                error!("Thread panic in USE_KB: {:?}", e);
+                log::error!("Thread panic in USE_KB: {:?}", e);
                 Dynamic::from("USE_KB failed: thread panic")
             }
         }

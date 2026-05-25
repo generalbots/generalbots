@@ -4,7 +4,7 @@ use chrono::Utc;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
-use log::{error, trace, warn};
+use log::{trace, warn};
 #[cfg(feature = "cache")]
 use redis::Client;
 use std::collections::{HashMap, HashSet};
@@ -175,7 +175,7 @@ impl SessionManager {
             .returning(UserSession::as_returning())
             .get_result(&mut conn)
             .map_err(|e| {
-                error!("Failed to create session in database: {}", e);
+                log::error!("Failed to create session in database: {}", e);
                 e
             })?;
 

@@ -15,7 +15,7 @@ pub fn start_episodic_memory_scheduler(state: Arc<AppState>) {
         loop {
             interval.tick().await;
             if let Err(e) = process_episodic_memory(&Arc::clone(&state)).await {
-                error!("Episodic memory processing failed: {}", e);
+                log::error!("Episodic memory processing failed: {}", e);
             }
         }
     });

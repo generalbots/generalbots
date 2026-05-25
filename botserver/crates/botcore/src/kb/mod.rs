@@ -15,7 +15,7 @@ pub use website_crawler_service::{ensure_crawler_service_running, WebsiteCrawler
 
 use anyhow::Result;
 use diesel::prelude::*;
-use log::{error, info, warn};
+use log::{info, warn};
 
 
 #[derive(Debug)]
@@ -257,7 +257,7 @@ impl KnowledgeBaseManager {
                 .bind::<diesel::sql_types::Integer, _>(doc_count as i32)
                 .execute(&mut conn)
                 .map_err(|e| {
-                    error!("Failed to upsert kb_collections for {}/{}: {}", bot_name, kb_name, e);
+                    log::error!("Failed to upsert kb_collections for {}/{}: {}", bot_name, kb_name, e);
                     e
                 })?;
                 info!(
@@ -286,7 +286,7 @@ impl KnowledgeBaseManager {
                 Ok(())
             }
             Err(e) => {
-                error!("Failed to clear collection {}: {}", collection_name, e);
+                log::error!("Failed to clear collection {}: {}", collection_name, e);
                 Err(e)
             }
         }
@@ -309,7 +309,7 @@ impl KnowledgeBaseManager {
                 Ok(())
             }
             Err(e) => {
-                error!("Failed to delete vectors for file {} from {}: {}", relative_path, collection_name, e);
+                log::error!("Failed to delete vectors for file {} from {}: {}", relative_path, collection_name, e);
                 Err(e)
             }
         }

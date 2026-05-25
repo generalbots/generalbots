@@ -138,13 +138,13 @@ pub fn safe_fuser(args: &[&str]) {
 /// Dump all component logs to error output
 pub fn dump_all_component_logs(log_dir: &Path) {
     if !log_dir.exists() {
-        error!("Log directory does not exist: {}", log_dir.display());
+        log::error!("Log directory does not exist: {}", log_dir.display());
         return;
     }
 
-    error!("========================================================================");
-    error!("DUMPING ALL AVAILABLE LOGS FROM: {}", log_dir.display());
-    error!("========================================================================");
+    log::error!("========================================================================");
+    log::error!("DUMPING ALL AVAILABLE LOGS FROM: {}", log_dir.display());
+    log::error!("========================================================================");
 
     let components = vec![
         "vault",
@@ -185,20 +185,20 @@ pub fn dump_all_component_logs(log_dir: &Path) {
                     Ok(content) => {
                         let lines: Vec<&str> = content.lines().rev().take(30).collect();
                         for line in lines.iter().rev() {
-                            error!("  {}", line);
+                            log::error!("  {}", line);
                         }
                     }
                     Err(e) => {
-                        error!("  Failed to read: {}", e);
+                        log::error!("  Failed to read: {}", e);
                     }
                 }
             }
         }
     }
 
-    error!("========================================================================");
-    error!("END OF LOG DUMP");
-    error!("========================================================================");
+    log::error!("========================================================================");
+    log::error!("END OF LOG DUMP");
+    log::error!("========================================================================");
 }
 
 use std::fs;

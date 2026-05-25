@@ -74,11 +74,11 @@ pub async fn list_queue(
     match result {
         Ok(Ok(queue_items)) => (StatusCode::OK, Json(queue_items)),
         Ok(Err(e)) => {
-            error!("Queue list error: {}", e);
+            log::error!("Queue list error: {}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(vec![] as Vec<QueueItem>))
         }
         Err(e) => {
-            error!("Task error: {}", e);
+            log::error!("Task error: {}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(vec![] as Vec<QueueItem>))
         }
     }
@@ -102,7 +102,7 @@ pub async fn list_attendants(
             match result {
                 Ok(Some(id)) => id,
                 _ => {
-                    error!("No valid bot_id provided and no default bot found");
+                    log::error!("No valid bot_id provided and no default bot found");
                     return (StatusCode::BAD_REQUEST, Json(vec![] as Vec<AttendantStats>));
                 }
             }

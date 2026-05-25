@@ -166,7 +166,7 @@ pub async fn create_video_project_tool(
             })
         }
         Err(e) => {
-            error!("MCP: Failed to create video project: {e}");
+            log::error!("MCP: Failed to create video project: {e}");
             McpToolResponse::err(format!("Failed to create project: {e}"))
         }
     }
@@ -201,7 +201,7 @@ pub async fn add_video_clip_tool(
             })
         }
         Err(e) => {
-            error!("MCP: Failed to add clip: {e}");
+            log::error!("MCP: Failed to add clip: {e}");
             McpToolResponse::err(format!("Failed to add clip: {e}"))
         }
     }
@@ -224,7 +224,7 @@ pub async fn generate_captions_tool(
     {
         Ok(t) => t,
         Err(e) => {
-            error!("MCP: Transcription failed: {e}");
+            log::error!("MCP: Transcription failed: {e}");
             return McpToolResponse::err(format!("Transcription failed: {e}"));
         }
     };
@@ -251,7 +251,7 @@ pub async fn generate_captions_tool(
             })
         }
         Err(e) => {
-            error!("MCP: Failed to generate captions: {e}");
+            log::error!("MCP: Failed to generate captions: {e}");
             McpToolResponse::err(format!("Failed to generate captions: {e}"))
         }
     }
@@ -289,7 +289,7 @@ pub async fn export_video_tool(
             })
         }
         Err(e) => {
-            error!("MCP: Failed to start export: {e}");
+            log::error!("MCP: Failed to start export: {e}");
             McpToolResponse::err(format!("Failed to start export: {e}"))
         }
     }
@@ -339,7 +339,7 @@ pub async fn add_text_overlay_tool(
             })
         }
         Err(e) => {
-            error!("MCP: Failed to add text overlay: {e}");
+            log::error!("MCP: Failed to add text overlay: {e}");
             McpToolResponse::err(format!("Failed to add text overlay: {e}"))
         }
     }
@@ -377,7 +377,7 @@ pub async fn add_audio_track_tool(
             })
         }
         Err(e) => {
-            error!("MCP: Failed to add audio track: {e}");
+            log::error!("MCP: Failed to add audio track: {e}");
             McpToolResponse::err(format!("Failed to add audio track: {e}"))
         }
     }

@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
-use log::{error, info};
+use log::info;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -64,11 +64,11 @@ pub fn register_use_account_keyword(
                     Ok(Dynamic::UNIT)
                 }
                 Ok(Err(e)) => {
-                    error!("Failed to add account '{}': {}", email, e);
+                    log::error!("Failed to add account '{}': {}", email, e);
                     Err(format!("USE_ACCOUNT failed: {}", e).into())
                 }
                 Err(e) => {
-                    error!("Thread panic in USE_ACCOUNT: {:?}", e);
+                    log::error!("Thread panic in USE_ACCOUNT: {:?}", e);
                     Err("USE_ACCOUNT failed: thread panic".into())
                 }
             }

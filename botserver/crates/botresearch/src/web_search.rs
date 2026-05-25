@@ -136,7 +136,7 @@ pub async fn handle_web_search<S: ResearchState>(
     let results = match search_duckduckgo(&payload.query, max_results, region).await {
         Ok(r) => r,
         Err(e) => {
-            error!("DuckDuckGo search failed: {}", e);
+            log::error!("DuckDuckGo search failed: {}", e);
             Vec::new()
         }
     };

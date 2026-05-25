@@ -6,7 +6,7 @@ use botbasic_core::utils;
 use botbasic_core::utils::to_array;
 use diesel::prelude::*;
 use diesel::sql_types::Text;
-use log::{error, trace, warn};
+use log::{trace, warn};
 use rhai::Dynamic;
 use rhai::Engine;
 use serde_json::{json, Value};
@@ -95,7 +95,7 @@ pub fn execute_find(
         diesel::sql_query(&query)
             .load(conn)
             .map_err(|e| {
-                error!("SQL execution error: {e}");
+                log::error!("SQL execution error: {e}");
                 e.to_string()
             })?
     } else {
@@ -103,7 +103,7 @@ pub fn execute_find(
             .bind::<Text, _>(&params[0])
             .load(conn)
             .map_err(|e| {
-                error!("SQL execution error: {e}");
+                log::error!("SQL execution error: {e}");
                 e.to_string()
             })?
     };

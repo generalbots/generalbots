@@ -1,6 +1,6 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
@@ -52,7 +52,7 @@ pub fn clear_suggestions_keyword(
                             user_session.id
                         );
                     }
-                    Err(e) => error!("Failed to clear suggestions from Redis: {}", e),
+                    Err(e) => log::error!("Failed to clear suggestions from Redis: {}", e),
                 }
             } else {
                 trace!("No cache configured, suggestions not cleared");
@@ -367,7 +367,7 @@ pub fn get_suggestions(
                     session_id
                 );
             }
-            Err(e) => error!("Failed to get suggestions from Redis: {}", e),
+            Err(e) => log::error!("Failed to get suggestions from Redis: {}", e),
         }
     } else {
         info!("No cache configured, cannot retrieve suggestions");

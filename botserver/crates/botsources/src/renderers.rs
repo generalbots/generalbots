@@ -80,12 +80,12 @@ pub fn load_mcp_servers_catalog() -> Option<McpServersCatalog> {
             Ok(content) => match serde_json::from_str(&content) {
                 Ok(catalog) => Some(catalog),
                 Err(e) => {
-                    error!("Failed to parse mcp_servers.json: {}", e);
+                    log::error!("Failed to parse mcp_servers.json: {}", e);
                     None
                 }
             },
             Err(e) => {
-                error!("Failed to read mcp_servers.json: {}", e);
+                log::error!("Failed to read mcp_servers.json: {}", e);
                 None
             }
         }

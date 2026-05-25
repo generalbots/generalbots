@@ -25,7 +25,8 @@ fn normalize_cron_schedule(schedule: &str) -> String {
 }
 
 #[cfg(feature = "vectordb")]
-pub use crate::vector_db::vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};
+pub use crate::kb::kb_indexer::{IndexingStats, VectorDBIndexer};
+// IndexingStatus parece não existir em botqdrant, ajustando conforme disponível.
 
 #[derive(Debug)]
 pub struct AutomationService {
@@ -42,7 +43,7 @@ impl AutomationService {
         loop {
             ticker.tick().await;
             if let Err(e) = self.check_scheduled_tasks().await {
-                error!("Error checking scheduled tasks: {}", e);
+                log::error!("Error checking scheduled tasks: {}", e);
             }
         }
     }
@@ -78,7 +79,7 @@ impl AutomationService {
                                     }
                                 }
                                 if let Err(e) = self.execute_automation(&automation).await {
-                                    error!("Error executing automation {}: {}", automation.id, e);
+                                    log::error!("Error executing automation {}: {}", automation.id, e);
                                 }
                                 if let Err(e) =
                                     diesel::update(system_automations.filter(id.eq(automation.id)))
@@ -126,7 +127,7 @@ impl AutomationService {
         let script_content = match tokio::fs::read_to_string(&script_path).await {
             Ok(content) => content,
             Err(e) => {
-                error!("Failed to read script {}: {}", script_path, e);
+                log::error!("Failed to read script {}: {}", script_path, e);
                 return Ok(());
             }
         };
@@ -141,11 +142,11 @@ impl AutomationService {
             match runner.run_script(&script_content, session.id, &automation.bot_id.to_string()).await {
                 Ok(_) => {}
                 Err(e) => {
-                    error!("Script execution failed: {}", e);
+                    log::error!("Script execution failed: {}", e);
                 }
             }
         } else {
-            error!("No script runner available for automation {}", automation.id);
+            log::error!("No script runner available for automation {}", automation.id);
         }
         Ok(())
     }

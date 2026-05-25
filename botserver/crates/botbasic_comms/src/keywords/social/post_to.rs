@@ -2,7 +2,7 @@ use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 
 pub fn post_to_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -171,7 +171,7 @@ fn save_social_post(
     .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to save social post: {}", e);
+        log::error!("Failed to save social post: {}", e);
         format!("Failed to save post: {}", e)
     })?;
 
