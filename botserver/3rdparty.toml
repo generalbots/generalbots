@@ -23,36 +23,50 @@ cache_dir = "botserver-installers"
 # - url: Download URL
 # - filename: Local filename in cache
 # - sha256: Optional checksum for verification (empty = skip verification)
-
 [components.drive]
 name = "MinIO Object Storage"
 url = "https://dl.min.io/server/minio/release/linux-amd64/minio"
+url_win = "https://dl.min.io/server/minio/release/windows-amd64/minio.exe"
 filename = "minio"
+filename_win = "minio.exe"
 sha256 = ""
 
 [components.mc]
 name = "MinIO Client (mc)"
 url = "https://dl.min.io/client/mc/release/linux-amd64/mc"
+url_win = "https://dl.min.io/client/mc/release/windows-amd64/mc.exe"
 filename = "mc"
+filename_win = "mc.exe"
 sha256 = ""
 
 [components.tables]
 name = "PostgreSQL Database"
 url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"
+url_win = "https://get.enterprisedb.com/postgresql/postgresql-17.2-1-windows-x64-binaries.zip"
 filename = "postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"
+filename_win = "postgresql-17.2-1-windows-x64-binaries.zip"
 sha256 = ""
 
 [components.cache]
 name = "Valkey Cache (Redis-compatible)"
-# Precompiled binary from download.valkey.io (jammy for GLIBC 2.36 compatibility)
 url = "https://download.valkey.io/releases/valkey-8.1.5-jammy-x86_64.tar.gz"
 filename = "valkey-8.1.5-jammy-x86_64.tar.gz"
+note = "Windows: Use Docker container or Redis-compatible alternatives."
 sha256 = ""
 
-[components.llm]
-name = "Llama.cpp Server"
-url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-x64.zip"
-filename = "llama-b7345-bin-ubuntu-x64.zip"
+[components.cache_win]
+name = "Valkey Cache (Windows - via Memurai)"
+url = "https://github.com/nicktajzsg/memurai/releases/latest/download/memurai-msi-latest.exe"
+filename = "memurai-installer.exe"
+note = "Windows compatible Redis alternative. Also works with: docker run -p 6379:6379 redis"
+sha256 = ""
+
+[components.caddy]
+name = "Caddy Web Server"
+url = "https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_amd64.tar.gz"
+url_win = "https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_windows_amd64.zip"
+filename = "caddy_2.9.1_linux_amd64.tar.gz"
+filename_win = "caddy_2.9.1_windows_amd64.zip"
 sha256 = "91b066ecc53c20693a2d39703c12bc7a69c804b0768fee064d47df702f616e52"
 
 [components.email]
@@ -103,6 +117,14 @@ url = "https://github.com/livekit/livekit/releases/download/v2.8.2/livekit_2.8.2
 filename = "livekit_2.8.2_linux_amd64.tar.gz"
 sha256 = ""
 
+[components.libpq_win]
+name = "PostgreSQL Client Libraries (libpq for Diesel)"
+url = "https://get.enterprisedb.com/postgresql/postgresql-17.4-1-windows-x64-binaries.zip"
+url_win = "https://get.enterprisedb.com/postgresql/postgresql-17.4-1-windows-x64-binaries.zip"
+filename = "postgresql-17.4-1-windows-x64-binaries.zip"
+filename_win = "postgresql-17.4-1-windows-x64-binaries.zip"
+sha256 = ""
+
 [components.table_editor]
 name = "NocoDB"
 url = "http://get.nocodb.com/linux-x64"
@@ -124,7 +146,9 @@ sha256 = ""
 [components.vault]
 name = "HashiCorp Vault"
 url = "https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip"
+url_win = "https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_windows_amd64.zip"
 filename = "vault_1.15.4_linux_amd64.zip"
+filename_win = "vault_1.15.4_windows_amd64.zip"
 sha256 = ""
 
 [components.observability]

@@ -89,6 +89,7 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "python3",
         "python3.11",
         "python3.12",
+        "tasklist",
     ])
 });
 
@@ -315,6 +316,17 @@ impl SafeCommand {
     }
 
     fn build_path_env(&self) -> String {
+        #[cfg(target_os = "windows")]
+        let separator = ";";
+        #[cfg(not(target_os = "windows"))]
+        let separator = ":";
+
+        #[cfg(target_os = "windows")]
+        let mut path_entries: Vec<String> = vec![
+            std::env::var("PATH").unwrap_or_default(),
+        ];
+
+        #[cfg(not(target_os = "windows"))]
         let mut path_entries = vec![
             "/snap/bin".to_string(),
             "/usr/local/bin".to_string(),
@@ -325,7 +337,10 @@ impl SafeCommand {
         ];
 
         let stack_path = get_stack_path();
+        #[cfg(not(target_os = "windows"))]
         let shared_bin = format!("{}/bin/shared", stack_path);
+        #[cfg(target_os = "windows")]
+        let shared_bin = format!("{}\\bin\\shared", stack_path);
         if std::path::Path::new(&shared_bin).exists() {
             path_entries.insert(0, shared_bin);
         }
@@ -338,25 +353,42 @@ impl SafeCommand {
             format!("{}/bin/directory", stack_path),
         ];
         for bin_dir in component_bins {
-            if std::path::Path::new(&bin_dir).exists() {
-                path_entries.insert(0, bin_dir);
+            let normalised = bin_dir.replace('/', &std::path::MAIN_SEPARATOR.to_string());
+            if std::path::Path::new(&normalised).exists() {
+                path_entries.insert(0, normalised);
             }
         }
 
-        path_entries.join(":")
+        path_entries.join(separator)
     }
 
     fn apply_common_env(&self, cmd: &mut std::process::Command) {
         cmd.env_clear();
         cmd.env("PATH", self.build_path_env());
-        cmd.env(
-            "HOME",
-            dirs::home_dir()
-                .unwrap_or_else(|| PathBuf::from("/tmp"))
-                .to_string_lossy()
-                .to_string(),
-        );
-        cmd.env("LANG", "C.UTF-8");
+
+        #[cfg(target_os = "windows")]
+        {
+            cmd.env(
+                "USERPROFILE",
+                dirs::home_dir()
+                    .unwrap_or_else(|| PathBuf::from("C:\\Users\\Default"))
+                    .to_string_lossy()
+                    .to_string(),
+            );
+            cmd.env("SYSTEMROOT", std::env::var("SYSTEMROOT").unwrap_or_else(|_| "C:\\Windows".into()));
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            cmd.env(
+                "HOME",
+                dirs::home_dir()
+                    .unwrap_or_else(|| PathBuf::from("/tmp"))
+                    .to_string_lossy()
+                    .to_string(),
+            );
+            cmd.env("LANG", "C.UTF-8");
+        }
 
         for (key, value) in &self.envs {
             cmd.env(key, value);
@@ -437,9 +469,20 @@ impl SafeCommand {
     }
 
     pub fn noop_child() -> Result<Child, CommandGuardError> {
-        std::process::Command::new("true")
-            .spawn()
-            .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
+        #[cfg(target_os = "windows")]
+        {
+            std::process::Command::new("cmd")
+                .args(["/C", "exit /b 0"])
+                .spawn()
+                .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            std::process::Command::new("true")
+                .spawn()
+                .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
+        }
     }
 }
 
