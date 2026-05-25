@@ -4,7 +4,7 @@ use crate::intent_compiler::{CompiledIntent, IntentCompiler};
 use crate::app_generator::AppGenerator;
 use crate::safety_layer::SafetyLayer;
 use crate::app_logs::{log_generator_error, log_generator_info};
-use log::{info, warn, error};
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -150,7 +150,7 @@ impl Orchestrator {
                 resources
             }
             Err(e) => {
-                error!("App generation failed for task {task_id}: {e}");
+                log::error!("App generation failed for task {task_id}: {e}");
                 log_generator_error(&task_id, "generation_failed", &e.to_string());
                 return Ok(OrchestratorResult {
                     success: false,

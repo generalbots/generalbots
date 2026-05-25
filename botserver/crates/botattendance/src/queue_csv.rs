@@ -39,7 +39,7 @@ fn check_config_for_crm_enabled(config_path: &PathBuf) -> bool {
             false
         }
         Err(e) => {
-            error!("Failed to read config file: {}", e);
+            log::error!("Failed to read config file: {}", e);
             false
         }
     }
@@ -80,7 +80,7 @@ pub fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV> {
             attendants
         }
         Err(e) => {
-            error!("Failed to read attendant file: {}", e);
+            log::error!("Failed to read attendant file: {}", e);
             Vec::new()
         }
     }

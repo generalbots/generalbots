@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use log::{error, info, warn};
+use log::{info, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -147,12 +147,12 @@ impl VectorDBIndexer {
 
                     for (user_id, bot_id) in users {
                         if let Err(e) = self.index_user_data(user_id, bot_id).await {
-                            error!("Failed to index user {}: {}", user_id, e);
+                            log::error!("Failed to index user {}: {}", user_id, e);
                         }
                     }
                 }
                 Err(e) => {
-                    error!("Failed to get active users: {}", e);
+                    log::error!("Failed to get active users: {}", e);
                 }
             }
 
@@ -251,11 +251,11 @@ impl VectorDBIndexer {
 
         #[cfg(feature = "mail")]
         if let Err(e) = self.index_user_emails(user_id).await {
-            error!("Failed to index emails for user {}: {}", user_id, e);
+            log::error!("Failed to index emails for user {}: {}", user_id, e);
         }
 
         if let Err(e) = self.index_user_files(user_id).await {
-            error!("Failed to index files for user {}: {}", user_id, e);
+            log::error!("Failed to index files for user {}: {}", user_id, e);
         }
 
         let mut jobs = self.jobs.write().await;
@@ -315,7 +315,7 @@ impl VectorDBIndexer {
                             match self.embedding_generator.generate_text_embedding(text).await {
                                 Ok(embedding) => {
                                     if let Err(e) = email_db.index_email(email, embedding).await {
-                                        error!("Failed to index email {}: {}", email.id, e);
+                                        log::error!("Failed to index email {}: {}", email.id, e);
                                     } else {
                                         info!(" Indexed email: {}", email.subject);
                                     }
@@ -382,13 +382,13 @@ impl VectorDBIndexer {
                         {
                             Ok(embedding) => {
                                 if let Err(e) = drive_db.index_file(file, embedding).await {
-                                    error!("Failed to index file {}: {}", file.id, e);
+                                    log::error!("Failed to index file {}: {}", file.id, e);
                                 } else {
                                     info!(" Indexed file: {}", file.file_name);
                                 }
                             }
                             Err(e) => {
-                                error!("Failed to generate embedding for file {}: {}", file.id, e);
+                                log::error!("Failed to generate embedding for file {}: {}", file.id, e);
                             }
                         }
                     }
@@ -397,7 +397,7 @@ impl VectorDBIndexer {
                 }
             }
             Err(e) => {
-                error!("Failed to get unindexed files for user {}: {}", user_id, e);
+                log::error!("Failed to get unindexed files for user {}: {}", user_id, e);
             }
         }
 

@@ -2,7 +2,7 @@ use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use rhai::{Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
 
@@ -107,7 +107,7 @@ fn check_config_for_crm(config_path: &PathBuf) -> bool {
             false
         }
         Err(e) => {
-            error!("Failed to read config file: {}", e);
+            log::error!("Failed to read config file: {}", e);
             false
         }
     }
@@ -175,7 +175,7 @@ fn parse_attendants_csv(path: &PathBuf) -> Vec<Attendant> {
             attendants
         }
         Err(e) => {
-            error!("Failed to read attendant file: {}", e);
+            log::error!("Failed to read attendant file: {}", e);
             Vec::new()
         }
     }
@@ -390,7 +390,7 @@ pub async fn execute_transfer(
             }
         }
         Ok(Err(e)) => {
-            error!("Transfer failed: {}", e);
+            log::error!("Transfer failed: {}", e);
             TransferResult {
                 success: false,
                 status: TransferStatus::Error,
@@ -402,7 +402,7 @@ pub async fn execute_transfer(
             }
         }
         Err(e) => {
-            error!("Transfer task failed: {:?}", e);
+            log::error!("Transfer task failed: {:?}", e);
             TransferResult {
                 success: false,
                 status: TransferStatus::Error,
@@ -450,7 +450,7 @@ async fn calculate_queue_position(state: &Arc<dyn BasicRuntime>, current_session
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                error!("DB connection error calculating queue position: {}", e);
+                log::error!("DB connection error calculating queue position: {}", e);
                 return 1;
             }
         };

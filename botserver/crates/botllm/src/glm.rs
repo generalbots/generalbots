@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{error, info, trace};
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -178,7 +178,7 @@ impl LLMProvider for GLMClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("[GLM] API error: {}", error_text);
+            log::error!("[GLM] API error: {}", error_text);
             return Err(format!("GLM API error: {}", error_text).into());
         }
 
@@ -272,7 +272,7 @@ chat_template_kwargs: Some(GLMChatTemplateKwargs {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("[GLM] Streaming error: {}", error_text);
+            log::error!("[GLM] Streaming error: {}", error_text);
             return Err(format!("GLM streaming error: {}", error_text).into());
         }
 

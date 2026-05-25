@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{error, info};
+use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -182,7 +182,7 @@ impl LLMProvider for KimiClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Kimi API error: {}", error_text);
+            log::error!("Kimi API error: {}", error_text);
             return Err(format!("Kimi API error: {}", error_text).into());
         }
 
@@ -276,7 +276,7 @@ impl LLMProvider for KimiClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("[Kimi] Streaming error: {}", error_text);
+            log::error!("[Kimi] Streaming error: {}", error_text);
             return Err(format!("Kimi streaming error: {}", error_text).into());
         }
 
@@ -345,7 +345,7 @@ impl LLMProvider for KimiClient {
                 if let Some(error) = filter_result.get("error") {
                   let code = error.get("code").and_then(|c| c.as_str()).unwrap_or("unknown");
                   let message = error.get("message").and_then(|m| m.as_str()).unwrap_or("no message");
-                  error!("[Kimi] Content filter error: code={}, message={}", code, message);
+                  log::error!("[Kimi] Content filter error: code={}, message={}", code, message);
                 } else {
                   log::trace!("[Kimi] Content filter result (no error): {:?}", filter_result);
                 }

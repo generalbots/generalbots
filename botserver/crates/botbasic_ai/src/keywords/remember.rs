@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::{Duration, Utc};
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 
 pub fn remember_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -72,7 +72,7 @@ pub fn remember_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send REMEMBER result from thread");
+                        log::error!("Failed to send REMEMBER result from thread");
                     }
                 });
 
@@ -131,7 +131,7 @@ pub fn remember_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                 };
 
                 if send_err.is_some() {
-                    error!("Failed to send RECALL result from thread");
+                    log::error!("Failed to send RECALL result from thread");
                 }
             });
 
@@ -249,7 +249,7 @@ fn store_memory(
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&expires_at);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to store memory: {}", e);
+        log::error!("Failed to store memory: {}", e);
         format!("Failed to store memory: {}", e)
     })?;
 
@@ -292,7 +292,7 @@ fn retrieve_memory(
             Ok(json!(null))
         }
         Err(e) => {
-            error!("Failed to retrieve memory: {}", e);
+            log::error!("Failed to retrieve memory: {}", e);
             Err(format!("Failed to retrieve memory: {}", e))
         }
     }

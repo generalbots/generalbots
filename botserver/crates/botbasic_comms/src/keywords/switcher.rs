@@ -1,7 +1,7 @@
 use botlib::models::Switcher;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{debug, error, trace};
+use log::{debug, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
@@ -72,7 +72,7 @@ pub fn clear_switchers_keyword(
                             user_session.id
                         );
                     }
-                    Err(e) => error!("Failed to clear switchers from Redis: {}", e),
+                    Err(e) => log::error!("Failed to clear switchers from Redis: {}", e),
                 }
             } else {
                 trace!("No cache configured, switchers not cleared");
@@ -218,7 +218,7 @@ pub fn get_switchers(
             }
             Err(e) => {
                 debug!("get_switchers: Redis error: {}", e);
-                error!("Failed to get switchers from Redis: {}", e);
+                log::error!("Failed to get switchers from Redis: {}", e);
             }
         }
     }

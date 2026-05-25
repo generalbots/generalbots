@@ -294,7 +294,7 @@ impl crate::ChannelAdapter for InstagramAdapter {
         response: BotResponse,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if !self.is_configured() {
-            error!("Instagram adapter not configured. Please set instagram-access-token and instagram-page-id in config.csv");
+            log::error!("Instagram adapter not configured. Please set instagram-access-token and instagram-page-id in config.csv");
             return Err("Instagram not configured".into());
         }
 

@@ -49,7 +49,7 @@ impl VideoRenderWorker {
                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                 }
                 Err(e) => {
-                    error!("Worker error: {e}");
+                    log::error!("Worker error: {e}");
                     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
                 }
             }
@@ -101,7 +101,7 @@ impl VideoRenderWorker {
                 let error_msg = format!("Render failed: {e}");
                 self.update_progress(export_id, project_id, 0, "failed", None, None)
                     .await?;
-                error!("Export {export_id} failed: {error_msg}");
+                log::error!("Export {export_id} failed: {error_msg}");
                 self.set_export_error(export_id, &error_msg).await?;
             }
         }

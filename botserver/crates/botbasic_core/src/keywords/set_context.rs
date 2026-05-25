@@ -1,6 +1,6 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 
@@ -50,7 +50,7 @@ pub fn set_context_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, eng
                                 conn
                             }
                             Err(e) => {
-                                error!("Failed to connect to cache: {}", e);
+                                log::error!("Failed to connect to cache: {}", e);
                                 return;
                             }
                         };
@@ -72,7 +72,7 @@ pub fn set_context_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, eng
                                 trace!("Context value successfully stored in cache");
                             }
                             Err(e) => {
-                                error!("Failed to set cache value: {}", e);
+                                log::error!("Failed to set cache value: {}", e);
                             }
                         }
                     });

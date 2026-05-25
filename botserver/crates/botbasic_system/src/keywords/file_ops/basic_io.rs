@@ -33,7 +33,7 @@ use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use std::sync::Arc;
 use diesel::prelude::*;
-use log::{error, trace};
+use log::trace;
 use std::error::Error;
 
 pub async fn execute_read(
@@ -49,7 +49,7 @@ pub async fn execute_read(
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {e}");
+                log::error!("Failed to query bot name: {e}");
                 e
             })?
     };
@@ -83,7 +83,7 @@ pub async fn execute_write(
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {e}");
+                log::error!("Failed to query bot name: {e}");
                 e
             })?
     };
@@ -113,7 +113,7 @@ pub async fn execute_delete_file(
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {e}");
+                log::error!("Failed to query bot name: {e}");
                 e
             })?
     };
@@ -142,7 +142,7 @@ pub async fn execute_list(
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {e}");
+                log::error!("Failed to query bot name: {e}");
                 e
             })?
     };

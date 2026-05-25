@@ -10,7 +10,7 @@ use axum::{
 };
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -209,7 +209,7 @@ async fn oauth_callback(
     let token = match provider.exchange_code(&config, code, &http_client).await {
         Ok(t) => t,
         Err(e) => {
-            error!("Failed to exchange OAuth code: {}", e);
+            log::error!("Failed to exchange OAuth code: {}", e);
             return (StatusCode::INTERNAL_SERVER_ERROR,
                 Html(format!(r#"<!DOCTYPE html><html><head><title>Login Failed</title></head><body>
                 <h1>Login Failed</h1><p>Failed to complete the OAuth login: {}</p>
@@ -221,7 +221,7 @@ async fn oauth_callback(
     let user_info = match provider.fetch_user_info(&token.access_token, &http_client).await {
         Ok(info) => info,
         Err(e) => {
-            error!("Failed to fetch user info: {}", e);
+            log::error!("Failed to fetch user info: {}", e);
             return (StatusCode::INTERNAL_SERVER_ERROR,
                 Html(format!(r#"<!DOCTYPE html><html><head><title>Login Failed</title></head><body>
                 <h1>Login Failed</h1><p>Failed to retrieve user information: {}</p>
@@ -240,7 +240,7 @@ async fn oauth_callback(
     let user_id = match create_or_get_oauth_user(&state, &user_info).await {
         Ok(id) => id,
         Err(e) => {
-            error!("Failed to create/get user: {}", e);
+            log::error!("Failed to create/get user: {}", e);
             return (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to create user account".to_string())).into_response();
         }
     };
@@ -248,7 +248,7 @@ async fn oauth_callback(
     let session_token = match create_user_session(&state, user_id).await {
         Ok(token) => token,
         Err(e) => {
-            error!("Failed to create session: {}", e);
+            log::error!("Failed to create session: {}", e);
             return (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to create session".to_string())).into_response();
         }
     };

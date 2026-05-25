@@ -634,7 +634,7 @@ pub fn process_table_definitions(
             }
         }
         Err(e) => {
-            error!("Schema sync failed: {}", e);
+            log::error!("Schema sync failed: {}", e);
             // Fall through to standard table creation
         }
     }
@@ -655,7 +655,7 @@ pub fn process_table_definitions(
 
             // Create table in the bot's own database using BotDatabaseManager
             if let Err(e) = state.bot_database_manager().create_table_in_bot_database(bot_id, &create_sql) {
-                error!("Failed to create table {} in bot database: {}", table.name, e);
+                log::error!("Failed to create table {} in bot database: {}", table.name, e);
                 // Continue with other tables even if this one fails
             } else {
                 info!("Successfully created table {} in bot database", table.name);
@@ -675,7 +675,7 @@ pub fn process_table_definitions(
                     let driver = ext_conn.driver.clone();
                     if let Err(e) = create_table_on_external_db(&conn_string, &create_sql, &driver)
                     {
-                        error!("Failed to create table on external DB: {}", e);
+                        log::error!("Failed to create table on external DB: {}", e);
                     }
                 }
                 Err(e) => {

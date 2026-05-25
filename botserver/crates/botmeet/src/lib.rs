@@ -246,7 +246,7 @@ pub async fn create_meeting(
             (StatusCode::OK, Json(serde_json::json!(room)))
         }
         Err(e) => {
-            error!("Failed to create meeting room: {e}");
+            log::error!("Failed to create meeting room: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": e.to_string()})),
@@ -324,7 +324,7 @@ pub async fn join_room(
             (StatusCode::OK, Json(serde_json::json!(participant)))
         }
         Err(e) => {
-            error!("Failed to join room {room_id}: {e}");
+            log::error!("Failed to join room {room_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": e.to_string()})),
@@ -349,7 +349,7 @@ pub async fn start_transcription(
             )
         }
         Err(e) => {
-            error!("Failed to start transcription for room {room_id}: {e}");
+            log::error!("Failed to start transcription for room {room_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": e.to_string()})),

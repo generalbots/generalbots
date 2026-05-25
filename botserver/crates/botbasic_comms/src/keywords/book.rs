@@ -2,7 +2,7 @@ use botcore::shared::schema::calendar_events;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::{DateTime, Duration, Timelike, Utc};
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 
 
@@ -222,7 +222,7 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send BOOK result from thread");
+                        log::error!("Failed to send BOOK result from thread");
                     }
                 });
 

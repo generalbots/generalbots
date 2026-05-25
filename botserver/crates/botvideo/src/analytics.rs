@@ -23,7 +23,7 @@ impl AnalyticsEngine {
         diesel::result::Error,
     > {
         self.db.get().map_err(|e| {
-            error!("DB connection error: {e}");
+            log::error!("DB connection error: {e}");
             diesel::result::Error::DatabaseError(
                 diesel::result::DatabaseErrorKind::Unknown,
                 Box::new(e.to_string()),
@@ -308,7 +308,7 @@ pub async fn get_analytics_handler(
             axum::Json(serde_json::json!(analytics)),
         ),
         Err(e) => {
-            error!("Failed to get analytics: {e}");
+            log::error!("Failed to get analytics: {e}");
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -329,7 +329,7 @@ pub async fn record_view_handler(
             axum::Json(serde_json::json!({ "success": true })),
         ),
         Err(e) => {
-            error!("Failed to record view: {e}");
+            log::error!("Failed to record view: {e}");
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),

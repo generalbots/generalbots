@@ -35,12 +35,12 @@ pub async fn start_scheduler(state: Arc<TasksState>, config: SchedulerConfig) {
                 for task in tasks {
                     info!("Executing scheduled task: {} ({})", task.title, task.id);
                     if let Err(e) = execute_scheduled_task(&state, &task).await {
-                        error!("Scheduled task {} failed: {}", task.id, e);
+                        log::error!("Scheduled task {} failed: {}", task.id, e);
                     }
                 }
             }
             Err(e) => {
-                error!("Failed to fetch due tasks: {}", e);
+                log::error!("Failed to fetch due tasks: {}", e);
             }
         }
     }
@@ -76,7 +76,7 @@ async fn execute_scheduled_task(state: &Arc<TasksState>, task: &AutoTask) -> Res
             Ok(())
         }
         Err(e) => {
-            error!("Scheduled task {} execution failed: {}", task.id, e);
+            log::error!("Scheduled task {} execution failed: {}", task.id, e);
             Err(e)
         }
     }
@@ -91,7 +91,7 @@ fn should_run_now(schedule_expr: &str) -> bool {
             })
         }
         Err(_) => {
-            error!("Invalid cron expression: {}", schedule_expr);
+            log::error!("Invalid cron expression: {}", schedule_expr);
             false
         }
     }

@@ -128,7 +128,7 @@ pub async fn route_to_bot(
                     );
 
                     if let Err(e) = adapter.send_message(tg_response).await {
-                        error!("Failed to send Telegram response: {}", e);
+                        log::error!("Failed to send Telegram response: {}", e);
                     }
 
                     accumulated_content.clear();
@@ -139,7 +139,7 @@ pub async fn route_to_bot(
     });
 
     if let Err(e) = handle.await {
-        error!("Bot processing error: {:?}", e);
+        log::error!("Bot processing error: {:?}", e);
 
         let adapter = TelegramAdapter::new(
             state.conn.clone(),
@@ -155,7 +155,7 @@ pub async fn route_to_bot(
         );
 
         if let Err(e) = adapter.send_message(error_response).await {
-            error!("Failed to send error response: {}", e);
+            log::error!("Failed to send error response: {}", e);
         }
     }
 

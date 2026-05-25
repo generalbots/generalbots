@@ -1,5 +1,5 @@
 use botlib::security::create_tls_client;
-use log::{error, info, trace};
+use log::{info, trace};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -285,7 +285,7 @@ impl BotModelsClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Image generation failed: {}", error_text);
+            log::error!("Image generation failed: {}", error_text);
             return Err(format!("Image generation failed: {}", error_text).into());
         }
 
@@ -334,7 +334,7 @@ impl BotModelsClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Video generation failed: {}", error_text);
+            log::error!("Video generation failed: {}", error_text);
             return Err(format!("Video generation failed: {}", error_text).into());
         }
 
@@ -383,7 +383,7 @@ impl BotModelsClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Audio generation failed: {}", error_text);
+            log::error!("Audio generation failed: {}", error_text);
             return Err(format!("Audio generation failed: {}", error_text).into());
         }
 
@@ -438,7 +438,7 @@ impl BotModelsClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Image description failed: {}", error_text);
+            log::error!("Image description failed: {}", error_text);
             return Err(format!("Image description failed: {}", error_text).into());
         }
 
@@ -482,7 +482,7 @@ impl BotModelsClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Video description failed: {}", error_text);
+            log::error!("Video description failed: {}", error_text);
             return Err(format!("Video description failed: {}", error_text).into());
         }
 
@@ -530,7 +530,7 @@ impl BotModelsClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Speech to text failed: {}", error_text);
+            log::error!("Speech to text failed: {}", error_text);
             return Err(format!("Speech to text failed: {}", error_text).into());
         }
 
@@ -574,7 +574,7 @@ impl BotModelsClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Barcode scan failed: {}", error_text);
+            log::error!("Barcode scan failed: {}", error_text);
             return Err(format!("Barcode scan failed: {}", error_text).into());
         }
 

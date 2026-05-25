@@ -31,7 +31,7 @@
 use botcore::config::ConfigManager;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 
@@ -148,7 +148,7 @@ pub fn register_send_sms_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SEND_SMS result from thread");
+                        log::error!("Failed to send SEND_SMS result from thread");
                     }
                 });
 
@@ -252,7 +252,7 @@ pub fn register_send_sms_with_third_arg_keyword(
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SEND_SMS result from thread");
+                        log::error!("Failed to send SEND_SMS result from thread");
                     }
                 });
 
@@ -346,7 +346,7 @@ pub fn register_send_sms_full_keyword(
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SEND_SMS result from thread");
+                        log::error!("Failed to send SEND_SMS result from thread");
                     }
                 });
 
@@ -436,7 +436,7 @@ pub fn register_send_sms_full_keyword(
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SEND_SMS result from thread");
+                        log::error!("Failed to send SEND_SMS result from thread");
                     }
                 });
 
@@ -553,7 +553,7 @@ async fn execute_send_sms(
             })
         }
         Err(e) => {
-            error!("SMS send failed to {}: {}", normalized_phone, e);
+            log::error!("SMS send failed to {}: {}", normalized_phone, e);
             Ok(SmsSendResult {
                 success: false,
                 message_id: None,

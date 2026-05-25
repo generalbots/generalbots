@@ -1,8 +1,8 @@
 use anyhow::Result;
-use log::{error, info, warn};
+use log::{info, warn};
 use rand::Rng;
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
+
 use botcore::shared::utils::get_stack_path;
 use uuid::Uuid;
 
@@ -286,14 +286,14 @@ fn save_setup_credentials(result: &BootstrapResult) {
         Ok(_) => {
             #[cfg(unix)]
             {
-                if let Err(e) = fs::set_permissions(&creds_path, fs::Permissions::from_mode(0o600)) {
+                if let Err(e) = botlib::os::fs::get_permissions_manager().set_readonly_owner(creds_path.as_ref()) {
                     warn!("Failed to set file permissions: {}", e);
                 }
             }
             info!("Setup credentials saved to: {}", creds_path);
         }
         Err(e) => {
-            error!("Failed to save setup credentials: {}", e);
+            log::error!("Failed to save setup credentials: {}", e);
         }
     }
 }
@@ -303,7 +303,7 @@ fn save_admin_pat_token(pat_token: &str) {
     let stack = get_stack_path();
     let pat_dir = std::path::PathBuf::from(format!("{}/conf/directory", stack));
     if let Err(e) = fs::create_dir_all(&pat_dir) {
-        error!("Failed to create PAT directory: {}", e);
+        log::error!("Failed to create PAT directory: {}", e);
         return;
     }
 
@@ -313,14 +313,14 @@ fn save_admin_pat_token(pat_token: &str) {
         Ok(_) => {
             #[cfg(unix)]
             {
-                if let Err(e) = fs::set_permissions(&pat_path, fs::Permissions::from_mode(0o600)) {
+                if let Err(e) = botlib::os::fs::get_permissions_manager().set_readonly_owner(&pat_path) {
                     warn!("Failed to set PAT file permissions: {}", e);
                 }
             }
             info!("Admin PAT token saved to: {}", pat_path.display());
         }
         Err(e) => {
-            error!("Failed to save admin PAT token: {}", e);
+            log::error!("Failed to save admin PAT token: {}", e);
         }
     }
 }

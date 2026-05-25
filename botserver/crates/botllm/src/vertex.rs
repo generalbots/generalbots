@@ -1,7 +1,7 @@
 //! Google Vertex AI and Gemini Native API Integration
 //! Support for both OpenAI-compatible endpoints and native Google AI Studio / Vertex AI endpoints.
 
-use log::{error, info, trace};
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -128,7 +128,7 @@ impl VertexTokenManager {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            error!("Google OAuth2 token request failed: {} - {}", status, body);
+            log::error!("Google OAuth2 token request failed: {} - {}", status, body);
             return Err(format!("Token request failed with status {}: {}", status, body).into());
         }
 
@@ -214,7 +214,7 @@ impl VertexClient {
             if let Some(manager) = manager_opt.as_ref() {
                 match manager.get_access_token().await {
                     Ok(token) => return ("Authorization", format!("Bearer {}", token)),
-                    Err(e) => error!("Failed to get Vertex OAuth token: {}", e),
+                    Err(e) => log::error!("Failed to get Vertex OAuth token: {}", e),
                 }
             }
         }
@@ -305,7 +305,7 @@ impl LLMProvider for VertexClient {
         let status = response.status();
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Vertex/Gemini generate error: {}", error_text);
+            log::error!("Vertex/Gemini generate error: {}", error_text);
             return Err(format!("Google API error ({}): {}", status, error_text).into());
         }
 
@@ -424,7 +424,7 @@ impl LLMProvider for VertexClient {
         let status = response.status();
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Vertex/Gemini generate_stream error: {}", error_text);
+            log::error!("Vertex/Gemini generate_stream error: {}", error_text);
             return Err(format!("Google API error ({}): {}", status, error_text).into());
         }
 
@@ -497,7 +497,7 @@ impl LLMProvider for VertexClient {
                     }
                 }
                 Err(e) => {
-                    error!("Vertex stream reading error: {}", e);
+                    log::error!("Vertex stream reading error: {}", e);
                     break;
                 }
             }

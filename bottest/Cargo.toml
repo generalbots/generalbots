@@ -37,6 +37,7 @@ which = { workspace = true }
 regex = { workspace = true }
 
 # Process management for services
+[target.'cfg(unix)'.dependencies]
 nix = { workspace = true }
 
 # Archive extraction

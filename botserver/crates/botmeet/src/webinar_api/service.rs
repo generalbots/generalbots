@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid};
-use log::{error, info};
+use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -151,7 +151,7 @@ impl WebinarService {
         request: CreateWebinarRequest,
     ) -> Result<Webinar, WebinarError> {
         let mut conn = self.pool.get().map_err(|e| {
-            error!("Failed to get database connection: {e}");
+            log::error!("Failed to get database connection: {e}");
             WebinarError::DatabaseConnection
         })?;
 
@@ -191,7 +191,7 @@ impl WebinarService {
             .bind::<DieselUuid, _>(host_id)
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to create webinar: {e}");
+                log::error!("Failed to create webinar: {e}");
                 WebinarError::CreateFailed
             })?;
 
@@ -237,7 +237,7 @@ impl WebinarService {
             .bind::<DieselUuid, _>(webinar_id)
             .load(&mut conn)
             .map_err(|e| {
-                error!("Failed to get webinar: {e}");
+                log::error!("Failed to get webinar: {e}");
                 WebinarError::DatabaseConnection
             })?;
 
@@ -264,7 +264,7 @@ impl WebinarService {
         .bind::<DieselUuid, _>(webinar_id)
         .execute(&mut conn)
         .map_err(|e| {
-            error!("Failed to start webinar: {e}");
+            log::error!("Failed to start webinar: {e}");
             WebinarError::UpdateFailed
         })?;
 
@@ -289,7 +289,7 @@ impl WebinarService {
         .bind::<DieselUuid, _>(webinar_id)
         .execute(&mut conn)
         .map_err(|e| {
-            error!("Failed to end webinar: {e}");
+            log::error!("Failed to end webinar: {e}");
             WebinarError::UpdateFailed
         })?;
 
@@ -346,7 +346,7 @@ impl WebinarService {
             .bind::<Text, _>(&join_link)
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to register: {e}");
+                log::error!("Failed to register: {e}");
                 WebinarError::RegistrationFailed
             })?;
 
@@ -399,7 +399,7 @@ impl WebinarService {
         .bind::<DieselUuid, _>(participant_id)
         .execute(&mut conn)
         .map_err(|e| {
-            error!("Failed to join webinar: {e}");
+            log::error!("Failed to join webinar: {e}");
             WebinarError::JoinFailed
         })?;
 
@@ -428,7 +428,7 @@ impl WebinarService {
         .bind::<DieselUuid, _>(webinar_id)
         .execute(&mut conn)
         .map_err(|e| {
-            error!("Failed to raise hand: {e}");
+            log::error!("Failed to raise hand: {e}");
             WebinarError::UpdateFailed
         })?;
 
@@ -451,7 +451,7 @@ impl WebinarService {
         .bind::<DieselUuid, _>(webinar_id)
         .execute(&mut conn)
         .map_err(|e| {
-            error!("Failed to lower hand: {e}");
+            log::error!("Failed to lower hand: {e}");
             WebinarError::UpdateFailed
         })?;
 
@@ -527,7 +527,7 @@ impl WebinarService {
             .bind::<Text, _>(status)
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to submit question: {e}");
+                log::error!("Failed to submit question: {e}");
                 WebinarError::CreateFailed
             })?;
 
@@ -575,7 +575,7 @@ impl WebinarService {
         .bind::<DieselUuid, _>(question_id)
         .execute(&mut conn)
         .map_err(|e| {
-            error!("Failed to answer question: {e}");
+            log::error!("Failed to answer question: {e}");
             WebinarError::UpdateFailed
         })?;
 
@@ -592,7 +592,7 @@ impl WebinarService {
         .bind::<DieselUuid, _>(question_id)
         .execute(&mut conn)
         .map_err(|e| {
-            error!("Failed to upvote question: {e}");
+            log::error!("Failed to upvote question: {e}");
             WebinarError::UpdateFailed
         })?;
 
@@ -684,7 +684,7 @@ impl WebinarService {
         .bind::<Text, _>(role.to_string())
         .execute(conn)
         .map_err(|e| {
-            error!("Failed to add participant: {e}");
+            log::error!("Failed to add participant: {e}");
             WebinarError::CreateFailed
         })?;
 

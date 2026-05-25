@@ -314,7 +314,7 @@ async fn handle_terminal_ws(
             terminal_manager.get_session(&session_id).await
         }
         Err(e) => {
-            error!("Failed to create terminal session: {}", e);
+            log::error!("Failed to create terminal session: {}", e);
             let error_msg = serde_json::json!({
                 "type": "error",
                 "message": e
@@ -327,7 +327,7 @@ async fn handle_terminal_ws(
     };
 
     let Some(session_arc) = session else {
-        error!("Failed to get session after creation");
+        log::error!("Failed to get session after creation");
         return;
     };
 
@@ -336,7 +336,7 @@ async fn handle_terminal_ws(
         match session.take_output_receiver() {
             Some(rx) => rx,
             None => {
-                error!("Failed to take output receiver");
+                log::error!("Failed to take output receiver");
                 return;
             }
         }
@@ -403,14 +403,14 @@ async fn handle_terminal_ws(
                         {
                             let session = session_arc.lock().await;
                             if let Err(e) = session.send_command(trimmed).await {
-                                error!("Failed to send command: {}", e);
+                                log::error!("Failed to send command: {}", e);
                             }
                         }
                     }
                 }
                 Ok(Message::Close(_)) => break,
                 Err(e) => {
-                    error!("WebSocket error: {}", e);
+                    log::error!("WebSocket error: {}", e);
                     break;
                 }
                 _ => {}
@@ -428,7 +428,7 @@ async fn handle_terminal_ws(
     }
 
     if let Err(e) = terminal_manager.kill_session(&session_id).await {
-        error!("Failed to cleanup terminal session: {}", e);
+        log::error!("Failed to cleanup terminal session: {}", e);
     }
 
     info!("Terminal session {} cleaned up", session_id);

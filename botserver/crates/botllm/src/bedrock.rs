@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{error, info, warn};
+use log::{info, warn};
 use serde_json::Value;
 use tokio::sync::mpsc;
 
@@ -113,7 +113,7 @@ impl BedrockClient {
         let status = response.status();
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Bedrock generate_stream error: {}", error_text);
+            log::error!("Bedrock generate_stream error: {}", error_text);
             return Err(format!("Bedrock API error ({}): {}", status, error_text).into());
         }
 
@@ -170,7 +170,7 @@ impl BedrockClient {
                     }
                 }
                 Err(e) => {
-                    error!("Bedrock stream reading error: {}", e);
+                    log::error!("Bedrock stream reading error: {}", e);
                     break;
                 }
             }
@@ -224,7 +224,7 @@ impl LLMProvider for BedrockClient {
         let status = response.status();
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            error!("Bedrock generate error: {}", error_text);
+            log::error!("Bedrock generate error: {}", error_text);
             return Err(format!("Bedrock API error ({}): {}", status, error_text).into());
         }
 

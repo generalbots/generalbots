@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 #[async_trait]
@@ -477,7 +477,7 @@ pub async fn create_default_registry(
                     info!("Zitadel authentication provider configured");
                 }
                 Err(e) => {
-                    error!("Failed to create Zitadel provider: {e}");
+                    log::error!("Failed to create Zitadel provider: {e}");
                 }
             }
         }

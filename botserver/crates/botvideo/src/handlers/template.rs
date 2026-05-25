@@ -72,7 +72,7 @@ pub async fn apply_template_handler(
             axum::Json(serde_json::json!({ "success": true })),
         ),
         Err(e) => {
-            error!("Apply template failed: {e}");
+            log::error!("Apply template failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -93,7 +93,7 @@ pub async fn chat_edit(
     {
         Ok(response) => (StatusCode::OK, axum::Json(serde_json::json!(response))),
         Err(e) => {
-            error!("Chat edit failed: {e}");
+            log::error!("Chat edit failed: {e}");
             (
                 StatusCode::OK,
                 axum::Json(serde_json::json!(ChatEditResponse {

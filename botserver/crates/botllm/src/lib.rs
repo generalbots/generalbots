@@ -24,7 +24,7 @@ pub use pipeline::{PipelineConfig, LlmPipeline, MessageBuilder, KbContextManager
 
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::{error, info, trace, warn};
+use log::{info, trace, warn};
 use serde_json::Value;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -109,7 +109,7 @@ impl LLMProvider for AzureGPT5Client {
         };
 
         if let Err(e) = self.rate_limiter.acquire(4096).await {
-            error!("Rate limit exceeded: {}", e);
+            log::error!("Rate limit exceeded: {}", e);
             return Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>);
         }
 
@@ -147,7 +147,7 @@ impl LLMProvider for AzureGPT5Client {
         let status = response.status();
         if status != reqwest::StatusCode::OK {
             let error_text = response.text().await.unwrap_or_default();
-            error!("AzureGPT5 generate error: {}", error_text);
+            log::error!("AzureGPT5 generate error: {}", error_text);
             return Err(format!("AzureGPT5 request failed with status: {}", status).into());
         }
 
@@ -428,7 +428,7 @@ impl LLMProvider for OpenAIClient {
                         warn!("LLM generate attempt {} failed (status {}): {}, retrying...", attempt + 1, status, error_text);
                         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     } else {
-                        error!("LLM generate error after {} retries: {}", max_retries, error_text);
+                        log::error!("LLM generate error after {} retries: {}", max_retries, error_text);
                         return Err(format!("LLM request failed with status: {}: {}", status, error_text).into());
                     }
                 }
@@ -437,7 +437,7 @@ impl LLMProvider for OpenAIClient {
                         warn!("LLM generate attempt {} failed (connection): {}, retrying...", attempt + 1, e);
                         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     } else {
-                        error!("LLM generate connection error after {} retries: {}", max_retries, e);
+                        log::error!("LLM generate connection error after {} retries: {}", max_retries, e);
                         return Err(Box::new(e));
                     }
                 }
@@ -493,7 +493,7 @@ impl LLMProvider for OpenAIClient {
 
         let estimated_tokens = OpenAIClient::estimate_messages_tokens(&messages);
         if let Err(e) = self.rate_limiter.acquire(estimated_tokens).await {
-            error!("Rate limit exceeded: {}", e);
+            log::error!("Rate limit exceeded: {}", e);
             return Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>);
         }
 
@@ -564,7 +564,7 @@ impl LLMProvider for OpenAIClient {
                         warn!("LLM generate_stream attempt {} failed (status {}): {}, retrying...", attempt + 1, status, error_text);
                         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     } else {
-                        error!("LLM generate_stream error after {} retries: {}", max_retries, error_text);
+                        log::error!("LLM generate_stream error after {} retries: {}", max_retries, error_text);
                         return Err(format!("LLM request failed with status: {}: {}", status, error_text).into());
                     }
                 }
@@ -573,7 +573,7 @@ impl LLMProvider for OpenAIClient {
                         warn!("LLM generate_stream attempt {} failed (connection): {}, retrying...", attempt + 1, e);
                         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     } else {
-                        error!("LLM generate_stream connection error after {} retries: {}", max_retries, e);
+                        log::error!("LLM generate_stream connection error after {} retries: {}", max_retries, e);
                         return Err(Box::new(e));
                     }
                 }
@@ -597,7 +597,7 @@ impl LLMProvider for OpenAIClient {
                 Ok(Some(r)) => r,
                 Ok(None) => break,
                 Err(_) => {
-                    error!("LLM stream idle timeout after 5s (no data received)");
+                    log::error!("LLM stream idle timeout after 5s (no data received)");
                     return Err("LLM stream idle timeout after 5s".into());
                 }
             };
@@ -616,7 +616,7 @@ impl LLMProvider for OpenAIClient {
                             if let Some(error) = filter_result.get("error") {
                                 let code = error.get("code").and_then(|c| c.as_str()).unwrap_or("unknown");
                                 let message = error.get("message").and_then(|m| m.as_str()).unwrap_or("no message");
-                                error!("LLM Content filter error: code={}, message={}", code, message);
+                                log::error!("LLM Content filter error: code={}, message={}", code, message);
                             } else {
                                 trace!("LLM Content filter result (no error): {:?}", filter_result);
                             }

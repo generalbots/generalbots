@@ -114,7 +114,7 @@ impl TelegramAdapter {
             let error_msg = response
                 .description
                 .unwrap_or_else(|| "Unknown Telegram API error".to_string());
-            error!("Telegram API error: {}", error_msg);
+            log::error!("Telegram API error: {}", error_msg);
             return Err(error_msg.into());
         }
 
@@ -287,7 +287,7 @@ impl crate::ChannelAdapter for TelegramAdapter {
         response: BotResponse,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if !self.is_configured() {
-            error!("Telegram adapter not configured. Please set telegram-bot-token in config.csv");
+            log::error!("Telegram adapter not configured. Please set telegram-bot-token in config.csv");
             return Err("Telegram not configured".into());
         }
 

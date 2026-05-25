@@ -1,13 +1,20 @@
-use anyhow::{Context, Result};
+#[cfg(not(windows))]
+use anyhow::Context;
+use anyhow::Result;
+#[cfg(not(windows))]
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+#[cfg(not(windows))]
 use std::path::Path;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 use botsecurity_core::command_guard::SafeCommand;
 
 #[cfg(not(windows))]
 const SUDOERS_FILE: &str = "/etc/sudoers.d/gb-protection";
 
+#[cfg(not(windows))]
 const SUDOERS_CONTENT: &str = r#"# General Bots Security Protection Tools
 # This file is managed by botserver install protection
 # DO NOT EDIT MANUALLY
@@ -176,7 +183,7 @@ impl ProtectionInstaller {
                     info!("Packages installed: {:?}", result.packages_installed);
                 }
                 Err(e) => {
-                    error!("Failed to install packages: {e}");
+                    log::error!("Failed to install packages: {e}");
                     result
                         .errors
                         .push(format!("Package installation failed: {e}"));
@@ -189,7 +196,7 @@ impl ProtectionInstaller {
                     info!("Sudoers file created successfully");
                 }
                 Err(e) => {
-                    error!("Failed to create sudoers file: {e}");
+                    log::error!("Failed to create sudoers file: {e}");
                     result.errors.push(format!("Sudoers creation failed: {e}"));
                 }
             }
@@ -291,7 +298,7 @@ impl ProtectionInstaller {
 
     #[cfg(not(windows))]
     fn create_sudoers(&self) -> Result<()> {
-        use std::os::unix::fs::PermissionsExt;
+        
 
         let content = SUDOERS_CONTENT.replace("{user}", &self.user);
 

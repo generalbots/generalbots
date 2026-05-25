@@ -505,12 +505,12 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
         Router::new()
             .merge(api_router.with_state(app_state.clone()))
             .merge(dep_router)
-            .merge(botcoreoauth::routes::configure(oauth_state))
+            .nest("/", botcoreoauth::routes::configure(oauth_state))
     };
     #[cfg(not(feature = "deployment"))]
     let base_router = Router::new()
         .merge(api_router.with_state(app_state.clone()))
-        .merge(botcoreoauth::routes::configure(oauth_state));
+        .nest("/", botcoreoauth::routes::configure(oauth_state));
 
     #[cfg(not(feature = "vibe"))]
     let base_router = base_router

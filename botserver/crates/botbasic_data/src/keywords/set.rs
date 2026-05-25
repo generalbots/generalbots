@@ -1,7 +1,6 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
-use log::error;
 use log::trace;
 use rhai::Dynamic;
 use rhai::Engine;
@@ -55,7 +54,7 @@ pub fn execute_set(
         table_str, set_clause, where_clause
     );
     let result = diesel::sql_query(query).execute(conn).map_err(|e| {
-        error!("SQL execution error: {}", e);
+        log::error!("SQL execution error: {}", e);
         e.to_string()
     })?;
     Ok(json!({

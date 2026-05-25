@@ -33,7 +33,7 @@ pub async fn handle_list_presentations<D: DriveOps>(
         Some(drive) => match list_presentations_from_drive(drive, &user_id).await {
             Ok(p) => p,
             Err(e) => {
-                error!("Failed to list presentations: {e}");
+                log::error!("Failed to list presentations: {e}");
                 Vec::new()
             }
         },

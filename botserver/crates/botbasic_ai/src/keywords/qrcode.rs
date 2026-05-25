@@ -30,7 +30,7 @@
 
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{error, trace};
+use log::trace;
 use png::{BitDepth, ColorType, Encoder};
 use rhai::{Dynamic, Engine};
 
@@ -59,7 +59,7 @@ pub fn register_qr_code_keyword(state: Arc<dyn BasicRuntime>, user: UserSession,
                 let result =
                     execute_qr_code_generation(&state_for_task, &user_for_task, &data, 256, None);
                 if tx.send(result).is_err() {
-                    error!("Failed to send QR CODE result from thread");
+                    log::error!("Failed to send QR CODE result from thread");
                 }
             });
 
@@ -123,7 +123,7 @@ pub fn register_qr_code_with_size_keyword(
                         None,
                     );
                     if tx.send(result).is_err() {
-                        error!("Failed to send QR_CODE result from thread");
+                        log::error!("Failed to send QR_CODE result from thread");
                     }
                 });
 
@@ -186,7 +186,7 @@ pub fn register_qr_code_full_keyword(state: Arc<dyn BasicRuntime>, user: UserSes
                         Some(&output_path),
                     );
                     if tx.send(result).is_err() {
-                        error!("Failed to send QR_CODE result from thread");
+                        log::error!("Failed to send QR_CODE result from thread");
                     }
                 });
 

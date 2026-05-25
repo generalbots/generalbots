@@ -1,6 +1,5 @@
 use crate::types::{AutoTaskState, TaskProgressEvent};
 use crate::container_session::{ContainerSession, TerminalOutput};
-use log::error;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
@@ -106,7 +105,7 @@ impl AgentExecutor {
     pub async fn cleanup(&mut self) {
         if let Some(mut container) = self.container.take() {
             if let Err(e) = container.stop().await {
-                error!("Error stopping container session: {}", e);
+                log::error!("Error stopping container session: {}", e);
             }
         }
     }

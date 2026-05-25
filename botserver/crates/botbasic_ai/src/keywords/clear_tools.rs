@@ -1,7 +1,7 @@
 use crate::keywords::use_tool::clear_session_tools;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 
 pub fn clear_tools_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -34,7 +34,7 @@ pub fn clear_tools_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 };
 
                 if send_err.is_some() {
-                    error!("Failed to send result from thread");
+                    log::error!("Failed to send result from thread");
                 }
             });
 
@@ -61,7 +61,7 @@ pub fn clear_tools_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
 
 fn clear_all_tools_from_session(state: &dyn BasicRuntime, user: &UserSession) -> Result<String, String> {
     let mut conn = state.db_pool().get().map_err(|e| {
-        error!("Failed to acquire database lock: {}", e);
+        log::error!("Failed to acquire database lock: {}", e);
         format!("Database connection error: {}", e)
     })?;
 
@@ -86,7 +86,7 @@ fn clear_all_tools_from_session(state: &dyn BasicRuntime, user: &UserSession) ->
             }
         }
         Err(e) => {
-            error!("Failed to clear tools from session '{}': {}", user.id, e);
+            log::error!("Failed to clear tools from session '{}': {}", user.id, e);
             Err(format!("Failed to clear tools from session: {}", e))
         }
     }

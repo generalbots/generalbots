@@ -295,7 +295,7 @@ impl CleanupService {
         cutoff_date: DateTime<Utc>,
     ) -> Result<CategoryPreview, CleanupError> {
         let mut conn = self.pool.get().map_err(|e| {
-            error!("Failed to get database connection: {e}");
+            log::error!("Failed to get database connection: {e}");
             CleanupError::DatabaseConnection
         })?;
 
@@ -470,7 +470,7 @@ impl CleanupService {
             .bind::<Timestamptz, _>(cutoff_date)
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to cleanup {}: {e}", category);
+                log::error!("Failed to cleanup {}: {e}", category);
                 CleanupError::CleanupFailed(category.to_string())
             })?;
 
@@ -778,7 +778,7 @@ impl CleanupService {
             .bind::<diesel::sql_types::Integer, _>(config.storage_alert_threshold_percent as i32)
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to save cleanup config: {e}");
+                log::error!("Failed to save cleanup config: {e}");
                 CleanupError::ConfigSaveFailed
             })?;
 
@@ -835,7 +835,7 @@ impl CleanupService {
             .bind::<diesel::sql_types::Nullable<Text>, _>(history.error_message.as_deref())
             .execute(&mut conn)
             .map_err(|e| {
-                error!("Failed to save cleanup history: {e}");
+                log::error!("Failed to save cleanup history: {e}");
                 CleanupError::HistorySaveFailed
             })?;
 

@@ -9,7 +9,7 @@ use botbasic_core::security_utils::sanitize_identifier;
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::Text;
-use log::{error, info, warn};
+use log::{info, warn};
 use rhai::Engine;
 use std::error::Error;
 use std::sync::Arc;
@@ -115,7 +115,7 @@ pub fn sync_table_schema(
                     {
                         let error_msg =
                             format!("Failed to add column {}.{}: {}", table.name, field.name, e);
-                        error!("{}", error_msg);
+                        log::error!("{}", error_msg);
                         result.errors.push(error_msg);
                     } else {
                         info!(
@@ -161,7 +161,7 @@ pub fn sync_table_schema(
                 Err(e) => {
                     let error_msg =
                         format!("Failed to drop column {}.{}: {}", table.name, col.name, e);
-                    error!("{}", error_msg);
+                    log::error!("{}", error_msg);
                     result.errors.push(error_msg);
                 }
             }
@@ -259,7 +259,7 @@ pub fn sync_bot_tables(
             }
             Err(e) => {
                 let error_msg = format!("Failed to sync table {}: {}", table.name, e);
-                error!("{}", error_msg);
+                log::error!("{}", error_msg);
                 result.errors.push(error_msg);
             }
         }

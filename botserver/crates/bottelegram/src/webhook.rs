@@ -209,13 +209,13 @@ pub async fn handle_webhook(
 
     if let Some(message) = update.message.or(update.edited_message) {
         if let Err(e) = process_message(state.clone(), &message).await {
-            error!("Failed to process Telegram message: {}", e);
+            log::error!("Failed to process Telegram message: {}", e);
         }
     }
 
     if let Some(callback) = update.callback_query {
         if let Err(e) = process_callback(state.clone(), &callback).await {
-            error!("Failed to process Telegram callback: {}", e);
+            log::error!("Failed to process Telegram callback: {}", e);
         }
     }
 

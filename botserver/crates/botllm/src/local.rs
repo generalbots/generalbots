@@ -5,7 +5,7 @@ use botsecurity::command_guard::SafeCommand;
 use botcore::shared::models::schema::bots::dsl::*;
 use botcore::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, info, trace, warn};
+use log::{info, trace, warn};
 use reqwest;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -169,13 +169,13 @@ let llm_url = if llm_url.is_empty() && llm_server_enabled {
     match pkill_result {
         Ok(cmd) => {
             if let Err(e) = cmd.execute() {
-                error!("Failed to execute pkill for llama-server: {e}");
+                log::error!("Failed to execute pkill for llama-server: {e}");
             } else {
                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
                 info!("Existing llama-server processes terminated");
             }
         }
-        Err(e) => error!("Failed to build pkill command: {e}"),
+        Err(e) => log::error!("Failed to build pkill command: {e}"),
     }
     let mut tasks = vec![];
     if !llm_running && !llm_model.is_empty() {
@@ -211,7 +211,7 @@ let llm_url = if llm_url.is_empty() && llm_server_enabled {
         tokio::spawn(async move {
             for task in tasks {
                 if let Err(e) = task.await {
-                    error!("LLM server task failed: {}", e);
+                    log::error!("LLM server task failed: {}", e);
                 }
             }
             info!("LLM server startup tasks completed");
@@ -560,7 +560,7 @@ pub async fn start_embedding_server(
     };
 
     if !std::path::Path::new(&full_model_path).exists() {
-        error!("Embedding model file not found: {full_model_path}");
+        log::error!("Embedding model file not found: {full_model_path}");
         return Err(format!("Embedding model file not found: {full_model_path}").into());
     }
 

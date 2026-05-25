@@ -175,11 +175,11 @@ pub async fn list_emails_htmx(
         Ok(Ok(Some(acc))) => acc,
         Ok(Ok(None)) => return axum::response::Html(r##"<div class="empty-state"><h3>No email account configured</h3><p>Please add an email account in settings to get started</p><a href="#settings" class="btn-primary" style="margin-top: 1rem; display: inline-block;">Add Email Account</a></div>"##.to_string()),
         Ok(Err(e)) => {
-            error!("Email account query error: {}", e);
+            log::error!("Email account query error: {}", e);
             return axum::response::Html(r#"<div class="empty-state"><h3>Unable to load emails</h3><p>There was an error. Please try again later.</p></div>"#.to_string());
         }
         Err(e) => {
-            error!("Email account task error: {}", e);
+            log::error!("Email account task error: {}", e);
             return axum::response::Html(r#"<div class="empty-state"><h3>Unable to load emails</h3><p>There was an error. Please try again later.</p></div>"#.to_string());
         }
     };
@@ -317,7 +317,7 @@ pub async fn delete_email_htmx(State(state): State<Arc<AppState>>, Path(id): Pat
 
     let config = make_config_from_account(&account);
     if let Err(e) = move_email_to_trash(&config, &id) {
-        error!("Failed to delete email: {}", e);
+        log::error!("Failed to delete email: {}", e);
         return axum::response::Html(r#"<div class="empty-state"><h3>Error deleting email</h3><p>Failed to move email to trash</p></div>"#.to_string());
     }
 

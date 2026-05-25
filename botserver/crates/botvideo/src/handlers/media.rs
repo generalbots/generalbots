@@ -22,7 +22,7 @@ pub async fn upload_media(
         std::env::var("VIDEO_UPLOAD_DIR").unwrap_or_else(|_| "./uploads/video".to_string());
 
     if let Err(e) = std::fs::create_dir_all(&upload_dir) {
-        error!("Failed to create upload directory: {e}");
+        log::error!("Failed to create upload directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
@@ -43,7 +43,7 @@ pub async fn upload_media(
         let data = match field.bytes().await {
             Ok(d) => d,
             Err(e) => {
-                error!("Failed to read upload data: {e}");
+                log::error!("Failed to read upload data: {e}");
                 return (
                     StatusCode::BAD_REQUEST,
                     axum::Json(serde_json::json!({ "error": "Failed to read upload" })),
@@ -56,7 +56,7 @@ pub async fn upload_media(
         let file_path = format!("{}/{}", upload_dir, safe_name);
 
         if let Err(e) = std::fs::write(&file_path, &data) {
-            error!("Failed to write uploaded file: {e}");
+            log::error!("Failed to write uploaded file: {e}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
@@ -108,7 +108,7 @@ pub async fn get_preview_frame(
         std::env::var("VIDEO_PREVIEW_DIR").unwrap_or_else(|_| "./previews/video".to_string());
 
     if let Err(e) = std::fs::create_dir_all(&output_dir) {
-        error!("Failed to create preview directory: {e}");
+        log::error!("Failed to create preview directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
@@ -124,7 +124,7 @@ pub async fn get_preview_frame(
             axum::Json(serde_json::json!({ "preview_url": url, "at_ms": at_ms })),
         ),
         Err(e) => {
-            error!("Failed to generate preview: {e}");
+            log::error!("Failed to generate preview: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),

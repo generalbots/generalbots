@@ -1,6 +1,6 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -35,7 +35,7 @@ pub fn set_user_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine
                             user_clone_spawn.id
                         );
                     } else {
-                        error!("Failed to update user ID in session");
+                        log::error!("Failed to update user ID in session");
                     }
                 }
                 Err(e) => {

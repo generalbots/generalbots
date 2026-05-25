@@ -3,7 +3,7 @@ use botbasic_types::BasicRuntime;
 use botbasic_core::utils;
 use diesel::prelude::*;
 use diesel::sql_types::{Integer, Text};
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -25,7 +25,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             let mut binding = match conn.get() {
                 Ok(c) => c,
                 Err(e) => {
-                    error!("PRODUCTS db error: {e}");
+                    log::error!("PRODUCTS db error: {e}");
                     return Dynamic::from(rhai::Array::new());
                 }
             };
@@ -33,7 +33,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             match get_all_products(&mut binding) {
                 Ok(products) => utils::json_value_to_dynamic(&products),
                 Err(e) => {
-                    error!("PRODUCTS error: {e}");
+                    log::error!("PRODUCTS error: {e}");
                     Dynamic::from(rhai::Array::new())
                 }
             }
@@ -46,7 +46,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             let mut binding = match conn.get() {
                 Ok(c) => c,
                 Err(e) => {
-                    error!("products db error: {e}");
+                    log::error!("products db error: {e}");
                     return Dynamic::from(rhai::Array::new());
                 }
             };
@@ -54,7 +54,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             match get_all_products(&mut binding) {
                 Ok(products) => utils::json_value_to_dynamic(&products),
                 Err(e) => {
-                    error!("products error: {e}");
+                    log::error!("products error: {e}");
                     Dynamic::from(rhai::Array::new())
                 }
             }
@@ -67,7 +67,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             let mut binding = match conn.get() {
                 Ok(c) => c,
                 Err(e) => {
-                    error!("PRODUCT db error: {e}");
+                    log::error!("PRODUCT db error: {e}");
                     return Dynamic::UNIT;
                 }
             };
@@ -76,7 +76,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
                 Ok(Some(product)) => utils::json_value_to_dynamic(&product),
                 Ok(None) => Dynamic::UNIT,
                 Err(e) => {
-                    error!("PRODUCT error: {e}");
+                    log::error!("PRODUCT error: {e}");
                     Dynamic::UNIT
                 }
             }
@@ -89,7 +89,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             let mut binding = match conn.get() {
                 Ok(c) => c,
                 Err(e) => {
-                    error!("product db error: {e}");
+                    log::error!("product db error: {e}");
                     return Dynamic::UNIT;
                 }
             };
@@ -98,7 +98,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
                 Ok(Some(product)) => utils::json_value_to_dynamic(&product),
                 Ok(None) => Dynamic::UNIT,
                 Err(e) => {
-                    error!("product error: {e}");
+                    log::error!("product error: {e}");
                     Dynamic::UNIT
                 }
             }
@@ -151,7 +151,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             let mut binding = match conn.get() {
                 Ok(c) => c,
                 Err(e) => {
-                    error!("SEARCH_PRODUCTS db error: {e}");
+                    log::error!("SEARCH_PRODUCTS db error: {e}");
                     return Dynamic::from(rhai::Array::new());
                 }
             };
@@ -159,7 +159,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             match search_products(&mut binding, &query, limit as i32) {
                 Ok(products) => utils::json_value_to_dynamic(&products),
                 Err(e) => {
-                    error!("SEARCH_PRODUCTS error: {e}");
+                    log::error!("SEARCH_PRODUCTS error: {e}");
                     Dynamic::from(rhai::Array::new())
                 }
             }
@@ -172,7 +172,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             let mut binding = match conn.get() {
                 Ok(c) => c,
                 Err(e) => {
-                    error!("search_products db error: {e}");
+                    log::error!("search_products db error: {e}");
                     return Dynamic::from(rhai::Array::new());
                 }
             };
@@ -180,7 +180,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
             match search_products(&mut binding, &query, limit as i32) {
                 Ok(products) => utils::json_value_to_dynamic(&products),
                 Err(e) => {
-                    error!("search_products error: {e}");
+                    log::error!("search_products error: {e}");
                     Dynamic::from(rhai::Array::new())
                 }
             }
@@ -216,7 +216,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SCAN BARCODE result");
+                        log::error!("Failed to send SCAN BARCODE result");
                     }
                 });
 

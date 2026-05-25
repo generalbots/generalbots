@@ -37,7 +37,7 @@ pub async fn handle_list_sheets(
     match list_sheets_from_drive(&state, &user_id).await {
         Ok(sheets) => Ok(Json(sheets)),
         Err(e) => {
-            error!("Failed to list sheets: {e}");
+            log::error!("Failed to list sheets: {e}");
             Ok(Json(Vec::new()))
         }
     }

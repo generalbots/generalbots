@@ -2,7 +2,7 @@ use crate::config::ConfigManager;
 use crate::kb::web_crawler::{WebCrawler, WebsiteCrawlConfig};
 use crate::kb::kb_indexer::{KbIndexer, QdrantConfig};
 
-use log::{error, info, trace, warn};
+use log::{info, trace, warn};
 use tokio::time::{interval, Duration};
 
 #[derive(Debug)]
@@ -56,7 +56,7 @@ impl WebsiteCrawlerService {
                 *service.running.write().await = true;
 
                 if let Err(e) = service.check_and_crawl_websites().await {
-                    error!("Error in website crawler service: {}", e);
+                    log::error!("Error in website crawler service: {}", e);
                 }
 
                 *service.running.write().await = false;
@@ -127,7 +127,7 @@ impl WebsiteCrawlerService {
                     trace!("Successfully processed website crawl");
                 }
                 Err(e) => {
-                    error!("Failed to crawl website: {}", e);
+                    log::error!("Failed to crawl website: {}", e);
                 }
             }
 
@@ -312,7 +312,7 @@ impl WebsiteCrawlerService {
                 Ok(())
             }
             Err(e) => {
-                error!("Failed to crawl {}: {}", website.url, e);
+                log::error!("Failed to crawl {}: {}", website.url, e);
 
                 let mut conn = db_pool.get()?;
                 diesel::sql_query(
@@ -565,7 +565,7 @@ pub async fn force_recrawl_website(
         }
         Err(e) => {
             let error_msg = format!("Failed to crawl website {}: {}", url, e);
-            error!("{}", error_msg);
+            log::error!("{}", error_msg);
             Err(error_msg.into())
         }
     }

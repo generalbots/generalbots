@@ -9,7 +9,7 @@ use axum::{
     routing::get,
     Router,
 };
-use log::{error, trace, warn};
+use log::{trace, warn};
 #[cfg(not(feature = "vibe"))]
 use log::info;
 
@@ -154,7 +154,7 @@ pub async fn serve_vendor_file(
                         });
             }
             Err(e) => {
-                error!("Failed to get object: {}", e);
+                log::error!("Failed to get object: {}", e);
             }
         }
 }
@@ -340,7 +340,7 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
                     });
             }
             Err(e) => {
-                error!("Failed to get object: {}", e);
+                log::error!("Failed to get object: {}", e);
             }
         }
     }
@@ -391,7 +391,7 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
                 })
         }
         Err(e) => {
-            error!("Failed to read file {full_path}: {e}");
+            log::error!("Failed to read file {full_path}: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, "Failed to read file").into_response()
         }
     }

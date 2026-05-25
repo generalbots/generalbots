@@ -34,7 +34,7 @@ use botbasic_types::BasicRuntime;
 use std::sync::Arc;
 use diesel::prelude::*;
 use flate2::read::GzDecoder;
-use log::{error, trace};
+use log::trace;
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::{Read, Write};
@@ -56,7 +56,7 @@ pub async fn execute_compress(
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {e}");
+                log::error!("Failed to query bot name: {e}");
                 e
             })?
     };
@@ -133,7 +133,7 @@ pub async fn execute_extract(
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {e}");
+                log::error!("Failed to query bot name: {e}");
                 e
             })?
     };

@@ -2,7 +2,7 @@ use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 
 pub fn add_member_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -52,7 +52,7 @@ pub fn add_member_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send ADD_MEMBER result from thread");
+                        log::error!("Failed to send ADD_MEMBER result from thread");
                     }
                 });
 
@@ -133,7 +133,7 @@ pub fn add_member_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send CREATE_TEAM result from thread");
+                        log::error!("Failed to send CREATE_TEAM result from thread");
                     }
                 });
 
@@ -187,7 +187,7 @@ pub fn execute_add_member(
         .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to add member: {}", e);
+        log::error!("Failed to add member: {}", e);
         format!("Failed to add member: {}", e)
     })?;
 
@@ -241,7 +241,7 @@ fn execute_create_team(
         .bind::<diesel::sql_types::Jsonb, _>(&permissions_json);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to create team: {}", e);
+        log::error!("Failed to create team: {}", e);
         format!("Failed to create team: {}", e)
     })?;
 
@@ -356,7 +356,7 @@ fn log_group_activity(
     let query = query.bind::<diesel::sql_types::Timestamptz, _>(&now);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to log activity: {}", e);
+        log::error!("Failed to log activity: {}", e);
         format!("Failed to log activity: {}", e)
     })?;
 
@@ -409,7 +409,7 @@ fn create_workspace_structure(
             .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
         query.execute(&mut *conn).map_err(|e| {
-            error!("Failed to create workspace folder: {}", e);
+            log::error!("Failed to create workspace folder: {}", e);
             format!("Failed to create workspace folder: {}", e)
         })?;
     }
@@ -434,7 +434,7 @@ fn create_team_channel(state: &dyn BasicRuntime, team_id: &str, team_name: &str)
     .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
     query.execute(&mut *conn).map_err(|e| {
-        error!("Failed to create team channel: {}", e);
+        log::error!("Failed to create team channel: {}", e);
         format!("Failed to create team channel: {}", e)
     })?;
 

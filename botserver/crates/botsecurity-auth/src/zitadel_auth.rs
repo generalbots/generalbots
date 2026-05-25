@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -295,7 +295,7 @@ impl ZitadelAuthProvider {
             .send()
             .await
             .map_err(|e| {
-                error!("Token introspection request failed: {}", e);
+                log::error!("Token introspection request failed: {}", e);
                 AuthError::InternalError("Authentication service unavailable".to_string())
             })?;
 
@@ -305,7 +305,7 @@ impl ZitadelAuthProvider {
         }
 
         let introspection: serde_json::Value = response.json().await.map_err(|e| {
-            error!("Failed to parse introspection response: {}", e);
+            log::error!("Failed to parse introspection response: {}", e);
             AuthError::InternalError("Invalid authentication response".to_string())
         })?;
 
@@ -475,7 +475,7 @@ impl ZitadelAuthProvider {
             .send()
             .await
             .map_err(|e| {
-                error!("API key validation request failed: {}", e);
+                log::error!("API key validation request failed: {}", e);
                 AuthError::InternalError("Authentication service unavailable".to_string())
             })?;
 
@@ -513,7 +513,7 @@ impl ZitadelAuthProvider {
             .send()
             .await
             .map_err(|e| {
-                error!("Service token request failed: {}", e);
+                log::error!("Service token request failed: {}", e);
                 AuthError::InternalError("Authentication service unavailable".to_string())
             })?;
 
@@ -524,7 +524,7 @@ impl ZitadelAuthProvider {
         }
 
         let token_data: serde_json::Value = response.json().await.map_err(|e| {
-            error!("Failed to parse token response: {}", e);
+            log::error!("Failed to parse token response: {}", e);
             AuthError::InternalError("Invalid token response".to_string())
         })?;
 
@@ -602,7 +602,7 @@ impl ZitadelAuthProvider {
             .send()
             .await
             .map_err(|e| {
-                error!("Failed to get user grants: {}", e);
+                log::error!("Failed to get user grants: {}", e);
                 AuthError::InternalError("Failed to fetch user permissions".to_string())
             })?;
 
@@ -611,7 +611,7 @@ impl ZitadelAuthProvider {
         }
 
         let grants: serde_json::Value = response.json().await.map_err(|e| {
-            error!("Failed to parse grants response: {}", e);
+            log::error!("Failed to parse grants response: {}", e);
             AuthError::InternalError("Invalid grants response".to_string())
         })?;
 

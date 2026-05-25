@@ -4,7 +4,7 @@ use anyhow::{Result, Context};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use reqwest::Client;
-use log::{debug, error, info};
+use log::{debug, info};
 
 /// Qdrant client using native HTTP (old name for backward compatibility)
 pub type Qdrant = QdrantClient;
@@ -87,7 +87,7 @@ impl QdrantClient {
             info!("Collection '{}' created successfully", name);
             Ok(())
         } else {
-            error!("Failed to create collection '{}': {} - {}", name, status, text);
+            log::error!("Failed to create collection '{}': {} - {}", name, status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
     }
@@ -113,7 +113,7 @@ impl QdrantClient {
             Ok(result)
         } else {
             let text = response.text().await.unwrap_or_default();
-            error!("Failed to list collections: {} - {}", status, text);
+            log::error!("Failed to list collections: {} - {}", status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
     }
@@ -154,7 +154,7 @@ impl QdrantClient {
             Ok(result)
         } else {
             let text = response.text().await.unwrap_or_default();
-            error!("Failed to get collection info: {} - {}", status, text);
+            log::error!("Failed to get collection info: {} - {}", status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
     }
@@ -179,7 +179,7 @@ impl QdrantClient {
             info!("Collection '{}' deleted successfully", name);
             Ok(())
         } else {
-            error!("Failed to delete collection '{}': {} - {}", name, status, text);
+            log::error!("Failed to delete collection '{}': {} - {}", name, status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
     }
@@ -212,7 +212,7 @@ impl QdrantClient {
             debug!("Successfully upserted {} points", points.len());
             Ok(())
         } else {
-            error!("Failed to upsert points: {} - {}", status, text);
+            log::error!("Failed to upsert points: {} - {}", status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
     }
@@ -255,7 +255,7 @@ impl QdrantClient {
             Ok(points)
         } else {
             let text = response.text().await.unwrap_or_default();
-            error!("Failed to search points: {} - {}", status, text);
+            log::error!("Failed to search points: {} - {}", status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
     }
@@ -288,7 +288,7 @@ impl QdrantClient {
             info!("Successfully deleted {} points", point_ids.len());
             Ok(())
         } else {
-            error!("Failed to delete points: {} - {}", status, text);
+            log::error!("Failed to delete points: {} - {}", status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
     }

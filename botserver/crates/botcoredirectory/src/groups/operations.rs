@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::Json,
 };
-use log::{error, info};
+use log::info;
 use std::sync::Arc;
 use uuid::Uuid;
 use chrono;
@@ -47,7 +47,7 @@ pub async fn create_group(
             }))
         }
         Err(e) => {
-            error!("Error creating group: {}", e);
+            log::error!("Error creating group: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -107,7 +107,7 @@ pub async fn update_group(
             }))
         }
         Err(e) => {
-            error!("Error updating group: {}", e);
+            log::error!("Error updating group: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -139,7 +139,7 @@ pub async fn delete_group(
             }))
         }
         Err(e) => {
-            error!("Failed to delete group: {}", e);
+            log::error!("Failed to delete group: {}", e);
             Err((
                 StatusCode::NOT_FOUND,
                 Json(ErrorResponse {
@@ -218,7 +218,7 @@ pub async fn list_groups(
             }))
         }
         Err(e) => {
-            error!("Error listing groups: {}", e);
+            log::error!("Error listing groups: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -288,7 +288,7 @@ pub async fn get_group_members(
             Ok(Json(vec![]))
         }
         Err(e) => {
-            error!("Error getting group members: {}", e);
+            log::error!("Error getting group members: {}", e);
             Err((
                 StatusCode::NOT_FOUND,
                 Json(ErrorResponse {
@@ -329,7 +329,7 @@ pub async fn add_group_member(
             }))
         }
         Err(e) => {
-            error!("Failed to add member to group: {}", e);
+            log::error!("Failed to add member to group: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -368,7 +368,7 @@ pub async fn remove_group_member(
             }))
         }
         Err(e) => {
-            error!("Failed to remove member from group: {}", e);
+            log::error!("Failed to remove member from group: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {

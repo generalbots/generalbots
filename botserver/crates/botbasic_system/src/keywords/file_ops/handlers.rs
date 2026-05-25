@@ -30,7 +30,7 @@
 
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use log::{error, trace};
+use log::trace;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 
@@ -84,7 +84,7 @@ pub fn register_read_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                 };
 
                 if send_err.is_some() {
-                    error!("Failed to send READ result from thread");
+                    log::error!("Failed to send READ result from thread");
                 }
             });
 
@@ -149,7 +149,7 @@ pub fn register_write_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send WRITE result from thread");
+                        log::error!("Failed to send WRITE result from thread");
                     }
                 });
 
@@ -211,7 +211,7 @@ pub fn register_delete_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send DELETE FILE result from thread");
+                        log::error!("Failed to send DELETE FILE result from thread");
                     }
                 });
 
@@ -266,7 +266,7 @@ pub fn register_delete_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send DELETE FILE result from thread");
+                        log::error!("Failed to send DELETE FILE result from thread");
                     }
                 });
 
@@ -328,7 +328,7 @@ pub fn register_copy_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send COPY result from thread");
+                        log::error!("Failed to send COPY result from thread");
                     }
                 });
 
@@ -390,7 +390,7 @@ pub fn register_move_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send MOVE result from thread");
+                        log::error!("Failed to send MOVE result from thread");
                     }
                 });
 
@@ -447,7 +447,7 @@ pub fn register_list_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                 };
 
                 if send_err.is_some() {
-                    error!("Failed to send LIST result from thread");
+                    log::error!("Failed to send LIST result from thread");
                 }
             });
 
@@ -527,7 +527,7 @@ pub fn register_compress_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send COMPRESS result from thread");
+                        log::error!("Failed to send COMPRESS result from thread");
                     }
                 });
 
@@ -589,7 +589,7 @@ pub fn register_extract_keyword(state: Arc<dyn BasicRuntime>, user: UserSession,
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send EXTRACT result from thread");
+                        log::error!("Failed to send EXTRACT result from thread");
                     }
                 });
 
@@ -655,7 +655,7 @@ pub fn register_upload_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send UPLOAD result from thread");
+                        log::error!("Failed to send UPLOAD result from thread");
                     }
                 });
 
@@ -717,7 +717,7 @@ pub fn register_download_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send DOWNLOAD result from thread");
+                        log::error!("Failed to send DOWNLOAD result from thread");
                     }
                 });
 

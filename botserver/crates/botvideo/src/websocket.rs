@@ -79,7 +79,7 @@ async fn handle_export_websocket(socket: WebSocket, export_id: Uuid) {
         .send(Message::Text(welcome.to_string().into()))
         .await
     {
-        error!("Failed to send welcome message: {e}");
+        log::error!("Failed to send welcome message: {e}");
         return;
     }
 
@@ -106,7 +106,7 @@ async fn handle_export_websocket(socket: WebSocket, export_id: Uuid) {
                     }
                 }
                 Err(e) => {
-                    error!("WebSocket receive error: {e}");
+                    log::error!("WebSocket receive error: {e}");
                     break;
                 }
                 _ => {}
@@ -133,7 +133,7 @@ async fn handle_export_websocket(socket: WebSocket, export_id: Uuid) {
                             });
 
                             if let Err(e) = sender.send(Message::Text(json.to_string().into())).await {
-                                error!("Failed to send progress update: {e}");
+                                log::error!("Failed to send progress update: {e}");
                                 break;
                             }
 
@@ -168,7 +168,7 @@ async fn handle_export_websocket(socket: WebSocket, export_id: Uuid) {
                 });
 
                 if let Err(e) = sender.send(Message::Text(heartbeat.to_string().into())).await {
-                    error!("Failed to send heartbeat: {e}");
+                    log::error!("Failed to send heartbeat: {e}");
                     break;
                 }
             }

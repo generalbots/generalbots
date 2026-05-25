@@ -11,7 +11,7 @@
 //!   SYNCHRONIZE "/api/customers", "customers", "id", "page", "limit"
 
 use chrono::{DateTime, Utc};
-use log::{debug, error, info};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -322,7 +322,7 @@ impl SynchronizeService {
                     }
                 }
                 Err(e) => {
-                    error!("Failed to fetch page {}: {}", current_page, e);
+                    log::error!("Failed to fetch page {}: {}", current_page, e);
                     result.errors.push(SyncError {
                         record_key: None,
                         page: Some(current_page),

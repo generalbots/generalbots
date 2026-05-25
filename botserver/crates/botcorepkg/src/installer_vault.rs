@@ -2,13 +2,21 @@ use crate::installer::safe_sh_command;
 use crate::installer_vault2;
 use anyhow::{Context, Result};
 use botlib::security::SafeCommand;
-use log::{info, trace, warn};
+use log::{info, warn};
 use std::collections::HashMap;
 
 #[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
-
 pub fn fetch_vault_credentials() -> HashMap<String, String> {
+    fetch_vault_credentials_impl()
+}
+
+#[cfg(not(unix))]
+pub fn fetch_vault_credentials() -> HashMap<String, String> {
+    HashMap::new()
+}
+
+#[cfg(unix)]
+pub fn fetch_vault_credentials_impl() -> HashMap<String, String> {
     let mut credentials = HashMap::new();
 
     dotenvy::dotenv().ok();
@@ -247,8 +255,9 @@ VAULT_CACERT={}
 
     #[cfg(unix)]
     {
-        std::fs::set_permissions(&unseal_keys_file, std::fs::Permissions::from_mode(0o600))?;
+        let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&unseal_keys_file);
     }
+
     #[cfg(not(unix))]
     {
         let _ = &unseal_keys_file;

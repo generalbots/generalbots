@@ -23,7 +23,7 @@ pub async fn start_export(
             axum::Json(serde_json::json!({ "export": export })),
         ),
         Err(e) => {
-            error!("Start export failed: {e}");
+            log::error!("Start export failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -54,7 +54,7 @@ pub async fn get_export_status(
             axum::Json(serde_json::json!({ "error": "Export not found" })),
         ),
         Err(e) => {
-            error!("Get export status failed: {e}");
+            log::error!("Get export status failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -78,7 +78,7 @@ pub async fn add_transition_handler(
             axum::Json(serde_json::json!({ "success": true })),
         ),
         Err(e) => {
-            error!("Add transition failed: {e}");
+            log::error!("Add transition failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),

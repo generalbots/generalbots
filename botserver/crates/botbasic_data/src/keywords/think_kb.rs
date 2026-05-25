@@ -3,7 +3,7 @@ use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
 use diesel::QueryableByName;
 use diesel::RunQueryDsl;
-use log::{error, info, warn};
+use log::{info, warn};
 use rhai::{Dynamic, Engine, Map};
 use serde_json::json;
 use std::sync::Arc;
@@ -57,11 +57,11 @@ pub fn register_think_kb_keyword(
                 Ok(json_to_dynamic(search_result))
             }
             Ok(Err(e)) => {
-                error!("THINK KB search failed: {}", e);
+                log::error!("THINK KB search failed: {}", e);
                 Err(format!("THINK KB failed: {}", e).into())
             }
             Err(e) => {
-                error!("THINK KB thread panic: {:?}", e);
+                log::error!("THINK KB thread panic: {:?}", e);
                 Err("THINK KB failed: thread panic".into())
             }
         }

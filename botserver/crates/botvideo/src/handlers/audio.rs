@@ -21,7 +21,7 @@ pub async fn get_audio_tracks(
             axum::Json(serde_json::json!({ "audio_tracks": tracks })),
         ),
         Err(e) => {
-            error!("Failed to get audio tracks: {e}");
+            log::error!("Failed to get audio tracks: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -42,7 +42,7 @@ pub async fn add_audio_track(
             axum::Json(serde_json::json!({ "audio_track": track })),
         ),
         Err(e) => {
-            error!("Failed to add audio track: {e}");
+            log::error!("Failed to add audio track: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -62,7 +62,7 @@ pub async fn delete_audio_track(
             axum::Json(serde_json::json!({})),
         ),
         Err(e) => {
-            error!("Failed to delete audio track: {e}");
+            log::error!("Failed to delete audio track: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),
@@ -81,7 +81,7 @@ pub async fn tts_handler(
         std::env::var("VIDEO_AUDIO_DIR").unwrap_or_else(|_| "./audio/video".to_string());
 
     if let Err(e) = std::fs::create_dir_all(&output_dir) {
-        error!("Failed to create audio directory: {e}");
+        log::error!("Failed to create audio directory: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
@@ -119,7 +119,7 @@ pub async fn tts_handler(
                 })),
             ),
             Err(e) => {
-                error!("Failed to add audio track: {e}");
+                log::error!("Failed to add audio track: {e}");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
@@ -127,7 +127,7 @@ pub async fn tts_handler(
             }
         },
         Err(e) => {
-            error!("TTS failed: {e}");
+            log::error!("TTS failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!(SafeErrorResponse::internal_error())),

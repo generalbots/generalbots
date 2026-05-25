@@ -128,7 +128,7 @@ pub async fn route_to_bot(
                     );
 
                     if let Err(e) = adapter.send_message(teams_response).await {
-                        error!("Failed to send Teams response: {}", e);
+                        log::error!("Failed to send Teams response: {}", e);
                     }
 
                     accumulated_content.clear();
@@ -139,7 +139,7 @@ pub async fn route_to_bot(
     });
 
     if let Err(e) = handle.await {
-        error!("Bot processing error: {:?}", e);
+        log::error!("Bot processing error: {:?}", e);
 
         let adapter = TeamsAdapter::new(
             state.conn.clone(),
@@ -155,7 +155,7 @@ pub async fn route_to_bot(
         );
 
         if let Err(e) = adapter.send_message(error_response).await {
-            error!("Failed to send error response: {}", e);
+            log::error!("Failed to send error response: {}", e);
         }
     }
 
