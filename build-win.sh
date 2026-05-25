@@ -70,7 +70,6 @@ install_system_deps() {
     if ! command -v pkg-config &>/dev/null; then
         pkgs+=(pkg-config)
     fi
-
     if [ ${#pkgs[@]} -gt 0 ]; then
         info "Installing: ${pkgs[*]}"
         if [ "${NEED_APT_UPDATE:-false}" = "true" ] || ! command -v lld &>/dev/null; then
@@ -112,33 +111,78 @@ install_postgres() {
         return 0
     fi
 
-    info "Downloading PostgreSQL 17.4 Windows binaries..."
-    mkdir -p /tmp/pg-windows
-    wget -q --show-progress "$PG_URL" -O "$PG_ZIP"
-    info "Extracting..."
-    unzip -q -o "$PG_ZIP" -d /tmp/pg-windows
+    if [ ! -f "$PG_ZIP" ] || [ ! -d "$PG_DIR/bin" ]; then
+        info "Downloading PostgreSQL 17.4 Windows binaries..."
+        mkdir -p /tmp/pg-windows
+        wget -q --show-progress "$PG_URL" -O "$PG_ZIP"
+        info "Extracting..."
+        unzip -q -o "$PG_ZIP" -d /tmp/pg-windows
+    else
+        info "PostgreSQL Windows binaries already downloaded and extracted."
+    fi
 
-    # The zip contains a 'pgsql' directory at root
     if [ ! -f "$PG_DIR/lib/libpq.dll.a" ]; then
-        # Try to find pgsql directory
-        PG_EXTRACTED=$(find /tmp/pg-windows -name "libpq.dll.a" 2>/dev/null | head -1)
-        if [ -z "$PG_EXTRACTED" ]; then
-            err "Could not find libpq.dll.a in extracted archive"
-            err "Extracted contents:"
-            ls -la /tmp/pg-windows/
-            return 1
+        if [ -f "$PG_DIR/bin/libpq.dll" ] && [ -f "$PG_DIR/lib/libpq.lib" ]; then
+            info "Generating libpq.dll.a import library from MSVC .lib + DLL..."
+            python3 - "$PG_DIR/lib/libpq.lib" "$PG_DIR/bin/libpq.dll" "$PG_DIR/lib/libpq.dll.a" <<'PYEOF' || true
+import subprocess, sys, os, re
+
+def extract_exports(lib_path):
+    result = subprocess.run(["strings", "-n", "3", lib_path],
+        capture_output=True, text=True, check=True)
+    exports = set()
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', line):
+            continue
+        if line.startswith(('__', '@', 'B.')):
+            continue
+        if line in ('libpq', 'NULL', 'THUNK', 'DESCRIPTOR', 'idata',
+                     'Microsoft', 'R', 'LINK', 'O'):
+            continue
+        if line.startswith(('PQ', 'pgtls', 'pg_', 'lo_', 'fe_',
+                            'libpq_', 'append', 'create', 'destroy',
+                            'enlarge', 'init', 'printf', 'reset',
+                            'term', 'winsock_')):
+            exports.add(line)
+    return sorted(exports)
+
+def create_def(exports, dll_name):
+    lines = [f"LIBRARY {dll_name}", "EXPORTS"]
+    lines.extend(exports)
+    return "\n".join(lines) + "\n"
+
+lib, dll, out = sys.argv[1], sys.argv[2], sys.argv[3]
+exports = extract_exports(lib)
+sys.stderr.write(f"Extracted {len(exports)} export symbols\n")
+def_path = "/tmp/libpq_gen_" + str(os.getpid()) + ".def"
+with open(def_path, "w") as f:
+    f.write(create_def(exports, os.path.basename(dll)))
+r = subprocess.run(["x86_64-w64-mingw32-dlltool",
+    "-d", def_path, "-l", out, "-D", dll],
+    capture_output=True, text=True)
+os.unlink(def_path)
+if r.returncode != 0:
+    sys.stderr.write(f"dlltool: {r.stderr.strip()}\n")
+sys.exit(0 if os.path.exists(out) and os.path.getsize(out) > 1000 else 1)
+PYEOF
         fi
-        # Create symlink or move
-        PG_EXTRACTED_DIR=$(dirname "$(dirname "$PG_EXTRACTED")")
-        info "Found PostgreSQL at $PG_EXTRACTED_DIR, linking to $PG_DIR"
-        ln -sfn "$PG_EXTRACTED_DIR" "$PG_DIR" 2>/dev/null || \
-            cp -r "$PG_EXTRACTED_DIR"/* "$PG_DIR/"
+    fi
+
+    if [ ! -f "$PG_DIR/lib/libpq.dll.a" ]; then
+        if [ -f "$PG_DIR/lib/libpq.a" ]; then
+            warn "Could not generate libpq.dll.a, falling back to static linking"
+            info "Creating symlink libpq.dll.a -> libpq.a"
+            ln -sf libpq.a "$PG_DIR/lib/libpq.dll.a"
+        fi
     fi
 
     if [ -f "$PG_DIR/lib/libpq.dll.a" ]; then
         info "PostgreSQL libpq installed successfully."
     else
         err "PostgreSQL installation failed."
+        err "Expected libpq.dll.a or libpq.a in $PG_DIR/lib/"
+        ls -la "$PG_DIR/lib/" 2>/dev/null || true
         return 1
     fi
 }
@@ -167,7 +211,7 @@ install_runtime_dlls() {
             -name "$dll" 2>/dev/null | head -1)
         if [ -n "$src" ]; then
             cp -v "$src" "$DLL_DIR/$dll"
-            ((copied++))
+            copied=$((copied + 1))
         else
             warn "DLL not found: $dll (botserver.exe may not run without it)"
         fi
@@ -178,7 +222,7 @@ install_runtime_dlls() {
         src=$(find /usr -name "libwinpthread-1.dll" 2>/dev/null | head -1)
         if [ -n "$src" ]; then
             cp -v "$src" "$DLL_DIR/libwinpthread-1.dll"
-            ((copied++))
+            copied=$((copied + 1))
         fi
     fi
 
@@ -199,23 +243,17 @@ do_build() {
     # Memory-minimizing flags for systems with as little as 3GB RAM
     # lld in GNU mode uses ~500MB peak vs GNU ld ~3GB+
     export RUSTFLAGS="\
-        -C linker=lld \
-        -C link-arg=-flavor \
-        -C link-arg=gnu \
-        -C link-arg=-target \
-        -C link-arg=x86_64-windows-gnu \
+        -C linker=x86_64-w64-mingw32-gcc \
         -C link-arg=-lwinpthread \
         -C lto=no \
         -C codegen-units=1 \
-        -C link-arg=-Wl,--no-keep-memory \
-        -C link-arg=-Wl,--reduce-memory-overheads \
     "
     export CARGO_BUILD_JOBS=1
 
-    info "Linker: lld (GNU emulation for PE/COFF)"
+    info "Linker: x86_64-w64-mingw32-gcc"
     info "LTO=off, codegen-units=1, jobs=1"
 
-    cargo build -p botserver --target "$TARGET" 2>&1 | tail -30
+    cargo build -p botserver --target "$TARGET" 2>&1
 
     local exe="$ROOT_DIR/target/$TARGET/debug/botserver.exe"
     if [ -f "$exe" ]; then
