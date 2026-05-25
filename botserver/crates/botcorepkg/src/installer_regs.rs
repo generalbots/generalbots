@@ -22,7 +22,9 @@ pub fn register_drive(components: &mut HashMap<String, ComponentConfig>) {
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![],
             pre_install_cmds_windows: vec![],
-            post_install_cmds_windows: vec![],
+            post_install_cmds_windows: vec![
+                "copy /Y {{DATA_PATH}}\\mc.exe {{BIN_PATH}}\\mc.exe".to_string(),
+            ],
             env_vars: HashMap::from([
                 ("MINIO_ROOT_USER".to_string(), "$DRIVE_ACCESSKEY".to_string()),
                 ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
@@ -30,6 +32,8 @@ pub fn register_drive(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: get_component_url("mc").map(|url| vec![url]).unwrap_or_default(),
             exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
             check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\minio.exe server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}\\drive\\certs > {{LOGS_PATH}}\\minio.log 2>&1".to_string()),
+            check_cmd_windows: Some("curl -sf --cacert {{CONF_PATH}}\\drive\\certs\\CAs\\ca.crt https://127.0.0.1:9100/minio/health/live >NUL 2>&1".to_string()),
             container: None,
         },
     );
@@ -80,6 +84,8 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30 > {{LOGS_PATH}}/stdout.log 2>&1 &".to_string(),
             check_cmd: "{{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -115,6 +121,8 @@ pub fn register_cache(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --bind 127.0.0.1 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
             check_cmd: "pgrep -x valkey-server >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -157,6 +165,8 @@ pub fn register_llm(components: &mut HashMap<String, ComponentConfig>) {
             ],
             exec_cmd: "nohup {{BIN_PATH}}/build/bin/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --ubatch-size 512 > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/build/bin/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embeddings --pooling mean --n-gpu-layers 0 --ctx-size 512 --ubatch-size 512 > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
             check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8081/health >/dev/null 2>&1 && curl -f -k --connect-timeout 2 -m 5 https://localhost:8082/health >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -188,6 +198,8 @@ pub fn register_email(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "{{BIN_PATH}}/stalwart-mail --config {{CONF_PATH}}/email/config.toml".to_string(),
             check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8025/health >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -221,6 +233,8 @@ pub fn register_proxy(components: &mut HashMap<String, ComponentConfig>) {
             exec_cmd: "{{BIN_PATH}}/caddy run --config {{CONF_PATH}}/Caddyfile".to_string(),
             check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost >/dev/null 2>&1"
                 .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -340,6 +354,8 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
                 "fi",
             ).to_string(),
             check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/debug/healthz >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -370,6 +386,8 @@ pub fn register_alm(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "nohup {{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 3000 --cert {{CONF_PATH}}/system/certificates/alm/server.crt --key {{CONF_PATH}}/system/certificates/alm/server.key > {{LOGS_PATH}}/forgejo.log 2>&1 &".to_string(),
             check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:3000 >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -408,6 +426,8 @@ pub fn register_alm_ci(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "nohup {{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml > {{LOGS_PATH}}/forgejo-runner.log 2>&1 &".to_string(),
             check_cmd: "ps -ef | grep forgejo-runner | grep -v grep | grep {{BIN_PATH}} >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -435,6 +455,8 @@ pub fn register_dns(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "{{BIN_PATH}}/coredns -conf {{CONF_PATH}}/dns/Corefile".to_string(),
             check_cmd: "dig @localhost botserver.local >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -469,6 +491,8 @@ pub fn register_webmail(components: &mut HashMap<String, ComponentConfig>) {
             check_cmd:
                 "curl -f -k --connect-timeout 2 -m 5 https://localhost:8300 >/dev/null 2>&1"
                     .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -496,6 +520,8 @@ pub fn register_meeting(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "{{BIN_PATH}}/livekit-server --config {{CONF_PATH}}/meet/config.yaml --key-file {{CONF_PATH}}/system/certificates/meet/server.key --cert-file {{CONF_PATH}}/system/certificates/meet/server.crt".to_string(),
             check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:7880 >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );

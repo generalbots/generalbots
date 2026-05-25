@@ -159,7 +159,7 @@ pub fn install_system_packages(component: &ComponentConfig, os_type: &OsType) ->
             }
         }
         OsType::Windows => {
-            warn!("Windows package installation not implemented");
+            trace!("Windows packages managed via GB portable binaries, skipping system package manager");
         }
     }
     Ok(())
@@ -318,31 +318,45 @@ pub fn extract_tar_gz(temp_file: &std::path::Path, bin_path: &std::path::Path) -
 
 pub fn extract_zip(temp_file: &std::path::Path, bin_path: &std::path::Path) -> Result<()> {
     let temp_file_str = temp_file.to_str().unwrap_or_default();
-    let output = SafeCommand::new("unzip")
-        .and_then(|c| c.args(&["-o", "-q", temp_file_str]))
-        .and_then(|c| c.working_dir(bin_path))
-        .map_err(|e| anyhow::anyhow!("Failed to build unzip command: {}", e))?
-        .execute()
-        .map_err(|e| anyhow::anyhow!("Failed to execute unzip: {}", e))?;
-    if !output.status.success() {
-        return Err(anyhow::anyhow!(
-            "unzip extraction failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
+    if cfg!(target_os = "windows") {
+        let output = std::process::Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-Command",
+                &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force", temp_file_str, bin_path.to_string_lossy()),
+            ])
+            .output()
+            .map_err(|e| anyhow::anyhow!("Failed to execute PowerShell Expand-Archive: {}", e))?;
+        if !output.status.success() {
+            return Err(anyhow::anyhow!(
+                "PowerShell Expand-Archive failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    } else {
+        let output = SafeCommand::new("unzip")
+            .and_then(|c| c.args(&["-o", "-q", temp_file_str]))
+            .and_then(|c| c.working_dir(bin_path))
+            .map_err(|e| anyhow::anyhow!("Failed to build unzip command: {}", e))?
+            .execute()
+            .map_err(|e| anyhow::anyhow!("Failed to execute unzip: {}", e))?;
+        if !output.status.success() {
+            return Err(anyhow::anyhow!(
+                "unzip extraction failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
     }
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
         if let Ok(entries) = std::fs::read_dir(bin_path) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_file() {
                     if let Ok(metadata) = std::fs::metadata(&path) {
-                        let mut perms = metadata.permissions();
                         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                         if ext.is_empty() || ext == "sh" || ext == "bash" {
-                            perms.set_mode(0o755);
-                            let _ = std::fs::set_permissions(&path, perms);
+                            let _ = botlib::os::fs::get_permissions_manager().set_executable(&path);
                             trace!("Made executable: {}", path.display());
                         }
                     }
@@ -357,7 +371,15 @@ pub fn extract_zip(temp_file: &std::path::Path, bin_path: &std::path::Path) -> R
 }
 
 pub fn install_binary(temp_file: &std::path::Path, bin_path: &std::path::Path, name: &str) -> Result<()> {
-    let final_path = bin_path.join(name);
+    #[cfg(target_os = "windows")]
+    let name = if !name.ends_with(".exe") {
+        format!("{}.exe", name)
+    } else {
+        name.to_string()
+    };
+    #[cfg(not(target_os = "windows"))]
+    let name = name.to_string();
+    let final_path = bin_path.join(&name);
     if temp_file.to_string_lossy().contains("botserver-installers") {
         std::fs::copy(temp_file, &final_path)?;
     } else {
@@ -370,10 +392,11 @@ pub fn install_binary(temp_file: &std::path::Path, bin_path: &std::path::Path, n
 pub fn make_executable(path: &std::path::Path) -> Result<()> {
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(path)?.permissions();
-        perms.set_mode(0o755);
-        std::fs::set_permissions(path, perms)?;
+        let _ = botlib::os::fs::get_permissions_manager().set_executable(path);
+    }
+    #[cfg(windows)]
+    {
+        trace!("Skipping chmod on Windows for: {}", path.display());
     }
     Ok(())
 }
@@ -431,16 +454,30 @@ pub fn run_commands_with_password(
             .replace("{{DB_PASSWORD}}", &db_password);
         if target == "local" {
             trace!("Executing command: {}", rendered_cmd);
-            let cmd = SafeCommand::new("bash")
-                .and_then(|c| c.arg("-c"))
-                .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
-                .and_then(|c| c.working_dir(&bin_path))
-                .map_err(|e| anyhow::anyhow!("Failed to build bash command: {}", e))?;
-            let output = cmd.execute().with_context(|| {
-                format!("Failed to execute command for component '{}'", component)
-            })?;
-            if !output.status.success() {
-                error!("Command had non-zero exit: {}", String::from_utf8_lossy(&output.stderr));
+            #[cfg(target_os = "windows")]
+            let cmd_result = {
+                let output = std::process::Command::new("powershell")
+                    .args(["-NoProfile", "-Command", &rendered_cmd])
+                    .current_dir(&bin_path)
+                    .output()
+                    .with_context(|| {
+                        format!("Failed to execute PowerShell command for '{}'", component)
+                    })?;
+                output
+            };
+            #[cfg(not(target_os = "windows"))]
+            let cmd_result = {
+                let cmd = SafeCommand::new("bash")
+                    .and_then(|c| c.arg("-c"))
+                    .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
+                    .and_then(|c| c.working_dir(&bin_path))
+                    .map_err(|e| anyhow::anyhow!("Failed to build bash command: {}", e))?;
+                cmd.execute().with_context(|| {
+                    format!("Failed to execute command for component '{}'", component)
+                })?
+            };
+            if !cmd_result.status.success() {
+                log::error!("Command had non-zero exit: {}", String::from_utf8_lossy(&cmd_result.stderr));
             }
         } else {
             exec_in_container(target, &rendered_cmd)?;

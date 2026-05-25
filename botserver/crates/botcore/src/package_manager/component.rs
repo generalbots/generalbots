@@ -53,5 +53,39 @@ pub struct ComponentConfig {
     pub data_download_list: Vec<String>,
     pub exec_cmd: String,
     pub check_cmd: String,
+    pub exec_cmd_windows: Option<String>,
+    pub check_cmd_windows: Option<String>,
     pub container: Option<ContainerSettings>,
+}
+
+impl ComponentConfig {
+    pub fn effective_exec_cmd(&self) -> &str {
+        if cfg!(target_os = "windows") {
+            self.exec_cmd_windows.as_deref().unwrap_or(&self.exec_cmd)
+        } else {
+            &self.exec_cmd
+        }
+    }
+
+    pub fn effective_check_cmd(&self) -> &str {
+        if cfg!(target_os = "windows") {
+            self.check_cmd_windows.as_deref().unwrap_or(&self.check_cmd)
+        } else {
+            &self.check_cmd
+        }
+    }
+
+    pub fn effective_binary_name(&self) -> Option<String> {
+        if cfg!(target_os = "windows") {
+            self.binary_name.as_ref().map(|n| {
+                if !n.ends_with(".exe") {
+                    format!("{}.exe", n)
+                } else {
+                    n.clone()
+                }
+            })
+        } else {
+            self.binary_name.clone()
+        }
+    }
 }

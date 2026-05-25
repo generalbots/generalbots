@@ -43,7 +43,29 @@ pub struct ComponentDownload {
     pub url: String,
     pub filename: String,
     #[serde(default)]
+    pub url_win: Option<String>,
+    #[serde(default)]
+    pub filename_win: Option<String>,
+    #[serde(default)]
     pub sha256: String,
+}
+
+impl ComponentDownload {
+    pub fn effective_url(&self) -> &str {
+        if cfg!(target_os = "windows") {
+            self.url_win.as_deref().unwrap_or(&self.url)
+        } else {
+            &self.url
+        }
+    }
+
+    pub fn effective_filename(&self) -> &str {
+        if cfg!(target_os = "windows") {
+            self.filename_win.as_deref().unwrap_or(&self.filename)
+        } else {
+            &self.filename
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -186,9 +208,10 @@ impl DownloadCache {
         }
     }
 
-    pub fn resolve_component_url(&self, component: &str, url: &str) -> CacheResult {
+    pub fn resolve_component_url(&self, component: &str, _fallback_url: &str) -> CacheResult {
         if let Some(comp) = self.get_component(component) {
-            let cached_path = self.cache_dir.join(&comp.filename);
+            let filename = comp.effective_filename();
+            let cached_path = self.cache_dir.join(filename);
             if cached_path.exists()
                 && fs::metadata(&cached_path)
                     .map(|m| m.len() > 0)
@@ -198,14 +221,15 @@ impl DownloadCache {
                 return CacheResult::Cached(cached_path);
             }
 
-            trace!("Will download {} from config URL", comp.name);
+            let down_url = comp.effective_url().to_string();
+            trace!("Will download {} from config URL: {}", comp.name, down_url);
             return CacheResult::Download {
-                url: comp.url.clone(),
-                cache_path: self.cache_dir.join(&comp.filename),
+                url: down_url,
+                cache_path: self.cache_dir.join(filename),
             };
         }
 
-        self.resolve_url(url)
+        self.resolve_url(_fallback_url)
     }
 
     pub fn save_to_cache(&self, source: &Path, filename: &str) -> Result<PathBuf> {

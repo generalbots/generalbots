@@ -79,7 +79,7 @@ impl PackageManager {
         if let Some(url) = &component.download_url {
             let url = url.clone();
             let name = component.name.clone();
-            let binary_name = component.binary_name.clone();
+            let binary_name = component.effective_binary_name();
             crate::facade_download::download_and_install(
                 &self.base_path, &url, &name, binary_name.as_deref(),
             )

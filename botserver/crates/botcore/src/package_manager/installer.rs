@@ -2,10 +2,8 @@ use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::os::detect_os;
 use crate::package_manager::{InstallMode, OsType};
 use anyhow::{Context, Result};
-use log::{error, info, trace, warn};
+use log::{info, trace, warn};
 use std::io::Write;
-
-#[cfg(unix)]
 
 #[derive(Deserialize, Debug)]
 struct ComponentEntry {
@@ -27,7 +25,7 @@ fn get_thirdparty_config() -> &'static ThirdPartyConfig {
         match toml::from_str::<ThirdPartyConfig>(toml_str) {
             Ok(config) => config,
             Err(e) => {
-                error!("CRITICAL: Failed to parse embedded 3rdparty.toml: {e}");
+                log::error!("CRITICAL: Failed to parse embedded 3rdparty.toml: {e}");
                 ThirdPartyConfig {
                     components: HashMap::new(),
                     models: HashMap::new(),
@@ -60,18 +58,30 @@ fn safe_nvcc_version() -> Option<std::process::Output> {
 }
 
 fn safe_sh_command(script: &str) -> Option<std::process::Output> {
-    SafeCommand::new("sh")
-        .and_then(|c| c.arg("-c"))
-        .and_then(|c| c.trusted_shell_script_arg(script))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
+    let child = if cfg!(unix) {
+        SafeCommand::new("sh")
+            .and_then(|c| c.arg("-c"))
+            .and_then(|c| c.trusted_shell_script_arg(script))
+    } else {
+        SafeCommand::new("cmd")
+            .and_then(|c| c.arg("/c"))
+            .and_then(|c| c.trusted_shell_script_arg(script))
+    };
+    child.ok().and_then(|cmd| cmd.execute().ok())
+
 }
 
+#[cfg(unix)]
 fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
     SafeCommand::new("pgrep")
         .and_then(|c| c.args(args))
         .ok()
         .and_then(|cmd| cmd.execute().ok())
+}
+
+#[cfg(windows)]
+fn safe_pgrep(_args: &[&str]) -> Option<std::process::Output> {
+    None // Simplificação inicial
 }
 
 const LLAMA_CPP_VERSION: &str = "b7345";
@@ -86,24 +96,24 @@ fn get_llama_cpp_url() -> Option<String> {
                 || std::env::var("CUDA_HOME").is_ok()
             {
                 // CUDA versions not currently in 3rdparty.toml for Linux, falling back to Vulkan or CPU if not added
-                // Or if we had them: get_component_url("llm_linux_cuda12")
+                // Or if we had them: get_component_url_by_os("llm_linux_cuda12")
             }
 
             if std::path::Path::new("/usr/share/vulkan").exists()
                 || std::env::var("VULKAN_SDK").is_ok()
             {
                 info!("Detected Vulkan - using Vulkan build");
-                return get_component_url("llm_linux_vulkan");
+                return get_component_url_by_os("llm_linux_vulkan");
             }
 
             info!("Using standard Ubuntu x64 build (CPU)");
-            get_component_url("llm")
+            get_component_url_by_os("llm")
         }
 
         #[cfg(target_arch = "s390x")]
         {
             info!("Detected s390x architecture");
-            return get_component_url("llm_linux_s390x");
+            return get_component_url_by_os("llm_linux_s390x");
         }
 
         #[cfg(target_arch = "aarch64")]
@@ -119,13 +129,13 @@ fn get_llama_cpp_url() -> Option<String> {
         #[cfg(target_arch = "aarch64")]
         {
             info!("Detected macOS ARM64 (Apple Silicon)");
-            return get_component_url("llm_macos_arm64");
+            return get_component_url_by_os("llm_macos_arm64");
         }
 
         #[cfg(target_arch = "x86_64")]
         {
             info!("Detected macOS x64 (Intel)");
-            return get_component_url("llm_macos_x64");
+            return get_component_url_by_os("llm_macos_x64");
         }
     }
 
@@ -138,27 +148,27 @@ fn get_llama_cpp_url() -> Option<String> {
                     let version_str = String::from_utf8_lossy(&output.stdout);
                     if version_str.contains("13.") {
                         info!("Detected CUDA 13.x on Windows");
-                        return get_component_url("llm_win_cuda13");
+                        return get_component_url_by_os("llm_win_cuda13");
                     } else if version_str.contains("12.") {
                         info!("Detected CUDA 12.x on Windows");
-                        return get_component_url("llm_win_cuda12");
+                        return get_component_url_by_os("llm_win_cuda12");
                     }
                 }
             }
 
             if std::env::var("VULKAN_SDK").is_ok() {
                 info!("Detected Vulkan SDK on Windows");
-                return get_component_url("llm_win_vulkan");
+                return get_component_url_by_os("llm_win_vulkan");
             }
 
             info!("Using standard Windows x64 CPU build");
-            return get_component_url("llm_win_cpu_x64");
+            return get_component_url_by_os("llm_win_cpu_x64");
         }
 
         #[cfg(target_arch = "aarch64")]
         {
             info!("Detected Windows ARM64");
-            return get_component_url("llm_win_cpu_arm64");
+            return get_component_url_by_os("llm_win_cpu_arm64");
         }
     }
 }
@@ -248,7 +258,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("drive"),
+                download_url: get_component_url_by_os("drive"),
                 binary_name: Some("minio".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
@@ -262,13 +272,15 @@ impl PackageManager {
                     ("MINIO_ROOT_USER".to_string(), "$DRIVE_ACCESSKEY".to_string()),
                     ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
                 ]),
-                data_download_list: get_component_url("mc").map(|url| vec![url]).unwrap_or_default(),
+                data_download_list: get_component_url_by_os("mc").map(|url| vec![url]).unwrap_or_default(),
                 exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
                 check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_tables(&mut self) {
         self.components.insert(
@@ -280,7 +292,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("tables"),
+                download_url: get_component_url_by_os("tables"),
                 binary_name: Some("postgres".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
@@ -315,10 +327,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30 > {{LOGS_PATH}}/stdout.log 2>&1 &".to_string(),
                 check_cmd: "{{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_cache(&mut self) {
         self.components.insert(
@@ -330,7 +344,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("cache"),
+                download_url: get_component_url_by_os("cache"),
                 binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
@@ -349,11 +363,13 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --bind 127.0.0.1 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
-                check_cmd: "pgrep -x valkey-server >/dev/null 2>&1".to_string(),
+                check_cmd: "tasklist  >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_llm(&mut self) {
         let download_url = get_llama_cpp_url();
@@ -392,10 +408,12 @@ impl PackageManager {
                 ],
                 exec_cmd: "nohup {{BIN_PATH}}/build/bin/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --ubatch-size 512 > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/build/bin/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embeddings --pooling mean --n-gpu-layers 0 --ctx-size 512 --ubatch-size 512 > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8081/health >/dev/null 2>&1 && curl -f -k --connect-timeout 2 -m 5 https://localhost:8082/health >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_email(&mut self) {
         self.components.insert(
@@ -407,7 +425,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("email"),
+                download_url: get_component_url_by_os("email"),
                 binary_name: Some("stalwart-mail".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -423,10 +441,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/stalwart-mail --config {{CONF_PATH}}/email/config.toml".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8025/health >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_proxy(&mut self) {
         self.components.insert(
@@ -438,7 +458,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("proxy"),
+                download_url: get_component_url_by_os("proxy"),
                 binary_name: Some("caddy".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
@@ -456,10 +476,12 @@ impl PackageManager {
                 exec_cmd: "{{BIN_PATH}}/caddy run --config {{CONF_PATH}}/Caddyfile".to_string(),
                 check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost >/dev/null 2>&1"
                     .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_directory(&mut self) {
         self.components.insert(
@@ -471,7 +493,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("directory"),
+                download_url: get_component_url_by_os("directory"),
                 binary_name: Some("zitadel".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{CONF_PATH}}/directory".to_string(),
@@ -585,10 +607,12 @@ impl PackageManager {
                     "fi",
                 ).to_string(),
                 check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/debug/healthz >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_alm(&mut self) {
         self.components.insert(
@@ -600,7 +624,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("alm"),
+                download_url: get_component_url_by_os("alm"),
                 binary_name: Some("forgejo".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -615,10 +639,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 3000 --cert {{CONF_PATH}}/system/certificates/alm/server.crt --key {{CONF_PATH}}/system/certificates/alm/server.key > {{LOGS_PATH}}/forgejo.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:3000 >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_alm_ci(&mut self) {
         self.components.insert(
@@ -631,7 +657,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec!["git".to_string(), "node".to_string()],
                 windows_packages: vec![],
-                download_url: get_component_url("alm_ci"),
+                download_url: get_component_url_by_os("alm_ci"),
                 binary_name: Some("forgejo-runner".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{CONF_PATH}}/alm-ci".to_string(),
@@ -656,10 +682,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml > {{LOGS_PATH}}/forgejo-runner.log 2>&1 &".to_string(),
                 check_cmd: "ps -ef | grep forgejo-runner | grep -v grep | grep {{BIN_PATH}} >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_dns(&mut self) {
         self.components.insert(
@@ -671,7 +699,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("dns"),
+                download_url: get_component_url_by_os("dns"),
                 binary_name: Some("coredns".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -683,10 +711,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/coredns -conf {{CONF_PATH}}/dns/Corefile".to_string(),
                 check_cmd: "dig @localhost botserver.local >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_webmail(&mut self) {
         self.components.insert(
@@ -704,7 +734,7 @@ impl PackageManager {
                 ],
                 macos_packages: vec!["php".to_string()],
                 windows_packages: vec![],
-                download_url: get_component_url("webmail"),
+                download_url: get_component_url_by_os("webmail"),
                 binary_name: None,
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -718,10 +748,12 @@ impl PackageManager {
                 check_cmd:
                     "curl -f -k --connect-timeout 2 -m 5 https://localhost:8300 >/dev/null 2>&1"
                         .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_meeting(&mut self) {
         self.components.insert(
@@ -733,7 +765,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("meet"),
+                download_url: get_component_url_by_os("meet"),
                 binary_name: Some("livekit-server".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -745,10 +777,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/livekit-server --config {{CONF_PATH}}/meet/config.yaml --key-file {{CONF_PATH}}/system/certificates/meet/server.key --cert-file {{CONF_PATH}}/system/certificates/meet/server.crt".to_string(),
                 check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:7880 >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_table_editor(&mut self) {
         self.components.insert(
@@ -761,7 +795,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("table_editor"),
+                download_url: get_component_url_by_os("table_editor"),
                 binary_name: Some("nocodb".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -775,10 +809,12 @@ impl PackageManager {
                 check_cmd:
                     "curl -f -k --connect-timeout 2 -m 5 https://localhost:5757 >/dev/null 2>&1"
                         .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_doc_editor(&mut self) {
         self.components.insert(
@@ -805,10 +841,12 @@ impl PackageManager {
                 check_cmd:
                     "curl -f -k --connect-timeout 2 -m 5 https://localhost:9980 >/dev/null 2>&1"
                         .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_remote_terminal(&mut self) {
         self.components.insert(
@@ -833,10 +871,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "xrdp --nodaemon".to_string(),
                 check_cmd: "netstat -tln | grep :3389 >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_devtools(&mut self) {
         self.components.insert(
@@ -861,10 +901,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
                 check_cmd: "".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn _register_botserver(&mut self) {
         self.components.insert(
@@ -889,10 +931,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
                 check_cmd: "".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_vector_db(&mut self) {
         self.components.insert(
@@ -905,7 +949,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("vector_db"),
+                download_url: get_component_url_by_os("vector_db"),
                 binary_name: Some("qdrant".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -916,11 +960,13 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/qdrant --config-path {{CONF_PATH}}/vector_db/config.yaml > {{LOGS_PATH}}/qdrant.log 2>&1 &".to_string(),
-                check_cmd: "pgrep -x qdrant >/dev/null 2>&1".to_string(),
+                check_cmd: "tasklist  >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_timeseries_db(&mut self) {
         self.components.insert(
@@ -932,7 +978,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("timeseries_db"),
+                download_url: get_component_url_by_os("timeseries_db"),
                 binary_name: Some("influxd".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{DATA_PATH}}/influxdb".to_string(),
@@ -958,10 +1004,12 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/influxdb/influxd.bolt --engine-path={{DATA_PATH}}/influxdb/engine --http-bind-address=:8086".to_string(),
                 check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_vault(&mut self) {
         self.components.insert(
@@ -973,7 +1021,7 @@ impl PackageManager {
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("vault"),
+                download_url: get_component_url_by_os("vault"),
                 binary_name: Some("vault".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{DATA_PATH}}/vault".to_string(),
@@ -1062,10 +1110,12 @@ EOF"#.to_string(),
                     .to_string(),
                 check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; fi"
                     .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_observability(&mut self) {
         self.components.insert(
@@ -1077,7 +1127,7 @@ EOF"#.to_string(),
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: get_component_url("observability"),
+                download_url: get_component_url_by_os("observability"),
                 binary_name: Some("vector".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{CONF_PATH}}/monitoring".to_string(),
@@ -1097,10 +1147,12 @@ EOF"#.to_string(),
                 exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml"
                     .to_string(),
                 check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     fn register_host(&mut self) {
         self.components.insert(
@@ -1133,10 +1185,12 @@ EOF"#.to_string(),
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
                 check_cmd: "".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
-            },
-        );
-    }
+        },
+    );
+}
 
     pub fn start(&self, component: &str) -> Result<std::process::Child> {
         if let Some(component) = self.components.get(component) {
@@ -1146,7 +1200,7 @@ EOF"#.to_string(),
             let logs_path = self.base_path.join("logs").join(&component.name);
 
             let check_cmd = component
-                .check_cmd
+                .effective_check_cmd()
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
                 .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
@@ -1180,18 +1234,19 @@ EOF"#.to_string(),
                     );
                     if let Err(e) = std::fs::write(&qdrant_conf, yaml) {
                         warn!("Failed to write qdrant config: {}", e);
-                    } else {
+                    }
+ else {
                         info!("Generated qdrant config at {}", qdrant_conf.display());
                     }
                 }
             }
 
-        let rendered_cmd = component
-            .exec_cmd
-            .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
-            .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
-            .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
-            .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
+            let rendered_cmd = component
+                .effective_exec_cmd()
+                .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
+                .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
+                .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
+                .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
         if let Err(e) = std::fs::create_dir_all(&logs_path) {
             warn!("Failed to create log directory {}: {}", logs_path.display(), e);
@@ -1230,12 +1285,15 @@ EOF"#.to_string(),
                 rendered_cmd
             );
             trace!("Working dir: {}", bin_path.display());
-            let child = SafeCommand::new("sh")
-                .and_then(|c| c.arg("-c"))
+            let child = if cfg!(unix) {
+                SafeCommand::new("sh")
+            } else {
+                SafeCommand::new("cmd")
+            }
+                .and_then(|c| c.arg("/c"))
                 .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
                 .and_then(|c| c.working_dir(&bin_path))
-                .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs))
-                .map_err(|e| anyhow::anyhow!("Failed to spawn process: {}", e));
+                .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs));
 
             trace!("Spawn result for {}: {:?}", component.name, child.is_ok());
             std::thread::sleep(std::time::Duration::from_secs(2));
@@ -1252,39 +1310,31 @@ EOF"#.to_string(),
 
             match child {
                 Ok(c) => {
-                    trace!("Component {} started successfully", component.name);
+                    trace!("Component {} spawned successfully", component.name);
 
-                    // Initialize Vault after successful start (local mode only)
                     if component.name == "vault" && self.mode == InstallMode::Local {
                         if let Err(e) = self.initialize_vault_local() {
                             warn!("Failed to initialize Vault: {}", e);
-                            warn!("Vault started but may need manual initialization");
                         }
                     }
 
                     Ok(c)
                 }
                 Err(e) => {
-                    error!("Spawn failed for {}: {}", component.name, e);
+                    log::error!("Spawn failed for {}: {}", component.name, e);
                     let err_msg = e.to_string();
                     if err_msg.contains("already running")
                         || err_msg.contains("be running")
                         || component.name == "tables"
                     {
-                        trace!(
-                            "Component {} may already be running, continuing anyway",
-                            component.name
-                        );
-
-                        // Even if vault was already running, ensure .env exists
+                        trace!("Component {} may already be running", component.name);
                         if component.name == "vault" && self.mode == InstallMode::Local {
                             let _ = self.ensure_env_file_exists();
                         }
-
-                        SafeCommand::noop_child()
-                            .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e))
+                        
+                        Err(anyhow::anyhow!("Already running"))
                     } else {
-                        Err(e)
+                        Err(anyhow::anyhow!("Failed to start component {}: {}", component.name, e))
                     }
                 }
             }
@@ -1552,7 +1602,7 @@ VAULT_CACERT={}
 
         #[cfg(unix)]
         {
-            std::fs::set_permissions(&unseal_keys_file, std::fs::Permissions::from_mode(0o600))?;
+            let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&unseal_keys_file);
         }
         #[cfg(not(unix))]
         {
@@ -2011,4 +2061,12 @@ use botlib::security::command_guard::SafeCommand;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::os::unix::fs::PermissionsExt;
+
+fn get_component_url_by_os(name: &str) -> Option<String> {
+    let os = detect_os();
+    let suffix = match os {
+        OsType::Windows => "_win",
+        _ => "",
+    };
+    get_component_url(&format!("{}{}", name, suffix))
+}

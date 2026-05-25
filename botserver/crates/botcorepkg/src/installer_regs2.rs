@@ -27,6 +27,8 @@ pub fn register_table_editor(components: &mut HashMap<String, ComponentConfig>) 
             check_cmd:
                 "curl -f -k --connect-timeout 2 -m 5 https://localhost:5757 >/dev/null 2>&1"
                     .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -56,6 +58,8 @@ pub fn register_doc_editor(components: &mut HashMap<String, ComponentConfig>) {
             check_cmd:
                 "curl -f -k --connect-timeout 2 -m 5 https://localhost:9980 >/dev/null 2>&1"
                     .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -83,6 +87,8 @@ pub fn register_remote_terminal(components: &mut HashMap<String, ComponentConfig
             data_download_list: Vec::new(),
             exec_cmd: "xrdp --nodaemon".to_string(),
             check_cmd: "netstat -tln | grep :3389 >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -110,6 +116,8 @@ pub fn register_devtools(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "".to_string(),
             check_cmd: "".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -137,6 +145,8 @@ pub fn register_vector_db(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "nohup {{BIN_PATH}}/qdrant --config-path {{CONF_PATH}}/vector_db/config.yaml > {{LOGS_PATH}}/qdrant.log 2>&1 &".to_string(),
             check_cmd: "pgrep -x qdrant >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -178,6 +188,8 @@ pub fn register_timeseries_db(components: &mut HashMap<String, ComponentConfig>)
             data_download_list: Vec::new(),
             exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/influxdb/influxd.bolt --engine-path={{DATA_PATH}}/influxdb/engine --http-bind-address=:8086".to_string(),
             check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -281,6 +293,8 @@ EOF"#.to_string(),
                 .to_string(),
             check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; fi"
                 .to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -315,6 +329,8 @@ pub fn register_observability(components: &mut HashMap<String, ComponentConfig>)
             exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml"
                 .to_string(),
             check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -350,6 +366,8 @@ pub fn register_host(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "".to_string(),
             check_cmd: "".to_string(),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );

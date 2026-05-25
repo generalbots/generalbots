@@ -13,12 +13,10 @@ fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
 }
 
 fn safe_lxc_exec_in_container(container: &str, command: &str) -> Option<std::process::Output> {
-    let output = std::process::Command::new("lxc")
-        .args(["exec", container, "--", "bash", "-c", command])
-        .output()
-        .ok()?;
-    
-    Some(output)
+    SafeCommand::new("lxc")
+        .and_then(|c| c.args(&["exec", container, "--", "bash", "-c", command]))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
 }
 
 fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
@@ -104,7 +102,7 @@ impl PackageManager {
         if let Some(url) = &component.download_url {
             let url = url.clone();
             let name = component.name.clone();
-            let binary_name = component.binary_name.clone();
+            let binary_name = component.effective_binary_name();
             self.download_and_install(&url, &name, binary_name.as_deref())
                 .await?;
         }
@@ -404,10 +402,10 @@ impl PackageManager {
     fn assign_static_ip(container_name: &str) -> Result<String> {
         // Discover the host bridge gateway and subnet dynamically from the container's default route.
         // The container already has IPv6 + a link on eth0, so we can read the bridge from the host.
-        let bridge_info = std::process::Command::new("ip")
-            .args(["-4", "addr", "show", "lxdbr0"])
-            .output()
+        let bridge_info = SafeCommand::new("ip")
+            .and_then(|c| c.args(&["-4", "addr", "show", "lxdbr0"]))
             .ok()
+            .and_then(|cmd| cmd.execute().ok())
             .and_then(|o| {
                 let out = String::from_utf8_lossy(&o.stdout).to_string();
                 // Extract "10.x.x.x/prefix" from "inet 10.x.x.x/24 ..."
@@ -495,7 +493,7 @@ impl PackageManager {
             .as_str()
             .context("No root token in output")?;
 
-        let unseal_keys_file = PathBuf::from("vault-unseal-keys");
+        let unseal_keys_file = PathBuf::from("/tmp/vault-unseal-keys");
         let mut unseal_content = String::new();
         for (i, key) in unseal_keys.iter().enumerate() {
             if i < 3 {
@@ -511,8 +509,7 @@ impl PackageManager {
 
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&unseal_keys_file, std::fs::Permissions::from_mode(0o600))?;
+            let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&unseal_keys_file);
         }
 
         info!("Created {}", unseal_keys_file.display());
@@ -966,7 +963,7 @@ Store credentials in Vault:
                 }
             }
             OsType::Windows => {
-                warn!("Windows package installation not implemented");
+                trace!("Windows packages managed via GB portable binaries, skipping system package manager");
             }
         }
         Ok(())
@@ -1183,33 +1180,46 @@ Store credentials in Vault:
         bin_path: &std::path::Path,
     ) -> Result<()> {
         let temp_file_str = temp_file.to_str().unwrap_or_default();
-        let output = SafeCommand::new("unzip")
-            .and_then(|c| c.args(&["-o", "-q", temp_file_str]))
-            .and_then(|c| c.working_dir(bin_path))
-            .map_err(|e| anyhow::anyhow!("Failed to build unzip command: {}", e))?
-            .execute()
-            .map_err(|e| anyhow::anyhow!("Failed to execute unzip: {}", e))?;
-        if !output.status.success() {
-            return Err(anyhow::anyhow!(
-                "unzip extraction failed: {}",
-                String::from_utf8_lossy(&output.stderr)
-            ));
+        if cfg!(target_os = "windows") {
+            let output = std::process::Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-Command",
+                    &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force", temp_file_str, bin_path.to_string_lossy()),
+                ])
+                .output()
+                .map_err(|e| anyhow::anyhow!("Failed to execute PowerShell Expand-Archive: {}", e))?;
+            if !output.status.success() {
+                return Err(anyhow::anyhow!(
+                    "PowerShell Expand-Archive failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                ));
+            }
+        } else {
+            let output = SafeCommand::new("unzip")
+                .and_then(|c| c.args(&["-o", "-q", temp_file_str]))
+                .and_then(|c| c.working_dir(bin_path))
+                .map_err(|e| anyhow::anyhow!("Failed to build unzip command: {}", e))?
+                .execute()
+                .map_err(|e| anyhow::anyhow!("Failed to execute unzip: {}", e))?;
+            if !output.status.success() {
+                return Err(anyhow::anyhow!(
+                    "unzip extraction failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                ));
+            }
         }
 
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt;
             if let Ok(entries) = std::fs::read_dir(bin_path) {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     if path.is_file() {
                         if let Ok(metadata) = std::fs::metadata(&path) {
-                            let mut perms = metadata.permissions();
-
                             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                             if ext.is_empty() || ext == "sh" || ext == "bash" {
-                                perms.set_mode(0o755);
-                                let _ = std::fs::set_permissions(&path, perms);
+                                let _ = botlib::os::fs::get_permissions_manager().set_executable(&path);
                                 trace!("Made executable: {}", path.display());
                             }
                         }
@@ -1229,6 +1239,14 @@ Store credentials in Vault:
         bin_path: &std::path::Path,
         name: &str,
     ) -> Result<()> {
+        #[cfg(target_os = "windows")]
+        let name = if !name.ends_with(".exe") {
+            format!("{}.exe", name)
+        } else {
+            name.to_string()
+        };
+        #[cfg(not(target_os = "windows"))]
+        let name = name.to_string();
         let final_path = bin_path.join(name);
 
         if temp_file.to_string_lossy().contains("botserver-installers") {
@@ -1242,10 +1260,11 @@ Store credentials in Vault:
     pub fn make_executable(&self, path: &std::path::Path) -> Result<()> {
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = std::fs::metadata(path)?.permissions();
-            perms.set_mode(0o755);
-            std::fs::set_permissions(path, perms)?;
+            let _ = botlib::os::fs::get_permissions_manager().set_executable(path);
+        }
+        #[cfg(windows)]
+        {
+            trace!("Skipping chmod on Windows for: {}", path.display());
         }
         Ok(())
     }
@@ -1302,19 +1321,31 @@ Store credentials in Vault:
                 .replace("{{DB_PASSWORD}}", &db_password);
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
-                let cmd = SafeCommand::new("bash")
-                    .and_then(|c| c.arg("-c"))
-                    .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
-                    .and_then(|c| c.working_dir(&bin_path))
-                    .map_err(|e| anyhow::anyhow!("Failed to build bash command: {}", e))?;
-
-                let output = cmd.execute().with_context(|| {
-                    format!("Failed to execute command for component '{}'", component)
-                })?;
-                if !output.status.success() {
+                #[cfg(target_os = "windows")]
+                let cmd_result = {
+                    std::process::Command::new("powershell")
+                        .args(["-NoProfile", "-Command", &rendered_cmd])
+                        .current_dir(&bin_path)
+                        .output()
+                        .with_context(|| {
+                            format!("Failed to execute PowerShell command for '{}'", component)
+                        })?
+                };
+                #[cfg(not(target_os = "windows"))]
+                let cmd_result = {
+                    let cmd = SafeCommand::new("bash")
+                        .and_then(|c| c.arg("-c"))
+                        .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
+                        .and_then(|c| c.working_dir(&bin_path))
+                        .map_err(|e| anyhow::anyhow!("Failed to build bash command: {}", e))?;
+                    cmd.execute().with_context(|| {
+                        format!("Failed to execute command for component '{}'", component)
+                    })?
+                };
+                if !cmd_result.status.success() {
                     error!(
                         "Command had non-zero exit: {}",
-                        String::from_utf8_lossy(&output.stderr)
+                        String::from_utf8_lossy(&cmd_result.stderr)
                     );
                 }
             } else {
