@@ -34,7 +34,7 @@ fn get_thirdparty_config() -> &'static ThirdPartyConfig {
         match toml::from_str::<ThirdPartyConfig>(toml_str) {
             Ok(config) => config,
             Err(e) => {
-                error!("CRITICAL: Failed to parse embedded 3rdparty.toml: {e}");
+                log::error!("CRITICAL: Failed to parse embedded 3rdparty.toml: {e}");
                 ThirdPartyConfig {
                     components: HashMap::new(),
                     models: HashMap::new(),
@@ -67,18 +67,47 @@ fn safe_nvcc_version() -> Option<std::process::Output> {
 }
 
 pub fn safe_sh_command(script: &str) -> Option<std::process::Output> {
-    SafeCommand::new("sh")
-        .and_then(|c| c.arg("-c"))
-        .and_then(|c| c.trusted_shell_script_arg(script))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
+    safe_shell_command(script)
+}
+
+pub fn safe_shell_command(script: &str) -> Option<std::process::Output> {
+    #[cfg(target_os = "windows")]
+    {
+        SafeCommand::new("cmd")
+            .and_then(|c| c.arg("/C"))
+            .and_then(|c| c.trusted_shell_script_arg(script))
+            .ok()
+            .and_then(|cmd| cmd.execute().ok())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        SafeCommand::new("sh")
+            .and_then(|c| c.arg("-c"))
+            .and_then(|c| c.trusted_shell_script_arg(script))
+            .ok()
+            .and_then(|cmd| cmd.execute().ok())
+    }
 }
 
 pub fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
-    SafeCommand::new("pgrep")
-        .and_then(|c| c.args(args))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
+    #[cfg(target_os = "windows")]
+    {
+        let filter = args.join(" ");
+        SafeCommand::new("tasklist")
+            .and_then(|c| c.arg("/FI"))
+            .and_then(|c| c.arg(&format!("IMAGENAME eq {}", filter)))
+            .ok()
+            .and_then(|cmd| cmd.execute().ok())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        SafeCommand::new("pgrep")
+            .and_then(|c| c.args(args))
+            .ok()
+            .and_then(|cmd| cmd.execute().ok())
+    }
 }
 
 pub const LLAMA_CPP_VERSION: &str = "b7345";
@@ -255,7 +284,7 @@ impl PackageManager {
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
-            let check_output = safe_sh_command(&check_cmd)
+            let check_output = safe_shell_command(&check_cmd)
                 .map(|o| o.status.success())
                 .unwrap_or(false);
 
@@ -332,6 +361,15 @@ impl PackageManager {
                 rendered_cmd
             );
             trace!("Working dir: {}", bin_path.display());
+            #[cfg(target_os = "windows")]
+            let child = SafeCommand::new("cmd")
+                .and_then(|c| c.arg("/C"))
+                .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
+                .and_then(|c| c.working_dir(&bin_path))
+                .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs))
+                .map_err(|e| anyhow::anyhow!("Failed to spawn process: {}", e));
+
+            #[cfg(not(target_os = "windows"))]
             let child = SafeCommand::new("sh")
                 .and_then(|c| c.arg("-c"))
                 .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
@@ -366,7 +404,7 @@ impl PackageManager {
                     Ok(c)
                 }
                 Err(e) => {
-                    error!("Spawn failed for {}: {}", component.name, e);
+                    log::error!("Spawn failed for {}: {}", component.name, e);
                     let err_msg = e.to_string();
                     if err_msg.contains("already running")
                         || err_msg.contains("be running")
