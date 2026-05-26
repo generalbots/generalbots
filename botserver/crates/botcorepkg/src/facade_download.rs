@@ -282,34 +282,11 @@ pub fn handle_downloaded_file(temp_file: &std::path::Path, bin_path: &std::path:
 }
 
 pub fn extract_tar_gz(temp_file: &std::path::Path, bin_path: &std::path::Path) -> Result<()> {
-    let temp_file_str = temp_file.to_str().unwrap_or_default();
-    let list_output = safe_tar(&["-tzf", temp_file_str]);
-    let list_output = match list_output {
-        Some(o) => o,
-        None => return Err(anyhow::anyhow!("Failed to execute tar list command")),
-    };
-    let has_subdir = if list_output.status.success() {
-        let contents = String::from_utf8_lossy(&list_output.stdout);
-        contents.lines().next().map(|l| l.contains('/')).unwrap_or(false)
-    } else {
-        false
-    };
-    let mut args = vec!["-xzf", temp_file.to_str().unwrap_or_default()];
-    if has_subdir {
-        args.push("--strip-components=1");
-    }
-    let output = SafeCommand::new("tar")
-        .and_then(|c| c.args(&args))
-        .and_then(|c| c.working_dir(bin_path))
-        .map_err(|e| anyhow::anyhow!("Failed to build tar command: {}", e))?
-        .execute()
-        .map_err(|e| anyhow::anyhow!("Failed to execute tar: {}", e))?;
-    if !output.status.success() {
-        return Err(anyhow::anyhow!(
-            "tar extraction failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
+    let tar_gz = std::fs::File::open(temp_file)?;
+    let tar = flate2::read::GzDecoder::new(tar_gz);
+    let mut archive = tar::Archive::new(tar);
+    archive.unpack(bin_path)?;
+
     if !temp_file.to_string_lossy().contains("botserver-installers") {
         std::fs::remove_file(temp_file)?;
     }
@@ -317,34 +294,22 @@ pub fn extract_tar_gz(temp_file: &std::path::Path, bin_path: &std::path::Path) -
 }
 
 pub fn extract_zip(temp_file: &std::path::Path, bin_path: &std::path::Path) -> Result<()> {
-    let temp_file_str = temp_file.to_str().unwrap_or_default();
-    if cfg!(target_os = "windows") {
-        let output = std::process::Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-Command",
-                &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force", temp_file_str, bin_path.to_string_lossy()),
-            ])
-            .output()
-            .map_err(|e| anyhow::anyhow!("Failed to execute PowerShell Expand-Archive: {}", e))?;
-        if !output.status.success() {
-            return Err(anyhow::anyhow!(
-                "PowerShell Expand-Archive failed: {}",
-                String::from_utf8_lossy(&output.stderr)
-            ));
-        }
-    } else {
-        let output = SafeCommand::new("unzip")
-            .and_then(|c| c.args(&["-o", "-q", temp_file_str]))
-            .and_then(|c| c.working_dir(bin_path))
-            .map_err(|e| anyhow::anyhow!("Failed to build unzip command: {}", e))?
-            .execute()
-            .map_err(|e| anyhow::anyhow!("Failed to execute unzip: {}", e))?;
-        if !output.status.success() {
-            return Err(anyhow::anyhow!(
-                "unzip extraction failed: {}",
-                String::from_utf8_lossy(&output.stderr)
-            ));
+    let file = std::fs::File::open(temp_file)?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|e| anyhow::anyhow!("Failed to open zip archive: {}", e))?;
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i)
+            .map_err(|e| anyhow::anyhow!("Failed to read zip entry {}: {}", i, e))?;
+        let Some(path) = entry.enclosed_name() else { continue };
+        let target = bin_path.join(path);
+        if entry.is_dir() {
+            std::fs::create_dir_all(&target)?;
+        } else {
+            if let Some(parent) = target.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            let mut output = std::fs::File::create(&target)?;
+            std::io::copy(&mut entry, &mut output)?;
         }
     }
     #[cfg(unix)]
@@ -353,7 +318,7 @@ pub fn extract_zip(temp_file: &std::path::Path, bin_path: &std::path::Path) -> R
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_file() {
-                    if let Ok(metadata) = std::fs::metadata(&path) {
+                    if let Ok(_metadata) = std::fs::metadata(&path) {
                         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                         if ext.is_empty() || ext == "sh" || ext == "bash" {
                             let _ = botlib::os::fs::get_permissions_manager().set_executable(&path);
@@ -456,12 +421,12 @@ pub fn run_commands_with_password(
             trace!("Executing command: {}", rendered_cmd);
             #[cfg(target_os = "windows")]
             let cmd_result = {
-                let output = std::process::Command::new("powershell")
-                    .args(["-NoProfile", "-Command", &rendered_cmd])
+                let output = std::process::Command::new("cmd")
+                    .args(["/C", &rendered_cmd])
                     .current_dir(&bin_path)
                     .output()
                     .with_context(|| {
-                        format!("Failed to execute PowerShell command for '{}'", component)
+                        format!("Failed to execute command for '{}'", component)
                     })?;
                 output
             };

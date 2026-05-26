@@ -1399,6 +1399,7 @@ dependencies = [
  "diesel",
  "diesel_migrations",
  "dotenvy",
+ "flate2",
  "governor",
  "hex",
  "indicatif",
@@ -1419,6 +1420,7 @@ dependencies = [
  "sha2",
  "smartstring",
  "sysinfo",
+ "tar",
  "tokio",
  "toml 0.8.2",
  "tracing",
@@ -1508,6 +1510,7 @@ dependencies = [
  "chrono",
  "diesel",
  "dotenvy",
+ "flate2",
  "hex",
  "log",
  "r2d2",
@@ -1516,9 +1519,11 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tar",
  "tokio",
  "toml 0.8.2",
  "uuid",
+ "zip 2.4.2",
 ]
 
 [[package]]

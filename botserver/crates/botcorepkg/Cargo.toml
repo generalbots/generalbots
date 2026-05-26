@@ -28,3 +28,6 @@ diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_js
 r2d2 = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 dotenvy = { workspace = true }
+zip = { workspace = true }
+tar = { workspace = true }
+flate2 = { workspace = true }

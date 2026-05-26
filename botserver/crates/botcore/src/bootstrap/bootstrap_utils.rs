@@ -1,7 +1,7 @@
 // Bootstrap utility functions
 use crate::shared::utils::get_stack_path;
 use botlib::security::command_guard::SafeCommand;
-use log::{debug, info, warn};
+use log::{debug, info};
 
 /// Get list of processes to kill (only used in dev with local botserver-stack)
 pub fn get_processes_to_kill() -> Vec<(String, Vec<&'static str>)> {
