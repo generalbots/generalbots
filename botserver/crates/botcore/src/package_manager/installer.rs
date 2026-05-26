@@ -8,6 +8,8 @@ use std::io::Write;
 #[derive(Deserialize, Debug)]
 struct ComponentEntry {
     url: String,
+    #[serde(default)]
+    url_win: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -2078,9 +2080,12 @@ use std::path::PathBuf;
 
 fn get_component_url_by_os(name: &str) -> Option<String> {
     let os = detect_os();
-    let suffix = match os {
-        OsType::Windows => "_win",
-        _ => "",
-    };
-    get_component_url(&format!("{}{}", name, suffix))
+    match os {
+        OsType::Windows => get_thirdparty_config()
+            .components
+            .get(name)
+            .and_then(|c| c.url_win.clone())
+            .or_else(|| get_component_url(name)),
+        _ => get_component_url(name),
+    }
 }
