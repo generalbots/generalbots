@@ -285,7 +285,10 @@ test_wine() {
     fi
 
     info "Testing $exe with Wine..."
-    wine "$exe" --help 2>&1 | head -30
+    # Desativa-se temporariamente o encadeamento estrito de erros do pipeline para evitar abortamento prematuro por SIGPIPE
+    set +e
+    wine "$exe" --help 2>&1 | head -35
+    set -e
     echo ""
 
     if wine "$exe" --help >/dev/null 2>&1; then

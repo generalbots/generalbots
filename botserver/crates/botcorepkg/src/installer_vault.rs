@@ -1,8 +1,9 @@
-use crate::installer::safe_sh_command;
 use crate::installer_vault2;
 use anyhow::{Context, Result};
 use botlib::security::SafeCommand;
 use log::{info, warn};
+#[cfg(unix)]
+use log::trace;
 use std::collections::HashMap;
 
 #[cfg(unix)]
@@ -143,11 +144,18 @@ pub fn initialize_vault_local(base_path: &std::path::Path) -> Result<()> {
     let ca_cert = base_path.join("conf/system/certificates/ca/ca.crt");
 
     if vault_data_exists {
-        let health_cmd = format!(
-            "curl -f -s --connect-timeout 2 -k {}/v1/sys/health",
-            vault_addr
-        );
-        let health_output = safe_sh_command(&health_cmd);
+        let health_output = SafeCommand::new("curl")
+            .and_then(|c| {
+                c.args(&[
+                    "-sf",
+                    "--connect-timeout",
+                    "2",
+                    "-k",
+                    &format!("{}/v1/sys/health", vault_addr),
+                ])
+            })
+            .ok()
+            .and_then(|c| c.execute().ok());
 
         let already_initialized = if let Some(ref output) = health_output {
             if output.status.success() {
@@ -176,14 +184,22 @@ pub fn initialize_vault_local(base_path: &std::path::Path) -> Result<()> {
         }
     }
 
-    let init_cmd = format!(
-        "{} operator init -tls-skip-verify -key-shares=5 -key-threshold=3 -format=json -address={}",
-        vault_bin.display(),
-        vault_addr
-    );
-
     info!("Running vault operator init...");
-    let output = safe_sh_command(&init_cmd)
+    let vault_bin_str = vault_bin.to_string_lossy().to_string();
+    let output = SafeCommand::new(&vault_bin_str)
+        .and_then(|c| {
+            c.args(&[
+                "operator",
+                "init",
+                "-tls-skip-verify",
+                "-key-shares=5",
+                "-key-threshold=3",
+                "-format=json",
+                &format!("-address={}", vault_addr),
+            ])
+        })
+        .and_then(|c| c.execute())
+        .ok()
         .ok_or_else(|| anyhow::anyhow!("Failed to execute vault init command"))?;
 
     if !output.status.success() {
@@ -271,15 +287,17 @@ VAULT_CACERT={}
     info!("Created vault-unseal-keys (chmod 600)");
 
     info!("Enabling KV2 secrets engine at 'secret/'...");
-    let enable_kv2_cmd = format!(
-        "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} secrets enable -path=secret kv-v2",
-        vault_addr,
-        root_token,
-        ca_cert.display(),
-        vault_bin.display()
-    );
-    match safe_sh_command(&enable_kv2_cmd) {
-        Some(output) => {
+    let vault_bin_str = vault_bin.to_string_lossy().to_string();
+    match SafeCommand::new(&vault_bin_str)
+        .and_then(|c| {
+            c.env("VAULT_ADDR", &vault_addr)
+                .and_then(|c| c.env("VAULT_TOKEN", root_token))
+                .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
+        })
+        .and_then(|c| c.args(&["secrets", "enable", "-path=secret", "kv-v2"]))
+        .and_then(|c| c.execute())
+    {
+        Ok(output) => {
             if output.status.success() {
                 info!("KV2 secrets engine enabled at 'secret/'");
             } else {
@@ -291,8 +309,8 @@ VAULT_CACERT={}
                 }
             }
         }
-        None => {
-            warn!("Failed to execute KV2 enable command");
+        Err(e) => {
+            warn!("Failed to execute KV2 enable command: {}", e);
         }
     }
 

@@ -57,21 +57,15 @@ impl DownloadCache {
         let base_path = base_path.as_ref().to_path_buf();
         let config = Self::load_config(&base_path)?;
 
+        let automatic_installers_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("botserver-installers");
         let cache_dir = if let Ok(installers_path) = std::env::var("BOTSERVER_INSTALLERS_PATH") {
-            let path = PathBuf::from(&installers_path);
-            if path.exists() {
-                info!(
-                    "Using installers from BOTSERVER_INSTALLERS_PATH: {}",
-                    path.display()
-                );
-                path
-            } else {
-                warn!(
-                    "BOTSERVER_INSTALLERS_PATH set but path doesn't exist: {}",
-                    path.display()
-                );
-                base_path.join(&config.cache_settings.cache_dir)
-            }
+            PathBuf::from(&installers_path)
+        } else if automatic_installers_path.exists() {
+            info!(
+                "Automatically using installers from: {}",
+                automatic_installers_path.display()
+            );
+            automatic_installers_path
         } else {
             base_path.join(&config.cache_settings.cache_dir)
         };

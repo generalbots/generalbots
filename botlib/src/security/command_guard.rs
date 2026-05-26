@@ -90,6 +90,7 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "python3.11",
         "python3.12",
         "tasklist",
+        "tar.exe",
     ])
 });
 
@@ -532,30 +533,40 @@ pub fn validate_argument(arg: &str) -> Result<(), CommandGuardError> {
     Ok(())
 }
 
+fn normalize_path_for_compare(p: &std::path::Path) -> String {
+    let s = p.to_string_lossy();
+    let s = if s.starts_with("\\\\?\\") {
+        s[4..].to_string()
+    } else {
+        s.to_string()
+    };
+    let s = if s.starts_with("Z:\\") || s.starts_with("Z:/")
+        || s.starts_with("z:\\") || s.starts_with("z:/")
+    {
+        s.replacen("Z:\\", "/", 1)
+            .replacen("Z:/", "/", 1)
+            .replacen("z:\\", "/", 1)
+            .replacen("z:/", "/", 1)
+    } else {
+        s
+    };
+    s.replace('\\', "/")
+}
+
 pub fn validate_path(
     path: &std::path::Path,
     allowed_roots: &[PathBuf],
 ) -> Result<PathBuf, CommandGuardError> {
-    let canonical = path
-        .canonicalize()
-        .or_else(|_| {
-            if let Some(parent) = path.parent() {
-                parent
-                    .canonicalize()
-                    .map(|p| p.join(path.file_name().unwrap_or_default()))
-            } else {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    "Path not found",
-                ))
-            }
-        })
-        .map_err(|_| {
-            CommandGuardError::PathTraversal(format!(
-                "Cannot canonicalize path: {}",
-                path.display()
-            ))
-        })?;
+    let canonical = match path.canonicalize() {
+        Ok(c) => c,
+        Err(_) => match path.parent() {
+            Some(parent) => match parent.canonicalize() {
+                Ok(p) => p.join(path.file_name().unwrap_or_default()),
+                Err(_) => path.to_path_buf(),
+            },
+            None => path.to_path_buf(),
+        },
+    };
 
     let path_str = canonical.to_string_lossy();
     if path_str.contains("..") {
@@ -565,7 +576,14 @@ pub fn validate_path(
         )));
     }
 
-    let is_allowed = allowed_roots.iter().any(|root| canonical.starts_with(root));
+    let is_allowed = allowed_roots.iter().any(|root| {
+        if canonical.starts_with(root) {
+            return true;
+        }
+        let np = normalize_path_for_compare(&canonical);
+        let nr = normalize_path_for_compare(root);
+        np.starts_with(&nr)
+    });
 
     if !is_allowed {
         return Err(CommandGuardError::PathTraversal(format!(

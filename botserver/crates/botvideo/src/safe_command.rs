@@ -68,6 +68,20 @@ fn validate_argument(arg: &str) -> Result<(), CommandGuardError> {
     Ok(())
 }
 
+fn normalize_path_compare(p: &std::path::Path) -> String {
+    let s = p.to_string_lossy();
+    let s = if s.starts_with("\\\\?\\") { s[4..].to_string() } else { s.to_string() };
+    let s = if s.starts_with("Z:\\") || s.starts_with("Z:/")
+        || s.starts_with("z:\\") || s.starts_with("z:/")
+    {
+        s.replacen("Z:\\", "/", 1).replacen("Z:/", "/", 1)
+            .replacen("z:\\", "/", 1).replacen("z:/", "/", 1)
+    } else {
+        s
+    };
+    s.replace('\\', "/")
+}
+
 fn validate_path(
     path: &std::path::Path,
     allowed_paths: &[PathBuf],
@@ -81,9 +95,18 @@ fn validate_path(
         if canonical.starts_with(allowed) {
             return Ok(canonical);
         }
+        let np = normalize_path_compare(&canonical);
+        let nr = normalize_path_compare(allowed);
+        if np.starts_with(&nr) {
+            return Ok(canonical);
+        }
     }
 
     if canonical.starts_with("/tmp") || canonical.starts_with("/var/tmp") {
+        return Ok(canonical);
+    }
+    let np = normalize_path_compare(&canonical);
+    if np.starts_with("/tmp") || np.starts_with("/var/tmp") {
         return Ok(canonical);
     }
 
