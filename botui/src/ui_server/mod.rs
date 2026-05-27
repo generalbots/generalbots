@@ -389,51 +389,14 @@ pub async fn serve_suite(
     serve_suite_impl(&state, params.bot_name, headers).await
 }
 
-pub async fn serve_suite_impl(state: &AppState, bot_name: Option<String>, headers: axum::http::HeaderMap) -> Response {
+pub async fn serve_suite_impl(_state: &AppState, bot_name: Option<String>, _headers: axum::http::HeaderMap) -> Response {
     let is_auth = bot_name.as_ref()
         .map(|n| n.ends_with(".html") || n == "login" || n == "register" || n == "forgot-password" || n == "reset-password")
         .unwrap_or(false);
 
     if !is_auth {
-        if let Some(ref target_bot) = bot_name {
-        let mut has_token = false;
-        if let Some(cookie_header) = headers.get(axum::http::header::COOKIE) {
-            if let Ok(cookie_str) = cookie_header.to_str() {
-                if let Some(_pos) = cookie_str.find("gb-access-token=") {
-                    has_token = true;
-                }
-            }
-        }
-        if !has_token && target_bot != "default" {
-            // For now, if no token, just redirect to login unless it's default
-            info!("serve_suite: No token found, redirecting to login");
-            return axum::response::Redirect::to("/auth/login.html").into_response();
-        }
-
-        if has_token {
-            let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), target_bot);
-            let client = reqwest::Client::builder()
-                .danger_accept_invalid_certs(true)
-                .build()
-                .unwrap_or_else(|_| reqwest::Client::new());
-                
-            let mut req = client.get(&target_url);
-            for (k, v) in headers.iter() {
-                if k != axum::http::header::HOST {
-                    req = req.header(k, v);
-                }
-            }
-            
-            if let Ok(resp) = req.send().await {
-                if resp.status() == axum::http::StatusCode::FORBIDDEN || resp.status() == axum::http::StatusCode::UNAUTHORIZED {
-                    info!("serve_suite: Access denied for bot {}", target_bot);
-                    return axum::response::Redirect::to("/auth/login.html").into_response();
-                }
-            } else {
-                warn!("serve_suite: Failed to verify bot access for {}", target_bot);
-            }
-        }
-    }
+        // Access control is handled by the botserver at WebSocket level.
+        // The UI always renders and lets the botserver enforce auth.
     }
     let raw_html_res = {
         #[cfg(feature = "embed-ui")]

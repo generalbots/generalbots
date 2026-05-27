@@ -1303,10 +1303,11 @@ EOF"#.to_string(),
             trace!("Working dir: {}", bin_path.display());
             let child = if cfg!(unix) {
                 SafeCommand::new("sh")
+                    .and_then(|c| c.arg("-c"))
             } else {
                 SafeCommand::new("cmd")
+                    .and_then(|c| c.arg("/c"))
             }
-                .and_then(|c| c.arg("/c"))
                 .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
                 .and_then(|c| c.working_dir(&bin_path))
                 .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs));

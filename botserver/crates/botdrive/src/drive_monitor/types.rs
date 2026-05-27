@@ -4,6 +4,7 @@ use crate::drive_monitor::monitor::CHECK_INTERVAL_SECS;
 #[cfg(any(feature = "research", feature = "llm"))]
 use botcore::kb::KnowledgeBaseManager;
 use chrono::Utc;
+use diesel::RunQueryDsl;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
@@ -52,18 +53,34 @@ impl DriveMonitor {
                     let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
 
                     // Auto-create bot in database if not exists (Issue #506)
-                    if let Ok(mut conn) = self.state.conn.get() {
+                    // First check if bot already exists by name
+                    let already_exists = if let Ok(mut check_conn) = self.state.conn.get() {
                         use diesel::RunQueryDsl;
-                        if let Err(e) = diesel::sql_query(
-                            "INSERT INTO bots (id, name, created_at, updated_at) VALUES ($1, $2, NOW(), NOW()) ON CONFLICT (id) DO NOTHING"
-                        )
-                        .bind::<diesel::sql_types::Uuid, _>(self.bot_id)
-                        .bind::<diesel::sql_types::Text, _>(bot_name)
-                        .execute(&mut conn) {
-                            log::error!("Failed to auto-create bot {} in database: {}", bot_name, e);
-                        } else {
-                            log::trace!("DriveMonitor checked/created bot {} (id: {})", bot_name, self.bot_id);
+                        diesel::sql_query("SELECT 1 FROM bots WHERE name = $1")
+                            .bind::<diesel::sql_types::Text, _>(bot_name)
+                            .execute(&mut check_conn)
+                            .unwrap_or(0) > 0
+                    } else {
+                        false
+                    };
+
+                    if !already_exists {
+                        if let Ok(mut conn) = self.state.conn.get() {
+                            use diesel::RunQueryDsl;
+                            if let Err(e) = diesel::sql_query(
+                                "INSERT INTO bots (id, name, llm_provider, llm_config, context_provider, context_config, is_public, created_at, updated_at) \
+                                 VALUES ($1, $2, 'openai', '{}', 'openai', '{}', false, NOW(), NOW()) ON CONFLICT (id) DO NOTHING"
+                            )
+                            .bind::<diesel::sql_types::Uuid, _>(self.bot_id)
+                            .bind::<diesel::sql_types::Text, _>(bot_name)
+                            .execute(&mut conn) {
+                                log::error!("Failed to auto-create bot {} in database: {}", bot_name, e);
+                            } else {
+                                log::trace!("DriveMonitor checked/created bot {} (id: {})", bot_name, self.bot_id);
+                            }
                         }
+                    } else {
+                        log::trace!("DriveMonitor: bot {} already exists in database, skipping auto-create", bot_name);
                     }
 
                     let current_keys: Vec<String> = objects.iter().map(|o| o.key.clone()).collect();

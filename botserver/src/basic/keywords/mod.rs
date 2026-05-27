@@ -151,6 +151,7 @@ pub use botbasic_system::keywords::synchronize;
 pub mod card;
 #[cfg(feature = "social")]
 pub mod post_to;
+pub mod set_answer_mode;
 
 // ===== CONVENIENCE RE-EXPORTS =====
 pub use app_server::configure_app_server_routes;
@@ -266,6 +267,7 @@ pub fn get_all_keywords() -> Vec<String> {
         "ON".to_string(),
         "ON EMAIL".to_string(),
         "ON CHANGE".to_string(),
+        "SET ANSWER MODE".to_string(),
         "SET SCHEDULE".to_string(),
         "WEBHOOK".to_string(),
         "SET USER".to_string(),
@@ -306,7 +308,7 @@ pub fn get_keyword_categories() -> std::collections::HashMap<String, Vec<String>
     categories.insert("Communication".to_string(), vec!["ADD MEMBER".to_string(), "CREATE DRAFT".to_string(), "SEND MAIL".to_string(), "SEND TEMPLATE".to_string(), "SMS".to_string()]);
     categories.insert("Data".to_string(), vec!["AGGREGATE".to_string(), "DELETE".to_string(), "FILL".to_string(), "FILTER".to_string(), "FIND".to_string(), "FIRST".to_string(), "GROUP BY".to_string(), "INSERT".to_string(), "JOIN".to_string(), "LAST".to_string(), "MAP".to_string(), "MERGE".to_string(), "PIVOT".to_string(), "SAVE".to_string(), "UPDATE".to_string()]);
     categories.insert("HTTP".to_string(), vec!["GET".to_string(), "POST".to_string(), "PUT".to_string(), "PATCH".to_string(), "DELETE HTTP".to_string(), "GRAPHQL".to_string(), "SOAP".to_string(), "SET HEADER".to_string(), "CLEAR HEADERS".to_string()]);
-    categories.insert("AI".to_string(), vec!["LLM".to_string(), "SET CONTEXT".to_string(), "USE MODEL".to_string()]);
+    categories.insert("AI".to_string(), vec!["LLM".to_string(), "SET CONTEXT".to_string(), "USE MODEL".to_string(), "SET ANSWER MODE".to_string()]);
     categories.insert("Code Execution".to_string(), vec!["RUN PYTHON".to_string(), "RUN JAVASCRIPT".to_string(), "RUN BASH".to_string()]);
     categories.insert("Safety".to_string(), vec!["REQUIRE APPROVAL".to_string(), "SIMULATE IMPACT".to_string(), "CHECK CONSTRAINTS".to_string(), "AUDIT LOG".to_string()]);
     categories.insert("MCP".to_string(), vec!["USE MCP".to_string(), "MCP LIST TOOLS".to_string(), "MCP INVOKE".to_string()]);

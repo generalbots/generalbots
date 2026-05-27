@@ -630,6 +630,22 @@ pub fn process_table_definitions(
 
             // If sync was successful, skip standard table creation
             if result.tables_created > 0 || result.tables_altered > 0 {
+                // Store metadata in dynamic_table_definitions for answer mode
+                match state.db_pool().get() {
+                    Ok(mut conn) => {
+                        for table in &tables {
+                            if table.connection_name == "default" {
+                                if let Err(e) = store_table_definition(&mut conn, bot_id, table) {
+                                    error!("Failed to store table definition for {}: {}", table.name, e);
+                                }
+                            }
+                        }
+                        info!("Stored {} table definitions in metadata catalog", tables.len());
+                    }
+                    Err(e) => {
+                        error!("Failed to get DB connection for metadata storage: {}", e);
+                    }
+                }
                 return Ok(tables);
             }
         }
@@ -685,6 +701,23 @@ pub fn process_table_definitions(
                     );
                 }
             }
+        }
+    }
+
+    // Store metadata in dynamic_table_definitions for answer mode (data/chart)
+    match state.db_pool().get() {
+        Ok(mut conn) => {
+            for table in &tables {
+                if table.connection_name == "default" {
+                    if let Err(e) = store_table_definition(&mut conn, bot_id, table) {
+                        error!("Failed to store table definition for {}: {}", table.name, e);
+                    }
+                }
+            }
+            info!("Stored {} table definitions in metadata catalog (fallback)", tables.len());
+        }
+        Err(e) => {
+            error!("Failed to get DB connection for metadata storage: {}", e);
         }
     }
 

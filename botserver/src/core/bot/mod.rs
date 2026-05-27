@@ -95,6 +95,7 @@ impl TeamsAdapter {
     }
 }
 
+pub mod answer_mode;
 pub mod kb_context;
 
 pub struct BotOrchestrator;

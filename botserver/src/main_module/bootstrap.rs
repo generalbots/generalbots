@@ -1239,9 +1239,11 @@ fn create_bot_from_drive(
     let bot_id_str = bot_id.to_string();
     let org_id_str = org_result.org_id.to_string();
 
-    // Try to insert, if conflict on name, update instead
+    // Try to insert, if conflict on slug, update instead
     let result = sql_query(format!(
-        "INSERT INTO bots (id, name, slug, org_id, is_active, created_at, llm_provider, llm_config, context_provider, context_config) VALUES ('{}', '{}', '{}', '{}', true, NOW(), 'openai', '{}', 'openai', '{}') ON CONFLICT (id) DO UPDATE SET is_active = true",
+        "INSERT INTO bots (id, name, slug, org_id, is_active, created_at, llm_provider, llm_config, context_provider, context_config) \
+         VALUES ('{}', '{}', '{}', '{}', true, NOW(), 'openai', '{}', 'website', '{}') \
+         ON CONFLICT (slug) DO UPDATE SET is_active = true",
         bot_id_str, bot_name, bot_name, org_id_str, "{}", "{}"
     ))
     .execute(&mut conn);
