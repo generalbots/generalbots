@@ -95,12 +95,33 @@ impl DriveCompiler {
 
         let mut conn = self.state.conn.get()?;
 
-        // Selecionar todos os arquivos .gbdialog/*.bas
-        let files: Vec<(Uuid, String, String, Option<String>)> = drive_files_table::table
+        let allowed_ids: Vec<Uuid> = {
+            let load_only: Vec<String> = std::env::var("LOAD_ONLY")
+                .ok()
+                .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
+                .unwrap_or_default();
+            if load_only.is_empty() {
+                vec![]
+            } else {
+                use botcore::shared::models::schema::bots as bots_table;
+                bots_table::table
+                    .filter(bots_table::dsl::name.eq_any(load_only))
+                    .select(bots_table::dsl::id)
+                    .load::<Uuid>(&mut conn)?
+            }
+        };
+
+        let mut query = drive_files_table::table
             .filter(file_type.eq("bas"))
             .filter(file_path.like("%.gbdialog/%"))
             .select((bot_id, file_path, file_type, etag))
-            .load(&mut conn)?;
+            .into_boxed();
+
+        if !allowed_ids.is_empty() {
+            query = query.filter(bot_id.eq_any(allowed_ids));
+        }
+
+        let files: Vec<(Uuid, String, String, Option<String>)> = query.load(&mut conn)?;
 
         for (query_bot_id, query_file_path, _file_type, current_etag_opt) in files {
             let current_etag = current_etag_opt.unwrap_or_default();

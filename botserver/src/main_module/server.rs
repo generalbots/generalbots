@@ -1,7 +1,6 @@
 //! HTTP server initialization and routing
 
 use axum::{
-    extract::State,
     routing::{get, post},
     Json, Router,
 };
@@ -10,7 +9,6 @@ use std::net::SocketAddr;
 use log::{error, info, warn};
 use tower_http::trace::TraceLayer;
 use tower_http::services::ServeDir;
-use crate::core::product::{get_product_config_json, PRODUCT_CONFIG};
 use crate::security::{
     build_default_route_permissions, create_cors_layer, create_rate_limit_layer,
     create_security_headers_layer, request_id_middleware, security_headers_middleware,

@@ -85,6 +85,15 @@ vault-unseal-keysdefault-vault.tar
 prompts/sec-bots.md
 AGENTS-PROD.md
 
+# Root-level trash — test scripts, npm artifacts, markers
+/test_*.js
+/test_*.rs
+/package.json
+/package-lock.json
+.npmrc
+.qdrant-initialized
+opt/
+
 # Backup files
 *.head
 *.bad2
