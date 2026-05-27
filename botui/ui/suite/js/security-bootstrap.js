@@ -306,6 +306,37 @@
           return;
         }
 
+        // If public status not yet known, wait for checkBotPublicStatus
+        if (window.__BOT_IS_PUBLIC__ === undefined &&
+            window.__checkBotPublicStatusPromise) {
+          console.log(
+            "[GBSecurity] Public status still loading, waiting...",
+          );
+          var timer = setTimeout(function () {
+            if (window.__BOT_IS_PUBLIC__ === true) return;
+            self.clearTokens();
+            var path = window.location.pathname + window.location.hash;
+            window.location.href =
+              "/auth/login.html?expired=1&redirect=" +
+              encodeURIComponent(path);
+          }, 5000);
+          window.__checkBotPublicStatusPromise.then(function () {
+            clearTimeout(timer);
+            if (window.__BOT_IS_PUBLIC__ === true) {
+              console.log(
+                "[GBSecurity] Bot is public (deferred), skipping auth redirect",
+              );
+              return;
+            }
+            self.clearTokens();
+            var path = window.location.pathname + window.location.hash;
+            window.location.href =
+              "/auth/login.html?expired=1&redirect=" +
+              encodeURIComponent(path);
+          });
+          return;
+        }
+
         console.log(
           "[GBSecurity] Auth expired, clearing tokens and redirecting",
         );
