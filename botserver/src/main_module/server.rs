@@ -67,6 +67,7 @@ pub async fn run_axum_server(
             .add_anonymous_path("/api/auth/login")
             .add_anonymous_path("/api/auth/refresh")
             .add_anonymous_path("/api/auth/bootstrap")
+            .add_anonymous_path("/api/setup/status")
             .add_anonymous_path("/api/bot/config")
             .add_anonymous_path("/api/suggestions")
             .add_anonymous_path("/api/client-errors")
@@ -256,7 +257,6 @@ pub async fn run_axum_server(
             )
         }
 
-    #[cfg(not(feature = "directory"))]
     {
         api_router = api_router.route(ApiUrls::AUTH, get(anonymous_auth_handler));
     }

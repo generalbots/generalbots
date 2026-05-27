@@ -732,7 +732,7 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log(`🤖 Bot detected from path: ${window.__INITIAL_BOT_NAME__}`);
 
   // Check if bot is public to skip authentication
-  const checkBotPublicStatus = async () => {
+  window.__checkBotPublicStatusPromise = (async () => {
     try {
       const botName = window.__INITIAL_BOT_NAME__;
       if (!botName || botName === "default") return;
@@ -752,13 +752,13 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {
       console.warn("Failed to check bot public status:", e);
     }
-  };
+  })();
 
   Omnibox.init();
   console.log("🚀 Initializing General Bots with HTMX...");
 
   // Check bot public status early
-  checkBotPublicStatus();
+  // Already started via the promise above
 
   // Provide a global function to hide the loading overlay
   window.hideLoadingOverlay = function() {
