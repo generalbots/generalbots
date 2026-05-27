@@ -216,10 +216,12 @@ async fn run_start_bas_on_connect(
     {
         let guards = state.start_bas_guards.lock().await;
         if guards.contains_key(&session_id) {
+            info!("start.bas execution skipped: session already initialized (in-memory guard)");
             // Session already initialized - send stored suggestions/switchers for reconnect
             send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
             return false;
         }
+        info!("start.bas execution proceeding: session not found in guard");
     }
 
     // Clean any stale Redis key (from previous botserver instance that set it before file check)
@@ -257,7 +259,7 @@ async fn run_start_bas_on_connect(
     let state_for_bas = state.clone();
     let bot_id_for_bas = bot_uuid;
     let _bot_name_owned = bot_name.to_string();
-    let _ = tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || {
         let session_for_bas = botlib::models::UserSession {
             id: session_id, user_id, bot_id: bot_id_for_bas,
             title: String::new(),
@@ -275,7 +277,7 @@ async fn run_start_bas_on_connect(
         }
     }).await;
 
-    for i in 0..20 {
+    for i in 0..50 {
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         match rx.try_recv() {
             Ok(response) => {
@@ -428,7 +430,7 @@ async fn handle_ws(
                                 }
 
                                 // Drain any TALK responses from tool execution
-                                for _ in 0..20 {
+                                for _ in 0..50 {
                                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                                     match rx.try_recv() {
                                         Ok(response) => {
@@ -658,6 +660,58 @@ async fn handle_ws(
                                 None
                             }
                         };
+
+                        // Check answer mode (data/chart) — bypass normal LLM streaming
+                        let answer_mode = {
+                            #[cfg(feature = "chat")]
+                            {
+                                crate::core::bot::answer_mode::get_answer_mode(
+                                    &state, &session_id,
+                                ).await
+                            }
+                            #[cfg(not(feature = "chat"))]
+                            {
+                                crate::core::bot::answer_mode::AnswerMode::Default
+                            }
+                        };
+                        if answer_mode != crate::core::bot::answer_mode::AnswerMode::Default {
+                            let mode_response = match answer_mode {
+                                crate::core::bot::answer_mode::AnswerMode::Data => {
+                                    crate::core::bot::answer_mode::generate_data_response(
+                                        &state, &user_text, bot_uuid, &bot_name, session_id, user_id,
+                                    ).await
+                                }
+                                crate::core::bot::answer_mode::AnswerMode::Chart => {
+                                    crate::core::bot::answer_mode::generate_chart_response(
+                                        &state, &user_text, bot_uuid, &bot_name, session_id, user_id,
+                                    ).await
+                                }
+                                _ => unreachable!(),
+                            };
+                            match mode_response {
+                                Ok(resp) => {
+                                    if let Ok(json) = serde_json::to_string(&resp) {
+                                        let _ = ws_sender.send(Message::Text(json.into())).await;
+                                    }
+                                    let mut sm = state.session_manager.lock().await;
+                                    let _ = sm.save_message(session_id, user_id, 2, &resp.content, 2);
+                                }
+                                Err(e) => {
+                                    let err_resp = serde_json::json!({
+                                        "bot_id": bot_uuid.to_string(),
+                                        "user_id": user_id.to_string(),
+                                        "session_id": session_id.to_string(),
+                                        "channel": "web",
+                                        "content": format!("<p>Error: {}</p>", e),
+                                        "message_type": 2, "is_complete": true,
+                                        "suggestions": [], "switchers": [],
+                                        "context_length": 0, "context_max_length": 0,
+                                    });
+                                    let _ = ws_sender.send(Message::Text(err_resp.to_string().into())).await;
+                                }
+                            }
+                            continue;
+                        }
 
                         match bot_llm_provider.or_else(|| state.llm_provider.clone().map(|p| (p, String::new(), String::new()))) {
                             Some((ref llm, ref llm_key, ref llm_model)) => {

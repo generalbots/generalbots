@@ -978,6 +978,12 @@ pub async fn start_background_services(
                         };
 
                         if !exists {
+                            // If LOAD_ONLY is set, we must explicitly verify bot_name is included before auto-creation
+                            if !load_only.is_empty() && !load_only.contains(&bot_name) {
+                                trace!("Skipping auto-creation for bot '{}' (not in LOAD_ONLY)", bot_name);
+                                continue;
+                            }
+                            
                             info!("Auto-creating bot '{}' from S3 bucket '{}'", bot_name, name);
                             let create_state = state_for_scan.clone();
                             let bn = bot_name.to_string();
@@ -1095,6 +1101,16 @@ pub async fn start_background_services(
                                 let bot_name = bucket.strip_suffix(".gbai").unwrap_or(&bucket).to_string();
 
                                 if monitored_bots.contains(&bot_name) {
+                                    continue;
+                                }
+
+                                // Reload LOAD_ONLY periodically to prevent unwanted bots
+                                let load_only_scan: Vec<String> = std::env::var("LOAD_ONLY")
+                                    .ok()
+                                    .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
+                                    .unwrap_or_default();
+                                if !load_only_scan.is_empty() && !load_only_scan.contains(&bot_name) {
+                                    trace!("Periodic scan: skipping bot '{}' (not in LOAD_ONLY)", bot_name);
                                     continue;
                                 }
 
@@ -1225,16 +1241,16 @@ fn create_bot_from_drive(
 
     // Try to insert, if conflict on name, update instead
     let result = sql_query(format!(
-        "INSERT INTO bots (id, name, slug, org_id, is_active, created_at, llm_provider, llm_config, context_provider, context_config) VALUES ('{}', '{}', '{}', '{}', true, NOW(), 'openai', '{{}}', 'openai', '{{}}') ON CONFLICT (id) DO UPDATE SET is_active = true",
-        bot_id_str, bot_name, bot_name, org_id_str
+        "INSERT INTO bots (id, name, slug, org_id, is_active, created_at, llm_provider, llm_config, context_provider, context_config) VALUES ('{}', '{}', '{}', '{}', true, NOW(), 'openai', '{}', 'openai', '{}') ON CONFLICT (id) DO UPDATE SET is_active = true",
+        bot_id_str, bot_name, bot_name, org_id_str, "{}", "{}"
     ))
     .execute(&mut conn);
 
     if result.is_err() {
         // Bot might already exist with different id, try to update by name
         sql_query(format!(
-            "UPDATE bots SET is_active = true, slug = '{}', llm_provider = 'openai', llm_config = '{{}}', context_provider = 'openai', context_config = '{{}}' WHERE name = '{}'",
-            bot_name, bot_name
+            "UPDATE bots SET is_active = true, slug = '{}', llm_provider = 'openai', llm_config = '{}', context_provider = 'openai', context_config = '{}' WHERE name = '{}'",
+            bot_name, "{}", "{}", bot_name
         ))
         .execute(&mut conn)
         .map_err(|e| format!("Failed to update bot '{}': {}", bot_name, e))?;
