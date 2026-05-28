@@ -57,6 +57,7 @@ tickets = []
 anyhow = { workspace = true }
 axum = { workspace = true }
 futures-util = { workspace = true }
+http = { workspace = true }
 log = { workspace = true }
 mime_guess.workspace = true
 native-tls = { workspace = true }

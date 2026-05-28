@@ -2546,6 +2546,7 @@ dependencies = [
  "axum",
  "botlib",
  "futures-util",
+ "http",
  "log",
  "mime_guess",
  "native-tls",

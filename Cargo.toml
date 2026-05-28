@@ -98,6 +98,7 @@ members = [
 # ─── INTERNAL CRATES ───
 botautotask = { path = "botserver/crates/botautotask" }
 botlib = { path = "botlib" }
+http = "1.0"
 botanalytics = { path = "botserver/crates/botanalytics" }
 botattendance = { path = "botserver/crates/botattendance" }
 botattendant = { path = "botserver/crates/botattendant" }

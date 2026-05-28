@@ -259,23 +259,25 @@ async fn run_start_bas_on_connect(
     let state_for_bas = state.clone();
     let bot_id_for_bas = bot_uuid;
     let _bot_name_owned = bot_name.to_string();
-    tokio::task::spawn_blocking(move || {
-        let session_for_bas = botlib::models::UserSession {
-            id: session_id, user_id, bot_id: bot_id_for_bas,
-            title: String::new(),
-            context_data: serde_json::Value::Null,
-            current_tool: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
-        let mut svc = crate::basic::ScriptService::new(
-            state_for_bas.clone(), session_for_bas,
-        );
-        svc.load_bot_config_params(&state_for_bas, bot_id_for_bas);
-        if let Err(e) = svc.run(&ast_content) {
-            warn!("start.bas execution error: {}", e);
-        }
-    }).await;
+    let session_for_bas = botlib::models::UserSession {
+        id: session_id, user_id, bot_id: bot_id_for_bas,
+        title: String::new(),
+        context_data: serde_json::Value::Null,
+        current_tool: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    info!("start.bas: DEBUG BEFORE execute_script");
+    let exec_result = crate::basic::ScriptService::execute_script(
+        state_for_bas.clone(),
+        session_for_bas.clone(),
+        &ast_content,
+    ).await;
+    info!("start.bas: DEBUG AFTER execute_script");
+    match exec_result {
+        Ok(result) => info!("start.bas: execution result (len={}): {}", result.to_string().len(), result),
+        Err(e) => warn!("start.bas: execution error: {}", e),
+    }
 
     for i in 0..50 {
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;

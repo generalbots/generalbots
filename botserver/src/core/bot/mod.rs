@@ -194,6 +194,26 @@ pub async fn check_access_handler(
     axum::extract::Path(bot_name): axum::extract::Path<String>,
     req: axum::extract::Request,
 ) -> impl IntoResponse {
+    // 1. Verificamos primeiro se o bot é público no banco de dados.
+    let is_public = {
+        use diesel::prelude::*;
+        use botcore::shared::schema::bots::dsl as bots_dsl;
+        if let Ok(mut conn) = state.conn.get() {
+            bots_dsl::bots
+                .filter(bots_dsl::name.eq(&bot_name))
+                .select(bots_dsl::is_public)
+                .first::<bool>(&mut *conn)
+                .unwrap_or(false)
+        } else {
+            false
+        }
+    };
+
+    if is_public || bot_name == "default" {
+        return axum::http::StatusCode::OK.into_response();
+    }
+
+    // 2. Se não for público, exigimos o user_id (autenticação).
     let user_id = match req.extensions().get::<Uuid>().copied() {
         Some(id) => id,
         None => return axum::http::StatusCode::UNAUTHORIZED.into_response(),
